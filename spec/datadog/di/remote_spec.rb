@@ -38,38 +38,6 @@ RSpec.describe Datadog::DI::Remote do
     )
   end
 
-  describe '.deferred_products' do
-    let(:settings) { Datadog::Core::Configuration::Settings.new }
-
-    context 'when symbol_database is at its default (mirrors DI) and supported' do
-      before { allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true) }
-
-      it 'includes LIVE_DEBUGGING and LIVE_DEBUGGING_SYMBOL_DB' do
-        expect(described_class.deferred_products(settings))
-          .to contain_exactly('LIVE_DEBUGGING', 'LIVE_DEBUGGING_SYMBOL_DB')
-      end
-    end
-
-    context 'when symbol_database is set explicitly' do
-      before do
-        settings.symbol_database.enabled = true
-        allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
-      end
-
-      it 'includes only LIVE_DEBUGGING (explicit symbol_database manages its own product)' do
-        expect(described_class.deferred_products(settings)).to contain_exactly('LIVE_DEBUGGING')
-      end
-    end
-
-    context 'when the runtime does not support symbol database' do
-      before { allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(false) }
-
-      it 'includes only LIVE_DEBUGGING' do
-        expect(described_class.deferred_products(settings)).to contain_exactly('LIVE_DEBUGGING')
-      end
-    end
-  end
-
   describe '.handle_rc_enablement' do
     # Verifies the RC-driven enable/disable path invoked from
     # Datadog::Tracing::Remote when `dynamic_instrumentation_enabled`
@@ -77,18 +45,10 @@ RSpec.describe Datadog::DI::Remote do
     # point for the implicit-enablement feature.
 
     let(:component) { instance_double(Datadog::DI::Component, started?: false) }
-    let(:remote_component) { instance_double(Datadog::Core::Remote::Component, add_products: nil, remove_products: nil) }
-    let(:components) do
-      instance_double(
-        Datadog::Core::Configuration::Components,
-        dynamic_instrumentation: component,
-        remote: remote_component,
-      )
-    end
+    let(:components) { instance_double(Datadog::Core::Configuration::Components, dynamic_instrumentation: component) }
 
     before do
       allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
-      allow(described_class).to receive(:deferred_products).and_return(['LIVE_DEBUGGING'])
     end
 
     context 'when enabled: true and component is not explicitly disabled' do
@@ -96,10 +56,9 @@ RSpec.describe Datadog::DI::Remote do
         allow(described_class).to receive(:explicitly_disabled?).and_return(false)
       end
 
-      it 'activates tracking, starts the component, and advertises the deferred products' do
+      it 'activates tracking and starts the component' do
         expect(Datadog::DI).to receive(:activate_tracking)
         expect(component).to receive(:start!)
-        expect(remote_component).to receive(:add_products).with(['LIVE_DEBUGGING'])
         described_class.handle_rc_enablement(true)
       end
     end
@@ -120,9 +79,8 @@ RSpec.describe Datadog::DI::Remote do
     end
 
     context 'when enabled: false' do
-      it 'stops the component and withdraws the deferred products' do
+      it 'stops the component (idempotent — also stops if not started)' do
         expect(component).to receive(:stop!)
-        expect(remote_component).to receive(:remove_products).with(['LIVE_DEBUGGING'])
         described_class.handle_rc_enablement(false)
       end
     end
@@ -207,14 +165,7 @@ RSpec.describe Datadog::DI::Remote do
     # update through this path, this snapshot diff catches it.
 
     let(:component) { instance_double(Datadog::DI::Component, start!: nil, stop!: nil, started?: false) }
-    let(:remote_component) { instance_double(Datadog::Core::Remote::Component, add_products: nil, remove_products: nil) }
-    let(:components) do
-      instance_double(
-        Datadog::Core::Configuration::Components,
-        dynamic_instrumentation: component,
-        remote: remote_component,
-      )
-    end
+    let(:components) { instance_double(Datadog::Core::Configuration::Components, dynamic_instrumentation: component) }
     let(:settings) do
       Datadog::Core::Configuration::Settings.new.tap do |s|
         # Touch DI settings so the option hash is fully materialized and the

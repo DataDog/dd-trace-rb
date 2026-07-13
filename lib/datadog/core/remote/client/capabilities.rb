@@ -28,26 +28,34 @@ module Datadog
             @base64_capabilities = capabilities_to_base64
           end
 
-          # The RC request re-reads this on every poll (Client#payload). DI implicit
-          # enablement adds/removes the LIVE_DEBUGGING(/_SYMBOL_DB) product here when
-          # the component starts/stops, so a candidate-but-not-enabled tracer
-          # advertises the capability bit but subscribes to no DI product. Guarded by
-          # a mutex because the writer runs on the RC worker thread (RC enable) or the
-          # main thread (boot / reconfigure) while the reader runs on the RC worker
-          # thread at payload build. Returns a snapshot so callers never see the
-          # array mutate mid-iteration.
+          # The RC request re-reads the product list on every poll (Client#payload),
+          # so #add_products / #remove_products change what is advertised without a
+          # client rebuild. All three are mutex-guarded: the writer runs on the RC
+          # worker thread (RC enable) or the main thread (boot / reconfigure) while
+          # the reader runs on the RC worker thread at payload build.
+          #
+          # @return [Array<String>] a snapshot copy of the advertised products, so
+          #   callers never observe the internal array mutating mid-iteration.
           def products
             @products_mutex.synchronize { @products.dup }
           end
 
+          # @param products [Array<String>] products to advertise; entries already
+          #   present are ignored (idempotent).
+          # @return [void]
           def add_products(products)
             @products_mutex.synchronize do
               products.each { |product| @products << product unless @products.include?(product) }
             end
+            nil
           end
 
+          # @param products [Array<String>] products to stop advertising; entries not
+          #   present are ignored.
+          # @return [void]
           def remove_products(products)
             @products_mutex.synchronize { products.each { |product| @products.delete(product) } }
+            nil
           end
 
           private

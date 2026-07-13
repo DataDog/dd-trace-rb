@@ -35,22 +35,6 @@ module Datadog
           CAPABILITIES
         end
 
-        # Products advertised only once DI is actually running, so a
-        # candidate-but-not-enabled tracer subscribes to no DI product (the
-        # backend heartbeat monitor counts product subscription as an active DI
-        # client). LIVE_DEBUGGING always; LIVE_DEBUGGING_SYMBOL_DB only when
-        # Symbol Database mirrors DI (its setting left at the default nil) --
-        # an explicit symbol_database.enabled manages its own product at startup.
-        def deferred_products(settings = Datadog.configuration)
-          products = [PRODUCT]
-          if settings.respond_to?(:symbol_database) &&
-              settings.symbol_database.using_default?(:enabled) &&
-              Datadog::SymbolDatabase.supported_runtime?
-            products << Datadog::SymbolDatabase::Remote::PRODUCT
-          end
-          products
-        end
-
         # Entry point for the RC-driven DI enable/disable path.
         #
         # Invoked from {Datadog::Tracing::Remote.process_config} when an
@@ -115,11 +99,6 @@ module Datadog
             DI.activate_tracking
             was_started = component.started?
             component.start!
-            # Advertise LIVE_DEBUGGING (and the DI-mirror LIVE_DEBUGGING_SYMBOL_DB)
-            # now that DI is running, so the backend begins delivering probe
-            # configs. Deferred from startup so a candidate tracer does not
-            # subscribe before it is enabled. Picked up on the next RC poll.
-            components.remote&.add_products(deferred_products)
             # A probe delivered in an earlier poll while the component was stopped
             # was dropped by #receivers (which ignores changes while !started?) and
             # never entered the probe repository. RC dispatch only re-delivers a
@@ -130,9 +109,6 @@ module Datadog
             replay_current_probes(repository, component) if repository && !was_started
           else
             component.stop!
-            # Withdraw the deferred products so a stopped tracer stops being
-            # counted as an active DI client.
-            components.remote&.remove_products(deferred_products)
           end
         rescue => e
           Datadog.logger.debug { "di: error handling implicit enablement: #{e.class}: #{e.message}" }

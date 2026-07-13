@@ -9,8 +9,6 @@ module Datadog
 
       def self.capabilities: () -> ::Array[Integer]
 
-      def self.deferred_products: (?Datadog::Core::Configuration::Settings settings) -> ::Array[String]
-
       def self.handle_rc_enablement: (bool enabled, ?Core::Remote::Configuration::Repository? repository) -> void
 
       def self.explicitly_disabled?: (?Datadog::Core::Configuration::Settings settings) -> bool

@@ -27,6 +27,37 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
     change
   end
 
+  describe '.deferred_products' do
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+    context 'when symbol_database is at its default (mirrors DI) and supported' do
+      before { allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true) }
+
+      it 'defers the symbol database product' do
+        expect(described_class.deferred_products(settings)).to contain_exactly('LIVE_DEBUGGING_SYMBOL_DB')
+      end
+    end
+
+    context 'when symbol_database is set explicitly (manages its own product at startup)' do
+      before do
+        settings.symbol_database.enabled = true
+        allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+      end
+
+      it 'defers nothing' do
+        expect(described_class.deferred_products(settings)).to be_empty
+      end
+    end
+
+    context 'when the runtime does not support symbol database' do
+      before { allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(false) }
+
+      it 'defers nothing' do
+        expect(described_class.deferred_products(settings)).to be_empty
+      end
+    end
+  end
+
   describe '.process_change' do
     context 'with insert change and upload_symbols: true' do
       it 'calls start_upload on the component' do

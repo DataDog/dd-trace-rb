@@ -9,7 +9,7 @@ module Datadog
 
           attr_reader base64_capabilities: String
 
-          @products: Array[String]
+          @products: ::Array[::String]
 
           @products_mutex: ::Thread::Mutex
 
@@ -20,11 +20,11 @@ module Datadog
             Datadog::Core::Telemetry::Component telemetry
           ) -> void
 
-          def products: () -> Array[String]
+          def products: () -> ::Array[::String]
 
-          def add_products: (Array[String] products) -> void
+          def add_products: (::Array[::String] products) -> void
 
-          def remove_products: (Array[String] products) -> void
+          def remove_products: (::Array[::String] products) -> void
 
           private
 

@@ -290,10 +290,14 @@ module Datadog
             if settings.dynamic_instrumentation.enabled || old_state&.di_implicitly_enabled?
               DI.activate_tracking
               dynamic_instrumentation.start!
-              # Advertise the DI RC product now that DI is running. It is deferred
-              # from Capabilities#register so a candidate-but-not-enabled tracer
-              # does not subscribe (see DI::Remote.deferred_products).
-              remote&.add_products(Datadog::DI::Remote.deferred_products(settings))
+              # Advertise the DI RC products now that DI is running; they are
+              # deferred from Capabilities#register (which explains why) so a
+              # candidate-but-not-enabled tracer does not subscribe. The RC-runtime
+              # enable path does the same in Tracing::Remote.process_config.
+              remote&.add_products(
+                Datadog::DI::Remote.products +
+                Datadog::SymbolDatabase::Remote.deferred_products(settings),
+              )
             end
           end
 

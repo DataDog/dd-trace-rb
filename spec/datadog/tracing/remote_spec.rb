@@ -80,21 +80,30 @@ RSpec.describe Datadog::Tracing::Remote do
 
       context 'and dynamic_instrumentation_enabled is configured' do
         let(:symbol_database) { instance_double(Datadog::SymbolDatabase::Component) }
+        let(:remote_component) do
+          instance_double(Datadog::Core::Remote::Component, add_products: nil, remove_products: nil)
+        end
 
         before do
           # Isolate the Symbol Database replay wiring from DI's own enablement.
           allow(Datadog::DI::Remote).to receive(:handle_rc_enablement)
           components = Datadog.send(:components)
           allow(components).to receive(:symbol_database).and_return(symbol_database)
+          allow(components).to receive(:remote).and_return(remote_component)
           allow(components.telemetry).to receive(:client_configuration_change!)
+          # Deterministic Symbol Database product so the advertised list is fixed.
+          allow(Datadog::SymbolDatabase::Remote).to receive(:deferred_products)
+            .and_return(['LIVE_DEBUGGING_SYMBOL_DB'])
         end
 
         context 'to true' do
           let(:config) { {'lib_config' => {'dynamic_instrumentation_enabled' => true}} }
 
-          it 'replays any deferred Symbol Database upload' do
+          it 'replays deferred Symbol Database upload and advertises the DI products' do
             expect(symbol_database).to receive(:resume_pending_upload)
             expect(symbol_database).not_to receive(:stop_for_di_disable)
+            expect(remote_component).to receive(:add_products)
+              .with(['LIVE_DEBUGGING', 'LIVE_DEBUGGING_SYMBOL_DB'])
 
             process_config
 
@@ -105,9 +114,11 @@ RSpec.describe Datadog::Tracing::Remote do
         context 'to false' do
           let(:config) { {'lib_config' => {'dynamic_instrumentation_enabled' => false}} }
 
-          it 'stops Symbol Database (follows-DI case) and does not replay' do
+          it 'stops Symbol Database (follows-DI case), withdraws products, and does not replay' do
             expect(symbol_database).to receive(:stop_for_di_disable)
             expect(symbol_database).not_to receive(:resume_pending_upload)
+            expect(remote_component).to receive(:remove_products)
+              .with(['LIVE_DEBUGGING', 'LIVE_DEBUGGING_SYMBOL_DB'])
 
             process_config
 
