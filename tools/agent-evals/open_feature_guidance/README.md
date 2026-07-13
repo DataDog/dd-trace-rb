@@ -10,9 +10,17 @@ The first phase covers awareness only. Separate cases verify the root route for 
 
 These cases do not evaluate whether the agent follows the scoped guide's content.
 
-## Next steps
+## RuboCop adherence
 
-After [#6032](https://github.com/DataDog/dd-trace-rb/pull/6032) makes the repository's RuboCop configuration directly discoverable and enforceable, add a separate content-adherence phase that verifies agents find and run those lint rules. Keep the executable lint configuration as the source of truth instead of duplicating individual cops in agent guidance.
+The writable lint eval verifies more than awareness:
+
+```bash
+ruby tools/agent-evals/open_feature_guidance/run_lint.rb
+```
+
+It creates a temporary detached worktree, installs an eval-only subset of the forthcoming [RuboCop configuration from #6032](https://github.com/DataDog/dd-trace-rb/pull/6032), and asks a fresh Codex session to make a small OpenFeature change. The case passes only when the Codex JSON trace contains a RuboCop command, an independent RuboCop post-check reports no offenses, the requested change is present, and no unrelated files changed.
+
+The fixture starts with a double-quoted string while the configuration requires single quotes. A minimal string-value edit therefore cannot pass accidentally. RuboCop remains the executable source of truth; the agent guidance names the workflow without duplicating individual cops.
 
 Run all cases from any directory in the checkout:
 
