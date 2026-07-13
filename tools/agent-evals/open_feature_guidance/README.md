@@ -1,6 +1,6 @@
 # OpenFeature agent guidance evals
 
-These lightweight evals check that a Codex session started at the repository root recognizes `lib/datadog/open_feature/AGENTS.md` as governing guidance for FFE work.
+These lightweight evals check that a Codex session started at the repository root recognizes `lib/datadog/open_feature/AGENTS.md` as governing guidance for OpenFeature work.
 
 The first phase covers awareness only. Separate cases verify the root route for changes under:
 
@@ -8,7 +8,11 @@ The first phase covers awareness only. Separate cases verify the root route for 
 - `spec/datadog/open_feature/`; and
 - `sig/datadog/open_feature/`.
 
-These cases do not evaluate whether the agent follows the scoped guide's content. Content-adherence evals are the next phase after discovery is reliable.
+These cases do not evaluate whether the agent follows the scoped guide's content.
+
+## Next steps
+
+After [#6032](https://github.com/DataDog/dd-trace-rb/pull/6032) makes the repository's RuboCop configuration directly discoverable and enforceable, add a separate content-adherence phase that verifies agents find and run those lint rules. Keep the executable lint configuration as the source of truth instead of duplicating individual cops in agent guidance.
 
 Run all cases from any directory in the checkout:
 
