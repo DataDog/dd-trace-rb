@@ -849,9 +849,6 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
 
       it 'consumes pre-computed entry-time block; does not re-evaluate against exit scope' do
-        # context.locals contains {x: 42}, but the stashed entry block has
-        # {"x" => 7} -- confirming the builder uses the pre-computed block and
-        # does not run the evaluator against the exit-time scope.
         payload = builder.build_snapshot(context)
         expect(payload[:debugger][:snapshot][:captures][:entry][:captureExpressions]["x"][:value]).to eq("7")
       end
@@ -882,7 +879,6 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
     context 'evaluation error in a capture expression' do
       let(:failing_expr) do
-        # len(badvar) -- badvar is not in locals, resolves to nil, len(nil) raises
         compiled = Datadog::DI::EL::Compiler.new.compile({"len" => {"ref" => "badvar"}})
         Datadog::DI::EL::Expression.new("len(badvar)", compiled)
       end

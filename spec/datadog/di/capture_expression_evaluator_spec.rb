@@ -70,8 +70,6 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
     end
 
     context "expression evaluation raises" do
-      # len() of a non-Array/String/Hash raises ExpressionEvaluationError.
-      # The locals do not have :badvar, so the ref resolves to nil, and len(nil) raises.
       let(:probe) do
         Datadog::DI::Probe.new(
           id: "p1", type: :log, type_name: "F", method_name: "m",
@@ -106,10 +104,6 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
     end
 
     context "expression evaluation raises a non-StandardError" do
-      # NotImplementedError is not a StandardError, so a plain `rescue => e`
-      # would let it escape into the customer method. The evaluator rescues
-      # Exception and re-raises only fatal exceptions, so a non-fatal
-      # non-StandardError is recorded as an evaluation error like any other.
       let(:expr) { instance_double(Datadog::DI::EL::Expression) }
 
       let(:probe) do
@@ -135,8 +129,6 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
     end
 
     context "expression evaluation raises a fatal exception" do
-      # Fatal exceptions (process teardown / OOM) must never be swallowed by
-      # the catch-all rescue; reraise_if_fatal propagates them out of #evaluate.
       let(:expr) { instance_double(Datadog::DI::EL::Expression) }
 
       let(:probe) do
@@ -219,12 +211,6 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
     context "time budget exhausted mid-loop after some expressions have evaluated" do
       before do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
-        # Stub the clock so the deadline calculation sees t=0, the first
-        # iteration's check sees t=0 (under deadline of 100ms in ns), and
-        # the second iteration's check sees t=200ms in ns (past deadline).
-        # Targets only the :nanosecond variant the evaluator uses; other
-        # callers (Time.now via :float_second, etc.) fall through to the
-        # real implementation.
         clock_calls = 0
         clock_returns = [0, 0, 200_000_000]
         allow(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
@@ -279,8 +265,6 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         )
       end
 
-      # The depth value passed to the serializer is what we are asserting on
-      # rather than the resulting JSON shape.
       it "passes the expression's depth into the serializer" do
         expect(serializer).to receive(:serialize_value).with(42, hash_including(depth: 5, attribute_count: 10)).and_call_original
         evaluator.evaluate(probe, context)

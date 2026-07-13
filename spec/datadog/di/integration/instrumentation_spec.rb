@@ -595,7 +595,6 @@ RSpec.describe 'Instrumentation integration' do
           expect(captures.fetch(:return).fetch(:captureExpressions)).to eq(
             "arg1" => {type: 'Integer', value: '7'},
           )
-          # Capture expressions are evaluated once at return; no entry block is emitted.
           expect(captures).not_to have_key(:entry)
         end
       end
@@ -627,16 +626,13 @@ RSpec.describe 'Instrumentation integration' do
 
           greeting = +'hello world'
           InstrumentationSpecTestClass.new.mutating_method(greeting)
-          # Confirm the method mutated the arg.
           expect(greeting).to eq('bye world')
           component.probe_notifier_worker.flush
 
           captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
-          # Entry-time evaluation sees the original value, not the post-mutation one.
           expect(captures.fetch(:entry).fetch(:captureExpressions)).to eq(
             "greeting_at_entry" => {type: 'String', value: 'hello world'},
           )
-          # evaluateAt: :entry emits only the entry block; no return block.
           expect(captures).not_to have_key(:return)
         end
       end
@@ -646,10 +642,6 @@ RSpec.describe 'Instrumentation integration' do
           Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
         end
 
-        # At entry time the duration is not yet known (context.duration is nil).
-        # @duration must resolve to nil (undefined) rather than raising, so the
-        # key is captured as a null value instead of being dropped with an
-        # evaluation error.
         let(:probe_spec) do
           {
             id: '1234',
@@ -675,12 +667,10 @@ RSpec.describe 'Instrumentation integration' do
 
           snapshot = payload.fetch(:debugger).fetch(:snapshot)
           captures = snapshot.fetch(:captures)
-          # The key is present with a null value, not omitted.
           expect(captures.fetch(:entry).fetch(:captureExpressions)).to eq(
             "duration_at_entry" => {type: 'NilClass', isNull: true},
           )
           expect(captures).not_to have_key(:return)
-          # No evaluation error is recorded for the expression.
           expect(snapshot.fetch(:evaluationErrors, [])).to be_empty
         end
       end
@@ -714,7 +704,6 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
 
           captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
-          # Exit-time evaluation sees the post-mutation value.
           expect(captures.fetch(:return).fetch(:captureExpressions)).to eq(
             "greeting_at_exit" => {type: 'String', value: 'bye world'},
           )
@@ -802,9 +791,6 @@ RSpec.describe 'Instrumentation integration' do
           Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
         end
 
-        # len(undefined) -- `undefined` resolves to nil at the EL layer, and
-        # len(nil) raises ExpressionEvaluationError, which the evaluator
-        # catches and reports via evaluationErrors.
         let(:probe_spec) do
           {
             id: '1234',
@@ -859,24 +845,18 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
 
           captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
-          # Entry arg passes through serialize_args with the probe-level limit.
           expect(captures.fetch(:entry).fetch(:arguments).fetch(:arg1)).to include(
             type: 'String', value: 'hell', truncated: true,
           )
-          # @return passes through serialize_value with the probe-level limit.
           expect(captures.fetch(:return).fetch(:arguments).fetch(:@return)).to include(
             type: 'String', value: 'bye ', truncated: true,
           )
-          # self is serialized with the probe-level limit so its ivar string is also truncated.
           ivar = captures.fetch(:return).fetch(:arguments).fetch(:self).fetch(:fields).fetch(:@ivar)
           expect(ivar).to include(type: 'String', value: 'star', truncated: true)
         end
       end
 
       context 'with snapshot capture and probe-level maxCollectionSize override' do
-        # Verifies the same plumbing as the maxLength test, for the
-        # maxCollectionSize override that was previously silently dropped
-        # before flowing through Probe#snapshot_serializer_limits.
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             type_name: 'InstrumentationSpecTestClass', method_name: 'collection_method',
@@ -898,15 +878,12 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
 
           captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
-          # Entry arg array passes through serialize_args; only first 2 elements captured.
           arg1 = captures.fetch(:entry).fetch(:arguments).fetch(:arg1)
           expect(arg1).to include(type: 'Array', notCapturedReason: 'collectionSize', size: 5)
           expect(arg1.fetch(:elements).size).to eq(2)
-          # @return array passes through serialize_value with the probe-level limit.
           ret = captures.fetch(:return).fetch(:arguments).fetch(:@return)
           expect(ret).to include(type: 'Array', notCapturedReason: 'collectionSize', size: 5)
           expect(ret.fetch(:elements).size).to eq(2)
-          # self serialization recurses with the probe-level limit so the ivar array is also truncated.
           ivar = captures.fetch(:return).fetch(:arguments).fetch(:self).fetch(:fields).fetch(:@ivar)
           expect(ivar).to include(type: 'Array', notCapturedReason: 'collectionSize', size: 5)
           expect(ivar.fetch(:elements).size).to eq(2)
@@ -1249,7 +1226,6 @@ RSpec.describe 'Instrumentation integration' do
             Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
           end
 
-          # Line 40 of the test target reads `a * 2` after `a = 21` on line 33.
           let(:probe_spec) do
             {
               id: '1234',
@@ -1529,11 +1505,6 @@ RSpec.describe 'Instrumentation integration' do
         end
 
         context 'with probe-level maxCollectionSize override on line-probe locals' do
-          # Verifies probe-level capture-limit overrides flow through to
-          # serialize_vars on the line-probe locals path. Previously
-          # maxLength / maxCollectionSize were silently dropped here; this
-          # asserts that probe.snapshot_serializer_limits feeds
-          # Context#serialized_locals.
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: 'instrumentation_integration_test_class.rb', line_no: 40,
@@ -1558,7 +1529,6 @@ RSpec.describe 'Instrumentation integration' do
             expect(redacted_local).to include(
               type: 'Hash', notCapturedReason: 'collectionSize', size: 2,
             )
-            # Only the first entry (:b => 33) made it under the size cap.
             expect(redacted_local.fetch(:entries).size).to eq(1)
           end
         end

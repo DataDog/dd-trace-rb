@@ -11,15 +11,6 @@ module Datadog
     #
     # @api private
     class ProbeNotificationBuilder
-      # @param settings [Datadog::Core::Configuration::Settings] tracer settings;
-      #   read at payload-build time for service/env/version/tags fields.
-      # @param serializer [Datadog::DI::Serializer] serializer used for snapshot
-      #   values (captures, return, throwable).
-      # @param logger [Datadog::DI::Logger] logger forwarded to the internal
-      #   CaptureExpressionEvaluator for per-expression evaluation failures.
-      # @param telemetry [Datadog::Core::Telemetry::Component, nil] telemetry
-      #   forwarded to the internal CaptureExpressionEvaluator. nil when DI was
-      #   constructed without telemetry (Component.build allows this).
       def initialize(settings, serializer, logger, telemetry: nil)
         @settings = settings
         @serializer = serializer
@@ -30,27 +21,14 @@ module Datadog
         )
       end
 
-      # Tracer settings; read at every build_* call.
-      # @return [Datadog::Core::Configuration::Settings]
       attr_reader :settings
 
-      # Serializer used to convert captured values into snapshot wire format.
-      # @return [Datadog::DI::Serializer]
       attr_reader :serializer
 
-      # Logger; passed through to CaptureExpressionEvaluator at construction.
-      # @return [Datadog::DI::Logger]
       attr_reader :logger
 
-      # Telemetry; passed through to CaptureExpressionEvaluator at construction.
-      # nil when DI was constructed without telemetry.
-      # @return [Datadog::Core::Telemetry::Component, nil]
       attr_reader :telemetry
 
-      # Sub-component that evaluates probe.capture_expressions during
-      # build_snapshot when probe.capture_expressions? is true. Constructed
-      # in the initializer alongside the other collaborators.
-      # @return [Datadog::DI::CaptureExpressionEvaluator]
       attr_reader :capture_expression_evaluator
 
       def build_received(probe)
@@ -100,11 +78,6 @@ module Datadog
           raise ArgumentError, "Asked to build snapshot with snapshot capture but target_self is nil"
         end
 
-        # Mutual exclusion: capture_snapshot wins at fire time when both
-        # captureSnapshot and captureExpressions are set on the same probe,
-        # matching Python/Java/Go DI. The capture-expression values are
-        # silently dropped in that case; the user-visible mutual exclusion
-        # is also logged at parse time in ProbeBuilder.
         # TODO also verify that non-capturing probe does not pass
         # snapshot or vars/args into this method
         capture_expression_evaluation_errors = []
@@ -135,13 +108,6 @@ module Datadog
             }
           end
         elsif probe.capture_expressions?
-          # Per-expression evaluation timing on method probes is single-eval,
-          # honoring probe.evaluate_at (default :exit), matching Python /
-          # .NET / PHP. evaluate_at: :entry block was evaluated at the entry
-          # hook (Instrumenter#hook_method) against the pre-super scope; we
-          # just consume the stashed result. evaluate_at: :exit (default)
-          # evaluates here, at exit, against the full exit-time scope.
-          # Line probes ignore evaluate_at and always emit under captures.lines.
           if probe.method?
             if probe.evaluate_at == :entry
               captured_block = context.entry_capture_expressions || {}
@@ -175,9 +141,6 @@ module Datadog
         if segments = probe.template_segments
           message, evaluation_errors = evaluate_template(segments, context)
         end
-        # Per-expression evaluation errors are merged into the snapshot's
-        # top-level evaluationErrors array alongside template/condition errors,
-        # matching the cross-tracer convention.
         evaluation_errors.concat(capture_expression_evaluation_errors)
         build_snapshot_base(context,
           evaluation_errors: evaluation_errors, message: message,

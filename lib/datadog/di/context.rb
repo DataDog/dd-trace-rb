@@ -25,9 +25,6 @@ module Datadog
         @path = path
         @caller_locations = caller_locations
         @serialized_entry_args = serialized_entry_args
-        # Capture-expression block + evaluation errors collected at the
-        # entry hook for an evaluate_at: :entry method probe. nil when the
-        # probe is exit-timed or has no capture expressions.
         @entry_capture_expressions = entry_capture_expressions
         @entry_capture_evaluation_errors = entry_capture_evaluation_errors
         @return_value = return_value
@@ -51,12 +48,8 @@ module Datadog
 
       attr_reader :serialized_entry_args
 
-      # Entry-time capture-expression block, for an evaluate_at: :entry
-      # method probe. Hash of name => serialized value, or nil.
       attr_reader :entry_capture_expressions
 
-      # Per-expression evaluation errors from the entry-time evaluation.
-      # Array of { expr:, message: } hashes, or nil.
       attr_reader :entry_capture_evaluation_errors
 
       # Return value for the method, for a method probe

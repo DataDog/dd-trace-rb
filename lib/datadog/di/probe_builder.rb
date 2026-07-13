@@ -29,12 +29,8 @@ module Datadog
 
       module_function
 
-      # Backend JSON schema constraint on capture-expression names.
       CAPTURE_EXPRESSION_NAME_PATTERN = /\A[a-zA-Z0-9_?]+\z/
 
-      # Permitted values for the RC payload's `evaluateAt` field. The backend
-      # schema also accepts "DEFAULT" for Java compatibility; we normalize that
-      # to :exit at parse time to match the libdatadog default.
       EVALUATE_AT_STRINGS = {
         "ENTRY" => :entry,
         "EXIT" => :exit,
@@ -55,11 +51,6 @@ module Datadog
         capture_expressions = build_capture_expressions(config['captureExpressions'])
         capture_expressions = dedup_capture_expressions(capture_expressions, config["id"], logger)
         if !!config["captureSnapshot"] && !capture_expressions.empty?
-          # When both captureSnapshot and captureExpressions are set on the
-          # same probe, the runtime emits the snapshot block and silently
-          # drops capture-expression values (snapshot wins), matching
-          # Python/Java/Go DI. Logged at debug to make the choice observable
-          # without spamming operator logs.
           logger.debug do
             "di: probe #{config["id"]}: captureSnapshot=true wins over captureExpressions (n=#{capture_expressions.size})"
           end
@@ -91,17 +82,6 @@ module Datadog
         raise ArgumentError, "Malformed remote configuration entry for probe: #{exc.class}: #{exc.message}: #{config}"
       end
 
-      # Parses the `captureExpressions` block of a remote-config probe payload
-      # into compiled CaptureExpression instances.
-      #
-      # @param raw [Array<Hash>, nil] raw `captureExpressions` value from the
-      #   remote-config payload. nil is treated as "no expressions" (returns []).
-      # @return [Array<Datadog::DI::CaptureExpression>] one per entry; empty
-      #   array when raw is nil or empty.
-      # @raise [ArgumentError] when raw is non-nil and not an Array, when any
-      #   entry is not a Hash, when an entry's name is missing or fails the
-      #   CAPTURE_EXPRESSION_NAME_PATTERN charset check, or when the `expr`
-      #   field is missing/malformed.
       def build_capture_expressions(raw)
         return [] if raw.nil?
         unless Array === raw
@@ -127,20 +107,6 @@ module Datadog
         end
       end
 
-      # Collapses capture expressions that share a name, keeping the last
-      # occurrence for each name. Duplicate names are permitted on the wire and
-      # are forwarded unchanged. The resulting last-wins output matches
-      # Python/Java/Node.js/PHP; unlike those tracers, which evaluate every
-      # entry and let a later value overwrite an earlier one at snapshot time,
-      # Ruby resolves duplicates here at parse time so a discarded duplicate is
-      # never evaluated. A collapse is logged at debug so it stays observable.
-      #
-      # @param capture_expressions [Array<Datadog::DI::CaptureExpression>]
-      #   parsed capture expressions, in payload order.
-      # @param probe_id [String, nil] probe id for the diagnostic log line.
-      # @param logger [Datadog::DI::Logger] injected logger.
-      # @return [Array<Datadog::DI::CaptureExpression>] one per distinct name,
-      #   with the last occurrence retained for each.
       def dedup_capture_expressions(capture_expressions, probe_id, logger)
         return capture_expressions if capture_expressions.size < 2
         by_name = {}
@@ -154,14 +120,6 @@ module Datadog
         by_name.values
       end
 
-      # Parses a per-expression `capture` block of a remote-config probe payload
-      # into a CaptureLimits instance.
-      #
-      # @param raw [Hash, nil] raw per-expression `capture` value. nil means
-      #   "no per-expression overrides" (returns nil).
-      # @return [Datadog::DI::CaptureLimits, nil] CaptureLimits when raw is a
-      #   Hash; nil when raw is nil.
-      # @raise [ArgumentError] when raw is non-nil and not a Hash.
       def build_capture_limits(raw)
         return nil if raw.nil?
         unless Hash === raw
@@ -175,18 +133,6 @@ module Datadog
         )
       end
 
-      # Parses the RC payload's `evaluateAt` string into the
-      # +Datadog::DI::Probe+ symbol form. "ENTRY" -> :entry, "EXIT" -> :exit,
-      # "DEFAULT" -> :exit (Java sends this; libdatadog also treats it as
-      # Exit). Absent or unrecognized values coerce to :exit and emit a
-      # debug log; the runtime never raises on an unknown evaluateAt because
-      # such payloads should still install as conventional EXIT-timed probes.
-      #
-      # @param raw [String, nil] raw `evaluateAt` value from the RC payload.
-      # @param probe_id [String, nil] probe id for the diagnostic log line.
-      # @param logger [Datadog::DI::Logger] injected logger for the diagnostic
-      #   log line emitted on an unrecognized value.
-      # @return [Symbol] :entry or :exit.
       def parse_evaluate_at(raw, probe_id, logger)
         return :exit if raw.nil?
         EVALUATE_AT_STRINGS[raw] || begin

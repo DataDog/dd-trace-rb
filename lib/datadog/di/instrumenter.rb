@@ -85,11 +85,6 @@ module Datadog
       attr_reader :telemetry
       attr_reader :code_tracker
 
-      # Lazily-constructed CaptureExpressionEvaluator used for entry-time
-      # evaluation on method probes with evaluate_at: :entry. The notification
-      # builder owns a separate instance for exit-time evaluation; they share
-      # the same settings/serializer/logger/telemetry and produce identical
-      # output for an identical context.
       def capture_expression_evaluator
         @capture_expression_evaluator ||= CaptureExpressionEvaluator.new(
           settings: settings, serializer: serializer, logger: logger, telemetry: telemetry,
@@ -535,14 +530,6 @@ module Datadog
                 **probe.snapshot_serializer_limits(settings))
             end
 
-            # Entry-time capture-expression evaluation. For probes with
-            # evaluate_at: :entry, evaluate against the pre-super scope
-            # (args/kwargs/self only -- @return/@duration/@exception are
-            # nil at this point) and store the result. The Context built
-            # below carries it through to the notification builder.
-            # Skipped when capture_snapshot is also set: the snapshot block
-            # wins at fire time, so any pre-computed capture-expression block
-            # would be discarded by ProbeNotificationBuilder.
             entry_capture_expressions = nil
             entry_capture_evaluation_errors = nil
             if probe.capture_expressions? && probe.evaluate_at == :entry && !probe.capture_snapshot?
@@ -556,13 +543,6 @@ module Datadog
                   capture_expression_evaluator.evaluate(probe, entry_context)
               rescue Exception => exc # standard:disable Lint/RescueException
                 Datadog::DI.reraise_if_fatal(exc)
-                # Per-expression StandardError is caught inside the
-                # evaluator; reaching this rescue means a non-evaluator
-                # failure (e.g. building the entry Context or combining
-                # args raised). Mirror the condition-evaluation pattern
-                # above: surface in tests via propagate_all_exceptions,
-                # otherwise log + telemetry and continue with no entry
-                # block stashed.
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
                 logger.debug { "di: error evaluating entry-time capture expressions: #{exc.class}: #{exc.message}" }
@@ -630,13 +610,6 @@ module Datadog
             caller_locs = method_frame + (caller_locations(2) || [])
             # TODO capture arguments at exit
 
-            # Method-probe capture expressions need access to args/kwargs by
-            # name (arg1, arg2, kwarg keys). Populate locals from the live
-            # arg references when the probe has capture expressions; values
-            # may reflect in-place mutation by the method body, matching the
-            # return-time scope semantics.
-            # Skip when capture_snapshot is also set -- the snapshot wins at
-            # build time, so the combined hash would be discarded.
             capture_expression_locals = if probe.capture_expressions? && !probe.capture_snapshot?
               serializer.combine_args(args, kwargs, target_self)
             end

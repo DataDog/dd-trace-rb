@@ -129,18 +129,6 @@ module Datadog
       # Instance variables are technically a hash just like kwargs,
       # we take them as a separate parameter to avoid a hash merge
       # in upstream code.
-      #
-      # @param args [Array] positional arguments captured at the call site.
-      # @param kwargs [Hash] keyword arguments captured at the call site.
-      # @param target_self [Object] the receiver of the instrumented method
-      #   call; its instance variables are folded into the output.
-      # @param depth [Integer] object traversal depth cap.
-      # @param attribute_count [Integer] per-object attribute count cap.
-      # @param length [Integer, nil] String length cap; nil leaves it
-      #   unspecified and lets serialize_value fall back to settings.
-      # @param collection_size [Integer, nil] Array/Hash size cap; nil leaves
-      #   it unspecified and lets serialize_value fall back to settings.
-      # @return [Hash{Symbol => Hash}] serialized argument map.
       def serialize_args(args, kwargs, target_self,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
@@ -155,15 +143,6 @@ module Datadog
       #
       # These are normally local variables that exist on a particular line
       # of executed code.
-      #
-      # @param vars [Hash{Symbol => Object}] variable-name => value map.
-      # @param depth [Integer] object traversal depth cap.
-      # @param attribute_count [Integer] per-object attribute count cap.
-      # @param length [Integer, nil] String length cap; nil leaves it
-      #   unspecified and lets serialize_value fall back to settings.
-      # @param collection_size [Integer, nil] Array/Hash size cap; nil leaves
-      #   it unspecified and lets serialize_value fall back to settings.
-      # @return [Hash{Symbol => Hash}] serialized variable map.
       def serialize_vars(vars,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
@@ -187,11 +166,6 @@ module Datadog
       # (integers, strings, arrays, hashes).
       #
       # Respects string length, collection size and traversal depth limits.
-      #
-      # +length+ and +collection_size+ accept nil to mean "use the global
-      # default setting". They are threaded through to recursive calls so
-      # callers (e.g. the capture-expression evaluator) can override them
-      # per evaluation without re-routing through the global settings.
       def serialize_value(value, name: nil,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: nil,
@@ -232,10 +206,6 @@ module Datadog
 
               if condition_result
                 serializer_proc = entry.fetch(:proc)
-                # Custom serializers do not yet accept length / collection_size;
-                # they receive the standard depth only. This matches the
-                # pre-capture-expressions behavior so existing custom
-                # serializers continue to work.
                 return serializer_proc.call(self, value, name: nil, depth: depth)
               end
             end
