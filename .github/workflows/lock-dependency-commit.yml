@@ -10,8 +10,8 @@ name: Lock Dependencies Commit
 # This job never checks out or executes PR-controlled code; it only
 # consumes lockfile artifacts from the untrusted `lock` job and commits
 # them with a token scoped to this trusted workflow.
-on: # yamllint disable-line rule:truthy # zizmor: ignore[dangerous-triggers]
-  workflow_run:
+on: # yamllint disable-line rule:truthy
+  workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows:
       - Lock Dependencies
     types:
