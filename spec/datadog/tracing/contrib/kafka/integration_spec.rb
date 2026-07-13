@@ -97,4 +97,22 @@ RSpec.describe Datadog::Tracing::Contrib::Kafka::Integration do
 
     it { is_expected.to be Datadog::Tracing::Contrib::Kafka::Patcher }
   end
+
+  describe '#patch_when_disabled?' do
+    subject(:patch_when_disabled?) { integration.patch_when_disabled? }
+
+    after { Datadog.configuration.reset! }
+
+    context 'when Data Streams Monitoring is enabled' do
+      before { Datadog.configure { |c| c.data_streams.enabled = true } }
+
+      it { is_expected.to be true }
+    end
+
+    context 'when Data Streams Monitoring is disabled' do
+      before { Datadog.configure { |c| c.data_streams.enabled = false } }
+
+      it { is_expected.to be false }
+    end
+  end
 end

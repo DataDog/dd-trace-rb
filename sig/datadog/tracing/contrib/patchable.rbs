@@ -14,6 +14,7 @@ module Datadog
           def patcher: () -> nil
           def patch: () -> ({ name: untyped, available: untyped, loaded: untyped, compatible: untyped, patchable: untyped } | true)
           def auto_instrument?: () -> true
+          def patch_when_disabled?: () -> bool
         end
       end
     end

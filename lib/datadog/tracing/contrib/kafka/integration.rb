@@ -40,6 +40,13 @@ module Datadog
           def patcher
             Patcher
           end
+
+          # Data Streams Monitoring instruments Kafka producers/consumers through this
+          # integration's patcher. Keep patching when tracing is disabled so DSM still
+          # works with `DD_TRACE_KAFKA_ENABLED=false`; the patcher skips the tracing spans.
+          def patch_when_disabled?
+            Datadog.configuration.data_streams.enabled
+          end
         end
       end
     end

@@ -16,6 +16,8 @@ module Datadog
           def new_configuration: () -> untyped
 
           def patcher: () -> untyped
+
+          def patch_when_disabled?: () -> untyped
         end
       end
     end

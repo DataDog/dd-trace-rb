@@ -218,6 +218,35 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
             end
           end
 
+          context 'for a disabled integration' do
+            include_context 'registry with integration'
+
+            before do
+              allow(integration).to receive(:default_configuration).and_return(double(enabled: false))
+              allow(integration).to receive(:configure)
+            end
+
+            context 'that does not opt into patching while disabled' do
+              before { allow(integration).to receive(:patch_when_disabled?).and_return(false) }
+
+              it 'is not activated' do
+                result
+                expect(settings.integrations_pending_activation).to_not include(integration)
+                expect(settings.instrumented_integrations).to_not include(integration_name => integration)
+              end
+            end
+
+            context 'that opts into patching while disabled' do
+              before { allow(integration).to receive(:patch_when_disabled?).and_return(true) }
+
+              it 'is activated so non-tracing instrumentation (e.g. DSM) can be applied' do
+                result
+                expect(settings.integrations_pending_activation).to include(integration)
+                expect(settings.instrumented_integrations).to include(integration_name => integration)
+              end
+            end
+          end
+
           context 'for an integration that includes Datadog::Tracing::Contrib::Integration' do
             include_context 'registry with integration' do
               let(:integration) do

@@ -102,6 +102,18 @@ module Datadog
           def auto_instrument?
             true
           end
+
+          # Should the integration still be patched when its `enabled` option is false?
+          #
+          # Normally a disabled integration is never patched. However, some integrations
+          # carry instrumentation for products other than tracing (e.g. Data Streams
+          # Monitoring). Those integrations can override this to `true` so their patcher
+          # still runs while tracing is disabled; the patcher is then responsible for only
+          # applying the non-tracing instrumentation.
+          # @return [Boolean] whether to patch this integration even though tracing is disabled
+          def patch_when_disabled?
+            false
+          end
         end
       end
     end
