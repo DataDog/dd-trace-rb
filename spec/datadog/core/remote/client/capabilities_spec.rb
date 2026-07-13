@@ -395,25 +395,25 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
     it '#add_products advertises a product on the next read' do
       expect(capabilities.products).to_not include('LIVE_DEBUGGING')
-      capabilities.add_products(['LIVE_DEBUGGING'])
+      capabilities.add_products('LIVE_DEBUGGING')
       expect(capabilities.products).to include('LIVE_DEBUGGING')
     end
 
     it '#add_products is idempotent' do
-      capabilities.add_products(['LIVE_DEBUGGING'])
-      capabilities.add_products(['LIVE_DEBUGGING'])
+      capabilities.add_products('LIVE_DEBUGGING')
+      capabilities.add_products('LIVE_DEBUGGING')
       expect(capabilities.products.count('LIVE_DEBUGGING')).to eq(1)
     end
 
     it '#remove_products withdraws products' do
-      capabilities.add_products(['LIVE_DEBUGGING', 'LIVE_DEBUGGING_SYMBOL_DB'])
-      capabilities.remove_products(['LIVE_DEBUGGING', 'LIVE_DEBUGGING_SYMBOL_DB'])
+      capabilities.add_products('LIVE_DEBUGGING', 'LIVE_DEBUGGING_SYMBOL_DB')
+      capabilities.remove_products('LIVE_DEBUGGING', 'LIVE_DEBUGGING_SYMBOL_DB')
       expect(capabilities.products).to_not include('LIVE_DEBUGGING')
       expect(capabilities.products).to_not include('LIVE_DEBUGGING_SYMBOL_DB')
     end
 
     it '#remove_products leaves other products intact' do
-      capabilities.remove_products(['LIVE_DEBUGGING'])
+      capabilities.remove_products('LIVE_DEBUGGING')
       expect(capabilities.products).to include('APM_TRACING')
     end
   end

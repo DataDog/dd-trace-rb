@@ -30,9 +30,9 @@ module Datadog
 
         def after_fork: () -> void
 
-        def add_products: (::Array[::String] products) -> void
+        def add_products: (*::String products) -> void
 
-        def remove_products: (::Array[::String] products) -> void
+        def remove_products: (*::String products) -> void
 
         def self.build: (
           untyped settings,

@@ -101,12 +101,12 @@ module Datadog
           logger.debug { "remote configuration client recreated after fork: #{@client.id} products: #{@capabilities.products.sort.join(', ')}" }
         end
 
-        def add_products(products)
-          @capabilities.add_products(products)
+        def add_products(*products)
+          @capabilities.add_products(*products)
         end
 
-        def remove_products(products)
-          @capabilities.remove_products(products)
+        def remove_products(*products)
+          @capabilities.remove_products(*products)
         end
 
         # Barrier provides a mechanism to fence execution until a condition happens

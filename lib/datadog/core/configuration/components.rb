@@ -291,8 +291,8 @@ module Datadog
               DI.activate_tracking
               dynamic_instrumentation.start!
               remote&.add_products(
-                Datadog::DI::Remote.products +
-                Datadog::SymbolDatabase::Remote.deferred_products(settings),
+                *Datadog::DI::Remote.products,
+                *Datadog::SymbolDatabase::Remote.deferred_products(settings),
               )
             end
           end

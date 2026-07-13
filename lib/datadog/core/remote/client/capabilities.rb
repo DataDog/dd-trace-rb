@@ -32,14 +32,14 @@ module Datadog
             @products_mutex.synchronize { @products.dup }
           end
 
-          def add_products(products)
+          def add_products(*products)
             @products_mutex.synchronize do
               products.each { |product| @products << product unless @products.include?(product) }
             end
             nil
           end
 
-          def remove_products(products)
+          def remove_products(*products)
             @products_mutex.synchronize { products.each { |product| @products.delete(product) } }
             nil
           end

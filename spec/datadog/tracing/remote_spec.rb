@@ -102,7 +102,7 @@ RSpec.describe Datadog::Tracing::Remote do
             expect(symbol_database).to receive(:resume_pending_upload)
             expect(symbol_database).not_to receive(:stop_for_di_disable)
             expect(remote_component).to receive(:add_products)
-              .with(['LIVE_DEBUGGING', 'LIVE_DEBUGGING_SYMBOL_DB'])
+              .with('LIVE_DEBUGGING', 'LIVE_DEBUGGING_SYMBOL_DB')
 
             process_config
 
@@ -117,7 +117,7 @@ RSpec.describe Datadog::Tracing::Remote do
             expect(symbol_database).to receive(:stop_for_di_disable)
             expect(symbol_database).not_to receive(:resume_pending_upload)
             expect(remote_component).to receive(:remove_products)
-              .with(['LIVE_DEBUGGING', 'LIVE_DEBUGGING_SYMBOL_DB'])
+              .with('LIVE_DEBUGGING', 'LIVE_DEBUGGING_SYMBOL_DB')
 
             process_config
 

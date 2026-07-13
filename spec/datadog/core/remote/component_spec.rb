@@ -269,13 +269,13 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
     after { component.shutdown! }
 
     it '#add_products advertises on the capabilities read by the client payload' do
-      component.add_products(['LIVE_DEBUGGING'])
+      component.add_products('LIVE_DEBUGGING')
       expect(capabilities.products).to include('LIVE_DEBUGGING')
     end
 
     it '#remove_products withdraws a previously advertised product' do
-      component.add_products(['LIVE_DEBUGGING'])
-      component.remove_products(['LIVE_DEBUGGING'])
+      component.add_products('LIVE_DEBUGGING')
+      component.remove_products('LIVE_DEBUGGING')
       expect(capabilities.products).to_not include('LIVE_DEBUGGING')
     end
   end

@@ -54,10 +54,10 @@ module Datadog
 
             if di_enabled
               components&.symbol_database&.resume_pending_upload
-              components&.remote&.add_products(di_products)
+              components&.remote&.add_products(*di_products)
             else
               components&.symbol_database&.stop_for_di_disable
-              components&.remote&.remove_products(di_products)
+              components&.remote&.remove_products(*di_products)
             end
           end
 
