@@ -395,7 +395,7 @@ RSpec.describe Datadog::DI::ProbeBuilder do
         end
       end
 
-      context "\"DEFAULT\" (Java sends this)" do
+      context "\"DEFAULT\"" do
         let(:rc_probe_spec) { base_spec.merge("evaluateAt" => "DEFAULT") }
 
         it "maps to :exit (matching libdatadog default)" do
