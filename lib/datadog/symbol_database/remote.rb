@@ -39,18 +39,6 @@ module Datadog
           []
         end
 
-        # Product to advertise only once Dynamic Instrumentation actually starts,
-        # in the case where Symbol Database mirrors DI (its `enabled` setting left
-        # at the default nil). Deferring the product keeps a candidate-but-not-
-        # enabled tracer from subscribing at startup. When `enabled` is set
-        # explicitly (true/false) Symbol Database manages its own product at
-        # startup (see Core::Remote::Client::Capabilities#register) and this
-        # returns an empty array. Callers advertise this only on the DI-start path.
-        #
-        # @param settings [Datadog::Core::Configuration::Settings] the settings to
-        #   inspect for the tri-state `symbol_database.enabled` option.
-        # @return [Array<String>] `[LIVE_DEBUGGING_SYMBOL_DB]` when the product is
-        #   deferred (mirror case on a supported runtime), otherwise `[]`.
         def deferred_products(settings)
           if settings.respond_to?(:symbol_database) &&
               settings.symbol_database.using_default?(:enabled) &&

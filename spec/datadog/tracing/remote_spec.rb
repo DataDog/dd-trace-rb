@@ -91,7 +91,6 @@ RSpec.describe Datadog::Tracing::Remote do
           allow(components).to receive(:symbol_database).and_return(symbol_database)
           allow(components).to receive(:remote).and_return(remote_component)
           allow(components.telemetry).to receive(:client_configuration_change!)
-          # Deterministic Symbol Database product so the advertised list is fixed.
           allow(Datadog::SymbolDatabase::Remote).to receive(:deferred_products)
             .and_return(['LIVE_DEBUGGING_SYMBOL_DB'])
         end

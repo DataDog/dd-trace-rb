@@ -55,10 +55,6 @@ RSpec.describe 'DI implicit enablement integration' do
   end
 
   let(:remote) do
-    # handle_rc_enablement advertises/withdraws the deferred LIVE_DEBUGGING
-    # product on the live RC client when DI starts/stops. This stand-in accepts
-    # those calls; the advertised-product behavior is asserted in
-    # spec/datadog/core/remote/client/capabilities_spec.rb and remote_spec.rb.
     instance_double(Datadog::Core::Remote::Component, add_products: nil, remove_products: nil)
   end
 

@@ -158,8 +158,6 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
       it 'registers the DI capability and receiver but defers the LIVE_DEBUGGING product' do
         expect(capabilities.capabilities).to include(1 << 38)
-        # The product is advertised only when DI actually starts (Components#startup!
-        # / DI::Remote.handle_rc_enablement), not at Capabilities build time.
         expect(capabilities.products).to_not include('LIVE_DEBUGGING')
         expect(capabilities.receivers).to include(
           lambda { |r|

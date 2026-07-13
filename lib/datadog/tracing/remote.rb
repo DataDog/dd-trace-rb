@@ -48,29 +48,14 @@ module Datadog
             # (see Datadog::DI::Remote.handle_rc_enablement).
             Datadog::DI::Remote.handle_rc_enablement(di_enabled, repository)
 
-            # Advertise the DI RC products (LIVE_DEBUGGING and, in the DI-mirror
-            # case, LIVE_DEBUGGING_SYMBOL_DB) once DI is running, and withdraw them
-            # when it stops. They are deferred at startup
-            # (Core::Remote::Client::Capabilities#register explains why); this is
-            # the RC-layer site that turns them on/off. It lives here rather than in
-            # DI::Remote so DI does not depend on Symbol Database. The product list
-            # is re-read on the next poll (no client rebuild). allow_initialization:
-            # false because this runs on the remote-config worker thread.
             components = Datadog.send(:components, allow_initialization: false)
             di_products = Datadog::DI::Remote.products +
               Datadog::SymbolDatabase::Remote.deferred_products(Datadog.configuration)
 
             if di_enabled
-              # A Symbol Database upload signal received in an earlier poll while DI
-              # was inactive was deferred by the component's DI-active gate;
-              # re-attempt it now.
               components&.symbol_database&.resume_pending_upload
               components&.remote&.add_products(di_products)
             else
-              # In the nil-default (follows-DI) case, stop Symbol Database too so
-              # its TracePoint and scheduler don't keep uploading while DI is off.
-              # An explicit symbol_database.enabled = true is independent: its
-              # product is not in di_products, so it stays advertised.
               components&.symbol_database&.stop_for_di_disable
               components&.remote&.remove_products(di_products)
             end
