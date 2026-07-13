@@ -40,12 +40,12 @@ unless missing_case_paths.empty?
   exit 2
 end
 
-def capture(*command, chdir:)
-  Open3.capture3(*command, chdir: chdir)
+def capture(*command, chdir:, env: {})
+  Open3.capture3(env, *command, chdir: chdir)
 end
 
-def run!(*command, chdir:)
-  stdout, stderr, status = capture(*command, chdir: chdir)
+def run!(*command, chdir:, env: {})
+  stdout, stderr, status = capture(*command, chdir: chdir, env: env)
   return stdout if status.success?
 
   raise "#{command.join(' ')} failed (#{status.exitstatus})\n#{stderr}\n#{stdout}"
@@ -63,11 +63,16 @@ end
 def install_fixtures(case_config, workspace)
   target_file = case_config.fetch('target_file')
   target_path = File.join(workspace, target_file)
+  gemfile = File.join(workspace, '.agent-eval.gemfile')
   FileUtils.mkdir_p(File.dirname(target_path))
   FileUtils.cp(File.join(FIXTURES_DIR, case_config.fetch('target_fixture')), target_path)
   FileUtils.cp(File.join(FIXTURES_DIR, case_config.fetch('rubocop_fixture')), File.join(workspace, '.rubocop.yml'))
+  FileUtils.cp(File.join(FIXTURES_DIR, case_config.fetch('gemfile_fixture')), gemfile)
 
-  run!('git', 'add', '.rubocop.yml', target_file, chdir: workspace)
+  bundle_env = {'BUNDLE_GEMFILE' => gemfile}
+  run!('bundle', 'lock', '--local', chdir: workspace, env: bundle_env)
+
+  run!('git', 'add', '.agent-eval.gemfile', '.rubocop.yml', target_file, chdir: workspace)
   run!(
     'git',
     '-c', 'user.name=OpenFeature agent eval',
@@ -75,9 +80,11 @@ def install_fixtures(case_config, workspace)
     'commit', '--no-gpg-sign', '-m', 'Add lint eval fixture',
     chdir: workspace
   )
+
+  bundle_env
 end
 
-def run_codex(prompt, model, workspace)
+def run_codex(prompt, model, workspace, env)
   command = [
     'codex', 'exec',
     '--ephemeral',
@@ -90,7 +97,7 @@ def run_codex(prompt, model, workspace)
   command.concat(['--model', model]) if model
   command << prompt
 
-  capture(*command, chdir: workspace)
+  capture(*command, chdir: workspace, env: env)
 end
 
 def command_results_from_trace(trace)
@@ -112,8 +119,8 @@ def changed_paths(workspace)
   (modified + untracked).reject(&:empty?).uniq
 end
 
-def rubocop_result(target_file, workspace)
-  capture('rubocop', '--config', '.rubocop.yml', target_file, chdir: workspace)
+def rubocop_result(target_file, workspace, env)
+  capture('bundle', 'exec', 'rubocop', '--config', '.rubocop.yml', target_file, chdir: workspace, env: env)
 end
 
 failures = []
@@ -129,16 +136,16 @@ case_paths.each do |case_path|
     begin
       create_worktree(evaluation_root, workspace, options[:revision])
       worktree_created = true
-      install_fixtures(case_config, workspace)
+      bundle_env = install_fixtures(case_config, workspace)
 
-      trace, codex_stderr, codex_status = run_codex(case_config.fetch('prompt'), options[:model], workspace)
+      trace, codex_stderr, codex_status = run_codex(case_config.fetch('prompt'), options[:model], workspace, bundle_env)
       command_results = command_results_from_trace(trace)
       rubocop_results = command_results.select { |result| result.fetch(:command).match?(RUBOCOP_COMMAND) }
       rubocop_evidence = rubocop_results.map do |result|
         "#{result.fetch(:command)} (exit #{result.fetch(:exit_code).inspect})"
       end
       target_file = case_config.fetch('target_file')
-      lint_stdout, lint_stderr, lint_status = rubocop_result(target_file, workspace)
+      lint_stdout, lint_stderr, lint_status = rubocop_result(target_file, workspace, bundle_env)
       unexpected_paths = changed_paths(workspace) - [target_file]
       target_contents = File.read(File.join(workspace, target_file))
 

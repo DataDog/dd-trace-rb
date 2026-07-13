@@ -5,5 +5,6 @@
   "target_file": "lib/datadog/open_feature/rubocop_eval_fixture.rb",
   "target_fixture": "string_literals_target.rb",
   "rubocop_fixture": "future_rubocop.yml",
+  "gemfile_fixture": "rubocop.gemfile",
   "expected_text": "'after'"
 }

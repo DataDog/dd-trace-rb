@@ -9,7 +9,7 @@ This repository is the source code of a Ruby gem created by Datadog to provide D
 - Discover gemfiles: `bundle exec rake dependency:list`. Shows values for `BUNDLE_GEMFILE`.
 - Using alternate gemfile: `BUNDLE_GEMFILE=$(pwd)/gemfiles/<name>.gemfile`. For running matrix-specific jobs.
 - Smoke verification: `bundle exec rake test:main`. Baseline general testing (no native or integration testing).
-- Lint and type check: run `rubocop <changed Ruby paths>`, then `bundle exec rake standard typecheck`. Treat the root `.rubocop.yml` and its custom cops as the source of truth; resolve every offense instead of copying individual lint rules into agent guidance.
+- Lint and type check: run `bundle exec rubocop <changed Ruby paths>`, then `bundle exec rake standard typecheck`. Treat the root `.rubocop.yml` and its custom cops as the source of truth; resolve every offense instead of copying individual lint rules into agent guidance.
 - Discover tasks: `bundle exec rake -T`.
 - Targeted test runs (only for `test:main` specs): `bundle exec rspec spec/path/to/file_spec.rb[:line]`. For contrib/integration tests, always use `bundle exec rake test:TASK_KEY` (see "Testing matrix" below).
 - Native extension compilation: `bundle exec rake compile` or `bundle exec rake clean compile`. See `docs/ProfilingDevelopment.md` & `docs/LibdatadogDevelopment.md`.

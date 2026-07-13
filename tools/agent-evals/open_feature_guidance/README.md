@@ -18,7 +18,7 @@ The writable lint eval verifies more than awareness:
 ruby tools/agent-evals/open_feature_guidance/run_lint.rb
 ```
 
-It creates a temporary detached worktree, installs an eval-only subset of the forthcoming [RuboCop configuration from #6032](https://github.com/DataDog/dd-trace-rb/pull/6032), and asks a fresh Codex session to make a small OpenFeature change. The case passes only when the Codex JSON trace contains a RuboCop command, an independent RuboCop post-check reports no offenses, the requested change is present, and no unrelated files changed.
+It creates a temporary detached worktree, installs an eval-only subset of the forthcoming [RuboCop configuration from #6032](https://github.com/DataDog/dd-trace-rb/pull/6032) with the repository's pinned RuboCop version, and asks a fresh Codex session to make a small OpenFeature change. The case passes only when the Codex JSON trace contains a RuboCop command, an independent RuboCop post-check reports no offenses, the requested change is present, and no unrelated files changed.
 
 The fixture starts with a double-quoted string while the configuration requires single quotes. A minimal string-value edit therefore cannot pass accidentally. RuboCop remains the executable source of truth; the agent guidance names the workflow without duplicating individual cops.
 
