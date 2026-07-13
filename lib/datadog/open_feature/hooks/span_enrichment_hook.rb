@@ -60,6 +60,7 @@ module Datadog
         def initialize(accumulator_store)
           @store = accumulator_store
           @mutex = Mutex.new
+          @closed = false
         end
 
         # Direct dispatch from the Datadog provider evaluation path. Takes only
@@ -93,11 +94,17 @@ module Datadog
           Datadog.logger.debug { "Error capturing span enrichment: #{e.class}: #{e.message}" }
         end
 
-        # Provider-close cleanup: drop all accumulated state. Per-trace
-        # subscriptions die with their trace operations, so there is nothing
-        # else to unsubscribe.
+        # Provider-close cleanup: mark the hook closed and drop all accumulated
+        # state. A trace that already subscribed still holds its accumulator via
+        # the `span_before_finish` closure, so the closed flag (checked in
+        # `write_tags_on_root`) is what actually prevents a stale write after
+        # shutdown. Per-trace subscriptions die with their trace operations, so
+        # there is nothing else to unsubscribe.
         def shutdown
-          @mutex.synchronize { @store&.clear! }
+          @mutex.synchronize do
+            @closed = true
+            @store&.clear!
+          end
         end
 
         private
@@ -139,8 +146,12 @@ module Datadog
           # Snapshot the tags under the lock so a concurrent `#capture` on another
           # thread cannot mutate the accumulator's Sets/Hashes while we encode.
           tags = @mutex.synchronize do
-            snapshot = accumulator.has_data? ? accumulator.to_span_tags : {}
-            snapshot
+            # After shutdown the store is cleared, but this trace's subscription
+            # closure still holds the accumulator; skip the write so a provider
+            # close/reconfigure never emits stale `ffe_*` tags on an open trace.
+            next {} if @closed
+
+            accumulator.has_data? ? accumulator.to_span_tags : {}
           ensure
             # Delete only on the local root span's finish. A child finish never
             # reaches here. In an `ensure` so abandoned state is still freed if

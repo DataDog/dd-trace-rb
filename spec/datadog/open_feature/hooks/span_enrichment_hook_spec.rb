@@ -148,5 +148,17 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
 
       expect(accumulator_store[trace_op]).to be_nil
     end
+
+    # A trace that already subscribed keeps its accumulator alive via the
+    # span_before_finish closure; shutting the hook down must not let that
+    # in-flight trace emit stale ffe_* tags when its root span later finishes.
+    it 'does not write tags on a root span that finishes after shutdown' do
+      trace_op.measure('root') do
+        hook.capture(flag_key: 'flag-a', variant: 'on', value: 'on', serial_id: 100, do_log: false, targeting_key: nil)
+        hook.shutdown
+      end
+
+      expect(trace_op.get_tag('ffe_flags_enc')).to be_nil
+    end
   end
 end

@@ -22,6 +22,8 @@ module Datadog
 
         @mutex: Thread::Mutex
 
+        @closed: bool
+
         def initialize: (AccumulatorStore accumulator_store) -> void
 
         def capture: (
