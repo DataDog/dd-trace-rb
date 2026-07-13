@@ -101,6 +101,19 @@ module Datadog
           logger.debug { "remote configuration client recreated after fork: #{@client.id} products: #{@capabilities.products.sort.join(', ')}" }
         end
 
+        # Advertise (or withdraw) additional RC products at runtime. Used by DI
+        # implicit enablement to defer the LIVE_DEBUGGING(/_SYMBOL_DB) subscription
+        # until DI is actually running. The new product list is sent on the next
+        # client poll (Client#payload re-reads Capabilities#products each sync);
+        # the client is not rebuilt.
+        def add_products(products)
+          @capabilities.add_products(products)
+        end
+
+        def remove_products(products)
+          @capabilities.remove_products(products)
+        end
+
         # Barrier provides a mechanism to fence execution until a condition happens
         class Barrier
           def initialize(timeout = nil)

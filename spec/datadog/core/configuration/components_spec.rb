@@ -36,7 +36,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   let(:agent_info) { Datadog::Core::Environment::AgentInfo.new(agent_settings, logger: logger) }
 
   let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
-  let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil, started?: false) }
+  let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil, started?: false, add_products: nil, remove_products: nil) }
   let(:telemetry) do
     instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
       allow(telemetry).to receive(:start)

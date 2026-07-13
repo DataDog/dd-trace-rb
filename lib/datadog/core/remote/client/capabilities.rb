@@ -14,17 +14,40 @@ module Datadog
       class Client
         # Capabilities
         class Capabilities
-          attr_reader :products, :capabilities, :receivers, :base64_capabilities
+          attr_reader :capabilities, :receivers, :base64_capabilities
 
           def initialize(settings, telemetry)
             @capabilities = []
             @products = []
+            @products_mutex = Mutex.new
             @receivers = []
             @telemetry = telemetry
 
             register(settings)
 
             @base64_capabilities = capabilities_to_base64
+          end
+
+          # The RC request re-reads this on every poll (Client#payload). DI implicit
+          # enablement adds/removes the LIVE_DEBUGGING(/_SYMBOL_DB) product here when
+          # the component starts/stops, so a candidate-but-not-enabled tracer
+          # advertises the capability bit but subscribes to no DI product. Guarded by
+          # a mutex because the writer runs on the RC worker thread (RC enable) or the
+          # main thread (boot / reconfigure) while the reader runs on the RC worker
+          # thread at payload build. Returns a snapshot so callers never see the
+          # array mutate mid-iteration.
+          def products
+            @products_mutex.synchronize { @products.dup }
+          end
+
+          def add_products(products)
+            @products_mutex.synchronize do
+              products.each { |product| @products << product unless @products.include?(product) }
+            end
+          end
+
+          def remove_products(products)
+            @products_mutex.synchronize { products.each { |product| @products.delete(product) } }
           end
 
           private
@@ -47,18 +70,22 @@ module Datadog
             register_products(Datadog::Tracing::Remote.products)
             register_receivers(Datadog::Tracing::Remote.receivers(@telemetry))
 
-            # Skip DI registration entirely when DI is explicitly disabled
-            # (DD_DYNAMIC_INSTRUMENTATION_ENABLED=false) or when the runtime
-            # cannot run DI (JRuby, Ruby 2.5): in either case no component will
-            # run, so advertising bit 38 or the LIVE_DEBUGGING product would
-            # invite probe configs and an enable signal the tracer must refuse.
-            # When the env var is unset (default) on a supported runtime, DI is
-            # registered so RC can enable it.
+            # Register the DI capability (bit 38) and receiver unless DI is
+            # explicitly disabled (DD_DYNAMIC_INSTRUMENTATION_ENABLED=false) or the
+            # runtime cannot run DI (JRuby, Ruby 2.5). Bit 38 is the implicit-
+            # enablement candidacy signal, carried in the capabilities field.
+            #
+            # The LIVE_DEBUGGING *product* is deliberately NOT advertised here: it
+            # is added to the live client when DI actually starts (see
+            # DI::Remote.handle_rc_enablement and Components#startup!) and removed
+            # when it stops. Advertising it at startup would make every candidate
+            # tracer subscribe, which the backend heartbeat monitor counts as an
+            # active DI client. The receiver stays registered and gates on
+            # component.started?, ignoring configs while DI is stopped.
             if settings.respond_to?(:dynamic_instrumentation) &&
                 !Datadog::DI::Remote.explicitly_disabled?(settings) &&
                 Datadog::DI.supported_runtime?
               register_capabilities(Datadog::DI::Remote.capabilities)
-              register_products(Datadog::DI::Remote.products)
               register_receivers(Datadog::DI::Remote.receivers(@telemetry))
             end
 
@@ -74,8 +101,14 @@ module Datadog
                 !Datadog::DI::Remote.explicitly_disabled?(settings)
               if Datadog::SymbolDatabase.resolve_enabled(settings.symbol_database.enabled, di_enabled)
                 register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
-                register_products(Datadog::SymbolDatabase::Remote.products)
                 register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
+                # Advertise the product at startup only when Symbol Database is
+                # explicitly enabled (independent of DI). When it mirrors DI
+                # (setting left at default nil), defer the product like
+                # LIVE_DEBUGGING: DI::Remote.deferred_products adds it on DI start.
+                unless settings.symbol_database.using_default?(:enabled)
+                  register_products(Datadog::SymbolDatabase::Remote.products)
+                end
               end
             end
 
