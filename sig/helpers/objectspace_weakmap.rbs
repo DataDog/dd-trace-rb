@@ -3,6 +3,9 @@
 # as its weak, per-trace state store. This minimal shim lets `WeakMap.new`
 # resolve; the store itself types the map as `untyped`, so only the constant
 # needs to exist.
+#
+# Lives under `sig/helpers/` because it has no matching `lib/` file (that path is
+# exempt from the `rbs:stale` check).
 module ObjectSpace
   class WeakMap
     def initialize: () -> void
