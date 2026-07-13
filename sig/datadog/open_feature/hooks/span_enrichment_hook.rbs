@@ -58,13 +58,13 @@ module Datadog
 
           def initialize: () -> void
 
-          def fetch: (untyped trace_op) -> Accumulator?
+          def []: (untyped trace_op) -> Accumulator?
 
           def fetch_or_create: (untyped trace_op) -> [ Accumulator, bool ]
 
           def delete: (untyped trace_op) -> void
 
-          def clear: () -> void
+          def clear!: () -> void
         end
 
         @store: AccumulatorStore

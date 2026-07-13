@@ -207,7 +207,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
     it 'accumulates a serial id for the active root span' do
       hook.capture(flag_key: 'flag-a', variant: 'on', value: 'on', serial_id: 100, do_log: false, targeting_key: 'user-123')
 
-      state = accumulator_store.fetch(trace_op)
+      state = accumulator_store[trace_op]
       expect(state.has_data?).to be(true)
       expect(state.to_span_tags['ffe_flags_enc']).to eq('ZA==')
     end
@@ -215,21 +215,21 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
     it 'adds a subject only when do_log is true and a targeting key is present' do
       hook.capture(flag_key: 'flag-a', variant: 'on', value: 'on', serial_id: 100, do_log: true, targeting_key: 'user-123')
 
-      state = accumulator_store.fetch(trace_op)
+      state = accumulator_store[trace_op]
       expect(state.to_span_tags).to have_key('ffe_subjects_enc')
     end
 
     it 'does not add a subject when do_log is false' do
       hook.capture(flag_key: 'flag-a', variant: 'on', value: 'on', serial_id: 100, do_log: false, targeting_key: 'user-123')
 
-      state = accumulator_store.fetch(trace_op)
+      state = accumulator_store[trace_op]
       expect(state.to_span_tags).not_to have_key('ffe_subjects_enc')
     end
 
     it 'detects a runtime default via a missing variant' do
       hook.capture(flag_key: 'flag-default', variant: nil, value: 'control', serial_id: nil, do_log: false, targeting_key: nil)
 
-      state = accumulator_store.fetch(trace_op)
+      state = accumulator_store[trace_op]
       defaults = JSON.parse(state.to_span_tags['ffe_runtime_defaults'])
       expect(defaults).to eq('flag-default' => 'control')
     end
@@ -264,7 +264,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
       expect(JSON.parse(trace_op.get_tag('ffe_runtime_defaults'))).to eq('flag-default' => 'control')
 
       # State cleaned up after the root span finishes (no leak).
-      expect(accumulator_store.fetch(trace_op)).to be_nil
+      expect(accumulator_store[trace_op]).to be_nil
     end
 
     it 'writes no tags when the finished root span accumulated no data' do
@@ -300,7 +300,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
       expect(subjects[Digest::SHA256.hexdigest('user-123')]).to eq('ZA==')
 
       # State is cleaned up exactly once, when the root finishes (no leak).
-      expect(accumulator_store.fetch(trace_op)).to be_nil
+      expect(accumulator_store[trace_op]).to be_nil
     end
 
     # Companion to the above: a capture that happens AFTER a child has already
@@ -317,18 +317,18 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
       end
 
       expect(trace_op.get_tag('ffe_flags_enc')).to eq('ZA==')
-      expect(accumulator_store.fetch(trace_op)).to be_nil
+      expect(accumulator_store[trace_op]).to be_nil
     end
   end
 
   describe '#shutdown' do
     it 'clears all accumulated state' do
       hook.capture(flag_key: 'flag-a', variant: 'on', value: 'on', serial_id: 100, do_log: false, targeting_key: nil)
-      expect(accumulator_store.fetch(trace_op)).not_to be_nil
+      expect(accumulator_store[trace_op]).not_to be_nil
 
       hook.shutdown
 
-      expect(accumulator_store.fetch(trace_op)).to be_nil
+      expect(accumulator_store[trace_op]).to be_nil
     end
   end
 end

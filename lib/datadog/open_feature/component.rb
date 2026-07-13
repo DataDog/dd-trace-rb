@@ -109,8 +109,6 @@ module Datadog
 
         store = Hooks::SpanEnrichmentHook::AccumulatorStore.new
         Hooks::SpanEnrichmentHook.new(store)
-      rescue LoadError
-        nil
       end
     end
   end

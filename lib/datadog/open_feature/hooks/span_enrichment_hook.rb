@@ -115,7 +115,7 @@ module Datadog
           end
 
           def add_serial_id(serial_id)
-            return if @serial_ids.size >= MAX_SERIAL_IDS && !@serial_ids.include?(serial_id)
+            return if @serial_ids.size >= MAX_SERIAL_IDS
 
             @serial_ids.add(serial_id)
           end
@@ -125,7 +125,7 @@ module Datadog
             existing = @subjects[hashed]
 
             if existing
-              return if existing.size >= MAX_EXPERIMENTS_PER_SUBJECT && !existing.include?(serial_id)
+              return if existing.size >= MAX_EXPERIMENTS_PER_SUBJECT
 
               existing.add(serial_id)
             elsif @subjects.size >= MAX_SUBJECTS
@@ -140,16 +140,16 @@ module Datadog
             return if @defaults.size >= MAX_DEFAULTS
 
             value_str = value.is_a?(String) ? value : JSON.generate(value)
-            # `String#[]` slices by codepoint, so truncation never splits a
-            # multibyte UTF-8 character (frozen-contract: 64 chars, UTF-8-safe).
-            value_str = value_str[0...MAX_DEFAULT_VALUE_LENGTH] if value_str.length > MAX_DEFAULT_VALUE_LENGTH
-            @defaults[flag_key] = value_str.to_s
+            # Truncate to the frozen 64-char cap. Slicing is by codepoint, so a
+            # multibyte UTF-8 character is never split; `|| value_str` keeps the
+            # value non-nil for the zero-start slice.
+            @defaults[flag_key] = value_str[0, MAX_DEFAULT_VALUE_LENGTH] || value_str
           end
 
           # Subjects are intentionally not checked: a subject is only ever added
           # alongside a serial id, so serial ids cover that case.
           def has_data?
-            !@serial_ids.empty? || !@defaults.empty?
+            @serial_ids.any? || @defaults.any?
           end
 
           def to_span_tags
@@ -185,7 +185,7 @@ module Datadog
             @states = ObjectSpace::WeakMap.new # steep:ignore UnknownConstant
           end
 
-          def fetch(trace_op)
+          def [](trace_op)
             @states[trace_op]
           end
 
@@ -208,7 +208,7 @@ module Datadog
             @states[trace_op] = nil
           end
 
-          def clear
+          def clear!
             @states = ObjectSpace::WeakMap.new # steep:ignore UnknownConstant
           end
         end
@@ -253,7 +253,7 @@ module Datadog
         # subscriptions die with their trace operations, so there is nothing
         # else to unsubscribe.
         def shutdown
-          @mutex.synchronize { @store&.clear }
+          @mutex.synchronize { @store&.clear! }
         end
 
         private
