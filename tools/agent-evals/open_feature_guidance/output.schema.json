@@ -4,8 +4,7 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "instruction_files",
-    "answer"
+    "instruction_files"
   ],
   "properties": {
     "instruction_files": {
@@ -13,9 +12,6 @@
       "items": {
         "type": "string"
       }
-    },
-    "answer": {
-      "type": "string"
     }
   }
 }

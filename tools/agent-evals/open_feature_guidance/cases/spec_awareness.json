@@ -1,0 +1,9 @@
+{
+  "name": "spec_awareness",
+  "description": "FFE spec work discovers the scoped OpenFeature guide from the repository root.",
+  "prompt": "Start at the repository root and do not modify files. You are about to change spec/datadog/open_feature/provider_spec.rb. Before beginning the work, return instruction_files as the repository-relative paths of all AGENTS.md files that govern this task, ordered from broadest to most specific.",
+  "expected_instruction_files": [
+    "AGENTS.md",
+    "lib/datadog/open_feature/AGENTS.md"
+  ]
+}
