@@ -41,6 +41,7 @@ module Datadog
           type timeout_s = ::Integer | ::Float
 
           @once: bool
+          @waited: bool
           @timeout: timeout_s?
 
           @mutex: ::Thread::Mutex

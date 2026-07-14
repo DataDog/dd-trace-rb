@@ -83,3 +83,5 @@ bool is_raised_flag_set(VALUE thread);
 VALUE current_fiber_for(VALUE thread);
 
 void self_test_current_fiber_for(void);
+
+bool pathobj_is_null(VALUE iseq);

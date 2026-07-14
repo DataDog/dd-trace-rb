@@ -1,0 +1,11 @@
+module Datadog
+  module Core
+    module Contrib
+      module Rails
+        class Railtie < ::Rails::Railtie
+          def self.after_initialize: () -> void
+        end
+      end
+    end
+  end
+end

@@ -9,12 +9,32 @@ module Datadog
       #
       # Methods prefixed with _native_ are implemented in `collectors_cpu_and_wall_time_worker.c`
       class CpuAndWallTimeWorker
+        # @rbs @worker_thread: untyped
+        # @rbs @start_stop_mutex: ::Thread::Mutex
+        # @rbs @failure_exception: ::Exception?
+        # @rbs @idle_sampling_helper: IdleSamplingHelper
+        # @rbs @wait_until_running_mutex: ::Thread::Mutex
+        # @rbs @wait_until_running_condition: ::Thread::ConditionVariable
+
         private
 
-        attr_accessor :failure_exception
+        attr_accessor :failure_exception #: ::Exception?
 
         public
 
+        # @rbs gc_profiling_enabled: bool
+        # @rbs no_signals_workaround_enabled: bool
+        # @rbs thread_context_collector: Datadog::Profiling::Collectors::ThreadContext
+        # @rbs dynamic_sampling_rate_overhead_target_percentage: Float
+        # @rbs cpu_sampling_interval_ms: ::Integer
+        # @rbs idle_sampling_helper: Datadog::Profiling::Collectors::IdleSamplingHelper
+        # @rbs dynamic_sampling_rate_enabled: bool
+        # @rbs allocation_profiling_enabled: bool
+        # @rbs allocation_counting_enabled: bool
+        # @rbs gvl_profiling_enabled: bool
+        # @rbs sighandler_sampling_enabled: bool
+        # @rbs skip_idle_samples_for_testing: false
+        # @rbs return: void
         def initialize(
           gc_profiling_enabled:,
           no_signals_workaround_enabled:,
@@ -29,7 +49,7 @@ module Datadog
           # profiler overhead!
           dynamic_sampling_rate_enabled: true,
           skip_idle_samples_for_testing: false,
-          idle_sampling_helper: IdleSamplingHelper.new
+          idle_sampling_helper: IdleSamplingHelper.new(thread_context_collector: thread_context_collector)
         )
           unless dynamic_sampling_rate_enabled
             Datadog.logger.warn(
@@ -67,6 +87,8 @@ module Datadog
           @wait_until_running_condition = ConditionVariable.new
         end
 
+        # @rbs on_failure_proc: (^(?log_failure: bool) -> void)?
+        # @rbs return: bool?
         def start(on_failure_proc: nil)
           @start_stop_mutex.synchronize do
             return if @worker_thread&.alive?
@@ -93,7 +115,7 @@ module Datadog
               operation_name = self.class._native_failure_exception_during_operation(self).inspect
               Datadog.logger.warn(
                 "CpuAndWallTimeWorker thread error. " \
-                "Operation: #{operation_name} Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+                "Operation: #{operation_name} Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
               )
               on_failure_proc&.call
               Datadog::Core::Telemetry::Logger.report(e, description: "CpuAndWallTimeWorker thread error: #{operation_name}")
@@ -105,6 +127,7 @@ module Datadog
           true
         end
 
+        #: () -> void
         def stop
           @start_stop_mutex.synchronize do
             Datadog.logger.debug("Requesting CpuAndWallTimeWorker thread shut down")
@@ -121,14 +144,17 @@ module Datadog
           end
         end
 
+        #: () -> true
         def reset_after_fork
           self.class._native_reset_after_fork(self)
         end
 
+        #: () -> ::Hash[::Symbol, untyped]
         def stats
           self.class._native_stats(self)
         end
 
+        #: () -> ::Hash[::Symbol, untyped]
         def stats_and_reset_not_thread_safe
           stats = self.stats
           self.class._native_stats_reset_not_thread_safe(self)
@@ -136,22 +162,30 @@ module Datadog
         end
 
         # Useful for testing, to e.g. make sure the profiler is running before we start running some code we want to observe
+        # @rbs timeout_seconds: ::Integer?
+        # @rbs return: true
         def wait_until_running(timeout_seconds: 5)
           @wait_until_running_mutex.synchronize do
             return true if self.class._native_is_running?(self)
 
             @wait_until_running_condition.wait(@wait_until_running_mutex, timeout_seconds)
 
+            # Not using `_native_is_running?(self) || raise(...)` here: `_native_is_running?` is declared
+            # to return `bool`, so steep infers the `||` expression as `bool` too and rejects it against
+            # this method's declared `true` return type. The explicit `if`/`else` type-checks correctly.
+            # rubocop:disable Style/RedundantCondition
             if self.class._native_is_running?(self)
               true
             else
               raise "Timeout waiting for #{self.class.name} to start (waited for #{timeout_seconds} seconds)"
             end
+            # rubocop:enable Style/RedundantCondition
           end
         end
 
         private
 
+        #: () -> void
         def signal_running
           @wait_until_running_mutex.synchronize { @wait_until_running_condition.broadcast }
         end

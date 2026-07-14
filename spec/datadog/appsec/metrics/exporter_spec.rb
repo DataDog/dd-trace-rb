@@ -91,5 +91,42 @@ RSpec.describe Datadog::AppSec::Metrics::Exporter do
         described_class.export_rasp_metrics(rasp_store, span)
       end
     end
+
+    context 'when no downstream response metrics are present' do
+      let(:downstream_response_store) do
+        Datadog::AppSec::Metrics::Collector::DownstreamResponseStore.new(
+          content_type_invalid: 0, content_length_missing: 0,
+          content_length_too_big: 0, content_exceed_content_length: 0
+        )
+      end
+
+      it 'does not set downstream response metrics on the span' do
+        expect(span).not_to receive(:set_tag)
+
+        described_class.export_downstream_response_metrics(downstream_response_store, span)
+      end
+    end
+
+    context 'when downstream response metrics are present' do
+      let(:downstream_response_store) do
+        Datadog::AppSec::Metrics::Collector::DownstreamResponseStore.new(
+          content_type_invalid: 1,
+          content_length_missing: 0,
+          content_length_too_big: 2,
+          content_exceed_content_length: 3
+        )
+      end
+
+      it 'sets downstream response metrics on the span' do
+        expect(span).to receive(:set_tag)
+          .with('_dd.appsec.downstream_request.response_body_ignored.content_type_invalid', 1)
+        expect(span).to receive(:set_tag)
+          .with('_dd.appsec.downstream_request.response_body_ignored.content_length_too_big', 2)
+        expect(span).to receive(:set_tag)
+          .with('_dd.appsec.downstream_request.response_body_ignored.content_exceed_content_length', 3)
+
+        described_class.export_downstream_response_metrics(downstream_response_store, span)
+      end
+    end
   end
 end

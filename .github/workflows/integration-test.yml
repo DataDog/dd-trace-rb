@@ -1,0 +1,107 @@
+name: Integration Apps
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/master' && github.run_id || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  rails:
+    name: ${{ matrix.app }} (Ruby ${{ matrix.ruby }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: rails-five
+            ruby: "2.7"
+          - app: rails-six
+            ruby: "3.3"
+          - app: rails-seven
+            ruby: "3.4"
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # The script/ci scripts shell out to `docker-compose` (v1). Ubuntu 24.04
+      # runners ship Docker Compose v2 (invoked as `docker compose`) but not the
+      # standalone v1 binary. Shim `docker-compose` so the existing scripts work
+      # unchanged on CI while remaining compatible with local v1 setups.
+      - name: Shim docker-compose to Compose v2
+        run: |
+          shim=/usr/local/bin/docker-compose
+          sudo tee "$shim" >/dev/null <<'SHIM'
+          #!/bin/bash
+          exec docker compose "$@"
+          SHIM
+          sudo chmod +x "$shim"
+
+      - name: Build integration base image
+        run: ./integration/script/build-images -v ${{ matrix.ruby }}
+
+      - name: Build ${{ matrix.app }} image
+        run: ./integration/apps/${{ matrix.app }}/script/build-images -v ${{ matrix.ruby }}
+
+      - name: Run ${{ matrix.app }} integration tests
+        run: ./integration/apps/${{ matrix.app }}/script/ci -v ${{ matrix.ruby }}
+
+  other-apps:
+    name: ${{ matrix.app }} (Ruby ${{ matrix.ruby }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: rack
+            ruby: "3.4"
+          - app: sinatra2-classic
+            ruby: "3.4"
+          - app: sinatra2-modular
+            ruby: "3.4"
+          - app: hanami
+            ruby: "2.7"
+          - app: opentelemetry
+            ruby: "3.4"
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Shim docker-compose to Compose v2
+        run: |
+          shim=/usr/local/bin/docker-compose
+          sudo tee "$shim" >/dev/null <<'SHIM'
+          #!/bin/bash
+          exec docker compose "$@"
+          SHIM
+          sudo chmod +x "$shim"
+
+      - name: Build integration base image
+        run: ./integration/script/build-images -v ${{ matrix.ruby }}
+
+      - name: Build ${{ matrix.app }} image
+        run: ./integration/apps/${{ matrix.app }}/script/build-images -v ${{ matrix.ruby }}
+
+      - name: Run ${{ matrix.app }} integration tests
+        run: ./integration/apps/${{ matrix.app }}/script/ci -v ${{ matrix.ruby }}
+
+  complete:
+    name: Integration Apps (complete)
+    needs:
+      - rails
+      - other-apps
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "Done"

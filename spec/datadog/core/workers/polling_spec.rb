@@ -65,6 +65,10 @@ RSpec.describe Datadog::Core::Workers::Polling do
       context 'when the worker has been started' do
         include_context 'graceful stop'
 
+        # +join+ is stubbed, so +stop+ returns before the background thread
+        # is reaped. Terminate it explicitly to avoid leaking the thread.
+        after { worker.terminate }
+
         before do
           worker.perform
           try_wait_until { worker.running? && worker.run_loop? }
@@ -108,7 +112,7 @@ RSpec.describe Datadog::Core::Workers::Polling do
             # concurrent and will start the background thread running on
             # another core.
             expect(worker.run_loop?).to be false
-            expect(worker.instance_variable_get('@run_loop')).to be nil
+            expect(worker.instance_variable_get(:@run_loop)).to be nil
           end
 
           # Request the worker to stop.
@@ -185,7 +189,7 @@ RSpec.describe Datadog::Core::Workers::Polling do
 
               worker.perform
               expect(worker.running?).to be true
-              if !worker.run_loop? && worker.instance_variable_get('@run_loop').nil?
+              if !worker.run_loop? && worker.instance_variable_get(:@run_loop).nil?
                 state_ok_1 = true
               end
 
@@ -211,7 +215,7 @@ RSpec.describe Datadog::Core::Workers::Polling do
             expect(expected_state_met).to be true
             # Uncomment to see how many iterations were necessary to
             # achieve the desired conditions.
-            #warn "took #{iterations_performed} iterations"
+            # warn "took #{iterations_performed} iterations"
           end
         end
       end
@@ -260,6 +264,10 @@ RSpec.describe Datadog::Core::Workers::Polling do
       context 'given shutdown timeout' do
         subject(:stop) { worker.stop(false, 1000) }
         include_context 'graceful stop'
+
+        # +join+ is stubbed, so +stop+ returns before the background thread
+        # is reaped. Terminate it explicitly to avoid leaking the thread.
+        after { worker.terminate }
 
         before do
           expect(worker).to receive(:join)

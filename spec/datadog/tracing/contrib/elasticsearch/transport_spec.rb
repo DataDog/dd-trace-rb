@@ -3,6 +3,7 @@ require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 require 'time'
 require 'elasticsearch'
@@ -116,6 +117,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
         it_behaves_like 'schema version span'
         it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
+        it_behaves_like 'tags _dd.svc_src', 'elasticsearch'
         it_behaves_like 'configured peer service span', 'DD_TRACE_ELASTICSEARCH_PEER_SERVICE'
         it_behaves_like 'a peer service span' do
           let(:peer_service_val) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }

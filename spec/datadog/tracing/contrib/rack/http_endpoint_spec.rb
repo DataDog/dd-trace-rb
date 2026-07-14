@@ -67,6 +67,22 @@ RSpec.describe 'Rack testing for http.endpoint tag' do
     end
   end
 
+  context 'when appsec settings extension is not loaded' do
+    before do
+      allow(Datadog.configuration).to receive(:respond_to?).and_call_original
+      allow(Datadog.configuration).to receive(:respond_to?).with(:appsec).and_return(false)
+      allow(Datadog.configuration).to receive(:appsec).and_raise(NoMethodError)
+      Datadog.configuration.tracing.resource_renaming.reset!
+    end
+
+    it 'does not report http.endpoint' do
+      response = get('/hello/world')
+
+      expect(response).to be_ok
+      expect(request_span.tags).not_to have_key('http.endpoint')
+    end
+  end
+
   context 'when resource_renaming.enabled is explicitly set to false and appsec is enabled' do
     before do
       Datadog.configuration.appsec.enabled = true

@@ -34,6 +34,7 @@ module Datadog
               response = nil
               # rubocop:disable Metrics/BlockLength
               Tracing.trace('opensearch.query', service: datadog_configuration[:service_name]) do |span|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 # Set generic tags
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
@@ -62,11 +63,6 @@ module Datadog
                   )
                 end
 
-                # Tag original global service name if not used
-                if span.service != Datadog.configuration.service
-                  span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
-                end
-
                 # Set url tags
                 span.set_tag(OpenSearch::Ext::TAG_URL, url)
                 span.set_tag(OpenSearch::Ext::TAG_HOST, host)
@@ -84,7 +80,7 @@ module Datadog
                 span.resource = "#{method} #{quantized_url}"
                 Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
               rescue => e
-                Datadog.logger.error(e.message)
+                Datadog.logger.error("#{e.class}: #{e.message}")
                 Datadog::Core::Telemetry::Logger.report(e)
                 # TODO: Refactor the code to streamline the execution without ensure
               ensure

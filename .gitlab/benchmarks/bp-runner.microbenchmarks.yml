@@ -1,0 +1,84 @@
+# CPU_AFFINITY, BENCHMARKS, CPUS_PER_BENCHMARK, REPETITIONS are defined in dd-trace-rb.
+
+global_setup:
+  - name: Capture hardware/software info
+    run: collect_hardware_software_info
+
+experiments:
+  - name: Microbenchmarks
+    steps:
+      - name: Run benchmarks
+        run: run_microbenchmarks
+        cpus: $CPU_AFFINITY
+        parallelize:
+          items: $BENCHMARKS
+          cpus_per_item: $CPUS_PER_BENCHMARK
+        repo: DataDog/dd-trace-rb
+        how_to_fetch_release: |
+          git clone --branch $BRANCH https://github.com/DataDog/dd-trace-rb "$CODE_SRC"
+          cd "$CODE_SRC" && git checkout $COMMIT_SHA
+          bundle install
+          bundle exec rake compile
+        how_to_run_benchmarks: |
+          # TODO: Remove all hacks once the new benchmarking naming convention is merged on https://github.com/DataDog/dd-trace-rb/pull/5313
+
+          # HACK: Baseline fetches main branch which uses old naming with .rb in output files.
+          # Strip .rb to normalize naming between baseline and candidate.
+          BENCHMARK_NAME="${PARALLEL_ITEM%.rb}"
+
+          if [ "$PARALLEL_ITEM" = "open_feature_flagevaluation.rb" ]; then
+            BASELINE_BRANCH="${CI_MERGE_REQUEST_TARGET_BRANCH_NAME:-master}"
+            if ! git cat-file -e "origin/${BASELINE_BRANCH}:benchmarks/$PARALLEL_ITEM" 2>/dev/null; then
+              echo "Skipping benchmark absent from comparison baseline: $PARALLEL_ITEM"
+              exit 0
+            fi
+          fi
+
+          if [ ! -f "benchmarks/$PARALLEL_ITEM" ]; then
+            if [ "$BASELINE_OR_CANDIDATE" = "baseline" ]; then
+              echo "Skipping benchmark absent from baseline: $PARALLEL_ITEM"
+              exit 0
+            fi
+
+            echo "Error: Benchmark file does not exist: benchmarks/$PARALLEL_ITEM" >&2
+            exit 1
+          fi
+
+          for run in $(seq 1 $REPETITIONS); do
+            bundle exec ruby "benchmarks/$PARALLEL_ITEM"
+
+            # HACK: Differently from other benchmarks, di_instrument.rb on master saves
+            # results with a hyphen: di-instrument-results.json. Only apply this hack
+            # when running di_instrument.rb to avoid matching leftover files from other workers.
+            if [ "$PARALLEL_ITEM" = "di_instrument.rb" ] && [ -f "di-instrument-results.json" ]; then
+              mv -v "di-instrument-results.json" "$ARTIFACTS_DIR/$BASELINE_OR_CANDIDATE-di_instrument-results--${run}.json"
+            else
+              for f in ${BENCHMARK_NAME}*results.json; do
+                outname=$(basename "$f" .json | sed 's/\.rb//')
+                [ -f "$f" ] && mv -v "$f" "$ARTIFACTS_DIR/$BASELINE_OR_CANDIDATE-${outname}--${run}.json"
+              done
+            fi
+          done
+          _exit=$?
+          echo "[$(date -u +%H:%M:%S)] Completed $BASELINE_OR_CANDIDATE $PARALLEL_ITEM ($REPETITIONS reps)"
+          exit $_exit
+
+      - name: Analyze results
+        run: analyze_microbenchmarks
+        framework: BenchmarkIps
+        # dd-trace-rb benchmark results are named like:
+        # <baseline|candidate>-<benchmark_name>-results--<run_number>.json
+
+        # We group the <baseline|candidate>-<benchmark_name>-results part to
+        # group results from different repetitions on the same
+        # <baseline|candidate>-<benchmark_name>-results.converted.json file.
+
+        group_by_pattern: "^(.+)--[0-9]+\\.json$"
+        env:
+          DISABLE_NHST: "1"
+          CI_TYPE: "theoretical"
+          MD_REPORT_ONLY_CHANGES: "1"
+
+global_teardown:
+  - name: Upload to S3
+    run: upload_to_s3

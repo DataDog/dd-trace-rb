@@ -1,5 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 require 'rack/test'
 
 require 'rack'
@@ -149,6 +150,11 @@ RSpec.describe 'Rack integration configuration' do
           end
 
           it_behaves_like 'a Rack request with queuing'
+
+          it_behaves_like 'tags _dd.svc_src', 'http_proxy' do
+            let(:span) { spans[1] } # http.proxy.request
+            before { subject }
+          end
 
           context 'given a custom web service name' do
             let(:configuration_options) { super().merge(web_service_name: web_service_name) }

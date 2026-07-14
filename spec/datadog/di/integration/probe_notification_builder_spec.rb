@@ -10,7 +10,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     let(:redactor) { Datadog::DI::Redactor.new(settings) }
     let(:serializer) { Datadog::DI::Serializer.new(settings, redactor) }
 
-    let(:builder) { described_class.new(settings, serializer) }
+    let(:logger) { instance_double(Datadog::Core::Logger).as_null_object }
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+
+    let(:builder) { described_class.new(settings, serializer, logger, telemetry: telemetry) }
 
     let(:instrumenter) do
       Datadog::DI::Instrumenter.new(settings)
@@ -148,7 +151,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         end
 
         let(:probe) do
-          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
         end
 
         let(:context) do

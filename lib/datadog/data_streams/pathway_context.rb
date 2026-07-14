@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'stringio'
-require_relative '../core/utils/base64'
+require_relative '../core/utils/base64_codec'
 
 module Datadog
   module DataStreams
@@ -34,7 +34,7 @@ module Datadog
       end
 
       def encode_b64
-        Core::Utils::Base64.strict_encode64(encode)
+        Core::Utils::Base64Codec.strict_encode64(encode)
       end
 
       # Decode pathway context from base64 encoded string
@@ -42,11 +42,11 @@ module Datadog
         return nil unless encoded_ctx && !encoded_ctx.empty?
 
         begin
-          binary_data = Core::Utils::Base64.strict_decode64(encoded_ctx)
+          binary_data = Core::Utils::Base64Codec.strict_decode64(encoded_ctx)
           decode(binary_data)
         rescue ArgumentError => e
           # Invalid base64 encoding - may indicate version mismatch or corruption
-          Datadog.logger.debug("Failed to decode DSM pathway context: #{e.message}")
+          Datadog.logger.debug { "Failed to decode DSM pathway context: #{e.class}: #{e.message}" }
           nil
         end
       end

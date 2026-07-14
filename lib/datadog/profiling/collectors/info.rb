@@ -14,11 +14,18 @@ module Datadog
       # could be seen as overkill for this case but it allows us to centralize information
       # gathering and easily support more flexible/dynamic info collection in the future.
       class Info
+        # @rbs @info: ::Hash[::Symbol, ::Hash[::Symbol, untyped]]
+        # @rbs @platform_info: ::Hash[::Symbol, untyped]
+        # @rbs @runtime_info: ::Hash[::Symbol, untyped]
+        # @rbs @application_info: ::Hash[::Symbol, untyped]
+        # @rbs @profiler_info: ::Hash[::Symbol, untyped]?
+        # @rbs @gc_tuning_info: ::Hash[::Symbol, ::String]
+
+        #: (untyped) -> void
         def initialize(settings)
           @profiler_info = nil
 
-          # Steep: https://github.com/soutaro/steep/issues/363
-          @info = { # steep:ignore IncompatibleAssignment
+          @info = {
             platform: collect_platform_info,
             runtime: collect_runtime_info,
             application: collect_application_info(settings),
@@ -26,7 +33,7 @@ module Datadog
           }.freeze
         end
 
-        attr_reader :info
+        attr_reader :info #: ::Hash[::Symbol, ::Hash[::Symbol, untyped]]
 
         private
 
@@ -69,6 +76,7 @@ module Datadog
         # gets initialized before a user has a chance to configure the library.
         START_TIME = Time.now.utc.freeze
 
+        #: () -> ::Hash[::Symbol, untyped]
         def collect_platform_info
           @platform_info ||= {
             container_id: Datadog::Core::Environment::Container.container_id,
@@ -79,6 +87,7 @@ module Datadog
           }.freeze
         end
 
+        #: () -> ::Hash[::Symbol, untyped]
         def collect_runtime_info
           @runtime_info ||= {
             engine: Datadog::Core::Environment::Identity.lang_engine,
@@ -88,6 +97,7 @@ module Datadog
           }.freeze
         end
 
+        #: (untyped) -> ::Hash[::Symbol, untyped]
         def collect_application_info(settings)
           @application_info ||= {
             start_time: START_TIME.iso8601,
@@ -97,6 +107,7 @@ module Datadog
           }.freeze
         end
 
+        #: (untyped) -> ::Hash[::Symbol, untyped]
         def collect_profiler_info(settings)
           @profiler_info ||= begin
             lib_datadog_gem = ::Gem.loaded_specs["libdatadog"]
@@ -123,6 +134,7 @@ module Datadog
         # instances without proper serialization.
         # This method navigates a settings object recursively, converting
         # it into more basic types that are trivially convertible to JSON.
+        #: (untyped) -> untyped
         def collect_settings_recursively(v)
           v = v.options_hash if v.respond_to?(:options_hash)
 
@@ -143,6 +155,7 @@ module Datadog
           end
         end
 
+        #: () -> ::Hash[::Symbol, ::String]
         def collect_gc_tuning_info
           return @gc_tuning_info if defined?(@gc_tuning_info)
 

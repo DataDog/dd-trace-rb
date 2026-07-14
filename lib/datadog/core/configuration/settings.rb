@@ -6,6 +6,7 @@ require_relative 'base'
 require_relative 'ext'
 require_relative '../environment/execution'
 require_relative '../environment/ext'
+require_relative '../environment/process'
 require_relative '../runtime/ext'
 require_relative '../telemetry/ext'
 require_relative '../remote/ext'
@@ -105,6 +106,7 @@ module Datadog
         option :api_key do |o|
           o.type :string, nilable: true
           o.env Core::Environment::Ext::ENV_API_KEY
+          o.skip_telemetry true
         end
 
         # Datadog diagnostic settings.
@@ -170,6 +172,16 @@ module Datadog
           o.env Core::Environment::Ext::ENV_ENVIRONMENT
         end
 
+        # Override the hostname reported by this process.
+        # When `report_hostname` is enabled, sets the hostname on traces and
+        # the `host.name` resource attribute in OpenTelemetry.
+        # @default `DD_HOSTNAME` environment variable, otherwise `nil`
+        # @return [String,nil]
+        option :hostname do |o|
+          o.type :string, nilable: true
+          o.env Core::Environment::Ext::ENV_HOSTNAME
+        end
+
         # Configuration for container environments. For internal use only.
         # @!visibility private
         settings :container do
@@ -221,6 +233,8 @@ module Datadog
           #
           # @return Logger::Severity
           option :instance do |o|
+            # Telemetry for this option is manually modified and added in the AppStarted event.
+            o.skip_telemetry true
             o.after_set { |value| set_option(:level, value.level) unless value.nil? }
           end
 
@@ -380,16 +394,19 @@ module Datadog
               o.default false
             end
 
-            # Controls data collection for the timeline feature.
-            #
-            # If you needed to disable this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>,
-            # so we can fix it!
-            #
-            # @default `DD_PROFILING_TIMELINE_ENABLED` environment variable as a boolean, otherwise `true`
+            # DEV-3.0: Remove `timeline_enabled` option
             option :timeline_enabled do |o|
               o.type :bool
               o.env 'DD_PROFILING_TIMELINE_ENABLED'
               o.default true
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Core.log_deprecation(key: :timeline_enabled) do
+                    'The profiling.advanced.timeline_enabled setting has been deprecated for removal and no longer does anything. ' \
+                      'Please remove it from your Datadog.configure block and do not set DD_PROFILING_TIMELINE_ENABLED.'
+                  end
+                end
+              end
             end
 
             # The profiler gathers data by sending `SIGPROF` unix signals to Ruby application threads.
@@ -600,8 +617,7 @@ module Datadog
               o.type :bool
               o.env 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED'
               o.default do
-                Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.2.5') &&
-                  !(RUBY_VERSION.start_with?('3.3.') && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.3.4'))
+                RubyVersion.is?('>= 3.2.5') && !RubyVersion.is?('>= 3.3', '< 3.3.4')
               end
             end
 
@@ -622,11 +638,11 @@ module Datadog
 
             # Fallback to system dns instead of using libdatadog built-in resolver.
             #
-            # @default `DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS` environment variable as a boolean, otherwise `false`
+            # @default `DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS` environment variable as a boolean, otherwise `true`
             option :experimental_use_system_dns do |o|
               o.type :bool
               o.env 'DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS'
-              o.default false
+              o.default true
             end
           end
 
@@ -679,12 +695,16 @@ module Datadog
           o.env Core::Environment::Ext::ENV_SERVICE
           o.default Core::Environment::Ext::FALLBACK_SERVICE_NAME
 
+          o.after_set do |service_name|
+            Core::Environment::Process.set_service(service_name, user_configured: !using_default?(:service))
+          end
+
           # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a
           # nil instead so that one can do
           # nice_service_name = Datadog.configuration.service_without_fallback || nice_service_name_default
           o.helper(:service_without_fallback) do
             service_name = service
-            service_name unless service_name.equal?(Core::Environment::Ext::FALLBACK_SERVICE_NAME)
+            service_name unless using_default?(:service)
           end
         end
 
@@ -804,14 +824,14 @@ module Datadog
         # It must respect the interface of [Datadog::Core::Utils::Time#get_time] method.
         #
         # For [Timecop](https://rubygems.org/gems/timecop), for example,
-        # `->(unit = :float_second) { ::Process.clock_gettime_without_mock(::Process::CLOCK_MONOTONIC, unit) }`
+        # `->(unit = :float_second) { ::Process.clock_gettime_without_mock(Datadog::Core::Utils::Time::MONOTONIC_CLOCK_ID, unit) }`
         # allows Datadog features to use the real monotonic time when time is frozen with
         # `Timecop.mock_process_clock = true`.
         #
-        # @default `->(unit = :float_second) { ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit)}`
+        # @default `->(unit = :float_second) { ::Process.clock_gettime(Core::Utils::Time::MONOTONIC_CLOCK_ID, unit) }`
         # @return [Proc<Numeric>]
         option :get_time_provider do |o|
-          o.default_proc { |unit = :float_second| ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit) }
+          o.default_proc { |unit = :float_second| ::Process.clock_gettime(Core::Utils::Time::MONOTONIC_CLOCK_ID, unit) }
           o.type :proc
 
           o.after_set do |get_time_provider|
@@ -819,7 +839,7 @@ module Datadog
           end
 
           o.resetter do |_value|
-            ->(unit = :float_second) { ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit) }.tap do |default|
+            ->(unit = :float_second) { ::Process.clock_gettime(Core::Utils::Time::MONOTONIC_CLOCK_ID, unit) }.tap do |default|
               Core::Utils::Time.get_time_provider = default
             end
           end
@@ -910,6 +930,19 @@ module Datadog
             o.type :float
             o.env Core::Telemetry::Ext::ENV_HEARTBEAT_INTERVAL
             o.default 60.0
+          end
+
+          # The interval in seconds when extended heartbeat must be sent.
+          #
+          # This method is used internally, for testing purposes only.
+          #
+          # @default `DD_TELEMETRY_EXTENDED_HEARTBEAT_INTERVAL` environment variable, otherwise `86400`.
+          # @return [Integer]
+          # @!visibility private
+          option :extended_heartbeat_interval_seconds do |o|
+            o.type :int
+            o.env Core::Telemetry::Ext::ENV_EXTENDED_HEARTBEAT_INTERVAL
+            o.default 86400
           end
 
           # The interval in seconds when telemetry metrics are aggregated.
@@ -1057,13 +1090,13 @@ module Datadog
           end
         end
 
-        # Enable experimental process tags propagation such that payloads like spans contain the process tag.
+        # Enable process tags propagation such that payloads like spans contain the process tag.
         #
-        # @default `DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED` environment variable, otherwise `false`
+        # @default `DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED` environment variable, otherwise `true`
         # @return [Boolean]
         option :experimental_propagate_process_tags_enabled do |o|
           o.env 'DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED'
-          o.default false
+          o.default true
           o.type :bool
         end
 

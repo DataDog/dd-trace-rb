@@ -9,8 +9,21 @@ require "datadog/di/probe_notifier_worker"
 RSpec.describe Datadog::DI::ProbeNotifierWorker do
   di_test
 
+  let(:probe_repository) do
+    Datadog::DI::ProbeRepository.new
+  end
+
+  let(:probe_notification_builder) do
+    instance_double(Datadog::DI::ProbeNotificationBuilder)
+  end
+
   let(:worker) do
-    described_class.new(settings, logger, agent_settings: agent_settings)
+    described_class.new(
+      settings, logger,
+      agent_settings: agent_settings,
+      probe_repository: probe_repository,
+      probe_notification_builder: probe_notification_builder,
+    )
   end
 
   let(:settings) do

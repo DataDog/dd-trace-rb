@@ -47,7 +47,7 @@ RSpec.describe Datadog::Core::Configuration do
           end
 
           it do
-            #expect(@original_components.telemetry).to receive(:enabled)
+            # expect(@original_components.telemetry).to receive(:enabled)
 
             # Components should have changed
             expect { configure }

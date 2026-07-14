@@ -4,11 +4,6 @@ on: # yamllint disable-line rule:truthy
   push:
     branches:
       - master
-      # A workaround to trigger the workflow for pull requests from forked repository,
-      # which does not have access to secrets.
-      #
-      # This is also useful for testing the workflow without opening a pull request.
-      - tmp/*
   pull_request:
     branches:
       - master
@@ -27,11 +22,11 @@ jobs:
       changes: ${{ steps.changes.outputs.src }}
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
       - name: Changes
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         id: changes
         with:
           filters: |
@@ -50,7 +45,7 @@ jobs:
     needs:
       - changes
     if: ${{ needs.changes.outputs.changes == 'true' }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: Build artifact
     permissions:
       packages: write
@@ -58,16 +53,16 @@ jobs:
       forced_tests: ${{ steps.compute_forced_tests.outputs.forced_tests }}
     steps:
       - name: Checkout DataDog/dd-trace-rb
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: DataDog/dd-trace-rb
           fetch-depth: 2
           persist-credentials: false
           path: packaged/dd-trace-rb
       - name: Upload artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: dd-trace-rb  # The name must match the folder name so it extracts to binaries/dd-trace-rb on download
+          name: dd-trace-rb # The name must match the folder name so it extracts to binaries/dd-trace-rb on download
           path: packaged
       - id: compute_forced_tests
         run: |
@@ -77,10 +72,7 @@ jobs:
   test:
     needs:
       - build
-    uses: DataDog/system-tests/.github/workflows/system-tests.yml@84f1bb72ac46e3bc40a9da6e87cfb3b8e80982fd  # Automated: This reference is automatically updated.
-    secrets:
-      TEST_OPTIMIZATION_API_KEY: ${{ secrets.DD_API_KEY }}  # key used to pushed test results to test optim
-      DD_API_KEY: ${{ secrets.DD_API_KEY }}  # key used in tests runs
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@7bac407189037b3f22eb2f752d52377410119723  # Automated: Updated by .github/workflows/update-system-tests.yml.
     permissions:
       contents: read
       id-token: write
@@ -88,13 +80,13 @@ jobs:
     with:
       library: ruby
       binaries_artifact: dd-trace-rb
-      desired_execution_time: 300  # 5 minutes
+      desired_execution_time: 300 # 5 minutes
       scenarios_groups: tracer_release
-      skip_empty_scenarios: true
-      ref: 84f1bb72ac46e3bc40a9da6e87cfb3b8e80982fd  # Automated: This reference is automatically updated.
+      ref: 7bac407189037b3f22eb2f752d52377410119723 # Automated: Updated by .github/workflows/update-system-tests.yml.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
-      push_to_test_optimization: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+      push_to_test_optimization: true
+      skip_empty_scenarios: true
 
   complete:
     name: System Tests (complete)

@@ -21,6 +21,8 @@ module Datadog
           def exporter: () -> _Exporter
 
           def metrics: () -> _Metrics
+
+          def logs: () -> _Logs
         end
 
         interface _Exporter
@@ -53,6 +55,32 @@ module Datadog
           def timeout_millis: () -> ::Integer?
 
           def protocol: () -> ::String?
+
+          def using_default?: (::Symbol option_name) -> bool
+
+          def public_send: (::Symbol option_name) -> any
+        end
+
+        interface _Logs
+          def enabled: () -> bool
+
+          def exporter: () -> ::String
+
+          def endpoint: () -> ::String?
+
+          def headers: () -> ::Hash[untyped, untyped]?
+
+          def timeout_millis: () -> ::Integer?
+
+          def protocol: () -> ::String?
+
+          def max_queue_size: () -> ::Integer
+
+          def schedule_delay_millis: () -> ::Integer
+
+          def export_timeout_millis: () -> ::Integer
+
+          def max_export_batch_size: () -> ::Integer
 
           def using_default?: (::Symbol option_name) -> bool
 

@@ -195,7 +195,7 @@ RSpec.shared_context 'benchmark' do
     # CPU profiling report
     context 'RubyProf report' do
       before do
-        if PlatformHelpers.jruby? || Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.4.0')
+        if PlatformHelpers.jruby?
           skip("'ruby-prof' not supported")
         end
       end
@@ -298,6 +298,7 @@ RSpec.shared_context 'minimal agent' do
       try_wait_until { Process.wait(@agent_runner, Process::WNOHANG) }
     else
       @agent_runner.kill
+      @agent_runner.join
     end
   end
 

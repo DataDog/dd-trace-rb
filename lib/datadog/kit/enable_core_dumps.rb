@@ -30,7 +30,7 @@ module Datadog
           Process.setrlimit(:CORE, maximum_size)
         rescue => e
           Kernel.warn(
-            "[datadog] Failed to enable core dumps. Cause: #{e.class.name} #{e.message} " \
+            "[datadog] Failed to enable core dumps. Cause: #{e.class}: #{e.message} " \
             "Location: #{Array(e.backtrace).first}"
           )
           return

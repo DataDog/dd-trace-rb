@@ -6,7 +6,7 @@ require 'datadog/core/runtime/metrics'
 RSpec.describe Datadog::Core::Runtime::Metrics do
   let(:logger) { logger_allowing_debug }
   let(:telemetry) { double(Datadog::Core::Telemetry::Component) }
-  let(:options) { {} }
+  let(:options) { {experimental_propagate_process_tags_enabled: true} }
   subject(:runtime_metrics) { described_class.new(logger: logger, telemetry: telemetry, **options) }
 
   describe '::new' do
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
       context 'when available' do
         before { allow(runtime_metrics).to receive(:gauge) }
 
-        it do
+        it 'flushes the metric via gauge' do
           allow(metric).to receive(:available?)
             .and_return(true)
           allow(metric).to receive(:value)
@@ -87,7 +87,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
       end
 
       context 'when unavailable' do
-        it do
+        it 'does not flush the metric' do
           allow(metric).to receive(:available?)
             .and_return(false)
           expect(metric).to_not receive(:value)
@@ -101,7 +101,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
       context 'when an error is thrown' do
         before { allow(Datadog.logger).to receive(:warn) }
 
-        it do
+        it 'logs a warning' do
           allow(metric).to receive(:available?)
             .and_raise(RuntimeError)
 
@@ -149,7 +149,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
         end
 
         context 'with Ruby 2.x' do
-          before { skip('Test only runs on Ruby 2.x') unless RUBY_VERSION.start_with?('2.') }
+          before { skip('Test only runs on Ruby 2.x') if RubyVersion.is?('>= 3') }
 
           it 'records the global_constant_state and global_method_state metrics' do
             flush
@@ -165,7 +165,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
         end
 
         context 'with Ruby 3.0 and 3.1' do
-          before { skip('Test only runs on Ruby 3.0 and 3.1') unless RUBY_VERSION.start_with?('3.0.', '3.1.') }
+          before { skip('Test only runs on Ruby 3.0 and 3.1') unless RubyVersion.is?('>= 3', '< 3.2') }
 
           it 'records only the constant_global_state metric' do
             flush
@@ -177,7 +177,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
         end
 
         context 'with Ruby >= 3.2' do
-          before { skip('Test only runs on Ruby >= 3.2') if RUBY_VERSION < '3.2.' }
+          before { skip('Test only runs on Ruby >= 3.2') unless RubyVersion.is?('>= 3.2') }
 
           it 'records the constant_cache_invalidations and constant_cache_misses metrics' do
             flush
@@ -196,7 +196,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
       context 'including YJIT stats' do
         before do
           skip('This feature is only supported in CRuby') unless PlatformHelpers.mri?
-          skip('Test only runs on Ruby >= 3.2') if RUBY_VERSION < '3.2.'
+          skip('Test only runs on Ruby >= 3.2') unless RubyVersion.is?('>= 3.2')
         end
 
         context 'with YJIT enabled' do
@@ -240,7 +240,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
               .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_YJIT_OUTLINED_CODE_SIZE, kind_of(Numeric))
               .once
 
-            if RUBY_VERSION >= '3.3.0'
+            if RubyVersion.is?('>= 3.3.0')
               expect(runtime_metrics).to have_received(:gauge)
                 .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_YJIT_YJIT_ALLOC_SIZE, kind_of(Numeric))
                 .once
@@ -250,7 +250,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
 
         context 'with YJIT enabled and RubyVM::YJIT.stats_enabled? true' do
           before do
-            skip('Test only runs on Ruby 3.3 and 3.4') if RUBY_VERSION < '3.3.' || RUBY_VERSION >= '4.0.'
+            skip('Test only runs on Ruby 3.3 and 3.4') unless RubyVersion.is?('>= 3.3', '< 4')
             unless Datadog::Core::Environment::YJIT.available? && ::RubyVM::YJIT.stats_enabled?
               skip('Test only runs with YJIT enabled and RubyVM::YJIT.stats_enabled? true')
             end
@@ -277,7 +277,8 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
       before do
         allow(runtime_metrics).to receive(:statsd).and_return(statsd)
         allow(statsd).to receive(:gauge)
-        allow(Datadog::Core::Environment::Process).to receive(:tags).and_return(['entrypoint.workdir:test'])
+        allow(Datadog::Core::Environment::Process).to receive(:tags)
+          .and_return(['entrypoint.workdir:test', 'rails.application:test_app'])
         runtime_metrics.enabled = true
       end
 
@@ -285,6 +286,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
         flush
 
         expect(statsd).to have_received(:gauge).with(anything, anything, hash_including(tags: array_including('entrypoint.workdir:test'))).at_least(:once)
+        expect(statsd).to have_received(:gauge).with(anything, anything, hash_including(tags: array_including('rails.application:test_app'))).at_least(:once)
       end
     end
   end
@@ -325,6 +327,19 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
     describe ':tags' do
       subject(:default_tags) { default_metric_options[:tags] }
 
+      context 'when :experimental_propagate_process_tags_enabled is true' do
+        before do
+          allow(Datadog::Core::Environment::Process).to receive(:tags)
+            .and_return(['entrypoint.workdir:test', 'entrypoint.name:test_script', 'rails.application:test_app'])
+        end
+
+        it 'includes process tags by default' do
+          is_expected.to include('entrypoint.workdir:test')
+          is_expected.to include('entrypoint.name:test_script')
+          is_expected.to include('rails.application:test_app')
+        end
+      end
+
       context 'given :experimental_runtime_id_enabled' do
         let(:options) { super().merge(experimental_runtime_id_enabled: runtime_id_enabled) }
         let(:runtime_id_enabled) { true }
@@ -361,7 +376,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
         let(:options) { super().merge(experimental_propagate_process_tags_enabled: true) }
 
         before do
-          expect(Datadog::Core::Environment::Process).to receive(:tags).and_return(['entrypoint.workdir:test', 'entrypoint.name:test_script', 'entrypoint.basedir:test', 'entrypoint.type:script'])
+          expect(Datadog::Core::Environment::Process).to receive(:tags).and_return(['entrypoint.workdir:test', 'entrypoint.name:test_script', 'entrypoint.basedir:test', 'entrypoint.type:script', 'rails.application:test_app'])
         end
 
         it 'includes process tags when enabled' do
@@ -369,6 +384,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
           is_expected.to include('entrypoint.name:test_script')
           is_expected.to include('entrypoint.basedir:test')
           is_expected.to include('entrypoint.type:script')
+          is_expected.to include('rails.application:test_app')
         end
       end
 

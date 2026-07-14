@@ -78,7 +78,7 @@ module Datadog
                 # We could format to a string here but what if customer
                 # has @duration as part of an expression and wants
                 # to retain it as a number?
-                "(context.duration * 1000)"
+                "(context.duration && context.duration * 1000)"
               when '@exception'
                 "context.exception"
               else

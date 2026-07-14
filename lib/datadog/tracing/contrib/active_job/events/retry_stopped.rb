@@ -28,7 +28,10 @@ module Datadog
 
             def on_start(span, event, _id, payload)
               span.name = span_name
-              span.service = configuration[:service_name] if configuration[:service_name]
+              if configuration[:service_name]
+                span.service = configuration[:service_name]
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
+              end
               span.resource = payload[:job].class.name
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_RETRY_STOPPED)
 
@@ -40,7 +43,7 @@ module Datadog
               set_common_tags(span, payload)
               span.set_tag(Ext::TAG_JOB_ERROR, payload[:error])
             rescue => e
-              Datadog.logger.debug(e.message)
+              Datadog.logger.debug { "#{e.class}: #{e.message}" }
             end
           end
         end
