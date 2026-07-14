@@ -46,6 +46,7 @@ module Datadog
                                   '',
                                   adapter_name
                                 )
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.resource = opts[:query]
                 span.type = Tracing::Metadata::Ext::SQL::TYPE
                 Utils.set_common_tags(span, db)

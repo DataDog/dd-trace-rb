@@ -117,6 +117,23 @@ module Datadog
                 end
               end
 
+              # Behavior applied to a distributed-trace context extracted from incoming requests.
+              option :propagation_behavior_extract do |o|
+                o.env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_BEHAVIOR_EXTRACT
+                o.default Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_CONTINUE
+                o.type :string
+                o.env_parser do |value|
+                  value = value&.downcase
+                  if Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_SUPPORTED.include?(value)
+                    value
+                  else
+                    Datadog.logger.warn("Unsupported propagation behavior extract: #{value.inspect}. " \
+                      "Set to default value (#{Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_CONTINUE}).")
+                    nil
+                  end
+                end
+              end
+
               # Strictly stop at the first successfully serialized style.
               # This prevents the tracer from enriching the extracted context with information from
               # other valid propagations styles present in the request.
@@ -430,7 +447,7 @@ module Datadog
                       rescue => e
                         # `File#read` errors have clear and actionable messages, no need to add extra exception info.
                         Datadog.logger.warn(
-                          "Cannot read span sampling rules file `#{rules_file}`: #{e.message}." \
+                          "Cannot read span sampling rules file `#{rules_file}`: #{e.class}: #{e.message}." \
                           'No span sampling rules will be applied.'
                         )
                         nil
@@ -481,6 +498,7 @@ module Datadog
               # @default `{}`
               # @return [Hash]
               option :writer_options do |o|
+                o.skip_telemetry true
                 o.type :hash
                 o.default({})
               end

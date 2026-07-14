@@ -8,6 +8,8 @@ require 'datadog'
 require 'datadog/tracing/contrib/delayed_job/plugin'
 require_relative 'delayed_job_active_record'
 
+require 'datadog/tracing/contrib/svc_src_examples'
+
 RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_active_record do
   let(:sample_job_object) do
     stub_const(
@@ -175,6 +177,11 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
 
       it 'has default service name' do
         expect(span.service).to eq(tracer.default_service)
+      end
+
+      context 'when service_name is overridden' do
+        let(:configuration_options) { {service_name: 'custom-delayed-job'} }
+        it_behaves_like 'tags _dd.svc_src', 'delayed_job'
       end
 
       it 'span tags include job id' do

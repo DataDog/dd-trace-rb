@@ -61,8 +61,7 @@ module Datadog
     end
 
     def self.enabled?
-      profiler = Datadog.send(:components).profiler
-      !!profiler&.enabled?
+      !!Datadog.send(:components).profiler
     end
 
     def self.wait_until_running(timeout_seconds: 5)

@@ -13,7 +13,7 @@ module Datadog
             'cloudfront-viewer-ja3-fingerprint',
             'content-type',
             'user-agent',
-            'x-amzn-trace-Id',
+            'x-amzn-trace-id',
             'x-appgw-trace-id',
             'x-cloud-trace-context',
             'x-sigsci-requestid',

@@ -46,12 +46,10 @@ class ProfilerMemorySampleSerializeBenchmark
     @skip_end_gc = ENV['SKIP_END_GC'] == 'true'
     @recorder_factory = proc {
       Datadog::Profiling::StackRecorder.for_testing(
-        cpu_time_enabled: false,
         alloc_samples_enabled: true,
         heap_samples_enabled: @heap_samples_enabled,
         heap_size_enabled: @heap_size_enabled,
-        heap_sample_every: @heap_sample_every,
-        timeline_enabled: false,
+        heap_sample_every: @heap_sample_every
       )
     }
   end

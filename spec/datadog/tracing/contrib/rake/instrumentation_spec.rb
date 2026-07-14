@@ -1,5 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 require 'securerandom'
 require 'rake'
@@ -73,6 +74,13 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
     shared_examples_for 'a single task execution' do
       it 'contains invoke and execute spans' do
         expect(spans).to have(2).items
+      end
+
+      context 'when service_name is overridden' do
+        let(:configuration_options) { super().merge(service_name: 'custom-rake') }
+        it_behaves_like 'tags _dd.svc_src', 'rake' do
+          let(:span) { invoke_span }
+        end
       end
 
       describe '\'rake.invoke\' span' do

@@ -18,6 +18,7 @@ module Datadog
         ENV_API_KEY = 'DD_API_KEY'
         ENV_ENVIRONMENT = 'DD_ENV'
         ENV_EXTERNAL_ENV = 'DD_EXTERNAL_ENV'
+        ENV_HOSTNAME = 'DD_HOSTNAME'
         ENV_SERVICE = 'DD_SERVICE'
         ENV_SITE = 'DD_SITE'
         ENV_TAGS = 'DD_TAGS'
@@ -41,8 +42,13 @@ module Datadog
         TAG_ENTRYPOINT_NAME = "entrypoint.name"
         TAG_ENTRYPOINT_WORKDIR = "entrypoint.workdir"
         TAG_ENTRYPOINT_TYPE = "entrypoint.type"
+        TAG_RAILS_APPLICATION = "rails.application"
         TAG_PROCESS_TAGS = "_dd.tags.process"
         TAG_SERVICE = 'service'
+        # Service name was automatically populated by this library
+        TAG_SVC_AUTO = 'svc.auto'
+        # Service name was explicitly configured by the library user
+        TAG_SVC_USER = 'svc.user'
         TAG_VERSION = 'version'
 
         GEM_DATADOG_VERSION = Datadog::VERSION::STRING

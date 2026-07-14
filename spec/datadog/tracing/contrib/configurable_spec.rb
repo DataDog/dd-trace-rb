@@ -21,6 +21,36 @@ RSpec.describe Datadog::Tracing::Contrib::Configurable do
         it 'defaults to being enabled' do
           expect(default_configuration[:enabled]).to be true
         end
+
+        context 'when the integration provides a name and custom settings' do
+          let(:settings_class) do
+            Class.new do
+              include Datadog::Core::Configuration::Base
+
+              option :enabled, default: true
+
+              settings :cache_key do
+                option :enabled, default: true
+              end
+            end
+          end
+
+          let(:configurable_class) do
+            configuration_settings_class = settings_class
+
+            Class.new.tap do |klass|
+              klass.include(described_class)
+              klass.send(:define_method, :name) { :test }
+              klass.send(:define_method, :new_configuration) { configuration_settings_class.new }
+              klass.send(:protected, :new_configuration)
+            end
+          end
+
+          it 'assigns the integration settings path to the configuration and nested settings' do
+            expect(default_configuration.class.settings_path).to eq('tracing.test')
+            expect(default_configuration.cache_key.class.settings_path).to eq('tracing.test.cache_key')
+          end
+        end
       end
 
       describe '#reset_configuration!' do
@@ -122,6 +152,38 @@ RSpec.describe Datadog::Tracing::Contrib::Configurable do
           context 'that does not match any configuration' do
             it do
               expect { configure }.to(change { configurable_object.configuration(key) })
+            end
+
+            context 'when the integration provides a name and custom settings' do
+              let(:settings_class) do
+                Class.new do
+                  include Datadog::Core::Configuration::Base
+
+                  option :enabled, default: true
+
+                  settings :cache_key do
+                    option :enabled, default: true
+                  end
+                end
+              end
+
+              let(:configurable_class) do
+                configuration_settings_class = settings_class
+
+                Class.new.tap do |klass|
+                  klass.include(described_class)
+                  klass.send(:define_method, :name) { :test }
+                  klass.send(:define_method, :new_configuration) { configuration_settings_class.new }
+                  klass.send(:protected, :new_configuration)
+                end
+              end
+
+              it 'assigns the integration settings path to the created configuration' do
+                configuration = configure
+
+                expect(configuration.class.settings_path).to eq('tracing.test')
+                expect(configuration.cache_key.class.settings_path).to eq('tracing.test.cache_key')
+              end
             end
           end
         end

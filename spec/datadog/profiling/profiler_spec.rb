@@ -4,7 +4,7 @@ require "datadog/profiling/spec_helper"
 require "datadog/profiling/profiler"
 
 RSpec.describe Datadog::Profiling::Profiler do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
   subject(:profiler) do
     described_class.new(worker: worker, scheduler: scheduler)
@@ -12,22 +12,6 @@ RSpec.describe Datadog::Profiling::Profiler do
 
   let(:worker) { instance_double(Datadog::Profiling::Collectors::CpuAndWallTimeWorker) }
   let(:scheduler) { instance_double(Datadog::Profiling::Scheduler) }
-
-  describe '.enabled?' do
-    subject(:enabled?) { profiler.enabled? }
-
-    let(:scheduler) { instance_double('Datadog::Profiling::Scheduler', running?: running) }
-
-    context 'when the profiler is running' do
-      let(:running) { true }
-      it { is_expected.to be(true) }
-    end
-
-    context 'when the profiler is not running' do
-      let(:running) { false }
-      it { is_expected.to be(false) }
-    end
-  end
 
   describe "#start" do
     subject(:start) { profiler.start }

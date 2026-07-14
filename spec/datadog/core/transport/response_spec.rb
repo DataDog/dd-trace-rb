@@ -100,5 +100,13 @@ RSpec.describe Datadog::Core::Transport::InternalErrorResponse do
     it 'includes the causing exception' do
       expect(response.to_s).to match(/StandardError/)
     end
+
+    it 'does not include a memory address' do
+      expect(response.to_s).not_to match(/0x\h+/)
+    end
+
+    it 'starts with the class name' do
+      expect(response.to_s).to start_with('Datadog::Core::Transport::InternalErrorResponse,')
+    end
   end
 end

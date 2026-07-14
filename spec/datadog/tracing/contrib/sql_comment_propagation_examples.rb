@@ -13,7 +13,15 @@ RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, erro
     end
   end
 
-  %w[disabled service full].each do |mode|
+  context 'when ENV variable `DD_DBM_PROPAGATION_MODE` is set to dynamic_service' do
+    with_env 'DD_DBM_PROPAGATION_MODE' => 'dynamic_service'
+
+    it_behaves_like 'propagates with sql comment', mode: 'dynamic_service', span_op_name: span_op_name, error: error do
+      let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('dynamic_service', append_comment, inject_sql_basehash) }
+    end
+  end
+
+  %w[disabled service dynamic_service full].each do |mode|
     context "when `comment_propagation` is configured to #{mode}" do
       let(:configuration_options) do
         {comment_propagation: mode, service_name: service_name}
@@ -124,7 +132,7 @@ end
 
 RSpec.shared_examples_for 'with sql comment base hash injection' do |span_op_name:|
   let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: 1234567890, fetch: nil) }
-  let(:profiler) { double(enabled?: false) }
+  let(:profiler) { nil }
 
   before do
     allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info, tracer: tracer, profiler: profiler))
@@ -132,13 +140,7 @@ RSpec.shared_examples_for 'with sql comment base hash injection' do |span_op_nam
 
   context 'when inject_sql_basehash is enabled and experimental_propagate_process_tags_enabled is true' do
     before do
-      Datadog.configure do |c|
-        c.experimental_propagate_process_tags_enabled = true
-      end
-    end
-
-    after do
-      without_warnings { Datadog.configuration.reset! }
+      allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
     end
 
     let(:configuration_options) do
@@ -155,13 +157,8 @@ RSpec.shared_examples_for 'with sql comment base hash injection' do |span_op_nam
   end
 
   context 'when inject_sql_basehash is enabled but experimental_propagate_process_tags_enabled is false' do
-    around do |example|
-      without_warnings { Datadog.configuration.reset! }
-      Datadog.configure do |c|
-        c.experimental_propagate_process_tags_enabled = false
-      end
-      example.run
-      without_warnings { Datadog.configuration.reset! }
+    before do
+      allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
     end
 
     let(:configuration_options) do
@@ -178,13 +175,8 @@ RSpec.shared_examples_for 'with sql comment base hash injection' do |span_op_nam
   end
 
   context 'when inject_sql_basehash is disabled but experimental_propagate_process_tags_enabled is true' do
-    around do |example|
-      without_warnings { Datadog.configuration.reset! }
-      Datadog.configure do |c|
-        c.experimental_propagate_process_tags_enabled = true
-      end
-      example.run
-      without_warnings { Datadog.configuration.reset! }
+    before do
+      allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
     end
 
     let(:configuration_options) do
@@ -197,6 +189,24 @@ RSpec.shared_examples_for 'with sql comment base hash injection' do |span_op_nam
       span = spans.find { |s| s.name == span_op_name }
       expect(span).not_to be_nil
       expect(span.get_tag('_dd.propagated_hash')).to be_nil
+    end
+  end
+
+  context 'when comment_propagation is dynamic_service and experimental_propagate_process_tags_enabled is true' do
+    before do
+      allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
+    end
+
+    let(:configuration_options) do
+      {comment_propagation: 'dynamic_service', service_name: service_name}
+    end
+
+    it 'injects base hash in the _dd.propagated_hash span tag' do
+      subject
+
+      span = spans.find { |s| s.name == span_op_name }
+      expect(span).not_to be_nil
+      expect(span.get_tag('_dd.propagated_hash')).to eq('1234567890')
     end
   end
 end

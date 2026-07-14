@@ -8,8 +8,16 @@ module Datadog
     # Used to report profiling data to Datadog.
     # Methods prefixed with _native_ are implemented in `http_transport.c`
     class HttpTransport
-      attr_reader :exporter_configuration
+      # @rbs @exporter_configuration: exporter_configuration_array
 
+      attr_reader :exporter_configuration #: exporter_configuration_array
+
+      # @rbs agent_settings: Datadog::Core::Configuration::AgentSettings
+      # @rbs site: ::String?
+      # @rbs api_key: ::String?
+      # @rbs upload_timeout_seconds: ::Integer
+      # @rbs use_system_dns: bool
+      # @rbs return: void
       def initialize(agent_settings:, site:, api_key:, upload_timeout_seconds:, use_system_dns:)
         timeout_milliseconds = (upload_timeout_seconds * 1_000).to_i
 
@@ -28,6 +36,7 @@ module Datadog
         raise(ArgumentError, "Failed to initialize transport: #{result}") if status == :error
       end
 
+      #: (Datadog::Profiling::Flush) -> bool
       def export(flush)
         status, result = self.class._native_do_export(
           exporter_configuration,
@@ -57,10 +66,12 @@ module Datadog
 
       private
 
+      #: (::String?, ::String?) -> bool?
       def agentless?(site, api_key)
         site && api_key && %w[1 true].include?(ENV[Profiling::Ext::ENV_AGENTLESS] || '') # rubocop:disable CustomCops/EnvUsageCop
       end
 
+      #: () -> ::String
       def config_without_api_key
         "#{exporter_configuration[0]}: #{exporter_configuration[3]}"
       end

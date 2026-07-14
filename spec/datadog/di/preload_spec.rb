@@ -12,7 +12,7 @@ RSpec.describe 'DI initializer' do
 
     require 'datadog/di/preload'
 
-    if Datadog.constants.sort != %i(DI VERSION)
+    if Datadog.constants.sort != %i(DI RubyVersion VERSION)
       raise "Too many datadog components loaded: \#{Datadog.constants}"
     end
 
@@ -35,7 +35,7 @@ RSpec.describe 'DI initializer' do
       raise "Loaded script not found in code tracker registry"
     end
 
-    if Datadog.constants.sort != %i(DI VERSION)
+    if Datadog.constants.sort != %i(DI RubyVersion VERSION)
       raise "Too many datadog components loaded at the end of execution: \#{Datadog.constants}"
     end
   SCRIPT

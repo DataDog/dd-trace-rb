@@ -19,7 +19,7 @@ This guide covers some of the common how-tos and technical reference material fo
 
 The trace library uses Docker Compose to create a Ruby environment to develop and test within, as well as containers for any dependencies that might be necessary for certain kinds of tests.
 
-To start a development environment, choose a target Ruby or JRuby version.
+To start a development environment, choose a target Ruby version.
 Some of the development tooling is only defined for the recent MRI versions,
 therefore we suggest using Ruby 3.4 unless you specifically need a different
 version. Run the following:
@@ -30,9 +30,6 @@ cd ~/dd-trace-rb
 
 # Create and start a Ruby 3.4 test environment with its dependencies
 docker compose run --rm tracer-3.4 /bin/bash
-
-# or a JRuby test environment with its dependencies
-docker compose run --rm tracer-jruby-9.4 /bin/bash
 
 # Then inside the container (e.g. `root@2a73c6d8673e:/app`)...
 # Install the library dependencies
@@ -104,9 +101,9 @@ Take `bundle exec rake test:redis` as example: multiple versions of `redis` from
 ```ruby
 {
   'redis' => {
-    'redis-3' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
-    'redis-4' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
-    'redis-5' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby'
+    'redis-3' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4',
+    'redis-4' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4',
+    'redis-5' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4'
   }
 }
 ```
@@ -123,7 +120,7 @@ You can find them by running the following command:
 bundle exec rake -T dependency:
 ```
 
-Dependency group definitions are located under the `appraisal/` directory using the same DSL provided by [Appraisal](https://github.com/thoughtbot/appraisal). These definitions are used to generate `gemfiles/*.gemfile` and then `gemfiles/*.lock`. All the files are underscored and prefixed with the Ruby or JRuby runtime version.
+Dependency group definitions are located under the `appraisal/` directory using the same DSL provided by [Appraisal](https://github.com/thoughtbot/appraisal). These definitions are used to generate `gemfiles/*.gemfile` and then `gemfiles/*.lock`. All the files are underscored and prefixed with the Ruby runtime version.
 
 > [!IMPORTANT]
 > Do NOT manually edit `gemfiles/*.gemfile` or `gemfiles/*.lock`. Instead, make changes to `appraisal/*.rb` and propagate your changes programmatically.
@@ -155,6 +152,30 @@ bundle exec rake dependency:lock['/app/gemfiles/ruby_3.4_stripe_*.gemfile']
 bundle exec rake dependency:lock['/app/gemfiles/ruby_3.4_stripe_latest.gemfile']
 ```
 
+**Lockfile layout**
+
+Under `gemfiles/` there are two layers of lockfiles:
+
+1. **Parent locks** — `gemfiles/ruby-X.Y.gemfile.lock`, one per supported Ruby. Holds the shared development tooling plus the `datadog.gemspec` runtime dependencies.
+2. **Appraisal locks** — `gemfiles/ruby_X_Y_<group>.gemfile.lock`, one per integration group. Each adds the integration under test on top of the parent's gem set.
+
+The two layers are independent Bundler resolutions of overlapping gem sets and will drift on shared gems without active sync.
+
+**Task surfaces**
+
+Two rake namespaces, with different intents:
+
+- `tasks/dependency.rake` (`rake -T dependency:`) — keeps lockfiles consistent with the current gemfile constraints, including propagating parent-layer movement into appraisal locks. Does not move versions on its own.
+- `tasks/edge.rake` (`rake -T edge:`) — intentionally moves versions toward the latest within constraints. Includes an allowlist for integration libraries we explicitly want tracking latest; appraisals outside the allowlist stay where their gemfile pins them.
+
+**CI automation**
+
+Three workflows exercise the above; you should rarely need to run the tasks by hand. The workflow YAML and per-step `name:` fields are the source of truth for what each one does — only the high-level role is captured here.
+
+- `.github/workflows/lock-dependency.yml` — on-PR. Runs whenever a dependency-relevant file changes (see `.github/dependency_filters.yml`). Keeps the appraisal layer consistent with the parent layer and with any gemfile changes the PR introduced, and commits the result back to the PR.
+- `.github/workflows/update-latest-dependency.yml` — Sunday cron + manual dispatch. Moves versions forward and opens a single aggregated PR. That PR then triggers `lock-dependency.yml`, so propagation runs in the same PR.
+- `.github/workflows/bump-gem-version.yml` — invoked from the release flow to rewrite the datadog version pin everywhere it appears.
+
 **How to add a new dependency group**
 
 > [!IMPORTANT]
@@ -168,11 +189,11 @@ For example, if you want tests to run only on Ruby 3.3 for tracing, you can defi
 {
   'tracing:ruby_on_rails' => {
     # With default dependencies for each Ruby runtime
-    '' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4 / ❌ jruby'
+    '' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4'
     # or with dependency group definition `ruby-on-rails`, that includes additional gems or specific versions
-    'rails-1' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4 / ❌ jruby'
+    'rails-1' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4'
     # ...
-    'rails-edge' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4 / ❌ jruby'
+    'rails-edge' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4'
   }
 }
 ```
@@ -188,7 +209,7 @@ end
 3. Now let's generate that dependency Gemfile with `rake`. Simply run
 
 > [!IMPORTANT]
-> Ensure you are either using Ruby 3.3 as the current Ruby version (`ruby -v`) or running commands within a Docker container.
+> Ensure you are either using the repo's current Ruby version from `.ruby-version` (`ruby -v`) or running commands within a Docker container.
 
 ```console
 $ bundle exec rake dependency:generate
@@ -319,20 +340,8 @@ https://github.com/datadog/dd-apm-test-agent#readme
 
 **Linting**
 
-Most of the library uses Rubocop to enforce [code style](https://github.com/bbatsov/ruby-style-guide) and quality. To check, run:
-
-```
-bundle exec rake rubocop
-```
-
-To change your code to the version that rubocop wants, run:
-
-```
-bundle exec rake rubocop -A
-```
-
-Profiling and Dynamic Instrumentation use [standard](https://github.com/standardrb/standard)
-instead of Rubocop. To check files with standard, run:
+The library uses [standard](https://github.com/standardrb/standard) to enforce code style and quality.
+Custom cops (under the `CustomCops/` namespace) run as part of the same check. To check, run:
 
 ```
 bundle exec rake standard
@@ -390,6 +399,14 @@ Then [open a pull request](../CONTRIBUTING.md#have-a-patch) and be sure to add t
  - Links to the repository/website of the library being integrated
  - Screenshots showing a sample trace
  - Any additional code snippets, sample apps, benchmarks, or other resources that demonstrate its implementation are a huge plus!
+
+### Testing the Symbol Database without Remote Configuration
+
+When you open the DI UI for a service, Symbol Database upload normally activates,
+using Remote Configuration. For local development, bypass RC and trigger the
+upload directly on tracer startup with:
+
+    export DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD=true
 
 ### Generating GRPC proto stubs for tests
 

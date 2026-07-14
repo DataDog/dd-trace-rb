@@ -52,7 +52,7 @@ RSpec.describe Datadog::Profiling::Component do
 
     context "with :enabled true" do
       before do
-        skip_if_profiling_not_supported(self)
+        skip_if_profiling_not_supported
 
         settings.profiling.enabled = true
         # Disabled to avoid warnings on Rubies where it's not supported; there's separate specs that test it when enabled
@@ -64,6 +64,24 @@ RSpec.describe Datadog::Profiling::Component do
         expect(build_profiler_component).to match([instance_of(Datadog::Profiling::Profiler), {profiling_enabled: true}])
       end
 
+      context "when an exception is raised during initialization" do
+        before do
+          expect(Datadog::Profiling::HttpTransport).to receive(:new).and_raise(
+            ArgumentError.new("Failed to initialize transport: something went wrong")
+          )
+        end
+
+        it "logs a warning, reports via telemetry, and returns nil" do
+          expect(logger).to receive(:warn) do |&block|
+            expect(block.call).to match(/Failed to initialize profiling.*ArgumentError/)
+          end
+          expect(Datadog::Core::Telemetry::Logger).to receive(:report)
+            .with(instance_of(ArgumentError), hash_including(description: "Failed to initialize profiling"))
+
+          is_expected.to eq [nil, {profiling_enabled: false}]
+        end
+      end
+
       context "when using the new CPU Profiling 2.0 profiler" do
         it "initializes a ThreadContext collector" do
           allow(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new)
@@ -72,8 +90,6 @@ RSpec.describe Datadog::Profiling::Component do
 
           expect(settings.profiling.advanced)
             .to receive(:max_frames).and_return(:max_frames_config)
-          expect(settings.profiling.advanced)
-            .to receive(:timeline_enabled).at_least(:once).and_return(:timeline_enabled_config)
           expect(settings.profiling.advanced.endpoint.collection)
             .to receive(:enabled).and_return(:endpoint_collection_enabled_config)
           expect(settings.profiling.advanced)
@@ -86,7 +102,6 @@ RSpec.describe Datadog::Profiling::Component do
             max_frames: :max_frames_config,
             tracer: tracer,
             endpoint_collection_enabled: :endpoint_collection_enabled_config,
-            timeline_enabled: :timeline_enabled_config,
             waiting_for_gvl_threshold_ns: :threshold_ns_config,
             otel_context_enabled: false,
             native_filenames_enabled: :native_filenames_enabled_config,
@@ -155,9 +170,10 @@ RSpec.describe Datadog::Profiling::Component do
             settings.profiling.advanced.gc_enabled = true
 
             stub_const("RUBY_VERSION", testing_version)
+            stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
           end
 
-          ["2.7.0", "3.1.4", "3.2.3", "3.3.0"].each do |fixed_ruby|
+          ["2.7.0", "3.1.4", "3.2.3", "3.2.10", "3.3.0"].each do |fixed_ruby|
             context "on a Ruby version not affected by https://bugs.ruby-lang.org/issues/18464 (#{fixed_ruby})" do
               let(:testing_version) { fixed_ruby }
 
@@ -220,9 +236,12 @@ RSpec.describe Datadog::Profiling::Component do
 
             # Since RUBY_VERSION is used to test if the ExecMonkeyPatch should be applied, mocking it below on an old
             # Ruby would cause it to wrongly be triggered, so we avoid running these specs there.
-            skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "2.7" && testing_version >= "3"
+            if RubyVersion.is?("< 2.7") && RubyVersion.is?(">= 3", ruby_version: Gem::Version.new(testing_version))
+              skip "Behavior does not apply to current Ruby version"
+            end
 
             stub_const("RUBY_VERSION", testing_version)
+            stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
           end
 
           context "on Ruby 2.x" do
@@ -323,11 +342,13 @@ RSpec.describe Datadog::Profiling::Component do
         context "when heap profiling is enabled", ruby: '>= 2.7' do
           # Universally supported ruby version for allocation profiling by default
           let(:testing_version) { "3.3.0" }
+          let(:heap_size_profiling_available) { RubyVersion.is?("< 4") } # Currently incompatible with Ruby 4
 
           before do
             settings.profiling.advanced.experimental_heap_enabled = true
             settings.profiling.advanced.gc_enabled = false # Disable this to avoid any additional warnings coming from it
             stub_const("RUBY_VERSION", testing_version)
+            stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
           end
 
           context "on a Ruby older than 3.1" do
@@ -339,6 +360,20 @@ RSpec.describe Datadog::Profiling::Component do
                 .and_call_original
 
               expect(logger).to receive(:warn).with(/upgrade to Ruby >= 3.1/)
+
+              build_profiler_component
+            end
+          end
+
+          context "on Ruby 4.1 or newer" do
+            let(:testing_version) { "4.1.0" }
+
+            it "initializes StackRecorder without heap sampling support and warns" do
+              expect(Datadog::Profiling::StackRecorder).to receive(:new)
+                .with(hash_including(heap_samples_enabled: false, heap_size_enabled: false))
+                .and_call_original
+
+              expect(logger).to receive(:warn).with(/Heap profiling is currently incompatible with Ruby 4.1/)
 
               build_profiler_component
             end
@@ -367,7 +402,7 @@ RSpec.describe Datadog::Profiling::Component do
 
             it "initializes StackRecorder with heap sampling support and warns" do
               expect(Datadog::Profiling::StackRecorder).to receive(:new)
-                .with(hash_including(heap_samples_enabled: true, heap_size_enabled: true))
+                .with(hash_including(heap_samples_enabled: true, heap_size_enabled: heap_size_profiling_available))
                 .and_call_original
 
               expect(logger).to receive(:debug).with(/Ractors.+stopping/)
@@ -382,10 +417,12 @@ RSpec.describe Datadog::Profiling::Component do
 
               before { allow(logger).to receive(:debug) }
 
-              it "initializes StackRecorder with heap sampling support" do
+              it "initializes StackRecorder with heap sampling but without heap size profiling support and logs" do
                 expect(Datadog::Profiling::StackRecorder).to receive(:new)
-                  .with(hash_including(heap_samples_enabled: true, heap_size_enabled: true))
+                  .with(hash_including(heap_samples_enabled: true, heap_size_enabled: false))
                   .and_call_original
+
+                expect(logger).to receive(:info).with(/Heap live size profiling is currently incompatible with Ruby 4/)
 
                 build_profiler_component
               end
@@ -420,28 +457,6 @@ RSpec.describe Datadog::Profiling::Component do
             expect(Datadog::Profiling::StackRecorder).to receive(:new)
               .with(hash_including(heap_samples_enabled: false, heap_size_enabled: false))
               .and_call_original
-
-            build_profiler_component
-          end
-        end
-
-        context "when timeline is enabled" do
-          before { settings.profiling.advanced.timeline_enabled = true }
-
-          it "sets up the StackRecorder with timeline_enabled: true" do
-            expect(Datadog::Profiling::StackRecorder)
-              .to receive(:new).with(hash_including(timeline_enabled: true)).and_call_original
-
-            build_profiler_component
-          end
-        end
-
-        context "when timeline is disabled" do
-          before { settings.profiling.advanced.timeline_enabled = false }
-
-          it "sets up the StackRecorder with timeline_enabled: false" do
-            expect(Datadog::Profiling::StackRecorder)
-              .to receive(:new).with(hash_including(timeline_enabled: false)).and_call_original
 
             build_profiler_component
           end
@@ -491,41 +506,17 @@ RSpec.describe Datadog::Profiling::Component do
           allow(Datadog::Profiling::StackRecorder).to receive(:new)
 
           expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
-          expect(settings.profiling.advanced).to receive(:timeline_enabled).at_least(:once).and_return(:timeline_result)
           expect(settings.profiling.advanced).to receive(:experimental_heap_sample_rate).and_return(456)
           expect(Datadog::Profiling::Exporter).to receive(:new).with(
             hash_including(
               internal_metadata: {
                 no_signals_workaround_enabled: :no_signals_result,
-                timeline_enabled: :timeline_result,
                 heap_sample_every: 456,
               }
             )
           )
 
           build_profiler_component
-        end
-
-        context "when on Linux" do
-          before { stub_const("RUBY_PLATFORM", "some-linux-based-platform") }
-
-          it "sets up the StackRecorder with cpu_time_enabled: true" do
-            expect(Datadog::Profiling::StackRecorder)
-              .to receive(:new).with(hash_including(cpu_time_enabled: true)).and_call_original
-
-            build_profiler_component
-          end
-        end
-
-        context "when not on Linux" do
-          before { stub_const("RUBY_PLATFORM", "some-other-os") }
-
-          it "sets up the StackRecorder with cpu_time_enabled: false" do
-            expect(Datadog::Profiling::StackRecorder)
-              .to receive(:new).with(hash_including(cpu_time_enabled: false)).and_call_original
-
-            build_profiler_component
-          end
         end
       end
 
@@ -641,7 +632,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         context "on Ruby >= 3.4" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.4." }
+          before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 3.4") }
 
           it "is never applied" do
             expect(Datadog::Profiling::Ext::DirMonkeyPatches).to_not receive(:apply!)
@@ -651,7 +642,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         context "on Ruby < 3.4" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.4." }
+          before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 3.4") }
 
           it "is applied by default" do
             expect(Datadog::Profiling::Ext::DirMonkeyPatches).to receive(:apply!)
@@ -726,7 +717,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         context "on Ruby < 3.2" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.2." }
+          before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 3.2") }
 
           it "does not enable GVL profiling" do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
@@ -737,28 +728,13 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         context "on Ruby >= 3.2" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.2." }
+          before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 3.2") }
 
-          context "when timeline is enabled" do
-            before { settings.profiling.advanced.timeline_enabled = true }
+          it "enables GVL profiling" do
+            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
+              .to receive(:new).with(hash_including(gvl_profiling_enabled: true))
 
-            it "enables GVL profiling" do
-              expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
-                .to receive(:new).with(hash_including(gvl_profiling_enabled: true))
-
-              build_profiler_component
-            end
-          end
-
-          context "when timeline is disabled" do
-            before { settings.profiling.advanced.timeline_enabled = false }
-
-            it "does not enable GVL profiling" do
-              expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
-                .to receive(:new).with(hash_including(gvl_profiling_enabled: false))
-
-              build_profiler_component
-            end
+            build_profiler_component
           end
         end
       end
@@ -769,7 +745,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         context "on Ruby >= 3.2" do
-          before { skip "On Ruby < 3.2 you can't enable the feature, it's always disabled" if RUBY_VERSION < "3.2." }
+          before { skip "On Ruby < 3.2 you can't enable the feature, it's always disabled" if RubyVersion.is?("< 3.2") }
 
           it "disables GVL profiling" do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
@@ -867,7 +843,7 @@ RSpec.describe Datadog::Profiling::Component do
   describe ".no_signals_workaround_enabled?" do
     subject(:no_signals_workaround_enabled?) { described_class.send(:no_signals_workaround_enabled?, settings, logger) }
 
-    before { skip_if_profiling_not_supported(self) }
+    before { skip_if_profiling_not_supported }
 
     context "when no_signals_workaround_enabled is false" do
       before do
@@ -878,7 +854,7 @@ RSpec.describe Datadog::Profiling::Component do
       it { is_expected.to be false }
 
       context "on Ruby 2.5 and below" do
-        before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "2.6." }
+        before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 2.6") }
 
         it "logs a warning message mentioning that this is is not recommended" do
           expect(logger).to receive(:warn).with(
@@ -890,7 +866,7 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       context "on Ruby 2.6 and above" do
-        before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "2.6." }
+        before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 2.6") }
 
         it "logs a warning message mentioning that the no signals mode has been disabled" do
           expect(logger).to receive(:warn).with('Profiling "no signals" workaround disabled via configuration')
@@ -917,13 +893,13 @@ RSpec.describe Datadog::Profiling::Component do
 
     shared_examples "no_signals_workaround_enabled :auto behavior" do
       context "on Ruby 2.5 and below" do
-        before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "2.6." }
+        before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 2.6") }
 
         it { is_expected.to be true }
       end
 
       context "on Ruby 2.6 and above" do
-        before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "2.6." }
+        before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 2.6") }
 
         context "when mysql2 gem is available" do
           include_context("loaded gems", mysql2: Gem::Version.new("0.5.5"), rugged: nil)
@@ -1172,7 +1148,10 @@ RSpec.describe Datadog::Profiling::Component do
     subject(:can_apply_exec_monkey_patch?) { described_class.send(:can_apply_exec_monkey_patch?, settings) }
 
     context "on Ruby < 2.7" do
-      before { stub_const("RUBY_VERSION", "2.6.9") }
+      before do
+        stub_const("RUBY_VERSION", "2.6.9")
+        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
+      end
 
       it "returns false and does not require the monkey patch" do
         expect(described_class).to_not receive(:require)
@@ -1184,6 +1163,7 @@ RSpec.describe Datadog::Profiling::Component do
     context "on Ruby >= 2.7" do
       before do
         stub_const("RUBY_VERSION", "2.7.0")
+        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
       end
 
       context "when exec workaround is disabled" do

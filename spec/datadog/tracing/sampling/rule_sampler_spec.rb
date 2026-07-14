@@ -217,10 +217,18 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
   shared_context 'matching rule' do
     let(:rules) { [rule] }
     let(:rule) { instance_double(Datadog::Tracing::Sampling::Rule) }
+    let(:matcher) do
+      double(
+        'matcher',
+        resource: Datadog::Tracing::Sampling::Matcher::MATCH_ALL,
+        tags: {}
+      )
+    end
     let(:sample_rate) { 0.8 }
     let(:provenance) { :local }
 
     before do
+      allow(rule).to receive(:matcher).and_return(matcher)
       allow(rule).to receive(:match?).with(trace).and_return(true)
       allow(rule).to receive(:sample!).with(trace).and_return(sampled)
       allow(rule).to receive(:sample_rate).with(trace).and_return(sample_rate)
@@ -349,6 +357,31 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
           expect(trace.agent_sample_rate).to eq(sample_rate)
         end
       end
+    end
+  end
+
+  describe '#resource_sampling?' do
+    subject(:resource_sampling?) { rule_sampler.resource_sampling? }
+
+    context 'without rules that match on resource' do
+      let(:rules) do
+        [
+          Datadog::Tracing::Sampling::SimpleRule.new(sample_rate: 1.0),
+          Datadog::Tracing::Sampling::SimpleRule.new(tags: {'http.status_code' => '404'}, sample_rate: 1.0)
+        ]
+      end
+
+      it { is_expected.to be(false) }
+    end
+
+    context 'with a resource rule' do
+      let(:rules) do
+        [
+          Datadog::Tracing::Sampling::SimpleRule.new(resource: 'Rails::HealthController#show', sample_rate: 1.0)
+        ]
+      end
+
+      it { is_expected.to be(true) }
     end
   end
 

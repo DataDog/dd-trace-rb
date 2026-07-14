@@ -11,6 +11,7 @@ module Datadog
             KEY_HOSTNAME: string
             KEY_PEER_SERVICE: string
             SERVICE: "service"
+            DYNAMIC_SERVICE: "dynamic_service"
             FULL: "full"
             TAG_DBM_TRACE_INJECTED: "_dd.dbm_trace_injected"
             TAG_PROPAGATED_HASH: "_dd.propagated_hash"

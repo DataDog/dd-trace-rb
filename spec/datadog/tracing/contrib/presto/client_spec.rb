@@ -4,6 +4,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 require 'datadog'
 require 'presto-client'
@@ -120,6 +121,7 @@ RSpec.describe 'Presto::Client instrumentation' do
           let(:configuration_options) { {service_name: service} }
 
           it_behaves_like 'a Presto trace'
+          it_behaves_like 'tags _dd.svc_src', 'presto'
         end
 
         context 'with a different schema' do

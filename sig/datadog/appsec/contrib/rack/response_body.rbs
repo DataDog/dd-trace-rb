@@ -1,0 +1,11 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rack
+        module ResponseBody
+          def self.content_length: (::Rack::Response::_Body body) -> ::Integer?
+        end
+      end
+    end
+  end
+end

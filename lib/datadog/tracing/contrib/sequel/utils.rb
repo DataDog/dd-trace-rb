@@ -34,8 +34,8 @@ module Datadog
 
             def parse_opts(sql, opts, db_opts, dataset = nil)
               # Prepared statements don't provide their sql query in the +sql+ parameter.
-              if !sql.is_a?(String) && (dataset&.respond_to?(:prepared_sql) &&
-                (resolved_sql = dataset.prepared_sql))
+              if !sql.is_a?(String) && dataset&.respond_to?(:prepared_sql) &&
+                  (resolved_sql = dataset.prepared_sql)
                 # The dataset contains the resolved SQL query and prepared statement name.
                 prepared_name = dataset.prepared_statement_name
                 sql = resolved_sql
@@ -51,11 +51,6 @@ module Datadog
             end
 
             def set_common_tags(span, db)
-              # Tag original global service name if not used
-              if span.service != Datadog.configuration.service
-                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
-              end
-
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'datadog/tracing/contrib/configuration/resolver'
@@ -91,6 +93,7 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::CachingResolver do
   let(:resolver_class) do
     Class.new(Datadog::Tracing::Contrib::Configuration::Resolver) do
       prepend Datadog::Tracing::Contrib::Configuration::CachingResolver
+      attr_reader :cache
 
       def resolve(key)
         @invoked ||= 0
@@ -101,6 +104,12 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::CachingResolver do
       def invocations
         @invoked ||= 0
       end
+    end
+  end
+
+  describe '#cache' do
+    it 'compares keys by identity' do
+      expect(resolver.cache).to be_compare_by_identity
     end
   end
 
@@ -120,6 +129,17 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::CachingResolver do
       resolver.resolve(key)
 
       expect(resolver.invocations).to eq(1)
+    end
+
+    context 'with distinct Hash objects that match by #eql?' do
+      let(:key) { {adapter: 'adapter'} }
+
+      it 'matches using hash equality but caches by identity' do
+        expect(resolver.resolve({adapter: 'adapter'})).to eq(value)
+        expect(resolver.resolve({adapter: 'adapter'})).to eq(value)
+
+        expect(resolver.invocations).to eq(2)
+      end
     end
 
     context 'when a matcher key is added' do
@@ -165,6 +185,41 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::CachingResolver do
 
         expect { resolver.resolve('second_key') }.to(change { resolver.invocations }.by(1)) # Removes `third_key` from cache
       end
+    end
+  end
+
+  # Workaround for Ruby VM < 3.2.8, < 3.3.8 and < 3.4.3 (see https://bugs.ruby-lang.org/issues/21170)
+  context 'with a cache key with a #hash of -1 and a cache promotion to st_table' do
+    let(:cache_limit) { 200 }
+    let(:resolver_class) do
+      Class.new(Datadog::Tracing::Contrib::Configuration::Resolver) do
+        prepend Datadog::Tracing::Contrib::Configuration::CachingResolver
+        attr_reader :cache
+
+        def resolve(input)
+          input.hash
+        end
+      end
+    end
+
+    subject(:cache) do
+      key_class = Class.new do
+        attr_reader :hash
+
+        def initialize(hash_value)
+          @hash = hash_value
+        end
+      end
+
+      # 9 elements guarantees that the @cache hash does not fit in a
+      # ar_table in both 32 and 64-bit MRI builds.
+      0.downto(-8).each { |hash_value| resolver.resolve(key_class.new(hash_value)) }
+
+      resolver.cache
+    end
+
+    it 'does not corrupt the cache' do
+      expect(cache.keys.size).to eq(cache.size)
     end
   end
 end

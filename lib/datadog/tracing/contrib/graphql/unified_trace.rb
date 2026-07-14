@@ -214,6 +214,7 @@ module Datadog
               resource: resource,
               service: @service_name
             ) do |span|
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               if Contrib::Analytics.enabled?(@analytics_enabled)
                 Contrib::Analytics.set_sample_rate(span, @analytics_sample_rate)
               end

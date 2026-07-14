@@ -32,12 +32,13 @@ module Datadog
 
               Tracing.trace(Ext::SPAN_REQUEST) do |span, trace|
                 span.service = service_name(host, request_options, client_config)
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
                 span.resource = req.method
 
                 if Tracing::Distributed::PropagationPolicy.enabled?(
                   pin_config: client_config,
-                  global_config: Datadog.configuration.tracing[:http],
+                  global_config: request_options,
                   trace: trace
                 )
                   Contrib::HTTP.inject(trace, req)
@@ -61,11 +62,6 @@ module Datadog
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                   request_options[:peer_service]
                 )
-              end
-
-              # Tag original global service name if not used
-              if span.service != Datadog.configuration.service
-                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
               end
 
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
@@ -93,7 +89,7 @@ module Datadog
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             rescue => e
-              Datadog.logger.error("error preparing span from http request: #{e}")
+              Datadog.logger.error("error preparing span from http request: #{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -108,7 +104,7 @@ module Datadog
                 Datadog.configuration.tracing.header_tags.response_tags(response)
               )
             rescue => e
-              Datadog.logger.error("error preparing span from http response: #{e}")
+              Datadog.logger.error("error preparing span from http response: #{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 

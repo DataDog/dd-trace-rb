@@ -153,7 +153,9 @@ RSpec.describe Datadog::Tracing::Span do
         span.end_time = end_time
       end
 
-      it { is_expected.to eq(end_time - start_time) }
+      it 'returns the duration between start and end time' do
+        is_expected.to eq(end_time - start_time)
+      end
     end
   end
 

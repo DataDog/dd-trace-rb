@@ -154,6 +154,8 @@ RSpec.describe Datadog::Tracing::FiberLocalContext do
 
       let(:thread) { Thread.new {} }
 
+      after { thread.join }
+
       it 'retrieves the context for the provided thread' do
         is_expected.to be_a_kind_of(Datadog::Tracing::Context)
         expect(local).to_not be(fiber_local_context.local)

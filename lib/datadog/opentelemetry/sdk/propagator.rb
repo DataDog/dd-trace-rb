@@ -43,6 +43,15 @@ module Datadog
           digest = @datadog_propagator.extract(carrier)
           return context unless digest
 
+          # Always call continue_trace! so span links are created in restart mode
+          # (when digest.trace_id is nil) before we attempt to build the OTel SpanContext.
+          trace = Tracing.continue_trace!(digest)
+
+          # In restart mode DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT=restart, the extracted
+          # digest carries no trace_id (fresh start). continue_trace! has already recorded
+          # the span link; return the current context so the caller's span starts a new root.
+          return context unless digest.trace_id
+
           # Converts the {Numeric} Datadog id object to OpenTelemetry's byte array format.
           # 128-bit unsigned, big-endian integer
           trace_id = [digest.trace_id >> 64, digest.trace_id & 0xFFFFFFFFFFFFFFFF].pack('Q>Q>')
@@ -70,9 +79,6 @@ module Datadog
           )
 
           span = ::OpenTelemetry::Trace.non_recording_span(span_context)
-
-          trace = Tracing.continue_trace!(digest)
-
           span.datadog_trace = trace
 
           ::OpenTelemetry::Trace.context_with_span(span, parent_context: context)

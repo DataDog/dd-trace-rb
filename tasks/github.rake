@@ -22,11 +22,7 @@ namespace :github do
 
     matrix.each do |key, spec_metadata|
       spec_metadata.each do |group, rubies|
-        matched = if RUBY_PLATFORM == 'java'
-          rubies.include?("✅ #{ruby_version}") && rubies.include?('✅ jruby')
-        else
-          rubies.include?("✅ #{ruby_version}")
-        end
+        matched = rubies.include?("✅ #{ruby_version}")
 
         next unless matched
 
@@ -47,11 +43,7 @@ namespace :github do
     end
 
     # Seed
-    rng = (ENV['CI_TEST_SEED'] && ENV['CI_TEST_SEED'] != '') ? Random.new(ENV['CI_TEST_SEED'].to_i) : Random.new
-    matching_tasks.shuffle!(random: rng)
-
     batch_count = 7
-    batch_count *= 2 if RUBY_PLATFORM == 'java'
 
     tasks_per_job = (matching_tasks.size.to_f / batch_count).ceil
 
@@ -62,7 +54,6 @@ namespace :github do
     end
 
     data = {
-      seed: rng.seed,
       batches: batched_matrix,
       misc: {'include' => [{'batch' => "0", 'tasks' => misc_tasks}]}
     }
@@ -79,7 +70,6 @@ namespace :github do
     summary = ENV['GITHUB_STEP_SUMMARY']
 
     File.open(summary, 'a') do |f|
-      f.puts "*__Seed__: #{ENV["CI_TEST_SEED"]}*"
       data['include'].each do |batch|
         rows = batch['tasks'].map do |t|
           "* #{t["task"]} (#{t["group"]})"
@@ -102,16 +92,8 @@ namespace :github do
     tasks.each do |task|
       env = {'BUNDLE_GEMFILE' => task['gemfile']}
       cmd = 'bundle check || bundle install'
-      # This retry mechanism is a generic way to improve the reliability in Github Actions,
-      # since network issues can cause the `bundle install` command to fail,
-      # even when Bundler has been configured to retry
-      #
-      # Furthermore, for JRuby 9.2, `bundle install` command failed ocassionally with the NameError.
-      #
-      # Mitigate the flakiness by retrying the command up to 3 times.
-      #
-      # https://github.com/jruby/jruby/issues/7508
-      # https://github.com/jruby/jruby/issues/3656
+      # Retry mechanism to improve reliability in Github Actions,
+      # since network issues can cause `bundle install` to fail.
       with_retry do
         Bundler.with_unbundled_env { sh(env, cmd) }
       end

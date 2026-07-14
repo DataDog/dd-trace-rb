@@ -14,25 +14,18 @@ RSpec.describe 'ActiveRecord instantiation instrumentation' do
   before do
     Article.create!(title: 'test')
 
-    # Reset options (that might linger from other tests)
-    Datadog.configuration.tracing[:active_record].reset!
-
-    Datadog.configure do |c|
-      c.tracing.instrument :active_record, configuration_options
+    reset_subscription_state!(:active_record, Datadog::Tracing::Contrib::ActiveRecord::Events) do
+      Datadog.configure do |c|
+        c.tracing.instrument :active_record, configuration_options
+      end
     end
 
     raise_on_rails_deprecation!
   end
 
-  around do |example|
-    # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:active_record].reset_configuration!
-    example.run
-    Datadog.registry[:active_record].reset_configuration!
-  end
-
   after do
     Article.delete_all
+    Datadog.registry[:active_record].reset_configuration!
   end
 
   context 'when a model is instantiated' do

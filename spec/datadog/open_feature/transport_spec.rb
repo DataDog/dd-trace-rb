@@ -35,7 +35,7 @@ RSpec.describe Datadog::OpenFeature::Transport::HTTP do
       before { stub_request(:post, %r{/evp_proxy/v2/api/v2/exposures}).to_raise(Timeout::Error.new('Ooops')) }
 
       it 'returns internal error response and logs debug message' do
-        expect(logger).to receive(:debug).with(/Internal error during request\. Cause: Timeout::Error Ooops/)
+        expect(logger).to receive(:debug).with(/Internal error during request\. Cause: Timeout::Error: Ooops/)
 
         expect(transport.send_exposures('event' => 'value')).to be_a(Datadog::Core::Transport::InternalErrorResponse)
       end

@@ -1,0 +1,22 @@
+module Datadog
+  module SymbolDatabase
+    class Logger
+      extend Forwardable
+
+      @settings: untyped
+
+      @target: ::Logger
+
+      def initialize: (untyped settings, ::Logger target) -> void
+
+      attr_reader settings: untyped
+
+      attr_reader target: ::Logger
+
+      # debug/warn accept either a positional message or a block (delegated to ::Logger)
+      def debug: (?untyped? message) ?{ () -> untyped } -> void
+      def warn: (?untyped? message) ?{ () -> untyped } -> void
+      def trace: () { () -> untyped } -> void
+    end
+  end
+end
