@@ -109,7 +109,7 @@ module Datadog
           end
         elsif probe.capture_expressions?
           if probe.method?
-            if probe.evaluate_at == :entry
+            if probe.evaluate_at_entry?
               captured_block = context.entry_capture_expressions || {}
               capture_expression_evaluation_errors = context.entry_capture_evaluation_errors || []
               {

@@ -166,14 +166,23 @@ module Datadog
         !@capture_expressions.empty?
       end
 
+      def evaluate_at_entry?
+        evaluate_at == :entry
+      end
+
+      # Capture-expression mode: the probe captures expressions but not a full
+      # snapshot. Snapshot capture serializes its own values, so expression
+      # capture only runs when a snapshot is not being taken.
+      def capture_expressions_only?
+        capture_expressions? && !capture_snapshot?
+      end
+
+      def capture_entry_expressions?
+        capture_expressions_only? && evaluate_at_entry?
+      end
+
       def snapshot_serializer_limits(settings)
-        di = settings.dynamic_instrumentation
-        {
-          depth: max_capture_depth || di.max_capture_depth,
-          attribute_count: max_capture_attribute_count || di.max_capture_attribute_count,
-          length: max_capture_string_length || di.max_capture_string_length,
-          collection_size: max_capture_collection_size || di.max_capture_collection_size,
-        }
+        CaptureLimits.resolve(expr_limits: nil, probe: self, settings: settings)
       end
 
       # Returns whether the probe is a line probe.

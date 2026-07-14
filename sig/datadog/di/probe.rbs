@@ -75,6 +75,9 @@ module Datadog
 
       def capture_snapshot?: () -> bool
       def capture_expressions?: () -> bool
+      def evaluate_at_entry?: () -> bool
+      def capture_expressions_only?: () -> bool
+      def capture_entry_expressions?: () -> bool
       def snapshot_serializer_limits: (Datadog::Core::Configuration::Settings settings) -> Hash[Symbol, Integer]
       def line?: () -> bool
       def method?: () -> bool

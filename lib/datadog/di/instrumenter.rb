@@ -532,7 +532,7 @@ module Datadog
 
             entry_capture_expressions = nil
             entry_capture_evaluation_errors = nil
-            if probe.capture_expressions? && probe.evaluate_at == :entry && !probe.capture_snapshot?
+            if probe.capture_entry_expressions?
               begin
                 entry_context = Context.new(
                   probe: probe, settings: settings, serializer: serializer,
@@ -610,7 +610,7 @@ module Datadog
             caller_locs = method_frame + (caller_locations(2) || [])
             # TODO capture arguments at exit
 
-            capture_expression_locals = if probe.capture_expressions? && !probe.capture_snapshot?
+            capture_expression_locals = if probe.capture_expressions_only?
               serializer.combine_args(args, kwargs, target_self)
             end
             context = Context.new(locals: capture_expression_locals, target_self: target_self,

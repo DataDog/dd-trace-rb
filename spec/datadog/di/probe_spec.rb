@@ -260,6 +260,62 @@ RSpec.describe Datadog::DI::Probe do
     end
   end
 
+  describe "capture-expression predicates" do
+    let(:capture_expression) do
+      Datadog::DI::CaptureExpression.new(name: "x", expr: instance_double(Datadog::DI::EL::Expression))
+    end
+
+    def build_probe(**opts)
+      described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar", **opts)
+    end
+
+    describe "#evaluate_at_entry?" do
+      it "is true when evaluate_at is :entry" do
+        expect(build_probe(evaluate_at: :entry).evaluate_at_entry?).to be true
+      end
+
+      it "is false when evaluate_at is :exit" do
+        expect(build_probe(evaluate_at: :exit).evaluate_at_entry?).to be false
+      end
+
+      it "is false by default (coerces to :exit)" do
+        expect(build_probe.evaluate_at_entry?).to be false
+      end
+    end
+
+    describe "#capture_expressions_only?" do
+      it "is true with capture expressions and no snapshot" do
+        expect(build_probe(capture_expressions: [capture_expression], capture_snapshot: false).capture_expressions_only?).to be true
+      end
+
+      it "is false when capturing a snapshot" do
+        expect(build_probe(capture_expressions: [capture_expression], capture_snapshot: true).capture_expressions_only?).to be false
+      end
+
+      it "is false without capture expressions" do
+        expect(build_probe(capture_expressions: []).capture_expressions_only?).to be false
+      end
+    end
+
+    describe "#capture_entry_expressions?" do
+      it "is true with entry-evaluated capture expressions and no snapshot" do
+        expect(build_probe(capture_expressions: [capture_expression], evaluate_at: :entry, capture_snapshot: false).capture_entry_expressions?).to be true
+      end
+
+      it "is false when evaluated at exit" do
+        expect(build_probe(capture_expressions: [capture_expression], evaluate_at: :exit, capture_snapshot: false).capture_entry_expressions?).to be false
+      end
+
+      it "is false when capturing a snapshot" do
+        expect(build_probe(capture_expressions: [capture_expression], evaluate_at: :entry, capture_snapshot: true).capture_entry_expressions?).to be false
+      end
+
+      it "is false without capture expressions" do
+        expect(build_probe(capture_expressions: [], evaluate_at: :entry).capture_entry_expressions?).to be false
+      end
+    end
+  end
+
   describe "evaluate_at" do
     context "omitted" do
       let(:probe) do
