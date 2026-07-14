@@ -106,7 +106,7 @@ jobs:
   semgrep:
     name: semgrep/ci
     runs-on: ubuntu-24.04
-    container: semgrep/semgrep # PENDING: Possible to be rate limited.
+    container: semgrep/semgrep:1.169.0 # PENDING: Possible to be rate limited.
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
