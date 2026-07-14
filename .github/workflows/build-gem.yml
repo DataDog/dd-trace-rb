@@ -96,6 +96,7 @@ jobs:
         with:
           ruby-version: "4.0.1"
       - name: Install gem
+        # zizmor: ignore[adhoc-packages] installs the artifact just built by this workflow, not an external dependency
         run: |
           gem install pkg/*.gem
   push:
