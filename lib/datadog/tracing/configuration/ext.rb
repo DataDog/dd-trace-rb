@@ -113,6 +113,48 @@ module Datadog
         module Transport
           ENV_DEFAULT_PORT = Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT
           ENV_DEFAULT_URL = Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL
+
+          # When set, the agent trace transport protocol version is explicitly selected and
+          # OTLP trace export is disabled.
+          ENV_AGENT_PROTOCOL_VERSION = 'DD_TRACE_AGENT_PROTOCOL_VERSION'
+        end
+
+        # Configuration for exporting traces via OTLP (OpenTelemetry Protocol) instead of
+        # the Datadog agent trace endpoint.
+        # @public_api
+        module OTLP
+          # `otlp` selects the OTLP trace exporter; `none` disables tracing (mapped to DD_TRACE_ENABLED).
+          ENV_TRACES_EXPORTER = 'OTEL_TRACES_EXPORTER'
+
+          # Full OTLP traces endpoint URL, used as-is.
+          ENV_TRACES_ENDPOINT = 'OTEL_EXPORTER_OTLP_TRACES_ENDPOINT'
+          # Fallback OTLP endpoint URL; the `/v1/traces` path is appended.
+          ENV_ENDPOINT = 'OTEL_EXPORTER_OTLP_ENDPOINT'
+
+          # `key=value` comma-separated list of headers for the traces signal.
+          ENV_TRACES_HEADERS = 'OTEL_EXPORTER_OTLP_TRACES_HEADERS'
+          # Fallback `key=value` comma-separated list of headers.
+          ENV_HEADERS = 'OTEL_EXPORTER_OTLP_HEADERS'
+
+          # Traces export timeout in milliseconds.
+          ENV_TRACES_TIMEOUT = 'OTEL_EXPORTER_OTLP_TRACES_TIMEOUT'
+          # Fallback export timeout in milliseconds.
+          ENV_TIMEOUT = 'OTEL_EXPORTER_OTLP_TIMEOUT'
+
+          # OTLP traces protocol. Only `http/json` is honored.
+          ENV_TRACES_PROTOCOL = 'OTEL_EXPORTER_OTLP_TRACES_PROTOCOL'
+          # Fallback OTLP protocol.
+          ENV_PROTOCOL = 'OTEL_EXPORTER_OTLP_PROTOCOL'
+
+          # The only supported export protocol.
+          PROTOCOL_HTTP_JSON = 'http/json'
+          # The exporter selector value that enables OTLP trace export.
+          EXPORTER_OTLP = 'otlp'
+
+          DEFAULT_TIMEOUT_MS = 10_000
+          # Default OTLP HTTP port and path for the computed endpoint.
+          DEFAULT_PORT = 4318
+          TRACES_PATH = '/v1/traces'
         end
 
         # @public_api

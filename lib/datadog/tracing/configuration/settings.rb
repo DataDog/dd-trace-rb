@@ -18,6 +18,34 @@ module Datadog
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/PerceivedComplexity
       module Settings
+        # Parses an `OTEL_EXPORTER_OTLP_*_HEADERS` value (comma-separated `key=value` pairs) into a
+        # Hash. Returns an empty Hash if the value is blank or malformed (mirrors the OTLP signal
+        # config parser used for metrics and logs).
+        def self.otlp_headers_parser(env_var_name)
+          lambda do |value|
+            return {} if value.nil? || value.empty?
+
+            headers = {}
+            value.split(',').each do |key_value|
+              key, header_value = key_value.split('=', 2)
+              if key.nil? || header_value.nil?
+                Datadog.logger.warn("#{env_var_name} has malformed header: #{key_value.inspect}")
+                return {}
+              end
+
+              key.strip!
+              header_value.strip!
+              if key.empty? || header_value.empty?
+                Datadog.logger.warn("#{env_var_name} has empty key or value in: #{key_value.inspect}")
+                return {}
+              end
+
+              headers[key] = header_value
+            end
+            headers
+          end
+        end
+
         def self.extended(base)
           base.class_eval do
             # Tracer specific configurations.
@@ -168,6 +196,11 @@ module Datadog
                   # Tracing is enabled when DD_TRACE_ENABLED is true or 1
                   elsif ['true', '1'].include?(value)
                     true
+                  # OTEL_TRACES_EXPORTER=otlp keeps tracing enabled; the OTLP exporter is selected
+                  # separately via `tracing.otlp`. Return nil to keep the default (enabled) without
+                  # the misleading "Traces will be sent to Datadog" warning on the documented value.
+                  elsif value == 'otlp'
+                    nil
                   else
                     Datadog.logger.warn("Unsupported value for exporting datadog traces: #{value}. Traces will be sent to Datadog.")
                     nil
@@ -335,6 +368,111 @@ module Datadog
                 o.env Tracing::Configuration::Ext::ENV_NATIVE_SPAN_EVENTS
                 o.default nil
                 o.type :bool, nilable: true
+              end
+
+              # OTLP (OpenTelemetry Protocol) trace export configuration.
+              #
+              # When `exporter` is `otlp`, finished traces are exported over OTLP http/json to the
+              # configured endpoint instead of the Datadog agent trace endpoint. Agent interaction
+              # (`/info`, Remote Configuration, telemetry) is unaffected.
+              # @public_api
+              settings :otlp do
+                # Selects the trace exporter.
+                #
+                # Set to `otlp` (via `OTEL_TRACES_EXPORTER`) to export traces over OTLP. The `none`
+                # value disables tracing and is handled by the `DD_TRACE_ENABLED` mapping.
+                #
+                # @default `OTEL_TRACES_EXPORTER` environment variable, otherwise `nil`.
+                # @return [String,nil]
+                option :exporter do |o|
+                  o.type :string, nilable: true
+                  o.env Tracing::Configuration::Ext::OTLP::ENV_TRACES_EXPORTER
+                  o.default nil
+                end
+
+                # Full OTLP traces endpoint URL, used as-is.
+                #
+                # @default `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` environment variable, otherwise `nil`.
+                # @return [String,nil]
+                option :endpoint do |o|
+                  o.type :string, nilable: true
+                  o.env Tracing::Configuration::Ext::OTLP::ENV_TRACES_ENDPOINT
+                  o.default nil
+                end
+
+                # Fallback OTLP endpoint URL (the `/v1/traces` path is appended).
+                #
+                # @default `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable, otherwise `nil`.
+                # @return [String,nil]
+                option :endpoint_fallback do |o|
+                  o.type :string, nilable: true
+                  o.env Tracing::Configuration::Ext::OTLP::ENV_ENDPOINT
+                  o.default nil
+                end
+
+                # `key=value` comma-separated list of headers sent with each OTLP traces request.
+                #
+                # @default `OTEL_EXPORTER_OTLP_TRACES_HEADERS` environment variable, otherwise `nil`.
+                # @return [Hash<String,String>,nil]
+                option :headers do |o|
+                  o.skip_telemetry true
+                  o.type :hash, nilable: true
+                  o.env Tracing::Configuration::Ext::OTLP::ENV_TRACES_HEADERS
+                  o.default nil
+                  o.env_parser(&Settings.otlp_headers_parser(Tracing::Configuration::Ext::OTLP::ENV_TRACES_HEADERS))
+                end
+
+                # Fallback `key=value` comma-separated list of headers.
+                #
+                # @default `OTEL_EXPORTER_OTLP_HEADERS` environment variable, otherwise `nil`.
+                # @return [Hash<String,String>,nil]
+                option :headers_fallback do |o|
+                  o.skip_telemetry true
+                  o.type :hash, nilable: true
+                  o.env Tracing::Configuration::Ext::OTLP::ENV_HEADERS
+                  o.default nil
+                  o.env_parser(&Settings.otlp_headers_parser(Tracing::Configuration::Ext::OTLP::ENV_HEADERS))
+                end
+
+                # OTLP traces export timeout, in milliseconds.
+                #
+                # @default `OTEL_EXPORTER_OTLP_TRACES_TIMEOUT` environment variable, otherwise `nil`.
+                # @return [Integer,nil]
+                option :timeout_millis do |o|
+                  o.type :int, nilable: true
+                  o.env Tracing::Configuration::Ext::OTLP::ENV_TRACES_TIMEOUT
+                  o.default nil
+                end
+
+                # Fallback OTLP export timeout, in milliseconds.
+                #
+                # @default `OTEL_EXPORTER_OTLP_TIMEOUT` environment variable, otherwise `10000`.
+                # @return [Integer]
+                option :timeout_millis_fallback do |o|
+                  o.type :int
+                  o.env Tracing::Configuration::Ext::OTLP::ENV_TIMEOUT
+                  o.default Tracing::Configuration::Ext::OTLP::DEFAULT_TIMEOUT_MS
+                end
+
+                # OTLP traces protocol. Only `http/json` is honored.
+                #
+                # @default `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL` environment variable, otherwise `nil`.
+                # @return [String,nil]
+                option :protocol do |o|
+                  o.type :string, nilable: true
+                  o.env Tracing::Configuration::Ext::OTLP::ENV_TRACES_PROTOCOL
+                  o.default nil
+                end
+
+                # Fallback OTLP protocol.
+                #
+                # @default `OTEL_EXPORTER_OTLP_PROTOCOL` environment variable, otherwise `http/json`.
+                # @return [String]
+                option :protocol_fallback do |o|
+                  o.type :string
+                  o.env Tracing::Configuration::Ext::OTLP::ENV_PROTOCOL
+                  o.default Tracing::Configuration::Ext::OTLP::PROTOCOL_HTTP_JSON
+                end
               end
 
               # A custom sampler instance.

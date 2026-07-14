@@ -111,6 +111,24 @@
 > [!WARNING]
 > When OpenTelemetry logs export is enabled, Datadog log injection is disabled to avoid duplicate trace correlation fields.
 
+## Exporting Traces via OTLP
+
+Set `OTEL_TRACES_EXPORTER=otlp` to export finished traces over OTLP (`http/json`) to an OpenTelemetry-compatible endpoint instead of the Datadog agent trace endpoint. Agent interaction (`/info`, Remote Configuration, and telemetry) is unaffected — only the trace transport changes.
+
+**Configuration Options:**
+
+- `OTEL_TRACES_EXPORTER` - Set to `otlp` to enable OTLP trace export. (`none` disables tracing.)
+- `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` - Full traces endpoint URL, used as-is.
+- `OTEL_EXPORTER_OTLP_ENDPOINT` - Fallback endpoint; `/v1/traces` is appended. Defaults to `http://<DD_AGENT_HOST or localhost>:4318/v1/traces`.
+- `OTEL_EXPORTER_OTLP_TRACES_HEADERS` - Comma-separated `key=value` headers sent with each request (fallback: `OTEL_EXPORTER_OTLP_HEADERS`).
+- `OTEL_EXPORTER_OTLP_TRACES_TIMEOUT` - Request timeout in milliseconds (fallback: `OTEL_EXPORTER_OTLP_TIMEOUT`, default 10000).
+- `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL` - Only `http/json` is honored (fallback: `OTEL_EXPORTER_OTLP_PROTOCOL`).
+
+The trace sampling rate is controlled by the usual Datadog settings (`DD_TRACE_SAMPLE_RATE`, `DD_TRACE_SAMPLING_RULES`) and the `OTEL_TRACES_SAMPLER`/`OTEL_TRACES_SAMPLER_ARG` mapping. Only sampled traces are exported.
+
+> [!NOTE]
+> Setting `DD_TRACE_AGENT_PROTOCOL_VERSION` forces the Datadog agent trace transport and disables OTLP trace export.
+
 ## Limitations
 
 There are a few limitations to OpenTelemetry Tracing when the APM integration is activated:

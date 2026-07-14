@@ -975,6 +975,13 @@
         "default": "8126"
       }
     ],
+    "DD_TRACE_AGENT_PROTOCOL_VERSION": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_TRACE_AGENT_TIMEOUT_SECONDS": [
       {
         "version": "A",
@@ -2562,6 +2569,34 @@
         "version": "A",
         "type": "int",
         "default": "10000"
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_TRACES_HEADERS": [
+      {
+        "version": "A",
+        "type": "map",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_TRACES_TIMEOUT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": null
       }
     ],
     "OTEL_LOG_LEVEL": [

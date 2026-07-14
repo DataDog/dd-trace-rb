@@ -3,6 +3,8 @@ module Datadog
     module Configuration
       module Settings
         def self.extended: (untyped base) -> untyped
+
+        def self.otlp_headers_parser: (String env_var_name) -> ^(String?) -> Hash[String, String]
       end
     end
   end
