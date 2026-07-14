@@ -59,9 +59,9 @@ module Datadog
         end
 
         def available?
-          defined?(::RubyVM::YJIT) \
+          !!(defined?(::RubyVM::YJIT) \
             && ::RubyVM::YJIT.enabled? \
-            && ::RubyVM::YJIT.respond_to?(:runtime_stats)
+            && ::RubyVM::YJIT.respond_to?(:runtime_stats))
         end
       end
     end
