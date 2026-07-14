@@ -56,7 +56,6 @@ target :datadog do
   ignore 'lib/datadog/appsec/configuration.rb'
   ignore 'lib/datadog/appsec/contrib/devise/tracking_middleware.rb'
   ignore 'lib/datadog/appsec/contrib/rack/gateway/request.rb'
-  ignore 'lib/datadog/appsec/contrib/rack/patcher.rb'
   ignore 'lib/datadog/appsec/contrib/rack/request_middleware.rb'
   ignore 'lib/datadog/appsec/contrib/rails/patcher.rb'
   ignore 'lib/datadog/appsec/monitor/gateway/watcher.rb'
