@@ -23,6 +23,8 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::URLEncoded do
     context 'when payload has duplicate keys' do
       it { expect(described_class.parse('key=a&key=b')).to eq({'key' => ['a', 'b']}) }
       it { expect(described_class.parse('key=a&key=b&key=c')).to eq({'key' => ['a', 'b', 'c']}) }
+      it { expect(described_class.parse('a&a=1')).to eq({'a' => '1'}) }
+      it { expect(described_class.parse('a=&a')).to eq({'a' => ['', nil]}) }
     end
 
     context 'when payload has encoded values' do
@@ -34,6 +36,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::URLEncoded do
     context 'when payload has key without value' do
       it { expect(described_class.parse('key')).to eq({'key' => nil}) }
       it { expect(described_class.parse('key=')).to eq({'key' => ''}) }
+      it { expect(described_class.parse('=x&=y')).to eq({'' => ['x', 'y']}) }
 
       it 'distinguishes keys without a value from keys with an empty value' do
         expect(described_class.parse('a&b=')).to eq({'a' => nil, 'b' => ''})
@@ -57,6 +60,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::URLEncoded do
     context 'when payload has empty pairs' do
       it { expect(described_class.parse('key=value&&foo=bar')).to eq({'key' => 'value', 'foo' => 'bar'}) }
       it { expect(described_class.parse('&key=value')).to eq({'key' => 'value'}) }
+      it { expect(described_class.parse('a=1&')).to eq({'a' => '1'}) }
     end
 
     context 'when payload has value with equals sign' do
@@ -68,6 +72,13 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::URLEncoded do
     end
 
     context 'when payload exceeds the bytesize limit' do
+      it 'keeps all pairs when the limit is exactly the payload bytesize' do
+        expect(described_class.parse('a=1&b=2', limit: 7)).to eq({'a' => '1', 'b' => '2'})
+      end
+
+      it { expect(described_class.parse('a=1&b=2', limit: 0)).to eq({}) }
+      it { expect(described_class.parse('a=1&b=2', limit: -1)).to eq({}) }
+
       it 'returns the fully-read pairs and omits the one crossing the limit' do
         expect(described_class.parse('a=1&b=2&c=3', limit: 9)).to eq({'a' => '1', 'b' => '2'})
       end

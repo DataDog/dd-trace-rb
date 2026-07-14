@@ -8,6 +8,8 @@ module Datadog
       module HTTP
         # Module for parsing URL encoded payloads
         module URLEncoded
+          module_function
+
           # Matches Rack's default query bytesize limit, so parsing our own
           # payloads keeps the same guard against CPU/memory exhaustion.
           DEFAULT_BYTESIZE_LIMIT = 4 * 1024 * 1024
@@ -25,59 +27,77 @@ module Datadog
           # Parsing stops once +limit+ bytes have been read, and the pair being
           # read at that point is discarded. This returns the pairs decoded so
           # far rather than raising or discarding the whole payload.
-          def self.parse(payload, limit: DEFAULT_BYTESIZE_LIMIT)
-            return {} if payload.nil? || payload.empty?
+          def parse(payload, limit: DEFAULT_BYTESIZE_LIMIT)
+            return {} if payload.nil? || payload.empty? || limit <= 0
 
-            result = {} #: Hash[::String, (::String | ::Array[::String?])?]
-            segment_start = 0
-            equals_index = -1
+            # @type var result: URLEncoded::params
+            result = {}
+            payload_bytesize = payload.bytesize
+            bytes_to_parse = (payload_bytesize < limit) ? payload_bytesize : limit
+
             index = 0
-            limit_reached = false
+            param_start = 0
+            equals_index = nil # : Integer?
 
             payload.each_byte do |byte|
-              if index >= limit
-                limit_reached = true
-                break
-              end
+              break if index >= bytes_to_parse
 
-              case byte
-              when AMPERSAND_BYTE
-                set_param_value(result, payload, segment_start: segment_start, segment_end: index, equals_index: equals_index)
-                segment_start = index + 1
-                equals_index = -1
-              when EQUALS_BYTE
-                equals_index = index if equals_index == -1
+              if byte == AMPERSAND_BYTE
+                param_end = index
+
+                if equals_index
+                  key = payload.byteslice(param_start, equals_index - param_start) # : String
+                  value = payload.byteslice(equals_index + 1, param_end - equals_index - 1) # : String?
+                else
+                  key = payload.byteslice(param_start, param_end - param_start) # : String
+                  value = nil
+                end
+
+                if !key.empty? || value
+                  key = CGI.unescape(key)
+                  value = CGI.unescape(value) if value
+
+                  add_param(result, key, value)
+                end
+
+                param_start = index + 1
+                equals_index = nil
+              elsif byte == EQUALS_BYTE
+                equals_index ||= index
               end
 
               index += 1
             end
 
-            set_param_value(result, payload, segment_start: segment_start, segment_end: index, equals_index: equals_index) unless limit_reached
+            if bytes_to_parse == payload_bytesize && param_start < index
+              param_end = index
+
+              if equals_index
+                key = payload.byteslice(param_start, equals_index - param_start) # : String
+                value = payload.byteslice(equals_index + 1, param_end - equals_index - 1) # : String?
+              else
+                key = payload.byteslice(param_start, param_end - param_start) # : String
+                value = nil
+              end
+
+              if !key.empty? || value
+                key = CGI.unescape(key)
+                value = CGI.unescape(value) if value
+
+                add_param(result, key, value)
+              end
+            end
 
             result
           end
 
-          def self.set_param_value(result, payload, segment_start:, segment_end:, equals_index:)
-            if equals_index == -1
-              key = payload.byteslice(segment_start, segment_end - segment_start) #: ::String
-              value = nil
-            else
-              key = payload.byteslice(segment_start, equals_index - segment_start) #: ::String
-              value = payload.byteslice(equals_index + 1, segment_end - equals_index - 1) #: ::String
-            end
-
-            return if key.empty? && value.nil?
-
-            key = CGI.unescape(key)
-            value = CGI.unescape(value) unless value.nil?
-
-            case existing = result[key]
+          private_class_method def add_param(params, key, value)
+            case existing = params[key]
             when ::Array then existing.push(value)
-            when nil then result[key] = value
-            else result[key] = [existing, value]
+            when nil then params[key] = value
+            else params[key] = [existing, value]
             end
           end
-          private_class_method :set_param_value
         end
       end
     end
