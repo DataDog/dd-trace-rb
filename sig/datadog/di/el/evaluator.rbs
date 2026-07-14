@@ -10,23 +10,23 @@ module Datadog
 
         def initialize: (?::Array[::Regexp] regexps) -> void
 
-        def evaluate: (Context compiled) -> untyped
+        def evaluate: (Context compiled) -> any
 
         def regexps: () -> ::Array[::Regexp]
 
         def self.compile_regexp: (::String needle) -> ::Regexp
 
-        def ref: ((Symbol | String) var) -> untyped
+        def ref: ((Symbol | String) var) -> any
 
-        def iref: ((Symbol | String) var) -> untyped
+        def iref: ((Symbol | String) var) -> any
 
-        def len: (untyped var, (Symbol | String) var_name) -> Integer
+        def len: (any var, (Symbol | String) var_name) -> Integer
 
-        def is_empty: (untyped var, (Symbol | String) var_name) -> bool
+        def is_empty: (any var, (Symbol | String) var_name) -> bool
 
-        def is_undefined: (untyped var, (Symbol | String) var_name) -> bool
+        def is_undefined: (any var, (Symbol | String) var_name) -> bool
 
-        def contains: (untyped haystack, untyped needle) -> bool
+        def contains: (any haystack, any needle) -> bool
 
         def matches: (String haystack, String needle) -> bool
 
@@ -34,23 +34,23 @@ module Datadog
 
         private def bounded_match?: (::Regexp re, ::String haystack) -> bool
 
-        def getmember: (untyped object, (Symbol | String) field) -> untyped
+        def getmember: (any object, (Symbol | String) field) -> any
 
-        def index: (Array[untyped] | Hash[untyped, untyped] array_or_hash, untyped index_or_key) -> untyped
+        def index: (Array[any] | Hash[any, any] array_or_hash, any index_or_key) -> any
 
         def substring: (String object, Integer from, Integer to) -> String?
 
-        def starts_with: (untyped haystack, String needle) -> bool
+        def starts_with: (any haystack, String needle) -> bool
 
-        def ends_with: (untyped haystack, String needle) -> bool
+        def ends_with: (any haystack, String needle) -> bool
 
-        def all: (Array[untyped] | Hash[untyped, untyped] collection) { (?) -> untyped } -> bool
+        def all: (Array[any] | Hash[any, any] collection) { (?) -> any } -> bool
 
-        def any: (Array[untyped] | Hash[untyped, untyped] collection) { (?) -> untyped } -> bool
+        def any: (Array[any] | Hash[any, any] collection) { (?) -> any } -> bool
 
-        def filter: (Array[untyped] | Hash[untyped, untyped] collection) { (?) -> untyped } -> (Array[untyped] | Hash[untyped, untyped])
+        def filter: (Array[any] | Hash[any, any] collection) { (?) -> any } -> (Array[any] | Hash[any, any])
 
-        def instanceof: (untyped object, String cls_name) -> bool
+        def instanceof: (any object, String cls_name) -> bool
       end
     end
   end

@@ -67,7 +67,7 @@ module Datadog
 
       def shutdown!: (?Component? replacement) -> void
 
-      def parse_probe_spec_and_notify: (Hash[String, untyped] probe_spec) -> Probe
+      def parse_probe_spec_and_notify: (Hash[String, any] probe_spec) -> Probe
     end
   end
 end

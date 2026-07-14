@@ -13,8 +13,8 @@ module Datadog
 
       attr_reader target: ::Logger
 
-      def debug: () { (?) -> untyped } -> void
-      def trace: () { (?) -> untyped } -> void
+      def debug: () { (?) -> any } -> void
+      def trace: () { (?) -> any } -> void
     end
   end
 end

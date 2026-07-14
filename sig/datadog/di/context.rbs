@@ -7,26 +7,26 @@ module Datadog
 
       @serializer: Serializer
 
-      @locals: Hash[Symbol, untyped]?
+      @locals: Hash[Symbol, any]?
 
-      @target_self: untyped
+      @target_self: any
 
       @path: String?
 
       @caller_locations: Array[Thread::Backtrace::Location]?
 
-      @serialized_entry_args: Hash[Symbol, untyped]?
+      @serialized_entry_args: Hash[Symbol, any]?
 
       @entry_capture_expressions: Hash[String, any]?
       @entry_capture_evaluation_errors: Array[Hash[Symbol, String]]?
 
-      @return_value: untyped
+      @return_value: any
 
       @duration: Float?
 
       @exception: Exception?
 
-      def initialize: (probe: Probe, settings: Datadog::Core::Configuration::Settings, serializer: Serializer, ?locals: Hash[Symbol, untyped]?, ?target_self: untyped?, ?path: String?, ?caller_locations: Array[Thread::Backtrace::Location]?, ?serialized_entry_args: Hash[Symbol, untyped]?, ?entry_capture_expressions: Hash[String, any]?, ?entry_capture_evaluation_errors: Array[Hash[Symbol, String]]?, ?return_value: untyped?, ?duration: Float?, ?exception: Exception?) -> void
+      def initialize: (probe: Probe, settings: Datadog::Core::Configuration::Settings, serializer: Serializer, ?locals: Hash[Symbol, any]?, ?target_self: any?, ?path: String?, ?caller_locations: Array[Thread::Backtrace::Location]?, ?serialized_entry_args: Hash[Symbol, any]?, ?entry_capture_expressions: Hash[String, any]?, ?entry_capture_evaluation_errors: Array[Hash[Symbol, String]]?, ?return_value: any?, ?duration: Float?, ?exception: Exception?) -> void
 
       attr_reader probe: Probe
 
@@ -34,24 +34,24 @@ module Datadog
 
       attr_reader serializer: Serializer
 
-      attr_reader locals: Hash[Symbol, untyped]?
+      attr_reader locals: Hash[Symbol, any]?
 
-      attr_reader target_self: untyped
+      attr_reader target_self: any
       attr_reader path: String?
       attr_reader caller_locations: Array[Thread::Backtrace::Location]?
 
-      attr_reader serialized_entry_args: Hash[Symbol, untyped]?
+      attr_reader serialized_entry_args: Hash[Symbol, any]?
       attr_reader entry_capture_expressions: Hash[String, any]?
       attr_reader entry_capture_evaluation_errors: Array[Hash[Symbol, String]]?
-      attr_reader return_value: untyped
+      attr_reader return_value: any
       attr_reader duration: Float?
       attr_reader exception: Exception?
 
-      def serialized_locals: () -> Hash[Symbol, untyped]?
+      def serialized_locals: () -> Hash[Symbol, any]?
 
-      def fetch: ((Symbol | String) var_name) -> untyped
+      def fetch: ((Symbol | String) var_name) -> any
 
-      def fetch_ivar: ((Symbol | String) var_name) -> untyped
+      def fetch_ivar: ((Symbol | String) var_name) -> any
     end
   end
 end

@@ -6,9 +6,9 @@ module Datadog
 
       @settings: Datadog::Core::Configuration::Settings
 
-      @status_queue: Array[Hash[Symbol, untyped]]
+      @status_queue: Array[Hash[Symbol, any]]
 
-      @snapshot_queue: Array[Hash[Symbol, untyped]]
+      @snapshot_queue: Array[Hash[Symbol, any]]
 
       @agent_settings: Datadog::Core::Configuration::AgentSettings
 
@@ -46,8 +46,8 @@ module Datadog
       def stop: (?::Integer timeout) -> void
       def flush: () -> void
 
-      def add_status: (Hash[Symbol, untyped] event, ?probe: DI::Probe?) -> void
-      def add_snapshot: (Hash[Symbol, untyped] event) -> void
+      def add_status: (Hash[Symbol, any] event, ?probe: DI::Probe?) -> void
+      def add_snapshot: (Hash[Symbol, any] event) -> void
 
       def status_transport: () -> DI::Transport::Diagnostics::Transport
       def snapshot_transport: () -> DI::Transport::Input::Transport
@@ -58,9 +58,9 @@ module Datadog
 
       def set_sleep_remaining: () -> Numeric
 
-      def status_queue: () -> Array[Hash[Symbol, untyped]]
+      def status_queue: () -> Array[Hash[Symbol, any]]
 
-      def snapshot_queue: () -> Array[Hash[Symbol, untyped]]
+      def snapshot_queue: () -> Array[Hash[Symbol, any]]
 
       attr_reader agent_settings: Datadog::Core::Configuration::AgentSettings
 
@@ -78,7 +78,7 @@ module Datadog
 
       def min_send_interval: () -> Float
 
-      def do_send_snapshot: (Array[Hash[Symbol, untyped]] batch) -> void
+      def do_send_snapshot: (Array[Hash[Symbol, any]] batch) -> void
 
       def handle_serialization_error: (String probe_id, Exception exception) -> void
     end

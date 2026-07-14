@@ -26,7 +26,7 @@ module Datadog
             ?telemetry: Datadog::Core::Telemetry::Component?
           ) -> void
 
-          def send_input: (Array[Hash[Symbol, untyped]] payload, Hash[String, String] tags, on_serialization_error: ^(String, Exception) -> void) -> Array[Hash[Symbol, untyped]]
+          def send_input: (Array[Hash[Symbol, any]] payload, Hash[String, String] tags, on_serialization_error: ^(String, Exception) -> void) -> Array[Hash[Symbol, any]]
 
           def send_input_chunk: (String chunked_payload, String serialized_tags) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
 

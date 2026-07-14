@@ -5,7 +5,7 @@ module Datadog
       MAX_MESSAGE_ATTRIBUTE_COUNT: Integer
       SERIALIZABLE_FATAL_EXCEPTION_CLASSES: ::Array[singleton(::Exception)]
 
-      @@flat_registry: ::Array[{condition: ::Proc?, proc: ^(Serializer serializer, untyped value, name: ::Symbol?, depth: ::Integer, ?attribute_count: ::Integer?) -> untyped}]
+      @@flat_registry: ::Array[{condition: ::Proc?, proc: ^(Serializer serializer, any value, name: ::Symbol?, depth: ::Integer, ?attribute_count: ::Integer?) -> any}]
 
       @settings: Datadog::Core::Configuration::Settings
 
@@ -21,14 +21,14 @@ module Datadog
 
       attr_reader telemetry: Core::Telemetry::Component?
 
-      def combine_args: (Array[untyped] args, Hash[Symbol, untyped] kwargs, untyped target_self) -> Hash[Symbol, untyped]
+      def combine_args: (Array[any] args, Hash[Symbol, any] kwargs, any target_self) -> Hash[Symbol, any]
       def serialize_args: (Array[any] args, Hash[Symbol, any] kwargs, any instance_vars, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?) -> Hash[Symbol, any]
       def serialize_vars: (Hash[Symbol, any] vars, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?) -> Hash[Symbol, any]
       def serialize_value: (any value, ?name: (Symbol | String)?, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?, ?type: Class?) -> Hash[Symbol, any]
-      def serialize_value_for_message: (untyped value, ?::Integer depth) -> String?
+      def serialize_value_for_message: (any value, ?::Integer depth) -> String?
 
       def self.register: (?condition: Proc?) {
-        (Serializer serializer, untyped value, name: ::Symbol?, depth: ::Integer, ?attribute_count: ::Integer?) -> untyped } -> void
+        (Serializer serializer, any value, name: ::Symbol?, depth: ::Integer, ?attribute_count: ::Integer?) -> any } -> void
 
       private
       def max_capture_collection_size_for_message: () -> Integer
