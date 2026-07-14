@@ -80,7 +80,7 @@ module Datadog
 
           @mutex.synchronize do
             if serial_id.nil?
-              if variant.nil? || (variant.respond_to?(:empty?) && variant.empty?)
+              if variant.nil? || variant.empty?
                 # Runtime default: detected by a missing variant (never a reason enum).
                 state_for(trace_op).add_default(flag_key, value)
               end
@@ -134,6 +134,8 @@ module Datadog
             write_tags_on_root(span_op, finishing_trace_op, accumulator)
           end
         rescue => e
+          # Runs on the caller's evaluation thread; enrichment must never break
+          # flag evaluation, so swallow and log.
           Datadog.logger.debug { "Error subscribing span enrichment: #{e.class}: #{e.message}" }
         end
 
@@ -165,8 +167,10 @@ module Datadog
             @store.delete(trace_op)
           end
 
-          tags.each { |key, value| span_op.set_tag(key, value) if value }
+          tags.each { |key, value| span_op.set_tag(key, value) }
         rescue => e
+          # Runs inside the tracer's span-finish callback; enrichment must never
+          # raise into the trace pipeline, so swallow and log.
           Datadog.logger.debug { "Error writing span enrichment tags: #{e.class}: #{e.message}" }
         end
       end
