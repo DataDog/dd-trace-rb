@@ -12,9 +12,9 @@ stages:
 include:
   - local: ".gitlab/one-pipeline.locked.yml"
   - local: ".gitlab/benchmarks.yml"
-  - project: 'DataDog/apm-reliability/apm-sdks-benchmarks'
-    file: '.gitlab/ci-ruby-acme-parallel.yml'
-    ref: '52a8c0712ac6409f488fb2fb1266e886a9cbf816'
+  - project: "DataDog/apm-reliability/apm-sdks-benchmarks"
+    file: ".gitlab/ci-ruby-acme-parallel.yml"
+    ref: "5f5ca440eaab196afb8f78255c2daf2d0bdcc492" # apm-sdks-benchmarks#209 merge commit
 
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
@@ -134,8 +134,9 @@ install-dependencies:
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
-      # TODO: Ruby 4.0 - Not added here yet to avoid increasing SSI OCI image size and adding premature support for 4.0.
-      - RUBY_VERSION: ["3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
+      # TEMPORARY: Ruby 4.0 added to package a ruby/4.0.0 gem home so SSI can
+      # inject on Ruby 4.0 (system-tests#7249). Revisit OCI size before merge.
+      - RUBY_VERSION: ["4.0", "3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
         ARCH: ["amd64", "arm64"]
   stage: package
   needs:
@@ -143,6 +144,9 @@ install-dependencies:
   script:
     - export RUBY_PACKAGE_VERSION=$(cat tmp/version)
     - export DATADOG_GEM_LOCATION=$(readlink -f pkg/datadog-*.gem)
+    # TEMPORARY (Ruby 4.0): the centos custom image builds Ruby with devtoolset-10
+    # but defaults to an older gcc at runtime; enable it so native gems (ffi) build.
+    - if [ -f /opt/rh/devtoolset-10/enable ]; then export MANPATH="${MANPATH:-}"; . /opt/rh/devtoolset-10/enable; fi
     - ruby -v
     - gem -v
     - bundler -v
@@ -167,7 +171,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: 56f5f7cdc3ed5353f1c77b8a25db8faf944894b1 # Automated: Updated by .github/workflows/update-system-tests.yml.
+    SYSTEM_TESTS_REF: 7bac407189037b3f22eb2f752d52377410119723 # Automated: Updated by .github/workflows/update-system-tests.yml.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 

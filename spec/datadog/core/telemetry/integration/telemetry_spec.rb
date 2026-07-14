@@ -474,7 +474,7 @@ RSpec.describe 'Telemetry integration tests' do
         settings.telemetry.enabled = true
         # Setting heartbeat interval does not appear to make the worker
         # run iterations any faster?
-        #settings.telemetry.heartbeat_interval_seconds = 0.1
+        # settings.telemetry.heartbeat_interval_seconds = 0.1
       end
     end
 

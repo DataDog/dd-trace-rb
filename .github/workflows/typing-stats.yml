@@ -52,6 +52,7 @@ jobs:
           ruby-version: "4.0"
 
       - name: Install steep
+        # zizmor: ignore[adhoc-packages] pinned tool install for computing typing stats, not an app dependency
         run: gem install steep -v 2.0
 
       - name: Copy scripts to directory outside of workspace

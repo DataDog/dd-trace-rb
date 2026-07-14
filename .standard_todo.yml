@@ -10,8 +10,11 @@ ignore:
       - Style/TrailingCommaInHashLiteral
       - Style/StringLiterals
       - Style/StringLiteralsInInterpolation
-      # steep has annotation syntax which requires immediate sign after the hash
-      # character. To avoid being too directive, I would let comments go loose.
+      # steep has annotation syntax which requires immediate sign after the hash character.
+      # Enforced separately via `rake rubocop` - see rubocop/standard_overrides.rubocop.yml.
+      # We can drop this override if https://github.com/standardrb/standard/pull/820 (proposing
+      # AllowSteepAnnotation: true in standard's own base config, following the precedent set by
+      # RBS support in https://github.com/standardrb/standard/pull/709) is merged and released.
       - Layout/LeadingCommentSpace
 
   # This disables standardrb for third-party and generated code.
@@ -20,3 +23,4 @@ ignore:
   - integration/**/**
   - lib/datadog/**/vendor/**/*
   - lib/datadog/profiling/ext/exec_monkey_patch.rb # This is Ruby 2.7+ and standard doesn't like it
+  - vendor/bundle/**/*

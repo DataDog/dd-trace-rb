@@ -1,0 +1,32 @@
+# standard's base ruleset already configures the cops below, so `extend_config` in
+# .customcops.yml can't override them (standard drops any extend_config key it already
+# sets before merging - see standard/plugin/merges_plugins_into_rubocop_config.rb).
+# Run this config directly via `rake rubocop` instead, bypassing standard entirely.
+#
+# These are exceptional overrides for cops standard disables or misconfigures. Avoid adding
+# to this file where possible - prefer getting the fix into standard itself upstream.
+AllCops:
+  Exclude:
+    - "appraisal/**/**"
+    - "gemfiles/**/**"
+    - "integration/**/**"
+    - "lib/datadog/**/vendor/**/*"
+    - "vendor/bundle/**/*"
+
+# standard requires a space after '#', which breaks Steep inline annotations (`#:`, `#$`).
+# We can drop this override if https://github.com/standardrb/standard/pull/820 (proposing
+# AllowSteepAnnotation: true in standard's own base config, following the precedent set by
+# RBS support in https://github.com/standardrb/standard/pull/709) is merged and released.
+Layout/LeadingCommentSpace:
+  Enabled: true
+  AllowSteepAnnotation: true
+
+# standard disables this cop entirely. We still want it enforced under lib/, since we
+# support Rubies below 3.4 for years to come.
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  # The default EnforcedStyle (always) also accepts `# frozen_string_literal: false`.
+  # We need the comment to be true, not merely present.
+  EnforcedStyle: always_true
+  Include:
+    - "lib/**/*.rb"

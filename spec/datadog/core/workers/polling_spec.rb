@@ -215,7 +215,7 @@ RSpec.describe Datadog::Core::Workers::Polling do
             expect(expected_state_met).to be true
             # Uncomment to see how many iterations were necessary to
             # achieve the desired conditions.
-            #warn "took #{iterations_performed} iterations"
+            # warn "took #{iterations_performed} iterations"
           end
         end
       end
