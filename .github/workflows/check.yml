@@ -53,6 +53,7 @@ jobs:
         with:
           lockfile: ${{ needs.build.outputs.lockfile }}
           cache-key: ${{ needs.build.outputs.cache-key }}
+      - run: bundle exec rubocop -D
       - run: bundle exec rake standard
 
   rubocop:
