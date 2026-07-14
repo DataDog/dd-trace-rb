@@ -57,7 +57,10 @@ module Datadog
                 configuration = Datadog.configuration.tracing[:action_cable]
 
                 Tracing.trace("action_cable.#{hook}") do |span|
-                  span.service = configuration[:service_name] if configuration[:service_name]
+                  if configuration[:service_name]
+                    span.service = configuration[:service_name]
+                    span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
+                  end
                   span.resource = "#{channel.class}##{hook}"
                   span.type = Tracing::Metadata::Ext::AppTypes::TYPE_WEB
 

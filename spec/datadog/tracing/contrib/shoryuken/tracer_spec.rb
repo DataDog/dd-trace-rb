@@ -1,5 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 require 'datadog'
 require 'shoryuken'
@@ -195,6 +196,17 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
         # expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_QUEUE)).to eq(queue_name)
         # expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_ATTRIBUTES)).to eq(attributes)
       end
+    end
+  end
+
+  describe '_dd.svc_src tagging' do
+    include_context 'Shoryuken::Worker'
+
+    let(:sqs_msg) { instance_double('Shoryuken::Message', message_id: SecureRandom.uuid, attributes: {}) }
+    let(:configuration_options) { {service_name: 'custom-shoryuken'} }
+
+    it_behaves_like 'tags _dd.svc_src', 'shoryuken' do
+      before { shoryuken_tracer.call(worker, queue_name, sqs_msg, 'message body') { worker.perform(sqs_msg, 'message body') } }
     end
   end
 end

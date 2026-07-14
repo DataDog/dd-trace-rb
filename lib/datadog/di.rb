@@ -11,9 +11,153 @@ module Datadog
   module DI
     INSTRUMENTED_COUNTERS_LOCK = Mutex.new
 
+    # Captured at load time from Exception itself (not a subclass).
+    # Used to bypass subclass overrides of backtrace_locations.
+    #
+    # This does NOT protect against monkeypatching Exception#backtrace_locations
+    # before dd-trace-rb loads — in that case we'd capture the monkeypatch.
+    # The practical threat model is customer subclasses overriding the method:
+    #
+    #   class MyError < StandardError
+    #     def backtrace_locations; []; end
+    #   end
+    #
+    # The UnboundMethod bypasses subclass overrides: bind(exception).call
+    # always dispatches to the original Exception implementation.
+    #
+    # Note: if the subclass overrides #backtrace (not #backtrace_locations),
+    # MRI's setup_exception skips storing the VM backtrace entirely — both
+    # @bt and @bt_locations stay nil. In that case this UnboundMethod also
+    # returns nil. See EXCEPTION_BACKTRACE comment for details.
+    EXCEPTION_BACKTRACE_LOCATIONS = Exception.instance_method(:backtrace_locations)
+
+    # Same UnboundMethod trick for Exception#backtrace (Array<String>).
+    # Used as a fallback when backtrace_locations returns nil — which happens
+    # when someone calls Exception#set_backtrace with an Array<String>.
+    #
+    # set_backtrace accepts Array<String> or nil. When called with strings,
+    # it replaces the VM-level backtrace: backtrace returns the new strings,
+    # but backtrace_locations returns nil because the VM cannot reconstruct
+    # Location objects from formatted strings. This occurs in exception
+    # wrapping patterns where a library catches an exception, creates a new
+    # one, and copies the original's string backtrace onto it via
+    # set_backtrace before re-raising.
+    #
+    # Ruby 3.4+ also allows set_backtrace(Array<Location>), which preserves
+    # backtrace_locations — but older Rubies and most existing code use
+    # the string form.
+    #
+    # Like EXCEPTION_BACKTRACE_LOCATIONS, this UnboundMethod bypasses
+    # subclass overrides of #backtrace: bind(exception).call dispatches
+    # to Exception#backtrace regardless of what the subclass defines.
+    #
+    # However, when a subclass overrides #backtrace, MRI's setup_exception
+    # (eval.c) calls the override via rb_get_backtrace during raise. If it
+    # gets a non-nil result, it skips storing the VM backtrace in @bt and
+    # @bt_locations entirely. So the UnboundMethod bypasses the override
+    # at dispatch but reads nil from @bt because the data was never stored.
+    #
+    # This constant is used as a fallback when backtrace_locations returns
+    # nil. In the common set_backtrace-with-strings case, no subclass
+    # override is involved and the fallback works. The only unrecoverable
+    # case: a subclass overrides #backtrace, the exception is raised
+    # normally, and set_backtrace is never called. Both @bt and
+    # @bt_locations are nil — DI reports an empty stacktrace (type and
+    # message are still reported).
+    EXCEPTION_BACKTRACE = Exception.instance_method(:backtrace)
+
     class << self
       def enabled?
         Datadog.configuration.dynamic_instrumentation.enabled
+      end
+
+      # Returns a human-readable reason why dynamic instrumentation cannot run
+      # under the given settings, or nil if all build-time preconditions are met.
+      #
+      # Single source of truth for the preconditions checked in
+      # {Component.build} and reported back by {Remote.handle_rc_enablement}
+      # when an implicit enablement signal arrives but the component was not
+      # built at startup. Checks are ordered from most-actionable to
+      # platform-constraint so the most useful reason wins.
+      #
+      # The settings argument is optional so the helper can be called from
+      # contexts that don't have settings in scope (e.g. the RC handler).
+      #
+      # @param settings [Datadog::Core::Configuration::Settings]
+      # @return [String, nil] reason string or nil when supported
+      def unsupported_reason(settings = Datadog.configuration)
+        # Symmetric to the respond_to?(:remote) guard below: in unusual
+        # configurations (test doubles, partial Settings) the DI namespace
+        # may be absent. Returning a reason here lets callers — most
+        # importantly Remote.handle_rc_enablement — emit the customer-facing
+        # warn instead of raising NoMethodError on the unguarded access at
+        # line 92 (`settings.dynamic_instrumentation.internal.development`).
+        unless settings.respond_to?(:dynamic_instrumentation)
+          return "dynamic instrumentation settings are not available"
+        end
+        unless settings.respond_to?(:remote) && settings.remote.enabled
+          return "Remote Configuration is not enabled. See https://docs.datadoghq.com/agent/remote_config"
+        end
+        unless settings.dynamic_instrumentation.internal.development
+          if Datadog::Core::Environment::Execution.development?
+            return "development environment detected"
+          end
+        end
+        if (reason = unsupported_platform_reason)
+          return reason
+        end
+        unless respond_to?(:exception_message)
+          return "C extension is not available"
+        end
+        nil
+      end
+
+      # Whether the current Ruby runtime can run dynamic instrumentation:
+      # MRI (CRuby) on Ruby 2.6 or later.
+      #
+      # @return [Boolean]
+      def supported_runtime?
+        unsupported_platform_reason.nil?
+      end
+
+      # Reason the current Ruby runtime cannot run dynamic instrumentation, or
+      # nil when the platform is supported. Single source of truth for the
+      # minimum-runtime definition, shared by {unsupported_reason} (which layers
+      # the settings and C-extension checks on top) and {supported_runtime?}.
+      #
+      # @return [String, nil]
+      private def unsupported_platform_reason
+        if RUBY_ENGINE != 'ruby'
+          "MRI is required, but running on #{RUBY_ENGINE}"
+        elsif Datadog::RubyVersion.is?('< 2.6')
+          "Ruby 2.6+ is required, but running on #{RUBY_VERSION}"
+        end
+      end
+
+      # Returns iseqs that correspond to loaded files (filtering out eval'd code).
+      #
+      # There are several types of iseqs returned by +all_iseqs+:
+      #
+      # 1. Eval'd code — these have a nil +absolute_path+ and are filtered out here.
+      # 2. Whole-file iseqs — have +absolute_path+ set and +first_lineno+ of 0.
+      #    Only available for a subset of loaded files (the full-file iseq may be
+      #    garbage collected after loading completes). Easiest to work with since
+      #    we just match the file path to the probe specification.
+      # 3. Per-method iseqs — have +absolute_path+ set and +first_lineno+ > 0.
+      #    Often the only iseqs available for third-party code. Require identifying
+      #    the correct iseq containing the target line, which may involve examining
+      #    the iseq's +trace_points+ since +define_method+ can create nested,
+      #    non-contiguous line ranges.
+      #
+      # Note: the same line of code can appear in multiple iseqs (e.g. when
+      # +define_method+ is used inside a method). DI treats this as an error
+      # since a probe must resolve to exactly one code location.
+      #
+      # @return [Array<RubyVM::InstructionSequence>] iseqs with non-nil +absolute_path+
+      def file_iseqs
+        all_iseqs.select do |iseq|
+          iseq.absolute_path
+        end
       end
 
       # This method is called from DI Remote handler to issue DI operations

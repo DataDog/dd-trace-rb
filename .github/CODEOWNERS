@@ -14,6 +14,7 @@ lib/datadog/tracing.rb @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby
 lib/datadog/opentelemetry/ @DataDog/apm-sdk-capabilities-ruby
 lib/datadog/opentelemetry.rb @DataDog/apm-sdk-capabilities-ruby
 lib-injection/ @DataDog/lang-platform-ruby
+lib/datadog/single_step_instrument.rb @DataDog/lang-platform-ruby
 lib/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
 lib/datadog/profiling.rb @DataDog/profiling-rb @DataDog/ruby-guild
 lib/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
@@ -23,12 +24,15 @@ lib/datadog/open_feature.rb @DataDog/feature-flagging-and-experimentation-sdk
 ext/ @DataDog/profiling-rb @DataDog/ruby-guild
 
 # RBS signatures
+sig/datadog/ai_guard/ @DataDog/asm-ruby @DataDog/ruby-guild
+sig/datadog/ai_guard.rbs @DataDog/asm-ruby @DataDog/ruby-guild
 sig/datadog/appsec/ @DataDog/asm-ruby @DataDog/ruby-guild
 sig/datadog/appsec.rbs @DataDog/asm-ruby @DataDog/ruby-guild
 sig/datadog/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
 sig/datadog/tracing.rbs @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
 sig/datadog/opentelemetry/ @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
 sig/datadog/opentelemetry.rbs @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
+sig/datadog/single_step_instrument.rbs @DataDog/lang-platform-ruby @DataDog/ruby-guild
 sig/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
 sig/datadog/profiling.rbs @DataDog/profiling-rb @DataDog/ruby-guild
 sig/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
@@ -37,15 +41,19 @@ sig/datadog/open_feature/ @DataDog/feature-flagging-and-experimentation-sdk @Dat
 sig/datadog/open_feature.rbs @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 
 # Specs
+spec/datadog/ai_guard/ @DataDog/asm-ruby
+spec/datadog/ai_guard_spec.rb @DataDog/asm-ruby
 spec/datadog/appsec/ @DataDog/asm-ruby
 spec/datadog/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby
 spec/datadog/tracing_spec.rb @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby
 spec/datadog/opentelemetry/ @DataDog/apm-sdk-capabilities-ruby
 spec/datadog/opentelemetry_spec.rb @DataDog/apm-sdk-capabilities-ruby
+spec/datadog/single_step_instrument_spec.rb @DataDog/lang-platform-ruby
 spec/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
 spec/datadog/profiling_spec.rb @DataDog/profiling-rb @DataDog/ruby-guild
 spec/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
 spec/datadog/open_feature/ @DataDog/feature-flagging-and-experimentation-sdk
+spec/datadog/open_feature_spec.rb @DataDog/feature-flagging-and-experimentation-sdk
 
 # Nix
 *.nix @DataDog/nix-guild @DataDog/ruby-guild

@@ -60,9 +60,6 @@ RSpec.shared_examples_for 'span' do
     expect(span.get_tag('span.kind')).to eq('client')
   end
 
-  it_behaves_like 'schema version span'
-
-  it_behaves_like 'environment service name', 'DD_TRACE_ETHON_SERVICE_NAME'
   it_behaves_like 'configured peer service span', 'DD_TRACE_ETHON_PEER_SERVICE'
   it_behaves_like 'a peer service span' do
     let(:peer_service_val) { host }

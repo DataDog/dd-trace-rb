@@ -5,7 +5,7 @@ module Datadog
         module Body
           type body = ::String | ::StringIO | ::IO | nil
 
-          def self.parse: (body, media_type: MediaType) -> ::Helpers::json?
+          def self.parse: (body, media_type: MediaType) -> Datadog::Helpers::json?
         end
       end
     end

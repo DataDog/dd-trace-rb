@@ -33,6 +33,16 @@ module Datadog
 
         TAG_APM_ENABLED = '_dd.apm.enabled'
 
+        # Set to the global service name when a span's service is overridden
+        TAG_BASE_SERVICE = '_dd.base_service'
+
+        # Set to the source of a span's service override: the component name for Datadog-instrumented spans
+        # (e.g. 'redis', 'pg'), or {SVC_SRC_MANUAL} for manually-instrumented spans
+        TAG_SVC_SRC = '_dd.svc_src'
+
+        # Value for {TAG_SVC_SRC} indicating that a span was manually instrumented via the Tracing API
+        SVC_SRC_MANUAL = 'm'
+
         # Defines constants for trace analytics
         # @public_api
         module Analytics
@@ -65,6 +75,10 @@ module Datadog
 
           TAG_DD_PARENT_ID = '_dd.parent_id'
           DD_PARENT_ID_DEFAULT = '0000000000000000'
+
+          # Knuth Sampling Rate: the sampling rate applied by agent-based or rule-based sampling.
+          # This is a propagated tag (prefixed with `_dd.p.`) that is included in `x-datadog-tags`.
+          TAG_KNUTH_SAMPLING_RATE = '_dd.p.ksr'
 
           # Trace tags with this prefix will propagate from a trace through distributed tracing.
           # Distributed headers tags with this prefix will be injected into the active trace.

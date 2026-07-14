@@ -1304,7 +1304,7 @@ client.query("SELECT * FROM users WHERE group='x'")
 | `enabled` | `DD_TRACE_MYSQL2_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_MYSQL2_SERVICE_NAME` | `String` | Name of application running the `mysql2` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                                                                                                               | `mysql2`                                                          |
 | `peer_service`        | `DD_TRACE_MYSQL2_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                                                                                                                                                                                                     | `nil`                                                             |
-| `comment_propagation` | `DD_DBM_PROPAGATION_MODE`      | `String` | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: _Note that enabling SQL comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other third parties that have been granted access to the database._ | `'disabled'`                                                      |
+| `comment_propagation` | `DD_DBM_PROPAGATION_MODE`      | `String` | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `dynamic_service` \| `full`). <br /><br />**Important**: _Note that enabling SQL comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other third parties that have been granted access to the database._ | `'disabled'`                                                      |
 | `append_comment` | | `Bool` | Appends the SQL comment propagation to the query string. Prepends the comment if `false`. For long query strings, the appended propagation comment might be truncated, causing loss of correlation between the query and trace. | `false` |
 | `on_error`            |                                | `Proc`   | Custom error handler invoked when MySQL raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors that are handled at the application level.                                                                                                                                                              | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
@@ -1407,7 +1407,7 @@ end
 | `enabled`             | `DD_TRACE_PG_ENABLED`      | `true`                                     | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_PG_SERVICE_NAME` | `String`                                   | Name of application running the `pg` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                                                                                                                 | `pg`                                                              |
 | `peer_service`        | `DD_TRACE_PG_PEER_SERVICE` | `String`                                   | Name of external service the application connects to                                                                                                                                                                                                                                                                                                                   | `nil`                                                             |
-| `comment_propagation` | `DD_DBM_PROPAGATION_MODE`  | `String`                                   | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: _Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database._ | `'disabled'`                                                      |
+| `comment_propagation` | `DD_DBM_PROPAGATION_MODE`  | `String`                                   | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `dynamic_service` \| `full`). <br /><br />**Important**: _Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database._ | `'disabled'`                                                      |
 | `append_comment` | | `Bool` | Appends the SQL comment propagation to the query string. Prepends the comment if `false`. For long query strings, the appended propagation comment might be truncated, causing loss of correlation between the query and trace. | `false` |
 | `on_error`            |                            | `Proc`                                     | Custom error handler invoked when PG raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors from Postgres that are handled at the application level.                                                                                                                                                 | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
@@ -1620,12 +1620,12 @@ end
 
 **Supported versions**
 
-| MRI Versions | JRuby Versions | Rails Versions |
-| ------------ | -------------- | -------------- |
-| 2.5          |                | 4.2 - 6.1      |
-| 2.6 - 2.7    | 9.2 - 9.3      | 5.0 - 6.1      |
-| 3.0 - 3.1    | 9.4            | 6.1 - 7.1      |
-| 3.2 - 4.0    |                | 6.1 - 8.1      |
+| MRI Versions | Rails Versions |
+| ------------ | -------------- |
+| 2.5          | 4.2 - 6.1      |
+| 2.6 - 2.7    | 5.0 - 6.1      |
+| 3.0 - 3.1    | 6.1 - 7.1      |
+| 3.2 - 4.0    | 6.1 - 8.1      |
 
 Instrumentation for the [Rails Runner](https://guides.rubyonrails.org/command_line.html#bin-rails-runner) command is only supported for Rails 5.1 or higher.
 
@@ -2135,7 +2135,7 @@ client.query("SELECT * FROM users WHERE group='x'")
 | `enabled` | `DD_TRACE_TRILOGY_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name` | `DD_TRACE_TRILOGY_SERVICE_NAME` | `String` | Name of application running the `trilogy` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `trilogy` |
 | `peer_service` | `DD_TRACE_TRILOGY_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                        | `nil`     |
-| `comment_propagation` | `DD_DBM_PROPAGATION_MODE` | `String` | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: _Note that enabling SQL comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other third parties that have been granted access to the database._ | `'disabled'` |
+| `comment_propagation` | `DD_DBM_PROPAGATION_MODE` | `String` | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `dynamic_service` \| `full`). <br /><br />**Important**: _Note that enabling SQL comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other third parties that have been granted access to the database._ | `'disabled'` |
 | `append_comment` | | `Bool` | Appends the SQL comment propagation to the query string. Prepends the comment if `false`. For long query strings, the appended propagation comment might be truncated, causing loss of correlation between the query and trace. | `false` |
 | `on_error` | | `Proc` | Custom error handler invoked when MySQL raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors that are handled at the application level. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
@@ -2945,6 +2945,44 @@ Alternatively, set error tracking parameters inside a `Datadog.configure` block 
 - Absolute path: For example, `/app/lib/mypackage/main.rb` to instrument that file, or `/app/lib/mypackage/` to instrument every Ruby file in that folder.
 - Relative path: For example, for a program running in the `app` directory, use `./lib/mypackage/main.rb` to instrument the `main.rb` file, or`./lib/mypackage/` to instrument every Ruby file in that folder.
 
+
+### Dynamic Instrumentation
+
+Dynamic Instrumentation allows you to add log probes, metric probes, and span probes to running applications without restarts or redeployments. For setup instructions, see [Dynamic Instrumentation](DynamicInstrumentation.md).
+
+#### Configuration
+
+| Environment variable | Type | Description | Default |
+|---|---|---|---|
+| `DD_DYNAMIC_INSTRUMENTATION_ENABLED` | `Boolean` | Enables or disables Dynamic Instrumentation. `true` enables at boot; `false` disables and blocks UI-driven enablement through remote configuration. When unset (the default), Dynamic Instrumentation is off at boot but can be enabled from the Datadog UI when a probe is created. | `false` |
+| `DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS` | `Array` | Comma-separated list of variable/key names to redact in addition to the built-in list. Names are normalized (underscores, dashes, `@`, `$` removed) and matched case-insensitively. | `[]` |
+| `DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS` | `Array` | Comma-separated list of variable/key names to exclude from the built-in redaction list, allowing their values to be captured. | `[]` |
+| `DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES` | `Array` | Comma-separated list of class names whose values will be redacted. Suffix with `*` for wildcard matching (for example, `Foo*` redacts `Foo`, `FooBar`, `Foo::Bar`). | `[]` |
+| `DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE` | `Integer` | Time budget (in milliseconds) per probe fire for capture-expression evaluation. | `200` |
+
+Alternatively, set DI parameters inside a `Datadog.configure` block:
+
+| Setting | Type | Description | Default |
+|---|---|---|---|
+| `c.dynamic_instrumentation.enabled` | `Boolean` | Enable or disable Dynamic Instrumentation. | `false` |
+| `c.dynamic_instrumentation.redacted_identifiers` | `Array` | Variable/key names to redact in addition to the built-in list. | `[]` |
+| `c.dynamic_instrumentation.redaction_excluded_identifiers` | `Array` | Variable/key names to exclude from the built-in redaction list. | `[]` |
+| `c.dynamic_instrumentation.redacted_type_names` | `Array` | Class names whose values will be redacted. Suffix with `*` for wildcard. | `[]` |
+| `c.dynamic_instrumentation.max_time_to_serialize_ms` | `Integer` | Per-probe-fire time budget (in milliseconds) for capture-expression evaluation. | `200` |
+
+#### Symbol Database
+
+When Dynamic Instrumentation is enabled, the tracer can extract and upload symbol information (class names, method signatures, parameter names) from your application to enable auto-completion in the DI UI. Symbol Database upload follows Dynamic Instrumentation: by default it uploads symbols only when Dynamic Instrumentation is actually enabled (via `DD_DYNAMIC_INSTRUMENTATION_ENABLED` or implicit enablement through the DI UI), and stays off otherwise. When it uploads, it activates automatically using Remote Configuration. Set `DD_SYMBOL_DATABASE_UPLOAD_ENABLED` (or `c.symbol_database.enabled`) to `true`/`false` to override: `true` uploads regardless of Dynamic Instrumentation, `false` disables it entirely.
+
+| Environment variable | Type | Description | Default |
+|---|---|---|---|
+| `DD_SYMBOL_DATABASE_UPLOAD_ENABLED` | `Boolean` | Enable or disable symbol database upload. | Unset: uploads only when Dynamic Instrumentation is actually enabled |
+
+| Setting | Type | Description | Default |
+|---|---|---|---|
+| `c.symbol_database.enabled` | `Boolean, nil` | Enable or disable symbol database upload; `nil` (unset) follows Dynamic Instrumentation. | Unset (`nil`): uploads only when Dynamic Instrumentation is actually enabled |
+
+Symbol Database requires MRI Ruby 2.7+ and Remote Configuration (enabled by default). For details on what is extracted, which code is included, and behavior differences across Ruby versions, see [Dynamic Instrumentation — Symbol Database](DynamicInstrumentation.md#symbol-database).
 
 ## Known issues and suggested configurations
 

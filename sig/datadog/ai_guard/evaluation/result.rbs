@@ -9,6 +9,20 @@ module Datadog
         attr_reader action: ::String
         attr_reader reason: ::String
         attr_reader tags: ::Array[::String]
+        type sds_finding = {
+          rule_display_name: ::String,
+          rule_tag: ::String,
+          category: ::String,
+          matched_text: ::String,
+          location: {
+            start_index: ::Integer,
+            end_index_exclusive: ::Integer,
+            path: ::String
+          }
+        }
+
+        attr_reader sds_findings: ::Array[sds_finding]
+        attr_reader tag_probabilities: ::Hash[::String, ::Float]
 
         @is_blocking_enabled: bool
 

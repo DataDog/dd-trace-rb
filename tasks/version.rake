@@ -1,24 +1,27 @@
 require 'open3'
 
 namespace :version do
+  def next_version(current_version)
+    if current_version.prerelease?
+      # If prerelease, return the release version (ie. 2.0.0.beta1 -> 2.0.0)
+      current_version.release.to_s
+    else
+      # When releasing from `master` branch, return the next minor version (ie. 2.0.0 -> 2.1.0)
+      major, minor, = current_version.segments
+      [major, minor.succ, 0].join(".")
+    end
+  end
+
   task :next do
-    current_version = load_gemspec_version
+    $stdout.puts next_version(load_gemspec_version)
+  end
 
-    next_version =
-      if current_version.prerelease?
-        # If prerelease, return the release version (ie. 2.0.0.beta1 -> 2.0.0)
-        current_version.release
-      else
-        # When releasing from `master` branch, return the next minor version (ie. 2.0.0 -> 2.1.0)
-        major, minor, = current_version.segments
-        Gem::Version.new([major, minor.succ, 0].join(".")).to_s
-      end
-
-    $stdout.puts next_version
+  task :next_dev do
+    $stdout.puts "#{next_version(load_gemspec_version)}.dev"
   end
 
   task :bump do |_t, args|
-    input = args.extras.first || raise(ArgumentError, 'Please provide a version to bump')
+    input = args.extras.first || raise(ArgumentError, 'Please provide a version to bump to')
     next_version = Gem::Version.new(input)
 
     major, minor, patch, pre = next_version.to_s.split(".")
@@ -39,8 +42,8 @@ namespace :version do
 
     gem_name = load_gemspec_name
 
-    # Update the versions under gemfiles/
-    sh "perl -p -i -e 's/\\b#{gem_name} \\(\\d+\\.\\d+\\.\\d+[^)]*\\)/#{gem_name} (#{next_version})/' gemfiles/*.lock"
+    # Update the versions under gemfiles/ and tools/
+    sh "perl -p -i -e 's/\\b#{gem_name} \\(\\d+\\.\\d+\\.\\d+[^)]*\\)/#{gem_name} (#{next_version})/' gemfiles/*.lock tools/*.lock"
   end
 
   # `Gem::Specification.load` has side effects

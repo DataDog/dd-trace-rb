@@ -21,6 +21,7 @@ module Datadog
               resource: job_name(job),
               on_error: configuration[:on_error]
             ) do |span|
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               set_sample_rate(span)
 
               # Measure service stats
@@ -51,6 +52,7 @@ module Datadog
               service: configuration[:client_service_name],
               resource: job_name(job)
             ) do |span|
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               set_sample_rate(span)
 
               # Measure service stats

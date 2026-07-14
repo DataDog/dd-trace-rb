@@ -37,6 +37,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
     let(:service_name) { 'service' }
     let(:service_version) { 'version' }
     let(:tracer_version) { Datadog::Core::Environment::Identity.gem_datadog_version_semver2 }
+    let(:process_tags_enabled) { false }
 
     let(:host) do
       {
@@ -59,21 +60,47 @@ RSpec.describe Datadog::Core::Telemetry::Request do
         c.env = env
         c.service = service_name
         c.version = service_version
+        c.experimental_propagate_process_tags_enabled = process_tags_enabled
       end
     end
 
-    it do
-      is_expected.to match(
-        api_version: api_version,
-        application: application,
-        debug: debug,
-        host: host,
-        payload: payload,
-        request_type: request_type,
-        runtime_id: runtime_id,
-        seq_id: seq_id,
-        tracer_time: be_between(before_time, after_time),
-      )
+    context 'when process tags propagation is disabled' do
+      it do
+        is_expected.to match(
+          api_version: api_version,
+          application: application,
+          debug: debug,
+          host: host,
+          payload: payload,
+          request_type: request_type,
+          runtime_id: runtime_id,
+          seq_id: seq_id,
+          tracer_time: be_between(before_time, after_time),
+        )
+      end
+    end
+
+    context 'when process tags propagation is enabled' do
+      let(:process_tags_enabled) { true }
+      let(:process_tags) { 'entrypoint.workdir:test,entrypoint.name:test_script' }
+
+      before do
+        allow(Datadog::Core::Environment::Process).to receive(:serialized).and_return(process_tags)
+      end
+
+      it do
+        is_expected.to match(
+          api_version: api_version,
+          application: application.merge(process_tags: process_tags),
+          debug: debug,
+          host: host,
+          payload: payload,
+          request_type: request_type,
+          runtime_id: runtime_id,
+          seq_id: seq_id,
+          tracer_time: be_between(before_time, after_time),
+        )
+      end
     end
 
     context 'when Datadog::CI is loaded and ci mode is enabled' do

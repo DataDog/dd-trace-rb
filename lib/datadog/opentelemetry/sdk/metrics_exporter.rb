@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'opentelemetry/exporter/otlp_metrics'
+require_relative '../sdk'
 
 module Datadog
   module OpenTelemetry
@@ -9,25 +10,17 @@ module Datadog
         METRIC_EXPORT_ATTEMPTS = 'otel.metrics_export_attempts'
         METRIC_EXPORT_SUCCESSES = 'otel.metrics_export_successes'
         METRIC_EXPORT_FAILURES = 'otel.metrics_export_failures'
-        TELEMETRY_NAMESPACE = 'tracers'
-        TELEMETRY_TAGS = {'protocol' => "http", 'encoding' => 'protobuf'}
 
         def export(metrics, timeout: nil)
-          telemetry&.inc(TELEMETRY_NAMESPACE, METRIC_EXPORT_ATTEMPTS, 1, tags: TELEMETRY_TAGS)
+          SDK.telemetry_inc(METRIC_EXPORT_ATTEMPTS, 1)
           result = super
           metric_name = (result == 0) ? METRIC_EXPORT_SUCCESSES : METRIC_EXPORT_FAILURES
-          telemetry&.inc(TELEMETRY_NAMESPACE, metric_name, 1, tags: TELEMETRY_TAGS)
+          SDK.telemetry_inc(metric_name, 1)
           result
         rescue => e
-          Datadog.logger.error("Failed to export OpenTelemetry Metrics:  #{e.class}: #{e}")
-          telemetry&.inc(TELEMETRY_NAMESPACE, METRIC_EXPORT_FAILURES, 1, tags: TELEMETRY_TAGS)
+          Datadog.logger.error("Failed to export OpenTelemetry Metrics:  #{e.class}: #{e.message}")
+          SDK.telemetry_inc(METRIC_EXPORT_FAILURES, 1)
           raise
-        end
-
-        private
-
-        def telemetry
-          Datadog.send(:components).telemetry
         end
       end
     end

@@ -62,6 +62,7 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RUN)
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
 
               if (grape_route = env['grape.routing_args']) && grape_route[:route_info]
                 trace.set_tag(
@@ -77,7 +78,7 @@ module Datadog
 
               Thread.current[KEY_RUN] = true
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -121,7 +122,7 @@ module Datadog
                 span.finish(finish)
               end
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -162,10 +163,11 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RENDER)
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
 
               Thread.current[KEY_RENDER] = true
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -190,7 +192,7 @@ module Datadog
                 span.finish(finish)
               end
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -213,6 +215,7 @@ module Datadog
               begin
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RUN_FILTERS)
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
 
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
@@ -229,7 +232,7 @@ module Datadog
                 span.finish(finish)
               end
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 

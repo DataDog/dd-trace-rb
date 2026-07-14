@@ -7,6 +7,8 @@ require_relative '../../trace_keeper'
 require_relative '../../security_event'
 require_relative '../../utils/http/url_encoded'
 require_relative '../../utils/http/body'
+require_relative '../../utils/http/body_reader'
+require_relative '../../utils/http/media_type'
 
 module Datadog
   module AppSec
@@ -39,7 +41,7 @@ module Datadog
             end
 
             if !is_redirect && data[SAMPLE_BODY_KEY]
-              body = parse_body(data[:body], content_type: headers['content-type'])
+              body = parse_request_body(data[:body], content_type: headers['content-type'])
               ephemeral_data['server.io.net.request.body'] = body if body
             end
 
@@ -67,7 +69,7 @@ module Datadog
             end
 
             if !is_redirect && data[SAMPLE_BODY_KEY]
-              body = parse_body(data.dig(:response, :body), content_type: headers['content-type'])
+              body = parse_response_body(data.dig(:response, :body), headers: headers, context: context)
               ephemeral_data['server.io.net.response.body'] = body if body
             end
 
@@ -89,11 +91,64 @@ module Datadog
             data[SAMPLE_BODY_KEY] = true
           end
 
-          def parse_body(body, content_type:)
+          def parse_request_body(body, content_type:)
             media_type = Utils::HTTP::MediaType.parse(content_type)
             return unless media_type
 
-            Utils::HTTP::Body.parse(body, media_type: media_type)
+            limit = Datadog.configuration.appsec.api_security.downstream_body_analysis.max_downstream_body_bytes
+            content = read_body(body, limit: limit)
+            return if content.nil? || content.bytesize > limit
+
+            Utils::HTTP::Body.parse(content, media_type: media_type)
+          end
+
+          def parse_response_body(body, headers:, context:)
+            return unless readable_body?(body)
+
+            media_type = Utils::HTTP::MediaType.parse(headers['content-type'])
+            if !media_type || media_type.type != 'application'
+              context.metrics.record_ignored_downstream_response_body(:content_type_invalid)
+              return
+            end
+
+            subtype = media_type.subtype
+            if subtype != 'json' && !subtype.end_with?('+json') && subtype != 'x-www-form-urlencoded'
+              context.metrics.record_ignored_downstream_response_body(:content_type_invalid)
+              return
+            end
+
+            content_length_value = headers['content-length']
+            if !content_length_value.is_a?(String) || !content_length_value.match?(/\A[1-9][0-9]*\z/)
+              context.metrics.record_ignored_downstream_response_body(:content_length_missing)
+              return
+            end
+
+            content_length = content_length_value.to_i
+            max = Datadog.configuration.appsec.api_security.downstream_body_analysis.max_downstream_body_bytes
+            if content_length > max
+              context.metrics.record_ignored_downstream_response_body(:content_length_too_big)
+              return
+            end
+
+            content = read_body(body, limit: content_length)
+            return if content.nil?
+
+            if content.bytesize > content_length
+              context.metrics.record_ignored_downstream_response_body(:content_exceed_content_length)
+              return
+            end
+
+            Utils::HTTP::Body.parse(content, media_type: media_type)
+          end
+
+          def readable_body?(body)
+            body.is_a?(String) || (body.respond_to?(:read) && body.respond_to?(:rewind))
+          end
+
+          def read_body(body, limit:)
+            Utils::HTTP::BodyReader.read(body, limit: limit, rewind_before_read: true)
+          rescue
+            nil
           end
 
           def request_url(data)

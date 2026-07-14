@@ -14,6 +14,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 require 'datadog/tracing/contrib/http_examples'
 require 'datadog/tracing/contrib/support/http'
 require 'spec/support/thread_helpers'
@@ -127,6 +128,9 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPRB_SERVICE_NAME'
+          it_behaves_like 'tags _dd.svc_src', 'httprb' do
+            before { response }
+          end
           it_behaves_like 'configured peer service span', 'DD_TRACE_HTTPRB_PEER_SERVICE'
           it_behaves_like 'schema version span'
 
@@ -210,6 +214,20 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
 
           it 'propagates the trace id header' do
             expect(http_response.headers['x-datadog-trace-id']).to eq(low_order_trace_id(span.trace_id).to_s)
+          end
+
+          it 'injects into request headers, not the request object' do
+            expect(Datadog::Tracing::Contrib::HTTP).to receive(:inject) do |_trace, data|
+              expect(data).to be_a(HTTP::Headers)
+            end.and_call_original
+
+            response
+          end
+
+          it 'does not log an error during distributed tracing injection' do
+            expect(Datadog.logger).to_not receive(:error)
+
+            response
           end
         end
 

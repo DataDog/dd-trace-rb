@@ -14,11 +14,9 @@ services:
       - presto
       - redis
       - testagent
-    links: &common-links
-      - mongodb:mongodb_secondary
     env_file: ./.env
     environment: &common-environment
-      BUNDLE_GEMFILE: /app/ruby-2.5.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-2.5.gemfile
       DD_AGENT_HOST: testagent
       DD_TRACE_AGENT_PORT: 9126
       TEST_DATADOG_INTEGRATION: 1
@@ -45,11 +43,10 @@ services:
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
-    links: *common-links
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-2.6.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-2.6.gemfile
     stdin_open: true
     tty: true
     volumes:
@@ -62,11 +59,10 @@ services:
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
-    links: *common-links
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-2.7.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-2.7.gemfile
     stdin_open: true
     tty: true
     volumes:
@@ -79,11 +75,10 @@ services:
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
-    links: *common-links
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-3.0.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-3.0.gemfile
     stdin_open: true
     tty: true
     volumes:
@@ -96,11 +91,10 @@ services:
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
-    links: *common-links
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-3.1.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-3.1.gemfile
     stdin_open: true
     tty: true
     volumes:
@@ -113,11 +107,10 @@ services:
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
-    links: *common-links
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-3.2.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-3.2.gemfile
     stdin_open: true
     tty: true
     volumes:
@@ -130,11 +123,10 @@ services:
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
-    links: *common-links
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-3.3.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-3.3.gemfile
     stdin_open: true
     tty: true
     volumes:
@@ -147,11 +139,10 @@ services:
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
-    links: *common-links
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-3.4.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-3.4.gemfile
     stdin_open: true
     tty: true
     volumes:
@@ -164,11 +155,10 @@ services:
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
-    links: *common-links
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-4.0.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-4.0.gemfile
     stdin_open: true
     tty: true
     volumes:
@@ -177,54 +167,6 @@ services:
       - bundle-4.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # ADD NEW RUBIES HERE
-  tracer-jruby-9.2:
-    image: ghcr.io/datadog/images-rb/engines/jruby:9.2-gnu-gcc
-    working_dir: /app
-    command: /bin/bash
-    depends_on: *common-depends-on
-    links: *common-links
-    env_file: ./.env
-    environment:
-      <<: *common-environment
-      BUNDLE_GEMFILE: /app/jruby-9.2.gemfile
-    stdin_open: true
-    tty: true
-    volumes:
-      - .:/app
-      - bundle-jruby-9.2:/usr/local/bundle
-      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  tracer-jruby-9.3:
-    image: ghcr.io/datadog/images-rb/engines/jruby:9.3-gnu-gcc
-    working_dir: /app
-    command: /bin/bash
-    depends_on: *common-depends-on
-    links: *common-links
-    env_file: ./.env
-    environment:
-      <<: *common-environment
-      BUNDLE_GEMFILE: /app/jruby-9.3.gemfile
-    stdin_open: true
-    tty: true
-    volumes:
-      - .:/app
-      - bundle-jruby-9.3:/usr/local/bundle
-      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  tracer-jruby-9.4:
-    image: ghcr.io/datadog/images-rb/engines/jruby:9.4-gnu-gcc
-    working_dir: /app
-    command: /bin/bash
-    depends_on: *common-depends-on
-    links: *common-links
-    env_file: ./.env
-    environment:
-      <<: *common-environment
-      BUNDLE_GEMFILE: /app/jruby-9.4.gemfile
-    stdin_open: true
-    tty: true
-    volumes:
-      - .:/app
-      - bundle-jruby-9.4:/usr/local/bundle
-      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   ddagent:
     image: datadog/agent
     environment:
@@ -277,17 +219,22 @@ services:
       - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xmx750m
   memcached:
-    image: memcached:1.5-alpine
+    # Dalli 5.x uses the memcached meta protocol, which requires memcached 1.6+.
+    image: memcached:1.6-alpine
     expose:
       - "11211"
     ports:
       - "127.0.0.1:${TEST_MEMCACHED_PORT}:11211"
   mongodb:
-    image: mongo:3.6
+    image: mongo:4.2
     expose:
       - "27017"
     ports:
       - "127.0.0.1:${TEST_MONGODB_PORT}:27017"
+    networks:
+      default:
+        aliases:
+          - mongodb_secondary
   mysql:
     image: mysql:8.0
     environment:
@@ -350,9 +297,6 @@ volumes:
   bundle-3.4:
   bundle-4.0:
   # ADD NEW RUBIES HERE
-  bundle-jruby-9.2:
-  bundle-jruby-9.3:
-  bundle-jruby-9.4:
   ddagent_var_run:
   # Temporary folder used while compiling the profiling native extension. We place this in a volume to avoid the
   # massive performance hit (seconds to minutes) that we get when the tmp folder is shared with the host on macOS.
