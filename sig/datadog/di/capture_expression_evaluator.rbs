@@ -1,0 +1,21 @@
+module Datadog
+  module DI
+    class CaptureExpressionEvaluator
+      TELEMETRY_NAMESPACE: String
+
+      @settings: Datadog::Core::Configuration::Settings
+      @serializer: Datadog::DI::Serializer
+      @logger: DI::Logger
+      @telemetry: Core::Telemetry::Component?
+
+      def initialize: (settings: Datadog::Core::Configuration::Settings, serializer: Datadog::DI::Serializer, logger: DI::Logger, ?telemetry: Core::Telemetry::Component?) -> void
+
+      attr_reader settings: Datadog::Core::Configuration::Settings
+      attr_reader serializer: Datadog::DI::Serializer
+      attr_reader logger: DI::Logger
+      attr_reader telemetry: Core::Telemetry::Component?
+
+      def evaluate: (Probe probe, Context context) -> [Hash[String, any], Array[Hash[Symbol, String]]]
+    end
+  end
+end

@@ -387,7 +387,7 @@ RSpec.describe Datadog::DI::Remote do
           {id: '11', name: 'bar', type: 'LOG_PROBE', where: {typeName: 'Foo', methodName: 'bar'}}
         end
 
-        let(:probe) { Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json)) }
+        let(:probe) { Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger) }
 
         before do
           # Uncomment for debugging:
