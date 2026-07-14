@@ -212,7 +212,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
 
       after { FileUtils.remove_entry(tmp_dir) }
       around { |example| Dir.chdir(tmp_dir) { example.run } }
-      before { $makefile_created = nil } # rubocop:disable Style/GlobalVars # mkmf usually sets this; suppress uninit warning
+      before { $makefile_created = nil } # rubocop:disable Style/GlobalVars -- mkmf usually sets this; suppress uninit warning
 
       context "when mkmf.log exists and no Makefile was created" do
         before { File.write(log_path, fake_log) }

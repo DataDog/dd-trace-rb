@@ -4,11 +4,6 @@ on: # yamllint disable-line rule:truthy
   push:
     branches:
       - master
-      # A workaround to trigger the workflow for pull requests from forked repository,
-      # which does not have access to secrets.
-      #
-      # This is also useful for testing the workflow without opening a pull request.
-      - tmp/*
   pull_request:
     branches:
       - master
@@ -20,8 +15,8 @@ on: # yamllint disable-line rule:truthy
 permissions: {}
 
 concurrency:
-  group: "${{ github.workflow }}-${{ github.ref }}"
-  cancel-in-progress: "${{ github.ref != 'refs/heads/master' }}"
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/master' && github.run_id || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # ADD NEW RUBIES HERE
@@ -148,7 +143,7 @@ jobs:
       - run: echo "$DD_GIT_COMMIT_SHA"
       - name: Get Datadog credentials via dd-sts
         id: dd-sts
-        uses: DataDog/dd-sts-action@7d2d231c02fd54a3da912e582ff87cb995d1fd30
+        uses: DataDog/dd-sts-action@639d841c72f15e4e77747bd726ef8105ce971da2
         with:
           policy: public-datadog-dd-trace-rb
       - name: Upload junit reports
@@ -189,7 +184,7 @@ jobs:
           merge-multiple: true
       - name: Get Datadog credentials via dd-sts
         id: dd-sts
-        uses: DataDog/dd-sts-action@7d2d231c02fd54a3da912e582ff87cb995d1fd30
+        uses: DataDog/dd-sts-action@639d841c72f15e4e77747bd726ef8105ce971da2
         with:
           policy: public-datadog-dd-trace-rb
       - name: Upload coverage reports to Datadog

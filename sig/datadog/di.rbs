@@ -7,12 +7,25 @@ module Datadog
 
     def self.enabled?: () -> bool
 
+    def self.unsupported_reason: (?Datadog::Core::Configuration::Settings settings) -> String?
+
+    def self.supported_runtime?: () -> bool
+
     def self.all_iseqs: () -> Array[RubyVM::InstructionSequence]
     def self.file_iseqs: () -> Array[RubyVM::InstructionSequence]
     def self.exception_message: (Exception exception) -> untyped
     EXCEPTION_BACKTRACE_LOCATIONS: UnboundMethod
     EXCEPTION_BACKTRACE: UnboundMethod
     def self.iseq_type: (RubyVM::InstructionSequence iseq) -> Symbol?
+
+    def self.in_probe?: () -> bool
+    def self.enter_probe: () -> nil
+    def self.leave_probe: () -> nil
+    # accepts any object: this is a type predicate that tests whether the
+    # argument is a Hash, so the parameter is intentionally untyped.
+    def self.hash?: (untyped) -> bool
+    # args and return are untyped: variadic forwarding to a customer-supplied
+    # Proc whose signature and return value are unknown to this primitive.
 
     def self.component: () -> Component
 
@@ -23,6 +36,8 @@ module Datadog
     def self.instrumented_count_dec: (instrumentation_kind kind) -> void
 
     private
+
+    def self.unsupported_platform_reason: () -> ::String?
 
     def self.validate_kind!: (instrumentation_kind kind) -> void
   end

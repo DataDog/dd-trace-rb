@@ -3,6 +3,7 @@
 # rubocop:disable Lint/AssignmentInCondition
 
 require_relative 'error'
+require_relative 'fatal_exceptions'
 
 module Datadog
   module DI
@@ -120,7 +121,8 @@ module Datadog
           end
         end
         nil
-      rescue => exc
+      rescue Exception => exc # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(exc)
         # Backfill is best-effort — if it fails, line probes on
         # pre-loaded code won't work but everything else is unaffected.
         if component = DI.current_component
@@ -191,7 +193,8 @@ module Datadog
           # Since this method normally is called from customer applications,
           # rescue any exceptions that might not be handled to not break said
           # customer applications.
-          rescue => exc
+          rescue Exception => exc # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(exc)
             # Code tracker may be loaded without the rest of DI,
             # in which case DI.component will not yet be defined,
             # but we will have DI.current_component (set to nil).

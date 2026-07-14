@@ -34,11 +34,17 @@ module Datadog
     class Probe
       KNOWN_TYPES = %i[log].freeze
 
+      EVALUATE_AT_VALUES = %i[entry exit].freeze
+
       def initialize(id:, type:,
         file: nil, line_no: nil, type_name: nil, method_name: nil,
         template: nil, template_segments: nil,
         capture_snapshot: false, max_capture_depth: nil,
-        max_capture_attribute_count: nil, condition: nil,
+        max_capture_attribute_count: nil,
+        max_capture_collection_size: nil, max_capture_string_length: nil,
+        capture_expressions: [],
+        evaluate_at: nil,
+        condition: nil,
         rate_limit: nil)
         # Perform some sanity checks here to detect unexpected attribute
         # combinations, in order to not do them in subsequent code.
@@ -81,9 +87,17 @@ module Datadog
         @capture_snapshot = !!capture_snapshot
         @max_capture_depth = max_capture_depth
         @max_capture_attribute_count = max_capture_attribute_count
+        @max_capture_collection_size = max_capture_collection_size
+        @max_capture_string_length = max_capture_string_length
+        @capture_expressions = capture_expressions || []
+        evaluate_at = :exit if evaluate_at.nil?
+        unless EVALUATE_AT_VALUES.include?(evaluate_at)
+          raise ArgumentError, "Unknown evaluate_at value: #{evaluate_at.inspect} (expected one of #{EVALUATE_AT_VALUES.inspect})"
+        end
+        @evaluate_at = evaluate_at
         @condition = condition
 
-        @rate_limit = rate_limit || (@capture_snapshot ? 1 : 5000)
+        @rate_limit = rate_limit || ((@capture_snapshot || !@capture_expressions.empty?) ? 1 : 5000)
         @rate_limiter = Datadog::Core::TokenBucket.new(@rate_limit)
 
         # At most one report per second.
@@ -120,6 +134,14 @@ module Datadog
       # the global default will be used.
       attr_reader :max_capture_attribute_count
 
+      attr_reader :max_capture_collection_size
+
+      attr_reader :max_capture_string_length
+
+      attr_reader :capture_expressions
+
+      attr_reader :evaluate_at
+
       # Rate limit in effect, in invocations per second. Always present.
       attr_reader :rate_limit
 
@@ -138,6 +160,29 @@ module Datadog
 
       def capture_snapshot?
         @capture_snapshot
+      end
+
+      def capture_expressions?
+        !@capture_expressions.empty?
+      end
+
+      def evaluate_at_entry?
+        evaluate_at == :entry
+      end
+
+      # Capture-expression mode: the probe captures expressions but not a full
+      # snapshot. Snapshot capture serializes its own values, so expression
+      # capture only runs when a snapshot is not being taken.
+      def capture_expressions_only?
+        capture_expressions? && !capture_snapshot?
+      end
+
+      def capture_entry_expressions?
+        capture_expressions_only? && evaluate_at_entry?
+      end
+
+      def snapshot_serializer_limits(settings)
+        CaptureLimits.resolve(expr_limits: nil, probe: self, settings: settings)
       end
 
       # Returns whether the probe is a line probe.
@@ -169,6 +214,20 @@ module Datadog
           raise Error::MissingLineNumber, "Probe #{id} does not have a line number associated with it"
         end
         line_no
+      end
+
+      # Returns the method name associated with the probe, raising
+      # Error::MissingMethodName if the probe does not have a method name
+      # associated with it.
+      #
+      # This method is used by instrumentation driver to ensure a method name
+      # that is passed into the instrumentation logic is actually a method name
+      # and not nil.
+      def method_name!
+        if method_name.nil?
+          raise Error::MissingMethodName, "Probe #{id} does not have a method name associated with it"
+        end
+        method_name
       end
 
       # Source code location of the probe, for diagnostic reporting.

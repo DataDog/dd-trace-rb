@@ -21,6 +21,9 @@ VALUE enforce_thread_context_collector_instance(VALUE object);
 void thread_context_collector_stats(VALUE self_instance, VALUE stats_hash);
 void thread_context_collector_stats_reset_not_thread_safe(VALUE self_instance);
 void thread_context_collector_on_serialize(VALUE self_instance);
+void thread_context_collector_reset_all_per_thread_contexts(VALUE self_instance);
+void thread_context_collector_profiler_internal_thread_started(void);
+void thread_context_collector_profiler_internal_thread_done(VALUE self_instance);
 
 #ifndef NO_GVL_INSTRUMENTATION
   typedef enum {

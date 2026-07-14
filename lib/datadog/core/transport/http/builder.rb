@@ -108,7 +108,7 @@ module Datadog
 
                 # Resolve fallback and merge headers
                 fallback = api_options.delete(:fallback)
-                api_options[:headers] = @default_headers.merge((api_options[:headers] || {}))
+                api_options[:headers] = @default_headers.merge(api_options[:headers] || {})
 
                 # Add API::Instance with all settings
                 instances[key] = API::Instance.new(

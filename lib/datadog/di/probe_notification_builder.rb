@@ -2,19 +2,34 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
+require_relative 'fatal_exceptions'
+require_relative 'capture_expression_evaluator'
+
 module Datadog
   module DI
     # Builds probe status notification and snapshot payloads.
     #
     # @api private
     class ProbeNotificationBuilder
-      def initialize(settings, serializer)
+      def initialize(settings, serializer, logger, telemetry: nil)
         @settings = settings
         @serializer = serializer
+        @logger = logger
+        @telemetry = telemetry
+        @capture_expression_evaluator = CaptureExpressionEvaluator.new(
+          settings: settings, serializer: serializer, logger: logger, telemetry: telemetry,
+        )
       end
 
       attr_reader :settings
+
       attr_reader :serializer
+
+      attr_reader :logger
+
+      attr_reader :telemetry
+
+      attr_reader :capture_expression_evaluator
 
       def build_received(probe)
         build_status(probe,
@@ -65,13 +80,13 @@ module Datadog
 
         # TODO also verify that non-capturing probe does not pass
         # snapshot or vars/args into this method
+        capture_expression_evaluation_errors = []
         captures = if probe.capture_snapshot?
+          snapshot_limits = probe.snapshot_serializer_limits(settings)
           if probe.method?
             return_arguments = {
-              "@return": serializer.serialize_value(context.return_value,
-                depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count),
-              self: serializer.serialize_value(context.target_self),
+              "@return": serializer.serialize_value(context.return_value, **snapshot_limits),
+              self: serializer.serialize_value(context.target_self, **snapshot_limits),
             }
             {
               entry: {
@@ -87,8 +102,35 @@ module Datadog
               lines: (locals = context.serialized_locals) && {
                 probe.line_no => {
                   locals: locals,
-                  arguments: {self: serializer.serialize_value(context.target_self)},
+                  arguments: {self: serializer.serialize_value(context.target_self, **snapshot_limits)},
                 },
+              },
+            }
+          end
+        elsif probe.capture_expressions?
+          if probe.method?
+            if probe.evaluate_at_entry?
+              captured_block = context.entry_capture_expressions || {}
+              capture_expression_evaluation_errors = context.entry_capture_evaluation_errors || []
+              {
+                entry: {captureExpressions: captured_block},
+              }
+            else
+              captured_block, capture_expression_evaluation_errors =
+                capture_expression_evaluator.evaluate(probe, context)
+              {
+                return: {
+                  captureExpressions: captured_block,
+                  throwable: context.exception ? serialize_throwable(context.exception) : nil,
+                },
+              }
+            end
+          elsif probe.line?
+            captured_block, capture_expression_evaluation_errors =
+              capture_expression_evaluator.evaluate(probe, context)
+            {
+              lines: {
+                probe.line_no => {captureExpressions: captured_block},
               },
             }
           end
@@ -99,6 +141,7 @@ module Datadog
         if segments = probe.template_segments
           message, evaluation_errors = evaluate_template(segments, context)
         end
+        evaluation_errors.concat(capture_expression_evaluation_errors)
         build_snapshot_base(context,
           evaluation_errors: evaluation_errors, message: message,
           captures: captures)
@@ -303,7 +346,7 @@ module Datadog
             # except there is currently no consensus on said heuristics.
             # .NET always sends ld, other languages send nothing at the moment.
             # Don't send anything for the time being.
-            #product: 'di/ld',
+            # product: 'di/ld',
             snapshot: {
               id: SecureRandom.uuid,
               timestamp: timestamp,
@@ -366,7 +409,8 @@ module Datadog
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end
-        rescue => exc
+        rescue Exception => exc # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(exc)
           evaluation_errors << {
             message: "#{exc.class}: #{exc.message}",
             expr: segment.dsl_expr, # steep:ignore NoMethod

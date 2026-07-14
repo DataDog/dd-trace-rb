@@ -177,6 +177,115 @@ RSpec.describe Datadog::AppSec::Remote do
 
           expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
         end
+
+        context 'when the ASM_DD ruleset path changes' do
+          let(:rules_v2) do
+            {
+              version: '2.2',
+              metadata: {
+                rules_version: '2.0.0'
+              },
+              rules: [
+                {
+                  id: 'rasp-003-001',
+                  name: 'SQL Injection',
+                  tags: {
+                    type: 'sql_injection',
+                    category: 'exploit',
+                    module: 'rasp'
+                  },
+                  conditions: [
+                    {
+                      operator: 'sqli_detector',
+                      parameters: {
+                        resource: [{address: 'server.db.statement'}],
+                        params: [{address: 'server.request.query'}],
+                        db_type: [{address: 'server.db.system'}]
+                      }
+                    }
+                  ],
+                  on_match: ['block-sqli']
+                }
+              ],
+              actions: [
+                {
+                  id: 'block-sqli',
+                  type: 'block',
+                  parameters: {
+                    status_code: '418',
+                    grpc_status_code: '42',
+                    type: 'auto'
+                  }
+                }
+              ]
+            }.to_json
+          end
+
+          let(:content_v1) do
+            Datadog::Core::Remote::Configuration::Content.parse(
+              {
+                path: 'datadog/603646/ASM_DD/v1/config',
+                content: rules,
+              }
+            )
+          end
+
+          let(:content_v2) do
+            Datadog::Core::Remote::Configuration::Content.parse(
+              {
+                path: 'datadog/603646/ASM_DD/v2/config',
+                content: rules_v2,
+              }
+            )
+          end
+
+          let(:target_v2) do
+            Datadog::Core::Remote::Configuration::Target.parse(
+              {
+                'custom' => {
+                  'v' => 1,
+                },
+                'hashes' => {'sha256' => Digest::SHA256.hexdigest(rules_v2)},
+                'length' => rules_v2.length
+              }
+            )
+          end
+
+          before do
+            repository.transaction do |_, txn|
+              txn.insert(content_v1.path, target, content_v1)
+            end
+          end
+
+          it 'processes deletes before inserts regardless of changeset order' do
+            changeset = repository.transaction do |_, txn|
+              txn.insert(content_v2.path, target_v2, content_v2)
+              txn.delete(content_v1.path)
+            end
+
+            engine = Datadog::AppSec.security_engine
+            call_order = []
+
+            allow(engine).to receive(:remove_config_at_path).and_wrap_original do |original, path|
+              call_order << [:remove, path]
+              original.call(path)
+            end
+            allow(engine).to receive(:add_or_update_config).and_wrap_original do |original, config, **kwargs|
+              call_order << [:add, kwargs.fetch(:path)]
+              original.call(config, **kwargs)
+            end
+
+            receiver.call(repository, changeset)
+
+            engine.reconfigure!
+
+            expect(call_order).to eq([
+              [:remove, 'datadog/603646/ASM_DD/v1/config'],
+              [:add, 'datadog/603646/ASM_DD/v2/config'],
+              [:remove, 'ASM_DD/default']
+            ])
+          end
+        end
       end
     end
   end

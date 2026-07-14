@@ -101,6 +101,8 @@ module Datadog
 
           def enabled=: (bool) -> void
 
+          def using_default?: (Symbol option_name) -> bool
+
           def redacted_identifiers: () -> Array[String]
 
           def redacted_identifiers=: (Array[String]) -> void
@@ -128,6 +130,10 @@ module Datadog
           def max_capture_attribute_count: () -> Integer
 
           def max_capture_attribute_count=: (Integer) -> void
+
+          def max_time_to_serialize_ms: () -> Integer
+
+          def max_time_to_serialize_ms=: (Integer) -> void
 
           def internal: () -> _DIInternal
         end
@@ -178,6 +184,8 @@ module Datadog
 
         interface _OpenFeature
           def enabled: () -> bool
+
+          def evaluation_counts_enabled: () -> bool
         end
 
         interface _SymbolDatabase
