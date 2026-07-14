@@ -7,7 +7,6 @@ module Datadog
           max_frames: ::Integer,
           tracer: Datadog::Tracing::Tracer?,
           endpoint_collection_enabled: bool,
-          timeline_enabled: bool,
           waiting_for_gvl_threshold_ns: ::Integer,
           otel_context_enabled: (::Symbol? | bool),
           native_filenames_enabled: bool,
@@ -19,10 +18,10 @@ module Datadog
           max_frames: ::Integer,
           tracer_context_key: ::Symbol?,
           endpoint_collection_enabled: bool,
-          timeline_enabled: bool,
           waiting_for_gvl_threshold_ns: ::Integer,
           otel_context_enabled: (::Symbol? | bool),
           native_filenames_enabled: bool,
+          overhead_filename: ::String,
         ) -> void
 
         def self.for_testing: (
@@ -30,12 +29,16 @@ module Datadog
           ?max_frames: ::Integer,
           ?tracer: Datadog::Tracing::Tracer?,
           ?endpoint_collection_enabled: bool,
-          ?timeline_enabled: bool,
           ?waiting_for_gvl_threshold_ns: ::Integer,
           ?otel_context_enabled: (::Symbol? | bool),
           ?native_filenames_enabled: bool,
+          ?trigger_global_reset: bool,
           **untyped
         ) -> Datadog::Profiling::Collectors::ThreadContext
+
+        module Testing
+          def self._native_global_reset_per_thread_context: (Datadog::Profiling::Collectors::ThreadContext collector_instance) -> void
+        end
 
         def inspect: () -> ::String
 

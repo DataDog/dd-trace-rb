@@ -3,13 +3,13 @@ module Datadog
     class Logger
       extend Forwardable
 
-      @settings: untyped
+      @settings: Datadog::Core::Configuration::Settings
 
       @target: ::Logger
 
-      def initialize: (untyped settings, ::Logger target) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, ::Logger target) -> void
 
-      attr_reader settings: untyped
+      attr_reader settings: Datadog::Core::Configuration::Settings
 
       attr_reader target: ::Logger
 

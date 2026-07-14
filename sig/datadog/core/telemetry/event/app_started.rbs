@@ -38,21 +38,33 @@ module Datadog
           def app_started?: -> bool?
 
           private
-          TARGET_OPTIONS: ::Array[::String]
-
           def products: (Datadog::Core::Configuration::Components components) -> telemetry_products
 
           def configuration: (untyped settings, Core::Configuration::AgentSettings agent_settings) -> ::Array[telemetry_configuration]
 
           def agent_transport: (Core::Configuration::AgentSettings agent_settings) -> String
 
-          def conf_value: (::String name, untyped value, ::Integer seq_id, ::String origin) -> telemetry_configuration
+          def conf_value: (::String name, telemetry_value value, Configuration::Option::Precedence::Value precedence) -> telemetry_configuration
 
-          def to_value: (Object value) -> Object
+          def unknown_conf_value: (::String name, telemetry_value value) -> telemetry_configuration
+
+          def build_conf_value: (::String name, telemetry_value value, ::String origin, ::Integer seq_id) -> telemetry_configuration
+
+          def to_telemetry_value: (any value) -> telemetry_value
 
           def install_signature: (untyped settings) -> install_signature
 
-          def get_telemetry_origin: (untyped settings, String config_path) -> String
+          def collect_all_configuration_options: (untyped settings) -> ::Array[Configuration::Option]
+
+          def collect_integration_configuration_options: (untyped tracing_settings) -> ::Array[Configuration::Option]
+
+          def collect_configuration_options_from: (untyped settings) -> ::Array[Configuration::Option]
+
+          def option_telemetry_name: (Configuration::Option option) -> ::String
+
+          def resolve_option: (untyped settings, ::String config_path) -> Configuration::Option
+
+          def implements_to_s?: (any value) -> bool
         end
       end
     end

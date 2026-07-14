@@ -5,7 +5,11 @@ module Datadog
 
       ERROR: ::String
 
+      DEFAULT: ::String
+
       UNKNOWN_TYPE: ::String
+
+      PARSE_ERROR: ::String
 
       GENERAL: ::String
 

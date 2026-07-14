@@ -4,6 +4,8 @@ module Datadog
       class Components
         def self.build_health_metrics: (untyped settings) -> untyped
 
+        def self.enable_symbol_database?: (untyped settings, Datadog::DI::Component? dynamic_instrumentation) -> bool
+
         def self.build_logger: (untyped settings) -> untyped
 
         def self.build_runtime_metrics: (untyped settings, Core::Logger logger) -> untyped
@@ -36,7 +38,9 @@ module Datadog
 
         attr_reader profiler: untyped
 
-        attr_reader dynamic_instrumentation: untyped
+        attr_reader dynamic_instrumentation: Datadog::DI::Component?
+
+        attr_reader appsec: Datadog::AppSec::Component?
 
         attr_reader runtime_metrics: untyped
 
@@ -51,8 +55,6 @@ module Datadog
         attr_reader data_streams: Datadog::DataStreams::Processor?
 
         attr_reader open_feature: Datadog::OpenFeature::Component?
-
-        attr_reader appsec: AppSec::Component?
 
         def initialize: (untyped settings) -> untyped
 

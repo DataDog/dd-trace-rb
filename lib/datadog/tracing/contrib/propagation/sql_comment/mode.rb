@@ -14,7 +14,7 @@ module Datadog
             end
 
             def service?
-              mode == Ext::SERVICE
+              mode == Ext::SERVICE || mode == Ext::DYNAMIC_SERVICE
             end
 
             def full?
@@ -26,7 +26,7 @@ module Datadog
             end
 
             def inject_sql_basehash?
-              inject_sql_basehash
+              inject_sql_basehash || mode == Ext::DYNAMIC_SERVICE
             end
           end
         end

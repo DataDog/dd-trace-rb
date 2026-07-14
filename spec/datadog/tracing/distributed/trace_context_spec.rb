@@ -1,6 +1,9 @@
 require 'spec_helper'
 
+require 'msgpack'
+
 require 'datadog/tracing/distributed/trace_context'
+require 'datadog/tracing/span_link'
 require 'datadog/tracing/trace_digest'
 
 RSpec.shared_examples 'Trace Context distributed format' do
@@ -23,7 +26,8 @@ RSpec.shared_examples 'Trace Context distributed format' do
     end
 
     context 'a digest' do
-      let(:digest) { Datadog::Tracing::TraceDigest.new(trace_id: 0xC0FFEE, span_id: 0xBEE, **options) }
+      let(:span_links) { [] }
+      let(:digest) { Datadog::Tracing::TraceDigest.new(trace_id: 0xC0FFEE, span_id: 0xBEE, span_links: span_links, **options) }
       let(:options) { {} }
 
       it { expect(traceparent).to eq('00-00000000000000000000000000c0ffee-0000000000000bee-00') }
@@ -302,11 +306,34 @@ RSpec.shared_examples 'Trace Context distributed format' do
             end
           end
 
+          context 'and an oversized upstream tracestate' do
+            let(:upstream_tracestate) { Array.new(100) { |i| "other#{i}=vendor#{i}" }.join(',') }
+
+            it 'truncates whole values to the tracestate limit' do
+              expect(tracestate).to start_with('dd=o:origin,')
+              expect(tracestate.bytesize).to be <= 512
+              expect(tracestate.split(',').all? { |member| member.include?('=') }).to be true
+            end
+          end
+
           context 'and unknown `dd=` tracestate values' do
             let(:options) { super().merge(trace_origin: 'origin', trace_state_unknown_fields: 'future=field;') }
 
             it 'joins known and unknown `dd=` fields' do
               expect(tracestate).to eq('dd=o:origin;future=field,other=vendor')
+            end
+          end
+
+          context 'and oversized unknown `dd=` tracestate values' do
+            let(:options) do
+              super().merge(
+                trace_origin: 'origin',
+                trace_state_unknown_fields: "future=field;large:#{'x' * 300};small:ok;"
+              )
+            end
+
+            it 'drops unknown fields when they exceed the Datadog value limit' do
+              expect(tracestate).to eq('dd=o:origin,other=vendor')
             end
           end
         end
@@ -365,6 +392,11 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       context 'more fields than expected' do
         let(:traceparent) { '00-00000000000000000000000000c0ffee-0000000000000bee-01-FFFFF' }
+        it { is_expected.to be_nil }
+      end
+
+      context 'prohibitively large future version' do
+        let(:traceparent) { '01-00000000000000000000000000c0ffee-0000000000000bee-01-' + ('x' * 512) }
         it { is_expected.to be_nil }
       end
     end
@@ -520,6 +552,133 @@ RSpec.shared_examples 'Trace Context distributed format' do
         it { expect(digest.span_id).to eq(0xBEE) }
         it { expect(digest.trace_state).to eq('v1=1,v2=2') }
         it { expect(digest.trace_origin).to eq('origin') }
+      end
+
+      # HTTP frameworks (Rack and friends) hand header values to applications tagged
+      # as ASCII-8BIT. See https://github.com/rack/rack/blob/5f06728c28f651a12eba6201e408474d30f79d3d/SPEC.rdoc?plain=1#L17
+      # msgpack-ruby serializes those as `bin` rather than `str`,
+      # which the agent's wire schema rejects for `SpanLinks[N].Tracestate`.
+      context 'with an ASCII-8BIT-tagged tracestate header' do
+        let(:tracestate) do
+          String.new('dd=o:origin,v1=1,v2=2', encoding: Encoding::ASCII_8BIT)
+        end
+
+        it 'stores trace_state as UTF-8' do
+          expect(digest.trace_state).to eq('v1=1,v2=2')
+          expect(digest.trace_state.encoding).to eq(Encoding::UTF_8)
+        end
+
+        it 'still extracts Datadog fields from the dd= entry' do
+          expect(digest.trace_origin).to eq('origin')
+        end
+      end
+
+      context 'with an ASCII-8BIT tracestate containing invalid UTF-8 bytes' do
+        let(:tracestate) do
+          String.new("v1=1,vendor=foo\xFFbar", encoding: Encoding::ASCII_8BIT)
+        end
+
+        it 'drops the tracestate but keeps the traceparent' do
+          expect(digest.trace_id).to eq(0xC0FFEE)
+          expect(digest.span_id).to eq(0xBEE)
+          expect(digest.trace_state).to be_nil
+        end
+      end
+
+      # The size-limit truncation in split_tracestate runs before encoding
+      # validation, so an invalid byte that would be discarded by truncation
+      # does not poison the parseable prefix.
+      context 'with an oversized ASCII-8BIT tracestate where invalid bytes are only in the truncated tail' do
+        let(:tracestate) do
+          String.new("dd=o:origin,v=1,#{'a' * 600}\xFF", encoding: Encoding::ASCII_8BIT)
+        end
+
+        it 'preserves the parseable prefix instead of dropping the whole field' do
+          expect(digest.trace_origin).to eq('origin')
+          expect(digest.trace_state).to eq('v=1')
+          expect(digest.trace_state.encoding).to eq(Encoding::UTF_8)
+        end
+      end
+
+      # End-to-end: an ASCII-8BIT-tagged header must round-trip through
+      # SpanLink#to_hash and msgpack as a `str`, not a `bin`. msgpack-ruby
+      # uses encoding as a type signal — ASCII-8BIT serializes as `bin`,
+      # which the agent's wire schema rejects for `SpanLinks[N].Tracestate`.
+      context 'when the digest is serialized as a SpanLink through msgpack' do
+        let(:tracestate) do
+          String.new('dd=o:origin,v1=1,v2=2', encoding: Encoding::ASCII_8BIT)
+        end
+
+        let(:link_hash) { Datadog::Tracing::SpanLink.new(digest).to_hash }
+        let(:roundtripped) { MessagePack.unpack(MessagePack.pack(link_hash)) }
+
+        it 'encodes tracestate as a msgpack str (UTF-8 on unpack), not bin' do
+          expect(roundtripped['tracestate']).to eq('v1=1,v2=2')
+          expect(roundtripped['tracestate'].encoding).to eq(Encoding::UTF_8)
+        end
+      end
+
+      context 'with oversized tracestate vendors' do
+        let(:tracestate) { Array.new(100) { |i| "v#{i}=#{'a' * 8}" }.join(',') }
+
+        it 'truncates whole values to the tracestate limit' do
+          expect(digest.trace_state.bytesize).to be <= 512
+          expect(digest.trace_state.split(',').length).to be <= 32
+          expect(digest.trace_state.split(',').all? { |member| member.include?('=') }).to be true
+        end
+      end
+
+      context 'with more than 32 tracestate vendors' do
+        let(:tracestate) { Array.new(33) { |i| "v#{i}=1" }.join(',') }
+
+        it 'keeps only the first 32 values' do
+          expect(digest.trace_state).to eq(Array.new(32) { |i| "v#{i}=1" }.join(','))
+        end
+      end
+
+      context 'with an oversized tracestate value' do
+        let(:tracestate) { 'v=' + ('a' * 600) }
+
+        it { expect(digest.trace_state).to be_nil }
+      end
+
+      context 'with a tracestate value at the size limit' do
+        let(:tracestate) { 'v=' + ('a' * 510) }
+
+        it { expect(digest.trace_state).to eq(tracestate) }
+      end
+
+      context 'with a tracestate delimiter one byte after the size limit' do
+        let(:member) { 'v=' + ('a' * 510) }
+        let(:tracestate) { "#{member},other=value" }
+
+        it { expect(digest.trace_state).to eq(member) }
+      end
+
+      context 'with ambiguous whitespace one byte after the size limit' do
+        let(:member) { 'v=' + ('a' * 510) }
+        let(:tracestate) { "#{member} ,other=value" }
+
+        it { expect(digest.trace_state).to be_nil }
+      end
+
+      context 'with an oversized tracestate tail' do
+        let(:tracestate) { 'v=1,' + ('a' * 600) }
+
+        it { expect(digest.trace_state).to eq('v=1') }
+      end
+
+      context 'with a trailing tracestate member truncated inside a multibyte character' do
+        let(:complete_member) { 'v=1' }
+        let(:partial_key) { 'w=' }
+        let(:partial_value) do
+          'a' * (512 - complete_member.bytesize - 1 - partial_key.bytesize - 1) + '🍀' # A 4-leaf clover, 4-byte character
+        end
+        let(:tracestate) { "#{complete_member},#{partial_key}#{partial_value}" }
+
+        it 'extracts complete members before the partial multibyte tail' do
+          expect(digest.trace_state).to eq(complete_member)
+        end
       end
 
       context 'trailing whitespace' do

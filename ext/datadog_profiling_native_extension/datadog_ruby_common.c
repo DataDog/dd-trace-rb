@@ -29,16 +29,15 @@ void private_raise_exception(VALUE exception, const char *static_message) {
   rb_exc_raise(exception);
 }
 
-// Helper for raising pre-formatted exceptions
-void private_raise_error_formatted(VALUE exception_class, const char *detailed_message, const char *static_message) {
-  VALUE exception = rb_exc_new_cstr(exception_class, detailed_message);
-  private_raise_exception(exception, static_message);
-}
-
 // Use `raise_error` the macro instead, as it provides additional argument checks.
 void private_raise_error(VALUE exception_class, const char *fmt, ...) {
-  FORMAT_VA_ERROR_MESSAGE(detailed_message, fmt);
-  private_raise_error_formatted(exception_class, detailed_message, fmt);
+  va_list args;
+  va_start(args, fmt);
+  VALUE detailed_message = rb_vsprintf(fmt, args);
+  va_end(args);
+
+  VALUE exception = rb_exc_new_str(exception_class, detailed_message);
+  private_raise_exception(exception, fmt);
 }
 
 VALUE datadog_gem_version(void) {
@@ -122,6 +121,24 @@ size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capa
   return error_msg_size;
 }
 
+static void verify_libdatadog_version(void) {
+  rb_eval_string(
+    "require 'libdatadog';"
+    "expected = '" EXPECTED_LIBDATADOG_VERSION "';"
+    "if expected != Libdatadog::VERSION;"
+      "raise(LoadError, <<MSG\n"
+        "The `datadog` gem needs to be reinstalled whenever the `libdatadog` gem version is changed. "
+        "The currently-installed version of `datadog` was built to work with `libdatadog` gem version #{expected} "
+        "but the currently-loaded version of `libdatadog` is #{Libdatadog::VERSION}. "
+        "To fix this, reinstall the `datadog` gem (e.g. `bundle exec gem pristine datadog`) "
+        "or contact Datadog support for help at <https://docs.datadoghq.com/help/>.\n"
+        "MSG\n"
+      ");"
+    "end"
+  );
+}
+
 void datadog_ruby_common_init(void) {
   telemetry_message_id = rb_intern("@telemetry_message");
+  verify_libdatadog_version();
 }

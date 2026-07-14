@@ -15,9 +15,12 @@ run the test suite, write new integrations, and more.
 <!--
 If you are a Datadog employee:
 
-If this is a customer-visible change, a brief summary to be placed
-into the change log. This will be the ONLY mention of the change in the
-release notes; it should be self-contained and understandable by customers.
+If this is a customer-visible change, use:
+`Yes. A brief summary to be placed into the CHANGELOG.md`
+Or opt out with `None/No/Nope`.
+
+This will be the ONLY mention of the change in the release notes;
+it should be self-contained and understandable by customers.
 
 If you are not a Datadog employee:
 

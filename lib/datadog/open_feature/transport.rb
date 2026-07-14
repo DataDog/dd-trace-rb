@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../core/encoding'
+require_relative '../core/evp'
 require_relative '../core/transport/http'
 require_relative '../core/transport/http/env'
 require_relative '../core/transport/http/api/endpoint'
@@ -12,6 +13,7 @@ module Datadog
   module OpenFeature
     module Transport
       class HTTP
+        # API spec for the EVP exposures endpoint.
         class Spec
           def initialize
             @endpoint = Core::Transport::HTTP::API::Endpoint.new(
@@ -23,7 +25,30 @@ module Datadog
           def call(env, &block)
             @endpoint.call(env) do |request_env|
               request_env.headers['Content-Type'] = env.request.parcel.content_type
-              request_env.headers['X-Datadog-EVP-Subdomain'] = 'event-platform-intake'
+              request_env.headers[Core::EVP::SUBDOMAIN_HEADER_NAME] =
+                Core::EVP::EVENT_PLATFORM_INTAKE_SUBDOMAIN
+              request_env.body = env.request.parcel.data
+
+              block.call(request_env)
+            end
+          end
+        end
+
+        # API spec for the EVP flagevaluation endpoint.
+        # Path: /evp_proxy/v2/api/v2/flagevaluation
+        # Header: X-Datadog-EVP-Subdomain: event-platform-intake (same as exposures)
+        class FlagevaluationsSpec
+          def initialize
+            @endpoint = Core::Transport::HTTP::API::Endpoint.new(
+              :post, '/evp_proxy/v2/api/v2/flagevaluation'
+            )
+          end
+
+          def call(env, &block)
+            @endpoint.call(env) do |request_env|
+              request_env.headers['Content-Type'] = env.request.parcel.content_type
+              request_env.headers[Core::EVP::SUBDOMAIN_HEADER_NAME] =
+                Core::EVP::EVENT_PLATFORM_INTAKE_SUBDOMAIN
               request_env.body = env.request.parcel.data
 
               block.call(request_env)
@@ -36,6 +61,14 @@ module Datadog
             agent_settings: agent_settings,
             logger: logger
           ) { |t| t.api('exposures', HTTP::Spec.new) }.to_transport(self)
+        end
+
+        # Build a transport instance for the flagevaluation EVP endpoint.
+        def self.build_flagevaluations(agent_settings:, logger:)
+          Core::Transport::HTTP.build(
+            agent_settings: agent_settings,
+            logger: logger
+          ) { |t| t.api('flagevaluations', HTTP::FlagevaluationsSpec.new) }.to_transport(self)
         end
 
         def initialize(apis, default_api, logger:)
@@ -55,7 +88,28 @@ module Datadog
             @api.call(env)
           end
         rescue => e
-          message = "Internal error during request. Cause: #{e.class.name} #{e.message} " \
+          message = "Internal error during request. Cause: #{e.class}: #{e.message} " \
+                    "Location: #{Array(e.backtrace).first}"
+          @logger.debug(message)
+
+          Core::Transport::InternalErrorResponse.new(e)
+        end
+
+        # POST a flag evaluations batch to /evp_proxy/v2/api/v2/flagevaluation.
+        # Mirrors send_exposures; uses the FlagevaluationsSpec endpoint.
+        def send_flag_evaluations(payload)
+          encoder = Core::Encoding::JSONEncoder
+          parcel = Core::Transport::Parcel.new(
+            encoder.encode(payload),
+            content_type: encoder.content_type
+          )
+          request = Core::Transport::Request.new(parcel)
+
+          @api.endpoint.call(Core::Transport::HTTP::Env.new(request)) do |env|
+            @api.call(env)
+          end
+        rescue => e
+          message = "Internal error during request. Cause: #{e.class}: #{e.message} " \
                     "Location: #{Array(e.backtrace).first}"
           @logger.debug(message)
 

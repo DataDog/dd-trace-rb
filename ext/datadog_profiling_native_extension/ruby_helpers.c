@@ -21,41 +21,39 @@ void ruby_helpers_init(void) {
   to_s_id = rb_intern("to_s");
 }
 
-// Internal helper for raising pre-formatted syserr exceptions
-static NORETURN(void private_raise_syserr_formatted(int syserr_errno, const char *detailed_message, const char *static_message)) {
-  VALUE exception = rb_syserr_new(syserr_errno, detailed_message);
-  private_raise_exception(exception, static_message);
-}
-
 // Use `raise_syserr` the macro instead, as it provides additional argument checks.
 void private_raise_syserr(int syserr_errno, const char *fmt, ...) {
-  FORMAT_VA_ERROR_MESSAGE(detailed_message, fmt);
-  private_raise_syserr_formatted(syserr_errno, detailed_message, fmt);
+  va_list args;
+  va_start(args, fmt);
+  VALUE detailed_message = rb_vsprintf(fmt, args);
+  va_end(args);
+
+  VALUE exception = rb_syserr_new_str(syserr_errno, detailed_message);
+  private_raise_exception(exception, fmt);
 }
 
 typedef struct {
   VALUE exception_class;
   int syserr_errno;
-  char exception_message[MAX_RAISE_MESSAGE_SIZE];
-  char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
+  const char *format_string;
+  va_list va_args;
 } raise_args;
 
+// Called via rb_thread_call_with_gvl from private_grab_gvl_and_raise.
+// Formats the message with rb_vsprintf (which requires the GVL) and raises.
 static void *trigger_raise(void *raise_arguments) {
   raise_args *args = (raise_args *) raise_arguments;
 
+  VALUE detailed_message = rb_vsprintf(args->format_string, args->va_args);
+
+  VALUE exception;
   if (args->syserr_errno) {
-    private_raise_syserr_formatted(
-      args->syserr_errno,
-      args->exception_message,
-      args->telemetry_message
-    );
+    exception = rb_syserr_new_str(args->syserr_errno, detailed_message);
   } else {
-    private_raise_error_formatted(
-      args->exception_class,
-      args->exception_message,
-      args->telemetry_message
-    );
+    exception = rb_exc_new_str(args->exception_class, detailed_message);
   }
+
+  private_raise_exception(exception, args->format_string);
 
   return NULL;
 }
@@ -71,11 +69,17 @@ void private_grab_gvl_and_raise(VALUE exception_class, int syserr_errno, const c
     args.syserr_errno = 0;
   }
 
-  FORMAT_VA_ERROR_MESSAGE(formatted_exception_message, format_string);
-  snprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, "%s", formatted_exception_message);
-  snprintf(args.telemetry_message, MAX_RAISE_MESSAGE_SIZE, "%s", format_string);
+  args.format_string = format_string;
+  va_start(args.va_args, format_string);
 
   if (is_current_thread_holding_the_gvl()) {
+    VALUE detailed_message = rb_vsprintf(format_string, args.va_args);
+    va_end(args.va_args);
+
+    VALUE wrapped_message = rb_sprintf(
+      "grab_gvl_and_raise called by thread holding the global VM lock: %"PRIsVALUE,
+      detailed_message
+    );
     char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
     snprintf(
       telemetry_message,
@@ -83,20 +87,14 @@ void private_grab_gvl_and_raise(VALUE exception_class, int syserr_errno, const c
       "grab_gvl_and_raise called by thread holding the global VM lock: %s",
       format_string
     );
-    char exception_message[MAX_RAISE_MESSAGE_SIZE];
-    snprintf(
-      exception_message,
-      MAX_RAISE_MESSAGE_SIZE,
-      "grab_gvl_and_raise called by thread holding the global VM lock: %s",
-      args.exception_message
-    );
-    VALUE exception = rb_exc_new_cstr(rb_eRuntimeError, exception_message);
+    VALUE exception = rb_exc_new_str(rb_eRuntimeError, wrapped_message);
     private_raise_exception(exception, telemetry_message);
   }
 
   rb_thread_call_with_gvl(trigger_raise, &args);
 
-  rb_bug("[ddtrace] Unexpected: Reached the end of grab_gvl_and_raise while raising '%s'\n", args.exception_message);
+  va_end(args.va_args);
+  rb_bug("[ddtrace] Unexpected: Reached the end of grab_gvl_and_raise while raising '%s'\n", format_string);
 }
 
 void private_raise_enforce_syserr(
@@ -107,10 +105,11 @@ void private_raise_enforce_syserr(
   int line,
   const char *function_name
 ) {
+  const char *format = "Failure returned by '%s' at %s:%d:in `%s'";
   if (have_gvl) {
-    rb_exc_raise(rb_syserr_new_str(syserr_errno, rb_sprintf("Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name)));
+    private_raise_exception(rb_syserr_new_str(syserr_errno, rb_sprintf(format, expression, file, line, function_name)), format);
   } else {
-    private_grab_gvl_and_raise(Qnil, syserr_errno, "Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name);
+    private_grab_gvl_and_raise(Qnil, syserr_errno, format, expression, file, line, function_name);
   }
 }
 
@@ -163,9 +162,16 @@ size_t rb_obj_memsize_of(VALUE obj);
 size_t ruby_obj_memsize_of(VALUE obj) {
   switch (rb_type(obj)) {
     case T_OBJECT:
+    // On Ruby 4.0, computing the size of a class/module/iclass seems to not be safe: `rb_obj_memsize_of` walks the
+    // per-namespace class extensions (`rb_class_classext_foreach` -> `classext_memsize` -> `rb_id_table_memsize`)
+    // and can crash the VM when called on objects tracked by heap profiling.
+    // See https://github.com/DataDog/dd-trace-rb/issues/5936. Class objects contribute negligibly to heap size,
+    // so we skip them (fall through to the `default` branch, returning 0) rather than risk a SIGSEGV.
+    #ifndef NO_SAFE_CLASS_MEMSIZE
     case T_MODULE:
     case T_CLASS:
     case T_ICLASS:
+    #endif
     case T_STRING:
     case T_ARRAY:
     case T_HASH:

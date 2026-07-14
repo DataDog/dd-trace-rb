@@ -30,6 +30,8 @@ module Datadog
             span = Tracing.trace(Ext::SPAN_COMMAND, service: service, type: Ext::SPAN_TYPE_COMMAND)
             set_span(event, span)
 
+            span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
+
             # build a quantized Query using the Parser module
             query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
             serialized_query = serialize_query(query)
@@ -39,11 +41,6 @@ module Datadog
                 Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                 datadog_configuration[:peer_service]
               )
-            end
-
-            # Tag original global service name if not used
-            if span.service != Datadog.configuration.service
-              span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
             end
 
             span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
@@ -73,7 +70,7 @@ module Datadog
             # set the resource with the quantized query
             span.resource = serialized_query
           rescue => e
-            Datadog.logger.debug("error when handling MongoDB 'started' event: #{e}")
+            Datadog.logger.debug("error when handling MongoDB 'started' event: #{e.class}: #{e.message}")
           end
           # rubocop:enable Metrics/AbcSize
 
@@ -85,7 +82,7 @@ module Datadog
             # the framework itself, so we set only the error and the message
             span.set_error(event)
           rescue => e
-            Datadog.logger.debug("error when handling MongoDB 'failed' event: #{e}")
+            Datadog.logger.debug("error when handling MongoDB 'failed' event: #{e.class}: #{e.message}")
           ensure
             # whatever happens, the Span must be removed from the local storage and
             # it must be finished to prevent any leak
@@ -101,7 +98,7 @@ module Datadog
             rows = event.reply.fetch('n', nil)
             span.set_tag(Ext::TAG_ROWS, rows) unless rows.nil?
           rescue => e
-            Datadog.logger.debug("error when handling MongoDB 'succeeded' event: #{e}")
+            Datadog.logger.debug("error when handling MongoDB 'succeeded' event: #{e.class}: #{e.message}")
           ensure
             # whatever happens, the Span must be removed from the local storage and
             # it must be finished to prevent any leak

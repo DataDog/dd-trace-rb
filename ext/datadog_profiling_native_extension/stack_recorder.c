@@ -9,6 +9,7 @@
 #include "time_helpers.h"
 #include "heap_recorder.h"
 #include "encoded_profile.h"
+#include "collectors_thread_context.h"
 
 // Used to wrap a ddog_prof_Profile in a Ruby object and expose Ruby-level serialization APIs
 // This file implements the native bits of the Datadog::Profiling::StackRecorder class
@@ -177,6 +178,10 @@ typedef struct {
   heap_recorder *heap_recorder;
   bool heap_clean_after_gc_enabled;
 
+  // When set, _native_serialize will call thread_context_collector_on_serialize on this instance
+  // before serializing, so that threads suspended across the whole profile period still get sampled.
+  VALUE thread_context_collector_instance;
+
   pthread_mutex_t mutex_slot_one;
   profile_slot profile_slot_one;
   pthread_mutex_t mutex_slot_two;
@@ -320,6 +325,7 @@ static VALUE _native_new(VALUE klass) {
   // being leaked.
 
   state->heap_clean_after_gc_enabled = false;
+  state->thread_context_collector_instance = Qnil;
 
   ddog_prof_Slice_SampleType sample_types = {.ptr = all_sample_types, .len = ALL_VALUE_TYPES_COUNT};
 
@@ -391,6 +397,7 @@ static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_Sam
 static void stack_recorder_typed_data_mark(void *state_ptr) {
   stack_recorder_state *state = (stack_recorder_state *) state_ptr;
 
+  rb_gc_mark(state->thread_context_collector_instance);
   heap_recorder_mark_pending_recordings(state->heap_recorder);
 }
 
@@ -416,20 +423,16 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   if (options == Qnil) options = rb_hash_new();
 
   VALUE recorder_instance = rb_hash_fetch(options, ID2SYM(rb_intern("self_instance")));
-  VALUE cpu_time_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("cpu_time_enabled")));
   VALUE alloc_samples_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("alloc_samples_enabled")));
   VALUE heap_samples_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("heap_samples_enabled")));
   VALUE heap_size_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("heap_size_enabled")));
   VALUE heap_sample_every = rb_hash_fetch(options, ID2SYM(rb_intern("heap_sample_every")));
-  VALUE timeline_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("timeline_enabled")));
   VALUE heap_clean_after_gc_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("heap_clean_after_gc_enabled")));
 
-  ENFORCE_BOOLEAN(cpu_time_enabled);
   ENFORCE_BOOLEAN(alloc_samples_enabled);
   ENFORCE_BOOLEAN(heap_samples_enabled);
   ENFORCE_BOOLEAN(heap_size_enabled);
   ENFORCE_TYPE(heap_sample_every, T_FIXNUM);
-  ENFORCE_BOOLEAN(timeline_enabled);
   ENFORCE_BOOLEAN(heap_clean_after_gc_enabled);
 
   stack_recorder_state *state;
@@ -440,11 +443,9 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   heap_recorder_set_sample_rate(state->heap_recorder, NUM2INT(heap_sample_every));
 
   uint8_t requested_values_count = ALL_VALUE_TYPES_COUNT -
-    (cpu_time_enabled == Qtrue ? 0 : 1) -
     (alloc_samples_enabled == Qtrue? 0 : 2) -
     (heap_samples_enabled == Qtrue ? 0 : 1) -
-    (heap_size_enabled == Qtrue ? 0 : 1) -
-    (timeline_enabled == Qtrue ? 0 : 1);
+    (heap_size_enabled == Qtrue ? 0 : 1);
 
   if (requested_values_count == ALL_VALUE_TYPES_COUNT) return Qtrue; // Nothing to do, this is the default
 
@@ -466,12 +467,13 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_WALL_TIME;
   state->position_for[WALL_TIME_VALUE_ID] = next_enabled_pos++;
 
-  if (cpu_time_enabled == Qtrue) {
-    enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_CPU_TIME;
-    state->position_for[CPU_TIME_VALUE_ID] = next_enabled_pos++;
-  } else {
-    state->position_for[CPU_TIME_VALUE_ID] = next_disabled_pos++;
-  }
+  // CPU_TIME is always enabled
+  enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_CPU_TIME;
+  state->position_for[CPU_TIME_VALUE_ID] = next_enabled_pos++;
+
+  // TIMELINE is always enabled
+  enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_TIMELINE;
+  state->position_for[TIMELINE_VALUE_ID] = next_enabled_pos++;
 
   if (alloc_samples_enabled == Qtrue) {
     enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_ALLOC_SAMPLES;
@@ -506,13 +508,6 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
     state->heap_recorder = NULL;
   }
 
-  if (timeline_enabled == Qtrue) {
-    enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_TIMELINE;
-    state->position_for[TIMELINE_VALUE_ID] = next_enabled_pos++;
-  } else {
-    state->position_for[TIMELINE_VALUE_ID] = next_disabled_pos++;
-  }
-
   ddog_prof_Profile_drop(&state->profile_slot_one.profile);
   ddog_prof_Profile_drop(&state->profile_slot_two.profile);
 
@@ -527,12 +522,16 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
   ddog_Timespec finish_timestamp = system_epoch_now_timespec();
-  // Need to do this while still holding on to the Global VM Lock; see comments on method for why
+  // Need to do this while still holding the Global VM Lock; see comments on method for why
   serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
+
+  if (state->thread_context_collector_instance != Qnil) {
+    thread_context_collector_on_serialize(state->thread_context_collector_instance);
+  }
 
   long heap_iteration_prep_start_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
   // Prepare the iteration on heap recorder we'll be doing outside the GVL. The preparation needs to
-  // happen while holding on to the GVL.
+  // happen while holding the GVL.
   // NOTE: While rare, it's possible for the GVL to be released inside this function (see comments on `heap_recorder_update`)
   // and thus don't assume this is an "atomic" step -- other threads may get some running time in the meanwhile.
   heap_recorder_prepare_iteration(state->heap_recorder);
@@ -560,7 +559,7 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
     rb_thread_call_without_gvl2(call_serialize_without_gvl, &args, NULL /* No interruption function needed in this case */, NULL /* Not needed */);
   }
 
-  // Cleanup after heap recorder iteration. This needs to happen while holding on to the GVL.
+  // Cleanup after heap recorder iteration. This needs to happen while holding the GVL.
   heap_recorder_finish_iteration(state->heap_recorder);
 
   // NOTE: We are focusing on the serialization time outside of the GVL in this stat here. This doesn't
@@ -645,6 +644,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
       .values = (ddog_Slice_I64) {.ptr = metric_values, .len = state->enabled_values_count},
       .labels = labels.labels
     },
+    /* To disable end_timestamp_ns to get aggregated profiles in pprof, replace the below with `0` */
     labels.end_timestamp_ns
   );
 
@@ -905,6 +905,9 @@ static ddog_Timespec system_epoch_now_timespec(void) {
 //
 // Assumption: This method gets called BEFORE restarting profiling -- e.g. there are no components attempting to
 // trigger samples at the same time.
+//
+// Note that tests call this method directly in the same process without forking,
+// and in such a case non-current Threads keep running.
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
@@ -1157,4 +1160,11 @@ static VALUE _native_finalize_pending_heap_recordings(DDTRACE_UNUSED VALUE _self
   heap_recorder_finalize_pending_recordings(state->heap_recorder);
 
   return Qtrue;
+}
+
+void recorder_install_on_serialize(VALUE recorder_instance, VALUE thread_context_collector_instance) {
+  stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
+
+  state->thread_context_collector_instance = enforce_thread_context_collector_instance(thread_context_collector_instance);
 }

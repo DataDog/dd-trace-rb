@@ -158,7 +158,7 @@ module Datadog
           begin
             start
           rescue => e
-            logger.debug { "Failed to start span: #{e}" }
+            logger.debug { "Failed to start span: #{e.class}: #{e.message}" }
           ensure
             # We should yield to the provided block when possible, as this
             # block is application code that we don't want to hinder.
@@ -166,7 +166,7 @@ module Datadog
             #   end its execution (either due to a system error or graceful shutdown).
             # @type var e: Exception?
             # Steep: https://github.com/soutaro/steep/issues/919
-            return_value = yield(self) unless e && !e.is_a?(StandardError) # steep:ignore FallbackAny
+            return_value = yield(self) unless e && !e.is_a?(StandardError)
           end
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
@@ -269,6 +269,9 @@ module Datadog
 
         # Stop timing
         stop(end_time)
+
+        # Allow subscribers to enrich the span before it is finalized.
+        events.before_finish.publish(self)
 
         # Build span
         # Memoize for performance reasons
@@ -400,12 +403,14 @@ module Datadog
           :logger,
           :after_finish,
           :after_stop,
+          :before_finish,
           :before_start
 
         def initialize(logger: Datadog.logger)
           @logger = logger
           @after_finish = AfterFinish.new
           @after_stop = AfterStop.new
+          @before_finish = BeforeFinish.new
           @before_start = BeforeStart.new
         end
 
@@ -426,6 +431,14 @@ module Datadog
         class AfterStop < Tracing::Event
           def initialize
             super(:after_stop)
+          end
+        end
+
+        # Triggered just before the span is finalized into a Span object.
+        # Subscribers can still mutate tags on the SpanOperation at this point.
+        class BeforeFinish < Tracing::Event
+          def initialize
+            super(:before_finish)
           end
         end
 
@@ -459,7 +472,7 @@ module Datadog
             rescue => e
               logger.debug do
                 "Custom on_error handler #{@handler} failed, using fallback behavior. \
-                  Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
+                  Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
               end
 
               original&.call(op, error)
@@ -471,7 +484,7 @@ module Datadog
               @handler.call(*args)
             rescue => e
               logger.debug do
-                "Error in on_error handler '#{@handler}': #{e.class}: #{e} at #{Array(e.backtrace).first}"
+                "Error in on_error handler '#{@handler}': #{e.class}: #{e.message} at #{Array(e.backtrace).first}"
               end
             end
 

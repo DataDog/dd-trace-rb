@@ -267,6 +267,16 @@ RSpec.describe Datadog::Tracing::Tracer do
                 expect(trace.hostname).to eq(Datadog::Core::Environment::Socket.hostname)
               end
             end
+
+            context 'and DD_HOSTNAME is set' do
+              before { allow(Datadog.configuration).to receive(:hostname).and_return('custom-host') }
+
+              it 'uses DD_HOSTNAME as the trace hostname' do
+                tracer.trace(name) do |_span, trace|
+                  expect(trace.hostname).to eq('custom-host')
+                end
+              end
+            end
           end
 
           context 'is disabled' do
@@ -638,6 +648,36 @@ RSpec.describe Datadog::Tracing::Tracer do
           span = span_op.finish
 
           expect(span_sampler).to have_received(:sample!).with(trace_op, span)
+        end
+      end
+    end
+  end
+
+  describe '#start_trace' do
+    subject(:trace_op) { tracer.send(:start_trace) }
+
+    let(:trace_events) { trace_op.send(:events) }
+    let(:sampler) { double('sampler') }
+    let(:tracer_options) { super().merge(sampler: sampler) }
+
+    before do
+      allow(sampler).to receive(:resource_sampling?).and_return(false)
+    end
+
+    describe 'with resource sampling' do
+      context 'when the sampler does not use resource sampling' do
+        it 'does not subscribe resource sampling reconsideration callbacks' do
+          expect(trace_events.trace_resource_change.subscriptions.length).to eq(0)
+        end
+      end
+
+      context 'when the sampler uses resource sampling' do
+        before do
+          allow(sampler).to receive(:resource_sampling?).and_return(true)
+        end
+
+        it 'subscribes resource sampling reconsideration callbacks' do
+          expect(trace_events.trace_resource_change.subscriptions.length).to eq(1)
         end
       end
     end
@@ -1089,6 +1129,38 @@ RSpec.describe Datadog::Tracing::Tracer do
   describe '#trace_completed' do
     subject(:trace_completed) { tracer.trace_completed }
     it { is_expected.to be_a_kind_of(described_class::TraceCompleted) }
+  end
+
+  describe '_dd.base_service tag' do
+    let(:default_service) { 'global-app' }
+    let(:tracer_options) { {**super(), default_service: default_service} }
+
+    def finish_span(service:)
+      tracer.trace('op', service: service) {}
+      spans.last
+    end
+
+    context 'when span service differs from the default service' do
+      it 'sets _dd.base_service to the default service' do
+        span = finish_span(service: 'other-service')
+        expect(span.get_tag('_dd.base_service')).to eq(default_service)
+      end
+    end
+
+    context 'when span service equals the default service' do
+      it 'does not set _dd.base_service' do
+        span = finish_span(service: default_service)
+        expect(span.get_tag('_dd.base_service')).to be_nil
+      end
+    end
+
+    context 'when span service inherits the default service (nil at trace time)' do
+      it 'does not set _dd.base_service' do
+        tracer.trace('op') {}
+        span = spans.last
+        expect(span.get_tag('_dd.base_service')).to be_nil
+      end
+    end
   end
 
   describe '#default_service' do

@@ -16,17 +16,47 @@ module Datadog
         # Class behavior for a configuration object with options
         # @public_api
         module ClassMethods
+          def settings_path
+            defined?(@settings_path) ? @settings_path : nil
+          end
+
+          # Registry of nested settings classes keyed by the option name declared
+          # via `Base.settings`. This lets us propagate a new settings path down the
+          # tree without storing parent references on the nested class or on the
+          # option definition itself.
+          def settings_children
+            @settings_children ||= if superclass <= Options
+              superclass.settings_children.dup
+            else
+              {}
+            end
+          end
+
+          def settings_path=(path)
+            @settings_path = path
+
+            # Keep nested settings paths in sync when a parent settings path is
+            # assigned later, which is how contrib integrations inject
+            # "tracing.<integration>" into their configuration classes.
+            settings_children.each do |name, settings_class|
+              nested_settings_path = path ? "#{path}.#{name}" : name.to_s
+              settings_class.settings_path = nested_settings_path
+            end
+          end
+
           def options
             # Allows for class inheritance of option definitions
-            @options ||= (superclass <= Options) ? superclass.options.dup : {}
+            @options ||= if superclass <= Options
+              superclass.options.dup
+            else
+              {}
+            end
           end
 
           protected
 
-          def option(name, meta = {}, &block)
-            settings_name = defined?(@settings_name) && @settings_name
-            option_name = settings_name ? "#{settings_name}.#{name}" : name
-            builder = OptionDefinition::Builder.new(option_name, meta, &block)
+          def option(name, attributes = {}, &block)
+            builder = OptionDefinition::Builder.new(name, attributes, &block)
             options[name] = builder.to_definition.tap do
               # Resolve and define helper functions
               helpers = default_helpers(name)
@@ -75,7 +105,11 @@ module Datadog
           end
 
           def set_option(name, value, precedence: Configuration::Option::Precedence::PROGRAMMATIC)
-            resolve_option(name).set(value, precedence: precedence)
+            option = resolve_option(name)
+            # Populate lower-precedence values so telemetry and `unset` can
+            # still observe the fallback chain after a first programmatic set.
+            option.get
+            option.set(value, precedence: precedence)
           end
 
           def unset_option(name, precedence: Configuration::Option::Precedence::PROGRAMMATIC)
@@ -120,7 +154,7 @@ module Datadog
 
             assert_valid_option!(name)
             definition = self.class.options[name]
-            # @type self: Configuration::Options::GenericSettingsClass
+            # @type self: Configuration::Options::_Settings
             options[name] = definition.build(self)
           end
 

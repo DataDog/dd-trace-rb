@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../input_peeker'
 require_relative '../../../instrumentation/gateway/argument'
 require_relative '../../../../core/header_collection'
 require_relative '../../../../tracing/client_ip'
@@ -75,12 +76,54 @@ module Datadog
             end
 
             def form_hash
-              # force form data processing
+              # NOTE: Rack populates `rack.request.form_hash` only as a side effect
+              #       of {::Rack::Request#POST}, which reads and parses the body.
               request.POST if request.form_data?
 
-              # usually Hash<String,String> but can be a more complex
-              # Hash<String,String||Array||Hash> when e.g coming from JSON
+              # usually Hash[String, String] but can be a more complex
+              # Hash[String, (String|Array|Hash)] when e.g coming from JSON
               env['rack.request.form_hash']
+            rescue => e
+              Datadog.logger.debug { "AppSec: Failed to parse request body: #{e.class}: #{e.message}" }
+              AppSec.telemetry.report(e, description: 'AppSec: Failed to parse request body')
+
+              nil
+            end
+
+            # Returns the request body size in bytes using all available methods,
+            # or nil when the size cannot be measured within the limit
+            #
+            # NOTE: The priority of the measurement is the following:
+            #       size if it's known, content-length if provided, and buffering
+            #       to the limit if unknown-length
+            #
+            # WARNING: The buffering path adds overhead for streaming web-servers
+            #          (Rack 3+) when the body length is unknown
+            def body_bytesize(limit)
+              io = request.body
+
+              return 0 unless io
+              return io.size if io.respond_to?(:size)
+
+              # NOTE: {::Rack::Request#content_length} is a plain `CONTENT_LENGTH`
+              #       getter forces no body read
+              content_length = request.content_length
+              return content_length.to_i if content_length
+
+              # NOTE: A parsed-body cache without a raw byte count means the input
+              #       stream was consumed before measurement, consider it unknown-length
+              return if env.key?('rack.request.form_hash')
+
+              InputPeeker.peek_bytesize(env, limit: limit)
+            end
+
+            # Whether a request body can be collected without forcing a parse:
+            # either form data parseable on demand, or a body already parsed upstream
+            #
+            # NOTE: Rack does not parse JSON itself, a body parser middleware such as
+            #       {Rack::JSONBodyParser} populates the form hash read by {#form_hash}
+            def collectable_body?
+              request.form_data? || request.parseable_data? || env.key?('rack.request.form_hash')
             end
 
             def client_ip

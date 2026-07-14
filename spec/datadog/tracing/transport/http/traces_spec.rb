@@ -50,7 +50,9 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
       end
     end
 
-    it { is_expected.to eq(response) }
+    it 'returns the response' do
+      is_expected.to eq(response)
+    end
   end
 end
 

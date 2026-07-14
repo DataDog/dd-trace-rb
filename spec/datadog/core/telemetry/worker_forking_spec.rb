@@ -38,7 +38,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   let(:logger) { logger_allowing_debug }
 
   # Uncomment for debugging to see the log entries.
-  #let(:logger) { Logger.new(STDERR) }
+  # let(:logger) { Logger.new(STDERR) }
 
   let(:components) do
     Datadog::Core::Configuration::Components.new(settings)
@@ -122,7 +122,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
 
       it 'restarts worker after fork' do
-        skip 'flaky on Ruby 2.5 (APMLP-931)' if RUBY_VERSION.start_with?('2.5.')
+        skip 'flaky on Ruby 2.5 (APMLP-931)' if RubyVersion.is?('< 2.6')
 
         expect(component.enabled?).to be true
         expect(component.worker).to be_a(Datadog::Core::Telemetry::Worker)

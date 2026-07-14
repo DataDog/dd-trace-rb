@@ -67,19 +67,4 @@ RSpec.describe Datadog::AppSec::Instrumentation::Gateway do
       expect(env_2).to eq({a: :b, c: :d})
     end
   end
-
-  describe '#pushed?' do
-    it { expect(gateway.pushed?('event.0')).to be(false) }
-
-    it 'returns true if event was pushed' do
-      expect { gateway.push('event.1', {}) }.to change { gateway.pushed?('event.1') }
-        .from(false).to(true)
-
-      expect { gateway.push('event.2', {}) }.to change { gateway.pushed?('event.2') }
-        .from(false).to(true)
-
-      expect { gateway.push('event.2', {}) }.not_to change { gateway.pushed?('event.2') }
-        .from(true)
-    end
-  end
 end

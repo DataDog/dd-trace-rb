@@ -14,7 +14,7 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
   describe '.report_rasp' do
-    context 'when reporting a match run result' do
+    context 'when result matches without blocking actions' do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
@@ -22,17 +22,53 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
         )
       end
 
-      it 'does not set WAF metrics on the span' do
+      it 'reports rasp.rule.match with irrelevant block tag' do
         expect(telemetry).to receive(:inc)
           .with('specsec', 'rasp.rule.eval', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
         expect(telemetry).to receive(:inc)
-          .with('specsec', 'rasp.rule.match', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
+          .with('specsec', 'rasp.rule.match', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99', block: 'irrelevant'})
 
         described_class.report_rasp('my-type', run_result)
       end
     end
 
-    context 'when reporting a match run result with timeout' do
+    context 'when result matches with block_request action' do
+      let(:run_result) do
+        Datadog::AppSec::SecurityEngine::Result::Match.new(
+          events: [], actions: {'block_request' => {}}, attributes: {}, keep: false, timeout: false,
+          duration_ns: 0, duration_ext_ns: 0, input_truncated: false
+        )
+      end
+
+      it 'reports rasp.rule.match with success block tag' do
+        expect(telemetry).to receive(:inc)
+          .with('specsec', 'rasp.rule.eval', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
+        expect(telemetry).to receive(:inc)
+          .with('specsec', 'rasp.rule.match', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99', block: 'success'})
+
+        described_class.report_rasp('my-type', run_result)
+      end
+    end
+
+    context 'when result matches with redirect_request action' do
+      let(:run_result) do
+        Datadog::AppSec::SecurityEngine::Result::Match.new(
+          events: [], actions: {'redirect_request' => {}}, attributes: {}, keep: false, timeout: false,
+          duration_ns: 0, duration_ext_ns: 0, input_truncated: false
+        )
+      end
+
+      it 'reports rasp.rule.match with success block tag' do
+        expect(telemetry).to receive(:inc)
+          .with('specsec', 'rasp.rule.eval', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
+        expect(telemetry).to receive(:inc)
+          .with('specsec', 'rasp.rule.match', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99', block: 'success'})
+
+        described_class.report_rasp('my-type', run_result)
+      end
+    end
+
+    context 'when result matches with timeout' do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
           events: [], actions: {}, attributes: {}, keep: false, timeout: true, duration_ns: 0, duration_ext_ns: 0,
@@ -40,11 +76,11 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
         )
       end
 
-      it 'does not set WAF metrics on the span' do
+      it 'reports rasp.rule.match with block irrelevant and rasp.timeout' do
         expect(telemetry).to receive(:inc)
           .with('specsec', 'rasp.rule.eval', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
         expect(telemetry).to receive(:inc)
-          .with('specsec', 'rasp.rule.match', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
+          .with('specsec', 'rasp.rule.match', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99', block: 'irrelevant'})
         expect(telemetry).to receive(:inc)
           .with('specsec', 'rasp.timeout', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
 

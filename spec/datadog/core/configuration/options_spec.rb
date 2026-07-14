@@ -14,8 +14,9 @@ RSpec.describe Datadog::Core::Configuration::Options do
     # to make sure specs pass when comparing result ex. expect(result).to be value
     # we ensure that frozen_or_dup returns the same instance
     before do
-      allow(Datadog::Core::Utils::SafeDup).to receive(:frozen_or_dup) do |args, _block|
-        args
+      # |args, _block| is not working with arrays
+      allow(Datadog::Core::Utils::SafeDup).to receive(:frozen_or_dup) do |*args, &_block|
+        args.first
       end
     end
 
@@ -41,6 +42,77 @@ RSpec.describe Datadog::Core::Configuration::Options do
             it { is_expected.to be_a(Hash) }
             it { is_expected.to_not be(parent_class.options) }
             it { is_expected.to include(:foo) }
+          end
+        end
+      end
+
+      describe '#settings_children' do
+        subject(:settings_children) { options_class.settings_children }
+
+        context 'for a class directly implementing Options' do
+          it { is_expected.to eq({}) }
+        end
+
+        context 'on class inheriting from a class implementing Options' do
+          let(:parent_class) do
+            Class.new.tap do |klass|
+              klass.include(Datadog::Core::Configuration::Base)
+              klass.send(:settings, :debug) { option :enabled }
+            end
+          end
+
+          let(:options_class) { Class.new(parent_class) }
+
+          # These checks are especially important for contrib integrations,
+          # where the integration settings are inherited from a common parent settings class.
+          # Inherited classes should start with the same nested settings entries
+          # that were already defined on the parent class.
+          it { is_expected.to include(debug: parent_class.settings_children[:debug]) }
+          # The child class should get its own registry hash so later mutations do
+          # not accidentally modify the parent's registry.
+          it { is_expected.to_not be(parent_class.settings_children) }
+
+          it 'duplicates the registry before adding child settings' do
+            options_class.send(:settings, :custom) { option :enabled }
+
+            expect(parent_class.settings_children).to_not include(:custom)
+          end
+        end
+      end
+
+      describe '#settings_path=' do
+        subject(:set_settings_path) { options_class.settings_path = settings_path }
+
+        let(:options_class) do
+          Class.new.tap do |klass|
+            klass.include(Datadog::Core::Configuration::Base)
+            klass.send(:settings, :debug) { option :enabled }
+          end
+        end
+
+        let(:debug_settings_class) { options_class.settings_children[:debug] }
+
+        context 'when a path is provided' do
+          let(:settings_path) { 'tracing.test' }
+
+          it 'propagates the assigned path through nested settings' do
+            set_settings_path
+
+            expect(options_class.settings_path).to eq('tracing.test')
+            expect(debug_settings_class.settings_path).to eq('tracing.test.debug')
+          end
+        end
+
+        context 'when the path is cleared' do
+          let(:settings_path) { nil }
+
+          before { options_class.settings_path = 'tracing.test' }
+
+          it 'falls back to relative paths for nested settings' do
+            set_settings_path
+
+            expect(options_class.settings_path).to be_nil
+            expect(debug_settings_class.settings_path).to eq('debug')
           end
         end
       end

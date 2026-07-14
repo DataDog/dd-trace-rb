@@ -29,6 +29,7 @@ module Datadog
               }
 
               Tracing.trace(Ext::SPAN_CLIENT, **options) do |span, trace|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 annotate!(trace, span, keywords, formatter)
 
                 begin
@@ -59,11 +60,6 @@ module Datadog
                 )
               end
 
-              # Tag original global service name if not used
-              if span.service != Datadog.configuration.service
-                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
-              end
-
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CLIENT)
@@ -90,7 +86,7 @@ module Datadog
               end
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             rescue => e
-              Datadog.logger.debug("GRPC client trace failed: #{e}")
+              Datadog.logger.debug("GRPC client trace failed: #{e.class}: #{e.message}")
             end
 
             def find_deadline(call)
@@ -112,7 +108,7 @@ module Datadog
 
               Core::Utils.extract_host_port(peer_address)
             rescue => e
-              Datadog.logger.debug { "Could not parse host:port from #{call}: #{e}" }
+              Datadog.logger.debug { "Could not parse host:port from #{call}: #{e.class}: #{e.message}" }
               nil
             end
           end

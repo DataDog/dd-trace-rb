@@ -47,6 +47,7 @@ module Datadog
           def annotate!(span, env, options)
             span.resource = resource_name(env)
             span.service = service_name(env[:url].host, options)
+            span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
             span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
             if options[:peer_service]
@@ -54,11 +55,6 @@ module Datadog
                 Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                 options[:peer_service]
               )
-            end
-
-            # Tag original global service name if not used
-            if span.service != Datadog.configuration.service
-              span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
             end
 
             span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
@@ -83,7 +79,7 @@ module Datadog
 
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
           rescue => e
-            Datadog.logger.error(e.message)
+            Datadog.logger.error("#{e.class}: #{e.message}")
             Datadog::Core::Telemetry::Logger.report(e)
           end
           # rubocop:enable Metrics/AbcSize
@@ -98,7 +94,7 @@ module Datadog
               Datadog.configuration.tracing.header_tags.response_tags(env[:response_headers])
             )
           rescue => e
-            Datadog.logger.error(e.message)
+            Datadog.logger.error("#{e.class}: #{e.message}")
             Datadog::Core::Telemetry::Logger.report(e)
           end
           # rubocop:enable Metrics/AbcSize
