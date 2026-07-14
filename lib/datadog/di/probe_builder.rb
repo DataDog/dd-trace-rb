@@ -100,8 +100,8 @@ module Datadog
           unless Hash === expr_spec && expr_spec['dsl'] && expr_spec['json']
             raise ArgumentError, "captureExpressions entry #{name}: missing or malformed expr"
           end
-          compiled = EL::Compiler.new.compile(expr_spec['json'])
-          expr = EL::Expression.new(expr_spec['dsl'], compiled)
+          compiled, regexps = EL::Compiler.new.compile(expr_spec['json'])
+          expr = EL::Expression.new(expr_spec['dsl'], compiled, regexps)
           limits = build_capture_limits(entry['capture'])
           CaptureExpression.new(name: name, expr: expr, limits: limits)
         end
