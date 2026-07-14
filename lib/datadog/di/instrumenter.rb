@@ -70,13 +70,6 @@ module Datadog
     #
     # @api private
     class Instrumenter
-      # Process-wide DI event rate limits, applied across all probes in
-      # addition to each probe's own rate limit. These are constants rather
-      # than settings, matching how other tracers store their global limits
-      # (Node.js and Java use constants). Snapshot (capturing) probes and log
-      # (non-capturing) probes use separate limits, mirroring both the
-      # per-probe defaults in Probe#initialize and Java's global
-      # snapshot/log rates.
       GLOBAL_SNAPSHOT_RATE_LIMIT = 100
 
       GLOBAL_LOG_RATE_LIMIT = 5000
@@ -114,8 +107,6 @@ module Datadog
         )
       end
 
-      # Selects the process-wide rate limiter for a probe: the snapshot
-      # limiter for capturing probes, the log limiter otherwise.
       def global_rate_limiter_for(probe)
         probe.capture_snapshot? ? global_snapshot_rate_limiter : global_log_rate_limiter
       end
@@ -821,8 +812,6 @@ module Datadog
         # and check that it is in fact set.
         return if probe.rate_limiter && !probe.rate_limiter.allow?
 
-        # Process-wide rate limit, applied across all probes on top of the
-        # per-probe limit above.
         unless global_rate_limiter_for(probe).allow?
           logger.debug { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
           return
