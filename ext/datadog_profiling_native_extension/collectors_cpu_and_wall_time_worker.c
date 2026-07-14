@@ -154,6 +154,10 @@ typedef struct {
     unsigned int signal_handler_enqueued_sample;
     // How many times we prepared a sample (sampled directly) from the signal handler
     unsigned int signal_handler_prepared_sample;
+    // How many times we skipped sampling directly from the signal handler because we were running on the
+    // alternate signal stack (e.g. nested inside another signal handler such as the GC compaction read barrier),
+    // where walking the VM is unsafe. In this situation we fall back to the postponed job instead.
+    unsigned int signal_handler_skipped_sample_on_altstack;
     // How many times we actually tried to interrupt a thread for sampling
     unsigned int interrupt_thread_attempts;
 
@@ -220,6 +224,7 @@ static VALUE _native_failure_exception_during_operation(DDTRACE_UNUSED VALUE sel
 static void testing_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext);
 static VALUE _native_install_testing_signal_handler(DDTRACE_UNUSED VALUE self);
 static VALUE _native_remove_testing_signal_handler(DDTRACE_UNUSED VALUE self);
+static VALUE _native_install_sigprof_handler_on_altstack(DDTRACE_UNUSED VALUE self);
 static VALUE _native_trigger_sample(DDTRACE_UNUSED VALUE self);
 static VALUE _native_gc_tracepoint(DDTRACE_UNUSED VALUE self, VALUE instance);
 static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
@@ -357,6 +362,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_resume_signals", _native_resume_signals, 0);
   rb_define_singleton_method(testing_module, "_native_install_testing_signal_handler", _native_install_testing_signal_handler, 0);
   rb_define_singleton_method(testing_module, "_native_remove_testing_signal_handler", _native_remove_testing_signal_handler, 0);
+  rb_define_singleton_method(testing_module, "_native_install_sigprof_handler_on_altstack", _native_install_sigprof_handler_on_altstack, 0);
   rb_define_singleton_method(testing_module, "_native_trigger_sample", _native_trigger_sample, 0);
   rb_define_singleton_method(testing_module, "_native_gc_tracepoint", _native_gc_tracepoint, 1);
   rb_define_singleton_method(testing_module, "_native_simulate_handle_sampling_signal", _native_simulate_handle_sampling_signal, 0);
@@ -940,6 +946,24 @@ static VALUE _native_remove_testing_signal_handler(DDTRACE_UNUSED VALUE self) {
   return Qtrue;
 }
 
+// Reproduces a profiler sample being taken in the middle of GC compaction: during compaction a SIGPROF can be
+// delivered while nested inside Ruby's read-barrier signal handler, which runs on the alternate signal stack. We
+// simulate that here by re-installing the production `handle_sampling_signal` with the `SA_ONSTACK` flag, so it runs
+// on the alternate signal stack just like it would in that scenario.
+static VALUE _native_install_sigprof_handler_on_altstack(DDTRACE_UNUSED VALUE self) {
+  struct sigaction signal_handler_config = {
+    .sa_flags = SA_RESTART | SA_SIGINFO | SA_ONSTACK,
+    .sa_sigaction = handle_sampling_signal,
+  };
+  sigemptyset(&signal_handler_config.sa_mask);
+
+  if (sigaction(SIGPROF, &signal_handler_config, NULL) != 0) {
+    rb_sys_fail("Failed to install SA_ONSTACK SIGPROF signal handler for testing");
+  }
+
+  return Qtrue;
+}
+
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_trigger_sample(DDTRACE_UNUSED VALUE self) {
@@ -1109,6 +1133,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("simulated_signal_delivery")),                  /* => */ UINT2NUM(state->stats.simulated_signal_delivery),
     ID2SYM(rb_intern("signal_handler_enqueued_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_enqueued_sample),
     ID2SYM(rb_intern("signal_handler_prepared_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_prepared_sample),
+    ID2SYM(rb_intern("signal_handler_skipped_sample_on_altstack")),  /* => */ UINT2NUM(state->stats.signal_handler_skipped_sample_on_altstack),
     ID2SYM(rb_intern("interrupt_thread_attempts")),                  /* => */ UINT2NUM(state->stats.interrupt_thread_attempts),
 
     // CPU Stats

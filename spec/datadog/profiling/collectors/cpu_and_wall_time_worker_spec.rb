@@ -1068,55 +1068,76 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     describe "sampling from signal handler", :memcheck_valgrind_skip do
       let(:options) { {dynamic_sampling_rate_enabled: false} }
 
-      let(:sample_count) do
-        samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
-          .map { |it| it.values.fetch(:"cpu-samples") }.reduce(:+)
-      end
-      let(:signal_handler_prepared_sample) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_prepared_sample) }
-      let(:signal_handler_enqueued_sample) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) }
-
       before do
         allow(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
         allow(Datadog::Core::Telemetry::Logger).to receive(:error).with(/dynamic sampling rate disabled/)
 
         skip_if_signal_handler_sampling_not_supported
-
-        GC.start
-
-        begin
-          # The expectations below compare number of enqueued samples with actual samples. To avoid flakiness from a
-          # slow GC in the middle of the test causing less samples than expected to be taken (since we only sample after
-          # GC ends), we disable GC during the test setup.
-          # (Note for future changes: Be careful with what you do with GC disabled!)
-          GC.disable
-
-          start
-
-          loop_until(check_condition_every_seconds: 0.01) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) >= 20 }
-
-          cpu_and_wall_time_worker.stop
-        ensure
-          GC.enable
-        end
-
-        expect(sample_count).to be > 0
-        expect(sample_count).to be_within(20).percent_of(signal_handler_enqueued_sample)
       end
 
-      context "when signal handler sampling is enabled" do
+      describe "prepare sample usage" do
+        let(:sample_count) do
+          samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
+            .map { |it| it.values.fetch(:"cpu-samples") }.reduce(:+)
+        end
+        let(:signal_handler_prepared_sample) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_prepared_sample) }
+        let(:signal_handler_enqueued_sample) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) }
+
+        before do
+          GC.start
+
+          begin
+            # The expectations below compare number of enqueued samples with actual samples. To avoid flakiness from a
+            # slow GC in the middle of the test causing less samples than expected to be taken (since we only sample after
+            # GC ends), we disable GC during the test setup.
+            # (Note for future changes: Be careful with what you do with GC disabled!)
+            GC.disable
+
+            start
+
+            loop_until(check_condition_every_seconds: 0.01) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) >= 20 }
+
+            cpu_and_wall_time_worker.stop
+          ensure
+            GC.enable
+          end
+
+          expect(sample_count).to be > 0
+          expect(sample_count).to be_within(20).percent_of(signal_handler_enqueued_sample)
+        end
+
+        context "when signal handler sampling is enabled" do
+          let(:sighandler_sampling_enabled) { true }
+
+          it "prepares samples in the signal handler" do
+            expect(signal_handler_prepared_sample).to be > 0
+            expect(signal_handler_prepared_sample).to be_within(20).percent_of(signal_handler_enqueued_sample)
+          end
+        end
+
+        context "when signal handler sampling is disabled" do
+          let(:sighandler_sampling_enabled) { false }
+
+          it "does not prepare samples in the signal handler" do
+            expect(signal_handler_prepared_sample).to be 0
+          end
+        end
+      end
+
+      describe "crash-safety during GC compaction" do
         let(:sighandler_sampling_enabled) { true }
 
-        it "prepares samples in the signal handler" do
-          expect(signal_handler_prepared_sample).to be > 0
-          expect(signal_handler_prepared_sample).to be_within(20).percent_of(signal_handler_enqueued_sample)
-        end
-      end
+        # A profiler sample taken while GC compaction is moving objects can cause an issue because Ruby toggles memory
+        # protection of pages that the profiler may try to read, causing a crash.
+        it "skips sampling in the signal handler rather than walking the VM" do
+          start
 
-      context "when signal handler sampling is disabled" do
-        let(:sighandler_sampling_enabled) { false }
+          # Simulate signals arriving on the altstack
+          described_class::Testing._native_install_sigprof_handler_on_altstack
 
-        it "does not prepare samples in the signal handler" do
-          expect(signal_handler_prepared_sample).to be 0
+          loop_until(check_condition_every_seconds: 0.01) do
+            cpu_and_wall_time_worker.stats.fetch(:signal_handler_skipped_sample_on_altstack) > 0
+          end
         end
       end
 
@@ -1409,6 +1430,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           simulated_signal_delivery: 0,
           signal_handler_enqueued_sample: 0,
           signal_handler_prepared_sample: 0,
+          signal_handler_skipped_sample_on_altstack: 0,
           interrupt_thread_attempts: 0,
           cpu_sampled: 0,
           cpu_skipped: 0,
