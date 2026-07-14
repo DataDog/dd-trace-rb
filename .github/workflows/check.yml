@@ -53,6 +53,7 @@ jobs:
         with:
           lockfile: ${{ needs.build.outputs.lockfile }}
           cache-key: ${{ needs.build.outputs.cache-key }}
+      - run: bundle exec rubocop -D
       - run: bundle exec rake standard
 
   rubocop:
@@ -105,7 +106,7 @@ jobs:
   semgrep:
     name: semgrep/ci
     runs-on: ubuntu-24.04
-    container: semgrep/semgrep # PENDING: Possible to be rate limited.
+    container: semgrep/semgrep:1.169.0 # PENDING: Possible to be rate limited.
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -119,7 +120,6 @@ jobs:
         env:
           SEMGREP_RULES: p/default
 
-  # https://woodruffw.github.io/zizmor/
   zizmor:
     name: zizmor
     runs-on: ubuntu-24.04
@@ -135,8 +135,8 @@ jobs:
         with:
           scope: DataDog/dd-trace-rb
           policy: self.check
-      - name: Run zizmor 🌈
-        uses: docker://ghcr.io/woodruffw/zizmor:1.4.1
+      - name: Run zizmor
+        uses: docker://ghcr.io/zizmorcore/zizmor:1.26.1
         with:
           args: --min-severity low .
         env:

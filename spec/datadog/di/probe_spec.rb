@@ -1,5 +1,7 @@
 require "datadog/di/spec_helper"
 require "datadog/di/probe"
+require "datadog/di/capture_expression"
+require "datadog/di/el"
 
 RSpec.describe Datadog::DI::Probe do
   di_test
@@ -198,6 +200,185 @@ RSpec.describe Datadog::DI::Probe do
     end
   end
 
+  describe "capture expressions" do
+    let(:capture_expression) do
+      Datadog::DI::CaptureExpression.new(name: "x", expr: instance_double(Datadog::DI::EL::Expression))
+    end
+
+    context "no capture_expressions argument" do
+      include_context "method probe"
+
+      it "defaults to an empty array and capture_expressions? is false" do
+        expect(probe.capture_expressions).to eq([])
+        expect(probe.capture_expressions?).to be false
+      end
+    end
+
+    context "capture_expressions provided" do
+      let(:probe) do
+        described_class.new(
+          id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          capture_expressions: [capture_expression],
+        )
+      end
+
+      it "stores them and capture_expressions? is true" do
+        expect(probe.capture_expressions).to eq([capture_expression])
+        expect(probe.capture_expressions?).to be true
+      end
+
+      it "defaults rate_limit to 1/sec (snapshot-class) when only capture_expressions set" do
+        expect(probe.rate_limit).to eq(1)
+      end
+    end
+
+    context "capture_expressions explicitly empty array, capture_snapshot false" do
+      let(:probe) do
+        described_class.new(
+          id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          capture_expressions: [],
+        )
+      end
+
+      it "defaults rate_limit to 5000/sec (log-class)" do
+        expect(probe.rate_limit).to eq(5000)
+      end
+    end
+
+    context "explicit rate_limit overrides the capture-expressions default" do
+      let(:probe) do
+        described_class.new(
+          id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          capture_expressions: [capture_expression],
+          rate_limit: 42,
+        )
+      end
+
+      it "uses the explicit value" do
+        expect(probe.rate_limit).to eq(42)
+      end
+    end
+  end
+
+  describe "capture-expression predicates" do
+    let(:capture_expression) do
+      Datadog::DI::CaptureExpression.new(name: "x", expr: instance_double(Datadog::DI::EL::Expression))
+    end
+
+    def build_probe(**opts)
+      described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar", **opts)
+    end
+
+    describe "#evaluate_at_entry?" do
+      it "is true when evaluate_at is :entry" do
+        expect(build_probe(evaluate_at: :entry).evaluate_at_entry?).to be true
+      end
+
+      it "is false when evaluate_at is :exit" do
+        expect(build_probe(evaluate_at: :exit).evaluate_at_entry?).to be false
+      end
+
+      it "is false by default (coerces to :exit)" do
+        expect(build_probe.evaluate_at_entry?).to be false
+      end
+    end
+
+    describe "#capture_expressions_only?" do
+      it "is true with capture expressions and no snapshot" do
+        expect(build_probe(capture_expressions: [capture_expression], capture_snapshot: false).capture_expressions_only?).to be true
+      end
+
+      it "is false when capturing a snapshot" do
+        expect(build_probe(capture_expressions: [capture_expression], capture_snapshot: true).capture_expressions_only?).to be false
+      end
+
+      it "is false without capture expressions" do
+        expect(build_probe(capture_expressions: []).capture_expressions_only?).to be false
+      end
+    end
+
+    describe "#capture_entry_expressions?" do
+      it "is true with entry-evaluated capture expressions and no snapshot" do
+        expect(build_probe(capture_expressions: [capture_expression], evaluate_at: :entry, capture_snapshot: false).capture_entry_expressions?).to be true
+      end
+
+      it "is false when evaluated at exit" do
+        expect(build_probe(capture_expressions: [capture_expression], evaluate_at: :exit, capture_snapshot: false).capture_entry_expressions?).to be false
+      end
+
+      it "is false when capturing a snapshot" do
+        expect(build_probe(capture_expressions: [capture_expression], evaluate_at: :entry, capture_snapshot: true).capture_entry_expressions?).to be false
+      end
+
+      it "is false without capture expressions" do
+        expect(build_probe(capture_expressions: [], evaluate_at: :entry).capture_entry_expressions?).to be false
+      end
+    end
+  end
+
+  describe "evaluate_at" do
+    context "omitted" do
+      let(:probe) do
+        described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar")
+      end
+
+      it "defaults to :exit" do
+        expect(probe.evaluate_at).to eq(:exit)
+      end
+    end
+
+    context "explicitly nil" do
+      let(:probe) do
+        described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          evaluate_at: nil)
+      end
+
+      it "coerces to :exit" do
+        expect(probe.evaluate_at).to eq(:exit)
+      end
+    end
+
+    context ":entry" do
+      let(:probe) do
+        described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          evaluate_at: :entry)
+      end
+
+      it "is stored as :entry" do
+        expect(probe.evaluate_at).to eq(:entry)
+      end
+    end
+
+    context ":exit" do
+      let(:probe) do
+        described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          evaluate_at: :exit)
+      end
+
+      it "is stored as :exit" do
+        expect(probe.evaluate_at).to eq(:exit)
+      end
+    end
+
+    context "unknown symbol" do
+      it "raises ArgumentError" do
+        expect do
+          described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+            evaluate_at: :before)
+        end.to raise_error(ArgumentError, /Unknown evaluate_at value/)
+      end
+    end
+
+    context "unknown String value" do
+      it "raises ArgumentError" do
+        expect do
+          described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+            evaluate_at: "ENTRY")
+        end.to raise_error(ArgumentError, /Unknown evaluate_at value/)
+      end
+    end
+  end
+
   describe "#method_name!" do
     context "method name set" do
       let(:probe) { described_class.new(id: "x", type: :log, type_name: "Foo", method_name: "bar") }
@@ -232,6 +413,67 @@ RSpec.describe Datadog::DI::Probe do
 
       it "returns line location" do
         expect(probe.location).to eq "foo.rb:4"
+      end
+    end
+  end
+
+  describe "#snapshot_serializer_limits" do
+    let(:settings) do
+      instance_double(Datadog::Core::Configuration::Settings, dynamic_instrumentation: double(
+        max_capture_depth: 3,
+        max_capture_attribute_count: 20,
+        max_capture_string_length: 255,
+        max_capture_collection_size: 100,
+      ))
+    end
+
+    context "no probe-level overrides" do
+      let(:probe) do
+        described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar")
+      end
+
+      it "returns all four settings defaults" do
+        expect(probe.snapshot_serializer_limits(settings)).to eq(
+          depth: 3,
+          attribute_count: 20,
+          length: 255,
+          collection_size: 100,
+        )
+      end
+    end
+
+    context "all four probe-level overrides set" do
+      let(:probe) do
+        described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          max_capture_depth: 7,
+          max_capture_attribute_count: 99,
+          max_capture_string_length: 77,
+          max_capture_collection_size: 33,)
+      end
+
+      it "returns the probe-level values for all four fields" do
+        expect(probe.snapshot_serializer_limits(settings)).to eq(
+          depth: 7,
+          attribute_count: 99,
+          length: 77,
+          collection_size: 33,
+        )
+      end
+    end
+
+    context "mixed probe-level overrides" do
+      let(:probe) do
+        described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          max_capture_string_length: 50,)
+      end
+
+      it "uses the probe-level value where set, settings default otherwise" do
+        expect(probe.snapshot_serializer_limits(settings)).to eq(
+          depth: 3,
+          attribute_count: 20,
+          length: 50,
+          collection_size: 100,
+        )
       end
     end
   end

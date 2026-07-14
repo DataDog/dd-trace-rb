@@ -11,6 +11,7 @@ AllCops:
     - "gemfiles/**/**"
     - "integration/**/**"
     - "lib/datadog/**/vendor/**/*"
+    - "vendor/bundle/**/*"
 
 # standard requires a space after '#', which breaks Steep inline annotations (`#:`, `#$`).
 # We can drop this override if https://github.com/standardrb/standard/pull/820 (proposing
