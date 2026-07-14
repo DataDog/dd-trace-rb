@@ -711,8 +711,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
   describe '#build_snapshot with capture_expressions' do
     let(:compiled_expr) do
-      compiled = Datadog::DI::EL::Compiler.new.compile({"ref" => "x"})
-      Datadog::DI::EL::Expression.new("x", compiled)
+      Datadog::DI::EL::Expression.new("x", *Datadog::DI::EL::Compiler.new.compile({"ref" => "x"}))
     end
 
     let(:capture_expression) do
@@ -879,8 +878,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
     context 'evaluation error in a capture expression' do
       let(:failing_expr) do
-        compiled = Datadog::DI::EL::Compiler.new.compile({"len" => {"ref" => "badvar"}})
-        Datadog::DI::EL::Expression.new("len(badvar)", compiled)
+        Datadog::DI::EL::Expression.new("len(badvar)", *Datadog::DI::EL::Compiler.new.compile({"len" => {"ref" => "badvar"}}))
       end
 
       let(:probe) do
