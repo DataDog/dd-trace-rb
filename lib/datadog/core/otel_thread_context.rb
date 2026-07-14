@@ -9,20 +9,6 @@ module Datadog
     # APIs in this module are implemented as native code; see ext/libdatadog_api/otel_thread_ctx.c.
     # Linux-only: `supported?` is `false` everywhere else.
     module OTelThreadContext
-      module ThreadExtensions
-        def initialize(*args, &block)
-          super(*args) do |*block_args|
-            Datadog::Core::OTelThreadContext._native_attach_new
-
-            begin
-              block.call(*block_args)
-            ensure
-              Datadog::Core::OTelThreadContext._native_detach_and_free
-            end
-          end
-        end
-      end
-
       def self.supported?
         Datadog::Core::LIBDATADOG_API_FAILURE.nil? && _native_supported?
       end
@@ -30,16 +16,11 @@ module Datadog
       def self.enable!
         return false unless supported?
 
-        Thread.prepend(ThreadExtensions) unless Thread.ancestors.include?(ThreadExtensions)
-
-        true
+        _native_enable
       end
 
-      # Debug helper: returns a Hash with the raw fields of the context record currently
-      # attached to the calling thread (`trace_id`, `span_id`, `valid`, `attrs_data`), or
-      # `nil` if no context is attached.
-      def self.debug_peek
-        _native_debug_peek
+      def self.set(trace_id:, span_id:, local_root_span_id:)
+        _native_set(trace_id, span_id, local_root_span_id)
       end
     end
   end
