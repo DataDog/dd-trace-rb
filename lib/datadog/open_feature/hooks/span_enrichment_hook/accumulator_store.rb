@@ -27,22 +27,15 @@ module Datadog
             @states[trace_op]
           end
 
-          # Returns [accumulator, created?]. The caller subscribes (under lock)
-          # only on first creation so the subscription closure can capture the
-          # accumulator and keep it alive for the trace's lifetime.
-          def fetch_or_create(trace_op)
-            existing = @states[trace_op]
-            return [existing, false] if existing
-
-            accumulator = Accumulator.new
+          def []=(trace_op, accumulator)
             @states[trace_op] = accumulator
-            [accumulator, true]
           end
 
           def delete(trace_op)
-            # `ObjectSpace::WeakMap` exposes no per-key delete; overwrite the slot
-            # with nil so a stale entry is never re-read after the root finishes.
-            # The slot itself is reclaimed when the trace operation is collected.
+            # `ObjectSpace::WeakMap#delete` was only added in Ruby 3.3; this gem
+            # supports Ruby 2.5+, so overwrite the slot with nil instead so a stale
+            # entry is never re-read after the root finishes. The slot itself is
+            # reclaimed when the trace operation is collected.
             @states[trace_op] = nil
           end
 

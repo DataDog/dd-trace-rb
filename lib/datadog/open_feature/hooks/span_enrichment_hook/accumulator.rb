@@ -63,15 +63,15 @@ module Datadog
 
           def to_span_tags
             tags = {}
-            tags[TAG_FLAGS_ENC] = Codec.encode_delta_varint(@serial_ids) unless @serial_ids.empty?
+            tags[TAG_FLAGS_ENC] = Codec.encode_delta_varint(@serial_ids) if @serial_ids.any?
 
-            unless @subjects.empty?
+            if @subjects.any?
               encoded_subjects = {}
               @subjects.each { |hashed, ids| encoded_subjects[hashed] = Codec.encode_delta_varint(ids) }
               tags[TAG_SUBJECTS_ENC] = JSON.generate(encoded_subjects)
             end
 
-            tags[TAG_RUNTIME_DEFAULTS] = JSON.generate(@defaults) unless @defaults.empty?
+            tags[TAG_RUNTIME_DEFAULTS] = JSON.generate(@defaults) if @defaults.any?
 
             tags
           end

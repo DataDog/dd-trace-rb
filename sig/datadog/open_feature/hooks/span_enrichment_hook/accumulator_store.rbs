@@ -15,7 +15,7 @@ module Datadog
 
           def []: (untyped trace_op) -> Accumulator?
 
-          def fetch_or_create: (untyped trace_op) -> [ Accumulator, bool ]
+          def []=: (untyped trace_op, Accumulator accumulator) -> Accumulator
 
           def delete: (untyped trace_op) -> void
 

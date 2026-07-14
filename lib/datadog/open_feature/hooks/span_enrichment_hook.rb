@@ -103,7 +103,7 @@ module Datadog
         def shutdown
           @mutex.synchronize do
             @closed = true
-            @store&.clear!
+            @store.clear!
           end
         end
 
@@ -113,8 +113,12 @@ module Datadog
         # subscribe to that trace's span lifecycle so we can write tags when the
         # local root span finishes. MUST be called with `@mutex` held.
         def state_for(trace_op)
-          state, created = @store.fetch_or_create(trace_op)
-          subscribe_root_finish(trace_op, state) if created
+          state = @store[trace_op]
+          return state if state
+
+          state = Accumulator.new
+          @store[trace_op] = state
+          subscribe_root_finish(trace_op, state)
           state
         end
 

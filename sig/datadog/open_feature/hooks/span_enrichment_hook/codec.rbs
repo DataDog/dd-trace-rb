@@ -3,6 +3,10 @@ module Datadog
     module Hooks
       class SpanEnrichmentHook
         module Codec
+          LOW_7_BITS_MASK: ::Integer
+
+          CONTINUATION_BIT: ::Integer
+
           def self?.encode_varint: (::Integer value) -> ::String
 
           def self?.encode_delta_varint: (Set[::Integer] serial_ids) -> ::String

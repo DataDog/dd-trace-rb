@@ -12,18 +12,21 @@ module Datadog
         module Codec
           module_function
 
-          # ULEB128: 7 bits per byte, MSB set marks continuation.
+          # ULEB128 stores 7 bits per byte; the high bit flags that more bytes follow.
+          LOW_7_BITS_MASK = 0x7F
+          CONTINUATION_BIT = 0x80
+
           # The buffer MUST be binary (ASCII-8BIT): `String#<<` with an Integer on a
           # UTF-8 string appends a Unicode *codepoint*, so any byte >= 0x80 would be
           # re-encoded as a 2-byte UTF-8 sequence and corrupt the varint (e.g. serial
           # 2312 -> bytes 88 12, but UTF-8 would emit C2 88 12 = 296002 on decode).
           def encode_varint(value)
             bytes = (+'').b
-            while value > 0x7F
-              bytes << ((value & 0x7F) | 0x80)
+            while value > LOW_7_BITS_MASK
+              bytes << ((value & LOW_7_BITS_MASK) | CONTINUATION_BIT)
               value >>= 7
             end
-            bytes << (value & 0x7F)
+            bytes << (value & LOW_7_BITS_MASK)
             bytes
           end
 
