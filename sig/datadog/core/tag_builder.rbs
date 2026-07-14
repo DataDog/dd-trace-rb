@@ -5,7 +5,7 @@ module Datadog
 
       def self.fixed_environment_tags: () -> ::Hash[::String, ::String]
 
-      def self.tags: (any settings) -> ::Hash[::String, ::String]
+      def self.tags: (Datadog::Core::Configuration::Settings settings) -> ::Hash[::String, ::String]
 
       def self.serialize_tags: (::Hash[::String, ::String] tags) -> ::String
     end
