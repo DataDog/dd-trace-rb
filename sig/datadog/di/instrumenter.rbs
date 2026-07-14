@@ -11,6 +11,10 @@ module Datadog
 
       DATADOG_NAMESPACE_TYPE_NAME: ::Regexp
 
+      GLOBAL_SNAPSHOT_RATE_LIMIT: ::Integer
+
+      GLOBAL_LOG_RATE_LIMIT: ::Integer
+
       @settings: Datadog::Core::Configuration::Settings
 
       @serializer: Serializer
@@ -20,6 +24,10 @@ module Datadog
       @logger: DI::Logger
 
       @telemetry: Core::Telemetry::Component?
+
+      @global_snapshot_rate_limiter: Datadog::Core::TokenBucket
+
+      @global_log_rate_limiter: Datadog::Core::TokenBucket
 
       @lock: Mutex
 
@@ -39,7 +47,13 @@ module Datadog
 
       attr_reader telemetry: Core::Telemetry::Component?
 
+      attr_reader global_snapshot_rate_limiter: Datadog::Core::TokenBucket
+
+      attr_reader global_log_rate_limiter: Datadog::Core::TokenBucket
+
       def capture_expression_evaluator: () -> CaptureExpressionEvaluator
+
+      def global_rate_limiter_for: (Probe probe) -> Datadog::Core::TokenBucket
 
       def hook_method: (Probe probe, untyped responder) -> void
 

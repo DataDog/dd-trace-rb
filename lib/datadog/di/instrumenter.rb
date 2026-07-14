@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "../core/rate_limiter"
 require_relative "../core/utils/time"
 require_relative "../ruby_version"
 require_relative "fatal_exceptions"
@@ -69,12 +70,25 @@ module Datadog
     #
     # @api private
     class Instrumenter
+      # Process-wide DI event rate limits, applied across all probes in
+      # addition to each probe's own rate limit. These are constants rather
+      # than settings, matching how other tracers store their global limits
+      # (Node.js and Java use constants). Snapshot (capturing) probes and log
+      # (non-capturing) probes use separate limits, mirroring both the
+      # per-probe defaults in Probe#initialize and Java's global
+      # snapshot/log rates.
+      GLOBAL_SNAPSHOT_RATE_LIMIT = 100
+
+      GLOBAL_LOG_RATE_LIMIT = 5000
+
       def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
         @telemetry = telemetry
         @code_tracker = code_tracker
+        @global_snapshot_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_SNAPSHOT_RATE_LIMIT)
+        @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
 
         @lock = Mutex.new
       end
@@ -91,10 +105,19 @@ module Datadog
       # Component#start! assigns the now-current tracker here.
       attr_writer :code_tracker
 
+      attr_reader :global_snapshot_rate_limiter
+      attr_reader :global_log_rate_limiter
+
       def capture_expression_evaluator
         @capture_expression_evaluator ||= CaptureExpressionEvaluator.new(
           settings: settings, serializer: serializer, logger: logger, telemetry: telemetry,
         )
+      end
+
+      # Selects the process-wide rate limiter for a probe: the snapshot
+      # limiter for capturing probes, the log limiter otherwise.
+      def global_rate_limiter_for(probe)
+        probe.capture_snapshot? ? global_snapshot_rate_limiter : global_log_rate_limiter
       end
 
       # This is a substitute for Thread::Backtrace::Location
@@ -528,7 +551,12 @@ module Datadog
           end
 
           rate_limiter = probe.rate_limiter
-          if continue and rate_limiter.nil? || rate_limiter.allow?
+          admitted = continue && (rate_limiter.nil? || rate_limiter.allow?)
+          if admitted && !global_rate_limiter_for(probe).allow?
+            admitted = false
+            logger.debug { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
+          end
+          if admitted
             # Arguments may be mutated by the method, therefore
             # they need to be serialized prior to method invocation.
             serialized_entry_args = if probe.capture_snapshot?
@@ -792,6 +820,13 @@ module Datadog
         # In practice we should always have a rate limiter, but be safe
         # and check that it is in fact set.
         return if probe.rate_limiter && !probe.rate_limiter.allow?
+
+        # Process-wide rate limit, applied across all probes on top of the
+        # per-probe limit above.
+        unless global_rate_limiter_for(probe).allow?
+          logger.debug { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
+          return
+        end
 
         # The context creation is relatively expensive and we don't
         # want to run it if the callback won't be executed due to the
