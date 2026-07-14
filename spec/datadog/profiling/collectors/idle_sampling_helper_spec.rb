@@ -2,9 +2,14 @@ require "datadog/profiling/spec_helper"
 require "datadog/profiling/collectors/idle_sampling_helper"
 
 RSpec.describe Datadog::Profiling::Collectors::IdleSamplingHelper do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
-  subject(:idle_sampling_helper) { described_class.new }
+  let(:thread_context_collector) {
+    Datadog::Profiling::Collectors::ThreadContext.for_testing(
+      recorder: Datadog::Profiling::StackRecorder.for_testing,
+    )
+  }
+  subject(:idle_sampling_helper) { described_class.new(thread_context_collector: thread_context_collector) }
 
   describe "#start" do
     subject(:start) { idle_sampling_helper.start }

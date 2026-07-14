@@ -55,5 +55,8 @@ RSpec.shared_context 'Hanami test application' do
   after do
     # Release the assembled components, fresh start for every app boot
     ::Hanami::Components.release
+    # Reset Datadog configuration so a `service_name` override in one test
+    # does not leak into later tests that expect the default service.
+    Datadog.registry[:hanami].reset_configuration!
   end
 end

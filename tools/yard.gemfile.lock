@@ -1,0 +1,69 @@
+PATH
+  remote: ..
+  specs:
+    datadog (2.38.0.dev)
+      cgi
+      datadog-ruby_core_source (~> 3.5, >= 3.5.2)
+      libdatadog (~> 36.0.0.1.0)
+      libddwaf (~> 1.30.0.0.0)
+      logger
+      msgpack
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    cgi (0.5.1)
+    datadog-ruby_core_source (3.5.2)
+    ffi (1.17.4)
+    ffi (1.17.4-aarch64-linux-gnu)
+    ffi (1.17.4-aarch64-linux-musl)
+    ffi (1.17.4-arm-linux-gnu)
+    ffi (1.17.4-arm-linux-musl)
+    ffi (1.17.4-arm64-darwin)
+    ffi (1.17.4-x86-linux-gnu)
+    ffi (1.17.4-x86-linux-musl)
+    ffi (1.17.4-x86_64-darwin)
+    ffi (1.17.4-x86_64-linux-gnu)
+    ffi (1.17.4-x86_64-linux-musl)
+    libdatadog (36.0.0.1.0)
+    libdatadog (36.0.0.1.0-aarch64-linux)
+    libdatadog (36.0.0.1.0-arm64-darwin)
+    libdatadog (36.0.0.1.0-x86_64-linux)
+    libddwaf (1.30.0.0.2)
+      ffi (~> 1.0)
+    libddwaf (1.30.0.0.2-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.30.0.0.2-arm64-darwin)
+      ffi (~> 1.0)
+    libddwaf (1.30.0.0.2-x86_64-darwin)
+      ffi (~> 1.0)
+    libddwaf (1.30.0.0.2-x86_64-linux)
+      ffi (~> 1.0)
+    logger (1.7.0)
+    msgpack (1.8.1)
+    rake (13.4.2)
+    redcarpet (3.6.1)
+    yard (0.9.44)
+
+PLATFORMS
+  aarch64-linux-gnu
+  aarch64-linux-musl
+  arm-linux-gnu
+  arm-linux-musl
+  arm64-darwin
+  ruby
+  x86-linux-gnu
+  x86-linux-musl
+  x86_64-darwin
+  x86_64-linux
+  x86_64-linux-gnu
+  x86_64-linux-musl
+
+DEPENDENCIES
+  datadog!
+  rake
+  redcarpet
+  yard
+
+BUNDLED WITH
+   2.7.2

@@ -53,6 +53,7 @@ module Datadog
               name,
               service: Datadog.configuration.tracing[:rails][:service_name],
               tags: {
+                Tracing::Metadata::Ext::TAG_SVC_SRC => Ext::TAG_COMPONENT,
                 Tracing::Metadata::Ext::TAG_COMPONENT => Ext::TAG_COMPONENT,
                 Tracing::Metadata::Ext::TAG_OPERATION => operation,
               }
@@ -86,7 +87,7 @@ module Datadog
                 # Reads one more byte than the limit to allow us to check if the source exceeds the limit.
                 source = File.read(file, MAX_TAG_VALUE_SIZE + 1)
               rescue => e
-                Datadog.logger.debug("Failed to read file '#{file}' for Rails runner: #{e.message}")
+                Datadog.logger.debug { "Failed to read file '#{file}' for Rails runner: #{e.class}: #{e.message}" }
               end
 
               Tracing.trace(
@@ -94,6 +95,7 @@ module Datadog
                 service: Datadog.configuration.tracing[:rails][:service_name],
                 resource: resource,
                 tags: {
+                  Tracing::Metadata::Ext::TAG_SVC_SRC => Ext::TAG_COMPONENT,
                   Tracing::Metadata::Ext::TAG_COMPONENT => Ext::TAG_COMPONENT,
                   Tracing::Metadata::Ext::TAG_OPERATION => operation,
                 }

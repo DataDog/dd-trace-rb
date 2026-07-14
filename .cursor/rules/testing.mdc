@@ -13,6 +13,7 @@ alwaysApply: false
 - If new files in the repository are created, run `git add -A` before running tests (otherwise `release_gem_spec.rb` will fail)
 - Do not use `instance_variable_set` and `instance_variable_get` in tests, use mocking when needed
 - Do not make changes to `release_gem_spec.rb` if not asked
+- Prefer literals for expectation assertions on strings and well-known integers (e.g. `404`); does not apply to opaque or machine-generated values.
 
 ### RSpec Style
 - Rule of thumb is trying to have a 1:1 filename mapping between `lib/**/*.rb` and `spec/**/*_spec.rb`; sometimes this is not possible but should be justified (e.g integration tests), ask for guidance and explain rationale when deviating form the rule.
@@ -31,9 +32,29 @@ alwaysApply: false
 
 ## Running Tests
 
-- Run core library tests: `bundle exec rake test:main`
-- Run a specific test/file from core library tests: `bundle exec rspec <relative path to the file>`
-  - You can't run `shared_examples` directly, run the tests that use it instead.
+Tests MUST be run via rake tasks, not bare `bundle exec rspec`, because most test suites require specific Gemfiles (appraisals). The rake task selects the correct Gemfile automatically.
+
+```bash
+bundle exec rake test:TASK_KEY          # Correct - always use this
+bundle exec rspec spec/path/file.rb     # ONLY for specs covered by test:main
+```
+
+### Finding the right rake task
+
+1. **Identify the component**: determine which product or contrib the changed files belong to based on their path under `lib/datadog/` or `spec/datadog/` (e.g. `appsec`, `profiling`, `redis`, `sinatra`)
+2. **Search for a matching task**: `bundle exec rake -T test | grep KEYWORD` using the component name as KEYWORD
+3. **Verify the task**: check the Rakefile `spec:TASK` definition to confirm which spec files are included/excluded, and check the Matrixfile for Ruby version compatibility
+
+The `test:main` task uses the default Gemfile and its specs can also be run individually with `bundle exec rspec`.
+
+### Docker requirement
+
+- Contrib/integration tests need Docker: `docker compose run --rm tracer-3.4 /bin/bash`, then run the rake task inside
+- `test:main` can run locally on any Ruby for quick feedback
+
+### Other notes
+
+- You can't run `shared_examples` directly; run the tests that use them instead
 - Re-run impacted tests after modifying `lib/` or `ext/`
 
 ## Appraisal Groups

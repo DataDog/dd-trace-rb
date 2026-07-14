@@ -18,6 +18,7 @@ TODO
 ext/**/skipped_reason.txt
 .cursor/
 .cache/
+.claude/settings.local.json
 compile_commands.json
 
 ## Documentation cache and generated files:

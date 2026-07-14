@@ -48,7 +48,8 @@
       {
         "version": "A",
         "type": "string",
-        "default": null
+        "default": null,
+        "sensitive": true
       }
     ],
     "DD_API_SECURITY_DOWNSTREAM_BODY_ANALYSIS_SAMPLE_RATE": [
@@ -70,6 +71,13 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_API_SECURITY_MAX_DOWNSTREAM_BODY_BYTES": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "10485760"
       }
     ],
     "DD_API_SECURITY_MAX_DOWNSTREAM_REQUEST_BODY_ANALYSIS": [
@@ -104,7 +112,8 @@
       {
         "version": "A",
         "type": "string",
-        "default": null
+        "default": null,
+        "sensitive": true
       }
     ],
     "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING": [
@@ -119,6 +128,13 @@
         "version": "B",
         "type": "string",
         "default": "identification"
+      }
+    ],
+    "DD_APPSEC_BODY_PARSING_SIZE_LIMIT": [
+      {
+        "version": "B",
+        "type": "int",
+        "default": "10485760"
       }
     ],
     "DD_APPSEC_ENABLED": [
@@ -278,6 +294,13 @@
         "default": "false"
       }
     ],
+    "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "200"
+      }
+    ],
     "DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE": [
       {
         "version": "A",
@@ -320,6 +343,13 @@
         "default": null
       }
     ],
+    "DD_FLAGGING_EVALUATION_COUNTS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS": [
       {
         "version": "A",
@@ -343,9 +373,9 @@
     ],
     "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED": [
       {
-        "version": "A",
+        "version": "B",
         "type": "boolean",
-        "default": "false"
+        "default": "true"
       }
     ],
     "DD_GIT_COMMIT_SHA": [
@@ -367,6 +397,13 @@
         "version": "A",
         "type": "boolean",
         "default": "false"
+      }
+    ],
+    "DD_HOSTNAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
       }
     ],
     "DD_INJECTION_ENABLED": [
@@ -412,11 +449,25 @@
         "default": "true"
       }
     ],
+    "DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_LOGS_INJECTION": [
       {
         "version": "B",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_LOGS_OTEL_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
       }
     ],
     "DD_METRIC_AGENT_PORT": [
@@ -463,9 +514,9 @@
     ],
     "DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS": [
       {
-        "version": "A",
+        "version": "B",
         "type": "boolean",
-        "default": "false"
+        "default": "true"
       }
     ],
     "DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED": [
@@ -678,6 +729,13 @@
         "default": null
       }
     ],
+    "DD_SYMBOL_DATABASE_UPLOAD_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_TAGS": [
       {
         "version": "B",
@@ -698,6 +756,13 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_TELEMETRY_EXTENDED_HEARTBEAT_INTERVAL": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "86400"
       }
     ],
     "DD_TELEMETRY_HEARTBEAT_INTERVAL": [
@@ -1528,6 +1593,13 @@
         "default": "500-599"
       }
     ],
+    "DD_TRACE_INFERRED_PROXY_SERVICES_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_TRACE_KAFKA_ANALYTICS_ENABLED": [
       {
         "version": "A",
@@ -1799,6 +1871,13 @@
         "version": "A",
         "type": "string",
         "default": "presto"
+      }
+    ],
+    "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": "continue"
       }
     ],
     "DD_TRACE_PROPAGATION_EXTRACT_FIRST": [
@@ -2370,6 +2449,34 @@
         "default": null
       }
     ],
+    "OTEL_BLRP_EXPORT_TIMEOUT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "30000"
+      }
+    ],
+    "OTEL_BLRP_MAX_QUEUE_SIZE": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "2048"
+      }
+    ],
+    "OTEL_BLRP_MAX_EXPORT_BATCH_SIZE": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "512"
+      }
+    ],
+    "OTEL_BLRP_SCHEDULE_DELAY": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "1000"
+      }
+    ],
     "OTEL_EXPORTER_OTLP_ENDPOINT": [
       {
         "version": "A",
@@ -2381,7 +2488,8 @@
       {
         "version": "A",
         "type": "map",
-        "default": ""
+        "default": "",
+        "sensitive": true
       }
     ],
     "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT": [
@@ -2395,7 +2503,8 @@
       {
         "version": "A",
         "type": "map",
-        "default": null
+        "default": null,
+        "sensitive": true
       }
     ],
     "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL": [
@@ -2415,6 +2524,35 @@
     "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT": [
       {
         "version": "B",
+        "type": "int",
+        "default": "10000"
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_LOGS_HEADERS": [
+      {
+        "version": "B",
+        "type": "map",
+        "default": null,
+        "sensitive": true
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL": [
+      {
+        "version": "D",
+        "type": "string",
+        "default": "http/protobuf"
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_LOGS_TIMEOUT": [
+      {
+        "version": "A",
         "type": "int",
         "default": "10000"
       }
@@ -2457,6 +2595,13 @@
     "OTEL_METRICS_EXPORTER": [
       {
         "version": "A",
+        "type": "string",
+        "default": "otlp"
+      }
+    ],
+    "OTEL_LOGS_EXPORTER": [
+      {
+        "version": "B",
         "type": "string",
         "default": "otlp"
       }

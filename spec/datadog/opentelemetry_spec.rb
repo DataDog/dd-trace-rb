@@ -1,6 +1,7 @@
 require 'spec_helper'
 require 'opentelemetry/sdk'
 require 'datadog/opentelemetry'
+require 'datadog/opentelemetry/spec_helper'
 
 RSpec.describe Datadog::OpenTelemetry do
   context 'with Datadog TraceProvider' do
@@ -26,6 +27,7 @@ RSpec.describe Datadog::OpenTelemetry do
 
     after do
       ::OpenTelemetry.logger = nil
+      OpenTelemetryHelpers.shutdown_otel_providers
     end
 
     it 'returns the same tracer on successive calls' do
@@ -953,6 +955,43 @@ RSpec.describe Datadog::OpenTelemetry do
             expect(span.parent_id).to eq(0x2222222222222222)
           end
         end
+
+        context "with DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT='restart'" do
+          let(:carrier) do
+            {
+              'x-datadog-parent-id' => '123',
+              'x-datadog-sampling-priority' => '1',
+              'x-datadog-tags' => '_dd.p.dm=-0',
+              'x-datadog-trace-id' => '456',
+            }
+          end
+
+          before do
+            stub_const('Datadog::Tracing::Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL', 0)
+            Datadog.configure do |c|
+              c.tracing.propagation_behavior_extract = 'restart'
+            end
+          end
+
+          it 'does not raise a TypeError on nil trace_id' do
+            expect { extract }.not_to raise_error
+          end
+
+          it 'returns a context with no valid OTel parent span' do
+            expect(OpenTelemetry::Trace.current_span(extract).context.valid?).to be false
+          end
+
+          it 'starts a root span with a fresh trace id, not the upstream one' do
+            OpenTelemetry::Context.with_current(extract) do
+              otel_tracer.in_span('restarted') {}
+            end
+
+            try_wait_until { span }
+
+            expect(span.parent_id).to eq(0)
+            expect(span.trace_id).not_to eq(456)
+          end
+        end
       end
     end
 
@@ -967,12 +1006,18 @@ RSpec.describe Datadog::OpenTelemetry do
           c.tracing.writer = writer_
         end
 
+        # Reconfiguring without shutdown would orphan the outer 'with
+        # Datadog TraceProvider' before block's MeterProvider/LoggerProvider
+        # threads (the global provider gets replaced; old threads keep running).
+        OpenTelemetryHelpers.shutdown_otel_providers
+
         ::OpenTelemetry::SDK.configure do |c|
         end
       end
 
       after do
         ::OpenTelemetry.logger = nil
+        OpenTelemetryHelpers.shutdown_otel_providers
       end
 
       describe 'baggage operations' do

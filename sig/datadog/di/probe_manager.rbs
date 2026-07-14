@@ -1,64 +1,63 @@
 module Datadog
   module DI
     class ProbeManager
-      @settings: untyped
+      @settings: Datadog::Core::Configuration::Settings
 
-      @instrumenter: untyped
+      @instrumenter: Instrumenter
 
-      @probe_notification_builder: untyped
+      @probe_notification_builder: ProbeNotificationBuilder
 
-      @probe_notifier_worker: untyped
+      @probe_notifier_worker: ProbeNotifierWorker
 
-      @logger: untyped
+      @logger: DI::Logger
 
-      @telemetry: untyped
+      @telemetry: Core::Telemetry::Component?
 
-      @installed_probes: untyped
+      @probe_repository: ProbeRepository
 
-      @pending_probes: untyped
+      @definition_trace_point: TracePoint
 
-      @failed_probes: untyped
+      def initialize: (Datadog::Core::Configuration::Settings settings, Instrumenter instrumenter, ProbeNotificationBuilder probe_notification_builder, ProbeNotifierWorker probe_notifier_worker, DI::Logger logger, ProbeRepository probe_repository, ?telemetry: Core::Telemetry::Component?) -> void
 
-      @lock: untyped
+      attr_reader logger: DI::Logger
 
-      @definition_trace_point: untyped
+      attr_reader telemetry: Core::Telemetry::Component?
 
-      def initialize: (untyped settings, untyped instrumenter, untyped probe_notification_builder, untyped probe_notifier_worker, untyped logger, ?telemetry: untyped?) -> void
+      attr_reader probe_repository: ProbeRepository
 
-      attr_reader logger: untyped
+      def stop: () -> void
 
-      attr_reader telemetry: untyped
-      def close: () -> untyped
+      def reopen: () -> void
 
-      def clear_hooks: () -> untyped
+      def close: () -> void
 
-      attr_reader settings: untyped
+      def clear_hooks: () -> void
 
-      attr_reader instrumenter: untyped
+      attr_reader settings: Datadog::Core::Configuration::Settings
 
-      attr_reader probe_notification_builder: untyped
+      attr_reader instrumenter: Instrumenter
 
-      attr_reader probe_notifier_worker: untyped
+      attr_reader probe_notification_builder: ProbeNotificationBuilder
 
-      def installed_probes: () -> untyped
+      attr_reader probe_notifier_worker: ProbeNotifierWorker
 
-      def pending_probes: () -> untyped
-      def failed_probes: () -> untyped
-      def add_probe: (untyped probe) -> untyped
-      def remove_probe: (untyped probe_id) -> untyped
+      def add_probe: (Probe probe) -> bool
+
+      def remove_probe: (String probe_id) -> void
 
       private
-      def install_pending_method_probes: (untyped cls) -> untyped
+      def install_pending_method_probes: (Module cls) -> void
 
       public
-      def install_pending_line_probes: (untyped path) -> untyped
-      def probe_executed_callback: (untyped context) -> untyped
+      def install_pending_line_probes: (String? path) -> void
 
-      def probe_condition_evaluation_failed_callback: (untyped context, untyped expr, untyped exc) -> untyped
+      def probe_executed_callback: (Context context) -> void
+
+      def probe_condition_evaluation_failed_callback: (Context context, EL::Expression expr, Exception exc) -> void
 
       def probe_disabled_callback: (Probe probe, Float duration) -> void
 
-      attr_reader definition_trace_point: untyped
+      attr_reader definition_trace_point: TracePoint
     end
   end
 end

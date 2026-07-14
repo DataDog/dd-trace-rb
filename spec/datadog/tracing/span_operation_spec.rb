@@ -58,6 +58,12 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         callback_spy.after_stop(*args)
       end
 
+      # before_finish
+      allow(callback_spy).to receive(:before_finish)
+      events.before_finish.subscribe do |*args|
+        callback_spy.before_finish(*args)
+      end
+
       # before_start
       allow(callback_spy).to receive(:before_start)
       events.before_start.subscribe do |*args|
@@ -389,6 +395,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         it do
           expect(callback_spy).to have_received(:before_start).with(span_op).ordered
           expect(callback_spy).to have_received(:after_stop).with(span_op, nil).ordered
+          expect(callback_spy).to have_received(:before_finish).with(span_op).ordered
           expect(callback_spy).to have_received(:after_finish).with(kind_of(Datadog::Tracing::Span), span_op).ordered
           expect(callback_spy).to_not have_received(:on_error)
         end
@@ -442,6 +449,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           expect(callback_spy).to have_received(:before_start).with(span_op).ordered
           expect(callback_spy).to have_received(:after_stop).with(span_op, error).ordered
           expect(callback_spy).to have_received(:on_error).with(span_op, error).ordered
+          expect(callback_spy).to have_received(:before_finish).with(span_op).ordered
           expect(callback_spy).to have_received(:after_finish).with(kind_of(Datadog::Tracing::Span), span_op).ordered
         end
       end
@@ -474,6 +482,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           expect(callback_spy).to have_received(:before_start).with(span_op).ordered
           expect(callback_spy).to have_received(:after_stop).with(span_op, error).ordered
           expect(callback_spy).to have_received(:on_error).with(span_op, error).ordered
+          expect(callback_spy).to have_received(:before_finish).with(span_op).ordered
           expect(callback_spy).to have_received(:after_finish).with(kind_of(Datadog::Tracing::Span), span_op).ordered
         end
       end
@@ -673,7 +682,10 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       context 'when already started' do
         let!(:start_time) { span_op.start_time = Time.now }
 
-        it { expect { stop }.to_not change { span_op.start_time }.from(start_time) }
+        it 'does not change the start time' do
+          expect { stop }.to_not change { span_op.start_time }.from(start_time)
+        end
+
         it { expect { stop }.to change { span_op.end_time }.from(nil).to(end_time) }
         it { expect { stop }.to change { span_op.duration }.from(nil).to(kind_of(Float)) }
 
@@ -695,8 +707,13 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       context 'when already stopped' do
         let!(:original_end_time) { span_op.end_time = Time.now }
 
-        it { expect { stop }.to_not change { span_op.start_time }.from(original_end_time) }
-        it { expect { stop }.to_not change { span_op.end_time }.from(original_end_time) }
+        it 'does not change the start time' do
+          expect { stop }.to_not change { span_op.start_time }.from(original_end_time)
+        end
+
+        it 'does not change the end time' do
+          expect { stop }.to_not change { span_op.end_time }.from(original_end_time)
+        end
         it { expect { stop }.to_not change { span_op.duration }.from(0) }
 
         it { expect { stop }.to_not change { span_op.started? }.from(true) }

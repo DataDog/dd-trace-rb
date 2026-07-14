@@ -71,6 +71,18 @@ class DISerializerSpecFields
   end
 end
 
+class DISerializerBinaryTestClass
+  attr_reader :data
+
+  def initialize(data)
+    @data = data
+  end
+end
+
+class DISerializerStackOverflowTestClass; end
+
+class DISerializerOutOfMemoryTestClass; end
+
 RSpec.describe Datadog::DI::Serializer do
   di_test
 
@@ -204,28 +216,22 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {x: {type: "DISerializerSpecRedactedInstanceVariable", fields: {
          "@session": {type: "Integer", notCapturedReason: "redactedIdent"},
        }}}},
-      {name: "depth exceeded: array", input: {v: {a: {b: {c: []}}}},
+      {name: "depth exceeded: array", input: {v: {a: {b: []}}},
        expected: {v: {type: "Hash", entries: [
          [{type: "Symbol", value: "a"}, {type: "Hash", entries: [
-           [{type: "Symbol", value: "b"}, {type: "Hash", entries: [
-             [{type: "Symbol", value: "c"}, {type: "Array", notCapturedReason: "depth"}],
-           ]}],
+           [{type: "Symbol", value: "b"}, {type: "Array", notCapturedReason: "depth"}],
          ]}],
        ]}}},
-      {name: "depth exceeded: hash", input: {v: {a: {b: {c: {}}}}},
+      {name: "depth exceeded: hash", input: {v: {a: {b: {}}}},
        expected: {v: {type: "Hash", entries: [
          [{type: "Symbol", value: "a"}, {type: "Hash", entries: [
-           [{type: "Symbol", value: "b"}, {type: "Hash", entries: [
-             [{type: "Symbol", value: "c"}, {type: "Hash", notCapturedReason: "depth"}],
-           ]}],
+           [{type: "Symbol", value: "b"}, {type: "Hash", notCapturedReason: "depth"}],
          ]}],
        ]}}},
-      {name: "depth exceeded: object", input: {v: {a: {b: {c: Object.new}}}},
+      {name: "depth exceeded: object", input: {v: {a: {b: Object.new}}},
        expected: {v: {type: "Hash", entries: [
          [{type: "Symbol", value: "a"}, {type: "Hash", entries: [
-           [{type: "Symbol", value: "b"}, {type: "Hash", entries: [
-             [{type: "Symbol", value: "c"}, {type: "Object", notCapturedReason: "depth"}],
-           ]}],
+           [{type: "Symbol", value: "b"}, {type: "Object", notCapturedReason: "depth"}],
          ]}],
        ]}}},
       {name: "object with no attributes", input: {v: DISerializerSpecTestClass.new},
@@ -541,12 +547,7 @@ RSpec.describe Datadog::DI::Serializer do
   end
 
   describe '.register' do
-    # Save and restore the custom serializer registry to prevent test pollution
-    around do |example|
-      original_registry = described_class.class_variable_get(:@@flat_registry).dup
-      example.run
-      described_class.class_variable_set(:@@flat_registry, original_registry)
-    end
+    with_di_registry_change
 
     context 'with condition' do
       before do
@@ -622,10 +623,47 @@ RSpec.describe Datadog::DI::Serializer do
         expect(serialized[:type]).to eq('String')
         expect(serialized[:value]).to eq('second serializer')
       end
+
+      it 'skips the custom serializer when the condition raises a non-StandardError' do
+        # NotImplementedError inherits from ScriptError, not StandardError, so the
+        # previous `rescue => e` would have let it escape the whole serialization.
+        condition = lambda do |value|
+          raise NotImplementedError, 'boom' if value == 'trigger non-standard'
+          false
+        end
+        described_class.register(condition: condition) do |serializer, value, name:, depth:|
+          serializer.serialize_value('should not be called')
+        end
+
+        expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: NotImplementedError/)
+        expect(telemetry).to receive(:report).with(
+          an_instance_of(NotImplementedError),
+          description: "Custom serializer condition failed"
+        )
+
+        serialized = serializer.serialize_value('trigger non-standard')
+
+        expect(serialized[:type]).to eq('String')
+        expect(serialized[:value]).to eq('trigger non-standard')
+      end
+
+      it 'propagates a fatal exception raised by the condition' do
+        condition = lambda do |value|
+          raise SystemExit if value == 'trigger fatal'
+          false
+        end
+        described_class.register(condition: condition) do |serializer, value, name:, depth:|
+          serializer.serialize_value('should not be called')
+        end
+
+        expect { serializer.serialize_value('trigger fatal') }.to raise_error(SystemExit)
+      end
     end
   end
 
   context 'when serialization raises an exception' do
+    with_di_registry_change
+
     before do
       # Register a custom serializer that will raise an exception
       Datadog::DI::Serializer.register(condition: lambda { |value| DISerializerCustomExceptionTestClass === value }) do |*args|
@@ -647,6 +685,20 @@ RSpec.describe Datadog::DI::Serializer do
       ]
 
       define_serialize_value_cases(cases)
+    end
+  end
+
+  context 'when serialization raises a fatal exception' do
+    with_di_registry_change
+
+    before do
+      Datadog::DI::Serializer.register(condition: lambda { |value| DISerializerCustomExceptionTestClass === value }) do |*args|
+        raise SystemExit
+      end
+    end
+
+    it 'propagates the fatal exception instead of returning a safe stub' do
+      expect { serializer.serialize_value(DISerializerCustomExceptionTestClass.new) }.to raise_error(SystemExit)
     end
   end
 
@@ -1062,6 +1114,214 @@ RSpec.describe Datadog::DI::Serializer do
 
       it 'is JSON-serializable despite large size' do
         serialized = serializer.serialize_value(binary_string)
+
+        expect {
+          JSON.dump(serialized)
+        }.not_to raise_error
+      end
+    end
+  end
+
+  context 'when custom serializer raises SystemStackError' do
+    # SystemStackError typically occurs due to infinite recursion.
+    # This test emulates a custom serializer that creates deeply nested structures
+    # or has circular references, causing stack overflow during serialization.
+    #
+    # SystemStackError inherits from Exception, NOT StandardError.
+    # The serializer's rescue clause at line 316 now catches Exception to handle
+    # these cases gracefully by returning a structure with notSerializedReason.
+    #
+    # This prevents the exception from propagating to the transport layer and
+    # ensures the rest of the snapshot can still be serialized and sent.
+
+    with_di_registry_change
+
+    before do
+      # Register a custom serializer that raises SystemStackError
+      # This simulates what happens when a serializer creates infinite recursion
+      Datadog::DI::Serializer.register(
+        condition: lambda { |value| DISerializerStackOverflowTestClass === value }
+      ) do |*args|
+        raise SystemStackError, "stack level too deep (emulated infinite recursion)"
+      end
+    end
+
+    let(:telemetry) { double('telemetry') }
+    let(:serializer) do
+      described_class.new(settings, redactor, telemetry: telemetry)
+    end
+
+    describe "#serialize_value" do
+      let(:value) { DISerializerStackOverflowTestClass.new }
+
+      it 'returns safe structure with notSerializedReason when SystemStackError is raised' do
+        allow(telemetry).to receive(:report)
+
+        serialized = serializer.serialize_value(value)
+
+        expect(serialized[:type]).to eq('DISerializerStackOverflowTestClass')
+        expect(serialized[:notSerializedReason]).to match(/stack level too deep/)
+        expect(serialized).not_to have_key(:value)
+        expect(serialized).not_to have_key(:fields)
+      end
+
+      it 'returns JSON-serializable output despite SystemStackError' do
+        allow(telemetry).to receive(:report)
+
+        serialized = serializer.serialize_value(value)
+
+        # The key test: can we JSON encode the result?
+        # This should NOT raise because the serializer converts the error to a safe structure
+        expect {
+          json = JSON.dump(serialized)
+          expect(json).to be_a(String)
+          expect(json).to include('notSerializedReason')
+          expect(json).to include('stack level too deep')
+        }.not_to raise_error
+      end
+
+      it 'reports SystemStackError to telemetry' do
+        expect(telemetry).to receive(:report).with(
+          an_instance_of(SystemStackError),
+          description: "Error serializing",
+        )
+
+        serializer.serialize_value(value)
+      end
+    end
+
+    context 'in a snapshot with multiple values' do
+      it 'isolates SystemStackError to one variable while successfully serializing others' do
+        # A snapshot might contain multiple captured variables, some of which
+        # serialize successfully and one that raises SystemStackError.
+        # The exception is caught per-variable, so other values still serialize.
+        vars = {
+          normal_value: "hello",
+          problematic_value: DISerializerStackOverflowTestClass.new,
+          another_value: 42,
+        }
+
+        expect(telemetry).to receive(:report).with(
+          an_instance_of(SystemStackError),
+          description: "Error serializing",
+        )
+
+        serialized = serializer.serialize_vars(vars)
+
+        expect(serialized[:normal_value][:type]).to eq('String')
+        expect(serialized[:normal_value][:value]).to eq('hello')
+
+        expect(serialized[:problematic_value][:type]).to eq('DISerializerStackOverflowTestClass')
+        expect(serialized[:problematic_value][:notSerializedReason]).to match(/stack level too deep/)
+
+        expect(serialized[:another_value][:type]).to eq('Integer')
+        expect(serialized[:another_value][:value]).to eq('42')
+
+        expect {
+          JSON.dump(serialized)
+        }.not_to raise_error
+      end
+    end
+  end
+
+  context 'when custom serializer raises NoMemoryError' do
+    # NoMemoryError occurs when Ruby cannot allocate more memory.
+    # This test emulates a custom serializer that attempts to create very large
+    # structures (e.g., huge strings or arrays) that exceed available memory.
+    #
+    # NoMemoryError inherits from Exception, NOT StandardError.
+    # The serializer's rescue clause at line 316 now catches Exception to handle
+    # these cases gracefully by returning a structure with notSerializedReason.
+    #
+    # This prevents the exception from propagating to the transport layer and
+    # ensures the rest of the snapshot can still be serialized and sent.
+    #
+    # In reality, NoMemoryError could occur when:
+    # - A captured variable is extremely large (e.g., multi-GB string or array)
+    # - The serializer attempts to duplicate or expand large objects
+    # - String escaping operations on huge binary blobs exhaust memory
+
+    with_di_registry_change
+
+    before do
+      # Register a custom serializer that raises NoMemoryError
+      # This simulates what happens when trying to serialize extremely large objects
+      Datadog::DI::Serializer.register(
+        condition: lambda { |value| DISerializerOutOfMemoryTestClass === value }
+      ) do |*args|
+        raise NoMemoryError, "failed to allocate memory (emulated out of memory condition)"
+      end
+    end
+
+    let(:telemetry) { double('telemetry') }
+    let(:serializer) do
+      described_class.new(settings, redactor, telemetry: telemetry)
+    end
+
+    describe "#serialize_value" do
+      let(:value) { DISerializerOutOfMemoryTestClass.new }
+
+      it 'returns safe structure with notSerializedReason when NoMemoryError is raised' do
+        allow(telemetry).to receive(:report)
+
+        serialized = serializer.serialize_value(value)
+
+        expect(serialized[:type]).to eq('DISerializerOutOfMemoryTestClass')
+        expect(serialized[:notSerializedReason]).to match(/failed to allocate memory/)
+        expect(serialized).not_to have_key(:value)
+        expect(serialized).not_to have_key(:fields)
+      end
+
+      it 'returns JSON-serializable output despite NoMemoryError' do
+        allow(telemetry).to receive(:report)
+
+        serialized = serializer.serialize_value(value)
+
+        # The key test: can we JSON encode the result?
+        # This should NOT raise because the serializer converts the error to a safe structure
+        expect {
+          json = JSON.dump(serialized)
+          expect(json).to be_a(String)
+          expect(json).to include('notSerializedReason')
+          expect(json).to include('failed to allocate memory')
+        }.not_to raise_error
+      end
+
+      it 'reports NoMemoryError to telemetry' do
+        expect(telemetry).to receive(:report).with(
+          an_instance_of(NoMemoryError),
+          description: "Error serializing",
+        )
+
+        serializer.serialize_value(value)
+      end
+    end
+
+    context 'in a snapshot with multiple values' do
+      it 'isolates NoMemoryError to one variable while successfully serializing others' do
+        # Even if one value causes NoMemoryError, others should still serialize.
+        # The exception is caught per-variable, so other values still serialize.
+        vars = {
+          small_value: "tiny",
+          huge_value: DISerializerOutOfMemoryTestClass.new,
+          number: 123,
+        }
+
+        expect(telemetry).to receive(:report).with(
+          an_instance_of(NoMemoryError),
+          description: "Error serializing",
+        )
+
+        serialized = serializer.serialize_vars(vars)
+
+        expect(serialized[:small_value][:type]).to eq('String')
+        expect(serialized[:small_value][:value]).to eq('tiny')
+
+        expect(serialized[:huge_value][:type]).to eq('DISerializerOutOfMemoryTestClass')
+        expect(serialized[:huge_value][:notSerializedReason]).to match(/failed to allocate memory/)
+
+        expect(serialized[:number][:type]).to eq('Integer')
+        expect(serialized[:number][:value]).to eq('123')
 
         expect {
           JSON.dump(serialized)

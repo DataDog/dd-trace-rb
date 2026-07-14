@@ -9,6 +9,9 @@ module Datadog
         TAG_KIND: ::String
         TAG_TOP_LEVEL: ::String
         TAG_APM_ENABLED: ::String
+        TAG_BASE_SERVICE: ::String
+        TAG_SVC_SRC: ::String
+        SVC_SRC_MANUAL: ::String
 
         module Analytics
           DEFAULT_SAMPLE_RATE: ::Float
@@ -28,6 +31,7 @@ module Datadog
         module Distributed
           TAG_TRACE_SOURCE: ::String
           TAG_DECISION_MAKER: ::String
+          TAG_KNUTH_SAMPLING_RATE: ::String
           TAG_ORIGIN: ::String
           TAG_SAMPLING_PRIORITY: ::String
           TAGS_PREFIX: ::String

@@ -4,13 +4,13 @@ on: # yamllint disable-line rule:truthy
   workflow_dispatch:
     inputs:
       version:
-        description: Version to update to
+        description: Version to update to; should usually have .dev suffix e.g. 2.23.0.dev
         required: true
         type: string
   workflow_call:
     inputs:
       version:
-        description: Version to update to
+        description: Version to update to; should usually have .dev suffix e.g. 2.23.0.dev
         required: true
         type: string
 
@@ -28,37 +28,46 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      id-token: write
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       NEXT_VERSION: ${{ inputs.version }}
+      BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+      BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Get GitHub Token via dd-octo-sts
+        id: generate-token
+        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        with:
+          scope: DataDog/dd-trace-rb
+          policy: self.bump-gem-version
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.generate-token.outputs.token }}
           fetch-depth: 0
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@90be1154f987f4dc0fe0dd0feedac9e473aa4ba8 # v1.286.0
+        uses: ruby/setup-ruby@d45b1a4e94b71acab930e56e79c6aa188764e7f9 # v1.316.0
         with:
-          ruby-version: "3.3.7"
+          ruby-version: "4.0.1"
 
       - run: bundle install
 
       - name: Update version file
+        env:
+          BUNDLE_FROZEN: "false"
         run: |
           echo "Updating version to ${NEXT_VERSION}"
-          bundle exec rake version:bump["${NEXT_VERSION}]"
+          bundle exec rake "version:bump[${NEXT_VERSION}]"
 
-      - name: Generate GitHub App Token
-        id: generate-token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      # Post-release cleanup: reset the forced-tests list to its canonical empty
+      # state from the template. Idempotent - a no-op (no diff) when already reset.
+      - name: Reset forced tests list
+        run: cp .github/forced-tests-list.cfg.template .github/forced-tests-list.cfg
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           token: ${{ steps.generate-token.outputs.token }}
           branch: auto-generate/bump-datadog-gem-version
@@ -68,7 +77,7 @@ jobs:
           commit-message: "[🤖] Update datadog gem version to ${{ inputs.version }}"
           delete-branch: true
           sign-commits: true
-          add-paths: gemfiles,lib/datadog/version.rb
+          add-paths: gemfiles,tools/*.lock,lib/datadog/version.rb,.github/forced-tests-list.cfg
           body: |
             _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/bump-datadog-gem-version.yml)_
             The PR updates the version of datadog gem to ${{ inputs.version }}

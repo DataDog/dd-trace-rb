@@ -127,6 +127,10 @@ RSpec.describe Datadog::Core::Crashtracking::TagBuilder do
       end
 
       context 'when process tags propagation is not enabled' do
+        before do
+          settings.experimental_propagate_process_tags_enabled = false
+        end
+
         it 'does not include process tags in the crash tracking payload' do
           expect(call.keys).to_not include('process_tags')
         end

@@ -1,17 +1,19 @@
 # frozen_string_literal: true
 
 require_relative '../core/configuration/ext'
+require_relative 'ext'
+require_relative 'signal_configuration'
 
 module Datadog
   module OpenTelemetry
     class Metrics
-      EXPORTER_NONE = 'none'
+      include SignalConfiguration
 
       def self.initialize!(components)
         new(components).configure_metrics_sdk
         true
       rescue => exc
-        components.logger.error("Failed to initialize OpenTelemetry metrics: #{exc.class}: #{exc}: #{exc.backtrace.join("\n")}")
+        components.logger.warn("Failed to initialize OpenTelemetry metrics: #{exc.class}: #{exc.message}: #{exc.backtrace.join("\n")}")
         false
       end
 
@@ -40,34 +42,13 @@ module Datadog
 
       private
 
-      def create_resource
-        resource_attributes = {}
-        resource_attributes['host.name'] = Datadog::Core::Environment::Socket.hostname if @settings.tracing.report_hostname
-
-        @settings.tags&.each do |key, value|
-          otel_key = case key
-          when 'service' then 'service.name'
-          when 'env' then 'deployment.environment'
-          when 'version' then 'service.version'
-          else key
-          end
-          resource_attributes[otel_key] = value
-        end
-
-        resource_attributes['service.name'] = @settings.service_without_fallback || resource_attributes['service.name'] || Datadog::Core::Environment::Ext::FALLBACK_SERVICE_NAME
-        resource_attributes['deployment.environment'] = @settings.env if @settings.env
-        resource_attributes['service.version'] = @settings.version if @settings.version
-
-        ::OpenTelemetry::SDK::Resources::Resource.create(resource_attributes)
-      end
-
       def configure_metric_reader(provider)
         exporter_name = @settings.opentelemetry.metrics.exporter
-        return if exporter_name == EXPORTER_NONE
+        return if exporter_name == Ext::EXPORTER_NONE
 
         configure_otlp_exporter(provider)
       rescue => e
-        @logger.warn("Failed to configure OTLP metrics exporter:  #{e.class}: #{e}")
+        @logger.warn("Failed to configure OTLP metrics exporter:  #{e.class}: #{e.message}")
       end
 
       def default_metrics_endpoint
@@ -79,15 +60,16 @@ module Datadog
         require_relative 'sdk/metrics_exporter'
 
         metrics_config = @settings.opentelemetry.metrics
-        endpoint = get_metrics_config_with_fallback(
+        endpoint = config_or_exporter_fallback(
+          signal: :metrics,
           option_name: :endpoint,
           computed_default: default_metrics_endpoint
         )
-        timeout = get_metrics_config_with_fallback(option_name: :timeout_millis)
-        headers = get_metrics_config_with_fallback(option_name: :headers)
+        timeout = config_or_exporter_fallback(signal: :metrics, option_name: :timeout_millis)
+        headers = config_or_exporter_fallback(signal: :metrics, option_name: :headers)
         # OpenTelemetry SDK only supports http/protobuf protocol.
         # TODO: Add support for http/json and grpc.
-        # protocol = get_metrics_config_with_fallback(option_name: :protocol)
+        # protocol = config_or_exporter_fallback(signal: :metrics, option_name: :protocol)
         exporter = Datadog::OpenTelemetry::SDK::MetricsExporter.new(
           endpoint: endpoint,
           timeout: timeout / 1000.0,
@@ -101,16 +83,7 @@ module Datadog
         )
         provider.add_metric_reader(reader)
       rescue LoadError => e
-        @logger.warn("Could not load OTLP metrics exporter:  #{e.class}: #{e}")
-      end
-
-      # Returns metrics config value if explicitly set, otherwise falls back to exporter config or computed default value.
-      def get_metrics_config_with_fallback(option_name:, computed_default: nil)
-        if @settings.opentelemetry.metrics.using_default?(option_name)
-          @settings.opentelemetry.exporter.public_send(option_name) || computed_default
-        else
-          @settings.opentelemetry.metrics.public_send(option_name)
-        end
+        @logger.warn("Could not load OTLP metrics exporter:  #{e.class}: #{e.message}")
       end
     end
   end

@@ -5,6 +5,7 @@ require 'datadog/tracing/contrib/sql_comment_propagation_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 require 'datadog/tracing/contrib/propagation/sql_comment/mode'
 
@@ -49,6 +50,10 @@ RSpec.describe 'PG::Connection patcher' do
   end
 
   describe 'tracing' do
+    it_behaves_like 'tags _dd.svc_src', 'pg' do
+      before { conn.exec('SELECT 1;') }
+    end
+
     describe '#exec' do
       let(:sql_statement) { 'SELECT 1;' }
 
@@ -326,6 +331,18 @@ RSpec.describe 'PG::Connection patcher' do
     describe '#exec_params' do
       let(:sql_statement) { 'SELECT $1::int;' }
 
+      context 'when called without params' do
+        subject(:exec_params) { conn.exec_params('SELECT 1') }
+
+        it 'does not raise an ArgumentError and produces a trace' do
+          result = exec_params
+
+          expect(result.values).to eq([['1']])
+          expect(spans.count).to eq(1)
+          expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_EXEC_PARAMS)
+        end
+      end
+
       context 'when without a given block' do
         subject(:exec_params) { conn.exec_params(sql_statement, [1]) }
 
@@ -596,6 +613,20 @@ RSpec.describe 'PG::Connection patcher' do
 
     describe '#exec_prepared' do
       before { conn.prepare('prepared select 1', 'SELECT $1::int') }
+
+      context 'when called without params' do
+        before { conn.prepare('prepared select', 'SELECT 1') }
+
+        subject(:exec_prepared) { conn.exec_prepared('prepared select') }
+
+        it 'does not raise an ArgumentError and produces a trace' do
+          result = exec_prepared
+
+          expect(result.values).to eq([['1']])
+          expect(spans.count).to eq(1)
+          expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_EXEC_PREPARED)
+        end
+      end
 
       context 'when without a given block' do
         subject(:exec_prepared) { conn.exec_prepared('prepared select 1', [1]) }
@@ -1125,6 +1156,18 @@ RSpec.describe 'PG::Connection patcher' do
 
       let(:sql_statement) { 'SELECT $1::int;' }
 
+      context 'when called without params' do
+        subject(:async_exec_params) { conn.async_exec_params('SELECT 1') }
+
+        it 'does not raise an ArgumentError and produces a trace' do
+          result = async_exec_params
+
+          expect(result.values).to eq([['1']])
+          expect(spans.count).to eq(1)
+          expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_ASYNC_EXEC_PARAMS)
+        end
+      end
+
       context 'when without given a block' do
         subject(:async_exec_params) { conn.async_exec_params(sql_statement, [1]) }
 
@@ -1393,6 +1436,20 @@ RSpec.describe 'PG::Connection patcher' do
           skip('pg < 1.1.0 does not support #async_exec_prepared')
         end
         conn.prepare('prepared select 1', 'SELECT $1::int')
+      end
+
+      context 'when called without params' do
+        before { conn.prepare('prepared select', 'SELECT 1') }
+
+        subject(:async_exec_prepared) { conn.async_exec_prepared('prepared select') }
+
+        it 'does not raise an ArgumentError and produces a trace' do
+          result = async_exec_prepared
+
+          expect(result.values).to eq([['1']])
+          expect(spans.count).to eq(1)
+          expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_ASYNC_EXEC_PREPARED)
+        end
       end
 
       context 'when without given block' do
@@ -1922,6 +1979,18 @@ RSpec.describe 'PG::Connection patcher' do
 
       let(:sql_statement) { 'SELECT $1::int;' }
 
+      context 'when called without params' do
+        subject(:sync_exec_params) { conn.sync_exec_params('SELECT 1') }
+
+        it 'does not raise an ArgumentError and produces a trace' do
+          result = sync_exec_params
+
+          expect(result.values).to eq([['1']])
+          expect(spans.count).to eq(1)
+          expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYNC_EXEC_PARAMS)
+        end
+      end
+
       context 'when without given block' do
         subject(:sync_exec_params) { conn.sync_exec_params(sql_statement, [1]) }
 
@@ -2185,6 +2254,20 @@ RSpec.describe 'PG::Connection patcher' do
       before do
         skip('pg < 1.1.0 does not support #sync_exec_prepared') if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
         conn.prepare('prepared select 1', 'SELECT $1::int')
+      end
+
+      context 'when called without params' do
+        before { conn.prepare('prepared select', 'SELECT 1') }
+
+        subject(:sync_exec_prepared) { conn.sync_exec_prepared('prepared select') }
+
+        it 'does not raise an ArgumentError and produces a trace' do
+          result = sync_exec_prepared
+
+          expect(result.values).to eq([['1']])
+          expect(spans.count).to eq(1)
+          expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYNC_EXEC_PREPARED)
+        end
       end
 
       context 'when without a given block' do

@@ -8,7 +8,11 @@
 # are loaded, and also none of the rest of datadog library which also
 # has contrib code in other products.
 
+require_relative 'fatal_exceptions'
 require_relative 'code_tracker'
+
+# Needed since this file can be loaded without core
+require_relative '../ruby_version'
 
 module Datadog
   # Namespace for Datadog dynamic instrumentation.
@@ -16,6 +20,10 @@ module Datadog
   # @api private
   module DI
     LOCK = Mutex.new
+
+    # Initialized eagerly to avoid "instance variable not initialized"
+    # warning on Ruby 2.6/2.7 and to simplify the type to non-nullable.
+    @current_components = []
 
     class << self
       attr_reader :code_tracker
@@ -40,20 +48,21 @@ module Datadog
       # DI code.
       def activate_tracking
         # :script_compiled trace point was added in Ruby 2.6.
-        return unless RUBY_VERSION >= '2.6'
+        return unless RubyVersion.is?('>= 2.6')
 
         begin
           # Activate code tracking by default because line trace points will not work
           # without it.
           Datadog::DI.activate_tracking!
-        rescue => exc
+        rescue Exception => exc # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(exc)
           if defined?(Datadog.logger)
-            Datadog.logger.warn { "di: Failed to activate code tracking for DI: #{exc.class}: #{exc}" }
+            Datadog.logger.warn { "di: Failed to activate code tracking for DI: #{exc.class}: #{exc.message}" }
           else
             # We do not have Datadog logger potentially because DI code tracker is
             # being loaded early in application boot process and the rest of datadog
             # wasn't loaded yet. Output to standard error.
-            warn("datadog: di: Failed to activate code tracking for DI: #{exc.class}: #{exc}")
+            warn("datadog: di: Failed to activate code tracking for DI: #{exc.class}: #{exc.message}")
           end
         end
       end
@@ -88,7 +97,7 @@ module Datadog
       # Datadog.components from the code tracker.
       def current_component
         LOCK.synchronize do
-          @current_components&.last
+          @current_components.last
         end
       end
 
@@ -100,14 +109,13 @@ module Datadog
       # guaranteed to not end up with no component when one is running.
       def add_current_component(component)
         LOCK.synchronize do
-          @current_components ||= []
           @current_components << component
         end
       end
 
       def remove_current_component(component)
         LOCK.synchronize do
-          @current_components&.delete(component)
+          @current_components.delete(component)
         end
       end
     end

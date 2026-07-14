@@ -1,10 +1,17 @@
-require 'pathname'
 require 'rubygems'
 require 'json'
 require 'bundler'
 
-lib = File.expand_path('lib', __dir__)
-$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+LIB_PATH = File.expand_path('../../lib', __dir__).freeze
+GEMFILES_DIR = 'gemfiles/'.freeze
+CONTRIB_DIR = 'lib/datadog/tracing/contrib/'.freeze
+OUTPUT_DOC = 'docs/integration_versions.md'.freeze
+OUTPUT_DATA = 'docs/integration_versions.json'.freeze
+THIRD_PARTY_URL = {
+  'httpx' => '[3rd-party support](https://honeyryderchuck.gitlab.io/httpx/)',
+}.freeze
+
+$LOAD_PATH.unshift(LIB_PATH) unless $LOAD_PATH.include?(LIB_PATH)
 require 'datadog'
 
 class GemfileProcessor
@@ -13,19 +20,19 @@ class GemfileProcessor
   }.freeze
   EXCLUDED_INTEGRATIONS = ["configuration", "propagation", "utils"].freeze
 
-  def initialize(directory: 'gemfiles/', contrib_dir: 'lib/datadog/tracing/contrib/')
+  def initialize(directory: GEMFILES_DIR, contrib_dir: CONTRIB_DIR)
     unless Dir.exist?(directory)
       warn("Directory #{directory} does not exist")
     end
-  
+
     unless Dir.exist?(contrib_dir)
       warn("Directory #{contrib_dir} does not exist")
-    end  
+    end
     @directory = directory
-    @contrib_dir = contrib_dir
-    @min_gems = { 'ruby' => {}, 'jruby' => {} }
-    @max_gems = { 'ruby' => {}, 'jruby' => {} }
-    @integration_json_mapping = {}
+    @min_gems = { 'ruby' => {} }
+    @max_gems = { 'ruby' => {} }
+    @gem_sources = { 'ruby' => {} }
+    @supported_versions = []
   end
 
   def process
@@ -33,16 +40,16 @@ class GemfileProcessor
     process_integrations
     include_hardcoded_versions
     write_markdown_output
+    write_json
   end
 
   private
 
-
-  def parse_gemfiles(directory = 'gemfiles/')
+  def parse_gemfiles
     gemfiles = Dir.glob(File.join(@directory, '*'))
     gemfiles.each do |gemfile_name|
-      runtime = File.basename(gemfile_name).split('_').first # ruby or jruby
-      next unless %w[ruby jruby].include?(runtime)
+      runtime = File.basename(gemfile_name).split('_').first
+      next unless runtime == 'ruby'
       # parse the gemfile
       if gemfile_name.end_with?('.gemfile.lock')
         process_lockfile(gemfile_name, runtime)
@@ -57,12 +64,14 @@ class GemfileProcessor
     parser.specs.each do |spec|
       gem_name = spec.name
       version = spec.version.to_s
-      update_gem_versions(runtime, gem_name, version, false)
+      update_gem_versions(runtime, gem_name, version, false, gem_source(spec))
     end
   end
 
-  def update_gem_versions(runtime, gem_name, version, unspecified)
+  def update_gem_versions(runtime, gem_name, version, unspecified, source = nil)
     return unless version_valid?(version, unspecified)
+
+    @gem_sources[runtime][gem_name] = source
 
     gem_version = Gem::Version.new(version) unless unspecified
     # Update minimum gems
@@ -82,6 +91,13 @@ class GemfileProcessor
     end
   end
 
+  def gem_source(spec)
+    remote = spec.source.remotes.first if spec.source.respond_to?(:remotes)
+    return unless remote
+
+    remote.respond_to?(:host) ? remote.host : remote.to_s
+  end
+
   # Helper: Validate the version format
   def version_valid?(version, unspecified)
     return true if unspecified
@@ -99,33 +115,37 @@ class GemfileProcessor
     integrations.each do |integration|
       next if EXCLUDED_INTEGRATIONS.include?(integration)
 
-      integration_name = resolve_integration_name(integration)
+      package = resolve_integration_name(integration)
 
-      @integration_json_mapping[integration] = [
-        @min_gems['ruby'][integration_name],
-        @max_gems['ruby'][integration_name],
-        @min_gems['jruby'][integration_name],
-        @max_gems['jruby'][integration_name]
-      ]
+      @supported_versions << {
+        integration: integration,
+        package: package,
+        source: @gem_sources['ruby'][package],
+        min_tested: @min_gems['ruby'][package],
+        max_tested: @max_gems['ruby'][package],
+      }
     end
   end
 
   def include_hardcoded_versions
-      # `httpx` is maintained externally
-    @integration_json_mapping['httpx'] = [
-      '[3rd-party support](https://honeyryderchuck.gitlab.io/httpx/)',         # Min version Ruby
-      '[3rd-party support](https://honeyryderchuck.gitlab.io/httpx/)',     # Max version Ruby
-      '[3rd-party support](https://honeyryderchuck.gitlab.io/httpx/)',         # Min version JRuby
-      '[3rd-party support](https://honeyryderchuck.gitlab.io/httpx/)',      # Max version JRuby
-    ]
+    # `httpx` is maintained externally
+    @supported_versions << {
+      integration: 'httpx',
+      package: nil,
+      source: nil,
+      min_tested: nil,
+      max_tested: nil,
+      support_kind: 'third_party',
+    }
 
     # `makara` is part of `activerecord`
-    @integration_json_mapping['makara'] = [
-      '0.5.1',        # Min version Ruby
-      '0.5.1',     # Max version Ruby
-      '0.5.1',        # Min version JRuby
-      '0.5.1'      # Max version JRuby
-    ]
+    @supported_versions << {
+      integration: 'makara',
+      package: 'makara',
+      source: 'rubygems.org',
+      min_tested: '0.5.1',
+      max_tested: '0.5.1',
+    }
   end
 
   def resolve_integration_name(integration)
@@ -139,14 +159,13 @@ class GemfileProcessor
   end
 
   def write_markdown_output
-    output_file = 'docs/integration_versions.md'
     comment = <<~COMMENT
       <!--
       # Please do NOT manually edit this file.
       # This file is generated by `bundle exec ruby .github/scripts/update_supported_versions.rb`
 
       ### Supported Versions Table ###
-  
+
       This markdown file is generated from the minimum and maximum versions of the integrations we support, as tested in our `gemfile.lock` lockfiles.
       For a list of available integrations, and their supported version ranges, refer to the following:
       -->
@@ -155,15 +174,11 @@ class GemfileProcessor
       integration: 24,
       ruby_min: 19,
       ruby_max: 19,
-      jruby_min: 19,
-      jruby_max: 19
     }
     columns = {
       integration: "Integration",
       ruby_min: "Ruby Min",
       ruby_max: "Ruby Max",
-      jruby_min: "JRuby Min",
-      jruby_max: "JRuby Max"
     }
 
     adjusted_widths = columns.transform_values.with_index do |title, index|
@@ -172,24 +187,29 @@ class GemfileProcessor
 
     header = "| " + columns.map { |key, title| title.ljust(adjusted_widths[key]) }.join(" | ") + " |"
     separator = "|-" + adjusted_widths.map { |_, width| "-" * width }.join("-|-") + "-|"
-    rows = @integration_json_mapping
-          .sort_by { |name, _versions| name.downcase }
-          .map do |name, versions|
-      integration_name = name.ljust(column_widths[:integration])
-      ruby_min = (versions[0] || "None").ljust(column_widths[:ruby_min])
-      ruby_max = (versions[1] == 'infinity' ? 'latest' : versions[1] || 'None').ljust(column_widths[:ruby_max])
-      jruby_min = (versions[2] || "None").ljust(column_widths[:jruby_min])
-      jruby_max = (versions[3] == 'infinity' ? 'latest' : versions[3] || 'None').ljust(column_widths[:jruby_max])
-  
-      "| #{integration_name} | #{ruby_min} | #{ruby_max} | #{jruby_min} | #{jruby_max} |"
+    rows = @supported_versions.sort_by { |support| support[:integration].downcase }.map do |support|
+      integration_name = support[:integration].ljust(column_widths[:integration])
+      ruby_min = doc_version(support, :min_tested).ljust(column_widths[:ruby_min])
+      ruby_max = doc_version(support, :max_tested).ljust(column_widths[:ruby_max])
+
+      "| #{integration_name} | #{ruby_min} | #{ruby_max} |"
     end
-  
-    File.open(output_file, 'w') do |file|
+
+    File.open(OUTPUT_DOC, 'w') do |file|
       file.puts comment
       file.puts header
       file.puts separator
       rows.each { |row| file.puts row }
     end
+  end
+
+  def write_json
+    supported_versions = @supported_versions.sort_by { |support| support[:integration].downcase }
+    File.write(OUTPUT_DATA, "#{JSON.pretty_generate(supported_versions)}\n")
+  end
+
+  def doc_version(support, key)
+    THIRD_PARTY_URL[support[:integration]] || support[key] || 'None'
   end
 end
 

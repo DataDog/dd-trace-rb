@@ -4,7 +4,7 @@ require 'json'
 require 'zlib'
 require 'stringio'
 
-require_relative '../core/utils/base64'
+require_relative '../core/utils/base64_codec'
 
 module Datadog
   module AppSec
@@ -27,7 +27,7 @@ module Datadog
       end
 
       private_class_method def self.compress_and_encode(payload)
-        Core::Utils::Base64.strict_encode64(
+        Core::Utils::Base64Codec.strict_encode64(
           Zlib.gzip(payload, level: Zlib::BEST_SPEED, strategy: Zlib::DEFAULT_STRATEGY)
         )
       rescue Zlib::Error, TypeError => e

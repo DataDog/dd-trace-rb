@@ -22,6 +22,9 @@ module Datadog
       # @!attribute [r] span_type
       #   The type of the currently active span.
       #   @return [String]
+      # @!attribute [r] span_links
+      #   Span links associated with this trace context.
+      #   @return [Array<Datadog::Tracing::SpanLink>, nil]
       # @!attribute [r] trace_distributed_tags
       #   Datadog-specific tags that support richer distributed tracing association.
       #   @return [Hash<String,String>]
@@ -91,6 +94,7 @@ module Datadog
         :span_resource,
         :span_service,
         :span_type,
+        :span_links,
         :trace_distributed_tags,
         :trace_hostname,
         :trace_id,
@@ -114,6 +118,7 @@ module Datadog
         span_resource: nil,
         span_service: nil,
         span_type: nil,
+        span_links: nil,
         trace_distributed_tags: nil,
         trace_hostname: nil,
         trace_id: nil,
@@ -136,6 +141,7 @@ module Datadog
         @span_resource = span_resource && span_resource.dup.freeze
         @span_service = span_service && span_service.dup.freeze
         @span_type = span_type && span_type.dup.freeze
+        @span_links = span_links && span_links.dup.freeze
         @trace_distributed_tags = trace_distributed_tags && trace_distributed_tags.dup.freeze
         @trace_hostname = trace_hostname && trace_hostname.dup.freeze
         @trace_id = trace_id
@@ -167,6 +173,7 @@ module Datadog
           span_resource: span_resource,
           span_service: span_service,
           span_type: span_type,
+          span_links: span_links,
           trace_distributed_tags: trace_distributed_tags,
           trace_hostname: trace_hostname,
           trace_id: trace_id,

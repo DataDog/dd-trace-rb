@@ -2,8 +2,6 @@ module Datadog
   module Tracing
     module Distributed
       module DatadogTagsCodec
-        module RefineRegexp
-        end
         VALID_KEY_CHARS: ::Regexp
         VALID_VALUE_CHARS: ::Regexp
         def self.encode: (untyped tags) -> untyped

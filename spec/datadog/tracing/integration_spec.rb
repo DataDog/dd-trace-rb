@@ -144,12 +144,9 @@ RSpec.describe 'Tracer integration tests' do
         skip('datadog only supports unix socket connectivity on Linux') unless PlatformHelpers.linux?
 
         # DEV: To connect to a unix socket in another docker container (the agent container in our case)
-        # we need to share a volume with that container. Our current CircleCI setup uses `docker` executors
-        # which don't support sharing volumes. We'd have to migrate to using `machine` executors
-        # and manage the docker lifecycle ourselves if we want to share unix sockets for testing.
+        # we need to share a volume with that container, which our CI setup doesn't support.
         # In the mean time, this test is being skipped in CI.
-        # @see https://support.circleci.com/hc/en-us/articles/360007324514-How-can-I-use-Docker-volume-mounting-on-CircleCI-
-        skip("Can't share docker volume to access unix socket in CircleCI currently") if PlatformHelpers.ci?
+        skip("Can't share docker volume to access unix socket in CI currently") if PlatformHelpers.ci?
 
         Datadog.configure do |c|
           c.agent.uds_path = ENV['TEST_DDAGENT_UNIX_SOCKET']
@@ -457,7 +454,7 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
-  describe 'single span sampling' do
+  describe 'single span sampling', webmock: true do
     subject(:trace) do
       tracer.trace('unrelated.top_level', service: 'other-service') do
         tracer.trace('single.sampled_span', service: 'my-service') do
@@ -476,8 +473,6 @@ RSpec.describe 'Tracer integration tests' do
         # Test setup
         c.tracing.sampler = custom_sampler if custom_sampler
       end
-
-      WebMock.enable!
 
       trace # Run test subject
       wait_for_flush
@@ -509,7 +504,6 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     after do
-      WebMock.disable!
       Datadog.configuration.tracing.sampling.reset!
     end
 
@@ -600,6 +594,11 @@ RSpec.describe 'Tracer integration tests' do
         end
 
         threads.each(&:join)
+
+        # The worker thread may still be completing an HTTP call after
+        # shutdown!'s join(DEFAULT_SHUTDOWN_TIMEOUT) timed out. Wait for
+        # the flush to finish so the assertion sees the final stats.
+        try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
       end
 
       let(:stats) { tracer.writer.stats }
@@ -717,13 +716,10 @@ RSpec.describe 'Tracer integration tests' do
       end
     end
 
-    context 'with agent rates' do
+    context 'with agent rates', webmock: true do
       before do
-        WebMock.enable!
         stub_request(:post, %r{/v0.4/traces}).to_return(status: 200, body: service_rates.to_json)
       end
-
-      after { WebMock.disable! }
 
       let(:service_rates) { {rate_by_service: {'service:kept,env:' => 1.0, 'service:dropped,env:' => Float::MIN}} }
 

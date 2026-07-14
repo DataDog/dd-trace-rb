@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 # OpenTelemetry metrics SDK requires Ruby >= 3.1
-if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.1')
+if RubyVersion.is?('>= 3.1')
   require 'opentelemetry/sdk'
   require 'opentelemetry-metrics-sdk'
   require 'opentelemetry/exporter/otlp_metrics'
@@ -13,6 +13,7 @@ require 'datadog/opentelemetry'
 require 'datadog/core/configuration/settings'
 require 'net/http'
 require 'json'
+require 'datadog/opentelemetry/spec_helper'
 
 RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
   let(:default_otlp_http_port) { 4318 }
@@ -28,8 +29,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
   end
 
   after do
-    # Ensures background threads collecting metrics are shutdown.
-    provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
+    OpenTelemetryHelpers.shutdown_otel_providers
   end
 
   def agent_host
@@ -166,6 +166,30 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       expect(attributes['service.version']).to eq('2.0.0')
       expect(attributes['deployment.environment']).to eq('production')
       expect(attributes['host.name']).to eq(Datadog::Core::Environment::Socket.hostname)
+    end
+
+    it 'uses DD_HOSTNAME as host.name when report_hostname is true' do
+      setup_metrics('DD_TRACE_REPORT_HOSTNAME' => 'true', 'DD_HOSTNAME' => 'custom-host')
+      expect(attributes['host.name']).to eq('custom-host')
+    end
+
+    it 'falls back to Socket.hostname when DD_HOSTNAME is not set and report_hostname is true' do
+      setup_metrics('DD_TRACE_REPORT_HOSTNAME' => 'true')
+      expect(attributes['host.name']).to eq(Datadog::Core::Environment::Socket.hostname)
+    end
+
+    it 'DD_HOSTNAME takes precedence over host.name set via tags when report_hostname is true' do
+      setup_metrics('DD_TRACE_REPORT_HOSTNAME' => 'true', 'DD_HOSTNAME' => 'explicit-host') do |c|
+        c.tags = {'host.name' => 'tag-host'}
+      end
+      expect(attributes['host.name']).to eq('explicit-host')
+    end
+
+    it 'preserves host.name from tags when DD_HOSTNAME is not set and report_hostname is true' do
+      setup_metrics('DD_TRACE_REPORT_HOSTNAME' => 'true') do |c|
+        c.tags = {'host.name' => 'tag-host'}
+      end
+      expect(attributes['host.name']).to eq('tag-host')
     end
 
     it 'includes custom tags as resource attributes' do

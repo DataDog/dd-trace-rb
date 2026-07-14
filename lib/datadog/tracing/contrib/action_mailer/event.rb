@@ -31,7 +31,10 @@ module Datadog
               super
 
               span.type = span_type
-              span.service = configuration[:service_name] if configuration[:service_name]
+              if configuration[:service_name]
+                span.service = configuration[:service_name]
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
+              end
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
 
               # Set analytics sample rate

@@ -7,7 +7,17 @@ module Datadog
       ACTION_TAG: ::String
       REASON_TAG: ::String
       BLOCKED_TAG: ::String
+      EVENT_TAG: ::String
+
       METASTRUCT_TAG: ::String
+
+      TRACE_EXECUTED_TAG: ::String
+
+      TRACE_HTTP_USERAGENT_TAG: ::String
+      TRACE_HTTP_CLIENT_IP_TAG: ::String
+      TRACE_NETWORK_CLIENT_IP_TAG: ::String
+
+      TRACE_ANOMALY_DETECTION_TAGS: ::Array[::String]
     end
   end
 end

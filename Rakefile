@@ -1,6 +1,5 @@
 require 'bundler/gem_tasks'
 require 'datadog/version'
-require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
 require 'standard/rake' if Gem.loaded_specs.key? 'standard'
 require 'rspec/core/rake_task'
 require 'rake/extensiontask'
@@ -30,6 +29,13 @@ CORE_WITH_LIBDATADOG_API = [
   'spec/datadog/core/ddsketch_spec.rb',
   'spec/datadog/data_streams/**/*_spec.rb',
   'spec/datadog/open_feature_spec.rb',
+  'spec/datadog/core/libdatadog_extconf_helpers_spec.rb',
+  'spec/datadog/core/datadog_ruby_common_spec.rb',
+].freeze
+
+DI_WITH_EXT = %w[
+  spec/datadog/di/*_spec.rb
+  spec/datadog/di/**/*_spec.rb
 ].freeze
 
 # Data Streams Monitoring (DSM) requires libdatadog_api for DDSketch
@@ -65,16 +71,7 @@ namespace :test do
         command = "bundle check || bundle install && bundle exec rake #{spec_task}"
         command += "'[#{spec_arguments}]'" if spec_arguments
 
-        total_executors = ENV.key?('CIRCLE_NODE_TOTAL') ? ENV['CIRCLE_NODE_TOTAL'].to_i : nil
-        current_executor = ENV.key?('CIRCLE_NODE_INDEX') ? ENV['CIRCLE_NODE_INDEX'].to_i : nil
-
-        if total_executors && current_executor && total_executors > 1
-          @execution_count ||= 0
-          @execution_count += 1
-          Bundler.with_unbundled_env { sh(env, command) } if @execution_count % total_executors == current_executor
-        else
-          Bundler.with_unbundled_env { sh(env, command) }
-        end
+        Bundler.with_unbundled_env { sh(env, command) }
       end
     end
   end
@@ -87,15 +84,19 @@ namespace :spec do
     :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
     :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
     :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
-    :profiling, :core_with_libdatadog_api, :error_tracking, :open_feature, :core_with_rails, :environment, :ai_guard]
+    :profiling, :core_with_libdatadog_api, :"di:di_with_ext", :"di:ractors", :error_tracking, :open_feature, :core_with_rails, :environment, :ai_guard]
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,crashtracking,error_tracking,rubocop,data_streams,ai_guard}/**/*_spec.rb,' \
-                        ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config,ddsketch,open_feature,feature_flags,process,ai_guard}_spec.rb,' \
+    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,error_tracking,rubocop,ai_guard}/**/*_spec.rb,' \
+                        ' spec/**/{auto_instrument,opentelemetry,process,ai_guard}_spec.rb,' \
+                        ' spec/**/*_rails_spec.rb,' \
                         ' spec/datadog/core/environment/execution_spec.rb,' \
-                        ' spec/datadog/gem_packaging_spec.rb'
+                        ' spec/datadog/di/*_spec.rb,' \
+                        ' spec/datadog/di/**/*_spec.rb,' \
+                        ' spec/datadog/gem_packaging_spec.rb,' \
+                        + CORE_WITH_LIBDATADOG_API.join(', ')
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -233,9 +234,21 @@ namespace :spec do
 
   desc 'Run spec:core_with_libdatadog_api tests with memory leak checking'
   if Gem.loaded_specs.key?('ruby_memcheck')
-    RubyMemcheck::RSpec::RakeTask.new(:core_with_libdatadog_api_memcheck) do |t, args|
-      t.pattern = CORE_WITH_LIBDATADOG_API.join(', ')
-      t.rspec_opts = [*args.to_a, '-t ~memcheck_valgrind_skip'].join(' ')
+    require 'libdatadog'
+
+    # Temporary workaround to unblock moving to libdatadog v30. If you see this code here and we've moved past v30 already,
+    # we forgot to clean it up -- please do!
+    if Libdatadog::VERSION.start_with?('30.')
+      task :core_with_libdatadog_api_memcheck do
+        warn "Skipping memcheck for libdatadog v30 because of https://github.com/bytecodealliance/rustix/issues/1559" \
+          " (libdatadog v30 causes a crash when running inside valgrind)." \
+          " Libdatadog 31? 32? should include https://github.com/DataDog/libdatadog/pull/1859 and fix this issue."
+      end
+    else
+      RubyMemcheck::RSpec::RakeTask.new(:core_with_libdatadog_api_memcheck) do |t, args|
+        t.pattern = CORE_WITH_LIBDATADOG_API.join(', ')
+        t.rspec_opts = [*args.to_a, '-t ~memcheck_valgrind_skip'].join(' ')
+      end
     end
   else
     task :core_with_libdatadog_api_memcheck do
@@ -251,7 +264,8 @@ namespace :spec do
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:core_with_rails) do |t, args|
-    t.pattern = 'spec/datadog/core/environment/process_spec.rb'
+    t.pattern = 'spec/datadog/core/environment/process_spec.rb,' \
+                'spec/**/*_rails_spec.rb,'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -409,12 +423,18 @@ namespace :spec do
   task appsec: [:"appsec:all"]
 
   namespace :ai_guard do
-    task all: [:main, :ruby_llm]
+    task all: [:main, :rack, :ruby_llm]
 
     desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(:main) do |t, args|
       t.pattern = 'spec/datadog/ai_guard/**/*_spec.rb,spec/datadog/ai_guard_spec.rb'
       t.exclude_pattern = 'spec/datadog/ai_guard/contrib/**/*_spec.rb'
+      t.rspec_opts = args.to_a.join(' ')
+    end
+
+    desc '' # "Explicitly hiding from `rake -T`"
+    RSpec::Core::RakeTask.new(:rack) do |t, args|
+      t.pattern = "spec/datadog/ai_guard/contrib/rack/**/*_spec.rb"
       t.rspec_opts = args.to_a.join(' ')
     end
 
@@ -431,6 +451,7 @@ namespace :spec do
     # Datadog DI integrations
     [
       :active_record,
+      :bootsnap,
       :rails,
     ].each do |contrib|
       desc '' # "Explicitly hiding from `rake -T`"
@@ -439,6 +460,30 @@ namespace :spec do
         t.rspec_opts = args.to_a.join(' ')
       end
     end
+    # bootsnap tests require the DI C extension (DI::Component.build checks for it).
+    Rake::Task['di:bootsnap'].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
+
+    # rubocop:disable Style/MultilineBlockChain
+    RSpec::Core::RakeTask.new(:di_with_ext) do |t, args|
+      t.pattern = DI_WITH_EXT.join(', ')
+      t.exclude_pattern = 'spec/datadog/di/contrib/**/*_spec.rb'
+      t.rspec_opts = [*args.to_a, '-t ~ractors'].join(' ')
+    end.tap do |t|
+      Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
+    end
+
+    # Ractor creation transitions the entire Ruby VM into multi-ractor mode permanently
+    # and can introduce order-dependent side effects on later examples. Splitting these
+    # examples into a dedicated task mirrors spec:profiling:ractors (see Rakefile around
+    # spec:profiling:main / :ractors) and keeps the regular DI job from mutating VM mode.
+    RSpec::Core::RakeTask.new(:ractors) do |t, args|
+      t.pattern = DI_WITH_EXT.join(', ')
+      t.exclude_pattern = 'spec/datadog/di/contrib/**/*_spec.rb'
+      t.rspec_opts = [*args.to_a, '-t ractors'].join(' ')
+    end.tap do |t|
+      Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
+    end
+    # rubocop:enable Style/MultilineBlockChain
   end
 
   namespace :profiling do
@@ -471,16 +516,28 @@ namespace :spec do
 
     desc 'Run spec:profiling:main tests with memory leak checking'
     if Gem.loaded_specs.key?('ruby_memcheck')
-      RubyMemcheck::RSpec::RakeTask.new(:memcheck) do |t, args|
-        t.pattern = 'spec/datadog/profiling/**/*_spec.rb,spec/datadog/profiling_spec.rb'
-        # Some of our specs use multi-threading + busy looping, or multiple processes, or are just really really slow.
-        # We skip running these when running under valgrind.
-        # (As a reminder, by default valgrind simulates a sequential/single-threaded execution).
-        #
-        # @ivoanjo: I previously tried https://github.com/Shopify/ruby_memcheck/issues/51 but in some cases valgrind
-        # would give incomplete output, causing a "FATAL: Premature end of data in tag valgrindoutput line 3" error in
-        # ruby_memcheck. I did not figure out why exactly.
-        t.rspec_opts = [*args.to_a, '-t ~ractors -t ~memcheck_valgrind_skip'].join(' ')
+      require 'libdatadog'
+
+      # Temporary workaround to unblock moving to libdatadog v30. If you see this code here and we've moved past v30 already,
+      # we forgot to clean it up -- please do!
+      if Libdatadog::VERSION.start_with?('30.')
+        task :memcheck do
+          warn "Skipping memcheck for libdatadog v30 because of https://github.com/bytecodealliance/rustix/issues/1559" \
+            " (libdatadog v30 causes a crash when running inside valgrind)." \
+            " Libdatadog 31? 32? should include https://github.com/DataDog/libdatadog/pull/1859 and fix this issue."
+        end
+      else
+        RubyMemcheck::RSpec::RakeTask.new(:memcheck) do |t, args|
+          t.pattern = 'spec/datadog/profiling/**/*_spec.rb,spec/datadog/profiling_spec.rb'
+          # Some of our specs use multi-threading + busy looping, or multiple processes, or are just really really slow.
+          # We skip running these when running under valgrind.
+          # (As a reminder, by default valgrind simulates a sequential/single-threaded execution).
+          #
+          # @ivoanjo: I previously tried https://github.com/Shopify/ruby_memcheck/issues/51 but in some cases valgrind
+          # would give incomplete output, causing a "FATAL: Premature end of data in tag valgrindoutput line 3" error in
+          # ruby_memcheck. I did not figure out why exactly.
+          t.rspec_opts = [*args.to_a, '-t ~ractors -t ~memcheck_valgrind_skip'].join(' ')
+        end
       end
     else
       task :memcheck do
@@ -493,11 +550,6 @@ namespace :spec do
   end
 
   task profiling: [:"profiling:all"]
-end
-
-if defined?(RuboCop::RakeTask)
-  RuboCop::RakeTask.new(:rubocop) do |_t|
-  end
 end
 
 # Jobs are parallelized if running in CI.
@@ -531,14 +583,6 @@ namespace :coverage do
         formatter SimpleCov::Formatter::HTMLFormatter
       end
     end
-  end
-end
-
-namespace :changelog do
-  task :format do
-    require 'pimpmychangelog'
-
-    PimpMyChangelog::CLI.run!
   end
 end
 
@@ -583,8 +627,8 @@ namespace :native_dev do
   CLEAN.concat(NATIVE_CLEAN)
 end
 
-desc 'Runs rubocop + main test suite'
-task default: ['lint:all', 'rubocop', 'standard', 'typecheck', 'spec:main']
+desc 'Runs lint + main test suite'
+task default: ['rubocop', 'standard', 'typecheck', 'spec:main']
 
 desc 'Runs the default task in parallel'
-multitask fastdefault: ['lint:all', 'rubocop', 'standard', 'typecheck', 'spec:main']
+multitask fastdefault: ['rubocop', 'standard', 'typecheck', 'spec:main']
