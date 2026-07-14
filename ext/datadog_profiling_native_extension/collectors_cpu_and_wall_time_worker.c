@@ -644,10 +644,39 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception, const char *opt
   return Qtrue;
 }
 
+// Our SIGPROF handler is not installed with SA_ONSTACK (see `install_sigprof_signal_handler`).
+// If we detect our signal handler is running on the alt stack, it means we interrupted another signal handler
+// that IS running on the alt stack -- in practice, Ruby's GC compaction read-barrier handler.
+//
+// NOTE: We use the alt-stack bounds from the `ucontext` rather than `sigaltstack()`, because the latter is not
+//   documented as async-signal-safe (and we'd need to handle errno, etc).
+static bool is_running_on_alternate_signal_stack(void *ucontext) {
+  if (ucontext == NULL) return false;
+
+  stack_t alt_stack = ((ucontext_t *) ucontext)->uc_stack;
+  if (alt_stack.ss_size == 0) return false; // No alternate signal stack registered on this thread
+
+  char stack_local;
+  uintptr_t current_sp = (uintptr_t) &stack_local;
+  uintptr_t alt_stack_start = (uintptr_t) alt_stack.ss_sp;
+
+  return current_sp >= alt_stack_start && current_sp < alt_stack_start + alt_stack.ss_size;
+}
+
 // NOTE: Remember that this will run in the thread and within the scope of user code, including user C code.
 // We need to be careful not to change any state that may be observed OR to restore it if we do. For instance, if anything
 // we do here can set `errno`, then we must be careful to restore the old `errno` after the fact.
-static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
+static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, void *ucontext) {
+  // If we're running on the alternate signal stack, we've interrupted another signal handler that's running
+  // there -- in practice, Ruby's GC compaction read-barrier handler.
+  // During GC compaction, Ruby protects pages containing Ruby objects, so many of the checks we do below are unsafe
+  // since they can touch those pages, and thus we just bail out here in this situation to avoid crashes.
+  if (is_running_on_alternate_signal_stack(ucontext)) {
+    cpu_and_wall_time_worker_state *state = active_sampler_instance_state;
+    if (state != NULL) state->stats.signal_handler_skipped_sample_on_altstack++;
+    return;
+  }
+
   // We must first check that we landed on the correct thread and can proceed.
   // We must never touch the state before we confirm that we have landed on the thread that is holding the GVL on the main
   // ractor as otherwise we may be concurrent with the profiler shutting down and removing its state.
