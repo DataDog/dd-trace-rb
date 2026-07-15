@@ -29,6 +29,12 @@ module Datadog
             @serial_ids.add(serial_id)
           end
 
+          # Subject serial ids are NOT required to be a subset of the flag set:
+          # the frozen cross-SDK wire contract does not mandate `subjects ⊆ flags`,
+          # so a subject may reference a serial id that the independent 200-flag cap
+          # dropped from `ffe_flags_enc`. This mirrors the reference implementation
+          # and every other SDK; the caps (200 flags, 10 subjects, 20 experiments)
+          # are applied independently on purpose.
           def add_subject(targeting_key, serial_id)
             hashed = Codec.hash_targeting_key(targeting_key)
             existing = @subjects[hashed]
