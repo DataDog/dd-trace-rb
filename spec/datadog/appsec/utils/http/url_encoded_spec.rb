@@ -77,7 +77,13 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::URLEncoded do
       end
 
       it { expect(described_class.parse('a=1&b=2', limit: 0)).to eq({}) }
-      it { expect(described_class.parse('a=1&b=2', limit: -1)).to eq({}) }
+
+      it 'raises an error when the limit is negative' do
+        expect { described_class.parse('a=1&b=2', limit: -1) }
+          .to raise_error(ArgumentError, 'limit must not be negative')
+      end
+
+      it { expect(described_class.parse('a=1&b=23', limit: 7)).to eq({'a' => '1'}) }
 
       it 'returns the fully-read pairs and omits the one crossing the limit' do
         expect(described_class.parse('a=1&b=2&c=3', limit: 9)).to eq({'a' => '1', 'b' => '2'})

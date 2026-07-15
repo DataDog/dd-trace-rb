@@ -28,7 +28,9 @@ module Datadog
           # read at that point is discarded. This returns the pairs decoded so
           # far rather than raising or discarding the whole payload.
           def parse(payload, limit: DEFAULT_BYTESIZE_LIMIT)
-            return {} if payload.nil? || payload.empty? || limit <= 0
+            raise ArgumentError, 'limit must not be negative' if limit < 0
+
+            return {} if payload.nil? || payload.empty? || limit.zero?
 
             # @type var result: URLEncoded::params
             result = {}
