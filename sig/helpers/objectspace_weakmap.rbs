@@ -1,5 +1,5 @@
 # The rbs core bundled with our Steep does not declare `ObjectSpace::WeakMap`,
-# which `Datadog::OpenFeature::Hooks::SpanEnrichmentHook::AccumulatorStore` uses
+# which `Datadog::OpenFeature::Hooks::SpanEnrichmentHook::SpanEnrichmentStateStore` uses
 # as its weak, per-trace state store. This minimal shim lets `WeakMap.new`
 # resolve; the store itself types the map as `untyped`, so only the constant
 # needs to exist.

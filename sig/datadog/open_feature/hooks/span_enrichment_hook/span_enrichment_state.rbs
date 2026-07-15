@@ -2,7 +2,7 @@ module Datadog
   module OpenFeature
     module Hooks
       class SpanEnrichmentHook
-        class Accumulator
+        class SpanEnrichmentState
           @serial_ids: Set[::Integer]
 
           @subjects: ::Hash[::String, Set[::Integer]]

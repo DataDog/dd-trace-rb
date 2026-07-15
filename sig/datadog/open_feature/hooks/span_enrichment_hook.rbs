@@ -18,7 +18,7 @@ module Datadog
 
         TAG_RUNTIME_DEFAULTS: ::String
 
-        @store: AccumulatorStore
+        @store: SpanEnrichmentStateStore
 
         @mutex: Thread::Mutex
 
@@ -26,7 +26,7 @@ module Datadog
 
         @logger: Core::Logger
 
-        def initialize: (AccumulatorStore accumulator_store, logger: Core::Logger) -> void
+        def initialize: (SpanEnrichmentStateStore span_enrichment_state_store, logger: Core::Logger) -> void
 
         def capture: (
           flag_key: ::String,
@@ -41,11 +41,11 @@ module Datadog
 
         private
 
-        def state_for: (untyped trace_op) -> Accumulator
+        def state_for: (untyped trace_op) -> SpanEnrichmentState
 
-        def subscribe_root_finish: (untyped trace_op, Accumulator accumulator) -> void
+        def subscribe_root_finish: (untyped trace_op, SpanEnrichmentState span_enrichment_state) -> void
 
-        def write_tags_on_root: (untyped span_op, untyped trace_op, Accumulator accumulator) -> void
+        def write_tags_on_root: (untyped span_op, untyped trace_op, SpanEnrichmentState span_enrichment_state) -> void
       end
     end
   end

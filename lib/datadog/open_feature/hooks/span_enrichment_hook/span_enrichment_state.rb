@@ -9,14 +9,14 @@ module Datadog
   module OpenFeature
     module Hooks
       class SpanEnrichmentHook
-        # Per-root-span accumulator. Enforces the frozen limits, dedupes serial
+        # Per-root-span state. Enforces the frozen limits, dedupes serial
         # ids structurally via a Set, and renders the three `ffe_*` tag shapes.
         #
         # Not internally synchronized: every method is only ever called while the
         # owning `SpanEnrichmentHook`'s mutex is held (capture, encode, cleanup),
-        # so the accumulator stays a plain object and the lock provides the
+        # so the state stays a plain object and the lock provides the
         # consistent snapshot at encode time.
-        class Accumulator
+        class SpanEnrichmentState
           def initialize
             @serial_ids = Set.new
             @subjects = {} # sha256hex => Set<int>

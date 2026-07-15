@@ -106,7 +106,7 @@ module Datadog
       def create_span_enrichment_hook
         return unless @settings.open_feature.span_enrichment_enabled
 
-        store = Hooks::SpanEnrichmentHook::AccumulatorStore.new
+        store = Hooks::SpanEnrichmentHook::SpanEnrichmentStateStore.new
         Hooks::SpanEnrichmentHook.new(store, logger: @logger)
       end
     end

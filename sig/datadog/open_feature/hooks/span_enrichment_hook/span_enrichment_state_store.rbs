@@ -6,16 +6,16 @@ module Datadog
         # `untyped` because `Datadog::Tracing.active_trace` is declared to return
         # a `TraceSegment` while at runtime the open trace is a `TraceOperation`;
         # the store only uses the value as an identity key.
-        class AccumulatorStore
+        class SpanEnrichmentStateStore
           # Typed `untyped`: the WeakMap is keyed by trace operations used only as
           # identity, and the public methods below carry the precise contract.
           @states: untyped
 
           def initialize: () -> void
 
-          def []: (untyped trace_op) -> Accumulator?
+          def []: (untyped trace_op) -> SpanEnrichmentState?
 
-          def []=: (untyped trace_op, Accumulator accumulator) -> Accumulator
+          def []=: (untyped trace_op, SpanEnrichmentState span_enrichment_state) -> SpanEnrichmentState
 
           def delete: (untyped trace_op) -> void
 

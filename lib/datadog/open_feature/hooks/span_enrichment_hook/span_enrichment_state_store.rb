@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
-require_relative 'accumulator'
+require_relative 'span_enrichment_state'
 
 module Datadog
   module OpenFeature
     module Hooks
       class SpanEnrichmentHook
-        # Holds per-root-span accumulator state, keyed WEAKLY by the trace
+        # Holds per-root-span state, keyed WEAKLY by the trace
         # operation (object identity). Using `ObjectSpace::WeakMap` means an
-        # abandoned trace (root span never finishes) cannot pin its accumulator:
+        # abandoned trace (root span never finishes) cannot pin its state:
         # once the trace operation is unreachable the entry is collected. The
-        # accumulator (the WeakMap *value*, which `WeakMap` would otherwise also
+        # state (the WeakMap *value*, which `WeakMap` would otherwise also
         # collect once no strong ref remains) is kept alive for the trace's
         # lifetime by the `span_before_finish` subscription closure, which is held
         # by `trace_op.events`. So state lives exactly as long as the trace and
@@ -18,7 +18,7 @@ module Datadog
         #
         # All access is serialized by the owning hook's mutex; the WeakMap itself
         # is not thread-safe under concurrent mutation.
-        class AccumulatorStore
+        class SpanEnrichmentStateStore
           def initialize
             @states = ObjectSpace::WeakMap.new
           end
@@ -27,8 +27,8 @@ module Datadog
             @states[trace_op]
           end
 
-          def []=(trace_op, accumulator)
-            @states[trace_op] = accumulator
+          def []=(trace_op, state)
+            @states[trace_op] = state
           end
 
           def delete(trace_op)
