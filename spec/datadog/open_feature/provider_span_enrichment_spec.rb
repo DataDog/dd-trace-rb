@@ -193,7 +193,7 @@ RSpec.describe 'OpenFeature provider span enrichment (end-to-end)' do
       end
 
       encoded = trace_op.get_tag('ffe_flags_enc')
-      decoded = Base64.strict_decode64(encoded).bytes
+      decoded = encoded.unpack1('m0').bytes
       # Every terminating byte (MSB clear) is one serial id; all 50 must survive
       # the concurrent capture (the hook's Mutex guards the compound mutations).
       count = decoded.count { |b| (b & 0x80).zero? }

@@ -4,7 +4,6 @@ require 'spec_helper'
 
 require 'json'
 require 'digest'
-require 'base64'
 
 # Tests run under the openfeature appraisal which includes the real OpenFeature SDK
 require 'open_feature/sdk'

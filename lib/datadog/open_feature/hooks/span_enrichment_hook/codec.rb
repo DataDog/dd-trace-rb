@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'digest'
-require 'base64'
 
 module Datadog
   module OpenFeature
@@ -42,7 +41,9 @@ module Datadog
               bytes << encode_varint(id - prev)
               prev = id
             end
-            Base64.strict_encode64(bytes)
+            # `pack('m0')` is RFC 4648 base64 with no newlines (== strict_encode64)
+            # and needs no `base64` gem, which stopped being a default gem in Ruby 3.4.
+            [bytes].pack('m0')
           end
 
           # Lowercase hex SHA256 of the targeting key: it is hashed before

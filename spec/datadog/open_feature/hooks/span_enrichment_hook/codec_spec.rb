@@ -4,7 +4,6 @@ require 'spec_helper'
 
 require 'set'
 require 'digest'
-require 'base64'
 
 require 'datadog/open_feature/hooks/span_enrichment_hook'
 
@@ -29,13 +28,13 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook::Codec do
   it 'encodes serial ids with continuation bytes (>= 0x80) as raw bytes' do
     encoded = codec.encode_delta_varint(Set[2312])
     expect(encoded).to eq('iBI=')
-    expect(Base64.strict_decode64(encoded).bytes).to eq([0x88, 0x12])
+    expect(encoded.unpack1('m0').bytes).to eq([0x88, 0x12])
   end
 
   it 'round-trips serial ids whose deltas exceed 0x7F' do
     ids = [100, 2312, 296_002]
     encoded = codec.encode_delta_varint(Set.new(ids))
-    bytes = Base64.strict_decode64(encoded).bytes
+    bytes = encoded.unpack1('m0').bytes
     decoded = []
     prev = 0
     shift = 0
@@ -56,7 +55,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook::Codec do
 
   it 'round-trips through delta decode' do
     encoded = codec.encode_delta_varint(Set[100, 108, 128, 130])
-    bytes = Base64.strict_decode64(encoded).bytes
+    bytes = encoded.unpack1('m0').bytes
     # Decode ULEB128 deltas and reconstruct the absolute ids.
     ids = []
     prev = 0

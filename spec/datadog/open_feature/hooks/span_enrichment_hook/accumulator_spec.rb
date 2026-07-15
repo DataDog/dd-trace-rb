@@ -5,7 +5,6 @@ require 'spec_helper'
 require 'set'
 require 'json'
 require 'digest'
-require 'base64'
 
 require 'datadog/open_feature/hooks/span_enrichment_hook'
 
@@ -26,7 +25,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook::Accumulator do
 
     it 'enforces the 200 serial id limit' do
       250.times { |i| accumulator.add_serial_id(i) }
-      decoded = Base64.strict_decode64(accumulator.to_span_tags['ffe_flags_enc']).bytes
+      decoded = accumulator.to_span_tags['ffe_flags_enc'].unpack1('m0').bytes
       # 200 single-byte deltas (all ids < 128 so one byte each, deltas of 1).
       count = decoded.count { |b| (b & 0x80).zero? }
       expect(count).to eq(200)
@@ -56,7 +55,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook::Accumulator do
       25.times { |i| accumulator.add_subject('user-123', i) }
       subjects = JSON.parse(accumulator.to_span_tags['ffe_subjects_enc'])
       hashed = Digest::SHA256.hexdigest('user-123')
-      decoded = Base64.strict_decode64(subjects[hashed]).bytes
+      decoded = subjects[hashed].unpack1('m0').bytes
       count = decoded.count { |b| (b & 0x80).zero? }
       expect(count).to eq(20)
     end
