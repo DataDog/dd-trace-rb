@@ -308,6 +308,31 @@ RSpec.describe Datadog::DI::Component do
       expect(component.started?).to be true
     end
 
+    context 'when code tracking is activated after the component is built (in-product enablement)' do
+      before do
+        # Simulate DI disabled at boot: no global code tracker exists when the
+        # component (and its instrumenter) are built.
+        Datadog::DI.instance_variable_set(:@code_tracker, nil)
+      end
+
+      after do
+        Datadog::DI.deactivate_tracking!
+        Datadog::DI.instance_variable_set(:@code_tracker, nil)
+      end
+
+      it 'adopts the global code tracker on start!' do
+        expect(component.instrumenter.code_tracker).to be_nil
+
+        Datadog::DI.activate_tracking!
+        expect(Datadog::DI.code_tracker).not_to be_nil
+
+        component.start!
+
+        expect(component.instrumenter.code_tracker).to be(Datadog::DI.code_tracker)
+        expect(component.code_tracker).to be(Datadog::DI.code_tracker)
+      end
+    end
+
     it 'spawns a background thread on start! and reaps it on stop!' do
       baseline = Thread.list.size
       expect(component.started?).to be false

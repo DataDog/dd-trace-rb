@@ -123,6 +123,14 @@ module Datadog
         @lifecycle_mutex.synchronize do
           return if @started
 
+          # DI.activate_tracking creates the global code tracker lazily. When DI
+          # is enabled after boot via remote configuration (in-product
+          # enablement), this component and its instrumenter were built with a
+          # nil tracker; adopt the now-current global tracker so line probes
+          # can be targeted.
+          @code_tracker = DI.code_tracker
+          instrumenter.code_tracker = @code_tracker
+
           probe_notifier_worker.start
           probe_manager.reopen
           @started = true
