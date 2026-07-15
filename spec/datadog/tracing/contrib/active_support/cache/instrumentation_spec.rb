@@ -21,7 +21,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Cache::Instrumentation 
       let(:key) { 'custom-key' }
 
       it 'stores the original key in the options hash' do
-        expect { normalize_key }.to change { options[:dd_original_keys] }.from(nil).to(['custom-key'])
+        expect { normalize_key }.to change { options[:dd_original_keys] }.from(nil).to('custom-key' => true)
       end
 
       it 'returns the normalized key' do
@@ -37,11 +37,11 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Cache::Instrumentation 
       end
 
       context 'with multiple distinct keys' do
-        it 'stores all keys' do
+        it 'stores all keys in insertion order' do
           store.normalize_key('custom-key-1', options)
           store.normalize_key('custom-key-2', options)
 
-          expect(options[:dd_original_keys]).to eq(['custom-key-1', 'custom-key-2'])
+          expect(options[:dd_original_keys].keys).to eq(['custom-key-1', 'custom-key-2'])
         end
       end
     end
