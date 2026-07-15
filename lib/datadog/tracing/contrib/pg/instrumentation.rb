@@ -28,19 +28,19 @@ module Datadog
               end
             end
 
-            def exec_params(sql, params, *args, &block)
+            def exec_params(sql, *args, &block)
               return super unless enabled?
 
               trace(Ext::SPAN_EXEC_PARAMS, sql: sql, block: block) do |sql_statement, wrapped_block|
-                super(sql_statement, params, *args, &wrapped_block)
+                super(sql_statement, *args, &wrapped_block)
               end
             end
 
-            def exec_prepared(statement_name, params, *args, &block)
+            def exec_prepared(statement_name, *args, &block)
               return super unless enabled?
 
               trace(Ext::SPAN_EXEC_PREPARED, statement_name: statement_name, block: block) do |_, wrapped_block|
-                super(statement_name, params, *args, &wrapped_block)
+                super(statement_name, *args, &wrapped_block)
               end
             end
 
@@ -54,20 +54,20 @@ module Datadog
             end
 
             # async_exec_params is an alias to exec_params
-            def async_exec_params(sql, params, *args, &block)
+            def async_exec_params(sql, *args, &block)
               return super unless enabled?
 
               trace(Ext::SPAN_ASYNC_EXEC_PARAMS, sql: sql, block: block) do |sql_statement, wrapped_block|
-                super(sql_statement, params, *args, &wrapped_block)
+                super(sql_statement, *args, &wrapped_block)
               end
             end
 
             # async_exec_prepared is an alias to exec_prepared
-            def async_exec_prepared(statement_name, params, *args, &block)
+            def async_exec_prepared(statement_name, *args, &block)
               return super unless enabled?
 
               trace(Ext::SPAN_ASYNC_EXEC_PREPARED, statement_name: statement_name, block: block) do |_, wrapped_block|
-                super(statement_name, params, *args, &wrapped_block)
+                super(statement_name, *args, &wrapped_block)
               end
             end
 
@@ -79,19 +79,19 @@ module Datadog
               end
             end
 
-            def sync_exec_params(sql, params, *args, &block)
+            def sync_exec_params(sql, *args, &block)
               return super unless enabled?
 
               trace(Ext::SPAN_SYNC_EXEC_PARAMS, sql: sql, block: block) do |sql_statement, wrapped_block|
-                super(sql_statement, params, *args, &wrapped_block)
+                super(sql_statement, *args, &wrapped_block)
               end
             end
 
-            def sync_exec_prepared(statement_name, params, *args, &block)
+            def sync_exec_prepared(statement_name, *args, &block)
               return super unless enabled?
 
               trace(Ext::SPAN_SYNC_EXEC_PREPARED, statement_name: statement_name, block: block) do |_, wrapped_block|
-                super(statement_name, params, *args, &wrapped_block)
+                super(statement_name, *args, &wrapped_block)
               end
             end
 

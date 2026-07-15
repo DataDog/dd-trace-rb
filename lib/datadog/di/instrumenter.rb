@@ -3,6 +3,7 @@
 require_relative '../core/utils/time'
 require_relative '../ruby_version'
 require_relative 'fatal_exceptions'
+require_relative 'capture_expression_evaluator'
 
 # rubocop:disable Lint/AssignmentInCondition
 # rubocop:disable Style/AndOr
@@ -83,6 +84,12 @@ module Datadog
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :code_tracker
+
+      def capture_expression_evaluator
+        @capture_expression_evaluator ||= CaptureExpressionEvaluator.new(
+          settings: settings, serializer: serializer, logger: logger, telemetry: telemetry,
+        )
+      end
 
       # This is a substitute for Thread::Backtrace::Location
       # which does not have a public constructor.
@@ -520,8 +527,27 @@ module Datadog
             # they need to be serialized prior to method invocation.
             serialized_entry_args = if probe.capture_snapshot?
               serializer.serialize_args(args, kwargs, target_self,
-                depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
+                **probe.snapshot_serializer_limits(settings))
+            end
+
+            entry_capture_expressions = nil
+            entry_capture_evaluation_errors = nil
+            if probe.capture_entry_expressions?
+              begin
+                entry_context = Context.new(
+                  probe: probe, settings: settings, serializer: serializer,
+                  target_self: target_self,
+                  locals: serializer.combine_args(args, kwargs, target_self),
+                )
+                entry_capture_expressions, entry_capture_evaluation_errors =
+                  capture_expression_evaluator.evaluate(probe, entry_context)
+              rescue Exception => exc # standard:disable Lint/RescueException
+                Datadog::DI.reraise_if_fatal(exc)
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                logger.debug { "di: error evaluating entry-time capture expressions: #{exc.class}: #{exc.message}" }
+                telemetry&.report(exc, description: "Error evaluating entry-time capture expressions")
+              end
             end
             # We intentionally do not use Core::Utils::Time.get_time
             # here because the time provider may be overridden by the
@@ -584,9 +610,14 @@ module Datadog
             caller_locs = method_frame + (caller_locations(2) || [])
             # TODO capture arguments at exit
 
-            context = Context.new(locals: nil, target_self: target_self,
+            capture_expression_locals = if probe.capture_expressions_only?
+              serializer.combine_args(args, kwargs, target_self)
+            end
+            context = Context.new(locals: capture_expression_locals, target_self: target_self,
               probe: probe, settings: settings, serializer: serializer,
               serialized_entry_args: serialized_entry_args,
+              entry_capture_expressions: entry_capture_expressions,
+              entry_capture_evaluation_errors: entry_capture_evaluation_errors,
               caller_locations: caller_locs,
               return_value: rv, duration: duration, exception: exc,)
 

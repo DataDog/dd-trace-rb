@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.37.0.dev)
+    datadog (2.38.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
       libdatadog (~> 36.0.0.1.0)
@@ -40,8 +40,8 @@ GEM
     google-protobuf (3.19.1-x86_64-darwin)
     google-protobuf (3.19.1-x86_64-linux)
     hashdiff (1.2.1)
-    json-schema (2.8.1)
-      addressable (>= 2.4)
+    json-schema (4.3.1)
+      addressable (>= 2.8)
     kicks (3.0.0)
       bunny (~> 2.23)
       concurrent-ruby (~> 1.0)

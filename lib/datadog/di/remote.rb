@@ -228,7 +228,7 @@ module Datadog
           # we need to note it as being current so that we do not
           # try to remove instrumentation that is still supposed to be
           # active.
-          #current_probe_ids[probe_spec.fetch('id')] = true
+          # current_probe_ids[probe_spec.fetch('id')] = true
         rescue Exception => exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
           raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions

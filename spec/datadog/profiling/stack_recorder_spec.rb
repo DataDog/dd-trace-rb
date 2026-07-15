@@ -400,6 +400,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
 
       before do
+        skip "Heap profiling relies on ObjectSpace._id2ref, removed in Ruby 4.1" if RubyVersion.is?(">= 4.1")
+
         allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
           {"z" => -1, "y" => "-2", "x" => false}, Object.new]
         @num_allocations = 0
@@ -846,6 +848,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             let(:heap_clean_after_gc_enabled) { false }
 
             it "does nothing" do
+              skip_asan_flaky
+
               # Every object is still being tracked at this point
               expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
 
@@ -1047,6 +1051,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       before do
         skip "Heap profiling is only supported on Ruby >= 2.7" unless RubyVersion.is?(">= 2.7")
+        skip "Heap profiling relies on ObjectSpace._id2ref, removed in Ruby 4.1" if RubyVersion.is?(">= 4.1")
       end
 
       def sample_allocation(obj)

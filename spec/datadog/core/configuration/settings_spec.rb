@@ -1509,7 +1509,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     context 'when default' do
-      before { allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC, unit).and_return(1) }
+      before { allow(Process).to receive(:clock_gettime).with(Datadog::Core::Utils::Time::MONOTONIC_CLOCK_ID, unit).and_return(1) }
 
       it 'delegates to Process.clock_gettime' do
         expect(settings.get_time_provider.call(unit)).to eq(get_time)
@@ -1542,7 +1542,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       before do
         set_get_time_provider
-        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC, unit).and_return(original_get_time)
+        allow(Process).to receive(:clock_gettime).with(Datadog::Core::Utils::Time::MONOTONIC_CLOCK_ID, unit).and_return(original_get_time)
       end
 
       it 'returns the provided time' do

@@ -485,7 +485,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           )
 
           worker.perform
-          if worker.running? && !worker.run_loop? && worker.instance_variable_get('@run_loop').nil?
+          if worker.running? && !worker.run_loop? && worker.instance_variable_get(:@run_loop).nil?
             conditions_met = true
           end
 
@@ -495,7 +495,9 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           end
 
           if conditions_met
-            #warn "took #{i+1} iterations"
+            # Uncomment to see how many iterations were necessary to
+            # achieve the desired conditions.
+            # warn "took #{i+1} iterations"
             break
           end
         end
