@@ -2,6 +2,7 @@ module Datadog
   module DI
     class Probe
       KNOWN_TYPES: Array[Symbol]
+      EVALUATE_AT_VALUES: Array[Symbol]
 
       @id: String
 
@@ -30,9 +31,15 @@ module Datadog
 
       @enabled: bool
 
+      @evaluate_at: Symbol
+
       def initialize: (id: String, type: Symbol, ?file: String?, ?line_no: Integer?, ?type_name: String?, ?method_name: String?, ?template: String?, ?template_segments: Array[String | DI::EL::Expression]?, ?capture_snapshot: bool,
 	?condition: DI::EL::Expression?,
-	?max_capture_depth: Integer?, ?max_capture_attribute_count: Integer?, ?rate_limit: Integer?) -> void
+	?max_capture_depth: Integer?, ?max_capture_attribute_count: Integer?,
+	?max_capture_collection_size: Integer?, ?max_capture_string_length: Integer?,
+	?capture_expressions: Array[CaptureExpression],
+	?evaluate_at: Symbol?,
+	?rate_limit: Integer?) -> void
 
       attr_reader condition: DI::EL::Expression?
 
@@ -52,6 +59,14 @@ module Datadog
 
       attr_reader max_capture_attribute_count: Integer?
 
+      attr_reader max_capture_collection_size: Integer?
+
+      attr_reader max_capture_string_length: Integer?
+
+      attr_reader capture_expressions: Array[CaptureExpression]
+
+      attr_reader evaluate_at: Symbol
+
       attr_reader template: String?
       attr_reader template_segments: Array[String | DI::EL::Expression]?
       attr_reader rate_limiter: Datadog::Core::RateLimiter
@@ -59,6 +74,11 @@ module Datadog
       attr_reader condition_evaluation_failed_rate_limiter: Datadog::Core::RateLimiter?
 
       def capture_snapshot?: () -> bool
+      def capture_expressions?: () -> bool
+      def evaluate_at_entry?: () -> bool
+      def capture_expressions_only?: () -> bool
+      def capture_entry_expressions?: () -> bool
+      def snapshot_serializer_limits: (Datadog::Core::Configuration::Settings settings) -> Hash[Symbol, Integer]
       def line?: () -> bool
       def method?: () -> bool
       def line_no!: () -> Integer

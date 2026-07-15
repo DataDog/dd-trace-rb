@@ -7,11 +7,17 @@ module Datadog
 
       @settings: Datadog::Core::Configuration::Settings
       @serializer: Serializer
+      @logger: DI::Logger
+      @telemetry: Core::Telemetry::Component?
+      @capture_expression_evaluator: CaptureExpressionEvaluator
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
       attr_reader serializer: Serializer
+      attr_reader logger: DI::Logger
+      attr_reader telemetry: Core::Telemetry::Component?
+      attr_reader capture_expression_evaluator: CaptureExpressionEvaluator
 
       def build_received: (Probe probe) -> Hash[Symbol,untyped]
 
