@@ -2,13 +2,13 @@ module Datadog
   module Core
     class HeaderCollection
       def get: (::String header_name) -> ::String?
-      def self.from_hash: (::Hash[::String, untyped] hash) -> HashHeaderCollection
+      def self.from_hash: (::Hash[::String, any] hash) -> HashHeaderCollection
     end
 
     class HashHeaderCollection < HeaderCollection
-      @hash: ::Hash[::String, untyped]
+      @hash: ::Hash[::String, any]
 
-      def initialize: (::Hash[::String, untyped] hash) -> void
+      def initialize: (::Hash[::String, any] hash) -> void
 
       def get: (::String header_name) -> ::String?
     end
