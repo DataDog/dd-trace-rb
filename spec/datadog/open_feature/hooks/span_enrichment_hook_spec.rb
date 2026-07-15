@@ -44,6 +44,13 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
       expect(state.to_span_tags).not_to have_key('ffe_subjects_enc')
     end
 
+    it 'does not add a subject when the targeting key is empty' do
+      hook.capture(flag_key: 'flag-a', variant: 'on', value: 'on', serial_id: 100, do_log: true, targeting_key: '')
+
+      state = accumulator_store[trace_op]
+      expect(state.to_span_tags).not_to have_key('ffe_subjects_enc')
+    end
+
     it 'detects a runtime default via a missing variant' do
       hook.capture(flag_key: 'flag-default', variant: nil, value: 'control', serial_id: nil, do_log: false, targeting_key: nil)
 

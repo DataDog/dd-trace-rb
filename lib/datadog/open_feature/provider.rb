@@ -180,27 +180,13 @@ module Datadog
         # accurate first/last_evaluation bounds (it falls back to hook-fire time when absent).
         metadata['dd.eval.timestamp_ms'] = eval_time_ms
 
-        # Thread the split serial id and do-log flag for APM span enrichment.
-        #
-        # These are read directly off the ResolutionDetails Struct (populated by
-        # the libdatadog FFI bindings) rather than from `flag_metadata`, because
-        # the native flag-metadata path is currently disabled. The
-        # span-enrichment hook reads these `__dd_` keys from the evaluation
-        # details' flag metadata.
-        serial_id = result.serial_id
-        unless serial_id.nil?
-          metadata['__dd_split_serial_id'] = serial_id
-          metadata['__dd_do_log'] = result.log? || false
-        end
-
         metadata
       end
 
       # Dispatch span enrichment from the evaluation path in a never-throw
       # wrapper. Reads the split serial id / do-log flag directly off the Datadog
-      # `ResolutionDetails` struct (same source as `build_flag_metadata`) and the
-      # targeting key off the built evaluation context. A nil hook (gate off or
-      # component absent) is a no-op.
+      # `ResolutionDetails` struct and the targeting key off the built evaluation
+      # context. A nil hook (gate off or component absent) is a no-op.
       def enrich_span(flag_key, result, evaluation_context)
         hook = span_enrichment_hook
         return unless hook

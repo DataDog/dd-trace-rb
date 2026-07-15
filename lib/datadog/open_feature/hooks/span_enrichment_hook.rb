@@ -88,7 +88,10 @@ module Datadog
             else
               state = state_for(trace_op)
               state.add_serial_id(serial_id)
-              state.add_subject(targeting_key, serial_id) if do_log && targeting_key
+              # Skip empty targeting keys: SHA256('') would collide every
+              # anonymous/missing subject under one bogus hash, corrupting
+              # subject-level attribution.
+              state.add_subject(targeting_key, serial_id) if do_log && targeting_key && !targeting_key.empty?
             end
           end
         rescue => e
