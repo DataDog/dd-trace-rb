@@ -11,7 +11,7 @@ module Datadog
       module HTTP
         # Module for handling HTTP body parsing
         module Body
-          # Matches Rack's default query bytesize limit to guard against CPU/memory exhaustion.
+          # Matches Rack's default query bytesize limit
           DEFAULT_BYTESIZE_LIMIT = 4 * 1024 * 1024
 
           def self.parse(body, media_type:, limit: DEFAULT_BYTESIZE_LIMIT)
