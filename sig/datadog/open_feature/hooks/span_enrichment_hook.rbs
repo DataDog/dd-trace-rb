@@ -24,7 +24,9 @@ module Datadog
 
         @closed: bool
 
-        def initialize: (AccumulatorStore accumulator_store) -> void
+        @logger: Core::Logger
+
+        def initialize: (AccumulatorStore accumulator_store, logger: Core::Logger) -> void
 
         def capture: (
           flag_key: ::String,

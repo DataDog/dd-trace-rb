@@ -7,6 +7,7 @@ require_relative 'exposures/worker'
 require_relative 'exposures/deduplicator'
 require_relative 'exposures/reporter'
 require_relative 'metrics/flag_eval_metrics'
+require_relative 'hooks/span_enrichment_hook'
 
 module Datadog
   module OpenFeature
@@ -105,10 +106,8 @@ module Datadog
       def create_span_enrichment_hook
         return unless @settings.open_feature.span_enrichment_enabled
 
-        require_relative 'hooks/span_enrichment_hook'
-
         store = Hooks::SpanEnrichmentHook::AccumulatorStore.new
-        Hooks::SpanEnrichmentHook.new(store)
+        Hooks::SpanEnrichmentHook.new(store, logger: @logger)
       end
     end
   end

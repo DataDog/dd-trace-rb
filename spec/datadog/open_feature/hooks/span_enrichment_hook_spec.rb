@@ -11,9 +11,10 @@ require 'open_feature/sdk'
 require 'datadog/open_feature/hooks/span_enrichment_hook'
 
 RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
-  subject(:hook) { described_class.new(accumulator_store) }
+  subject(:hook) { described_class.new(accumulator_store, logger: logger) }
 
   let(:accumulator_store) { Datadog::OpenFeature::Hooks::SpanEnrichmentHook::AccumulatorStore.new }
+  let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
 
   # The local root span operation is resolved off the active trace at capture
   # time. Tests stub Datadog::Tracing.active_trace to control the seam.

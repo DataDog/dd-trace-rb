@@ -57,10 +57,11 @@ module Datadog
         TAG_SUBJECTS_ENC = 'ffe_subjects_enc'
         TAG_RUNTIME_DEFAULTS = 'ffe_runtime_defaults'
 
-        def initialize(accumulator_store)
+        def initialize(accumulator_store, logger:)
           @store = accumulator_store
           @mutex = Mutex.new
           @closed = false
+          @logger = logger
         end
 
         # Direct dispatch from the Datadog provider evaluation path. Takes only
@@ -91,7 +92,7 @@ module Datadog
             end
           end
         rescue => e
-          Datadog.logger.debug { "Error capturing span enrichment: #{e.class}: #{e.message}" }
+          @logger.debug { "Error capturing span enrichment: #{e.class}: #{e.message}" }
         end
 
         # Provider-close cleanup: mark the hook closed and drop all accumulated
@@ -130,13 +131,15 @@ module Datadog
           events = trace_op.send(:events)
           # `span_before_finish` fires `(span_op, trace_op)` while the span can
           # still be enriched (before it is finalized into an immutable Span).
+          # The block is the tracer-callback boundary and runs long after
+          # `#capture` returns, so it rescues on its own — enrichment must never
+          # raise into the trace pipeline. (Errors setting up the subscription
+          # here propagate to `#capture`'s rescue, since this runs under it.)
           events.span_before_finish.subscribe do |span_op, finishing_trace_op|
             write_tags_on_root(span_op, finishing_trace_op, accumulator)
+          rescue => e
+            @logger.debug { "Error writing span enrichment tags: #{e.class}: #{e.message}" }
           end
-        rescue => e
-          # Runs on the caller's evaluation thread; enrichment must never break
-          # flag evaluation, so swallow and log.
-          Datadog.logger.debug { "Error subscribing span enrichment: #{e.class}: #{e.message}" }
         end
 
         def write_tags_on_root(span_op, trace_op, accumulator)
@@ -168,10 +171,6 @@ module Datadog
           end
 
           tags.each { |key, value| span_op.set_tag(key, value) }
-        rescue => e
-          # Runs inside the tracer's span-finish callback; enrichment must never
-          # raise into the trace pipeline, so swallow and log.
-          Datadog.logger.debug { "Error writing span enrichment tags: #{e.class}: #{e.message}" }
         end
       end
     end
