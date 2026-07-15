@@ -193,9 +193,13 @@ module Datadog
               # Stores the original keys in the options hash, as an array of keys.
               # It's important to keep all the keys for multi-key operations.
               # For single-key operations, the key is stored as an array of a single element.
+              #
+              # Composite operations normalize the same key more than once with the same
+              # options hash (e.g. `#fetch` delegates to `#write` on a cache miss), so
+              # already-stored keys are not appended again.
               def normalize_key(key, options)
                 orig_keys = options[:dd_original_keys] || []
-                orig_keys << key
+                orig_keys << key unless orig_keys.include?(key)
                 options[:dd_original_keys] = orig_keys
 
                 super

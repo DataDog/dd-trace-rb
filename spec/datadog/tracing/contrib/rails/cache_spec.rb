@@ -423,6 +423,36 @@ RSpec.describe 'Rails cache', execute_in_fork: Rails.version.to_i >= 8 do
 
     it_behaves_like 'an instrumented cache method'
 
+    context 'with a cache miss' do
+      let(:key) { 'fetch-miss-key' }
+
+      it 'sets the cache key on both read and write spans' do
+        expect(fetch).to eq('default')
+
+        expect(spans).to have(2).items
+        get, set = spans
+        expect(get.resource).to eq('GET')
+        expect(get.get_tag('rails.cache.key')).to eq(key)
+        expect(set.resource).to eq('SET')
+        expect(set.get_tag('rails.cache.key')).to eq(key)
+      end
+    end
+
+    context 'with a cache hit' do
+      let(:key) { 'fetch-hit-key' }
+
+      before { cache.write(key, 'cached') }
+
+      it 'sets the cache key on the read span' do
+        expect(fetch).to eq('cached')
+
+        expect(spans).to have(2).items
+        get, _set = spans
+        expect(get.resource).to eq('GET')
+        expect(get.get_tag('rails.cache.key')).to eq(key)
+      end
+    end
+
     context 'with exception' do
       subject(:fetch) { cache.fetch('exception') { raise 'oops' } }
 
@@ -483,6 +513,53 @@ RSpec.describe 'Rails cache', execute_in_fork: Rails.version.to_i >= 8 do
       end
 
       it_behaves_like 'an instrumented cache method'
+
+      context 'with all keys missing' do
+        let(:multi_keys) { %w[fetch-multi-miss-1 fetch-multi-miss-2 fetch-multi-miss-3] }
+
+        before do
+          unless ::ActiveSupport::Cache::Store.public_method_defined?(:write_multi)
+            skip 'Test is not applicable to this Rails version'
+          end
+        end
+
+        it 'sets the cache keys on both read and write spans' do
+          expect(fetch_multi).to eq(multi_keys.zip([51, 52, 53]).to_h)
+
+          expect(spans).to have(2).items
+          mget, mset = spans
+          expect(mget.resource).to eq('MGET')
+          expect(JSON.parse(mget.get_tag('rails.cache.keys'))).to eq(multi_keys)
+          expect(mset.resource).to eq('MSET')
+          expect(JSON.parse(mset.get_tag('rails.cache.keys'))).to eq(multi_keys)
+        end
+      end
+
+      context 'with a subset of keys missing' do
+        let(:multi_keys) { %w[fetch-multi-part-1 fetch-multi-part-2 fetch-multi-part-3] }
+
+        before do
+          unless ::ActiveSupport::Cache::Store.public_method_defined?(:write_multi)
+            skip 'Test is not applicable to this Rails version'
+          end
+
+          cache.write('fetch-multi-part-1', 51)
+        end
+
+        it 'does not duplicate keys on the write span' do
+          expect(fetch_multi).to eq(multi_keys.zip([51, 52, 53]).to_h)
+
+          expect(spans).to have(3).items
+          mget, mset, _set = spans
+          expect(mget.resource).to eq('MGET')
+          expect(JSON.parse(mget.get_tag('rails.cache.keys'))).to eq(multi_keys)
+          expect(mset.resource).to eq('MSET')
+
+          mset_keys = JSON.parse(mset.get_tag('rails.cache.keys'))
+          expect(mset_keys).to eq(mset_keys.uniq)
+          expect(mset_keys).to include('fetch-multi-part-2', 'fetch-multi-part-3')
+        end
+      end
 
       context 'with exception' do
         subject(:fetch_multi) { cache.fetch_multi('exception', 'another', 'one') { raise 'oops' } }
