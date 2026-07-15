@@ -29,6 +29,13 @@ module Datadog
               Datadog.configuration.tracing[:kafka]
             end
 
+            # Checked on every event, rather than once at subscription time, so that
+            # toggling Kafka tracing at runtime (e.g. via `DD_TRACE_KAFKA_ENABLED`) takes
+            # effect even though `Events.subscribe!` only runs once per process.
+            def trace?(_event, _payload)
+              configuration[:enabled]
+            end
+
             def on_start(span, _event, _id, payload)
               span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)

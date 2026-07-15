@@ -19,10 +19,11 @@ module Datadog
           end
 
           def patch
-            # Subscribe to Kafka events for tracing spans. This is skipped when tracing is
-            # disabled (e.g. `DD_TRACE_KAFKA_ENABLED=false`), while the DSM instrumentation
-            # below is still applied so Data Streams Monitoring keeps working.
-            Events.subscribe! if Datadog.configuration.tracing[:kafka].enabled
+            # Subscribe to Kafka events. This runs once per process (guarded by `Contrib::Patcher`'s
+            # `OnlyOnce`), so it must not be conditioned on the current `enabled` setting -- doing so would
+            # permanently skip tracing if the setting is later toggled at runtime. Each event instead checks
+            # `enabled` for itself when it fires (see `Kafka::Event#trace?`).
+            Events.subscribe!
 
             # Apply monkey patches for additional instrumentation (e.g., DSM). These
             # self-guard on `Datadog::DataStreams.enabled?`, so they are inert unless DSM

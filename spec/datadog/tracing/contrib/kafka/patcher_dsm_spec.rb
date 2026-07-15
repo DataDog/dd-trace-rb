@@ -27,13 +27,28 @@ RSpec.describe 'Kafka patcher with tracing disabled' do
       expect(::Kafka::Consumer.ancestors).to include(Datadog::Tracing::Contrib::Kafka::Instrumentation::Consumer)
     end
 
-    it 'does not subscribe to Kafka tracing events' do
-      expect(Datadog::Tracing::Contrib::Kafka::Events).to_not receive(:subscribe!)
-
+    it 'does not create tracing spans for Kafka events' do
       Datadog.configure do |c|
         c.data_streams.enabled = true
         c.tracing.instrument :kafka, enabled: false
       end
+
+      expect(Datadog::Tracing).to_not receive(:trace)
+
+      ActiveSupport::Notifications.instrument('deliver_messages.producer.kafka', client_id: 'test-client') {}
+    end
+
+    it 'resumes creating tracing spans if Kafka tracing is enabled later at runtime' do
+      Datadog.configure do |c|
+        c.data_streams.enabled = true
+        c.tracing.instrument :kafka, enabled: false
+      end
+
+      Datadog.configure { |c| c.tracing.instrument :kafka, enabled: true }
+
+      expect(Datadog::Tracing).to receive(:trace).and_call_original
+
+      ActiveSupport::Notifications.instrument('deliver_messages.producer.kafka', client_id: 'test-client') {}
     end
   end
 
@@ -47,6 +62,8 @@ RSpec.describe 'Kafka patcher with tracing disabled' do
         c.data_streams.enabled = false
         c.tracing.instrument :kafka, enabled: false
       end
+
+      expect(Datadog::Tracing::Contrib::Kafka::Patcher.patched?).to be(false)
     end
   end
 end

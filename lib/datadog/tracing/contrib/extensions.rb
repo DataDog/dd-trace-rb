@@ -177,15 +177,18 @@ module Datadog
             # @return [Datadog::Tracing::Contrib::Integration]
             def instrument(integration_name, options = {}, &block)
               integration = fetch_integration(integration_name)
+              return integration if integration.nil?
+
+              # Apply the options first, so the `enabled` check below reflects the value
+              # being set by this call, rather than whatever was configured previously.
+              configuration_name = options[:describes] || :default
+              filtered_options = options.reject { |k, _v| k == :describes }
+              integration.configure(configuration_name, filtered_options, &block)
 
               # An integration is activated when its tracing is enabled, or when it opts into
               # being patched while disabled (e.g. to install Data Streams Monitoring
               # instrumentation without emitting tracing spans). See {Patchable#patch_when_disabled?}.
-              if !integration.nil? &&
-                  (integration.default_configuration.enabled || integration.patch_when_disabled?)
-                configuration_name = options[:describes] || :default
-                filtered_options = options.reject { |k, _v| k == :describes }
-                integration.configure(configuration_name, filtered_options, &block)
+              if integration.default_configuration.enabled || integration.patch_when_disabled?
                 INSTRUMENTED_INTEGRATIONS_LOCK.synchronize do
                   @instrumented_integrations ||= {}
                   @instrumented_integrations[integration_name] = integration

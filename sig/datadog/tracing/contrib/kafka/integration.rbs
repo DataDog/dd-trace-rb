@@ -17,7 +17,7 @@ module Datadog
 
           def patcher: () -> untyped
 
-          def patch_when_disabled?: () -> untyped
+          def patch_when_disabled?: () -> bool
         end
       end
     end
