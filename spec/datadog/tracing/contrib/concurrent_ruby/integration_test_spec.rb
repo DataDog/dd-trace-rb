@@ -209,6 +209,23 @@ RSpec.describe 'ConcurrentRuby integration tests' do
         deferred_execution
         expect(inner_span.parent_id).to eq(outer_span.id)
       end
+
+      it 'clears the propagated context after execution' do
+        executor = Concurrent::SingleThreadExecutor.new
+        outer_span = tracer.trace('outer_span')
+        future = Concurrent::Future.new(executor: executor) {}
+        future.execute.wait
+        outer_span.finish
+
+        active_trace = :unset
+        executor.post { active_trace = Datadog::Tracing.active_trace }
+        executor.shutdown
+        executor.wait_for_termination(1)
+
+        expect(active_trace).to be_nil
+      ensure
+        executor&.kill
+      end
     end
   end
 
