@@ -104,11 +104,8 @@ module Datadog
           return writer
         end
 
-        if settings.tracing.native_transport
-          transport = build_native_transport(agent_settings)
-          if transport
-            options = options.merge(transport: transport)
-          end
+        if settings.tracing.native_transport && (transport = build_native_transport(agent_settings))
+          options = options.merge(transport: transport)
         end
 
         Tracing::Writer.new(agent_settings: agent_settings, **options)
