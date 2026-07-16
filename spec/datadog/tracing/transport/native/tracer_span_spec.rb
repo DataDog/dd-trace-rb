@@ -92,26 +92,42 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TracerSpan' do
     end
 
     context 'with non-string meta values (mixed hash)' do
-      it 'silently skips non-string entries' do
+      it 'skips the non-string entries and warns with their count' do
         span = make_ruby_span(meta: {'good' => 'value', 'bad' => 123, nil => 'also_bad'})
-        expect { tracer_span_class._native_from_span(span) }.not_to raise_error
+
+        # The two invalid entries (non-string value, non-string key) are
+        # skipped; the skip is observable through the warning it logs.
+        expect(Datadog.logger).to receive(:warn).with(/skipped 2 non-string meta entries/)
+
+        expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
+      end
+    end
+
+    context 'with a nil meta' do
+      it 'does not iterate or warn' do
+        span = make_ruby_span(meta: nil)
+
+        expect(Datadog.logger).to_not receive(:warn)
+
+        expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
       end
     end
 
     context 'with non-numeric metrics values (mixed hash)' do
-      it 'silently skips non-numeric entries' do
+      it 'skips the non-numeric entries and warns with their count' do
         span = make_ruby_span(metrics: {'_dd.measured' => 1.0, 'bad' => 'string'})
-        expect { tracer_span_class._native_from_span(span) }.not_to raise_error
+
+        expect(Datadog.logger).to receive(:warn).with(/skipped 1 non-numeric metrics entries/)
+
+        expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
       end
     end
 
     context 'when called multiple times on the same span' do
-      it 'returns independent instances' do
+      it 'returns a distinct instance each time' do
         span = make_ruby_span
         r1 = tracer_span_class._native_from_span(span)
         r2 = tracer_span_class._native_from_span(span)
-        expect(r1).to be_a(tracer_span_class)
-        expect(r2).to be_a(tracer_span_class)
         expect(r1).not_to equal(r2)
       end
     end
