@@ -12,6 +12,8 @@ module Datadog
         # Implements the same predicate interface as the HTTP transport's
         # response so callers can treat both uniformly.
         class Response
+          SERVICE_RATE_KEY = 'rate_by_service'
+
           attr_reader :trace_count, :payload
 
           def initialize(ok:, internal_error: false, server_error: false, client_error: false,
@@ -49,8 +51,6 @@ module Datadog
           def unsupported?
             @unsupported
           end
-
-          SERVICE_RATE_KEY = 'rate_by_service'
 
           # Parse the agent's JSON response body and extract the
           # +rate_by_service+ map.  Returns +nil+ when the payload
