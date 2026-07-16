@@ -8,10 +8,10 @@ module Datadog
         def self.apply!: (env_provider: ^() -> ::Hash[::String, ::String]) -> void
 
         module ProcessSpawnPatch
-          def spawn: (*untyped args) -> untyped
+          def spawn: (*untyped args) -> Integer
         end
 
-        def self.inject_envs: (untyped args) -> ::Array[untyped]
+        def self.inject_envs: (::Array[untyped] args) -> ::Array[untyped]
       end
     end
   end

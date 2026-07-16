@@ -2,6 +2,8 @@ module Datadog
   module Core
     module Utils
       module Time
+        MONOTONIC_CLOCK_ID: Integer
+
         def self?.get_time: () -> ::Float
                             | (:float_second | :float_millisecond | :float_microsecond unit) -> ::Float
                             | (:second | :millisecond | :microsecond | :nanosecond unit) -> Integer
