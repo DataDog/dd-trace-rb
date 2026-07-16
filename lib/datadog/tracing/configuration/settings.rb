@@ -493,6 +493,7 @@ module Datadog
               # @default `false`
               # @return [Boolean]
               option :native_transport do |o|
+                o.env Configuration::Ext::ENV_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED
                 o.default false
                 o.type :bool
               end

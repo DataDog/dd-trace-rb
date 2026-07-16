@@ -371,6 +371,13 @@
         "default": "false"
       }
     ],
+    "DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED": [
       {
         "version": "B",
