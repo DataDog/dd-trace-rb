@@ -76,7 +76,7 @@ module Datadog
         @serializer = Serializer.new(settings, redactor, telemetry: telemetry)
         @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
         @probe_repository = ProbeRepository.new
-        @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer)
+        @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer, logger, telemetry: telemetry)
         @probe_notifier_worker = ProbeNotifierWorker.new(
           settings, logger,
           agent_settings: agent_settings,
@@ -185,7 +185,7 @@ module Datadog
       end
 
       def parse_probe_spec_and_notify(probe_spec)
-        probe = ProbeBuilder.build_from_remote_config(probe_spec)
+        probe = ProbeBuilder.build_from_remote_config(probe_spec, logger: logger)
       rescue Exception => exc # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(exc)
         begin

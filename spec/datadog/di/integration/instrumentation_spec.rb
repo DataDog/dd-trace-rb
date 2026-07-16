@@ -49,6 +49,10 @@ class InstrumentationSpecTestClass
     # Method with binary data in parameters
     binary_param.length + normal_param.length
   end
+
+  def collection_method(items)
+    items
+  end
 end
 
 RSpec.describe 'Instrumentation integration' do
@@ -560,6 +564,332 @@ RSpec.describe 'Instrumentation integration' do
         end
       end
 
+      context 'with capture expression referencing a positional argument' do
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
+        end
+
+        let(:probe_spec) do
+          {
+            id: '1234',
+            type: 'LOG_PROBE',
+            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'test_method'},
+            captureExpressions: [
+              {name: 'arg1', expr: {dsl: 'arg1', json: {ref: 'arg1'}}},
+            ],
+          }
+        end
+
+        it 'evaluates the expression against arg locals at return time' do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          expect(InstrumentationSpecTestClass.new.test_method(7)).to eq(42)
+          component.probe_notifier_worker.flush
+
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+          expect(captures.fetch(:return).fetch(:captureExpressions)).to eq(
+            "arg1" => {type: 'Integer', value: '7'},
+          )
+          expect(captures).not_to have_key(:entry)
+        end
+      end
+
+      context 'with capture expression and evaluateAt: ENTRY' do
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
+        end
+
+        let(:probe_spec) do
+          {
+            id: '1234',
+            type: 'LOG_PROBE',
+            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'mutating_method'},
+            evaluateAt: 'ENTRY',
+            captureExpressions: [
+              {name: 'greeting_at_entry', expr: {dsl: 'arg1', json: {ref: 'arg1'}}},
+            ],
+          }
+        end
+
+        it 'evaluates against pre-super scope and emits under captures.entry' do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          greeting = +'hello world'
+          InstrumentationSpecTestClass.new.mutating_method(greeting)
+          expect(greeting).to eq('bye world')
+          component.probe_notifier_worker.flush
+
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+          expect(captures.fetch(:entry).fetch(:captureExpressions)).to eq(
+            "greeting_at_entry" => {type: 'String', value: 'hello world'},
+          )
+          expect(captures).not_to have_key(:return)
+        end
+      end
+
+      context 'with @duration capture expression and evaluateAt: ENTRY' do
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
+        end
+
+        let(:probe_spec) do
+          {
+            id: '1234',
+            type: 'LOG_PROBE',
+            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'mutating_method'},
+            evaluateAt: 'ENTRY',
+            captureExpressions: [
+              {name: 'duration_at_entry', expr: {dsl: '@duration', json: {ref: '@duration'}}},
+            ],
+          }
+        end
+
+        it 'captures @duration as an undefined (nil) value without an evaluation error' do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          InstrumentationSpecTestClass.new.mutating_method(+'hello world')
+          component.probe_notifier_worker.flush
+
+          snapshot = payload.fetch(:debugger).fetch(:snapshot)
+          captures = snapshot.fetch(:captures)
+          expect(captures.fetch(:entry).fetch(:captureExpressions)).to eq(
+            "duration_at_entry" => {type: 'NilClass', isNull: true},
+          )
+          expect(captures).not_to have_key(:return)
+          expect(snapshot.fetch(:evaluationErrors, [])).to be_empty
+        end
+      end
+
+      context 'with capture expression and evaluateAt: EXIT (explicit, same as default)' do
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
+        end
+
+        let(:probe_spec) do
+          {
+            id: '1234',
+            type: 'LOG_PROBE',
+            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'mutating_method'},
+            evaluateAt: 'EXIT',
+            captureExpressions: [
+              {name: 'greeting_at_exit', expr: {dsl: 'arg1', json: {ref: 'arg1'}}},
+            ],
+          }
+        end
+
+        it 'evaluates against post-super scope (post-mutation values) and emits under captures.return' do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          InstrumentationSpecTestClass.new.mutating_method(+'hello world')
+          component.probe_notifier_worker.flush
+
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+          expect(captures.fetch(:return).fetch(:captureExpressions)).to eq(
+            "greeting_at_exit" => {type: 'String', value: 'bye world'},
+          )
+          expect(captures).not_to have_key(:entry)
+        end
+      end
+
+      context 'with both captureSnapshot=true and capture_expressions (mutual exclusion)' do
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
+        end
+
+        let(:probe_spec) do
+          {
+            id: '1234',
+            type: 'LOG_PROBE',
+            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'test_method'},
+            captureSnapshot: true,
+            captureExpressions: [
+              {name: 'arg1', expr: {dsl: 'arg1', json: {ref: 'arg1'}}},
+            ],
+          }
+        end
+
+        it 'emits the snapshot captures block and omits captureExpressions' do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          expect(InstrumentationSpecTestClass.new.test_method(7)).to eq(42)
+          component.probe_notifier_worker.flush
+
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+          expect(captures.fetch(:entry)).to have_key(:arguments)
+          expect(captures.fetch(:entry)).not_to have_key(:captureExpressions)
+          expect(captures.fetch(:return)).to have_key(:arguments)
+          expect(captures.fetch(:return)).not_to have_key(:captureExpressions)
+        end
+      end
+
+      context 'with capture expressions and an exhausted per-fire time budget' do
+        before do
+          settings.dynamic_instrumentation.max_time_to_serialize_ms = 0
+        end
+
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
+        end
+
+        let(:probe_spec) do
+          {
+            id: '1234',
+            type: 'LOG_PROBE',
+            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'test_method'},
+            captureExpressions: [
+              {name: 'arg1', expr: {dsl: 'arg1', json: {ref: 'arg1'}}},
+            ],
+          }
+        end
+
+        it 'emits notCapturedReason:timeout stubs in the return block' do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          expect(InstrumentationSpecTestClass.new.test_method(7)).to eq(42)
+          component.probe_notifier_worker.flush
+
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+          expect(captures.fetch(:return).fetch(:captureExpressions)).to eq(
+            "arg1" => {notCapturedReason: "timeout"},
+          )
+          expect(captures).not_to have_key(:entry)
+        end
+      end
+
+      context 'with a capture expression that raises during evaluation' do
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
+        end
+
+        let(:probe_spec) do
+          {
+            id: '1234',
+            type: 'LOG_PROBE',
+            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'test_method'},
+            captureExpressions: [
+              {name: 'bad_len', expr: {dsl: 'len(undefined)', json: {len: {ref: 'undefined'}}}},
+            ],
+          }
+        end
+
+        it 'omits the failed key from captureExpressions and appends to evaluationErrors' do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          expect(InstrumentationSpecTestClass.new.test_method(7)).to eq(42)
+          component.probe_notifier_worker.flush
+
+          snapshot = payload.fetch(:debugger).fetch(:snapshot)
+          captures = snapshot.fetch(:captures)
+          expect(captures.fetch(:return).fetch(:captureExpressions)).to eq({})
+          expect(captures).not_to have_key(:entry)
+
+          evaluation_errors = snapshot.fetch(:evaluationErrors)
+          matching = evaluation_errors.select { |e| e[:expr] == 'bad_len' }
+          expect(matching).not_to be_empty
+          expect(matching.first[:message]).to include('ExpressionEvaluationError')
+        end
+      end
+
+      context 'with snapshot capture and probe-level maxLength override' do
+        let(:probe) do
+          Datadog::DI::Probe.new(id: "1234", type: :log,
+            type_name: 'InstrumentationSpecTestClass', method_name: 'mutating_method',
+            capture_snapshot: true,
+            max_capture_string_length: 4,)
+        end
+
+        it 'truncates strings in entry args, return value, and self to the probe-level limit' do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          expect(InstrumentationSpecTestClass.new.mutating_method('hello world')).to eq('bye world')
+          component.probe_notifier_worker.flush
+
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+          expect(captures.fetch(:entry).fetch(:arguments).fetch(:arg1)).to include(
+            type: 'String', value: 'hell', truncated: true,
+          )
+          expect(captures.fetch(:return).fetch(:arguments).fetch(:@return)).to include(
+            type: 'String', value: 'bye ', truncated: true,
+          )
+          ivar = captures.fetch(:return).fetch(:arguments).fetch(:self).fetch(:fields).fetch(:@ivar)
+          expect(ivar).to include(type: 'String', value: 'star', truncated: true)
+        end
+      end
+
+      context 'with snapshot capture and probe-level maxCollectionSize override' do
+        let(:probe) do
+          Datadog::DI::Probe.new(id: "1234", type: :log,
+            type_name: 'InstrumentationSpecTestClass', method_name: 'collection_method',
+            capture_snapshot: true,
+            max_capture_collection_size: 2,)
+        end
+
+        it 'truncates arrays in entry args, return value, and self ivar to the probe-level limit' do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          instance = InstrumentationSpecTestClass.new
+          instance.instance_variable_set(:@ivar, [10, 20, 30, 40, 50])
+          expect(instance.collection_method([1, 2, 3, 4, 5])).to eq([1, 2, 3, 4, 5])
+          component.probe_notifier_worker.flush
+
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+          arg1 = captures.fetch(:entry).fetch(:arguments).fetch(:arg1)
+          expect(arg1).to include(type: 'Array', notCapturedReason: 'collectionSize', size: 5)
+          expect(arg1.fetch(:elements).size).to eq(2)
+          ret = captures.fetch(:return).fetch(:arguments).fetch(:@return)
+          expect(ret).to include(type: 'Array', notCapturedReason: 'collectionSize', size: 5)
+          expect(ret.fetch(:elements).size).to eq(2)
+          ivar = captures.fetch(:return).fetch(:arguments).fetch(:self).fetch(:fields).fetch(:@ivar)
+          expect(ivar).to include(type: 'Array', notCapturedReason: 'collectionSize', size: 5)
+          expect(ivar.fetch(:elements).size).to eq(2)
+        end
+      end
+
       context 'when target is invoked' do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
@@ -603,7 +933,7 @@ RSpec.describe 'Instrumentation integration' do
 
       context 'when message template references special variables' do
         let(:probe) do
-          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
         end
 
         let(:probe_spec) do
@@ -891,6 +1221,42 @@ RSpec.describe 'Instrumentation integration' do
 
         include_examples 'simple log probe'
 
+        context 'with capture expression referencing a local variable' do
+          let(:probe) do
+            Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
+          end
+
+          let(:probe_spec) do
+            {
+              id: '1234',
+              type: 'LOG_PROBE',
+              where: {sourceFile: 'instrumentation_integration_test_class.rb', lines: [40]},
+              captureExpressions: [
+                {name: 'a', expr: {dsl: 'a', json: {ref: 'a'}}},
+              ],
+            }
+          end
+
+          it 'emits captureExpressions on the snapshot line block' do
+            expect(diagnostics_transport).to receive(:send_diagnostics)
+            probe_manager.add_probe(probe)
+            payload = nil
+            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+              payload = payload_
+            end
+
+            expect(InstrumentationIntegrationTestClass.new.test_method).to eq(42)
+            component.probe_notifier_worker.flush
+
+            captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+            lines = captures.fetch(:lines)
+            expect(lines.keys).to eq([40])
+            expect(lines[40].fetch(:captureExpressions)).to eq(
+              "a" => {type: 'Integer', value: '21'},
+            )
+          end
+        end
+
         context 'target line is the end line of a method' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
@@ -1136,6 +1502,35 @@ RSpec.describe 'Instrumentation integration' do
           let(:test_method_name) { :method_with_no_locals }
 
           include_examples 'assembles expected notification payload'
+        end
+
+        context 'with probe-level maxCollectionSize override on line-probe locals' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              file: 'instrumentation_integration_test_class.rb', line_no: 40,
+              capture_snapshot: true,
+              max_capture_collection_size: 1,)
+          end
+
+          it 'truncates the redacted hash local to the probe-level limit' do
+            expect(diagnostics_transport).to receive(:send_diagnostics)
+            probe_manager.add_probe(probe)
+            payload = nil
+            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+              payload = payload_
+            end
+
+            expect(InstrumentationIntegrationTestClass.new.test_method).to eq(42)
+            component.probe_notifier_worker.flush
+
+            redacted_local = payload.fetch(:debugger).fetch(:snapshot)
+              .fetch(:captures).fetch(:lines).fetch(40)
+              .fetch(:locals).fetch(:redacted)
+            expect(redacted_local).to include(
+              type: 'Hash', notCapturedReason: 'collectionSize', size: 2,
+            )
+            expect(redacted_local.fetch(:entries).size).to eq(1)
+          end
         end
       end
 

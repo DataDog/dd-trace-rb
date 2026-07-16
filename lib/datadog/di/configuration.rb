@@ -134,6 +134,12 @@ module Datadog
                 o.default 20
               end
 
+              option :max_time_to_serialize_ms do |o|
+                o.type :int
+                o.default 200
+                o.env 'DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE'
+              end
+
               # Settings in the 'internal' group are for internal Datadog
               # use only, and are needed to test dynamic instrumentation or
               # experiment with features not released to customers.

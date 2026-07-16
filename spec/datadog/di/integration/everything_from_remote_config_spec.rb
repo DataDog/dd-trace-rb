@@ -687,8 +687,8 @@ RSpec.describe 'DI integration from remote config' do
         expect(payloads.length).to eq 1
 
         # No emitting payload because the probe hasn't emitted anything yet.
-        #emitting_payload = payloads.shift
-        #expect(emitting_payload).to match(expected_emitting_payload)
+        # emitting_payload = payloads.shift
+        # expect(emitting_payload).to match(expected_emitting_payload)
 
         snapshot_payload = payloads.shift
         expect(order_hash_keys(snapshot_payload)).to match(deep_stringify_keys(order_hash_keys(expected_snapshot_payload)))
@@ -772,8 +772,8 @@ RSpec.describe 'DI integration from remote config' do
           expect(payloads.length).to eq 1
 
           # No emitting payload because the probe hasn't emitted anything yet.
-          #emitting_payload = payloads.shift
-          #expect(emitting_payload).to match(expected_emitting_payload)
+          # emitting_payload = payloads.shift
+          # expect(emitting_payload).to match(expected_emitting_payload)
 
           snapshot_payload = payloads.shift
           expect(order_hash_keys(snapshot_payload)).to match(deep_stringify_keys(order_hash_keys(expected_snapshot_payload)))
@@ -843,8 +843,8 @@ RSpec.describe 'DI integration from remote config' do
             expect(payloads.length).to eq 1
 
             # No emitting payload because the probe hasn't emitted anything yet.
-            #emitting_payload = payloads.shift
-            #expect(emitting_payload).to match(expected_emitting_payload)
+            # emitting_payload = payloads.shift
+            # expect(emitting_payload).to match(expected_emitting_payload)
 
             snapshot_payload = payloads.shift
             expect(order_hash_keys(snapshot_payload)).to match(deep_stringify_keys(order_hash_keys(expected_snapshot_payload)))

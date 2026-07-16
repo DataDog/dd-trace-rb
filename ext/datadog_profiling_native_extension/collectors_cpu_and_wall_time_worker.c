@@ -154,8 +154,6 @@ typedef struct {
     unsigned int signal_handler_enqueued_sample;
     // How many times we prepared a sample (sampled directly) from the signal handler
     unsigned int signal_handler_prepared_sample;
-    // How many times the signal handler was called from the wrong thread
-    unsigned int signal_handler_wrong_thread;
     // How many times we actually tried to interrupt a thread for sampling
     unsigned int interrupt_thread_attempts;
 
@@ -537,6 +535,13 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   long now = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
   discrete_dynamic_sampler_reset(&state->allocation_sampler, now);
 
+  // Reset per-thread state, if any. This ensures there's no leftover state from a previous profiler run that would
+  // affect or be included in samples taken by this profiler about to run.
+  //
+  // NOTE: This needs to be called before we enable any tracepoints or anything that could trigger samples (e.g.
+  // reset cannot be concurrent with any sampling activity)
+  thread_context_collector_reset_all_per_thread_contexts(state->thread_context_collector_instance);
+
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
   active_sampler_instance_state = state;
   active_sampler_instance = instance;
@@ -637,19 +642,19 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception, const char *opt
 // We need to be careful not to change any state that may be observed OR to restore it if we do. For instance, if anything
 // we do here can set `errno`, then we must be careful to restore the old `errno` after the fact.
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
-  cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
-
-  // This can potentially happen if the CpuAndWallTimeWorker was stopped while the signal delivery was happening; nothing to do
-  if (state == NULL) return;
-
+  // We must first check that we landed on the correct thread and can proceed.
+  // We must never touch the state before we confirm that we have landed on the thread that is holding the GVL on the main
+  // ractor as otherwise we may be concurrent with the profiler shutting down and removing its state.
   if (
     !ruby_native_thread_p() || // Not a Ruby thread
     !is_current_thread_holding_the_gvl() || // Not safe to enqueue a sample from this thread
     !ddtrace_rb_ractor_main_p() // We're not on the main Ractor; we currently don't support profiling non-main Ractors
-  ) {
-    state->stats.signal_handler_wrong_thread++;
-    return;
-  }
+  ) return;
+
+  cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
+
+  // This can potentially happen if the CpuAndWallTimeWorker was stopped while the signal delivery was happening; nothing to do
+  if (state == NULL) return;
 
   // We assume there can be no concurrent nor nested calls to handle_sampling_signal because
   // a) we get triggered using SIGPROF, and the docs state a second SIGPROF will not interrupt an existing one (see sigaction docs on sa_mask)
@@ -1104,7 +1109,6 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("simulated_signal_delivery")),                  /* => */ UINT2NUM(state->stats.simulated_signal_delivery),
     ID2SYM(rb_intern("signal_handler_enqueued_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_enqueued_sample),
     ID2SYM(rb_intern("signal_handler_prepared_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_prepared_sample),
-    ID2SYM(rb_intern("signal_handler_wrong_thread")),                /* => */ UINT2NUM(state->stats.signal_handler_wrong_thread),
     ID2SYM(rb_intern("interrupt_thread_attempts")),                  /* => */ UINT2NUM(state->stats.interrupt_thread_attempts),
 
     // CPU Stats
@@ -1437,17 +1441,21 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
   static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused) {
     // Be very careful about touching the `state` here or doing anything at all:
     // This function gets called without the GVL, and potentially from non-main Ractors!
+    //
+    // Note, even though these events can get called without the GVL, they synchronize-with enabling/disabling of
+    // the hook that calls us using a read-write lock. Thus, disabling the hook cannot be concurrent with calling this function,
+    // and once the disable finishes there can't be "late" calls into this function.
 
     // The thread that this event is about may not be the current thread
     // (as documented on rb_internal_thread_add_event_hook(), and this is notably the case for READY on Ruby 4.0),
     // so be careful with native thread locals that are not directly tied to the thread object and the like.
 
-    // On Ruby 3.2 the event does not carry the thread, but all events always fire on the event thread on Ruby 3.2.
-    // However, during early thread startup rb_thread_current() can crash because the execution context (Fiber) isn't
-    // stored in TLS yet; ruby_native_thread_p() guards against this.
     #ifdef HAVE_RUBY_THREAD_STORAGE_API
       VALUE target_thread = event_data->thread;
     #else
+      // On Ruby 3.2 the event does not carry the thread, but all events fire on the thread itself.
+      // However, during early thread startup rb_thread_current() can crash because the execution context (Fiber) isn't
+      // stored in TLS yet; ruby_native_thread_p() guards against this.
       if (!ruby_native_thread_p()) return;
       VALUE target_thread = rb_thread_current();
     #endif

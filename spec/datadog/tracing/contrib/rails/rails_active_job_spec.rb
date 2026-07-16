@@ -203,6 +203,110 @@ RSpec.describe 'ActiveJob', execute_in_fork: Rails.version.to_i >= 8 do
       end
     end
 
+    context 'Data Streams Monitoring' do
+      before do
+        unless Datadog::Tracing::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
+          skip('DSM propagation requires the instance-level serialize/deserialize hooks added in Rails 5.0')
+        end
+      end
+
+      let(:pathway_key) { Datadog::DataStreams::Processor::PROPAGATION_KEY }
+      let(:job) { job_class.new.tap { |j| j.queue_name = 'mice' } }
+
+      context 'when DSM is enabled' do
+        before do
+          allow(Datadog::DataStreams).to receive(:enabled?).and_return(true)
+          allow(Datadog::DataStreams).to receive(:set_produce_checkpoint) do |**_kwargs, &block|
+            block.call(pathway_key, 'pathway-context')
+          end
+          allow(Datadog::DataStreams).to receive(:set_consume_checkpoint)
+        end
+
+        it 'sets a produce checkpoint and injects the pathway context when serializing' do
+          job_data = job.serialize
+
+          expect(Datadog::DataStreams).to have_received(:set_produce_checkpoint).with(
+            type: 'active_job',
+            destination: 'mice',
+            auto_instrumentation: true
+          )
+          expect(job_data).to include(pathway_key => 'pathway-context')
+        end
+
+        it 'sets a consume checkpoint and extracts the pathway context when deserializing' do
+          job_data = job.serialize
+
+          extracted = nil
+          allow(Datadog::DataStreams).to receive(:set_consume_checkpoint) do |**_kwargs, &block|
+            extracted = block.call(pathway_key)
+          end
+
+          job_class.new.deserialize(job_data)
+
+          expect(Datadog::DataStreams).to have_received(:set_consume_checkpoint).with(
+            type: 'active_job',
+            source: 'mice',
+            auto_instrumentation: true
+          )
+          expect(extracted).to eq('pathway-context')
+        end
+      end
+
+      context 'when DSM is disabled' do
+        before do
+          allow(Datadog::DataStreams).to receive(:enabled?).and_return(false)
+          allow(Datadog::DataStreams).to receive(:set_produce_checkpoint)
+          allow(Datadog::DataStreams).to receive(:set_consume_checkpoint)
+        end
+
+        it 'does not set a produce checkpoint or inject the pathway context' do
+          job_data = job.serialize
+
+          expect(Datadog::DataStreams).not_to have_received(:set_produce_checkpoint)
+          expect(job_data).not_to include(pathway_key)
+        end
+
+        it 'does not set a consume checkpoint when deserializing' do
+          job_data = job.serialize
+          job_class.new.deserialize(job_data)
+
+          expect(Datadog::DataStreams).not_to have_received(:set_consume_checkpoint)
+        end
+      end
+
+      context 'when DSM is not configured' do
+        it 'reaches the real DataStreams facade and serializes the job' do
+          expect(Datadog::DataStreams.enabled?).to be(false)
+          expect { job.serialize }.not_to raise_error
+          expect(job.serialize).not_to include(pathway_key)
+        end
+
+        it 'reaches the real DataStreams facade and deserializes the job' do
+          job_data = job.serialize
+
+          expect { job_class.new.deserialize(job_data) }.not_to raise_error
+        end
+      end
+
+      context 'when a checkpoint raises' do
+        before do
+          allow(Datadog::DataStreams).to receive(:enabled?).and_return(true)
+          allow(Datadog::DataStreams).to receive(:set_produce_checkpoint).and_raise('boom')
+          allow(Datadog::DataStreams).to receive(:set_consume_checkpoint).and_raise('boom')
+        end
+
+        it 'still serializes the job' do
+          expect { job.serialize }.not_to raise_error
+        end
+
+        it 'still deserializes the job' do
+          job_data = job.serialize
+
+          expect { job_class.new.deserialize(job_data) }.not_to raise_error
+        end
+      end
+    end
+
     context 'log correlation' do
       subject(:perform_later) { job_class.set(queue: :elephants, priority: -10).perform_later }
       let(:span) { spans.find { |s| s.name == 'active_job.perform' } }

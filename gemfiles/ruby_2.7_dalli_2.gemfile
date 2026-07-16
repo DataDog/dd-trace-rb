@@ -26,11 +26,11 @@ gem "webmock", ">= 3.10.0"
 gem "ffi", "1.17.2"
 gem "dalli", "~> 2"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

@@ -226,6 +226,15 @@ module Datadog
           return false
         end
 
+        # Heap profiling relies on `ObjectSpace._id2ref`, which was removed on Ruby 4.1
+        # (https://bugs.ruby-lang.org/issues/22135).
+        if RubyVersion.is?(">= 4.1")
+          logger.warn(
+            "Heap profiling is currently incompatible with Ruby 4.1+ and has been disabled."
+          )
+          return false
+        end
+
         unless allocation_profiling_enabled
           logger.warn(
             "Heap profiling was requested but allocation profiling is not enabled. " \
@@ -243,6 +252,14 @@ module Datadog
         heap_size_profiling_enabled = settings.profiling.advanced.experimental_heap_size_enabled
 
         return false unless heap_profiling_enabled && heap_size_profiling_enabled
+
+        if RubyVersion.is?(">= 4")
+          logger.info(
+            "Heap live size profiling is currently incompatible with Ruby 4 and has been disabled. " \
+            "Heap live objects is not affected and remains enabled."
+          )
+          return false
+        end
 
         true
       end

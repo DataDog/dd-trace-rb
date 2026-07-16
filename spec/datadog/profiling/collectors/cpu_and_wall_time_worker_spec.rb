@@ -9,11 +9,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:gc_profiling_enabled) { true }
   let(:allocation_profiling_enabled) { false }
   let(:heap_profiling_enabled) { false }
+  let(:heap_size_profiling_available) { RubyVersion.is?("< 4") } # Currently incompatible with Ruby 4
+  let(:heap_size_profiling_enabled) { heap_profiling_enabled && heap_size_profiling_available }
   let(:recorder) do
     Datadog::Profiling::StackRecorder.for_testing(
       alloc_samples_enabled: true,
       heap_samples_enabled: heap_profiling_enabled,
-      heap_size_enabled: heap_profiling_enabled,
+      heap_size_enabled: heap_size_profiling_enabled,
       **stack_recorder_options,
     )
   end
@@ -24,6 +26,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:gvl_profiling_enabled) { false }
   let(:sighandler_sampling_enabled) { false }
   let(:cpu_sampling_interval_ms) { 10 }
+  let(:one_second_in_ns) { 1_000_000_000 }
   let(:thread_context_collector) { build_thread_context_collector(recorder) }
   let(:worker_settings) do
     {
@@ -287,7 +290,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(sampling_time_ns_min).to be <= sampling_time_ns_max
       expect(sampling_time_ns_max).to be <= sampling_time_ns_total
       expect(sampling_time_ns_avg).to be >= sampling_time_ns_min
-      one_second_in_ns = 1_000_000_000
       expect(sampling_time_ns_max).to be < one_second_in_ns, "A single sample should not take longer than 1s, #{stats}"
     end
 
@@ -582,9 +584,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         context "when 'Waiting for GVL' periods are below waiting_for_gvl_threshold_ns" do
           let(:options) do
-            one_second_as_ns = 1_000_000_000
-            collector = build_thread_context_collector(recorder, waiting_for_gvl_threshold_ns: one_second_as_ns)
-
+            collector = build_thread_context_collector(recorder, waiting_for_gvl_threshold_ns: one_second_in_ns)
             {thread_context_collector: collector}
           end
 
@@ -782,7 +782,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           expect(sampling_time_ns_min).to be <= sampling_time_ns_max
           expect(sampling_time_ns_max).to be <= sampling_time_ns_total
           expect(sampling_time_ns_avg).to be >= sampling_time_ns_min
-          one_second_in_ns = 1_000_000_000
           expect(sampling_time_ns_max).to be < one_second_in_ns, "A single sample should not take longer than 1s, #{stats}"
         end
 
@@ -918,6 +917,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
 
         skip "Heap profiling is only supported on Ruby >= 2.7" unless RubyVersion.is?(">= 2.7")
+        skip "Heap profiling relies on ObjectSpace._id2ref, removed in Ruby 4.1" if RubyVersion.is?(">= 4.1")
       end
 
       after do |example|
@@ -971,7 +971,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         expected_size_of_object = 40 # 40 is the size of a basic object and we have test_num_allocated_object of them
 
-        expect(total_size).to eq test_num_allocated_object * expected_size_of_object
+        if heap_size_profiling_available
+          expect(total_size).to eq test_num_allocated_object * expected_size_of_object
+        end
       end
 
       describe "heap cleanup after GC" do
@@ -1176,6 +1178,35 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         proc_called.pop
       end
     end
+
+    context "when restarting after having been stopped" do
+      it "resets leftover per-thread state, so it's not attributed to the new session's samples" do
+        # Seed state from sampling
+        start
+        try_wait_until do
+          samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current).any?
+        end
+        cpu_and_wall_time_worker.stop
+        recorder.serialize!
+
+        # Roll back the clock to make it really obvious if this is not cleaned up
+        Datadog::Profiling::Collectors::ThreadContext::Testing
+          ._native_apply_delta_to_cpu_time_at_previous_sample_ns(Thread.current, -(60 * 60 * one_second_in_ns))
+
+        before_restart_ns = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
+        cpu_and_wall_time_worker.start
+        wait_until_running
+        new_samples = try_wait_until do
+          samples = samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
+          samples if samples.any?
+        end
+        cpu_and_wall_time_worker.stop
+        elapsed_ns = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond) - before_restart_ns
+
+        cpu_time_ns = new_samples.sum { |it| it.values.fetch(:"cpu-time") }
+        expect(cpu_time_ns).to be <= elapsed_ns
+      end
+    end
   end
 
   describe "Ractor safety" do
@@ -1377,7 +1408,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           trigger_simulated_signal_delivery_attempts: 0,
           simulated_signal_delivery: 0,
           signal_handler_enqueued_sample: 0,
-          signal_handler_wrong_thread: 0,
           signal_handler_prepared_sample: 0,
           interrupt_thread_attempts: 0,
           cpu_sampled: 0,
@@ -1696,6 +1726,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     Datadog::Profiling::Collectors::ThreadContext.for_testing(
       recorder: recorder,
       endpoint_collection_enabled: endpoint_collection_enabled,
+      # The worker triggers the global reset itself when it starts, so we don't want `for_testing` to also do it here
+      # (it would interfere with the state these tests carefully set up).
+      trigger_global_reset: false,
       **options,
     )
   end

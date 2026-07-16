@@ -157,7 +157,7 @@ module Datadog
           begin
             if send_stats? && !start.nil?
               finished = Utils::Time.get_time
-              distribution(stat, ((finished - start) * 1000), options)
+              distribution(stat, (finished - start) * 1000, options)
             end
           rescue => e
             # TODO: Likely to be redundant, since `distribution` handles its own errors.
