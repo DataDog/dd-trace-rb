@@ -95,7 +95,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
       [{
         path: path.to_s,
         content: string_io_content
-      }]
+      }],
     )
   end
 
@@ -113,7 +113,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
             [{
               path: "invalid path",
               content: string_io_content
-            }]
+            }],
           )
         end.to raise_error(Datadog::Core::Remote::Configuration::Path::ParseError)
       end
@@ -149,7 +149,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
           },
           "hashes" => {"sha256" => "e39c699e5e626da1a43369ab3e7f17cce6a21c0ce1d2261280c7f2ac61c5db1b"},
           "length" => 4605
-        }
+        },
       )
 
       content = content_list.find_content(path, wrong_target)
@@ -178,7 +178,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
         {
           path: path.to_s,
           content: updated_string_io
-        }
+        },
       )
     end
 
@@ -230,7 +230,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
         {
           path: path.to_s,
           content: string_io_content
-        }
+        },
       )
     end
 
@@ -259,7 +259,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
               sha256: "c8358ce9038693fb74ad8625e4c6c563bd2afb16b4412b2c8f7dba062e9e88de",
               sha512: "546b5325ec8559dda0b34f3e628e99c7b9d18eb59b23ec87f672b1ed8c4ac9ac" \
                 "11ac6ffb15e6b4d71f5f343ec243d142db61aaf60f4a0410e39dc916c623cc82"
-            }
+            },
           )
         end
       end

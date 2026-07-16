@@ -12,7 +12,7 @@ RSpec.describe Datadog::Tracing::Event do
     it do
       is_expected.to have_attributes(
         name: name,
-        subscriptions: kind_of(Array)
+        subscriptions: kind_of(Array),
       )
     end
   end

@@ -7,7 +7,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
     it "raises Datadog::AIGuard::AIGuardClientError when some key is missing" do
       expect { described_class.new({}) }.to raise_error(
         Datadog::AIGuard::AIGuardClientError,
-        "Missing key: \"data\""
+        "Missing key: \"data\"",
       )
     end
   end
@@ -74,7 +74,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
   describe "#sds_findings" do
     it "returns the sds_findings from the response body" do
       expect(described_class.new(raw_response).sds_findings).to eq(
-        raw_response.dig("data", "attributes", "sds_findings")
+        raw_response.dig("data", "attributes", "sds_findings"),
       )
     end
 
@@ -102,7 +102,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
   describe "#tag_probabilities" do
     it "returns the tag_probs from the response body" do
       expect(described_class.new(raw_response).tag_probabilities).to eq(
-        raw_response.dig("data", "attributes", "tag_probs")
+        raw_response.dig("data", "attributes", "tag_probs"),
       )
     end
   end
@@ -110,7 +110,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
   describe "#blocking_enabled?" do
     it "returns a boolean is_blocking_enabled from the response body" do
       expect(described_class.new(raw_response).blocking_enabled?).to eq(
-        raw_response.dig("data", "attributes", "is_blocking_enabled")
+        raw_response.dig("data", "attributes", "is_blocking_enabled"),
       )
     end
   end

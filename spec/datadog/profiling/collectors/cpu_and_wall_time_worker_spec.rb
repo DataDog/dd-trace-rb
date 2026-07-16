@@ -72,7 +72,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       it "raises an ArgumentError" do
         expect { cpu_and_wall_time_worker }.to raise_error(
           ArgumentError,
-          /cpu_sampling_interval_ms must be a positive integer/
+          /cpu_sampling_interval_ms must be a positive integer/,
         )
       end
     end
@@ -503,7 +503,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
           samples = samples_for_thread(
             samples_from_pprof_without_gc_and_overhead(recorder.serialize!),
-            background_thread_affected_by_gvl_contention
+            background_thread_affected_by_gvl_contention,
           ).sort_by { |s| s.labels.fetch(:end_timestamp_ns) }
 
           thread_activity_time =
@@ -578,7 +578,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               gvl_sampling_time_ns_total: be > 0,
               gvl_sampling_time_ns_avg: be > 0,
               gvl_waiting_time_ns_total: be > 0,
-            )
+            ),
           )
         end
 
@@ -610,7 +610,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             expect(cpu_and_wall_time_worker.stats).to match(
               hash_including(
                 gvl_waiting_time_ns_total: be >= 0,
-              )
+              ),
             )
           end
         end
@@ -712,10 +712,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               trigger_simulated_signal_delivery_attempts: trigger_sample_attempts,
               simulated_signal_delivery: trigger_sample_attempts,
               signal_handler_enqueued_sample: trigger_sample_attempts,
-            )
+            ),
           ),
           "**If you see this test flaking, please report it to @ivoanjo!**\n\n" \
-          "sample_count: #{sample_count}, samples: #{all_samples}"
+          "sample_count: #{sample_count}, samples: #{all_samples}",
         )
       end
     end
@@ -880,8 +880,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             # a known member of the imemo_type enum (even if we don't exactly match on which one)
             expect(imemo_samples.map { |s| s.labels.fetch(:"allocation class") }).to all(
               match(
-                /(env|cref|svar|throw_data|ifunc|memo|ment|iseq|tmpbuf|ast|parser_strterm|callinfo|callcache|constcache|fields)/
-              )
+                /(env|cref|svar|throw_data|ifunc|memo|ment|iseq|tmpbuf|ast|parser_strterm|callinfo|callcache|constcache|fields)/,
+              ),
             )
           end
         end
@@ -991,7 +991,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           test_object_id = test_object.object_id
 
           expect(
-            Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, test_object_id)
+            Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, test_object_id),
           ).to be true
 
           # Let's replace the test_object reference with another object, so that the original one can be GC'd
@@ -1013,7 +1013,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
             it "removes live heap objects after GCs" do
               expect(
-                Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+                Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id),
               ).to be false
             end
           end
@@ -1023,7 +1023,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
             it "does not remove live heap objects after GCs" do
               expect(
-                Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+                Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id),
               ).to be true
             end
           end
@@ -1035,14 +1035,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           it "does not remove live heap objects after minor GCs" do
             # The object is still being tracked!
             expect(
-              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id),
             ).to be true
 
             # Sanity checking: It stops being tracked after a serialization, proving it was indeed dead, we just hadn't
             # updated our state yet
             recorder.serialize!
             expect(
-              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id),
             ).to be false
           end
         end
@@ -1457,7 +1457,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           gc_samples_missed_due_to_missing_context: 0,
           inactive_thread_samples_skipped: 0,
           profiler_thread_samples_skipped: 0,
-        }
+        },
       )
     end
   end
@@ -1616,7 +1616,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           allocation_sampled: be > 0,
           cpu_sampling_time_ns_avg: be > 0,
           allocation_sampling_time_ns_avg: be > 0,
-        )
+        ),
       )
 
       stats = cpu_and_wall_time_worker.stats
@@ -1627,7 +1627,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           allocation_sampled: 0,
           cpu_sampling_time_ns_avg: nil,
           allocation_sampling_time_ns_avg: nil,
-        )
+        ),
       )
     end
   end
@@ -1640,7 +1640,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       # Simulate a delayed failure pre-initialization (i.e. during new)
       Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_delayed_error(
         worker,
-        "test failure"
+        "test failure",
       )
 
       worker.send(:initialize, **worker_settings, **options)
@@ -1676,7 +1676,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       # Simulate a delayed failure while running
       Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_delayed_error(
         cpu_and_wall_time_worker,
-        "test failure"
+        "test failure",
       )
 
       # We expect this to have been filled by the on_failure_proc

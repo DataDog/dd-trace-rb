@@ -535,7 +535,7 @@ module Datadog
           trace_id: @trace_id,
           links: @links,
           events: @span_events,
-          service_entry: parent.nil? || (service && parent.service != service)
+          service_entry: parent.nil? || (service && parent.service != service),
         )
       end
 

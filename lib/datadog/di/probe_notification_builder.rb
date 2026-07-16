@@ -34,19 +34,19 @@ module Datadog
       def build_received(probe)
         build_status(probe,
           message: "Probe #{probe.id} has been received correctly",
-          status: "RECEIVED",)
+          status: "RECEIVED")
       end
 
       def build_installed(probe)
         build_status(probe,
           message: "Probe #{probe.id} has been instrumented correctly",
-          status: "INSTALLED",)
+          status: "INSTALLED")
       end
 
       def build_emitting(probe)
         build_status(probe,
           message: "Probe #{probe.id} is emitting",
-          status: "EMITTING",)
+          status: "EMITTING")
       end
 
       def build_errored(probe, exc)
@@ -59,7 +59,7 @@ module Datadog
       def build_disabled(probe, duration)
         build_status(probe,
           message: "Probe #{probe.id} was disabled because it consumed #{duration} seconds of CPU time in DI processing",
-          status: "ERROR",)
+          status: "ERROR")
       end
 
       # Duration is in seconds.

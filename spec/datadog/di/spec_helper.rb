@@ -14,14 +14,14 @@ module DIHelpers
           value_json = value.to_json
 
           target = Datadog::Core::Remote::Configuration::Target.parse(
-            target_payload_for_value(value_json)
+            target_payload_for_value(value_json),
           )
 
           content = Datadog::Core::Remote::Configuration::Content.parse(
             {
               path: key,
               content: value_json,
-            }
+            },
           )
 
           transaction.insert(content.path, target, content)
@@ -36,7 +36,7 @@ module DIHelpers
         roots: [],
         targets: targets,
         target_files: target_files,
-        client_configs: client_configs,)
+        client_configs: client_configs)
     end
 
     private
@@ -222,7 +222,7 @@ module DIHelpers
     def instance_double_agent_settings_with_stubs
       instance_double(
         Datadog::Core::Configuration::AgentSettings,
-        hostname: "test-host", port: 9000, timeout_seconds: 1, ssl: false
+        hostname: "test-host", port: 9000, timeout_seconds: 1, ssl: false,
       )
     end
   end

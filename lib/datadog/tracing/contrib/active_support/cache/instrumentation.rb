@@ -49,7 +49,7 @@ module Datadog
                 Ext::SPAN_CACHE,
                 type: Ext::SPAN_TYPE_CACHE,
                 service: Datadog.configuration.tracing[:active_support][:cache_service],
-                resource: action
+                resource: action,
               ) do |span|
                 span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)

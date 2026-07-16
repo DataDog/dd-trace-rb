@@ -438,7 +438,7 @@ RSpec.describe "Rack integration tests" do
                 end
 
                 [200, {"Content-Type" => "application/json"}, [ext_response.body]]
-              end
+              end,
             )
           end
         end
@@ -701,12 +701,12 @@ RSpec.describe "Rack integration tests" do
               uds_path: nil,
               hostname: "localhost",
               port: 6218,
-              timeout_seconds: 30
+              timeout_seconds: 30,
             )
             agent_http_adapter = Datadog::Core::Transport::HTTP::Adapters::Net.new(agent_settings)
             agent_http_client = Datadog::Tracing::Transport::HTTP.default(
               agent_settings: test_agent_settings,
-              logger: logger
+              logger: logger,
             ) do |t|
               t.adapter agent_http_adapter
             end
@@ -1050,7 +1050,7 @@ RSpec.describe "Rack integration tests" do
                   request_span.set_tag("http.url", "/app/static/")
 
                   [200, {"Content-Type" => "text/html"}, ["OK"]]
-                end
+                end,
               )
             end
           end
@@ -1103,7 +1103,7 @@ RSpec.describe "Rack integration tests" do
 
                     [200, {"Content-Type" => "text/html"}, ["OK"]]
                   end
-                end
+                end,
               )
             end
           end
@@ -1178,7 +1178,7 @@ RSpec.describe "Rack integration tests" do
                     request_span.set_tag("error.stack", "Handled exception")
 
                     [500, {"Content-Type" => "text/html"}, ["OK"]]
-                  end
+                  end,
                 )
               end
             end
@@ -1221,7 +1221,7 @@ RSpec.describe "Rack integration tests" do
                     request_span.set_tag("error.stack", "Handled exception")
 
                     [500, {"Content-Type" => "text/html"}, ["OK"]]
-                  end
+                  end,
                 )
               end
             end
@@ -1309,7 +1309,7 @@ RSpec.describe "Rack integration tests" do
                   "X-Fake-Response" => "Don't tag me."
                 }
                 [200, response_headers, ["OK"]]
-              end
+              end,
             )
           end
         end
@@ -1477,7 +1477,7 @@ RSpec.describe "Rack integration tests" do
               proc do |env|
                 env["REQUEST_METHOD"] = "GET"
                 [200, {"Content-Type" => "text/html"}, ["OK"]]
-              end
+              end,
             )
           end
         end

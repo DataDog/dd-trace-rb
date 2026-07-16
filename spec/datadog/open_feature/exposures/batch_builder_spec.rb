@@ -30,7 +30,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::BatchBuilder do
       it "returns payload with context fields" do
         expect(builder.payload_for([event])).to eq(
           context: {env: "prod", service: "dummy-service", version: "1.0.0"},
-          exposures: [event]
+          exposures: [event],
         )
       end
     end
@@ -41,14 +41,14 @@ RSpec.describe Datadog::OpenFeature::Exposures::BatchBuilder do
           Datadog::Core::Configuration::Settings,
           env: "qa",
           service: nil,
-          version: "2.0.0"
+          version: "2.0.0",
         )
       end
 
       it "ignores nil context values" do
         expect(builder.payload_for([event])).to eq(
           context: {env: "qa", version: "2.0.0"},
-          exposures: [event]
+          exposures: [event],
         )
       end
     end
@@ -59,7 +59,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::BatchBuilder do
           Datadog::Core::Configuration::Settings,
           env: nil,
           service: nil,
-          version: nil
+          version: nil,
         )
       end
 

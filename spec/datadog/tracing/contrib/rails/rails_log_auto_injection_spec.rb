@@ -55,7 +55,7 @@ RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >
             render inline: "OK"
           end
         end
-      end
+      end,
     )
   end
 
@@ -174,7 +174,7 @@ RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >
                 custom_options: {
                   "some_hash_info" => "test_hash_value",
                   "some_other_hash_info" => "other_test_hash_value"
-                }
+                },
               )
             end
 
@@ -205,7 +205,7 @@ RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >
                     "some_lambda_info" => "test_lambda_value",
                     "some_other_lambda_info" => "other_test_lambda_value"
                   }
-                end
+                end,
               )
             end
 
@@ -314,7 +314,7 @@ RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >
                 custom_options: {
                   "some_hash_info" => "test_hash_value",
                   "some_other_hash_info" => "other_test_hash_value"
-                }
+                },
               )
             end
 
@@ -345,7 +345,7 @@ RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >
                     "some_lambda_info" => "test_lambda_value",
                     "some_other_lambda_info" => "other_test_lambda_value"
                   }
-                end
+                end,
               )
             end
 
@@ -376,7 +376,7 @@ RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >
                 custom_options: {
                   "some_hash_info" => "test_hash_value",
                   "some_other_hash_info" => "other_test_hash_value"
-                }
+                },
               )
             end
 
@@ -525,7 +525,7 @@ RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >
                 custom_options: {
                   "some_hash_info" => "test_hash_value",
                   "some_other_hash_info" => "other_test_hash_value"
-                }
+                },
               )
             end
 
@@ -555,7 +555,7 @@ RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >
                     "some_lambda_info" => "test_lambda_value",
                     "some_other_lambda_info" => "other_test_lambda_value"
                   }
-                end
+                end,
               )
             end
 

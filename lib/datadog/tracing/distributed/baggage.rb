@@ -45,7 +45,7 @@ module Datadog
               record_telemetry_metric(
                 "context_header.truncated",
                 1,
-                {"header_style" => "baggage", "truncation_reason" => "baggage_item_count_exceeded"}
+                {"header_style" => "baggage", "truncation_reason" => "baggage_item_count_exceeded"},
               )
               baggage_items = baggage_items.first(DD_TRACE_BAGGAGE_MAX_ITEMS)
             end
@@ -62,7 +62,7 @@ module Datadog
                 record_telemetry_metric(
                   "context_header.truncated",
                   1,
-                  {"header_style" => "baggage", "truncation_reason" => "baggage_byte_count_exceeded"}
+                  {"header_style" => "baggage", "truncation_reason" => "baggage_byte_count_exceeded"},
                 )
                 break # stop adding items when size limit is reached
               end
@@ -100,7 +100,7 @@ module Datadog
 
           TraceDigest.new(
             baggage: baggage,
-            trace_distributed_tags: baggage_tags
+            trace_distributed_tags: baggage_tags,
           )
         end
 

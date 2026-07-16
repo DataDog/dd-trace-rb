@@ -134,7 +134,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
           tags: nil,
           runtime_metrics_enabled: false,
           vm: be_a(String),
-          health_metrics_enabled: false
+          health_metrics_enabled: false,
         )
       end
 

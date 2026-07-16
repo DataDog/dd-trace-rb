@@ -16,7 +16,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Test do
       it do
         is_expected.to have_attributes(
           buffer: nil,
-          status: 200
+          status: 200,
         )
       end
     end

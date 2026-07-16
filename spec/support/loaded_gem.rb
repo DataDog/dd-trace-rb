@@ -12,7 +12,7 @@ module LoadedGem
           version = Gem::Version.new(version.to_s)
           spec = instance_double(
             Bundler::StubSpecification,
-            version: version
+            version: version,
           )
         end
 
@@ -47,7 +47,7 @@ module LoadedGem
           patcher::PATCH_ONLY_ONCE.send(:reset_ran_once_state_for_tests) if defined?(patcher::PATCH_ONLY_ONCE)
           patcher.send(:patch_only_once).send(:reset_ran_once_state_for_tests) if patcher.respond_to?(
             :patch_only_once,
-            true
+            true,
           )
         end
       else

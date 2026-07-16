@@ -24,7 +24,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
           profiler: hash_including(
             version: Datadog::Core::Environment::Identity.gem_datadog_version,
           ),
-        }
+        },
       )
     end
 
@@ -45,7 +45,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
         a_hash_including(
           max_frames: 600,
           experimental_heap_enabled: true,
-        )
+        ),
       )
     end
 
@@ -84,7 +84,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
               proc_opt: a_string_including("#<Proc:"),
               complex_obj_opt: a_string_including("#<ComplexObject:")
             }
-          }
+          },
         )
       end
     end
@@ -193,7 +193,7 @@ class TestSettings
             g: {"a" => "a", "b" => "b"},
             h: :a_symbol,
             i: ComplexObject.new,
-          }
+          },
         )
       end
 

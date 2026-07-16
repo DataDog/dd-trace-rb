@@ -11,7 +11,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Digest do
       {
         path: "datadog/603646/ASM/exclusion_filters/config",
         content: data
-      }
+      },
     )
   end
 
@@ -26,7 +26,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Digest do
     context "invalid type is not supported" do
       it "raises InvalidHashTypeError" do
         expect { described_class.hexdigest(:invalid, data) }.to raise_error(
-          described_class::InvalidHashTypeError
+          described_class::InvalidHashTypeError,
         )
       end
     end

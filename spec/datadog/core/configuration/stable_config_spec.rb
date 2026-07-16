@@ -25,13 +25,13 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
       if defined?(local_config_content)
         File.write(
           File.join(tmpdir, "local_config.yaml"),
-          local_config_content
+          local_config_content,
         )
       end
       if defined?(fleet_config_content)
         File.write(
           File.join(tmpdir, "fleet_config.yaml"),
-          fleet_config_content
+          fleet_config_content,
         )
       end
 
@@ -39,18 +39,18 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
       if defined?(local_config_content)
         Datadog::Core::Configuration::StableConfig::Testing.with_local_path(
           test_configurator,
-          File.join(tmpdir, "local_config.yaml")
+          File.join(tmpdir, "local_config.yaml"),
         )
       end
       if defined?(fleet_config_content)
         Datadog::Core::Configuration::StableConfig::Testing.with_fleet_path(
           test_configurator,
-          File.join(tmpdir, "fleet_config.yaml")
+          File.join(tmpdir, "fleet_config.yaml"),
         )
       end
 
       allow_any_instance_of(Datadog::Core::Configuration::StableConfig::Configurator).to receive(:get).and_return(
-        test_configurator.get
+        test_configurator.get,
       )
     end
 
@@ -84,7 +84,7 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
               local: {id: "12345", config: {"DD_LOGS_INJECTION" => "false"}},
               fleet: {id: "56789", config: {"DD_APPSEC_ENABLED" => "true"}},
               logs: be_a(String)
-            }
+            },
           )
         end
 
@@ -117,7 +117,7 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
               local: {config: {"DD_LOGS_INJECTION" => "false"}},
               fleet: {config: {"DD_APPSEC_ENABLED" => "true"}},
               logs: be_a(String)
-            }
+            },
           )
         end
 

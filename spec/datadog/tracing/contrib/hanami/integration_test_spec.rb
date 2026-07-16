@@ -29,7 +29,7 @@ RSpec.describe "Hanami instrumentation" do
       expect(routing_span).to be_hanami_routing_span.with(parent: rack_span, resource: "GET")
       expect(render_span).to be_hanami_render_span.with(
         parent: routing_span,
-        resource: "Hanami::Routing::Default::NullAction"
+        resource: "Hanami::Routing::Default::NullAction",
       )
     end
   end
@@ -74,7 +74,7 @@ RSpec.describe "Hanami instrumentation" do
       expect(routing_span).to be_hanami_routing_span.with(parent: rack_span, resource: "GET")
       expect(render_span).to be_hanami_render_span.with(
         parent: routing_span,
-        resource: "Hanami::Routing::Default::NullAction"
+        resource: "Hanami::Routing::Default::NullAction",
       )
     end
   end
@@ -90,19 +90,19 @@ RSpec.describe "Hanami instrumentation" do
       expect(rack_span).to be_hanami_rack_span.with(
         resource: "Dummy::Controllers::Books::ServerError",
         http_status_code: 500,
-        have_error: true
+        have_error: true,
       )
       expect(routing_span).to be_hanami_routing_span.with(
         parent: rack_span,
-        resource: "Dummy::Controllers::Books::ServerError"
+        resource: "Dummy::Controllers::Books::ServerError",
       )
       expect(action_span).to be_hanami_action_span.with(
         parent: routing_span,
-        resource: "Dummy::Controllers::Books::ServerError"
+        resource: "Dummy::Controllers::Books::ServerError",
       )
       expect(render_span).to be_hanami_render_span.with(
         parent: routing_span,
-        resource: "Dummy::Controllers::Books::ServerError"
+        resource: "Dummy::Controllers::Books::ServerError",
       )
     end
   end

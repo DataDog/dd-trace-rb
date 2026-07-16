@@ -36,7 +36,7 @@ module Datadog
           elsif RubyVersion.is?("< 2.7")
             logger.warn(
               "error tracking: cannot enable error tracking: Ruby 2.7+ is required, but running
-              on #{RUBY_VERSION}"
+              on #{RUBY_VERSION}",
             )
             false
           else

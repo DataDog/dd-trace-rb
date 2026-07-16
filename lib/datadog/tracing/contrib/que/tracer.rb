@@ -49,7 +49,7 @@ module Datadog
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(
                 request_span,
-                configuration[:analytics_sample_rate]
+                configuration[:analytics_sample_rate],
               )
             end
           end

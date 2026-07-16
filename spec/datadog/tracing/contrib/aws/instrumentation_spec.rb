@@ -149,7 +149,7 @@ RSpec.describe "AWS instrumentation" do
             :list_buckets,
             status_code: 500,
             body: "test body with 500 error",
-            headers: {}
+            headers: {},
           )
         end
 
@@ -170,7 +170,7 @@ RSpec.describe "AWS instrumentation" do
             :list_buckets,
             status_code: 404,
             body: "test body with 404 error",
-            headers: {}
+            headers: {},
           )
         end
 
@@ -269,7 +269,7 @@ RSpec.describe "AWS instrumentation" do
           {
             queue_url: "https://sqs.us-stubbed-1.amazonaws.com/123456789012/MyQueueName",
             message_body: "Hello, world!"
-          }
+          },
         )
       end
 
@@ -349,7 +349,7 @@ RSpec.describe "AWS instrumentation" do
                 message_group_id: "String",
               },
             ],
-          }
+          },
         )
       end
 
@@ -400,7 +400,7 @@ RSpec.describe "AWS instrumentation" do
           {
             queue_name: "MyQueueName",
             queue_owner_aws_account_id: "1234",
-          }
+          },
         )
       end
 
@@ -453,7 +453,7 @@ RSpec.describe "AWS instrumentation" do
           {
             topic_arn: "arn:aws:sns:us-west-2:123456789012:my-topic-name",
             message: "Hello, world!"
-          }
+          },
         )
       end
 
@@ -512,7 +512,7 @@ RSpec.describe "AWS instrumentation" do
                 value: "TagValue", # required
               },
             ]
-          }
+          },
         )
       end
 
@@ -612,7 +612,7 @@ RSpec.describe "AWS instrumentation" do
         client.put_record(
           stream_name: "my-stream-name",
           partition_key: "parition-1",
-          data: "Hello world!"
+          data: "Hello world!",
         )
       end
 
@@ -724,7 +724,7 @@ RSpec.describe "AWS instrumentation" do
                 value: "TagValue", # required
               },
             ],
-          }
+          },
         )
       end
 
@@ -772,7 +772,7 @@ RSpec.describe "AWS instrumentation" do
         client.list_targets_by_rule(
           {
             rule: "RuleName", # required
-          }
+          },
         )
       end
 
@@ -824,7 +824,7 @@ RSpec.describe "AWS instrumentation" do
         client.start_execution(
           {
             state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine" # required
-          }
+          },
         )
       end
 
@@ -876,7 +876,7 @@ RSpec.describe "AWS instrumentation" do
             name: "my-state-machine-name", # required
             definition: "Definition", # required
             role_arn: "Arn", # required
-          }
+          },
         )
       end
 
@@ -925,7 +925,7 @@ RSpec.describe "AWS instrumentation" do
         client.describe_state_machine(
           {
             state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine-name", # required
-          }
+          },
         )
       end
 
@@ -983,7 +983,7 @@ RSpec.describe "AWS instrumentation" do
         client.update_state_machine(
           {
             state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine-name", # required
-          }
+          },
         )
       end
 
@@ -1031,7 +1031,7 @@ RSpec.describe "AWS instrumentation" do
         client.delete_state_machine(
           {
             state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine-name", # required
-          }
+          },
         )
       end
 
@@ -1077,7 +1077,7 @@ RSpec.describe "AWS instrumentation" do
         client.describe_execution(
           {
             execution_arn: "arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution",
-          }
+          },
         )
       end
 
@@ -1139,7 +1139,7 @@ RSpec.describe "AWS instrumentation" do
         client.stop_execution(
           {
             execution_arn: "arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution",
-          }
+          },
         )
       end
 

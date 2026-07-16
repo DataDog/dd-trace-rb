@@ -104,7 +104,7 @@ module Datadog
                 runtime_default: runtime_default,
                 error_message: error_message,
                 targeting_key: targeting_key,
-                context_attrs: pruned_context
+                context_attrs: pruned_context,
               )
               @full[full_key] = entry
               @global_count += 1
@@ -277,7 +277,7 @@ module Datadog
           @degraded[degraded_key] = new_entry(
             evaluation_time_ms,
             runtime_default: runtime_default,
-            error_message: error_message
+            error_message: error_message,
           )
         end
       end

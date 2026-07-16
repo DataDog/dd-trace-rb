@@ -55,7 +55,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           have_attributes(base_label: "_native_sample"),
           have_attributes(base_label: "sample"),
           have_attributes(base_label: "sample_and_decode"),
-        ]
+        ],
       )
       super()[3..-1]
     end
@@ -124,7 +124,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             %(
             ready_queue << true
             sleep
-          )
+          ),
           )
         end
       end
@@ -697,7 +697,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           ),
           binding,
           filename,
-          123456
+          123456,
         )
         # rubocop:enable Security/Eval
         # rubocop:enable Style/EvalWithLocation
@@ -709,7 +709,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           have_attributes(
             path: "/myapp/app/views/layouts/explore.html.haml",
             base_label: "_app_views_layouts_explore_html_haml",
-          )
+          ),
         )
       end
 
@@ -721,7 +721,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             have_attributes(
               path: "/myapp/app/views/layouts/explore.html.haml",
               base_label: "_app_views_layouts_explore_html_haml",
-            )
+            ),
           )
         end
       end
@@ -845,7 +845,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           write_finish_pipe.close
           read_finish_pipe.read
           read_finish_pipe.close
-        end
+        end,
       )
     end
 
@@ -988,7 +988,7 @@ class DeepStackSimulator
       ),
         binding,
         __FILE__,
-        __LINE__ - 12
+        __LINE__ - 12,
       )
       # rubocop:enable Security/Eval
     end

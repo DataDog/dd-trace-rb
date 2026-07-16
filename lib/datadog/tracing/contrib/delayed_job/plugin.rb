@@ -19,7 +19,7 @@ module Datadog
               Ext::SPAN_JOB,
               service: configuration[:service_name],
               resource: job_name(job),
-              on_error: configuration[:on_error]
+              on_error: configuration[:on_error],
             ) do |span|
               span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               set_sample_rate(span)
@@ -50,7 +50,7 @@ module Datadog
             Tracing.trace(
               Ext::SPAN_ENQUEUE,
               service: configuration[:client_service_name],
-              resource: job_name(job)
+              resource: job_name(job),
             ) do |span|
               span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               set_sample_rate(span)

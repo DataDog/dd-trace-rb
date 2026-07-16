@@ -19,7 +19,7 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
       Class.new(::Que::Job) do
         def run(*args)
         end
-      end
+      end,
     )
   end
   let(:error_job_class) do
@@ -29,7 +29,7 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
         def run(*_args)
           raise StandardError, "with some error"
         end
-      end
+      end,
     )
   end
 

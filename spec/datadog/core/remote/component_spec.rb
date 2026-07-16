@@ -40,13 +40,13 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
       it "initializes component" do
         expect(Datadog::Core::Remote::Client::Capabilities).to receive(:new).with(
           settings,
-          telemetry
+          telemetry,
         ).and_return(capabilities)
         expect(described_class).to receive(:new).with(
           settings,
           capabilities,
           agent_settings,
-          logger: logger
+          logger: logger,
         ).and_return(component)
 
         is_expected.to eq(component)

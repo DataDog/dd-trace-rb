@@ -111,7 +111,7 @@ RSpec.describe Datadog::Tracing::Contrib::Configurable do
           it do
             is_expected.to include(
               default: a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings),
-              foo: a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings)
+              foo: a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings),
             )
           end
         end

@@ -34,7 +34,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter" do
           url: "http://127.0.0.1:8126",
           tracer_version: nil, language: nil, language_version: nil,
           language_interpreter: nil, hostname: nil, env: nil,
-          service: nil, version: nil,
+          service: nil, version: nil
         )
         expect(exporter).to be_a(trace_exporter_class)
       end
@@ -47,7 +47,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter" do
             url: 12345,
             tracer_version: nil, language: nil, language_version: nil,
             language_interpreter: nil, hostname: nil, env: nil,
-            service: nil, version: nil,
+            service: nil, version: nil
           )
         }.to raise_error(TypeError)
       end
@@ -61,7 +61,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter" do
             tracer_version: 123, # should be String or nil
             language: nil, language_version: nil,
             language_interpreter: nil, hostname: nil, env: nil,
-            service: nil, version: nil,
+            service: nil, version: nil
           )
         }.to raise_error(TypeError)
       end
@@ -78,7 +78,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter" do
             url: "http://127.0.0.1:8126",
             tracer_version: nil, language: nil, language_version: nil,
             language_interpreter: nil, hostname: nil, env: nil,
-            service: nil, version: nil,
+            service: nil, version: nil
           )
         end
         GC.start

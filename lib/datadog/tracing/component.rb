@@ -53,7 +53,7 @@ module Datadog
       def build_trace_flush(settings)
         if settings.tracing.partial_flush.enabled
           Tracing::Flush::Partial.new(
-            min_spans_before_partial_flush: settings.tracing.partial_flush.min_spans_threshold
+            min_spans_before_partial_flush: settings.tracing.partial_flush.min_spans_threshold,
           )
         else
           Tracing::Flush::Finished.new
@@ -77,7 +77,7 @@ module Datadog
           post_sampler = Tracing::Sampling::RuleSampler.parse(
             rules,
             settings.tracing.sampling.rate_limit,
-            settings.tracing.sampling.default_rate
+            settings.tracing.sampling.default_rate,
           )
         end
 
@@ -85,12 +85,12 @@ module Datadog
         # Used if no custom sampler is provided, or if sampling rule parsing fails.
         post_sampler ||= Tracing::Sampling::RuleSampler.new(
           rate_limit: settings.tracing.sampling.rate_limit,
-          default_sample_rate: settings.tracing.sampling.default_rate
+          default_sample_rate: settings.tracing.sampling.default_rate,
         )
 
         Tracing::Sampling::PrioritySampler.new(
           base_sampler: Tracing::Sampling::AllSampler.new,
-          post_sampler: post_sampler
+          post_sampler: post_sampler,
         )
       end
 
@@ -117,14 +117,14 @@ module Datadog
         unless Transport::Native.supported?
           Datadog.logger.warn(
             "Native transport requested but not available: #{Transport::Native::UNSUPPORTED_REASON}. " \
-            "Falling back to default HTTP transport."
+            "Falling back to default HTTP transport.",
           )
           return nil
         end
 
         Transport::Native::Transport.new(
           agent_settings: agent_settings,
-          logger: Datadog.logger
+          logger: Datadog.logger,
         )
       end
 
@@ -214,7 +214,7 @@ module Datadog
       def build_rate_limit_post_sampler(seconds:)
         Tracing::Sampling::RuleSampler.new(
           rate_limiter: Datadog::Core::TokenBucket.new(1.0 / seconds, 1.0),
-          default_sample_rate: 1.0
+          default_sample_rate: 1.0,
         )
       end
 
@@ -230,7 +230,7 @@ module Datadog
         # Set priority sampler to ensure the agent doesn't drop any traces.
         Tracing::Sampling::PrioritySampler.new(
           base_sampler: Tracing::Sampling::AllSampler.new,
-          post_sampler: Tracing::Sampling::AllSampler.new
+          post_sampler: Tracing::Sampling::AllSampler.new,
         )
       end
 

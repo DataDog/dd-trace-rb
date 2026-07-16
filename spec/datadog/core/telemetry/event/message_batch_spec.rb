@@ -29,7 +29,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::MessageBatch do
             request_type: "app-heartbeat",
             payload: {}
           }
-        ]
+        ],
       )
     end
   end

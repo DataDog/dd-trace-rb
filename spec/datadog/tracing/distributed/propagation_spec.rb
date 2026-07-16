@@ -12,7 +12,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
       propagation_style_inject: propagation_style_inject,
       propagation_style_extract: propagation_style_extract,
       propagation_extract_first: propagation_extract_first,
-      propagation_behavior_extract: propagation_behavior_extract
+      propagation_behavior_extract: propagation_behavior_extract,
     )
   end
 
@@ -134,7 +134,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
           trace_id: trace_id,
           trace_origin: origin,
           trace_sampling_priority: sampling_priority,
-          baggage: baggage
+          baggage: baggage,
         )
       end
 
@@ -169,7 +169,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
           origin: origin,
           parent_span_id: span_id,
           sampling_priority: sampling_priority,
-          baggage: baggage
+          baggage: baggage,
         )
       end
 
@@ -578,7 +578,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
             expect(link.trace_flags).to eq(1)
             expect(link.attributes).to eq(
               "reason" => "propagation_behavior_extract",
-              "context_headers" => "datadog"
+              "context_headers" => "datadog",
             )
           end
 
@@ -617,7 +617,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
             expect(link.trace_flags).to eq(tracecontext_trace_flags)
             expect(link.attributes).to eq(
               "reason" => "propagation_behavior_extract",
-              "context_headers" => "tracecontext"
+              "context_headers" => "tracecontext",
             )
           end
         end
@@ -639,7 +639,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
               "tracecontext" => Datadog::Tracing::Distributed::TraceContext.new(fetcher: fetcher_class),
               "baggage" => Datadog::Tracing::Distributed::Baggage.new(
                 fetcher: fetcher_class,
-                baggage_tag_keys: ["user.id"]
+                baggage_tag_keys: ["user.id"],
               ),
             }
           end

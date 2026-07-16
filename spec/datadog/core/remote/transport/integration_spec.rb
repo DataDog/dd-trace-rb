@@ -51,7 +51,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
             has_error: false,             # from scratch, so false
             error: "",                    # from scratch, so blank
             opaque_backend_state: "",     # from scratch, so blank
-          }
+          },
         )
       end
 

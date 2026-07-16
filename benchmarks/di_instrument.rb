@@ -155,7 +155,7 @@ class DIInstrumentBenchmark
 
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
-      rate_limit: 1_000_000,)
+      rate_limit: 1_000_000)
     responder = Datadog::DI::ProcResponder.new(executed_proc)
     rv = instrumenter.hook_method(probe, responder)
     unless rv
@@ -189,7 +189,7 @@ class DIInstrumentBenchmark
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
-      rate_limit: 1,)
+      rate_limit: 1)
     responder = Datadog::DI::ProcResponder.new(executed_proc)
     rv = instrumenter.hook_method(probe, responder)
     unless rv
@@ -234,7 +234,7 @@ class DIInstrumentBenchmark
 
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      file: file, line_no: line + 1, rate_limit: 1_000_000,)
+      file: file, line_no: line + 1, rate_limit: 1_000_000)
     responder = Datadog::DI::ProcResponder.new(executed_proc)
     rv = instrumenter.hook_line(probe, responder)
     unless rv
@@ -266,7 +266,7 @@ class DIInstrumentBenchmark
 
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      file: file, line_no: line + 1, rate_limit: 1,)
+      file: file, line_no: line + 1, rate_limit: 1)
     responder = Datadog::DI::ProcResponder.new(executed_proc)
     rv = instrumenter.hook_line(probe, responder)
     unless rv
@@ -314,7 +314,7 @@ class DIInstrumentBenchmark
 
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      file: targeted_file, line_no: targeted_line + 1, rate_limit: 1_000_000,)
+      file: targeted_file, line_no: targeted_line + 1, rate_limit: 1_000_000)
     responder = Datadog::DI::ProcResponder.new(executed_proc)
     rv = instrumenter.hook_line(probe, responder)
     unless rv
@@ -347,7 +347,7 @@ class DIInstrumentBenchmark
 
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      file: targeted_file, line_no: targeted_line + 1, rate_limit: 1,)
+      file: targeted_file, line_no: targeted_line + 1, rate_limit: 1)
     responder = Datadog::DI::ProcResponder.new(executed_proc)
     rv = instrumenter.hook_line(probe, responder)
     unless rv

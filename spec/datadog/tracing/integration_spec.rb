@@ -54,7 +54,7 @@ RSpec.describe "Tracer integration tests" do
         .to have_attributes(
           client_error: 0,
           server_error: 0,
-          internal_error: 0
+          internal_error: 0,
         )
     end
   end
@@ -868,7 +868,7 @@ RSpec.describe "Tracer integration tests" do
           span.span_events << Datadog::Tracing::SpanEvent.new(
             "event_name",
             time_unix_nano: 123,
-            attributes: {"key" => "value"}
+            attributes: {"key" => "value"},
           )
         end
 
@@ -912,7 +912,7 @@ RSpec.describe "Tracer integration tests" do
                "attributes" => {"key" => {
                  "string_value" => "value", "type" => 0
                }},}
-            ]
+            ],
           )
         end
       end
@@ -929,8 +929,8 @@ RSpec.describe "Tracer integration tests" do
                 {"name" => "event_name",
                  "time_unix_nano" => 123,
                  "attributes" => {"key" => "value"}}
-              ]
-            )
+              ],
+            ),
           )
           expect(flushed_trace).to_not have_key("span_events")
         end
@@ -944,7 +944,7 @@ RSpec.describe "Tracer integration tests" do
     let(:writer) do
       Datadog::Tracing::Writer.new(
         transport: transport,
-        priority_sampler: Datadog::Tracing::Sampling::PrioritySampler.new
+        priority_sampler: Datadog::Tracing::Sampling::PrioritySampler.new,
       )
     end
 

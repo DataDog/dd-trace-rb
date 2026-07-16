@@ -356,7 +356,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     context "with snapshot capture" do
       let(:probe) do
         Datadog::DI::Probe.new(id: "123", type: :log, file: "X", line_no: 1,
-          capture_snapshot: true,)
+          capture_snapshot: true)
       end
 
       let(:context) do
@@ -434,7 +434,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     let(:probe) do
       Datadog::DI::Probe.new(id: "123", type: :log,
         type_name: "TestClass", method_name: "test_method",
-        capture_snapshot: true,)
+        capture_snapshot: true)
     end
 
     let(:target_self) { Object.new }
@@ -453,7 +453,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           target_self: target_self,
           serialized_entry_args: {},
           return_value: nil, duration: 0.1,
-          exception: exception,
+          exception: exception
         )
       end
 
@@ -479,7 +479,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           settings: settings, serializer: serializer,
           target_self: target_self,
           serialized_entry_args: {},
-          return_value: 42, duration: 0.1,
+          return_value: 42, duration: 0.1
         )
       end
 
@@ -509,7 +509,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           target_self: target_self,
           serialized_entry_args: {},
           return_value: nil, duration: 0.1,
-          exception: exception,
+          exception: exception
         )
       end
 
@@ -534,7 +534,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           target_self: target_self,
           serialized_entry_args: {},
           return_value: nil, duration: 0.1,
-          exception: exception,
+          exception: exception
         )
       end
 
@@ -558,7 +558,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           target_self: target_self,
           serialized_entry_args: {},
           return_value: nil, duration: 0.1,
-          exception: exception,
+          exception: exception
         )
       end
 
@@ -658,7 +658,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           target_self: target_self,
           serialized_entry_args: {},
           return_value: nil, duration: 0.1,
-          exception: exception,
+          exception: exception
         )
       end
 
@@ -723,7 +723,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         settings: settings, serializer: serializer,
         probe: probe,
         locals: {x: 42},
-        target_self: nil,
+        target_self: nil
       )
     end
 
@@ -782,7 +782,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           probe: probe,
           locals: {x: 42},
           target_self: Object.new,
-          exception: raised_exception,
+          exception: raised_exception
         )
       end
 
@@ -808,7 +808,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           settings: settings, serializer: serializer,
           probe: probe,
           target_self: target_self,
-          return_value: 99,
+          return_value: 99
         )
       end
 
@@ -835,7 +835,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           target_self: nil,
           entry_capture_expressions: {"x" => {type: "Integer", value: "7"}},
           entry_capture_evaluation_errors: [],
-          return_value: 999,
+          return_value: 999
         )
       end
 
@@ -857,7 +857,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           settings: settings, serializer: serializer,
           probe: probe, target_self: nil,
           entry_capture_expressions: {},
-          entry_capture_evaluation_errors: [{expr: "x", message: "NameError: badvar"}],
+          entry_capture_evaluation_errors: [{expr: "x", message: "NameError: badvar"}]
         )
         payload = builder.build_snapshot(context)
         errors = payload[:debugger][:snapshot][:evaluationErrors]
@@ -867,7 +867,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       it "emits an empty captureExpressions hash when no entry block was stashed" do
         context = Datadog::DI::Context.new(
           settings: settings, serializer: serializer,
-          probe: probe, target_self: nil,
+          probe: probe, target_self: nil
         )
         payload = builder.build_snapshot(context)
         captures = payload[:debugger][:snapshot][:captures]

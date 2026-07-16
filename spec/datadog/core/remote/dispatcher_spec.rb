@@ -117,7 +117,7 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
 
         expect(receiver).to receive(:call).with(
           repository,
-          [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)]
+          [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)],
         )
 
         dispatcher.dispatch(changes, repository)
@@ -138,7 +138,7 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
 
         expect(receiver).to_not receive(:call).with(
           repository,
-          [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)]
+          [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)],
         )
 
         dispatcher.dispatch(changes, repository)

@@ -17,7 +17,7 @@ module Datadog
               Datadog.logger.warn(
                 "The :risky Application Security Management ruleset has been deprecated and no longer available." \
                 "The `:recommended` ruleset will be used instead." \
-                "Please remove the `appsec.ruleset = :risky` setting from your Datadog.configure block."
+                "Please remove the `appsec.ruleset = :risky` setting from your Datadog.configure block.",
               )
               JSON.parse(Datadog::AppSec::Assets.waf_rules(:recommended))
             when String

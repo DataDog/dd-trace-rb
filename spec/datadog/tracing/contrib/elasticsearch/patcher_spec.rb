@@ -32,7 +32,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       transport_options: {
         headers: headers
       },
-      request_timeout: 5
+      request_timeout: 5,
     )
   end
   let(:configuration_options) { {} }

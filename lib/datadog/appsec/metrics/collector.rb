@@ -14,7 +14,7 @@ module Datadog
           :duration_ext_ns,
           :inputs_truncated,
           :downstream_requests,
-          keyword_init: true
+          keyword_init: true,
         )
 
         DownstreamResponseStore = Struct.new(
@@ -22,7 +22,7 @@ module Datadog
           :content_length_missing,
           :content_length_too_big,
           :content_exceed_content_length,
-          keyword_init: true
+          keyword_init: true,
         )
 
         attr_reader :waf, :rasp, :downstream_responses

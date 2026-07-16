@@ -69,7 +69,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
               path.include?("extensions") && path.include?(expected_platform_fragment)
             end,
           ),
-        }
+        },
       )
     end
 

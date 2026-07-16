@@ -9,7 +9,7 @@ RSpec.describe "Rails ActionController", execute_in_fork: Rails.version.to_i >= 
         def index
           # Do nothing
         end
-      end
+      end,
     )
   end
   let(:name) { :index }
@@ -84,7 +84,7 @@ RSpec.describe "Rails ActionController", execute_in_fork: Rails.version.to_i >= 
             let(:response_object) do
               double(
                 "response object",
-                to_a: [200, double("headers"), double("body")]
+                to_a: [200, double("headers"), double("body")],
               )
             end
 
@@ -117,7 +117,7 @@ RSpec.describe "Rails ActionController", execute_in_fork: Rails.version.to_i >= 
                 define_method(:index) do
                   observed[:active_span_resource] = Datadog::Tracing.active_span.resource
                 end
-              end
+              end,
             )
           end
 

@@ -29,7 +29,7 @@ RSpec.describe "Waterdrop patcher" do
       expect(producer.middleware.instance_variable_get(:@steps)).to eq(
         [
           Datadog::Tracing::Contrib::WaterDrop::Middleware
-        ]
+        ],
       )
     end
 
@@ -47,7 +47,7 @@ RSpec.describe "Waterdrop patcher" do
           [
             dummy_middleware,
             Datadog::Tracing::Contrib::WaterDrop::Middleware
-          ]
+          ],
         )
       end
     end
@@ -64,7 +64,7 @@ RSpec.describe "Waterdrop patcher" do
         expect(producer.middleware.instance_variable_get(:@steps)).to eq(
           [
             Datadog::Tracing::Contrib::WaterDrop::Middleware
-          ]
+          ],
         )
       end
     end

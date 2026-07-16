@@ -550,7 +550,7 @@ RSpec.describe "Sinatra instrumentation" do
             headers["X-Request-ID"] = "test id"
             "nested ok"
           end
-        end
+        end,
       )
 
       sinatra_routes = self.sinatra_routes
@@ -563,7 +563,7 @@ RSpec.describe "Sinatra instrumentation" do
           use NestedApp
 
           instance_exec(&sinatra_routes)
-        end
+        end,
       )
     end
 

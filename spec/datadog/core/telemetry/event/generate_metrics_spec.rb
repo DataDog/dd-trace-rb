@@ -26,7 +26,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::GenerateMetrics do
         {
           namespace: namespace,
           series: expected_metric_series
-        }
+        },
       )
     end
   end

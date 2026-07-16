@@ -620,7 +620,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         expect { reconfigure_sampler }.to(
           change do
             components.tracer.sampler.sampler.priority_sampler.rate_limiter.rate
-          end.from(100).to(123)
+          end.from(100).to(123),
         )
       end
     end
@@ -729,7 +729,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       expect(Datadog::Core::Diagnostics::EnvironmentLogger).to \
         receive(:collect_and_log!).with(
-          environment_logger_extra.merge(dynamic_instrumentation_enabled: false)
+          environment_logger_extra.merge(dynamic_instrumentation_enabled: false),
         )
 
       startup!

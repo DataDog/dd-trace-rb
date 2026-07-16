@@ -33,7 +33,7 @@ RSpec.describe Datadog::OpenTelemetry::API::Baggage do
         {
           "key1" => "value1",
           "key2" => "value2"
-        }
+        },
       )
     end
 
@@ -71,7 +71,7 @@ RSpec.describe Datadog::OpenTelemetry::API::Baggage do
         {
           "key1" => "value1",
           "key2" => "value2"
-        }
+        },
       )
     end
   end
@@ -101,7 +101,7 @@ RSpec.describe Datadog::OpenTelemetry::API::Baggage do
         {
           "key1" => "value1",
           "key2" => "value2"
-        }
+        },
       )
     end
 

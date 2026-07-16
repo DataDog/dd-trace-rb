@@ -19,7 +19,7 @@ RSpec.describe "Rails Railtie", execute_in_fork: true do
         def index
           head :ok
         end
-      end
+      end,
     )
   end
 

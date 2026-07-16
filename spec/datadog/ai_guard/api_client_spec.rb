@@ -9,7 +9,7 @@ RSpec.describe Datadog::AIGuard::APIClient do
         endpoint: endpoint,
         api_key: "api-key",
         application_key: "application-key",
-        timeout: 10000
+        timeout: 10000,
       )
     end
 
@@ -68,7 +68,7 @@ RSpec.describe Datadog::AIGuard::APIClient do
         endpoint: "https://app.datadoghq.com/api/v2/ai-guard",
         api_key: "api-key",
         application_key: "application-key",
-        timeout: 10000
+        timeout: 10000,
       )
     end
 

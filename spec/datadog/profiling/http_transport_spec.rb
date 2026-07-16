@@ -35,7 +35,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       ssl: ssl,
       hostname: hostname,
       port: port,
-      timeout_seconds: nil
+      timeout_seconds: nil,
     )
   end
   let(:adapter) { Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER }
@@ -86,7 +86,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         runtime: {
           engine: "ruby"
         },
-      }
+      },
     )
   end
   # Like above but with string keys (JSON parsing unsymbolizes keys by default)
@@ -255,7 +255,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         it "logs an error message" do
           expect(Datadog.logger).to receive(:warn).with(
             "Failed to report profiling data (agent: http://192.168.0.1:12345/): " \
-            "server returned unexpected HTTP 500 status code"
+            "server returned unexpected HTTP 500 status code",
           )
 
           export
@@ -263,7 +263,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
         it "sends a telemetry log" do
           expect(Datadog::Core::Telemetry::Logger).to receive(:error).with(
-            "Failed to report profiling data: unexpected HTTP 500 status code"
+            "Failed to report profiling data: unexpected HTTP 500 status code",
           )
 
           export
@@ -288,7 +288,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
         it "sends a telemetry log" do
           expect(Datadog::Core::Telemetry::Logger).to receive(:error).with(
-            "Failed to report profiling data"
+            "Failed to report profiling data",
           )
 
           export
@@ -431,7 +431,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         event_data = JSON.parse(body.fetch("event"))
 
         expect(event_data).to match(
-          expected_data_in_payload.merge("attachments" => contain_exactly(pprof_file_name, "metrics.json"))
+          expected_data_in_payload.merge("attachments" => contain_exactly(pprof_file_name, "metrics.json")),
         )
 
         expect(body["code-provenance.json"]).to be nil

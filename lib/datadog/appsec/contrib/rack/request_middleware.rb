@@ -49,7 +49,7 @@ module Datadog
             return @app.call(env) unless security_engine
 
             ctx = Datadog::AppSec::Context.activate(
-              Datadog::AppSec::Context.new(active_trace, active_span, security_engine.new_runner)
+              Datadog::AppSec::Context.new(active_trace, active_span, security_engine.new_runner),
             )
             env[Datadog::AppSec::Ext::CONTEXT_KEY] = ctx
 
@@ -165,7 +165,7 @@ module Datadog
                 trace.keep!
                 trace.set_tag(
                   Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-                  Datadog::Tracing::Sampling::Ext::Decision::ASM
+                  Datadog::Tracing::Sampling::Ext::Decision::ASM,
                 )
               end
             end

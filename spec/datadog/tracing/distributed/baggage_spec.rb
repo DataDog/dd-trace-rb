@@ -270,7 +270,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
       # Mock the telemetry component and tracer (needed by test helpers)
       tracer = instance_double(Datadog::Tracing::Tracer)
       allow(Datadog).to receive(:send).with(:components).and_return(
-        double(telemetry: telemetry, tracer: tracer)
+        double(telemetry: telemetry, tracer: tracer),
       )
     end
 
@@ -280,7 +280,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
       context "successful injection" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            baggage: {"key" => "value"}
+            baggage: {"key" => "value"},
           )
         end
 
@@ -289,7 +289,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
             "tracers",
             "context_header_style.injected",
             1,
-            tags: {"header_style" => "baggage"}
+            tags: {"header_style" => "baggage"},
           )
 
           propagation.inject!(digest, data)
@@ -308,13 +308,13 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
             "tracers",
             "context_header.truncated",
             1,
-            tags: {"header_style" => "baggage", "truncation_reason" => "baggage_item_count_exceeded"}
+            tags: {"header_style" => "baggage", "truncation_reason" => "baggage_item_count_exceeded"},
           )
           expect(telemetry).to receive(:inc).with(
             "tracers",
             "context_header_style.injected",
             1,
-            tags: {"header_style" => "baggage"}
+            tags: {"header_style" => "baggage"},
           )
 
           propagation.inject!(digest, data)
@@ -335,13 +335,13 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
             "tracers",
             "context_header.truncated",
             1,
-            tags: {"header_style" => "baggage", "truncation_reason" => "baggage_byte_count_exceeded"}
+            tags: {"header_style" => "baggage", "truncation_reason" => "baggage_byte_count_exceeded"},
           )
           expect(telemetry).to receive(:inc).with(
             "tracers",
             "context_header_style.injected",
             1,
-            tags: {"header_style" => "baggage"}
+            tags: {"header_style" => "baggage"},
           )
 
           propagation.inject!(digest, data)
@@ -380,7 +380,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
             "tracers",
             "context_header_style.extracted",
             1,
-            tags: {"header_style" => "baggage"}
+            tags: {"header_style" => "baggage"},
           )
 
           propagation.extract(data)
@@ -395,7 +395,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
             "tracers",
             "context_header_style.malformed",
             1,
-            tags: {"header_style" => "baggage"}
+            tags: {"header_style" => "baggage"},
           )
 
           result = propagation.extract(data)
@@ -417,7 +417,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
             "tracers",
             "context_header_style.malformed",
             1,
-            tags: {"header_style" => "baggage"}
+            tags: {"header_style" => "baggage"},
           )
 
           result = nil
@@ -437,7 +437,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
             "tracers",
             "context_header_style.malformed",
             1,
-            tags: {"header_style" => "baggage"}
+            tags: {"header_style" => "baggage"},
           )
 
           result = nil
@@ -457,7 +457,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
             "tracers",
             "context_header_style.extracted",
             1,
-            tags: {"header_style" => "baggage"}
+            tags: {"header_style" => "baggage"},
           )
 
           result = propagation.extract(data)
@@ -473,7 +473,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
             "tracers",
             "context_header_style.extracted",
             1,
-            tags: {"header_style" => "baggage"}
+            tags: {"header_style" => "baggage"},
           )
 
           result = propagation.extract(data)
@@ -504,13 +504,13 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
             "tracers",
             "context_header.truncated",
             1,
-            tags: {"header_style" => "baggage", "truncation_reason" => "baggage_item_count_exceeded"}
+            tags: {"header_style" => "baggage", "truncation_reason" => "baggage_item_count_exceeded"},
           )
           expect(telemetry).to receive(:inc).with(
             "tracers",
             "context_header_style.extracted",
             1,
-            tags: {"header_style" => "baggage"}
+            tags: {"header_style" => "baggage"},
           )
 
           propagation.extract(data)
@@ -526,7 +526,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
               "tracers",
               "context_header.truncated",
               1,
-              tags: {"header_style" => "baggage", "truncation_reason" => "baggage_item_count_exceeded"}
+              tags: {"header_style" => "baggage", "truncation_reason" => "baggage_item_count_exceeded"},
             )
 
             expect(propagation.extract(data).baggage).to eq("same_key" => "value64"), "Keeps the last entry"
@@ -553,7 +553,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
               "tracers",
               "context_header.truncated",
               1,
-              tags: {"header_style" => "baggage", "truncation_reason" => "baggage_byte_count_exceeded"}
+              tags: {"header_style" => "baggage", "truncation_reason" => "baggage_byte_count_exceeded"},
             )
 
             propagation.extract(data)

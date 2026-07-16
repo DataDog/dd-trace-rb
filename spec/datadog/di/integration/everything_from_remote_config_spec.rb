@@ -591,7 +591,7 @@ RSpec.describe "DI integration from remote config" do
       it "marks RC payload as errored" do
         expect_lazy_log_many(logger, :debug,
           /received log probe at .+ via RC/,
-          /error processing probe configuration:.*no surviving iseqs|no per-method iseqs/,)
+          /error processing probe configuration:.*no surviving iseqs|no per-method iseqs/)
 
         do_rc(expect_hook: false)
         assert_received_and_errored

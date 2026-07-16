@@ -48,7 +48,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
               adapter: "adapter",
               host: "host",
               port: 123
-            } => config
+            } => config,
           )
       end
     end
@@ -113,7 +113,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
 
         expect(Datadog::Core::Telemetry::Logger).to receive(:report).with(
           an_instance_of(URI::InvalidURIError),
-          description: "Failed to resolve key"
+          description: "Failed to resolve key",
         )
 
         add
@@ -367,7 +367,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
 
         expect(Datadog::Core::Telemetry::Logger).to receive(:report).with(
           an_instance_of(URI::InvalidURIError),
-          description: "Failed to resolve ActiveRecord database configuration"
+          description: "Failed to resolve ActiveRecord database configuration",
         )
 
         is_expected.to be_nil

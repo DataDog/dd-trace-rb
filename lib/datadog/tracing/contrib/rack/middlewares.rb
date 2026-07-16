@@ -164,7 +164,7 @@ module Datadog
 
               request_span.set_tag(
                 Tracing::Metadata::Ext::HTTP::TAG_URL,
-                Contrib::Utils::Quantization::HTTP.url(url, options)
+                Contrib::Utils::Quantization::HTTP.url(url, options),
               )
             end
 
@@ -177,7 +177,7 @@ module Datadog
                 unless base_url.empty?
                   request_span.set_tag(
                     Tracing::Metadata::Ext::HTTP::TAG_BASE_URL,
-                    base_url
+                    base_url,
                   )
                 end
               end
@@ -187,7 +187,7 @@ module Datadog
               Tracing::ClientIp.set_client_ip_tag(
                 request_span,
                 headers: request_header_collection,
-                remote_ip: env["REMOTE_ADDR"]
+                remote_ip: env["REMOTE_ADDR"],
               )
             end
 

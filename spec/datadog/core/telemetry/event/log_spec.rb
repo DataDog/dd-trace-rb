@@ -17,7 +17,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::Log do
             level: "ERROR",
             count: 1
           }]
-        }
+        },
       )
     end
 
@@ -31,7 +31,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::Log do
             level: "WARN",
             count: 1
           }]
-        }
+        },
       )
     end
   end

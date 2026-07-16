@@ -58,7 +58,7 @@ module Datadog
         logger: Datadog.logger,
         sampler: Sampling::PrioritySampler.new(
           base_sampler: Sampling::AllSampler.new,
-          post_sampler: Sampling::RuleSampler.new
+          post_sampler: Sampling::RuleSampler.new,
         ),
         span_sampler: Sampling::Span::Sampler.new,
         tags: {},
@@ -189,7 +189,7 @@ module Datadog
             tags: tags,
             type: type,
             _trace: trace,
-            id: id
+            id: id,
           )
         end
       end
@@ -395,7 +395,7 @@ module Datadog
             remote_parent: digest.span_remote,
             tracer: self,
             baggage: digest.baggage,
-            auto_finish: auto_finish
+            auto_finish: auto_finish,
           )
         else
           TraceOperation.new(
@@ -405,7 +405,7 @@ module Datadog
             apm_tracing_enabled: apm_tracing_enabled,
             remote_parent: false,
             tracer: self,
-            auto_finish: auto_finish
+            auto_finish: auto_finish,
           )
         end
       end
@@ -503,7 +503,7 @@ module Datadog
             start_time: start_time,
             tags: resolve_tags(tags, service),
             type: type,
-            id: id
+            id: id,
           )
 
           span.start(start_time)

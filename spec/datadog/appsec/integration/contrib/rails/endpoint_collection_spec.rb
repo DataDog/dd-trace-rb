@@ -402,7 +402,7 @@ RSpec.describe "Rails Endpoint Collection" do
           operation_name: "http.request",
           method: "GET",
           path: "/sinatra/param/{name}"
-        }
+        },
       )
     end
   end

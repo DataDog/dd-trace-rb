@@ -49,7 +49,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/ASM/_/_")
-          }
+          },
         )
       end
 
@@ -67,7 +67,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/ASM/_/_")
-          }
+          },
         )
       end
 
@@ -97,7 +97,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/ASM/_/_")
-          }
+          },
         )
       end
 
@@ -123,7 +123,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING/_/_")
-          }
+          },
         )
       end
 
@@ -138,7 +138,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING/_/_")
-          }
+          },
         )
       end
 
@@ -162,7 +162,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING/_/_")
-          }
+          },
         )
       end
 
@@ -201,7 +201,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING/_/_")
-          }
+          },
         )
       end
 
@@ -263,7 +263,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING_SYMBOL_DB/_/_")
-          }
+          },
         )
       end
     end
@@ -330,7 +330,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING_SYMBOL_DB/_/_")
-          }
+          },
         )
       end
     end
@@ -343,7 +343,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       expect(capabilities.receivers).to include(
         lambda { |r|
           r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/_/lib_config")
-        }
+        },
       )
     end
   end
@@ -388,7 +388,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         [
           1 << 1,
           1 << 2,
-        ]
+        ],
       )
     end
 

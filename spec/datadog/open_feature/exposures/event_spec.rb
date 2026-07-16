@@ -19,7 +19,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
         "doLog" => true
       },
       log?: true,
-      error?: false
+      error?: false,
     )
   end
 
@@ -37,7 +37,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
             "nickname" => "johnny",
             "ignored_hash" => {foo: "bar"},
             "ignored_array" => [1, 2]
-          }
+          },
         )
       end
       let(:expected) do

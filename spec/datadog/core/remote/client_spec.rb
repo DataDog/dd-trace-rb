@@ -32,7 +32,7 @@ RSpec.describe Datadog::Core::Remote::Client do
     before do
       expect(client.dispatcher).to receive(:dispatch).with(
         instance_of(Datadog::Core::Remote::Configuration::Repository::ChangeSet),
-        client.repository
+        client.repository,
       ).at_least(:once)
     end
   end
@@ -250,7 +250,7 @@ RSpec.describe Datadog::Core::Remote::Client do
   let(:capabilities) do
     capabilities = Datadog::Core::Remote::Client::Capabilities.new(
       settings,
-      instance_double(Datadog::Core::Telemetry::Component)
+      instance_double(Datadog::Core::Telemetry::Component),
     )
     capabilities.send(:register_products, ["ASM_DATA", "ASM_DD", "ASM"])
 
@@ -334,7 +334,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                   path: "datadog/603646/ASM_DD/latest/config",
                   content: rules_data,
                 }
-              ]
+              ],
             )
 
           updated_targets = {
@@ -379,7 +379,7 @@ RSpec.describe Datadog::Core::Remote::Client do
             }
           }
           expect_any_instance_of(Datadog::Core::Remote::Transport::HTTP::Config::Response).to receive(:targets).and_return(
-            updated_targets
+            updated_targets,
           )
 
           expect_any_instance_of(Datadog::Core::Remote::Configuration::Repository::Transaction).to receive(:update)
@@ -413,7 +413,7 @@ RSpec.describe Datadog::Core::Remote::Client do
               client.sync
             end.to raise_error(
               described_class::SyncError,
-              %r{no valid content for target at path 'datadog/603646/ASM_DATA/blocked_ips/config'}
+              %r{no valid content for target at path 'datadog/603646/ASM_DATA/blocked_ips/config'},
             )
           end
         end
@@ -444,7 +444,7 @@ RSpec.describe Datadog::Core::Remote::Client do
               client.sync
             end.to raise_error(
               described_class::SyncError,
-              %r{no target for path 'datadog/603646/ASM_DATA/blocked_ips/config'}
+              %r{no target for path 'datadog/603646/ASM_DATA/blocked_ips/config'},
             )
           end
         end

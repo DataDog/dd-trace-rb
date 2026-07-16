@@ -733,7 +733,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           # When opentelemetry-sdk AND opentelemetry-exporter-otlp are on the Gemfile
           context(
             "when trace comes from otel sdk and the ddtrace otel support is not loaded",
-            if: otel_sdk_available? && otel_otlp_exporter_available?
+            if: otel_sdk_available? && otel_otlp_exporter_available?,
           ) do
             let(:otel_tracer) do
               if defined?(Datadog::OpenTelemetry::LOADED)
@@ -792,7 +792,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                       log << :ran_code
                       raise "Simulated failure"
                     end
-                  end
+                  end,
                 )
               end
 
@@ -860,13 +860,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                     current_size = OpenTelemetry::Context.current.instance_variable_get(:@entries).size
 
                     OpenTelemetry::Context.with_values(
-                      Array.new(max_safe_lookup_size + 1 - current_size) { |it| ["key_#{it}", it] }.to_h
+                      Array.new(max_safe_lookup_size + 1 - current_size) { |it| ["key_#{it}", it] }.to_h,
                     ) do
                       sample_allocation(weight: 12)
                     end
 
                     OpenTelemetry::Context.with_values(
-                      Array.new(max_safe_lookup_size - current_size) { |it| ["key_#{it}", it] }.to_h
+                      Array.new(max_safe_lookup_size - current_size) { |it| ["key_#{it}", it] }.to_h,
                     ) do
                       sample_allocation(weight: 34)
                     end
@@ -926,7 +926,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
                   otel_tracer.in_span("another.trace") do # <-- Is ignored
                     OpenTelemetry::Trace.with_span(
-                      otel_tracer.start_span("profiler.test", with_parent: OpenTelemetry::Context.empty)
+                      otel_tracer.start_span("profiler.test", with_parent: OpenTelemetry::Context.empty),
                     ) do |root_span|
                       @t1_local_root_span_id = otel_span_id_to_i(root_span.context.span_id)
                       otel_tracer.in_span("profiler.test.nested.1") do |leaf_span|
@@ -1311,7 +1311,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         wall_time_after_on_gc_start_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
 
         expect(per_thread_context.fetch(Thread.current)).to include(
-          "gc_tracking.wall_time_at_start_ns": be_between(wall_time_before_on_gc_start_ns, wall_time_after_on_gc_start_ns)
+          "gc_tracking.wall_time_at_start_ns": be_between(wall_time_before_on_gc_start_ns, wall_time_after_on_gc_start_ns),
         )
       end
 
@@ -1395,7 +1395,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             on_gc_finish
 
             expect(per_thread_context.fetch(Thread.current)).to include(
-              cpu_time_at_previous_sample_ns: be > cpu_time_at_previous_sample_ns_before
+              cpu_time_at_previous_sample_ns: be > cpu_time_at_previous_sample_ns_before,
             )
           end
         end
@@ -1733,7 +1733,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         wall_time_after_on_gvl_waiting_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
 
         expect(per_thread_context.fetch(t1)).to include(
-          gvl_waiting_at: be_between(wall_time_before_on_gvl_waiting_ns, wall_time_after_on_gvl_waiting_ns)
+          gvl_waiting_at: be_between(wall_time_before_on_gvl_waiting_ns, wall_time_after_on_gvl_waiting_ns),
         )
       end
     end
@@ -2083,7 +2083,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
       expect(results).to contain_exactly(
         have_attributes(locations: include(have_attributes(base_label: "_native_prepare_sample_inside_signal_handler"))),
-        have_attributes(locations: include(have_attributes(base_label: "_native_sample")))
+        have_attributes(locations: include(have_attributes(base_label: "_native_sample"))),
       )
     end
 
@@ -2153,7 +2153,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       it "sets the wall_time_at_previous_sample_ns to the current wall clock value" do
         not_skipped = per_thread_context.values.reject { |ctx| ctx.fetch(:was_skipped_at_last_sample) }
         expect(not_skipped).to all(
-          include(wall_time_at_previous_sample_ns: be_between(@wall_time_before_sample_ns, @wall_time_after_sample_ns))
+          include(wall_time_at_previous_sample_ns: be_between(@wall_time_before_sample_ns, @wall_time_after_sample_ns)),
         )
       end
 
@@ -2162,7 +2162,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           # It's somewhat difficult to validate the actual value since this is an operating system-specific value
           # which should only be assessed in relation to other values for the same thread, not in absolute
           expect(per_thread_context.values).to all(
-            include(cpu_time_at_previous_sample_ns: not_be(0))
+            include(cpu_time_at_previous_sample_ns: not_be(0)),
           )
         end
 
@@ -2182,7 +2182,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         it "marks the thread_cpu_time_ids as valid" do
           expect(per_thread_context.values).to all(
-            include(thread_cpu_time_id_valid?: true)
+            include(thread_cpu_time_id_valid?: true),
           )
         end
       end

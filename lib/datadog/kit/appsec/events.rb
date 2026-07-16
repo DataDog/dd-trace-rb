@@ -160,7 +160,7 @@ module Datadog
             unless trace && span
               Datadog.logger.debug(
                 "Tracing not enabled. Method ##{method} is a no-op. Please enable tracing if you want ##{method}" \
-                " to track this events"
+                " to track this events",
               )
               return
             end

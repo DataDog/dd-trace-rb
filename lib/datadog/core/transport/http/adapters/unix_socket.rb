@@ -37,7 +37,7 @@ module Datadog
               connection = HTTP.new(
                 uds_path,
                 read_timeout: timeout,
-                continue_timeout: timeout
+                continue_timeout: timeout,
               )
 
               connection.start(&block)

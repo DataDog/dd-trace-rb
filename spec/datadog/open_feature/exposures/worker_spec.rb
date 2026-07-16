@@ -16,7 +16,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       telemetry: telemetry,
       logger: logger,
       flush_interval_seconds: 0.1,
-      buffer_limit: 2
+      buffer_limit: 2,
     )
   end
 

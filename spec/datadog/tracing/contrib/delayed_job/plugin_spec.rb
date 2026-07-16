@@ -17,7 +17,7 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
       Class.new do
         def perform
         end
-      end
+      end,
     )
   end
   let(:active_job_sample_job_object) do
@@ -32,7 +32,7 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
             "job_class" => "UnderlyingJobClass"
           }
         end
-      end
+      end,
     )
   end
 
@@ -107,7 +107,7 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
             def perform
               raise ZeroDivisionError, "job error"
             end
-          end
+          end,
         )
       end
 

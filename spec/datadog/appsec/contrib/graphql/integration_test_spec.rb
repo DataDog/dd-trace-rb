@@ -182,7 +182,7 @@ RSpec.describe "GraphQL integration tests",
               ),
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
 
@@ -206,7 +206,7 @@ RSpec.describe "GraphQL integration tests",
               ),
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
 
@@ -221,7 +221,7 @@ RSpec.describe "GraphQL integration tests",
 
           it do
             expect(JSON.parse(last_response.body)).to eq(
-              "errors" => [{"title" => "Blocked", "detail" => "Security provided by Datadog."}]
+              "errors" => [{"title" => "Blocked", "detail" => "Security provided by Datadog."}],
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -229,12 +229,12 @@ RSpec.describe "GraphQL integration tests",
               ),
               an_object_having_attributes(
                 name: "graphql.execute_multiplex",
-              )
+              ),
             )
             expect(spans).not_to include(
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
 
@@ -253,7 +253,7 @@ RSpec.describe "GraphQL integration tests",
 
           it do
             expect(last_response.body).to eq(
-              {"data" => {"createUser" => {"user" => {"name" => "k9", "id" => "1"}}}}.to_json
+              {"data" => {"createUser" => {"user" => {"name" => "k9", "id" => "1"}}}}.to_json,
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -264,7 +264,7 @@ RSpec.describe "GraphQL integration tests",
               ),
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
 
@@ -295,7 +295,7 @@ RSpec.describe "GraphQL integration tests",
 
           it do
             expect(JSON.parse(last_response.body)).to eq(
-              "errors" => [{"title" => "Blocked", "detail" => "Security provided by Datadog."}]
+              "errors" => [{"title" => "Blocked", "detail" => "Security provided by Datadog."}],
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -303,12 +303,12 @@ RSpec.describe "GraphQL integration tests",
               ),
               an_object_having_attributes(
                 name: "graphql.execute_multiplex",
-              )
+              ),
             )
             expect(spans).not_to include(
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
 
@@ -350,7 +350,7 @@ RSpec.describe "GraphQL integration tests",
               [
                 {"data" => {"user" => {"name" => "Bits"}}},
                 {"data" => {"userByName" => {"id" => "10"}}}
-              ].to_json
+              ].to_json,
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -361,7 +361,7 @@ RSpec.describe "GraphQL integration tests",
               ),
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
 
@@ -390,22 +390,22 @@ RSpec.describe "GraphQL integration tests",
               [
                 {"data" => {"user" => {"name" => "Bits"}}},
                 {"data" => {"userByName" => {"id" => "1"}}}
-              ].to_json
+              ].to_json,
             )
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.parse",
-              )
+              ),
             ).twice
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.execute_multiplex",
-              )
+              ),
             ).once
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             ).twice
           end
 
@@ -431,22 +431,22 @@ RSpec.describe "GraphQL integration tests",
 
           it do
             expect(JSON.parse(last_response.body)).to eq(
-              "errors" => [{"title" => "Blocked", "detail" => "Security provided by Datadog."}]
+              "errors" => [{"title" => "Blocked", "detail" => "Security provided by Datadog."}],
             )
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.parse",
-              )
+              ),
             ).twice
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.execute_multiplex",
-              )
+              ),
             ).once
             expect(spans).not_to include(
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
         end
@@ -470,7 +470,7 @@ RSpec.describe "GraphQL integration tests",
             expect(last_response.body).to eq(
               [
                 {"data" => {"user" => {"name" => "BITS"}}},
-              ].to_json
+              ].to_json,
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -481,7 +481,7 @@ RSpec.describe "GraphQL integration tests",
               ),
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
 
@@ -505,22 +505,22 @@ RSpec.describe "GraphQL integration tests",
             expect(last_response.body).to eq(
               [
                 {"data" => {"user" => {"name" => "Bits"}}}
-              ].to_json
+              ].to_json,
             )
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.parse",
-              )
+              ),
             ).once
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.execute_multiplex",
-              )
+              ),
             ).once
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             ).once
           end
 
@@ -542,22 +542,22 @@ RSpec.describe "GraphQL integration tests",
 
           it do
             expect(JSON.parse(last_response.body)).to eq(
-              "errors" => [{"title" => "Blocked", "detail" => "Security provided by Datadog."}]
+              "errors" => [{"title" => "Blocked", "detail" => "Security provided by Datadog."}],
             )
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.parse",
-              )
+              ),
             ).once
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.execute_multiplex",
-              )
+              ),
             ).once
             expect(spans).not_to include(
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
         end

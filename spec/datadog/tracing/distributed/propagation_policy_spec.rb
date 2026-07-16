@@ -79,7 +79,7 @@ RSpec.describe Datadog::Tracing::Distributed::PropagationPolicy do
     context "when distributed tracing in global config is enabled" do
       let(:result) do
         described_class.enabled?(
-          global_config: {distributed_tracing: true}
+          global_config: {distributed_tracing: true},
         )
       end
 
@@ -89,7 +89,7 @@ RSpec.describe Datadog::Tracing::Distributed::PropagationPolicy do
     context "when distributed tracing in global config is disabled" do
       let(:result) do
         described_class.enabled?(
-          global_config: {distributed_tracing: false}
+          global_config: {distributed_tracing: false},
         )
       end
 
@@ -99,7 +99,7 @@ RSpec.describe Datadog::Tracing::Distributed::PropagationPolicy do
     context "when distributed tracing in pin_config is enabled" do
       let(:result) do
         described_class.enabled?(
-          pin_config: Datadog::Core::Pin.new(distributed_tracing: true)
+          pin_config: Datadog::Core::Pin.new(distributed_tracing: true),
         )
       end
 
@@ -109,7 +109,7 @@ RSpec.describe Datadog::Tracing::Distributed::PropagationPolicy do
     context "when distributed tracing in pin_config is disabled" do
       let(:result) do
         described_class.enabled?(
-          pin_config: Datadog::Core::Pin.new(distributed_tracing: false)
+          pin_config: Datadog::Core::Pin.new(distributed_tracing: false),
         )
       end
 

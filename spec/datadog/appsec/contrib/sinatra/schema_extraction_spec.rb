@@ -179,7 +179,7 @@ RSpec.describe "Schema extraction for API security in Sinatra" do
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
         "api_security.request.schema",
         1,
-        tags: {framework: "sinatra"}
+        tags: {framework: "sinatra"},
       )
     end
   end

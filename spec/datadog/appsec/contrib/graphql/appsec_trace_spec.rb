@@ -33,7 +33,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::AppSecTrace do
           "path" => ["query test", "error"],
           "extensions" => {"code" => "undefinedField", "typeName" => "Query", "fieldName" => "error"}
         }
-      ]
+      ],
     )
   end
 
@@ -48,7 +48,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::AppSecTrace do
               operation_name: query.operation_name,
               variables: query.variables
             }
-          end
+          end,
         )
       else
         schema.multiplex(queries)
@@ -59,7 +59,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::AppSecTrace do
         {"data" => {"user" => {"name" => "Bits"}}},
         {"data" => {"user" => {"name" => "Caniche"}}},
         {"data" => {"userByName" => {"id" => "10"}}}
-      ]
+      ],
     )
   end
 
@@ -74,7 +74,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::AppSecTrace do
               operation_name: query.operation_name,
               variables: query.variables
             }
-          end
+          end,
         )
       else
         schema.multiplex(queries)
@@ -96,7 +96,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::AppSecTrace do
             }
           ]
         }
-      ]
+      ],
     )
   end
 end

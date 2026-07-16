@@ -116,7 +116,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
       it "adds serializable stack trace" do
         expect(active_span).to receive(:set_metastruct_tag).with(
           Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE,
-          {"exploit" => [instance_of(Datadog::AppSec::ActionsHandler::SerializableBacktrace)]}
+          {"exploit" => [instance_of(Datadog::AppSec::ActionsHandler::SerializableBacktrace)]},
         )
 
         described_class.generate_stack(action_params)
@@ -127,14 +127,14 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
       before do
         active_span.set_metastruct_tag(
           Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE,
-          {"exploit" => [1]}
+          {"exploit" => [1]},
         )
       end
 
       it "adds new stack trace to existing stack trace" do
         expect(active_span).to receive(:set_metastruct_tag).with(
           Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE,
-          {"exploit" => [1, instance_of(Datadog::AppSec::ActionsHandler::SerializableBacktrace)]}
+          {"exploit" => [1, instance_of(Datadog::AppSec::ActionsHandler::SerializableBacktrace)]},
         )
 
         described_class.generate_stack(action_params)
@@ -145,7 +145,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
       before do
         active_span.set_metastruct_tag(
           Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE,
-          {"exploit" => [1, 2]}
+          {"exploit" => [1, 2]},
         )
       end
 
@@ -161,14 +161,14 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
 
         active_span.set_metastruct_tag(
           Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE,
-          {"exploit" => [1, 2]}
+          {"exploit" => [1, 2]},
         )
       end
 
       it "adds new stack trace to existing stack trace" do
         expect(active_span).to receive(:set_metastruct_tag).with(
           Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE,
-          {"exploit" => [1, 2, instance_of(Datadog::AppSec::ActionsHandler::SerializableBacktrace)]}
+          {"exploit" => [1, 2, instance_of(Datadog::AppSec::ActionsHandler::SerializableBacktrace)]},
         )
 
         described_class.generate_stack(action_params)

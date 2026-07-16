@@ -62,7 +62,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
             config: {
               max_request_bytes: "1234",
             }
-          }
+          },
         )
       end
 
@@ -102,7 +102,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
             has_error: false,             # from scratch, so false
             error: "",                    # from scratch, so blank
             opaque_backend_state: "",     # from scratch, so blank
-          }
+          },
         )
       end
 
@@ -183,7 +183,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
                     },
                   }
                 }
-              }
+              },
             ),
             target_files: [
               {
@@ -199,7 +199,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
               "datadog/42/PRODUCT/foo/config",
               "employee/PRODUCT/bar/config",
             ],
-          }
+          },
         )
       end
 

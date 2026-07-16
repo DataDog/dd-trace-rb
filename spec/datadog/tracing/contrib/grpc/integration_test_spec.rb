@@ -25,7 +25,7 @@ RSpec.describe "gRPC integration test" do
       GRPCHelper::TestService.rpc_stub_class.new(
         endpoint,
         :this_channel_is_insecure,
-        interceptors: [configured_interceptor]
+        interceptors: [configured_interceptor],
       )
     end
 

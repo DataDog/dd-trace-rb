@@ -221,7 +221,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       double(
         "matcher",
         resource: Datadog::Tracing::Sampling::Matcher::MATCH_ALL,
-        tags: {}
+        tags: {},
       )
     end
     let(:sample_rate) { 0.8 }
@@ -401,7 +401,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
               def update(rates, decision: nil)
                 [rates, decision]
               end
-            end
+            end,
           )
         end
 

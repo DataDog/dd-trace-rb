@@ -20,7 +20,7 @@ RSpec.describe Datadog::Profiling::Flush do
           runtime: {
             engine: "ruby"
           },
-        }
+        },
       )
     end
 
@@ -48,7 +48,7 @@ RSpec.describe Datadog::Profiling::Flush do
         tags_as_array: tags_as_array,
         process_tags: process_tags,
         internal_metadata_json: '{"no_signals_workaround_enabled":false}',
-        info_json: info_json
+        info_json: info_json,
       )
     end
   end

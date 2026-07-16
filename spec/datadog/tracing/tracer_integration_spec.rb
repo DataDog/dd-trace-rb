@@ -50,21 +50,21 @@ RSpec.describe Datadog::Tracing::Tracer do
           trace_id: (a_value > 0),
           id: (a_value > 0),
           parent_id: 0,
-          name: "grandparent"
+          name: "grandparent",
         )
 
         expect(parent_span).to have_attributes(
           trace_id: trace_id,
           id: (a_value > 0),
           parent_id: grandparent_span.id,
-          name: "parent"
+          name: "parent",
         )
 
         expect(child_span).to have_attributes(
           trace_id: trace_id,
           id: (a_value > 0),
           parent_id: parent_span.id,
-          name: "child"
+          name: "child",
         )
       end
     end
@@ -95,7 +95,7 @@ RSpec.describe Datadog::Tracing::Tracer do
                   "db.query",
                   service: "database",
                   resource: "worker #{index}",
-                  continue_from: trace_digest
+                  continue_from: trace_digest,
                 ) do
                   sleep(0.01)
                 end
@@ -137,7 +137,7 @@ RSpec.describe Datadog::Tracing::Tracer do
           parent_id: 0,
           name: "job",
           resource: "import_job",
-          service: tracer.default_service
+          service: tracer.default_service,
         )
 
         expect(load_data_span).to have_attributes(
@@ -146,7 +146,7 @@ RSpec.describe Datadog::Tracing::Tracer do
           parent_id: job_span.id,
           name: "load_data",
           resource: "imports.csv",
-          service: tracer.default_service
+          service: tracer.default_service,
         )
 
         expect(read_file_span).to have_attributes(
@@ -155,7 +155,7 @@ RSpec.describe Datadog::Tracing::Tracer do
           parent_id: load_data_span.id,
           name: "read_file",
           resource: "imports.csv",
-          service: tracer.default_service
+          service: tracer.default_service,
         )
 
         expect(deserialize_span).to have_attributes(
@@ -164,7 +164,7 @@ RSpec.describe Datadog::Tracing::Tracer do
           parent_id: load_data_span.id,
           name: "deserialize",
           resource: "inventory",
-          service: tracer.default_service
+          service: tracer.default_service,
         )
 
         expect(start_inserts_span).to have_attributes(
@@ -173,7 +173,7 @@ RSpec.describe Datadog::Tracing::Tracer do
           parent_id: job_span.id,
           name: "start_inserts",
           resource: "inventory",
-          service: tracer.default_service
+          service: tracer.default_service,
         )
 
         expect(db_query_spans).to all(
@@ -183,8 +183,8 @@ RSpec.describe Datadog::Tracing::Tracer do
             parent_id: start_inserts_span.id,
             name: "db.query",
             resource: /worker \d+/,
-            service: "database"
-          )
+            service: "database",
+          ),
         )
 
         expect(wait_insert_span).to have_attributes(
@@ -193,7 +193,7 @@ RSpec.describe Datadog::Tracing::Tracer do
           parent_id: job_span.id,
           name: "wait_inserts",
           resource: "inventory",
-          service: tracer.default_service
+          service: tracer.default_service,
         )
         expect(wait_insert_span.get_tag("worker.count")).to eq(5.0)
 
@@ -203,7 +203,7 @@ RSpec.describe Datadog::Tracing::Tracer do
           parent_id: job_span.id,
           name: "update_log",
           resource: "inventory",
-          service: tracer.default_service
+          service: tracer.default_service,
         )
       end
     end
@@ -221,7 +221,7 @@ RSpec.describe Datadog::Tracing::Tracer do
               span_id: Datadog::Tracing::Utils.next_id,
               trace_id: Datadog::Tracing::Utils.next_id,
               trace_origin: "synthetics",
-              trace_sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+              trace_sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP,
             )
           end
 
@@ -388,7 +388,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
         expect(inject).to eq(
           "traceparent" => "00-0000000000000000000000000000007b-00000000000001c8-01",
-          "tracestate" => "dd=s:9;o:other-origin;t.test:changed"
+          "tracestate" => "dd=s:9;o:other-origin;t.test:changed",
         )
       end
     end

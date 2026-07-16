@@ -12,8 +12,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
         {
           "REQUEST_METHOD" => "GET", "REMOTE_ADDR" => "10.10.10.10", "CONTENT_TYPE" => "text/html",
           "HTTP_COOKIE" => "foo=bar", "HTTP_USER_AGENT" => "WebKit"
-        }
-      )
+        },
+      ),
     )
   end
 
@@ -27,7 +27,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
     context "when the query string contains malformed percent-encoding" do
       let(:request) do
         described_class.new(
-          Rack::MockRequest.env_for("http://example.com:8080/", "QUERY_STRING" => "bad=%&payload=%3Cscript%3E")
+          Rack::MockRequest.env_for("http://example.com:8080/", "QUERY_STRING" => "bad=%&payload=%3Cscript%3E"),
         )
       end
 
@@ -58,8 +58,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
               "HTTP_COOKIE" => "foo=bar", "HTTP_USER_AGENT" => "WebKit",
               "HTTP_" => "empty header", "HTTP_123" => "numbered header",
               "HTTP_123_FOO" => "alphanumerical header", "HTTP_FOO_123" => "reverse alphanumerical header"
-            }
-          )
+            },
+          ),
         )
       end
 
@@ -145,8 +145,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
         described_class.new(
           Rack::MockRequest.env_for(
             "http://example.com:8080/?a=foo",
-            {:method => "POST", :input => "name=john", "REMOTE_ADDR" => "10.10.10.10"}
-          )
+            {:method => "POST", :input => "name=john", "REMOTE_ADDR" => "10.10.10.10"},
+          ),
         )
       end
 
@@ -165,8 +165,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
         described_class.new(
           Rack::MockRequest.env_for(
             "http://example.com:8080/?a=foo",
-            {:method => "POST", :input => "name=john", "REMOTE_ADDR" => "10.10.10.10"}
-          )
+            {:method => "POST", :input => "name=john", "REMOTE_ADDR" => "10.10.10.10"},
+          ),
         )
       end
 
@@ -188,8 +188,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
             :method => "POST",
             :input => "name=john",
             "CONTENT_TYPE" => "application/x-www-form-urlencoded"
-          }
-        )
+          },
+        ),
       )
     end
 
@@ -339,8 +339,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
         described_class.new(
           Rack::MockRequest.env_for(
             "http://example.com:8080/",
-            {:method => "POST", :input => "name=john", "CONTENT_TYPE" => "application/x-www-form-urlencoded"}
-          )
+            {:method => "POST", :input => "name=john", "CONTENT_TYPE" => "application/x-www-form-urlencoded"},
+          ),
         )
       end
 
@@ -352,8 +352,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
         described_class.new(
           Rack::MockRequest.env_for(
             "http://example.com:8080/",
-            {:method => "POST", "CONTENT_TYPE" => "application/json", "rack.request.form_hash" => {"name" => "john"}}
-          )
+            {:method => "POST", "CONTENT_TYPE" => "application/json", "rack.request.form_hash" => {"name" => "john"}},
+          ),
         )
       end
 
@@ -365,8 +365,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
         described_class.new(
           Rack::MockRequest.env_for(
             "http://example.com:8080/",
-            {:method => "POST", :input => '{"name":"john"}', "CONTENT_TYPE" => "application/json"}
-          )
+            {:method => "POST", :input => '{"name":"john"}', "CONTENT_TYPE" => "application/json"},
+          ),
         )
       end
 

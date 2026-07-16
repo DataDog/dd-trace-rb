@@ -46,7 +46,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
               }
             }
           }
-        }
+        },
       ).and_return(raw_response_mock)
 
       response = described_class.new(messages).perform

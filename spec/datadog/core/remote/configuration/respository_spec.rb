@@ -102,7 +102,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
       {
         path: path.to_s,
         content: new_content_string_io_content
-      }
+      },
     )
   end
 
@@ -118,13 +118,13 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
         repository.transaction(&b)
       end.to yield_with_args(
         repository,
-        instance_of(Datadog::Core::Remote::Configuration::Repository::Transaction)
+        instance_of(Datadog::Core::Remote::Configuration::Repository::Transaction),
       )
     end
 
     it "commits transaction" do
       expect(repository).to receive(:commit).with(
-        instance_of(Datadog::Core::Remote::Configuration::Repository::Transaction)
+        instance_of(Datadog::Core::Remote::Configuration::Repository::Transaction),
       )
       repository.transaction(&proc {})
     end
@@ -186,7 +186,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
 
         new_content = Datadog::Core::Remote::Configuration::Content.parse(
           {path: path.to_s,
-           content: "hello world"}
+           content: "hello world"},
         )
 
         updated_changes = repository.transaction do |_repository, transaction|
@@ -209,7 +209,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
         new_path = Datadog::Core::Remote::Configuration::Path.parse("employee/ASM/exclusion_filters/config")
         new_content = Datadog::Core::Remote::Configuration::Content.parse(
           {path: new_path.to_s,
-           content: "hello world"}
+           content: "hello world"},
         )
 
         changes = repository.transaction do |_repository, transaction|

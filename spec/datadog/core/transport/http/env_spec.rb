@@ -16,7 +16,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Env do
       is_expected.to have_attributes(
         request: request,
         headers: {},
-        form: {}
+        form: {},
       )
     end
 

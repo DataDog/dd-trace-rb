@@ -53,7 +53,7 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
              trace_id: format_for_correlation(trace_id),
              version: "version"
            },
-           ddsource: "ruby"}
+           ddsource: "ruby"},
         )
       end
     end

@@ -231,7 +231,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
         it "logs a deprecation warning when set to a non-default value" do
           expect { settings.appsec.ip_passlist = ["1.1.1.1"] }.to log_deprecation(
-            "ip_passlist setting is deprecated and will be removed in the next release"
+            "ip_passlist setting is deprecated and will be removed in the next release",
           )
         end
       end
@@ -257,7 +257,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
         it "logs a deprecation warning when set to a non-default value" do
           expect { settings.appsec.ip_denylist = ["1.1.1.1"] }.to log_deprecation(
-            "ip_denylist setting is deprecated and will be removed in the next release"
+            "ip_denylist setting is deprecated and will be removed in the next release",
           )
         end
       end
@@ -283,7 +283,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
         it "logs a deprecation warning when set to a non-default value" do
           expect { settings.appsec.user_id_denylist = ["1"] }.to log_deprecation(
-            "user_id_denylist setting is deprecated and will be removed in the next release"
+            "user_id_denylist setting is deprecated and will be removed in the next release",
           )
         end
       end

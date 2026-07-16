@@ -99,7 +99,7 @@ RSpec.describe Datadog::DI::Serializer do
       {name: "AR model with filled out attributes",
        input: -> {
                 SerializerRailsSpecTestBasicModel.new(
-                  title: "Hello, world!", created_at: Time.utc(2020, 1, 2), updated_at: Time.utc(2020, 1, 3)
+                  title: "Hello, world!", created_at: Time.utc(2020, 1, 2), updated_at: Time.utc(2020, 1, 3),
                 )
               },
        expected: {type: "SerializerRailsSpecTestBasicModel", entries: [[
@@ -117,7 +117,7 @@ RSpec.describe Datadog::DI::Serializer do
       {name: "AR model with filled out attributes and persisted",
        input: -> {
                 SerializerRailsSpecTestBasicModel.create!(
-                  title: "Hello, world!", created_at: Time.utc(2020, 1, 2), updated_at: Time.utc(2020, 1, 3)
+                  title: "Hello, world!", created_at: Time.utc(2020, 1, 2), updated_at: Time.utc(2020, 1, 3),
                 )
               },
        expected: {type: "SerializerRailsSpecTestBasicModel", entries: [[

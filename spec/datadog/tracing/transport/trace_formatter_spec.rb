@@ -99,7 +99,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
       Datadog::Tracing::TraceSegment.new(
         spans,
         root_span_id: Datadog::Tracing::Utils.next_id,
-        **trace_options
+        **trace_options,
       )
     end
     let(:spans) { Array.new(3) { Datadog::Tracing::Span.new("my.job") } }
@@ -120,7 +120,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         it do
           is_expected.to have_attributes(
             trace: trace,
-            root_span: root_span
+            root_span: root_span,
           )
         end
       end
@@ -191,7 +191,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
             format!
             # rule_sample_rate takes priority over agent_sample_rate
             expect(root_span.meta).to include(
-              Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => "0.75"
+              Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => "0.75",
             )
           end
         end
@@ -213,7 +213,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
                 "foo" => "bar",
                 "_dd.p.dm" => "-1",
                 "_dd.p.tid" => "0a3efc9f33333333",
-              }
+              },
             )
           end
         end
@@ -245,7 +245,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
             {
               "_dd.git.repository_url" => git_repository_url,
               "_dd.git.commit.sha" => git_commit_sha
-            }
+            },
           )
         end
       end
@@ -480,7 +480,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         it "sets _dd.p.ksr from agent_sample_rate" do
           format!
           expect(root_span.meta).to include(
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => "0.5"
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => "0.5",
           )
         end
       end
@@ -491,7 +491,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         it "sets _dd.p.ksr from rule_sample_rate" do
           format!
           expect(root_span.meta).to include(
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => "0.75"
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => "0.75",
           )
         end
       end
@@ -502,7 +502,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         it "sets _dd.p.ksr from rule_sample_rate (rule takes priority)" do
           format!
           expect(root_span.meta).to include(
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => "0.8"
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => "0.8",
           )
         end
       end
@@ -513,7 +513,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         it "does not set _dd.p.ksr" do
           format!
           expect(root_span.meta).to_not include(
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE,
           )
         end
       end
@@ -547,10 +547,10 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         it "is stored as a string in meta (not metrics)" do
           format!
           expect(root_span.meta).to include(
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => "0.5"
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => "0.5",
           )
           expect(root_span.metrics).to_not include(
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE,
           )
         end
       end
@@ -560,7 +560,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
 
         it "has the _dd.p. prefix for distributed propagation" do
           expect(Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE).to start_with(
-            Datadog::Tracing::Metadata::Ext::Distributed::TAGS_PREFIX
+            Datadog::Tracing::Metadata::Ext::Distributed::TAGS_PREFIX,
           )
         end
       end

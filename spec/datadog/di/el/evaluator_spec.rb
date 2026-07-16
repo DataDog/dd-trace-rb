@@ -54,7 +54,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     before do
       stub_const(
         "Datadog::DI::EL::Evaluator::MATCHES_TIMEOUT_SECONDS",
-        timeout_seconds
+        timeout_seconds,
       )
     end
 

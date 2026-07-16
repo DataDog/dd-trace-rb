@@ -72,7 +72,7 @@ RSpec.describe Datadog::ErrorTracking::Configuration::Settings do
         expect(Datadog.logger).to have_received(:warn).with(
           "Invalid handled errors scope: invalid. " \
           "Supported values are: all | user | third_party. " \
-          "Deactivating the feature."
+          "Deactivating the feature.",
         )
         expect(settings.error_tracking.handled_errors).to eq(Datadog::ErrorTracking::Ext::DEFAULT_HANDLED_ERRORS)
       end

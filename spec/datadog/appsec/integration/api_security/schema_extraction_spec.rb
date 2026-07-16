@@ -199,7 +199,7 @@ RSpec.describe "Schema extraction for API security", execute_in_fork: true do
 
       def search
         products = Product.find_by_sql(
-          "SELECT * FROM products WHERE name = '#{params[:name]}'"
+          "SELECT * FROM products WHERE name = '#{params[:name]}'",
         )
         render json: products
       end
@@ -259,7 +259,7 @@ RSpec.describe "Schema extraction for API security", execute_in_fork: true do
       expect(response).to be_ok
       expect(http_service_entry_span.tags).to include(
         match(%r{_dd.appsec.s.req.*}),
-        match(%r{_dd.appsec.s.res.*})
+        match(%r{_dd.appsec.s.res.*}),
       )
     end
 
@@ -268,7 +268,7 @@ RSpec.describe "Schema extraction for API security", execute_in_fork: true do
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
         "api_security.request.schema",
         1,
-        tags: {framework: "rails"}
+        tags: {framework: "rails"},
       )
     end
   end
@@ -291,7 +291,7 @@ RSpec.describe "Schema extraction for API security", execute_in_fork: true do
         expect(response).to be_ok
         expect(http_service_entry_span.tags).to_not include(
           match(%r{_dd.appsec.s.req.*}),
-          match(%r{_dd.appsec.s.res.*})
+          match(%r{_dd.appsec.s.res.*}),
         )
       end
 
@@ -300,7 +300,7 @@ RSpec.describe "Schema extraction for API security", execute_in_fork: true do
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
           "api_security.request.no_schema",
           1,
-          tags: {framework: "rails"}
+          tags: {framework: "rails"},
         )
       end
     end
@@ -318,7 +318,7 @@ RSpec.describe "Schema extraction for API security", execute_in_fork: true do
         expect(response).to be_ok
         expect(http_service_entry_span.tags).to_not include(
           match(%r{_dd.appsec.s.req.*}),
-          match(%r{_dd.appsec.s.res.*})
+          match(%r{_dd.appsec.s.res.*}),
         )
       end
 
@@ -327,7 +327,7 @@ RSpec.describe "Schema extraction for API security", execute_in_fork: true do
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
           "api_security.request.no_schema",
           1,
-          tags: {framework: "rails"}
+          tags: {framework: "rails"},
         )
       end
     end
@@ -347,7 +347,7 @@ RSpec.describe "Schema extraction for API security", execute_in_fork: true do
       expect(response).to be_ok
       expect(http_service_entry_span.tags).to_not include(
         match(%r{_dd.appsec.s.req.*}),
-        match(%r{_dd.appsec.s.res.*})
+        match(%r{_dd.appsec.s.res.*}),
       )
     end
 
@@ -356,7 +356,7 @@ RSpec.describe "Schema extraction for API security", execute_in_fork: true do
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
         "api_security.request.no_schema",
         1,
-        tags: {framework: "rails"}
+        tags: {framework: "rails"},
       )
     end
   end
@@ -382,7 +382,7 @@ RSpec.describe "Schema extraction for API security", execute_in_fork: true do
         expect(response).to be_ok
         expect(http_service_entry_span.tags).to include(
           match(%r{_dd.appsec.s.req.*}),
-          match(%r{_dd.appsec.s.res.*})
+          match(%r{_dd.appsec.s.res.*}),
         )
       end
 
@@ -391,7 +391,7 @@ RSpec.describe "Schema extraction for API security", execute_in_fork: true do
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
           "api_security.request.schema",
           1,
-          tags: {framework: "rails"}
+          tags: {framework: "rails"},
         )
       end
     end
@@ -406,7 +406,7 @@ RSpec.describe "Schema extraction for API security", execute_in_fork: true do
         expect(response).to be_ok
         expect(http_service_entry_span.tags).to include(
           match(%r{_dd.appsec.s.req.*}),
-          match(%r{_dd.appsec.s.res.*})
+          match(%r{_dd.appsec.s.res.*}),
         )
       end
 
@@ -415,7 +415,7 @@ RSpec.describe "Schema extraction for API security", execute_in_fork: true do
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
           "api_security.request.schema",
           1,
-          tags: {framework: "rails"}
+          tags: {framework: "rails"},
         )
       end
     end
@@ -442,7 +442,7 @@ RSpec.describe "Schema extraction for API security", execute_in_fork: true do
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
         "api_security.request.schema",
         1,
-        tags: {framework: "rails"}
+        tags: {framework: "rails"},
       )
     end
   end
@@ -467,7 +467,7 @@ RSpec.describe "Schema extraction for API security", execute_in_fork: true do
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
         "api_security.request.schema",
         1,
-        tags: {framework: "rails"}
+        tags: {framework: "rails"},
       )
     end
   end

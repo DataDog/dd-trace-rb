@@ -190,7 +190,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
         "appsec.events.users.signup.usr.login" => "john.doe@example.com",
         "_dd.appsec.events.users.signup.auto.mode" => "identification",
         "_dd.appsec.usr.login" => "john.doe@example.com",
-        "_dd.appsec.usr.id" => "1"
+        "_dd.appsec.usr.id" => "1",
       )
     end
   end
@@ -235,7 +235,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
         "appsec.events.users.signup.track" => "true",
         "appsec.events.users.signup.usr.login" => "john.doe@example.com",
         "_dd.appsec.events.users.signup.auto.mode" => "identification",
-        "_dd.appsec.usr.login" => "john.doe@example.com"
+        "_dd.appsec.usr.login" => "john.doe@example.com",
       )
     end
   end
@@ -292,7 +292,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
         "appsec.events.users.signup.usr.login" => "john.doe@example.com",
         "_dd.appsec.events.users.signup.auto.mode" => "identification",
         "_dd.appsec.usr.login" => "john.doe@example.com",
-        "_dd.appsec.usr.id" => "1"
+        "_dd.appsec.usr.id" => "1",
       )
     end
   end
@@ -313,7 +313,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
             Datadog::Tracing.active_trace,
             Datadog::Tracing.active_span,
             user: {id: "42"},
-            "usr.login": "hello@gmail.com"
+            "usr.login": "hello@gmail.com",
           )
 
           super
@@ -352,7 +352,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
         "_dd.appsec.events.users.signup.sdk" => "true",
         "_dd.appsec.events.users.signup.auto.mode" => "identification",
         "_dd.appsec.usr.login" => "john.doe@example.com",
-        "_dd.appsec.usr.id" => "1"
+        "_dd.appsec.usr.id" => "1",
       )
     end
   end

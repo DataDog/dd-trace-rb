@@ -92,7 +92,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionController::Instrume
         let(:payload) do
           super().merge(
             exception: [error.class.name, error.message],
-            exception_object: error
+            exception_object: error,
           )
         end
 
@@ -113,7 +113,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionController::Instrume
         let(:payload) do
           super().merge(
             exception: [error.class.name, error.message],
-            exception_object: error
+            exception_object: error,
           )
         end
 

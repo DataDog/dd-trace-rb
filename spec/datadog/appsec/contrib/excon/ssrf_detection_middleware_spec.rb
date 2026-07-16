@@ -13,7 +13,7 @@ RSpec.describe "AppSec excon SSRF detection middleware" do
       metrics: metrics,
       run_rasp: waf_response,
       downstream_body_sampler: Datadog::AppSec::CounterSampler.new(1.0),
-      state: {downstream_body_analyzed_count: 0}
+      state: {downstream_body_analyzed_count: 0},
     )
   end
   let(:waf_response) { instance_double(Datadog::AppSec::SecurityEngine::Result::Ok, match?: false) }
@@ -34,85 +34,85 @@ RSpec.describe "AppSec excon SSRF detection middleware" do
           "Set-Cookie" => ["a=1", "b=2"],
           "Via" => ["1.1 foo.io", "2.2 bar.io"],
           "Age" => "1"
-        }
+        },
       )
       ::Excon.stub(
         {method: :post, path: "/application-json"},
         body: '{"response":"OK"}',
         status: 200,
-        headers: {"Content-Type" => "application/json", "Content-Length" => "17"}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "17"},
       )
       ::Excon.stub(
         {method: :post, path: "/invalid-json"},
         body: "not json",
         status: 200,
-        headers: {"Content-Type" => "application/json", "Content-Length" => "8"}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "8"},
       )
       ::Excon.stub(
         {method: :post, path: "/application-json-no-content-length"},
         body: '{"response":"OK"}',
         status: 200,
-        headers: {"Content-Type" => "application/json"}
+        headers: {"Content-Type" => "application/json"},
       )
       ::Excon.stub(
         {method: :post, path: "/application-json-zero-content-length"},
         body: '{"response":"OK"}',
         status: 200,
-        headers: {"Content-Type" => "application/json", "Content-Length" => "0"}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "0"},
       )
       ::Excon.stub(
         {method: :post, path: "/application-json-invalid-content-length"},
         body: '{"response":"OK"}',
         status: 200,
-        headers: {"Content-Type" => "application/json", "Content-Length" => "12, 3"}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "12, 3"},
       )
       ::Excon.stub(
         {method: :post, path: "/application-json-too-big"},
         body: '{"response":"OK"}',
         status: 200,
-        headers: {"Content-Type" => "application/json", "Content-Length" => "17"}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "17"},
       )
       ::Excon.stub(
         {method: :post, path: "/application-json-content-length-lie"},
         body: '{"response":"OK"}',
         status: 200,
-        headers: {"Content-Type" => "application/json", "Content-Length" => "2"}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "2"},
       )
       ::Excon.stub(
         {method: :post, path: "/redirect-301"},
         body: '{"redirect":"body"}',
         status: 301,
-        headers: {"Location" => "http://example.com/application-json", "Content-Type" => "application/json"}
+        headers: {"Location" => "http://example.com/application-json", "Content-Type" => "application/json"},
       )
       ::Excon.stub(
         {method: :post, path: "/redirect-302"},
         body: "<html>Redirecting...</html>",
         status: 302,
-        headers: {"Location" => "http://example.com/application-json", "Content-Type" => "text/html"}
+        headers: {"Location" => "http://example.com/application-json", "Content-Type" => "text/html"},
       )
       ::Excon.stub(
         {method: :post, path: "/redirect-no-location"},
         body: '{"redirect":"body"}',
         status: 301,
-        headers: {"Content-Type" => "application/json", "Content-Length" => "19"}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "19"},
       )
       ::Excon.stub(
         {method: :get, path: "/redirect-chain-start"},
         body: '{"hop":"1"}',
         status: 301,
-        headers: {"Location" => "http://example.com/redirect-chain-hop", "Content-Type" => "application/json"}
+        headers: {"Location" => "http://example.com/redirect-chain-hop", "Content-Type" => "application/json"},
       )
       ::Excon.stub(
         {method: :get, path: "/redirect-chain-hop"},
         body: '{"hop":"2"}',
         status: 302,
-        headers: {"Location" => "/redirect-chain-finish", "Content-Type" => "application/json"}
+        headers: {"Location" => "/redirect-chain-finish", "Content-Type" => "application/json"},
       )
       ::Excon.stub(
         {method: :get, path: "/redirect-chain-finish"},
         body: '{"final":"response"}',
         status: 200,
-        headers: {"Content-Type" => "application/json", "Content-Length" => "20"}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "20"},
       )
     end
   end
@@ -166,11 +166,11 @@ RSpec.describe "AppSec excon SSRF detection middleware" do
             "server.io.net.request.headers" => hash_including(
               "cookie" => "x=1; y=2",
               "accept" => "text/plain, application/json",
-              "dnt" => "1"
-            )
+              "dnt" => "1",
+            ),
           ),
           kind_of(Integer),
-          phase: "request"
+          phase: "request",
         )
 
       expect(Datadog::AppSec.active_context).to receive(:run_rasp)
@@ -182,17 +182,17 @@ RSpec.describe "AppSec excon SSRF detection middleware" do
             "server.io.net.response.headers" => hash_including(
               "set-cookie" => "a=1, b=2",
               "via" => "1.1 foo.io, 2.2 bar.io",
-              "age" => "1"
-            )
+              "age" => "1",
+            ),
           ),
           kind_of(Integer),
-          phase: "response"
+          phase: "response",
         )
 
       client.post(
         path: "/text-plain",
         query: "z=1",
-        headers: {"Cookie" => "x=1; y=2", "Accept" => "text/plain, application/json", "DNT" => "1"}
+        headers: {"Cookie" => "x=1; y=2", "Accept" => "text/plain, application/json", "DNT" => "1"},
       )
     end
 
@@ -211,7 +211,7 @@ RSpec.describe "AppSec excon SSRF detection middleware" do
           {method: :get, path: "/admin"},
           body: "OK",
           status: 200,
-          headers: {"Content-Type" => "text/plain"}
+          headers: {"Content-Type" => "text/plain"},
         )
       end
     end
@@ -317,7 +317,7 @@ RSpec.describe "AppSec excon SSRF detection middleware" do
       client.post(
         path: "/application-json",
         headers: {"Content-Type" => "application/x-www-form-urlencoded"},
-        body: "key=value&foo=bar"
+        body: "key=value&foo=bar",
       )
     end
 
@@ -459,7 +459,7 @@ RSpec.describe "AppSec excon SSRF detection middleware" do
           metrics: metrics,
           run_rasp: waf_response,
           downstream_body_sampler: Datadog::AppSec::CounterSampler.new(1.0),
-          state: {downstream_body_analyzed_count: 0}
+          state: {downstream_body_analyzed_count: 0},
         )
       end
 
@@ -488,7 +488,7 @@ RSpec.describe "AppSec excon SSRF detection middleware" do
           metrics: metrics,
           run_rasp: waf_response,
           downstream_body_sampler: Datadog::AppSec::CounterSampler.new(0.5),
-          state: {downstream_body_analyzed_count: 0}
+          state: {downstream_body_analyzed_count: 0},
         )
       end
 
@@ -523,10 +523,10 @@ RSpec.describe "AppSec excon SSRF detection middleware" do
         {},
         hash_including(
           "server.io.net.response.status" => "301",
-          "server.io.net.response.headers" => hash_including("location" => "http://example.com/application-json")
+          "server.io.net.response.headers" => hash_including("location" => "http://example.com/application-json"),
         ),
         anything,
-        phase: "response"
+        phase: "response",
       )
     end
   end
@@ -606,19 +606,19 @@ RSpec.describe "AppSec excon SSRF detection middleware" do
           {method: :get, path: "/redirect-chain-start"},
           body: '{"hop":"1"}',
           status: 301,
-          headers: {"Location" => "http://example.com/redirect-chain-hop", "Content-Type" => "application/json"}
+          headers: {"Location" => "http://example.com/redirect-chain-hop", "Content-Type" => "application/json"},
         )
         ::Excon.stub(
           {method: :get, path: "/redirect-chain-hop"},
           body: '{"hop":"2"}',
           status: 302,
-          headers: {"Location" => "/redirect-chain-finish", "Content-Type" => "application/json"}
+          headers: {"Location" => "/redirect-chain-finish", "Content-Type" => "application/json"},
         )
         ::Excon.stub(
           {method: :get, path: "/redirect-chain-finish"},
           body: '{"final":"response"}',
           status: 200,
-          headers: {"Content-Type" => "application/json", "Content-Length" => "20"}
+          headers: {"Content-Type" => "application/json", "Content-Length" => "20"},
         )
       end
     end

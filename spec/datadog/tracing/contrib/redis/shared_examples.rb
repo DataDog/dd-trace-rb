@@ -361,8 +361,8 @@ RSpec.shared_examples_for "an authenticated redis instrumentation" do |options =
       let(:redis) do
         Redis.new(
           redis_options.merge(
-            url: "redis://#{username}:#{password}@#{redis_options[:host]}:#{redis_options[:port]}"
-          )
+            url: "redis://#{username}:#{password}@#{redis_options[:host]}:#{redis_options[:port]}",
+          ),
         )
       end
 
@@ -387,8 +387,8 @@ RSpec.shared_examples_for "an authenticated redis instrumentation" do |options =
         Redis.new(
           redis_options.merge(
             username: username,
-            password: password
-          ).freeze
+            password: password,
+          ).freeze,
         )
       end
 

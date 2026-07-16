@@ -20,7 +20,7 @@ module TracerHelpers
     writer = FauxWriter.new(
       transport: Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) do |t|
         t.adapter :test
-      end
+      end,
     )
 
     options = {writer: writer}.merge(options)

@@ -30,7 +30,7 @@ RSpec.describe "Datadog::Workers::AsyncTransport integration tests" do
           on_trace: w.instance_variable_get(:@trace_handler),
           interval: flush_interval,
           logger: logger,
-        )
+        ),
       )
       w.worker.start
     end
@@ -252,7 +252,7 @@ RSpec.describe "Datadog::Workers::AsyncTransport integration tests" do
       it "interrupts the worker to speed up shutdown" do
         expect(@shutdown_end - @shutdown_beg)
           .to be_within(5).of(
-            Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT
+            Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT,
           )
       end
     end
