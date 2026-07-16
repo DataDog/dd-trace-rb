@@ -256,6 +256,12 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         hooks = transport.instance_variable_get(:@fork_hooks)
         finalizer = transport_class.send(:finalizer_for, hooks)
 
+        # Assert the hooks are registered first, so the post-run absence check
+        # cannot pass vacuously.
+        hooks.each do |stage, block|
+          expect(registry_contains?(stage, block)).to be(true)
+        end
+
         # Simulate finalization (what ObjectSpace would call once the transport
         # is collected). The finalizer receives the object id; ignore it.
         finalizer.call(transport.object_id)
@@ -280,12 +286,19 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
           logger: logger,
         )
 
-        writer.stop
+        # Assert the hooks are registered before the stop, so their subsequent
+        # absence demonstrates an actual state change.
+        hooks.each do |stage, block|
+          expect(registry_contains?(stage, block)).to be(true)
+        end
+
+        expect { writer.stop }
+          .to change { transport.instance_variable_get(:@exporter) }
+          .to(be_nil)
 
         hooks.each do |stage, block|
           expect(registry_contains?(stage, block)).to be(false)
         end
-        expect(transport.instance_variable_get(:@exporter)).to be_nil
       end
     end
   end
@@ -309,9 +322,9 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
 
       it 'updates stats on success' do
         trace = make_trace_segment('web.request')
-        transport.send_traces([trace])
 
-        expect(transport.stats.success).to eq(1)
+        expect { transport.send_traces([trace]) }
+          .to change { transport.stats.success }.from(0).to(1)
         expect(transport.stats.internal_error).to eq(0)
       end
     end
