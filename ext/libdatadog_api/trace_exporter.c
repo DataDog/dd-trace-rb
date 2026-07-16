@@ -700,11 +700,14 @@ static VALUE build_and_send_traces(VALUE arg) {
     ENFORCE_TYPE(chunk_spans, T_ARRAY);
 
     long span_count = RARRAY_LEN(chunk_spans);
+    /* Propagate a begin_chunk failure instead of swallowing it: continuing
+     * would build an incomplete payload and still report success. rb_ensure
+     * frees chunks on the raise. Today this only fails for an absurd
+     * span_count, but a future libdatadog change (e.g. a fallible allocator)
+     * could make it reachable. */
     ddog_TraceExporterError *begin_err =
         ddog_tracer_trace_chunks_begin_chunk(ctx->chunks, (size_t)span_count);
-    if (begin_err != NULL) {
-      ddog_trace_exporter_error_free(begin_err);
-    }
+    check_exporter_error("Failed to begin trace chunk", begin_err);
     for (long j = 0; j < span_count; j++) {
       VALUE rb_span = rb_ary_entry(chunk_spans, j);
 
