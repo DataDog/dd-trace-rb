@@ -2204,6 +2204,13 @@
         "default": null
       }
     ],
+    "DD_TRACE_SECURE_RANDOM": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_TRACE_SEMANTIC_LOGGER_ENABLED": [
       {
         "version": "A",

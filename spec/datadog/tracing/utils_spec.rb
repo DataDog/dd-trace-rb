@@ -29,6 +29,65 @@ RSpec.describe Datadog::Tracing::Utils do
         expect(ids).to have(3).items
       end
     end
+
+    context 'when DD_TRACE_SECURE_RANDOM is true' do
+      around do |example|
+        described_class.instance_variable_set(:@secure_random, nil)
+        ClimateControl.modify('DD_TRACE_SECURE_RANDOM' => 'true') { example.run }
+        described_class.instance_variable_set(:@secure_random, nil)
+      end
+
+      it 'returns a non-zero integer within the valid range' do
+        id = described_class.next_id
+        expect(id).to be_between(1, described_class::RUBY_MAX_ID)
+      end
+
+      it 'returns varied values across calls' do
+        ids = Array.new(100) { described_class.next_id }
+        expect(ids.uniq.size).to be > 90
+      end
+
+      it 'delegates to SecureRandom.random_number' do
+        expect(SecureRandom).to receive(:random_number).with(described_class::RUBY_ID_RANGE).and_call_original
+        described_class.next_id
+      end
+    end
+
+    context 'when DD_TRACE_SECURE_RANDOM is not set' do
+      around do |example|
+        described_class.instance_variable_set(:@secure_random, nil)
+        ClimateControl.modify('DD_TRACE_SECURE_RANDOM' => nil) { example.run }
+        described_class.instance_variable_set(:@secure_random, nil)
+      end
+
+      it 'returns a non-zero integer within the valid range' do
+        id = described_class.next_id
+        expect(id).to be_between(1, described_class::RUBY_MAX_ID)
+      end
+
+      it 'does not delegate to SecureRandom.random_number' do
+        expect(SecureRandom).not_to receive(:random_number)
+        described_class.next_id
+      end
+    end
+
+    context 'when DD_TRACE_SECURE_RANDOM is false' do
+      around do |example|
+        described_class.instance_variable_set(:@secure_random, nil)
+        ClimateControl.modify('DD_TRACE_SECURE_RANDOM' => 'false') { example.run }
+        described_class.instance_variable_set(:@secure_random, nil)
+      end
+
+      it 'does not delegate to SecureRandom.random_number' do
+        expect(SecureRandom).not_to receive(:random_number)
+        described_class.next_id
+      end
+
+      it 'only reads the environment variable once across multiple calls' do
+        expect(Datadog::DATADOG_ENV).to receive(:[]).with('DD_TRACE_SECURE_RANDOM').once.and_call_original
+        3.times { described_class.next_id }
+      end
+    end
   end
 end
 
