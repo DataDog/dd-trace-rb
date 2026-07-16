@@ -59,6 +59,14 @@ static ID id_duration_method;
 static VALUE response_class       = Qnil;
 static ID id_new;
 
+/* Response keyword-argument IDs, cached to avoid re-interning per send */
+static ID kw_ok;
+static ID kw_internal_error;
+static ID kw_server_error;
+static ID kw_client_error;
+static ID kw_trace_count;
+static ID kw_payload;
+
 /* ========================================================================
  * Ruby class references (marked as GC roots)
  * ======================================================================== */
@@ -422,12 +430,12 @@ static VALUE _native_from_span(DDTRACE_UNUSED VALUE klass, VALUE span) {
 static VALUE create_error_response(ddog_TraceExporterErrorCode code,
                                     long trace_count) {
   VALUE kwargs = rb_hash_new();
-  rb_hash_aset(kwargs, ID2SYM(rb_intern("ok")),             Qfalse);
-  rb_hash_aset(kwargs, ID2SYM(rb_intern("internal_error")), (code != DDOG_TRACE_EXPORTER_ERROR_CODE_HTTP_CLIENT &&
-                                                              code != DDOG_TRACE_EXPORTER_ERROR_CODE_HTTP_SERVER) ? Qtrue : Qfalse);
-  rb_hash_aset(kwargs, ID2SYM(rb_intern("server_error")),   code == DDOG_TRACE_EXPORTER_ERROR_CODE_HTTP_SERVER ? Qtrue : Qfalse);
-  rb_hash_aset(kwargs, ID2SYM(rb_intern("client_error")),   code == DDOG_TRACE_EXPORTER_ERROR_CODE_HTTP_CLIENT ? Qtrue : Qfalse);
-  rb_hash_aset(kwargs, ID2SYM(rb_intern("trace_count")),    LONG2NUM(trace_count));
+  rb_hash_aset(kwargs, ID2SYM(kw_ok),             Qfalse);
+  rb_hash_aset(kwargs, ID2SYM(kw_internal_error), (code != DDOG_TRACE_EXPORTER_ERROR_CODE_HTTP_CLIENT &&
+                                                   code != DDOG_TRACE_EXPORTER_ERROR_CODE_HTTP_SERVER) ? Qtrue : Qfalse);
+  rb_hash_aset(kwargs, ID2SYM(kw_server_error),   code == DDOG_TRACE_EXPORTER_ERROR_CODE_HTTP_SERVER ? Qtrue : Qfalse);
+  rb_hash_aset(kwargs, ID2SYM(kw_client_error),   code == DDOG_TRACE_EXPORTER_ERROR_CODE_HTTP_CLIENT ? Qtrue : Qfalse);
+  rb_hash_aset(kwargs, ID2SYM(kw_trace_count),    LONG2NUM(trace_count));
   return rb_funcallv_kw(response_class, id_new, 1, &kwargs, RB_PASS_KEYWORDS);
 }
 
@@ -442,9 +450,9 @@ static VALUE create_error_response(ddog_TraceExporterErrorCode code,
  */
 static VALUE create_ok_response(long trace_count, VALUE payload) {
   VALUE kwargs = rb_hash_new();
-  rb_hash_aset(kwargs, ID2SYM(rb_intern("ok")),          Qtrue);
-  rb_hash_aset(kwargs, ID2SYM(rb_intern("trace_count")), LONG2NUM(trace_count));
-  rb_hash_aset(kwargs, ID2SYM(rb_intern("payload")),     payload);
+  rb_hash_aset(kwargs, ID2SYM(kw_ok),          Qtrue);
+  rb_hash_aset(kwargs, ID2SYM(kw_trace_count), LONG2NUM(trace_count));
+  rb_hash_aset(kwargs, ID2SYM(kw_payload),     payload);
   return rb_funcallv_kw(response_class, id_new, 1, &kwargs, RB_PASS_KEYWORDS);
 }
 
@@ -934,4 +942,12 @@ void trace_exporter_init(VALUE tracing_module) {
 
   /* Response.new */
   id_new = rb_intern("new");
+
+  /* Response keyword-argument IDs */
+  kw_ok             = rb_intern("ok");
+  kw_internal_error = rb_intern("internal_error");
+  kw_server_error   = rb_intern("server_error");
+  kw_client_error   = rb_intern("client_error");
+  kw_trace_count    = rb_intern("trace_count");
+  kw_payload        = rb_intern("payload");
 }
