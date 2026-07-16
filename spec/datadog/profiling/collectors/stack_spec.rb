@@ -16,9 +16,11 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   let(:labels) { {"label_a" => "value_a", "label_b" => "value_b", "state" => "unknown"}.to_a }
 
   let(:raw_reference_stack) { stacks.fetch(:reference).freeze }
-  let(:reference_stack) { convert_reference_stack(raw_reference_stack).freeze }
+  let(:reference_stack) { convert_reference_stack(raw_reference_stack, module_names: false).freeze }
+  let(:reference_stack_with_module_names) { convert_reference_stack(raw_reference_stack, module_names: true).freeze }
   let(:gathered_stack) { stacks.fetch(:gathered).freeze }
   let(:native_filenames_enabled) { false }
+  let(:include_module_name) { true }
 
   def sample(thread, recorder_instance, metric_values_hash, labels_array, **options)
     numeric_labels_array = []
@@ -29,8 +31,45 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       labels_array,
       numeric_labels_array,
       native_filenames_enabled: native_filenames_enabled,
+      include_module_name: include_module_name,
       **options,
     )
+  end
+
+  shared_examples_for "matches the Ruby backtrace API" do
+    context "when include_module_name is disabled" do
+      let(:include_module_name) { false }
+
+      it "matches the Ruby backtrace API" do
+        expect(gathered_stack).to eq reference_stack
+      end
+    end
+
+    context "when include_module_name is enabled", if: RubyVersion.is?(">= 3.4") do
+      let(:include_module_name) { true }
+
+      it "matches the Ruby backtrace API" do
+        expect(gathered_stack).to eq reference_stack_with_module_names
+      end
+    end
+  end
+
+  shared_examples_for "matches the Ruby backtrace API in range" do |range|
+    context "when include_module_name is disabled" do
+      let(:include_module_name) { false }
+
+      it "matches the Ruby backtrace API in range #{range}" do
+        expect(gathered_stack[range]).to eq reference_stack[range]
+      end
+    end
+
+    context "when include_module_name is enabled", if: RubyVersion.is?(">= 3.4") do
+      let(:include_module_name) { true }
+
+      it "matches the Ruby backtrace API in range #{range}" do
+        expect(gathered_stack[range]).to eq reference_stack_with_module_names[range]
+      end
+    end
   end
 
   # This spec explicitly tests the main thread because an unpatched rb_profile_frames returns one more frame in the
@@ -47,14 +86,20 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       super()[1..-1]
     end
 
+    let(:reference_stack_with_module_names) do
+      # Same as above
+      expect(super().first.base_label).to eq "Thread#backtrace_locations"
+      super()[1..-1]
+    end
+
     let(:gathered_stack) do
       # To make the stacks comparable we slice off everything starting from `sample_and_decode` since that part will
       # also necessarily be different
       expect(super()[0..2]).to match(
         [
-          have_attributes(base_label: "Datadog::Profiling::Collectors::Stack::Testing._native_sample"),
-          have_attributes(base_label: "RSpec::ExampleGroups::DatadogProfilingCollectorsStack#sample"),
-          have_attributes(base_label: "RSpec::ExampleGroups::DatadogProfilingCollectorsStack#sample_and_decode"),
+          have_attributes(base_label: end_with("_native_sample")),
+          have_attributes(base_label: end_with("sample")),
+          have_attributes(base_label: end_with("sample_and_decode")),
         ]
       )
       super()[3..-1]
@@ -64,9 +109,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       expect(Thread.current).to be(Thread.main), "Unexpected: RSpec is not running on the main thread"
     end
 
-    it "matches the Ruby backtrace API" do
-      expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
-    end
+    include_examples "matches the Ruby backtrace API"
 
     context "when marking sample as being in garbage collection" do
       let(:in_gc) { true }
@@ -107,9 +150,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
 
-      it "matches the Ruby backtrace API" do
-        expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
-      end
+      include_examples "matches the Ruby backtrace API"
 
       it "has a sleeping frame at the top of the stack" do
         expect(reference_stack.first.base_label).to eq "sleep"
@@ -129,9 +170,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
 
-      it "matches the Ruby backtrace API" do
-        expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
-      end
+      include_examples "matches the Ruby backtrace API"
 
       it "has eval frames on the stack" do
         expect(reference_stack[0..2]).to contain_exactly(
@@ -170,9 +209,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
 
-      it "matches the Ruby backtrace API" do
-        expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
-      end
+      include_examples "matches the Ruby backtrace API"
 
       it "has two eval frames on the stack" do
         expect(reference_stack).to include(
@@ -192,9 +229,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
 
-      it "matches the Ruby backtrace API" do
-        expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
-      end
+      include_examples "matches the Ruby backtrace API"
 
       it "has a frame with the custom file and line provided on the stack" do
         expect(reference_stack).to include(
@@ -218,38 +253,125 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
       # rubocop:enable Style/GlobalVars
 
-      # I opted to join these two expects to avoid running the `load` above more than once
-      it "matches the Ruby backtrace API AND has a sleeping frame at the top of the stack" do
-        if RubyVersion.is?(">= 4")
-          # In Ruby 4, due to https://bugs.ruby-lang.org/issues/20968 while internally Integer#times has the path
-          # `<internal:numeric>` (and this is what the profiler observes), Ruby actually hides this and "blames" it
-          # on the last ruby file/line that was on the stack.
-          #
-          # @ivoanjo: At this point I'm not sure we want to match that behavior as we don't match it either when
-          # using the "native filenames" feature. So for now we adjust the assertions to account for that
-          unmatched_indexes =
-            reference_stack.each_with_index.select { |frame, index| frame.base_label == "times" }.map(&:last)
-          expect(unmatched_indexes).to_not be_empty
+      # On Ruby < 3.4, Ruby doesn't have a native way to get module names, so our "reference_stack_with_module_names"
+      # can't be used as a comparison. Yet, it's still useful to assert that we get something sane, so this
+      # `golden_result` is the result of getting the stack on Ruby 3.4+, and we expect all supported Rubies to match it.
+      let(:golden_result) {
+        [
+          "Kernel#sleep",
+          "IbhClassA#hello",
+          "IbhModuleB::IbhClassB#hello",
+          "IbhModuleC.hello",
+          "IbhClassWithStaticMethod.hello",
+          "IbhModuleD#hello",
+          "<module:IbhGlobals>",
+          "<module:IbhGlobals>",
+          "IbhClassD#hello",
+          "IbhClassE#hello",
+          "Method#call",
+          "hello",
+          "IbhModuleE.hello",
+          "IbhClassH#method_missing",
+          "IbhClassF#hello",
+          "Integer#times",
+          "IbhClassF#hello",
+          "<top (required)>",
+          "hello",
+          "hello",
+          "hello",
+          "Object#ibh_method_with_complex_parameters",
+          "IbhClassJ#hello",
+          "IbhClassJ#hello_helper",
+          "IbhClassJ#hello",
+          "IbhClassJ#hello_helper",
+          "IbhClassJ#hello",
+          "IbhClassK#hello",
+          "Kernel#eval",
+          "IbhClassK#hello",
+          "IbhClassL#hello",
+          "BasicObject#instance_eval",
+          "IbhClassL#hello",
+          "IbhClassM#hello",
+          "Kernel#eval",
+          "IbhClassM#hello",
+          "<top (required)>",
+          "Integer#times",
+          "<top (required)>",
+          "hello",
+          "Array#map",
+          "hello",
+          "Object#ibh_subclass_of_anonymous_class",
+          "IbhModuleO.hello",
+          "Object#ibh_top_level_hello",
+          "<top (required)>",
+        ]
+      }
 
+      context "on a Ruby that can provide a reference including module names", if: RubyVersion.is?(">= 3.4") do
+        it "matches the Ruby backtrace API AND matches a golden result" do
+          reference_stack_without_unmatched = reference_stack_with_module_names.dup
           gathered_stack_without_unmatched = gathered_stack.dup
-          reference_stack_without_unmatched = reference_stack.dup
 
-          # Check the expected frames are different -- and remove them from the match
-          unmatched_indexes.sort.reverse_each do |index|
-            expect(gathered_stack[index].path).to eq "<internal:numeric>"
-            expect(reference_stack[index].path).to end_with "/interesting_backtrace_helper.rb"
+          if RubyVersion.is?(">= 4")
+            # In Ruby 4, due to https://bugs.ruby-lang.org/issues/20968 while internally Integer#times has the path
+            # `<internal:numeric>` (and this is what the profiler observes), Ruby actually hides this and "blames" it
+            # on the last ruby file/line that was on the stack.
+            #
+            # @ivoanjo: At this point I'm not sure we want to match that behavior as we don't match it either when
+            # using the "native filenames" feature. So for now we adjust the assertions to account for that
 
-            gathered_stack_without_unmatched.delete_at(index)
-            reference_stack_without_unmatched.delete_at(index)
+            trim_mismatched_frames(
+              reference: [reference_stack_without_unmatched, "Integer#times", "#{__dir__}/interesting_backtrace_helper.rb"],
+              gathered: [gathered_stack_without_unmatched, "Integer#times", "<internal:numeric>"],
+            )
           end
 
-          # ...match the rest of the frames
-          expect(strip_class_from_stack(gathered_stack_without_unmatched)).to eq reference_stack_without_unmatched
-        else
-          expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
+          # TODO: We differ from Ruby on this one; thoughts @eregon?
+          trim_mismatched_frames(
+            reference: [reference_stack_without_unmatched, "hello", "#{__dir__}/interesting_backtrace_helper.rb"],
+            gathered: [gathered_stack_without_unmatched, "IbhClassD#hello", "#{__dir__}/interesting_backtrace_helper.rb"],
+          )
+
+          expect(gathered_stack_without_unmatched).to eq reference_stack_without_unmatched
+
+          # Validate that `golden_result` is still up-to-date
+          expect(gathered_stack.map(&:base_label)).to start_with(golden_result)
         end
 
-        expect(reference_stack.first.base_label).to eq "sleep"
+        # This method trims some frames that aren't comparable between Ruby and the profiler if and only if both arrays
+        # (gathered and reference) match at the same time. After we trim these frames, whatever remains can be compared
+        # directly.
+        def trim_mismatched_frames(reference:, gathered:)
+          reference_stack, reference_name, reference_path = reference.to_a
+          gathered_stack, gathered_name, gathered_path = gathered.to_a
+
+          expect(reference_stack.length).to eq gathered_stack.length
+
+          # We iterate backwards so we can mutate in place and don't need to worry about indexes changing
+          (-reference_stack.length..-1).each do |index|
+            gathered_frame = gathered_stack[index]
+            found_gathered = gathered_frame.base_label == gathered_name && gathered_frame.path == gathered_path
+
+            next unless found_gathered
+
+            reference_frame = reference_stack[index]
+            found_reference = reference_frame.base_label == reference_name && reference_frame.path == reference_path
+
+            expect(found_reference).to eq(found_gathered), "Unexpected at index #{index}, reference: #{reference_frame}, gathered: #{gathered_frame}"
+
+            reference_stack.delete_at(index)
+            gathered_stack.delete_at(index)
+          end
+        end
+      end
+
+      context "on a Ruby that can't provide a reference including module names", if: RubyVersion.is?("< 3.4") do
+        let(:include_module_name) { false }
+
+        it "matches the Ruby backtrace API AND matches a golden result" do
+          expect(gathered_stack).to eq reference_stack
+          expect(sample_and_decode(background_thread, include_module_name: true).map(&:base_label)).to start_with(golden_result)
+        end
       end
     end
 
@@ -266,9 +388,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
 
-      it "matches the Ruby backtrace API" do
-        expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
-      end
+      include_examples "matches the Ruby backtrace API"
 
       context "when native filenames are enabled", if: PlatformHelpers.linux? do
         let(:native_filenames_enabled) { true }
@@ -277,9 +397,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           skip('Native filenames are only available on Linux') unless described_class._native_filenames_available?
         end
 
-        it "matches the Ruby backtrace API after the 6th frame" do
-          expect(strip_class_from_stack(gathered_stack[5..-1])).to eq reference_stack[5..-1]
-        end
+        include_examples "matches the Ruby backtrace API in range", (5..-1)
 
         it "includes the real native filename for the top frames" do
           expect(gathered_stack[0..4]).to contain_exactly(
@@ -316,9 +434,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
 
-      it "matches the Ruby backtrace API" do
-        expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
-      end
+      include_examples "matches the Ruby backtrace API"
 
       context "when native filenames are enabled", if: PlatformHelpers.linux? do
         let(:native_filenames_enabled) { true }
@@ -327,18 +443,16 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           skip('Native filenames are only available on Linux') unless described_class._native_filenames_available?
         end
 
-        it "matches the Ruby backtrace API after the 5th frame" do
-          expect(strip_class_from_stack(gathered_stack[4..-1])).to eq reference_stack[4..-1]
-        end
+        include_examples "matches the Ruby backtrace API in range", (4..-1)
 
         it "includes the real native filename for the top frames" do
           expect(gathered_stack[0..3]).to contain_exactly(
             have_attributes(base_label: "Kernel#sleep", path: __FILE__, lineno: be_positive),
             have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: be_positive),
             # Bigdecimal is a native extension shipped separately from Ruby
-            have_attributes(base_label: "BigDecimal.save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),
+            have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),
             # This is the frame in module_calling_super.save_rounding_mode (the one that calls super)
-            have_attributes(base_label: end_with("#save_rounding_mode"), path: __FILE__, lineno: be_positive),
+            have_attributes(base_label: "save_rounding_mode", path: __FILE__, lineno: be_positive),
           )
         end
       end
@@ -678,7 +792,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     context "when sampling a stack with a dynamically-generated template method name" do
-      let(:method_name) { "_app_views_layouts_explore_html_haml__2304485752546535910_211320" }
+      let(:untrimmed_method_name) { "_app_views_layouts_explore_html_haml__2304485752546535910_211320" }
       let(:filename) { "/myapp/app/views/layouts/explore.html.haml" }
       let(:dummy_template) { double("Dummy template object") }
 
@@ -688,12 +802,12 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         # rubocop:disable Style/DocumentDynamicEvalDefinition
         eval(
           %(
-            def dummy_template.#{method_name}(ready_queue)
+            def dummy_template.#{untrimmed_method_name}(ready_queue)
               ready_queue << true
               sleep
             end
 
-            proc { |ready_queue| dummy_template.#{method_name}(ready_queue) }
+            proc { |ready_queue| dummy_template.#{untrimmed_method_name}(ready_queue) }
           ),
           binding,
           filename,
@@ -707,19 +821,19 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       it "samples the frame with a simplified method name" do
         expect(gathered_stack).to include(
           have_attributes(
-            path: "/myapp/app/views/layouts/explore.html.haml",
+            path: filename,
             base_label: end_with("_app_views_layouts_explore_html_haml"),
           )
         )
       end
 
       context "when method name ends with three ___ instead of two" do
-        let(:method_name) { super().gsub("__", "___") }
+        let(:untrimmed_method_name) { super().gsub("__", "___") }
 
         it "samples the frame with a simplified method name" do
           expect(gathered_stack).to include(
             have_attributes(
-              path: "/myapp/app/views/layouts/explore.html.haml",
+              path: filename,
               base_label: end_with("_app_views_layouts_explore_html_haml"),
             )
           )
@@ -730,23 +844,23 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         let(:filename) { "example.rb" }
 
         it "does not trim the method name" do
-          expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
+          expect(gathered_stack).to include(have_attributes(path: filename, base_label: end_with(untrimmed_method_name)))
         end
       end
 
-      context "when method_name does not end with __number_number" do
-        let(:method_name) { super().gsub("__", "_") }
+      context "when method does not end with __number_number" do
+        let(:untrimmed_method_name) { super().gsub("__", "_") }
 
         it "does not trim the method name" do
-          expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
+          expect(gathered_stack).to include(have_attributes(path: filename, base_label: end_with(untrimmed_method_name)))
         end
       end
 
       context "when method only has __number_number" do
-        let(:method_name) { "__2304485752546535910_211320" }
+        let(:untrimmed_method_name) { "__2304485752546535910_211320" }
 
         it "does not trim the method name" do
-          expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
+          expect(gathered_stack).to include(have_attributes(path: filename, base_label: end_with(untrimmed_method_name)))
         end
       end
     end
@@ -769,8 +883,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       expect(gathered_stack.size).to be max_frames
     end
 
-    it "matches the last (max_frames - 1) frames from the Ruby backtrace API" do
-      expect(strip_class_from_stack(gathered_stack[1..(max_frames - 1)])).to eq reference_stack[-(max_frames - 1)..-1]
+    context "when adjusted for missing frames" do
+      let(:reference_stack) { super()[-(max_frames - 1)..-1] }
+      include_examples "matches the Ruby backtrace API in range", (-4..-1)
     end
 
     it "gathers max_frames frames from the root of the thread and replaces the topmost frame with a placeholder" do
@@ -794,9 +909,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     context "when stack is exactly 1 item less deep than the configured max_frames" do
       let(:target_stack_depth) { max_frames - 1 }
 
-      it "matches the Ruby backtrace API" do
-        expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
-      end
+      include_examples "matches the Ruby backtrace API"
     end
   end
 
@@ -1009,9 +1122,11 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
-  def convert_reference_stack(raw_reference_stack)
+  def convert_reference_stack(raw_reference_stack, module_names:)
     raw_reference_stack.map do |location|
-      ProfileHelpers::Frame.new(location.base_label, location.path, location.lineno).freeze
+      label =
+        module_names ? location.label.gsub(/^block(?: \(\d+ levels\))? in /, "") : location.base_label
+      ProfileHelpers::Frame.new(label, location.path, location.lineno).freeze
     end
   end
 
