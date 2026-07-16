@@ -47,15 +47,15 @@ RSpec.describe "WAF requests telemetry" do
                     {
                       address: "server.request.headers.no_cookies",
                       key_path: ["user-agent"]
-                    }
+                    },
                   ],
                   regex: "(?i)^Nessus(/|([ :]+SOAP))"
                 },
                 operator: "match_regex"
-              }
+              },
             ],
             transformers: []
-          }
+          },
         ]
       }
 

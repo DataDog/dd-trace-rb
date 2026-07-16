@@ -41,7 +41,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
                 "end_index_exclusive" => 46,
                 "path" => "messages[0].content[0].text"
               }
-            }
+            },
           ],
           "tag_probs" => {"some" => 0.95, "tags" => 0.1},
           "is_blocking_enabled" => is_blocking_enabled

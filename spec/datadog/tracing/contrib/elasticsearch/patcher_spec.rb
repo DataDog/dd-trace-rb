@@ -157,7 +157,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
         nested_array: %w[a b],
         nested_object_array: [
           {a: "a"},
-          {b: "b"}
+          {b: "b"},
         ]
       }
     end

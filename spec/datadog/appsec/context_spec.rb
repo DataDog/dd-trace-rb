@@ -110,7 +110,7 @@ RSpec.describe Datadog::AppSec::Context do
           [
             kind_of(Datadog::AppSec::SecurityEngine::Result::Match),
             kind_of(Datadog::AppSec::SecurityEngine::Result::Ok),
-            kind_of(Datadog::AppSec::SecurityEngine::Result::Ok)
+            kind_of(Datadog::AppSec::SecurityEngine::Result::Ok),
           ],
         )
       end
@@ -133,7 +133,7 @@ RSpec.describe Datadog::AppSec::Context do
         expect(run_results).to match_array(
           [
             kind_of(Datadog::AppSec::SecurityEngine::Result::Match),
-            kind_of(Datadog::AppSec::SecurityEngine::Result::Match)
+            kind_of(Datadog::AppSec::SecurityEngine::Result::Match),
           ],
         )
       end

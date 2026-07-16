@@ -181,7 +181,7 @@ RSpec.describe "Sequel instrumentation" do
           # Internal queries run by Sequel (e.g. 'SELECT version()' for `mysql`).
           # We don't care about their content, only that they are
           # correctly tagged.
-          *sequel_internal_spans.map { |span| [span, nil] }
+          *sequel_internal_spans.map { |span| [span, nil] },
         ].each do |span, query|
           expect(span.name).to eq("sequel.query")
           # Expect it to be the normalized adapter name.

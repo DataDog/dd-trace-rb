@@ -44,15 +44,15 @@ RSpec.describe "Faraday SSRF Injection" do
                     {address: "server.request.path_params"},
                     {address: "grpc.server.request.message"},
                     {address: "graphql.server.all_resolvers"},
-                    {address: "graphql.server.resolver"}
+                    {address: "graphql.server.resolver"},
                   ]
                 },
                 operator: "ssrf_detector"
-              }
+              },
             ],
             transformers: [],
             on_match: ["block"]
-          }
+          },
         ]
       }
 

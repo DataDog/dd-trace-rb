@@ -58,25 +58,25 @@ RSpec.describe "GraphQL integration tests",
                   inputs: [
                     {
                       address: "graphql.server.all_resolvers"
-                    }
+                    },
                   ],
                   options: {
                     enforce_word_boundary: true
                   },
                   list: [
-                    "$testattack"
+                    "$testattack",
                   ]
                 },
                 operator: "phrase_match"
-              }
+              },
             ],
             transformers: [
-              "lowercase"
+              "lowercase",
             ],
             on_match: [
-              "block"
+              "block",
             ]
-          }
+          },
         ]
       }
     end
@@ -105,22 +105,22 @@ RSpec.describe "GraphQL integration tests",
                   inputs: [
                     {
                       address: "graphql.server.all_resolvers"
-                    }
+                    },
                   ],
                   options: {
                     enforce_word_boundary: true
                   },
                   list: [
-                    "$testattack"
+                    "$testattack",
                   ]
                 },
                 operator: "phrase_match"
-              }
+              },
             ],
             transformers: [
-              "lowercase"
+              "lowercase",
             ]
-          }
+          },
         ]
       }
     end
@@ -341,7 +341,7 @@ RSpec.describe "GraphQL integration tests",
               {
                 "query" => "query Test($name: String!) { userByName(name: $name) { id } }",
                 "variables" => {"name" => "Caniche"}
-              }
+              },
             ]
           end
 
@@ -349,7 +349,7 @@ RSpec.describe "GraphQL integration tests",
             expect(last_response.body).to eq(
               [
                 {"data" => {"user" => {"name" => "Bits"}}},
-                {"data" => {"userByName" => {"id" => "10"}}}
+                {"data" => {"userByName" => {"id" => "10"}}},
               ].to_json,
             )
             expect(spans).to include(
@@ -381,7 +381,7 @@ RSpec.describe "GraphQL integration tests",
               {
                 "query" => "query Test($name: String!) { userByName(name: $name) { id } }",
                 "variables" => {"name" => "$testattack"}
-              }
+              },
             ]
           end
 
@@ -389,7 +389,7 @@ RSpec.describe "GraphQL integration tests",
             expect(last_response.body).to eq(
               [
                 {"data" => {"user" => {"name" => "Bits"}}},
-                {"data" => {"userByName" => {"id" => "1"}}}
+                {"data" => {"userByName" => {"id" => "1"}}},
               ].to_json,
             )
             expect(spans).to include(
@@ -425,7 +425,7 @@ RSpec.describe "GraphQL integration tests",
               {
                 "query" => "query { user(id: 1) { name } }",
                 "variables" => {}
-              }
+              },
             ]
           end
 
@@ -462,7 +462,7 @@ RSpec.describe "GraphQL integration tests",
               {
                 "query" => "query Test($format: String!) { user(id: 1) { name @case(format: $format) } }",
                 "variables" => {"format" => "upcase"}
-              }
+              },
             ]
           end
 
@@ -497,14 +497,14 @@ RSpec.describe "GraphQL integration tests",
               {
                 "query" => "query Test($format: String!) { user(id: 1) { name @case(format: $format) } }",
                 "variables" => {"format" => "$testattack"}
-              }
+              },
             ]
           end
 
           it do
             expect(last_response.body).to eq(
               [
-                {"data" => {"user" => {"name" => "Bits"}}}
+                {"data" => {"user" => {"name" => "Bits"}}},
               ].to_json,
             )
             expect(spans).to include(
@@ -536,7 +536,7 @@ RSpec.describe "GraphQL integration tests",
               {
                 "query" => "query Test($format: String!) { user(id: 1) { name @case(format: $format) } }",
                 "variables" => {"format" => "$testattack"}
-              }
+              },
             ]
           end
 

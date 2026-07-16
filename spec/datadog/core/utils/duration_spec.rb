@@ -12,7 +12,7 @@ RSpec.describe Datadog::Core::Utils::Duration do
           [:s, 3600],
           [:ms, 3600000],
           [:us, 3600000000],
-          [:ns, 3600000000000]
+          [:ns, 3600000000000],
         ].each do |base, expected_value|
           context "custom base #{base}" do
             it "parse value" do
@@ -43,7 +43,7 @@ RSpec.describe Datadog::Core::Utils::Duration do
           [:s, 5400],
           [:ms, 5400000],
           [:us, 5400000000],
-          [:ns, 5400000000000]
+          [:ns, 5400000000000],
         ].each do |base, expected_value|
           context "custom base #{base}" do
             it "parse value" do

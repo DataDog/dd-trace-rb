@@ -14,7 +14,7 @@ module Datadog
           ALL = [
             Events::Broadcast,
             Events::PerformAction,
-            Events::Transmit
+            Events::Transmit,
           ].freeze
 
           module_function

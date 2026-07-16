@@ -254,7 +254,7 @@ RSpec.describe Datadog::Tracing::Component do
                   rules: [
                     Datadog::Tracing::Sampling::Span::Rule.new(
                       Datadog::Tracing::Sampling::Span::Matcher.new(name_pattern: "foo"),
-                    )
+                    ),
                   ],
                 )
               }

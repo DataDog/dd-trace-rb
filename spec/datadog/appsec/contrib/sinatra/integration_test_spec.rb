@@ -77,17 +77,17 @@ RSpec.describe "Sinatra integration tests" do
                   },
                   {
                     address: "grpc.server.request.message"
-                  }
+                  },
                 ]
               },
               operator: "is_sqli"
-            }
+            },
           ],
           transformers: [
-            "removeNulls"
+            "removeNulls",
           ],
           on_match: [
-            "block"
+            "block",
           ]
         },
       ],
@@ -103,14 +103,14 @@ RSpec.describe "Sinatra integration tests" do
                   {
                     address: "waf.context.processor",
                     key_path: [
-                      "extract-schema"
+                      "extract-schema",
                     ]
-                  }
+                  },
                 ],
                 type: "boolean",
                 value: true
               }
-            }
+            },
           ],
           parameters: {
             mappings: [
@@ -118,7 +118,7 @@ RSpec.describe "Sinatra integration tests" do
                 inputs: [
                   {
                     address: "server.request.query"
-                  }
+                  },
                 ],
                 output: "_dd.appsec.s.req.query"
               },
@@ -126,7 +126,7 @@ RSpec.describe "Sinatra integration tests" do
                 inputs: [
                   {
                     address: "server.request.body"
-                  }
+                  },
                 ],
                 output: "_dd.appsec.s.req.body"
               },
@@ -134,7 +134,7 @@ RSpec.describe "Sinatra integration tests" do
                 inputs: [
                   {
                     address: "server.request.path_params"
-                  }
+                  },
                 ],
                 output: "_dd.appsec.s.req.params"
               },

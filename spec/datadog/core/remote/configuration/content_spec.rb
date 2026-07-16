@@ -30,13 +30,13 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
                 inputs: [
                   {
                     address: "http.client_ip"
-                  }
+                  },
                 ],
                 list: [
-                  "4.4.4.4"
+                  "4.4.4.4",
                 ]
               }
-            }
+            },
           ],
           id: "874459ae-137f-4c99-9c54-109b1a117b86"
         },
@@ -48,14 +48,14 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
                 inputs: [
                   {
                     address: "server.request.uri.raw"
-                  }
+                  },
                 ],
                 options: {
                   case_sensitive: false
                 },
                 regex: "^/waf"
               }
-            }
+            },
           ],
           id: "d1390949-cf1a-408d-bc3f-043d0689d89e"
         },
@@ -64,7 +64,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
           rules_target: [
             {
               rule_id: "ua0-600-55x"
-            }
+            },
           ]
         },
         {
@@ -75,16 +75,16 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
                 inputs: [
                   {
                     address: "http.client_ip"
-                  }
+                  },
                 ],
                 list: [
-                  "8.8.8.8"
+                  "8.8.8.8",
                 ]
               }
-            }
+            },
           ],
           id: "081e1fbe-c73b-4ad2-bb83-4752354271bc"
-        }
+        },
       ],
       rules_override: []
     }
@@ -142,7 +142,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
               "tracer_predicates_v1" => [
                 {
                   "clientID" => "5bb79ec4-0f50-464c-8400-b88521e1b96e"
-                }
+                },
               ]
             },
             "v" => 245

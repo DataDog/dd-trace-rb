@@ -36,7 +36,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
                 author(username: "john") { name }
               }
             END_OF_QUERY
-          )
+          ),
         ]
       end
 
@@ -68,7 +68,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
               }
             END_OF_QUERY
             variables: {"postSlug" => "some-post", "authorUsername" => "jane"},
-          )
+          ),
         ]
       end
 
@@ -95,7 +95,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
                 }
               }
             END_OF_QUERY
-          )
+          ),
         ]
       end
 
@@ -130,7 +130,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
               }
             END_OF_QUERY
             variables: {"postSlug" => "another-post"},
-          )
+          ),
         ]
       end
 
@@ -156,7 +156,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
               "firstPostSlug" => "first-post",
               "secondPostSlug" => "second-post"
             },
-          )
+          ),
         ]
       end
 
@@ -187,7 +187,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
               "postSlug" => "some-post",
               "ignoreDislikes" => true
             },
-          )
+          ),
         ]
       end
 
@@ -231,7 +231,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
               }
             END_OF_QUERY
             variables: {postSlug: "some-post", withComments: true, skipAuthor: false},
-          )
+          ),
         ]
       end
 
@@ -279,7 +279,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
               }
             END_OF_QUERY
             variables: {"postSlug" => "some-post"},
-          )
+          ),
         ]
       end
 
@@ -309,7 +309,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
                 ...UserSearch @custom(value: "$spreadattack")
               }
             END_OF_QUERY
-          )
+          ),
         ]
       end
 
@@ -320,7 +320,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
             "userByName" => [{"name" => "$inlinefieldattack"}],
             "UserSearch" => [
               {"custom" => {"value" => "$spreadattack"}},
-              {"custom" => {"value" => "$definitionattack"}}
+              {"custom" => {"value" => "$definitionattack"}},
             ],
             "namedUser" => [{"name" => "$namedattack"}],
           ),
@@ -342,7 +342,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
           GraphQL::Query.new(
             schema,
             "#{fragments.join("\n")}\nquery MyTestQuery { ...F20 }\n",
-          )
+          ),
         ]
       end
 
@@ -373,7 +373,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
               }
             END_OF_QUERY
             variables: {"postContent" => "Some content", "authorID" => "1"},
-          )
+          ),
         ]
       end
 
@@ -387,7 +387,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
                   "authorId" => "1",
                   "title" => "Some title"
                 }
-              }
+              },
             ],
           ),
         )
@@ -410,7 +410,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
               }
             END_OF_QUERY
             variables: {"postSlug" => "some-post"},
-          )
+          ),
         ]
       end
 

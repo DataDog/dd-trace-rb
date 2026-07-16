@@ -98,18 +98,18 @@ RSpec.describe Datadog::AppSec::Remote do
                       inputs: [
                         {
                           address: "http.client_ip"
-                        }
+                        },
                       ],
                       data: "blocked_ips"
                     },
                     operator: "ip_match"
-                  }
+                  },
                 ],
                 transformers: [],
                 on_match: [
-                  "block"
+                  "block",
                 ]
-              }
+              },
             ]
           }.to_json
         end
@@ -202,10 +202,10 @@ RSpec.describe Datadog::AppSec::Remote do
                         params: [{address: "server.request.query"}],
                         db_type: [{address: "server.db.system"}]
                       }
-                    }
+                    },
                   ],
                   on_match: ["block-sqli"]
-                }
+                },
               ],
               actions: [
                 {
@@ -216,7 +216,7 @@ RSpec.describe Datadog::AppSec::Remote do
                     grpc_status_code: "42",
                     type: "auto"
                   }
-                }
+                },
               ]
             }.to_json
           end
@@ -282,7 +282,7 @@ RSpec.describe Datadog::AppSec::Remote do
             expect(call_order).to eq([
               [:remove, "datadog/603646/ASM_DD/v1/config"],
               [:add, "datadog/603646/ASM_DD/v2/config"],
-              [:remove, "ASM_DD/default"]
+              [:remove, "ASM_DD/default"],
             ])
           end
         end

@@ -34,7 +34,7 @@ RSpec.shared_examples "B3 Single distributed format" do
         [-1, 0],
         [0, 0],
         [1, 1],
-        [2, 1]
+        [2, 1],
       ].each do |value, expected|
         context "with sampling priority #{value}" do
           let(:digest) do

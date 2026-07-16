@@ -284,7 +284,7 @@ RSpec.describe Datadog::Tracing::TraceSegment do
       :count,
       :empty?,
       :length,
-      :size
+      :size,
     ].each do |forwarded_method|
       describe "##{forwarded_method}" do
         it "forwards to #spans" do

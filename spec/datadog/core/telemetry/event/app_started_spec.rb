@@ -43,7 +43,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       # ['logger.instance', 'MyLogger'], # not reported by default
       ["DD_APPSEC_ENABLED", false],
       # ['DD_APPSEC_SCA_ENABLED', false], # not reported by default
-      ["DD_APM_TRACING_ENABLED", true]
+      ["DD_APM_TRACING_ENABLED", true],
     ].freeze
   end
   let(:expected_install_signature) do

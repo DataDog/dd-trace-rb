@@ -149,7 +149,7 @@ RSpec.describe Datadog::Core::Remote::Client do
         {
           "keyid" => "hello",
           "sig" => "sig"
-        }
+        },
       ],
       "signed" => {
         "_type" => "targets",
@@ -193,18 +193,18 @@ RSpec.describe Datadog::Core::Remote::Client do
                 inputs: [
                   {
                     address: "http.client_ip"
-                  }
+                  },
                 ],
                 data: "blocked_ips"
               },
               operator: "ip_match"
-            }
+            },
           ],
           transformers: [],
           on_match: [
-            "block"
+            "block",
           ]
-        }
+        },
       ]
     }.to_json
   end
@@ -268,7 +268,7 @@ RSpec.describe Datadog::Core::Remote::Client do
       [
         "datadog/603646/ASM_DATA/blocked_ips/config",
         "datadog/603646/ASM_DD/latest/config",
-        "datadog/603646/ASM/exclusion_filters/config"
+        "datadog/603646/ASM/exclusion_filters/config",
       ]
     end
 
@@ -333,7 +333,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                 {
                   path: "datadog/603646/ASM_DD/latest/config",
                   content: rules_data,
-                }
+                },
               ],
             )
 
@@ -399,7 +399,7 @@ RSpec.describe Datadog::Core::Remote::Client do
               {
                 "path" => "datadog/603646/ASM/exclusion_filters/config",
                 "raw" => Datadog::Core::Utils::Base64Codec.strict_encode64(exclusions).chomp
-              }
+              },
             ],
             "client_configs" => [
               "datadog/603646/ASM_DATA/blocked_ips/config",
@@ -428,7 +428,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                     "tracer_predicates_v1" => [
                       {
                         "clientID" => "client_id"
-                      }
+                      },
                     ]
                   },
                   "v" => 21
@@ -457,7 +457,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                   "c" => ["client_id"],
                   "tracer-predicates" => {
                     "tracer_predicates_v1" => [
-                      {"clientID" => "client_id"}
+                      {"clientID" => "client_id"},
                     ]
                   },
                   "v" => 21

@@ -10,7 +10,7 @@ module Datadog
           :distribution,
           :increment,
           :gauge,
-          :time
+          :time,
         ].each do |metric_type|
           define_method(metric_type) do |name, stat|
             name = name.to_sym

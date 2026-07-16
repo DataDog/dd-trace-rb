@@ -45,10 +45,10 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
                     params: [{address: "server.request.query"}],
                     db_type: [{address: "server.db.system"}]
                   }
-                }
+                },
               ],
               on_match: ["block-sqli"]
-            }
+            },
           ]
         }
       end
@@ -122,7 +122,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           rules: [
             {
               id: "invalid-rule-id"
-            }
+            },
           ]
         }
 
@@ -205,10 +205,10 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
                   params: [{address: "server.request.query"}],
                   db_type: [{address: "server.db.system"}]
                 }
-              }
+              },
             ],
             on_match: ["block-sqli"]
-          }
+          },
         ]
       }
     end
@@ -248,7 +248,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
               name: "Test rule",
               tags: {category: "attack_attempt", custom: "1", type: "custom"},
               transformers: []
-            }
+            },
           ]
         },
         path: "datadog/603646/ASM/test-custom-rule",
@@ -282,7 +282,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
               conditions: [{
                 operator: "phrase_match"
               }]
-            }
+            },
           ]
         }
       end
@@ -429,10 +429,10 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
                     params: [{address: "server.request.query"}],
                     db_type: [{address: "server.db.system"}]
                   }
-                }
+                },
               ],
               on_match: ["block-sqli"]
-            }
+            },
           ],
           actions: [
             {
@@ -443,7 +443,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
                 grpc_status_code: "42",
                 type: "auto"
               }
-            }
+            },
           ]
         }
       end
@@ -541,7 +541,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             name: "Test rule",
             tags: {category: "attack_attempt", custom: "2", type: "custom"},
             transformers: []
-          }
+          },
         ]
       }
     end
@@ -578,11 +578,11 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
                   params: [
                     {address: "server.request.query"},
                     {address: "server.request.body"},
-                    {address: "server.request.path_params"}
+                    {address: "server.request.path_params"},
                   ]
                 },
                 operator: "ssrf_detector"
-              }
+              },
             ],
             on_match: ["stack_trace"]
           }]
@@ -610,10 +610,10 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
                       params: [{address: "server.request.query"}],
                       db_type: [{address: "server.db.system"}]
                     }
-                  }
+                  },
                 ],
                 on_match: ["block-sqli"]
-              }
+              },
             ]
           },
           path: "datadog/603646/ASM_DD/latest/config",
@@ -658,10 +658,10 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
                   params: [{address: "server.request.query"}],
                   db_type: [{address: "server.db.system"}]
                 }
-              }
+              },
             ],
             on_match: ["block-sqli"]
-          }
+          },
         ]
       }
     end

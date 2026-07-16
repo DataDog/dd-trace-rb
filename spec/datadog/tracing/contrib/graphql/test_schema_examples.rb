@@ -72,7 +72,7 @@ RSpec.shared_examples "graphql default instrumentation" do
       # New Ruby-based parser doesn't emit a "lex" event. (graphql/c_parser still does.)
       (["lex.graphql", "lex"] if Gem::Version.new(GraphQL::VERSION) < Gem::Version.new("2.2")),
       ["parse.graphql", "parse"],
-      ["validate.graphql", "validate"]
+      ["validate.graphql", "validate"],
     ].compact
 
     matrix.each_with_index do |(name, operation), index|
@@ -115,7 +115,7 @@ RSpec.shared_examples "graphql instrumentation with unified naming convention tr
       ["graphql.resolve", "#{prefix}TestGraphQLQuery.user"],
       ["graphql.resolve", "#{prefix}TestUser.name"],
       # New Ruby-based parser doesn't emit a "lex" event. (graphql/c_parser still does.)
-      ["graphql.validate", "Users"]
+      ["graphql.validate", "Users"],
     ].compact
 
     # graphql.source for execute_multiplex is not required in the span attributes specification

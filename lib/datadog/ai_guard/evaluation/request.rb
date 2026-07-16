@@ -58,7 +58,7 @@ module Datadog
                     name: message.tool_call.tool_name,
                     arguments: message.tool_call.arguments
                   }
-                }
+                },
               ]
             }
           elsif message.content.is_a?(::Array)

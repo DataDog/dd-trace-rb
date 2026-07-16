@@ -58,7 +58,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
         middlewares: [
           Excon::Middleware::ResponseParser,
           described_class.with(middleware_options),
-          Excon::Middleware::Mock
+          Excon::Middleware::Mock,
         ],
       )
     end

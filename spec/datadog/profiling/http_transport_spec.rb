@@ -50,7 +50,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
   let(:metrics) {
     [
-      ["ruby_global_lock_wait_time_total", 123]
+      ["ruby_global_lock_wait_time_total", 123],
     ]
   }
 
@@ -305,7 +305,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         :agent,
         upload_timeout_seconds * 1_000,
         false,
-        "http://192.168.0.1:12345/"
+        "http://192.168.0.1:12345/",
       ]
     end
   end

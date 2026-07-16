@@ -11,7 +11,7 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
       [-1, 0],
       [0, 0],
       [1, 1],
-      [2, 1]
+      [2, 1],
     ].each do |value, expected|
       context "with input of #{value}" do
         let(:value) { value }

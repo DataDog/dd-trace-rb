@@ -35,7 +35,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
               "Via" => ["1.1 foo.io", "2.2 bar.io"],
               "Age" => "1"
             },
-            '{"response":"OK"}'
+            '{"response":"OK"}',
           ]
         end
         stub.post("/application-json") do |_|

@@ -51,10 +51,10 @@ RSpec.describe "ActiveRecord SQL Injection" do
                   params: [{address: "server.request.query"}],
                   db_type: [{address: "server.db.system"}]
                 }
-              }
+              },
             ],
             on_match: ["block"]
-          }
+          },
         ]
       }
 

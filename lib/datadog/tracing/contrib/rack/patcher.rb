@@ -70,7 +70,7 @@ module Datadog
         module Patcher
           PATCHERS = [
             MiddlewarePatcher,
-            MiddlewareNamePatcher
+            MiddlewareNamePatcher,
           ].freeze
 
           module_function

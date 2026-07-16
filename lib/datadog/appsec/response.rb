@@ -43,7 +43,7 @@ module Datadog
               content(
                 security_response_id: interrupt_params["security_response_id"],
                 content_type: content_type,
-              )
+              ),
             ],
           )
         end

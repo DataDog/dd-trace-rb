@@ -1321,7 +1321,7 @@ RSpec.describe "Rack integration tests" do
             c.tracing.instrument :rack,
               headers: {
                 request: [
-                  "Cache-Control"
+                  "Cache-Control",
                 ],
                 response: [
                   "Content-Type",
@@ -1332,7 +1332,7 @@ RSpec.describe "Rack integration tests" do
                   "Last-Modified",
                   # This lowercase 'Id' header doesn't match.
                   # Ensure middleware allows for case-insensitive matching.
-                  "X-Request-Id"
+                  "X-Request-Id",
                 ]
               }
           end

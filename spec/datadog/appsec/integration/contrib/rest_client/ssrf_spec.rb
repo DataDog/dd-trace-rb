@@ -43,11 +43,11 @@ RSpec.describe "RestClient SSRF Injection" do
                   ]
                 },
                 operator: "ssrf_detector"
-              }
+              },
             ],
             transformers: [],
             on_match: ["block"]
-          }
+          },
         ]
       }
 

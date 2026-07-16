@@ -187,15 +187,15 @@ RSpec.describe "Devise auto login and signup events session tracking" do
                   {
                     "address" => "server.request.headers.no_cookies",
                     "key_path" => ["user-agent"]
-                  }
+                  },
                 ],
                 "regex" => '^Arachni\\/v'
               },
               "operator" => "match_regex"
-            }
+            },
           ],
           "on_match" => ["block"]
-        }
+        },
       ],
       "scanners" => [],
       "processors" => [
@@ -210,12 +210,12 @@ RSpec.describe "Devise auto login and signup events session tracking" do
                 "session_id" => [{"address" => "usr.session_id"}],
                 "user_id" => [{"address" => "usr.id"}],
                 "output" => "_dd.appsec.fp.session"
-              }
+              },
             ]
           },
           "evaluate" => true,
           "output" => true
-        }
+        },
       ]
     }
   end

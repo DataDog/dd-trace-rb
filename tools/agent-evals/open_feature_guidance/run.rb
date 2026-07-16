@@ -89,7 +89,7 @@ case_paths.each do |case_path|
     else
       details = [
         "missing instruction files: #{missing_files.join(", ")}",
-        "result: #{JSON.pretty_generate(result)}"
+        "result: #{JSON.pretty_generate(result)}",
       ]
       failures << [name, details.join("\n")]
     end

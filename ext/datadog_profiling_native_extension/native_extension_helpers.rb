@@ -80,15 +80,15 @@ module Datadog
           "For help solving this issue, please contact Datadog support at",
           "<https://docs.datadoghq.com/help/>.",
           "You can also check out the Continuous Profiler troubleshooting page at",
-          "<https://dtdg.co/ruby-profiler-troubleshooting>."
+          "<https://dtdg.co/ruby-profiler-troubleshooting>.",
         ].freeze
 
         GET_IN_TOUCH = [
-          "Get in touch with us if you're interested in profiling your app!"
+          "Get in touch with us if you're interested in profiling your app!",
         ].freeze
 
         UPGRADE_RUBY = [
-          "Upgrade to a modern Ruby to enable profiling for your app."
+          "Upgrade to a modern Ruby to enable profiling for your app.",
         ].freeze
 
         # Validation for this check is done in extconf.rb because it relies on mkmf

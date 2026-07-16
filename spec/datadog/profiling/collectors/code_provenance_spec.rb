@@ -115,7 +115,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
             gem_dir: "/is_loaded/",
             extensions: [],
             executables: [],
-          )
+          ),
         ],
       )
 
@@ -198,7 +198,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
               gem_dir: "/dd-trace-rb/vendor/bundle/ruby/2.7.0/gems/byebug-11.1.3",
               extensions: [],
               executables: [],
-            )
+            ),
           ],
         )
 

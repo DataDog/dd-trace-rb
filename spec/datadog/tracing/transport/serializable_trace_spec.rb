@@ -121,7 +121,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
               ),
               Datadog::Tracing::SpanLink.new(
                 Datadog::Tracing::TraceDigest.new,
-              )
+              ),
             ],
           )
         end
@@ -205,13 +205,13 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
                 {"name" => "First Event", "time_unix_nano" => 123},
                 {"name" => "Another Event 0!", "time_unix_nano" => 456, "attributes" => {
                   "id" => {"int_value" => 0, "type" => 2}, "required" => {"bool_value" => false, "type" => 1}
-                }}
+                }},
               ],
               [
                 {"name" => "First Event", "time_unix_nano" => 123},
                 {"name" => "Another Event 1!", "time_unix_nano" => 456, "attributes" => {
                   "id" => {"int_value" => 1, "type" => 2}, "required" => {"bool_value" => true, "type" => 1}
-                }}
+                }},
               ],
             ],
           )

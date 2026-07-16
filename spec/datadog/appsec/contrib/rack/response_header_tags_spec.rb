@@ -107,7 +107,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
                 {
                   parameters: {inputs: [{address: "server.request.query"}]},
                   operator: "is_sqli"
-                }
+                },
               ],
               transformers: ["removeNulls"],
               on_match: ["block"]
