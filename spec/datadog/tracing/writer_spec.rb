@@ -233,7 +233,7 @@ RSpec.describe Datadog::Tracing::Writer do
             stop
           end
 
-          it 'remains safe (idempotent) when stopped more than once' do
+          it 'closes the transport on each permanent stop' do
             expect(transport).to receive(:close).twice
             writer.stop
             writer.stop
@@ -250,8 +250,7 @@ RSpec.describe Datadog::Tracing::Writer do
             it 'stops the worker and closes the transport' do
               expect(worker).to receive(:stop)
               expect(transport).to receive(:close)
-              stop
-              expect(writer.worker).to be_nil
+              expect { stop }.to change { writer.worker }.to(be_nil)
             end
           end
         end
