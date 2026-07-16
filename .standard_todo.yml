@@ -1,6 +1,11 @@
 # This file is used to ignore specific rules for specific files or directories.
 ---
 ignore:
+  # This list should stay in sync with .rubocop.yml's own disabled-cops
+  # section for these same cops (Layout/LeadingCommentSpace has an extra
+  # reason here). Check that file too when adding or removing entries here,
+  # so it stays clear which tool is, or is not, enforcing each cop.
+
   # After quite some discussion on the team, we decided to make an exception to the
   # "standard-isn't-supposed-to-be-configured" thing to allow for trailing comma, see
   # https://github.com/standardrb/standard/issues/611 for a discussion
