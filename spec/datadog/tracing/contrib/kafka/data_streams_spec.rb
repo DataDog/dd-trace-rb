@@ -224,13 +224,8 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
     end
   end
 
-  # Regression: the producer instrumentation must mirror the argument signature
-  # of the ruby-kafka methods it wraps. Kafka::Producer#deliver_messages takes
-  # no arguments and is always called with none. If the wrapper declares
-  # `**kwargs` and calls `super`, JRuby forwards an empty `**kwargs` as an empty
-  # positional hash, raising `ArgumentError: wrong number of arguments
-  # (given 1, expected 0)`. That crashes ruby-kafka's async delivery thread,
-  # which stops draining the queue and eventually raises Kafka::BufferOverflow.
+  # Regression: the wrappers must not add `**kwargs`. On JRuby an empty `**kwargs`
+  # forwarded through `super` becomes a positional hash and raises ArgumentError.
   describe 'argument forwarding to wrapped ruby-kafka methods' do
     before do
       Datadog.configure do |c|
@@ -241,12 +236,10 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
     let(:producer_class) do
       Class.new do
-        # Mirrors ruby-kafka's Kafka::Producer#deliver_messages: no arguments.
         def deliver_messages
           :delivered
         end
 
-        # Mirrors a single-argument producer method.
         def send_messages(messages)
           messages
         end
