@@ -57,7 +57,7 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TracerSpan' do
 
     context 'with nil-able string fields set to nil' do
       it 'does not raise' do
-        span = make_ruby_span(service: nil, type: nil)
+        span = make_ruby_span(service: nil, resource: nil, type: nil)
         expect { tracer_span_class._native_from_span(span) }.not_to raise_error
       end
     end

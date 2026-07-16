@@ -325,7 +325,7 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
   /* 2. Convert scalars */
   ddog_CharSlice name_s     = char_slice_from_ruby_string(rb_name);
   ddog_CharSlice service_s  = nullable_char_slice(rb_service);
-  ddog_CharSlice resource_s = char_slice_from_ruby_string(rb_resource);
+  ddog_CharSlice resource_s = nullable_char_slice(rb_resource);
   ddog_CharSlice type_s     = nullable_char_slice(rb_type);
 
   uint64_t span_id   = NUM2ULL(rb_span_id);
