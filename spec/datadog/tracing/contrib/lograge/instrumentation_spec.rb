@@ -1,15 +1,15 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'lograge'
-require 'datadog/tracing/contrib/lograge/instrumentation'
-require 'datadog/tracing/utils'
+require "datadog/tracing/contrib/support/spec_helper"
+require "lograge"
+require "datadog/tracing/contrib/lograge/instrumentation"
+require "datadog/tracing/utils"
 
 RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
   let(:instrumented) { Lograge::LogSubscribers::Base.new }
 
-  describe '#custom_options' do
+  describe "#custom_options" do
     subject(:custom_options) { instrumented.custom_options(event) }
     let(:event) { double(payload: {custom_payload: original_options}) }
-    let(:original_options) { {original: 'option'} }
+    let(:original_options) { {original: "option"} }
 
     let(:correlation) do
       Datadog::Tracing::Correlation::Identifier.new(
@@ -22,9 +22,9 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
     end
     let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
     let(:span_id) { Datadog::Tracing::Utils.next_id }
-    let(:env) { 'env' }
-    let(:service) { 'service' }
-    let(:version) { 'version' }
+    let(:env) { "env" }
+    let(:service) { "service" }
+    let(:version) { "version" }
 
     before do
       allow(Datadog::Tracing).to receive(:correlation).and_return(correlation)
@@ -35,7 +35,7 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
       Datadog.configuration.tracing[:lograge].reset_options!
     end
 
-    context 'when log injection and lograge both enabled' do
+    context "when log injection and lograge both enabled" do
       before do
         Datadog.configure do |c|
           c.tracing.log_injection = true
@@ -43,22 +43,22 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
         end
       end
 
-      it 'merges correlation data with original options' do
+      it "merges correlation data with original options" do
         is_expected.to eq(
-          {original: 'option',
+          {original: "option",
            dd: {
-             env: 'env',
-             service: 'service',
+             env: "env",
+             service: "service",
              span_id: span_id.to_s,
              trace_id: format_for_correlation(trace_id),
-             version: 'version'
+             version: "version"
            },
-           ddsource: 'ruby'}
+           ddsource: "ruby"}
         )
       end
     end
 
-    context 'when log injection disabled' do
+    context "when log injection disabled" do
       before do
         Datadog.configure do |c|
           c.tracing.log_injection = false
@@ -66,12 +66,12 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
         end
       end
 
-      it 'returns the original options' do
-        is_expected.to eq({original: 'option'})
+      it "returns the original options" do
+        is_expected.to eq({original: "option"})
       end
     end
 
-    context 'when lograge disabled' do
+    context "when lograge disabled" do
       before do
         Datadog.configure do |c|
           c.tracing.log_injection = true
@@ -79,8 +79,8 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
         end
       end
 
-      it 'returns the original options' do
-        is_expected.to eq({original: 'option'})
+      it "returns the original options" do
+        is_expected.to eq({original: "option"})
       end
     end
   end

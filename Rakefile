@@ -1,12 +1,12 @@
-require 'bundler/gem_tasks'
-require 'datadog/version'
-require 'standard/rake' if Gem.loaded_specs.key? 'standard'
-require 'rspec/core/rake_task'
-require 'rake/extensiontask'
-require 'os'
-if Gem.loaded_specs.key? 'ruby_memcheck'
-  require 'ruby_memcheck'
-  require 'ruby_memcheck/rspec/rake_task'
+require "bundler/gem_tasks"
+require "datadog/version"
+require "standard/rake" if Gem.loaded_specs.key? "standard"
+require "rspec/core/rake_task"
+require "rake/extensiontask"
+require "os"
+if Gem.loaded_specs.key? "ruby_memcheck"
+  require "ruby_memcheck"
+  require "ruby_memcheck/rspec/rake_task"
 
   RubyMemcheck.config(
     # If there's an error, print the suppression for that error, to allow us to easily skip such an error if it's
@@ -17,20 +17,20 @@ if Gem.loaded_specs.key? 'ruby_memcheck'
   )
 end
 
-Dir.glob('tasks/*.rake').each { |r| import r }
+Dir.glob("tasks/*.rake").each { |r| import r }
 
-TEST_METADATA = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
+TEST_METADATA = eval(File.read("Matrixfile")).freeze # rubocop:disable Security/Eval
 
 CORE_WITH_LIBDATADOG_API = [
-  'spec/datadog/core/crashtracking/**/*_spec.rb',
-  'spec/datadog/core/process_discovery_spec.rb',
-  'spec/datadog/core/configuration/stable_config_spec.rb',
-  'spec/datadog/core/feature_flags_spec.rb',
-  'spec/datadog/core/ddsketch_spec.rb',
-  'spec/datadog/data_streams/**/*_spec.rb',
-  'spec/datadog/open_feature_spec.rb',
-  'spec/datadog/core/libdatadog_extconf_helpers_spec.rb',
-  'spec/datadog/core/datadog_ruby_common_spec.rb',
+  "spec/datadog/core/crashtracking/**/*_spec.rb",
+  "spec/datadog/core/process_discovery_spec.rb",
+  "spec/datadog/core/configuration/stable_config_spec.rb",
+  "spec/datadog/core/feature_flags_spec.rb",
+  "spec/datadog/core/ddsketch_spec.rb",
+  "spec/datadog/data_streams/**/*_spec.rb",
+  "spec/datadog/open_feature_spec.rb",
+  "spec/datadog/core/libdatadog_extconf_helpers_spec.rb",
+  "spec/datadog/core/datadog_ruby_common_spec.rb",
 ].freeze
 
 DI_WITH_EXT = %w[
@@ -47,7 +47,7 @@ DSM_ENABLED_LIBRARIES = [
 
 # rubocop:disable Metrics/BlockLength
 namespace :test do
-  desc 'Run all tests'
+  desc "Run all tests"
   task all: TEST_METADATA.map { |k, _| "test:#{k}" }
 
   TEST_METADATA.each do |key, spec_metadata|
@@ -66,7 +66,7 @@ namespace :test do
           {}
         else
           gemfile = AppraisalConversion.to_bundle_gemfile(group)
-          {'BUNDLE_GEMFILE' => gemfile}
+          {"BUNDLE_GEMFILE" => gemfile}
         end
         command = "bundle check || bundle install && bundle exec rake #{spec_task}"
         command += "'[#{spec_arguments}]'" if spec_arguments
@@ -77,7 +77,7 @@ namespace :test do
   end
 end
 
-desc 'Run RSpec'
+desc "Run RSpec"
 namespace :spec do
   # REMINDER: If adding a new task here, make sure also add it to the `Matrixfile`
   task all: [:main, :benchmark, :custom_cop,
@@ -86,159 +86,159 @@ namespace :spec do
     :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
     :profiling, :core_with_libdatadog_api, :"di:di_with_ext", :"di:ractors", :error_tracking, :open_feature, :core_with_rails, :environment, :ai_guard]
 
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
-    t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,error_tracking,rubocop,ai_guard}/**/*_spec.rb,' \
-                        ' spec/**/{auto_instrument,opentelemetry,process,ai_guard}_spec.rb,' \
-                        ' spec/**/*_rails_spec.rb,' \
-                        ' spec/datadog/core/environment/execution_spec.rb,' \
-                        ' spec/datadog/di/*_spec.rb,' \
-                        ' spec/datadog/di/**/*_spec.rb,' \
-                        ' spec/datadog/gem_packaging_spec.rb,' \
-                        + CORE_WITH_LIBDATADOG_API.join(', ')
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/**/*_spec.rb"
+    t.exclude_pattern = "spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,error_tracking,rubocop,ai_guard}/**/*_spec.rb," \
+                        " spec/**/{auto_instrument,opentelemetry,process,ai_guard}_spec.rb," \
+                        " spec/**/*_rails_spec.rb," \
+                        " spec/datadog/core/environment/execution_spec.rb," \
+                        " spec/datadog/di/*_spec.rb," \
+                        " spec/datadog/di/**/*_spec.rb," \
+                        " spec/datadog/gem_packaging_spec.rb," \
+                        + CORE_WITH_LIBDATADOG_API.join(", ")
+    t.rspec_opts = args.to_a.join(" ")
   end
 
   RSpec::Core::RakeTask.new(:benchmark) do |t, args|
-    t.pattern = 'spec/datadog/benchmark/**/*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/benchmark/**/*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
   RSpec::Core::RakeTask.new(:custom_cop) do |t, args|
-    t.pattern = 'spec/rubocop/**/*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/rubocop/**/*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
   RSpec::Core::RakeTask.new(:graphql) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/graphql/**/*_spec.rb'
-    t.exclude_pattern = 'spec/datadog/tracing/contrib/graphql/{unified_trace,trace,tracing}_patcher_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/tracing/contrib/graphql/**/*_spec.rb"
+    t.exclude_pattern = "spec/datadog/tracing/contrib/graphql/{unified_trace,trace,tracing}_patcher_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
   RSpec::Core::RakeTask.new(:graphql_unified_trace_patcher) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/graphql/unified_trace_patcher_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/tracing/contrib/graphql/unified_trace_patcher_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
   RSpec::Core::RakeTask.new(:graphql_trace_patcher) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/graphql/trace_patcher_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/tracing/contrib/graphql/trace_patcher_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
   RSpec::Core::RakeTask.new(:graphql_tracing_patcher) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/graphql/tracing_patcher_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/tracing/contrib/graphql/tracing_patcher_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:opentelemetry) do |t, args|
-    t.pattern = 'spec/datadog/opentelemetry/**/*_spec.rb,spec/datadog/opentelemetry_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/opentelemetry/**/*_spec.rb,spec/datadog/opentelemetry_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:open_feature) do |t, args|
-    t.pattern = 'spec/datadog/open_feature/**/*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/open_feature/**/*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:rails) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/rails/**/*_spec.rb'
-    t.exclude_pattern = 'spec/datadog/tracing/contrib/rails/**/*{active_job,disable_env,redis_cache,auto_instrument,' \
-                        'semantic_logger}*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/tracing/contrib/rails/**/*_spec.rb"
+    t.exclude_pattern = "spec/datadog/tracing/contrib/rails/**/*{active_job,disable_env,redis_cache,auto_instrument," \
+                        "semantic_logger}*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railsredis) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/rails/**/*redis*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/tracing/contrib/rails/**/*redis*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railsredis_activesupport) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/rails/**/*redis*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/tracing/contrib/rails/**/*redis*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
 
     # Flag used to tell specs the expected configuration (so that they break if they're not being setup correctly)
-    ENV['EXPECT_RAILS_ACTIVESUPPORT'] = 'true'
+    ENV["EXPECT_RAILS_ACTIVESUPPORT"] = "true"
   end
 
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railsactivejob) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/rails/**/*active_job*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/tracing/contrib/rails/**/*active_job*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railsdisableenv) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/rails/**/*disable_env*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/tracing/contrib/rails/**/*disable_env*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railsautoinstrument) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/rails/**/*auto_instrument*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/tracing/contrib/rails/**/*auto_instrument*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
   # Tests if Datadog::Tracing::Contrib::ActiveSupport::Cache::Redis::Patcher does not eager load
   # ActiveSupport::Cache::RedisCacheStore when the version of Redis present is too old to be compatible.
   # @see Datadog::Tracing::Contrib::ActiveSupport::Cache::Redis::Patcher#patch_redis_cache_store?
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:rails_old_redis) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/rails/cache_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/tracing/contrib/rails/cache_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:hanami) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/hanami/**/*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/tracing/contrib/hanami/**/*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:hanami_autoinstrument) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/hanami/**/*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/tracing/contrib/hanami/**/*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
 
-    ENV['TEST_AUTO_INSTRUMENT'] = 'true'
+    ENV["TEST_AUTO_INSTRUMENT"] = "true"
   end
 
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:autoinstrument) do |t, args|
-    t.pattern = 'spec/datadog/auto_instrument_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/auto_instrument_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
   RSpec::Core::RakeTask.new(:yjit) do |t, args|
-    t.pattern = 'spec/datadog/core/runtime/metrics_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/core/runtime/metrics_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
   # rails_semantic_logger is the dog at the dog park that doesnt play nicely with other
   # logging gems, aka it tries to bite/monkeypatch them, so we have to put it in its own appraisal and rake task
   # in order to isolate its effects for rails logs auto injection
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railssemanticlogger) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/rails/**/*rails_semantic_logger*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/tracing/contrib/rails/**/*rails_semantic_logger*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
   RSpec::Core::RakeTask.new(:core_with_libdatadog_api) do |t, args|
-    t.pattern = CORE_WITH_LIBDATADOG_API.join(', ')
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = CORE_WITH_LIBDATADOG_API.join(", ")
+    t.rspec_opts = args.to_a.join(" ")
   end
 
-  desc 'Run spec:core_with_libdatadog_api tests with memory leak checking'
-  if Gem.loaded_specs.key?('ruby_memcheck')
-    require 'libdatadog'
+  desc "Run spec:core_with_libdatadog_api tests with memory leak checking"
+  if Gem.loaded_specs.key?("ruby_memcheck")
+    require "libdatadog"
 
     # Temporary workaround to unblock moving to libdatadog v30. If you see this code here and we've moved past v30 already,
     # we forgot to clean it up -- please do!
-    if Libdatadog::VERSION.start_with?('30.')
+    if Libdatadog::VERSION.start_with?("30.")
       task :core_with_libdatadog_api_memcheck do
         warn "Skipping memcheck for libdatadog v30 because of https://github.com/bytecodealliance/rustix/issues/1559" \
           " (libdatadog v30 causes a crash when running inside valgrind)." \
@@ -246,53 +246,53 @@ namespace :spec do
       end
     else
       RubyMemcheck::RSpec::RakeTask.new(:core_with_libdatadog_api_memcheck) do |t, args|
-        t.pattern = CORE_WITH_LIBDATADOG_API.join(', ')
-        t.rspec_opts = [*args.to_a, '-t ~memcheck_valgrind_skip'].join(' ')
+        t.pattern = CORE_WITH_LIBDATADOG_API.join(", ")
+        t.rspec_opts = [*args.to_a, "-t ~memcheck_valgrind_skip"].join(" ")
       end
     end
   else
     task :core_with_libdatadog_api_memcheck do
-      raise 'Memcheck requires the ruby_memcheck gem to be installed'
+      raise "Memcheck requires the ruby_memcheck gem to be installed"
     end
   end
 
   # These specs require both libdatadog_api and profiling native extensions:
   # - libdatadog_api provides crashtracking, DDSketch, and other core features
   # - profiling extension is needed for crashtracking runtime stack capture
-  Rake::Task['spec:core_with_libdatadog_api'].enhance([:compile])
-  Rake::Task['spec:core_with_libdatadog_api_memcheck'].enhance([:compile]) if Gem.loaded_specs.key?('ruby_memcheck')
+  Rake::Task["spec:core_with_libdatadog_api"].enhance([:compile])
+  Rake::Task["spec:core_with_libdatadog_api_memcheck"].enhance([:compile]) if Gem.loaded_specs.key?("ruby_memcheck")
 
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:core_with_rails) do |t, args|
-    t.pattern = 'spec/datadog/core/environment/process_spec.rb,' \
-                'spec/**/*_rails_spec.rb,'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/core/environment/process_spec.rb," \
+                "spec/**/*_rails_spec.rb,"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:environment) do |t, args|
-    t.pattern = 'spec/datadog/core/environment/execution_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/core/environment/execution_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:error_tracking) do |t, args|
-    t.pattern = 'spec/datadog/error_tracking/**/*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
+    t.pattern = "spec/datadog/error_tracking/**/*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
   end
 
-  desc '' # "Explicitly hiding from `rake -T`"
+  desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:contrib) do |t, args|
     contrib_paths = [
-      '*',
-      'configuration/*',
-      'configuration/resolvers/*',
-      'registry/*',
-      'propagation/**/*',
-    ].join(',')
+      "*",
+      "configuration/*",
+      "configuration/resolvers/*",
+      "registry/*",
+      "propagation/**/*",
+    ].join(",")
 
     t.pattern = "spec/**/contrib/{#{contrib_paths}}_spec.rb"
-    t.rspec_opts = args.to_a.join(' ')
+    t.rspec_opts = args.to_a.join(" ")
   end
 
   # Datadog Tracing integrations
@@ -346,22 +346,22 @@ namespace :spec do
     :trilogy,
     :waterdrop
   ].each do |contrib|
-    desc '' # "Explicitly hiding from `rake -T`"
+    desc "" # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(contrib) do |t, args|
       t.pattern = "spec/datadog/tracing/contrib/#{contrib}/**/*_spec.rb"
-      t.rspec_opts = args.to_a.join(' ')
+      t.rspec_opts = args.to_a.join(" ")
     end
   end
 
   # Ensure DSM-enabled contrib tests compile libdatadog_api before running (MRI Ruby only)
   # If compilation fails (e.g., new Ruby version without prebuilt extension), tests will skip via DDSketch.supported?
-  unless RUBY_PLATFORM == 'java'
+  unless RUBY_PLATFORM == "java"
     task :compile_libdatadog_for_dsm do
       Rake::Task["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"].invoke
     rescue => e
       # Compilation failed (likely unsupported Ruby version) - tests will skip gracefully
       puts "Warning: libdatadog_api compilation failed: #{e.class}: #{e}"
-      puts 'DSM tests will be skipped for this Ruby version'
+      puts "DSM tests will be skipped for this Ruby version"
     end
 
     DSM_ENABLED_LIBRARIES.each do |task_name|
@@ -385,19 +385,19 @@ namespace :spec do
     ]
 
     # Datadog AppSec main specs
-    desc '' # "Explicitly hiding from `rake -T`"
+    desc "" # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(:main) do |t, args|
-      t.pattern = 'spec/datadog/appsec/**/*_spec.rb'
-      t.exclude_pattern = 'spec/datadog/appsec/**/{integration,contrib,auto_instrument}/**/*_spec.rb,' \
-                          ' spec/datadog/appsec/**/{auto_instrument,autoload}_spec.rb'
-      t.rspec_opts = args.to_a.join(' ')
+      t.pattern = "spec/datadog/appsec/**/*_spec.rb"
+      t.exclude_pattern = "spec/datadog/appsec/**/{integration,contrib,auto_instrument}/**/*_spec.rb," \
+                          " spec/datadog/appsec/**/{auto_instrument,autoload}_spec.rb"
+      t.rspec_opts = args.to_a.join(" ")
     end
 
     # Datadog AppSec integration specs (syntetic rails application)
-    desc '' # "Explicitly hiding from `rake -T`"
+    desc "" # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(:integration) do |t, args|
-      t.pattern = 'spec/datadog/appsec/integration/**/*_spec.rb'
-      t.rspec_opts = args.to_a.join(' ')
+      t.pattern = "spec/datadog/appsec/integration/**/*_spec.rb"
+      t.rspec_opts = args.to_a.join(" ")
     end
 
     # Datadog AppSec integrations
@@ -412,10 +412,10 @@ namespace :spec do
       :excon,
       :rest_client
     ].each do |contrib|
-      desc '' # "Explicitly hiding from `rake -T`"
+      desc "" # "Explicitly hiding from `rake -T`"
       RSpec::Core::RakeTask.new(contrib) do |t, args|
         t.pattern = "spec/datadog/appsec/contrib/#{contrib}/**/*_spec.rb"
-        t.rspec_opts = args.to_a.join(' ')
+        t.rspec_opts = args.to_a.join(" ")
       end
     end
   end
@@ -425,23 +425,23 @@ namespace :spec do
   namespace :ai_guard do
     task all: [:main, :rack, :ruby_llm]
 
-    desc '' # "Explicitly hiding from `rake -T`"
+    desc "" # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(:main) do |t, args|
-      t.pattern = 'spec/datadog/ai_guard/**/*_spec.rb,spec/datadog/ai_guard_spec.rb'
-      t.exclude_pattern = 'spec/datadog/ai_guard/contrib/**/*_spec.rb'
-      t.rspec_opts = args.to_a.join(' ')
+      t.pattern = "spec/datadog/ai_guard/**/*_spec.rb,spec/datadog/ai_guard_spec.rb"
+      t.exclude_pattern = "spec/datadog/ai_guard/contrib/**/*_spec.rb"
+      t.rspec_opts = args.to_a.join(" ")
     end
 
-    desc '' # "Explicitly hiding from `rake -T`"
+    desc "" # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(:rack) do |t, args|
       t.pattern = "spec/datadog/ai_guard/contrib/rack/**/*_spec.rb"
-      t.rspec_opts = args.to_a.join(' ')
+      t.rspec_opts = args.to_a.join(" ")
     end
 
-    desc '' # "Explicitly hiding from `rake -T`"
+    desc "" # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(:ruby_llm) do |t, args|
       t.pattern = "spec/datadog/ai_guard/contrib/ruby_llm/**/*_spec.rb"
-      t.rspec_opts = args.to_a.join(' ')
+      t.rspec_opts = args.to_a.join(" ")
     end
   end
 
@@ -454,20 +454,20 @@ namespace :spec do
       :bootsnap,
       :rails,
     ].each do |contrib|
-      desc '' # "Explicitly hiding from `rake -T`"
+      desc "" # "Explicitly hiding from `rake -T`"
       RSpec::Core::RakeTask.new(contrib) do |t, args|
         t.pattern = "spec/datadog/di/contrib/#{contrib}/**/*_spec.rb"
-        t.rspec_opts = args.to_a.join(' ')
+        t.rspec_opts = args.to_a.join(" ")
       end
     end
     # bootsnap tests require the DI C extension (DI::Component.build checks for it).
-    Rake::Task['di:bootsnap'].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
+    Rake::Task["di:bootsnap"].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
 
     # rubocop:disable Style/MultilineBlockChain
     RSpec::Core::RakeTask.new(:di_with_ext) do |t, args|
-      t.pattern = DI_WITH_EXT.join(', ')
-      t.exclude_pattern = 'spec/datadog/di/contrib/**/*_spec.rb'
-      t.rspec_opts = [*args.to_a, '-t ~ractors'].join(' ')
+      t.pattern = DI_WITH_EXT.join(", ")
+      t.exclude_pattern = "spec/datadog/di/contrib/**/*_spec.rb"
+      t.rspec_opts = [*args.to_a, "-t ~ractors"].join(" ")
     end.tap do |t|
       Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
     end
@@ -477,9 +477,9 @@ namespace :spec do
     # examples into a dedicated task mirrors spec:profiling:ractors (see Rakefile around
     # spec:profiling:main / :ractors) and keeps the regular DI job from mutating VM mode.
     RSpec::Core::RakeTask.new(:ractors) do |t, args|
-      t.pattern = DI_WITH_EXT.join(', ')
-      t.exclude_pattern = 'spec/datadog/di/contrib/**/*_spec.rb'
-      t.rspec_opts = [*args.to_a, '-t ractors'].join(' ')
+      t.pattern = DI_WITH_EXT.join(", ")
+      t.exclude_pattern = "spec/datadog/di/contrib/**/*_spec.rb"
+      t.rspec_opts = [*args.to_a, "-t ractors"].join(" ")
     end.tap do |t|
       Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
     end
@@ -491,7 +491,7 @@ namespace :spec do
 
     task :compile_native_extensions do
       # "bundle exec rake compile" currently only works on MRI Ruby on Linux
-      if RUBY_ENGINE == 'ruby' && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3.0')
+      if RUBY_ENGINE == "ruby" && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("2.3.0")
         Rake::Task[:clean].invoke
         Rake::Task[:compile].invoke
       end
@@ -502,25 +502,25 @@ namespace :spec do
     #       and, as such, may introduce side-effects between tests and make them flaky depending on order of
     #       execution. By splitting in two separate suites, the side-effect impact should be mitigated as
     #       the non-ractor VM will never trigger the transition into multi-ractor mode.
-    desc '' # "Explicitly hiding from `rake -T`"
+    desc "" # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(:main) do |t, args|
-      t.pattern = 'spec/datadog/profiling/**/*_spec.rb,spec/datadog/profiling_spec.rb'
-      t.rspec_opts = [*args.to_a, '-t ~ractors'].join(' ')
+      t.pattern = "spec/datadog/profiling/**/*_spec.rb,spec/datadog/profiling_spec.rb"
+      t.rspec_opts = [*args.to_a, "-t ~ractors"].join(" ")
     end
 
-    desc '' # "Explicitly hiding from `rake -T`"
+    desc "" # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(:ractors) do |t, args|
-      t.pattern = 'spec/datadog/profiling/**/*_spec.rb'
-      t.rspec_opts = [*args.to_a, '-t ractors'].join(' ')
+      t.pattern = "spec/datadog/profiling/**/*_spec.rb"
+      t.rspec_opts = [*args.to_a, "-t ractors"].join(" ")
     end
 
-    desc 'Run spec:profiling:main tests with memory leak checking'
-    if Gem.loaded_specs.key?('ruby_memcheck')
-      require 'libdatadog'
+    desc "Run spec:profiling:main tests with memory leak checking"
+    if Gem.loaded_specs.key?("ruby_memcheck")
+      require "libdatadog"
 
       # Temporary workaround to unblock moving to libdatadog v30. If you see this code here and we've moved past v30 already,
       # we forgot to clean it up -- please do!
-      if Libdatadog::VERSION.start_with?('30.')
+      if Libdatadog::VERSION.start_with?("30.")
         task :memcheck do
           warn "Skipping memcheck for libdatadog v30 because of https://github.com/bytecodealliance/rustix/issues/1559" \
             " (libdatadog v30 causes a crash when running inside valgrind)." \
@@ -528,7 +528,7 @@ namespace :spec do
         end
       else
         RubyMemcheck::RSpec::RakeTask.new(:memcheck) do |t, args|
-          t.pattern = 'spec/datadog/profiling/**/*_spec.rb,spec/datadog/profiling_spec.rb'
+          t.pattern = "spec/datadog/profiling/**/*_spec.rb,spec/datadog/profiling_spec.rb"
           # Some of our specs use multi-threading + busy looping, or multiple processes, or are just really really slow.
           # We skip running these when running under valgrind.
           # (As a reminder, by default valgrind simulates a sequential/single-threaded execution).
@@ -536,12 +536,12 @@ namespace :spec do
           # @ivoanjo: I previously tried https://github.com/Shopify/ruby_memcheck/issues/51 but in some cases valgrind
           # would give incomplete output, causing a "FATAL: Premature end of data in tag valgrindoutput line 3" error in
           # ruby_memcheck. I did not figure out why exactly.
-          t.rspec_opts = [*args.to_a, '-t ~ractors -t ~memcheck_valgrind_skip'].join(' ')
+          t.rspec_opts = [*args.to_a, "-t ~ractors -t ~memcheck_valgrind_skip"].join(" ")
         end
       end
     else
       task :memcheck do
-        raise 'Memcheck requires the ruby_memcheck gem to be installed'
+        raise "Memcheck requires the ruby_memcheck gem to be installed"
       end
     end
 
@@ -553,13 +553,13 @@ namespace :spec do
 end
 
 # Jobs are parallelized if running in CI.
-desc 'CI task; it runs all tests for current version of Ruby'
-task ci: 'test:all'
+desc "CI task; it runs all tests for current version of Ruby"
+task ci: "test:all"
 
 namespace :coverage do
   # Generates one global report for all tracer tests
   task :report do
-    require 'simplecov'
+    require "simplecov"
 
     resultset_files = Dir["#{ENV.fetch("COVERAGE_DIR", "coverage")}/.resultset.json"] +
       Dir["#{ENV.fetch("COVERAGE_DIR", "coverage")}/versions/**/.resultset.json"]
@@ -572,8 +572,8 @@ namespace :coverage do
 
   # Generates one report for each Ruby version
   task :report_per_ruby_version do
-    require 'simplecov'
-    require_relative 'spec/support/simplecov_fix'
+    require "simplecov"
+    require_relative "spec/support/simplecov_fix"
 
     versions = Dir["#{ENV.fetch("COVERAGE_DIR", "coverage")}/versions/*"].map { |f| File.basename(f) }
     versions.map do |version|
@@ -588,11 +588,11 @@ end
 
 NATIVE_EXTS = [
   Rake::ExtensionTask.new("libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}") do |ext|
-    ext.ext_dir = 'ext/libdatadog_api'
+    ext.ext_dir = "ext/libdatadog_api"
   end,
 
   Rake::ExtensionTask.new("datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
-    ext.ext_dir = 'ext/datadog_profiling_native_extension'
+    ext.ext_dir = "ext/datadog_profiling_native_extension"
   end,
 ].freeze
 
@@ -611,8 +611,8 @@ namespace :native_dev do
       abs_ext_dir = (Pathname.new(root_dir) + ext.ext_dir).realpath
       chdir tmp_dir_dd_native_dev do
         sh(*cmd)
-        sh('make clean; bear -- make; make clean')
-        cp('compile_commands.json', "#{abs_ext_dir}/compile_commands.json")
+        sh("make clean; bear -- make; make clean")
+        cp("compile_commands.json", "#{abs_ext_dir}/compile_commands.json")
       end
     end
 
@@ -621,14 +621,14 @@ namespace :native_dev do
     compile_commands_task
   end
 
-  desc 'Setup dev environment for native extensions.'
+  desc "Setup dev environment for native extensions."
   task setup: compile_commands_tasks
 
   CLEAN.concat(NATIVE_CLEAN)
 end
 
-desc 'Runs lint + main test suite'
-task default: ['rubocop', 'standard', 'typecheck', 'spec:main']
+desc "Runs lint + main test suite"
+task default: ["rubocop", "standard", "typecheck", "spec:main"]
 
-desc 'Runs the default task in parallel'
-multitask fastdefault: ['rubocop', 'standard', 'typecheck', 'spec:main']
+desc "Runs the default task in parallel"
+multitask fastdefault: ["rubocop", "standard", "typecheck", "spec:main"]

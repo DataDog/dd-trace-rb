@@ -8,7 +8,6 @@ ignore:
       - Style/TrailingCommaInArguments
       - Style/TrailingCommaInArrayLiteral
       - Style/TrailingCommaInHashLiteral
-      - Style/StringLiterals
       - Style/StringLiteralsInInterpolation
       # steep has annotation syntax which requires immediate sign after the hash character.
       # Enforced separately via `rake rubocop` - see rubocop/standard_overrides.rubocop.yml.

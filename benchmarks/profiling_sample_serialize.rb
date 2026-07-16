@@ -1,11 +1,11 @@
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require_relative 'benchmarks_helper'
+require_relative "benchmarks_helper"
 
-require 'libdatadog'
+require "libdatadog"
 
 puts "Libdatadog from: #{Libdatadog.pkgconfig_folder}"
 

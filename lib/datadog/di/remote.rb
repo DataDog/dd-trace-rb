@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'fatal_exceptions'
+require_relative "fatal_exceptions"
 
 module Datadog
   module DI
@@ -15,7 +15,7 @@ module Datadog
     # @api private
     module Remote
       class << self
-        PRODUCT = 'LIVE_DEBUGGING'
+        PRODUCT = "LIVE_DEBUGGING"
 
         # Declared here (not in Tracing::Remote::CAPABILITIES) so it is
         # registered only with the gated DI block in Capabilities#register:
@@ -291,7 +291,7 @@ module Datadog
         def remove_probe(previous_content, component)
           # TODO test exception capture
           probe_spec = parse_content(previous_content)
-          probe_id = probe_spec.fetch('id')
+          probe_id = probe_spec.fetch("id")
           component.probe_manager.remove_probe(probe_id)
         rescue Exception => exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)

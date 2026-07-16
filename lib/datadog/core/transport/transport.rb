@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'http/client'
+require_relative "http/client"
 
 module Datadog
   module Core

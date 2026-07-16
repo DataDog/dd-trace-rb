@@ -1,9 +1,9 @@
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require_relative 'benchmarks_helper'
+require_relative "benchmarks_helper"
 
 # This benchmark measures the performance of string storage-related APIs
 
@@ -18,7 +18,7 @@ class ProfilerStringStorageIntern
       x.config(
         **benchmark_time,
       )
-      x.report('intern_all 1000 repeated strings') do
+      x.report("intern_all 1000 repeated strings") do
         Datadog::Profiling::StackRecorder::Testing._native_benchmark_intern(@recorder, "hello, world!", 1000, true)
       end
 
@@ -32,7 +32,7 @@ class ProfilerStringStorageIntern
         **benchmark_time,
       )
 
-      x.report('intern mixed existing and new') do
+      x.report("intern mixed existing and new") do
         recorder = Datadog::Profiling::StackRecorder.for_testing(heap_samples_enabled: true)
 
         strings_to_intern = 100_000

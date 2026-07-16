@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require 'json'
-require 'zlib'
-require 'stringio'
+require "json"
+require "zlib"
+require "stringio"
 
-require_relative '../core/utils/base64_codec'
+require_relative "../core/utils/base64_codec"
 
 module Datadog
   module AppSec
@@ -21,7 +21,7 @@ module Datadog
 
         compress_and_encode(value)
       rescue ArgumentError, Encoding::UndefinedConversionError, JSON::JSONError => e
-        AppSec.telemetry.report(e, description: 'AppSec: Failed to convert value into JSON')
+        AppSec.telemetry.report(e, description: "AppSec: Failed to convert value into JSON")
 
         nil
       end
@@ -31,7 +31,7 @@ module Datadog
           Zlib.gzip(payload, level: Zlib::BEST_SPEED, strategy: Zlib::DEFAULT_STRATEGY)
         )
       rescue Zlib::Error, TypeError => e
-        AppSec.telemetry.report(e, description: 'AppSec: Failed to compress and encode value')
+        AppSec.telemetry.report(e, description: "AppSec: Failed to compress and encode value")
 
         nil
       end

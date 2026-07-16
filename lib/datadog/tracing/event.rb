@@ -46,7 +46,7 @@ module Datadog
       end
 
       def subscribe(&block)
-        raise ArgumentError, 'Must give a block to subscribe!' unless block
+        raise ArgumentError, "Must give a block to subscribe!" unless block
 
         subscriptions << block
       end

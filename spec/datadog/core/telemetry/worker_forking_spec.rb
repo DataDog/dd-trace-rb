@@ -1,4 +1,4 @@
-require 'spec_helper'
+require "spec_helper"
 
 RSpec.describe Datadog::Core::Telemetry::Component do
   forking_platform_only
@@ -9,7 +9,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
   let(:handler_proc) do
     lambda do |req, _res|
-      expect(req.content_type).to eq('application/json')
+      expect(req.content_type).to eq("application/json")
       payload = JSON.parse(req.body)
       sent_payloads << {
         headers: req.header,
@@ -19,14 +19,14 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   end
 
   http_server do |http_server|
-    http_server.mount_proc('/telemetry/proxy/api/v2/apmtelemetry', &handler_proc)
+    http_server.mount_proc("/telemetry/proxy/api/v2/apmtelemetry", &handler_proc)
   end
 
   let(:settings) do
     Datadog::Core::Configuration::Settings.new.tap do |settings|
       settings.telemetry.enabled = true
       # Host may be overridden by environment variables
-      settings.agent.host = 'localhost'
+      settings.agent.host = "localhost"
       settings.agent.port = http_server_port
       # In this test we want to assert on dependency events
       settings.telemetry.dependency_collection = true
@@ -58,8 +58,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
   let(:initial_event) do
     double(Datadog::Core::Telemetry::Event::AppStarted,
-      payload: {hello: 'world'},
-      type: 'app-started',
+      payload: {hello: "world"},
+      type: "app-started",
       app_started?: true,)
   end
 
@@ -68,12 +68,12 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       ok?: true,)
   end
 
-  context 'when telemetry is disabled' do
+  context "when telemetry is disabled" do
     before do
       settings.telemetry.enabled = false
     end
 
-    it 'stays disabled in child process' do
+    it "stays disabled in child process" do
       expect(component.enabled?).to be false
       expect(component.worker).to be nil
 
@@ -84,7 +84,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
-  context 'when telemetry is enabled' do
+  context "when telemetry is enabled" do
     before do
       settings.telemetry.enabled = true
     end
@@ -96,7 +96,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       allow(Datadog).to receive(:components).and_return(components)
     end
 
-    it 'stays enabled in child process' do
+    it "stays enabled in child process" do
       expect(component.enabled?).to be true
       expect(component.worker).to be_a(Datadog::Core::Telemetry::Worker)
       expect(component.worker.enabled?).to be true
@@ -107,7 +107,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    context 'when worker is running' do
+    context "when worker is running" do
       before do
         # Reduce interval between event submissions in worker
         # to make the test run faster.
@@ -121,8 +121,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         component.worker.start(initial_event)
       end
 
-      it 'restarts worker after fork' do
-        skip 'flaky on Ruby 2.5 (APMLP-931)' if RubyVersion.is?('< 2.6')
+      it "restarts worker after fork" do
+        skip "flaky on Ruby 2.5 (APMLP-931)" if RubyVersion.is?("< 2.6")
 
         expect(component.enabled?).to be true
         expect(component.worker).to be_a(Datadog::Core::Telemetry::Worker)
@@ -142,7 +142,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    describe 'events generated in forked child' do
+    describe "events generated in forked child" do
       before do
         # Reduce interval between event submissions in worker
         # to make the test run faster.
@@ -167,30 +167,30 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
         payload = sent_payloads[0].fetch(:payload)
         expect(payload).to include(
-          'request_type' => 'app-started',
+          "request_type" => "app-started",
         )
         payload = sent_payloads[1].fetch(:payload)
         # The app-dependencies-loaded assertion is also critical here,
         # since there is no other test coverage for the
         # app-dependencies-loaded event being sent in the forked child.
         expect(payload).to include(
-          'request_type' => 'app-dependencies-loaded',
+          "request_type" => "app-dependencies-loaded",
         )
         payload = sent_payloads[2].fetch(:payload)
         expect(payload).to include(
-          'request_type' => 'message-batch',
+          "request_type" => "message-batch",
         )
-        expect(payload.fetch('payload').first).to include(
-          'request_type' => 'app-heartbeat',
+        expect(payload.fetch("payload").first).to include(
+          "request_type" => "app-heartbeat",
         )
       end
 
-      context 'when initial event is AppStarted' do
+      context "when initial event is AppStarted" do
         let(:initial_event) do
           Datadog::Core::Telemetry::Event::AppStarted.new(components: components)
         end
 
-        it 'produces correct events in the child' do
+        it "produces correct events in the child" do
           component.worker.start(initial_event)
           component.flush
 
@@ -198,23 +198,23 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
           payload = sent_payloads[0].fetch(:payload)
           expect(payload).to include(
-            'request_type' => 'app-started',
+            "request_type" => "app-started",
           )
           payload = sent_payloads[1].fetch(:payload)
           expect(payload).to include(
-            'request_type' => 'app-dependencies-loaded',
+            "request_type" => "app-dependencies-loaded",
           )
 
           fork_and_assert
         end
       end
 
-      context 'when initial event is SynthAppClientConfigurationChange' do
+      context "when initial event is SynthAppClientConfigurationChange" do
         let(:initial_event) do
           Datadog::Core::Telemetry::Event::SynthAppClientConfigurationChange.new(components: Datadog.send(:components))
         end
 
-        it 'produces correct events in the child' do
+        it "produces correct events in the child" do
           component.worker.start(initial_event)
           component.flush
 
@@ -222,7 +222,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
           payload = sent_payloads[0].fetch(:payload)
           expect(payload).to include(
-            'request_type' => 'app-client-configuration-change',
+            "request_type" => "app-client-configuration-change",
           )
 
           fork_and_assert

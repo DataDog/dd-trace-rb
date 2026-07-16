@@ -60,16 +60,16 @@
 #
 
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require 'benchmark/ips'
-require 'datadog'
+require "benchmark/ips"
+require "datadog"
 # Need to require datadog/di explicitly because dynamic instrumentation is not
 # currently integrated into the Ruby tracer due to being under development.
-require 'datadog/di'
-require 'datadog/di/proc_responder'
+require "datadog/di"
+require "datadog/di/proc_responder"
 
 class DIInstrumentBenchmark
   class Target
@@ -122,7 +122,7 @@ class DIInstrumentBenchmark
         **benchmark_time,
       )
 
-      x.report('no instrumentation') do
+      x.report("no instrumentation") do
         Target.new.test_method
       end
 
@@ -154,7 +154,7 @@ class DIInstrumentBenchmark
     end
 
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      type_name: 'DIInstrumentBenchmark::Target', method_name: 'test_method',
+      type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
       rate_limit: 1_000_000,)
     responder = Datadog::DI::ProcResponder.new(executed_proc)
     rv = instrumenter.hook_method(probe, responder)
@@ -168,7 +168,7 @@ class DIInstrumentBenchmark
         **benchmark_time,
       )
 
-      x.report('method instrumentation - rate_limit=1M (firing)') do
+      x.report("method instrumentation - rate_limit=1M (firing)") do
         Target.new.test_method
       end
 
@@ -188,7 +188,7 @@ class DIInstrumentBenchmark
 
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      type_name: 'DIInstrumentBenchmark::Target', method_name: 'test_method',
+      type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
       rate_limit: 1,)
     responder = Datadog::DI::ProcResponder.new(executed_proc)
     rv = instrumenter.hook_method(probe, responder)
@@ -202,7 +202,7 @@ class DIInstrumentBenchmark
         **benchmark_time,
       )
 
-      x.report('method instrumentation - rate_limit=1 (skip)') do
+      x.report("method instrumentation - rate_limit=1 (skip)") do
         Target.new.test_method
       end
 
@@ -246,7 +246,7 @@ class DIInstrumentBenchmark
       x.config(
         **benchmark_time,
       )
-      x.report('line instrumentation - untargeted - rate_limit=1M (firing)') do
+      x.report("line instrumentation - untargeted - rate_limit=1M (firing)") do
         Target.new.test_method_for_line_probe
       end
 
@@ -278,7 +278,7 @@ class DIInstrumentBenchmark
       x.config(
         **benchmark_time,
       )
-      x.report('line instrumentation - untargeted - rate_limit=1 (skip)') do
+      x.report("line instrumentation - untargeted - rate_limit=1 (skip)") do
         Target.new.test_method_for_line_probe
       end
 
@@ -304,7 +304,7 @@ class DIInstrumentBenchmark
     if defined?(DITarget)
       raise "DITarget is already defined, this should not happen"
     end
-    require_relative 'support/di_target'
+    require_relative "support/di_target"
     unless defined?(DITarget)
       raise "DITarget is not defined, this should not happen"
     end
@@ -327,7 +327,7 @@ class DIInstrumentBenchmark
         **benchmark_time,
       )
 
-      x.report('line instrumentation - targeted - rate_limit=1M (firing)') do
+      x.report("line instrumentation - targeted - rate_limit=1M (firing)") do
         DITarget.new.test_method_for_line_probe
       end
 
@@ -360,7 +360,7 @@ class DIInstrumentBenchmark
         **benchmark_time,
       )
 
-      x.report('line instrumentation - targeted - rate_limit=1 (skip)') do
+      x.report("line instrumentation - targeted - rate_limit=1 (skip)") do
         DITarget.new.test_method_for_line_probe
       end
 
@@ -391,7 +391,7 @@ class DIInstrumentBenchmark
 
       # This benchmark should produce identical results to the
       # "no instrumentation" benchmark.
-      x.report('method instrumentation - cleared') do
+      x.report("method instrumentation - cleared") do
         Target.new.test_method
       end
 
@@ -411,7 +411,7 @@ class DIInstrumentBenchmark
 
       # This benchmark should produce identical results to the
       # "no instrumentation" benchmark.
-      x.report('line instrumentation - cleared') do
+      x.report("line instrumentation - cleared") do
         Target.new.test_method_for_line_probe
       end
 
@@ -429,7 +429,7 @@ class DIInstrumentBenchmark
         **benchmark_time,
       )
 
-      x.report('no instrumentation - again') do
+      x.report("no instrumentation - again") do
         Target.new.not_instrumented
       end
 

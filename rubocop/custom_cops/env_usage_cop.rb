@@ -24,11 +24,11 @@ module CustomCops
 
     # Detect ENV usage in method calls on ENV
     def on_const(node)
-      return unless node.const_name == 'ENV'
+      return unless node.const_name == "ENV"
 
       prefix = datadog_prefix(node)
       msg = "Avoid direct usage of ENV. Use #{prefix}DATADOG_ENV to access environment variables. " \
-            'See docs/AccessEnvironmentVariables.md for details.'
+            "See docs/AccessEnvironmentVariables.md for details."
 
       # Check if this is part of a method call
       parent = node.parent
@@ -38,7 +38,7 @@ module CustomCops
         end
       else
         msg = "Avoid direct usage of ENV. Use #{prefix}DATADOG_ENV with a method call to access environment variables. " \
-              'See docs/AccessEnvironmentVariables.md for details.'
+              "See docs/AccessEnvironmentVariables.md for details."
         add_offense(node, message: msg) do |corrector|
           # No correction for calling the ENV object directly
         end
@@ -58,14 +58,14 @@ module CustomCops
     def datadog_prefix(node)
       module_ancestors = node.ancestors.select { |ancestor| ancestor.module_type? }
       top_module = module_ancestors.last
-      return 'Datadog::' if top_module.nil?
-      return '' if top_module.defined_module&.const_name == 'Datadog'
+      return "Datadog::" if top_module.nil?
+      return "" if top_module.defined_module&.const_name == "Datadog"
 
       on_node(:module, top_module) do |child|
-        return '::Datadog::' if child.defined_module&.const_name == 'Datadog'
+        return "::Datadog::" if child.defined_module&.const_name == "Datadog"
       end
 
-      'Datadog::'
+      "Datadog::"
     end
   end
 end

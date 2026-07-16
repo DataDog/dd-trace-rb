@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'core'
-require_relative 'core/environment/variable_helpers'
-require_relative 'core/utils/only_once'
+require_relative "core"
+require_relative "core/environment/variable_helpers"
+require_relative "core/utils/only_once"
 
 module Datadog
   # Datadog Continuous Profiler implementation: https://docs.datadoghq.com/profiler/
@@ -71,7 +71,7 @@ module Datadog
         worker = profiler.send(:worker)
         worker.wait_until_running(timeout_seconds: timeout_seconds)
       else
-        raise 'Profiler not enabled or available'
+        raise "Profiler not enabled or available"
       end
     end
 
@@ -109,17 +109,17 @@ module Datadog
 
       unless success
         if exception
-          'There was an error loading the profiling native extension due to ' \
+          "There was an error loading the profiling native extension due to " \
           "'#{exception.class.name} #{exception.message}' at '#{Array(exception.backtrace).first}'"
         else
-          'The profiling native extension did not load correctly. ' \
-          'For help solving this issue, please contact Datadog support at <https://docs.datadoghq.com/help/>.' \
+          "The profiling native extension did not load correctly. " \
+          "For help solving this issue, please contact Datadog support at <https://docs.datadoghq.com/help/>." \
         end
       end
     end
 
     private_class_method def self.try_loading_native_library
-      require_relative 'profiling/load_native_extension'
+      require_relative "profiling/load_native_extension"
 
       success =
         defined?(Profiling::NativeExtension) && Profiling::NativeExtension.send(:native_working?)
@@ -135,25 +135,25 @@ module Datadog
     private_class_method def self.load_profiling
       return false unless supported?
 
-      require_relative 'profiling/ext/dir_monkey_patches'
-      require_relative 'profiling/collectors/info'
-      require_relative 'profiling/collectors/code_provenance'
-      require_relative 'profiling/collectors/cpu_and_wall_time_worker'
-      require_relative 'profiling/collectors/dynamic_sampling_rate'
-      require_relative 'profiling/collectors/idle_sampling_helper'
-      require_relative 'profiling/collectors/stack'
-      require_relative 'profiling/collectors/thread_context'
-      require_relative 'profiling/stack_recorder'
-      require_relative 'profiling/exporter'
-      require_relative 'profiling/encoded_profile'
-      require_relative 'profiling/flush'
-      require_relative 'profiling/scheduler'
-      require_relative 'profiling/tasks/setup'
-      require_relative 'profiling/profiler'
-      require_relative 'profiling/native_extension'
-      require_relative 'profiling/tag_builder'
-      require_relative 'profiling/http_transport'
-      require_relative 'profiling/sequence_tracker'
+      require_relative "profiling/ext/dir_monkey_patches"
+      require_relative "profiling/collectors/info"
+      require_relative "profiling/collectors/code_provenance"
+      require_relative "profiling/collectors/cpu_and_wall_time_worker"
+      require_relative "profiling/collectors/dynamic_sampling_rate"
+      require_relative "profiling/collectors/idle_sampling_helper"
+      require_relative "profiling/collectors/stack"
+      require_relative "profiling/collectors/thread_context"
+      require_relative "profiling/stack_recorder"
+      require_relative "profiling/exporter"
+      require_relative "profiling/encoded_profile"
+      require_relative "profiling/flush"
+      require_relative "profiling/scheduler"
+      require_relative "profiling/tasks/setup"
+      require_relative "profiling/profiler"
+      require_relative "profiling/native_extension"
+      require_relative "profiling/tag_builder"
+      require_relative "profiling/http_transport"
+      require_relative "profiling/sequence_tracker"
 
       replace_noop_allocation_count
 

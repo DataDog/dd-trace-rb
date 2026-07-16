@@ -606,7 +606,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               expect(t1_sample.labels).to_not include("trace endpoint": anything)
             end
 
-            describe 'accessing the current span' do
+            describe "accessing the current span" do
               before do
                 allow(Datadog.logger).to receive(:error)
 
@@ -616,7 +616,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 recorder.serialize!
               end
 
-              it 'does not try to hash the CURRENT_SPAN_KEY' do
+              it "does not try to hash the CURRENT_SPAN_KEY" do
                 inner_check_ran = false
 
                 otel_tracer.in_span("profiler.test") do |_span|
@@ -779,7 +779,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               expect(t1_sample.labels).to_not include("trace endpoint": anything)
             end
 
-            describe 'reading CURRENT_SPAN_KEY into otel_current_span_key' do
+            describe "reading CURRENT_SPAN_KEY into otel_current_span_key" do
               let!(:ran_log) { [] }
 
               let(:setup_failure) do
@@ -796,11 +796,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 )
               end
 
-              context 'when an exception is raised' do
+              context "when an exception is raised" do
                 before { setup_failure }
                 after { expect(ran_log).to eq [:ran_code] }
 
-                it 'does not leave the exception pending' do
+                it "does not leave the exception pending" do
                   sample(allow_exception: true)
 
                   expect($!).to be nil
@@ -813,8 +813,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 end
               end
 
-              context 'during allocation sampling' do
-                it 'does not try to read the CURRENT_SPAN_KEY' do
+              context "during allocation sampling" do
+                it "does not try to read the CURRENT_SPAN_KEY" do
                   allow(OpenTelemetry.logger).to receive(:error)
 
                   otel_tracer.in_span("profiler.test") do |_span|
@@ -828,7 +828,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               end
             end
 
-            describe 'accessing the current span' do
+            describe "accessing the current span" do
               before do
                 allow(OpenTelemetry.logger).to receive(:error)
 
@@ -838,7 +838,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 recorder.serialize!
               end
 
-              it 'does not try to hash the CURRENT_SPAN_KEY' do
+              it "does not try to hash the CURRENT_SPAN_KEY" do
                 inner_check_ran = false
 
                 otel_tracer.in_span("profiler.test") do |_span|
@@ -852,10 +852,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 expect(inner_check_ran).to be true
               end
 
-              context 'when there are more than MAX_SAFE_LOOKUP_SIZE entries in the otel context' do
+              context "when there are more than MAX_SAFE_LOOKUP_SIZE entries in the otel context" do
                 let(:max_safe_lookup_size) { 16 } # Value of MAX_SAFE_LOOKUP_SIZE in C code
 
-                it 'does not try to look up the context' do
+                it "does not try to look up the context" do
                   otel_tracer.in_span("profiler.test") do |_span|
                     current_size = OpenTelemetry::Context.current.instance_variable_get(:@entries).size
 
@@ -883,7 +883,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               end
             end
 
-            context 'when otel_context_enabled is false' do
+            context "when otel_context_enabled is false" do
               let(:otel_context_enabled) { false }
 
               it 'does not include "local root span id" or "span id" labels in the samples' do

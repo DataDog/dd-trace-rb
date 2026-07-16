@@ -2,8 +2,8 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
-require_relative 'fatal_exceptions'
-require_relative 'capture_expression_evaluator'
+require_relative "fatal_exceptions"
+require_relative "capture_expression_evaluator"
 
 module Datadog
   module DI
@@ -34,32 +34,32 @@ module Datadog
       def build_received(probe)
         build_status(probe,
           message: "Probe #{probe.id} has been received correctly",
-          status: 'RECEIVED',)
+          status: "RECEIVED",)
       end
 
       def build_installed(probe)
         build_status(probe,
           message: "Probe #{probe.id} has been instrumented correctly",
-          status: 'INSTALLED',)
+          status: "INSTALLED",)
       end
 
       def build_emitting(probe)
         build_status(probe,
           message: "Probe #{probe.id} is emitting",
-          status: 'EMITTING',)
+          status: "EMITTING",)
       end
 
       def build_errored(probe, exc)
         build_status(probe,
           message: "Instrumentation for probe #{probe.id} failed: #{exc}",
-          status: 'ERROR',
+          status: "ERROR",
           exception: exc)
       end
 
       def build_disabled(probe, duration)
         build_status(probe,
           message: "Probe #{probe.id} was disabled because it consumed #{duration} seconds of CPU time in DI processing",
-          status: 'ERROR',)
+          status: "ERROR",)
       end
 
       # Duration is in seconds.
@@ -176,9 +176,9 @@ module Datadog
         # appears to be completely ignored by the backend.
         # Note: The Go DI implementation does not send the top-level message
         # field at all when sending error statuses.
-        if status == 'ERROR'
+        if status == "ERROR"
           diagnostics[:exception] = { # steep:ignore
-            type: exception ? exception.class.name : 'Error',
+            type: exception ? exception.class.name : "Error",
             message: exception ? exception.message : message
           }
         end
@@ -187,7 +187,7 @@ module Datadog
           service: settings.service,
           timestamp: timestamp_now,
           message: message,
-          ddsource: 'dd_debugger',
+          ddsource: "dd_debugger",
           debugger: {
             diagnostics: diagnostics,
           },
@@ -230,7 +230,7 @@ module Datadog
           # Non-string constructor argument — return a redacted placeholder
           # rather than calling .to_s which could be customer code.
           # The exception class is already reported via the :type field.
-          '<REDACTED: not a string value>'
+          "<REDACTED: not a string value>"
         end
         # Prefer backtrace_locations (structured Location objects) over
         # backtrace (formatted strings that need regex parsing).
@@ -299,7 +299,7 @@ module Datadog
           if frame =~ BACKTRACE_FRAME_PATTERN
             {fileName: $1, function: $3, lineNumber: $2.to_i}
           else
-            {fileName: frame, function: '', lineNumber: 0}
+            {fileName: frame, function: "", lineNumber: 0}
           end
         end
       end
@@ -334,7 +334,7 @@ module Datadog
         payload = {
           service: settings.service,
           debugger: {
-            type: 'snapshot',
+            type: "snapshot",
             # Product can have three values: di, ld, er.
             # We do not currently implement exception replay.
             # There is currently no specification, and no consensus, for
@@ -356,7 +356,7 @@ module Datadog
                 version: 0,
                 location: location,
               },
-              language: 'ruby',
+              language: "ruby",
               # TODO add test coverage for callers being nil
               stack: stack,
               # System tests schema validation requires captures to
@@ -382,7 +382,7 @@ module Datadog
           # TODO add tests that the trace/span id is correctly propagated
           "dd.trace_id": active_trace&.id&.to_s,
           "dd.span_id": active_span&.id&.to_s,
-          ddsource: 'dd_debugger',
+          ddsource: "dd_debugger",
           message: message,
           timestamp: timestamp,
         }
@@ -415,7 +415,7 @@ module Datadog
             message: "#{exc.class}: #{exc.message}",
             expr: segment.dsl_expr, # steep:ignore NoMethod
           }
-          '[evaluation error]'
+          "[evaluation error]"
         end.join
         [message, evaluation_errors]
       end

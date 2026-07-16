@@ -16,7 +16,7 @@ module Datadog
         def self.apply!
           return false unless supported?
 
-          if RubyVersion.is?('< 3.1')
+          if RubyVersion.is?("< 3.1")
             [
               ::Process.singleton_class, # Process.fork
               ::Kernel.singleton_class,  # Kernel.fork
@@ -39,7 +39,7 @@ module Datadog
 
         def self.at_fork(stage, &block)
           raise(ArgumentError, "Unsupported stage #{stage}") unless stage == :child
-          raise(ArgumentError, 'Missing block argument') unless block
+          raise(ArgumentError, "Missing block argument") unless block
 
           AT_FORK_CHILD_BLOCKS << block
 

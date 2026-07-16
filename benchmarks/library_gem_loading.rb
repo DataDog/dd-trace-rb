@@ -1,10 +1,10 @@
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require_relative 'benchmarks_helper'
-require 'open3'
+require_relative "benchmarks_helper"
+require "open3"
 
 class GemLoadingBenchmark
   def benchmark_gem_loading
@@ -14,7 +14,7 @@ class GemLoadingBenchmark
     # Now that this benchmark is in its own file, it does not need
     # to spawn a subprocess IF we would always execute this benchmark
     # file by itself.
-    output, status = Open3.capture2e('bundle', 'exec', 'ruby', stdin_data: <<-RUBY)
+    output, status = Open3.capture2e("bundle", "exec", "ruby", stdin_data: <<-RUBY)
       raise "Datadog is already loaded" if defined?(::Datadog::Core)
 
       lib = File.expand_path('../lib', '#{__dir__}')

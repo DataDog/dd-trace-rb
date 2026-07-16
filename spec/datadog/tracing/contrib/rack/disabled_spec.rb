@@ -1,10 +1,10 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'rack/test'
-require 'rack'
-require 'datadog'
-require 'datadog/tracing/contrib/rack/middlewares'
+require "datadog/tracing/contrib/support/spec_helper"
+require "rack/test"
+require "rack"
+require "datadog"
+require "datadog/tracing/contrib/rack/middlewares"
 
-RSpec.describe 'Rack integration tests' do
+RSpec.describe "Rack integration tests" do
   include Rack::Test::Methods
 
   before do
@@ -19,20 +19,20 @@ RSpec.describe 'Rack integration tests' do
     Datadog.configuration.reset!
   end
 
-  context 'for an application' do
+  context "for an application" do
     let(:app) do
       Rack::Builder.new do
         use Datadog::Tracing::Contrib::Rack::TraceMiddleware
-        map '/success/' do
-          run(proc { |_env| [200, {'Content-Type' => 'text/html'}, ['OK']] })
+        map "/success/" do
+          run(proc { |_env| [200, {"Content-Type" => "text/html"}, ["OK"]] })
         end
       end.to_app
     end
 
-    context 'with a basic route' do
-      describe 'GET request' do
+    context "with a basic route" do
+      describe "GET request" do
         it do
-          response = get 'success'
+          response = get "success"
 
           expect(response).to be_ok
 

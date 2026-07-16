@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'option_definition'
+require_relative "option_definition"
 
 module Datadog
   module Core

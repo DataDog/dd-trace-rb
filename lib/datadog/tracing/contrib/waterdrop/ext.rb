@@ -5,12 +5,12 @@ module Datadog
     module Contrib
       module WaterDrop
         module Ext
-          ENV_ENABLED = 'DD_TRACE_WATERDROP_ENABLED'
-          ENV_DISTRIBUTED_TRACING = 'DD_TRACE_WATERDROP_DISTRIBUTED_TRACING'
+          ENV_ENABLED = "DD_TRACE_WATERDROP_ENABLED"
+          ENV_DISTRIBUTED_TRACING = "DD_TRACE_WATERDROP_DISTRIBUTED_TRACING"
 
-          SPAN_PRODUCER = 'karafka.produce'
+          SPAN_PRODUCER = "karafka.produce"
 
-          TAG_PRODUCER = 'kafka.producer'
+          TAG_PRODUCER = "kafka.producer"
         end
       end
     end

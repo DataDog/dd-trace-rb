@@ -23,7 +23,7 @@ module Datadog
           if var && DATADOG_ENV.key?(var)
             value = DATADOG_ENV[var].to_s.strip
             value.downcase!
-            value == 'true' || value == '1'
+            value == "true" || value == "1"
           else
             default
           end

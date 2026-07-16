@@ -25,7 +25,7 @@ module Datadog
               rewound = true
             end
 
-            buffer = +''.b
+            buffer = +"".b
             max = limit + 1
 
             while buffer.bytesize <= limit

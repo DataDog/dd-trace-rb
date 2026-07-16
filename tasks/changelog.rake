@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-if Gem.loaded_specs.key?('pimpmychangelog')
-  require 'pimpmychangelog'
+if Gem.loaded_specs.key?("pimpmychangelog")
+  require "pimpmychangelog"
 else
   warn "'pimpmychangelog' gem not loaded: skipping tasks..." if Rake.verbose == true
   return

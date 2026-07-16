@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../core/rate_limiter'
+require_relative "../core/rate_limiter"
 
 module Datadog
   module AppSec

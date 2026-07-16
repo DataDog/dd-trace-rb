@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'route_text'
+require_relative "route_text"
 
 module Datadog
   module AppSec
@@ -24,18 +24,18 @@ module Datadog
       #
       # @api private
       class RoutePattern
-        GROUP_OPEN_CHAR = '('
-        GROUP_CLOSE_CHAR = ')'
+        GROUP_OPEN_CHAR = "("
+        GROUP_CLOSE_CHAR = ")"
 
-        OPTIONAL_GROUP_SUFFIX_CHAR = '?'
+        OPTIONAL_GROUP_SUFFIX_CHAR = "?"
         OPTIONAL_GROUP_SIGILS = [
           GROUP_OPEN_CHAR,
           GROUP_CLOSE_CHAR,
           OPTIONAL_GROUP_SUFFIX_CHAR
         ].join
 
-        NAMED_PARAM_PREFIX_CHAR = ':'
-        GLOB_PARAM_PREFIX_CHAR = '*'
+        NAMED_PARAM_PREFIX_CHAR = ":"
+        GLOB_PARAM_PREFIX_CHAR = "*"
 
         PATTERN_STRUCTURE_CHARS = [
           NAMED_PARAM_PREFIX_CHAR,
@@ -44,7 +44,7 @@ module Datadog
           GROUP_CLOSE_CHAR
         ].join
 
-        PARAM_NAME_CHARS = [*'a'..'z', *'A'..'Z', *'0'..'9', '_'].join
+        PARAM_NAME_CHARS = [*"a".."z", *"A".."Z", *"0".."9", "_"].join
 
         EXCLUDED_PARAM_NAME_TERMINATOR_CHARS = [
           PARAM_NAME_CHARS,
@@ -75,15 +75,15 @@ module Datadog
           @path_index = 0
           @pattern_index = 0
 
-          @path = path || ''
+          @path = path || ""
           @path_length = @path.length
           @pattern_length = @pattern.length
 
           nameless_counter = 0
           pattern = resolve_pattern_optionals(path)
 
-          result = pattern.split('/', -1).each_with_object(+'') do |segment, memo|
-            memo << '/' unless memo.empty? && segment.empty?
+          result = pattern.split("/", -1).each_with_object(+"") do |segment, memo|
+            memo << "/" unless memo.empty? && segment.empty?
             next if segment.empty?
 
             unless segment.match?(PARAM_START_SIGILS)
@@ -109,7 +109,7 @@ module Datadog
             memo << "{#{names.join('+')}}"
           end
 
-          result.start_with?('/') ? result : "/#{result}"
+          result.start_with?("/") ? result : "/#{result}"
         end
 
         private
@@ -148,7 +148,7 @@ module Datadog
             return @pattern
           end
 
-          resolved = +''
+          resolved = +""
           checkpoints = []
 
           while @pattern_index < @pattern_length
@@ -323,8 +323,8 @@ module Datadog
 
         def find_param_value_end_index(terminator_char:)
           terminator_indexes = []
-          slash_index = @path.index('/', @path_index)
-          dot_index = @path.index('.', @path_index)
+          slash_index = @path.index("/", @path_index)
+          dot_index = @path.index(".", @path_index)
 
           terminator_indexes << slash_index if slash_index
           terminator_indexes << dot_index if dot_index

@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../configuration/ext'
-require_relative '../trace_digest'
-require_relative '../trace_operation'
-require_relative '../span_link'
-require_relative '../../core/telemetry/logger'
-require_relative 'baggage'
+require_relative "../configuration/ext"
+require_relative "../trace_digest"
+require_relative "../trace_operation"
+require_relative "../span_link"
+require_relative "../../core/telemetry/logger"
+require_relative "baggage"
 
 module Datadog
   module Tracing
@@ -62,13 +62,13 @@ module Datadog
         # @return [nil] in case of unrecoverable errors, see `Datadog.logger` output for details.
         def inject!(digest, data)
           if digest.nil?
-            ::Datadog.logger.debug('Cannot inject distributed trace data: digest is nil.')
+            ::Datadog.logger.debug("Cannot inject distributed trace data: digest is nil.")
             return nil
           end
 
           digest = digest.to_digest if digest.respond_to?(:to_digest)
           if digest.trace_id.nil? && digest.baggage.nil?
-            ::Datadog.logger.debug('Cannot inject distributed trace data: digest.trace_id and digest.baggage are both nil.')
+            ::Datadog.logger.debug("Cannot inject distributed trace data: digest.trace_id and digest.baggage are both nil.")
             return nil
           end
 
@@ -166,11 +166,11 @@ module Datadog
           link = SpanLink.new(
             extracted_trace_digest,
             attributes: {
-              'reason' => 'propagation_behavior_extract',
-              'context_headers' => extracted_style_name,
+              "reason" => "propagation_behavior_extract",
+              "context_headers" => extracted_style_name,
             }
           )
-          baggage_tags = extracted_trace_digest.trace_distributed_tags&.select { |k, _| k.start_with?('baggage.') }
+          baggage_tags = extracted_trace_digest.trace_distributed_tags&.select { |k, _| k.start_with?("baggage.") }
           baggage_tags = nil if baggage_tags&.empty?
           TraceDigest.new(
             span_links: [link],
@@ -210,7 +210,7 @@ module Datadog
             tracecontext_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID]
           elsif dd_propagator && (dd_digest = dd_propagator.extract(headers))
             # if p value is not present in tracestate, use the parent id from the datadog headers
-            format('%016x', dd_digest.span_id)
+            format("%016x", dd_digest.span_id)
           end
         end
       end

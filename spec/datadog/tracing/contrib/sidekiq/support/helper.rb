@@ -1,17 +1,17 @@
-require 'datadog/core/utils'
-require 'datadog/tracing'
-require 'datadog/tracing/contrib/sidekiq/client_tracer'
-require 'datadog/tracing/contrib/sidekiq/server_tracer'
-require 'sidekiq/testing'
+require "datadog/core/utils"
+require "datadog/tracing"
+require "datadog/tracing/contrib/sidekiq/client_tracer"
+require "datadog/tracing/contrib/sidekiq/server_tracer"
+require "sidekiq/testing"
 
-RSpec.shared_context 'Sidekiq testing' do
+RSpec.shared_context "Sidekiq testing" do
   include SidekiqTestingConfiguration
 
   before { configure_sidekiq }
 
   let!(:empty_worker) do
     stub_const(
-      'EmptyWorker',
+      "EmptyWorker",
       Class.new do
         include Sidekiq::Worker
         def perform
@@ -27,8 +27,8 @@ module SidekiqTestingConfiguration
       c.tracing.instrument :sidekiq
     end
 
-    redis_host = ENV.fetch('TEST_REDIS_HOST', '127.0.0.1')
-    redis_port = ENV.fetch('TEST_REDIS_PORT', 6379)
+    redis_host = ENV.fetch("TEST_REDIS_HOST", "127.0.0.1")
+    redis_port = ENV.fetch("TEST_REDIS_PORT", 6379)
 
     redis_url = "redis://#{redis_host}:#{redis_port}"
 
@@ -48,7 +48,7 @@ module SidekiqServerExpectations
   include SidekiqTestingConfiguration
 
   def expect_in_sidekiq_server(wait_until: nil)
-    app_tempfile = Tempfile.new(['sidekiq-server-app', '.rb'])
+    app_tempfile = Tempfile.new(["sidekiq-server-app", ".rb"])
 
     expect_in_fork do
       # NB: This is needed because we want to patch within a forked process.
@@ -56,13 +56,13 @@ module SidekiqServerExpectations
         .instance_variable_get(:@patch_only_once)
         &.send(:reset_ran_once_state_for_tests)
 
-      require 'sidekiq/cli'
+      require "sidekiq/cli"
 
       configure_sidekiq
 
       t = Thread.new do
         cli = Sidekiq::CLI.instance
-        cli.parse(['--require', app_tempfile.path, '--concurrency', '1']) # boot the "app"
+        cli.parse(["--require", app_tempfile.path, "--concurrency", "1"]) # boot the "app"
 
         # Sidekiq waits between 5-15 seconds, and we cannot reduce it to less
         # than 5 seconds through configuration alone.
@@ -96,7 +96,7 @@ module SidekiqServerExpectations
         .instance_variable_get(:@patch_only_once)
         &.send(:reset_ran_once_state_for_tests)
 
-      require 'sidekiq/cli'
+      require "sidekiq/cli"
 
       configure_sidekiq
 
@@ -122,7 +122,7 @@ module SidekiqServerExpectations
 
       # `Sidekiq::Launcher#stop` sleeps before actually starting to shutting down Sidekiq.
       # Settings `Manager::PAUSE_TIME` to zero removes that wait.
-      stub_const('Sidekiq::Manager::PAUSE_TIME', 0)
+      stub_const("Sidekiq::Manager::PAUSE_TIME", 0)
 
       # `Sidekiq::Launcher#stop` ultimately class `Sidekiq::Manager#hard_shutdown` as a final
       # shutdown step. `#hard_shutdown` has a hard-coded minimum timeout of 3 seconds when checking
@@ -137,7 +137,7 @@ module SidekiqServerExpectations
       #
       # Setting this value to 3 seconds or higher makes the shutdown process almost immediate, as
       # `Util#wait_for` checks immediately if workers have shut down, which is normally the case at this point.
-      stub_const('Sidekiq::Util::PAUSE_TIME', 3)
+      stub_const("Sidekiq::Util::PAUSE_TIME", 3)
       launcher = Sidekiq::Launcher.new(options)
       launcher.stop
 

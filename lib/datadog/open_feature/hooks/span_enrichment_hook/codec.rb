@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'digest'
+require "digest"
 
 module Datadog
   module OpenFeature
@@ -20,7 +20,7 @@ module Datadog
           # the varint (e.g. serial 2312 -> bytes 88 12, but UTF-8 would emit
           # C2 88 12 = 296002 on decode). `(+'').b` gives a mutable binary string.
           def encode_varint(value)
-            bytes = (+'').b
+            bytes = (+"").b
             while value > LOW_7_BITS_MASK
               bytes << ((value & LOW_7_BITS_MASK) | CONTINUATION_BIT)
               value >>= 7
@@ -33,9 +33,9 @@ module Datadog
           # Empty set -> empty string (the caller omits the tag).
           def encode_delta_varint(serial_ids)
             sorted = serial_ids.to_a.sort
-            return '' if sorted.empty?
+            return "" if sorted.empty?
 
-            bytes = (+'').b
+            bytes = (+"").b
             prev = 0
             sorted.each do |id|
               bytes << encode_varint(id - prev)
@@ -43,7 +43,7 @@ module Datadog
             end
             # `pack('m0')` is RFC 4648 base64 with no newlines (== strict_encode64)
             # and needs no `base64` gem, which stopped being a default gem in Ruby 3.4.
-            [bytes].pack('m0')
+            [bytes].pack("m0")
           end
 
           # Lowercase hex SHA256 of the targeting key: it is hashed before

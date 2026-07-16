@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require_relative '../core/remote/dispatcher'
-require_relative 'configuration/dynamic'
+require_relative "../core/remote/dispatcher"
+require_relative "configuration/dynamic"
 
 module Datadog
   module Tracing
     # Remote configuration declaration
     module Remote
       class << self
-        PRODUCT = 'APM_TRACING'
+        PRODUCT = "APM_TRACING"
 
         CAPABILITIES = [
           1 << 12, # APM_TRACING_SAMPLE_RATE: Dynamic trace sampling rate configuration
@@ -29,7 +29,7 @@ module Datadog
         end
 
         def process_config(config, content, repository = nil)
-          lib_config = config['lib_config']
+          lib_config = config["lib_config"]
 
           env_vars = Datadog::Tracing::Configuration::Dynamic::OPTIONS.map do |name, env_var, option|
             value = lib_config[name]
@@ -42,7 +42,7 @@ module Datadog
             [env_var, value]
           end
 
-          if (di_enabled = lib_config['dynamic_instrumentation_enabled']) != nil # rubocop:disable Style/NonNilCheck
+          if (di_enabled = lib_config["dynamic_instrumentation_enabled"]) != nil # rubocop:disable Style/NonNilCheck
             # repository is forwarded so that an enable signal can reconcile DI
             # against probes delivered in an earlier poll while DI was stopped
             # (see Datadog::DI::Remote.handle_rc_enablement).

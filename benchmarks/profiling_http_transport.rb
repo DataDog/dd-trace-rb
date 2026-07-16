@@ -1,11 +1,11 @@
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require_relative 'benchmarks_helper'
-require 'securerandom'
-require 'socket'
+require_relative "benchmarks_helper"
+require "securerandom"
+require "socket"
 
 # This benchmark measures the performance of the http_transport class used for reporting profiling data
 #
@@ -37,7 +37,7 @@ class ProfilerHttpTransportBenchmark
         adapter: Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER,
         uds_path: nil,
         ssl: false,
-        hostname: '127.0.0.1',
+        hostname: "127.0.0.1",
         port: @port,
         timeout_seconds: nil,
       ),
@@ -55,7 +55,7 @@ class ProfilerHttpTransportBenchmark
       start: @flush_finish - 60,
       finish: @flush_finish,
       encoded_profile: @stack_recorder.serialize!,
-      code_provenance_data: '',
+      code_provenance_data: "",
       metrics: [],
       tags_as_array: [],
       internal_metadata: {no_signals_workaround_enabled: false},
@@ -65,7 +65,7 @@ class ProfilerHttpTransportBenchmark
     # This was added as a workaround to allow https://github.com/DataDog/dd-trace-rb/pull/5072 to be merged
     # Once that PR is merged, this can be cleaned up :)
     flush_params = Datadog::Profiling::Flush.instance_method(:initialize).parameters
-    params[:process_tags] = '' if flush_params.any? { |_, name| name == :process_tags }
+    params[:process_tags] = "" if flush_params.any? { |_, name| name == :process_tags }
 
     Datadog::Profiling::Flush.new(**params)
   end
@@ -74,7 +74,7 @@ class ProfilerHttpTransportBenchmark
     ready_queue = Queue.new
 
     Thread.new do
-      server = TCPServer.new(@port || raise('Missing port'))
+      server = TCPServer.new(@port || raise("Missing port"))
 
       ready_queue << true
 
@@ -111,7 +111,7 @@ class ProfilerHttpTransportBenchmark
   def run_once
     success = @transport.export(flush)
 
-    raise('Unexpected: Export failed') unless success
+    raise("Unexpected: Export failed") unless success
   end
 end
 
