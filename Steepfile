@@ -55,7 +55,6 @@ target :datadog do
   # Excluded due to https://github.com/soutaro/steep/issues/1232
   ignore 'lib/datadog/appsec/configuration.rb'
   ignore 'lib/datadog/appsec/contrib/devise/tracking_middleware.rb'
-  ignore 'lib/datadog/appsec/contrib/rack/gateway/request.rb'
   ignore 'lib/datadog/appsec/contrib/rack/request_middleware.rb'
   ignore 'lib/datadog/appsec/contrib/rails/patcher.rb'
   ignore 'lib/datadog/core/buffer/thread_safe.rb'
