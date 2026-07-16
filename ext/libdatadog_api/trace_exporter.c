@@ -166,6 +166,12 @@ static inline void check_shared_runtime_error(const char *context,
 typedef ddog_TraceExporterError *(*config_setter_fn)(
     ddog_TraceExporterConfig *, ddog_CharSlice);
 
+/*
+ * Set a single string-valued config field. `rb_val` MUST be a Ruby String
+ * (or nil, which is skipped): it is passed to char_slice_from_ruby_string,
+ * which enforces the String type. This helper does not handle numeric or
+ * other non-string config settings.
+ */
 static inline void set_config_field(
     ddog_TraceExporterConfig *config,
     config_setter_fn setter,
