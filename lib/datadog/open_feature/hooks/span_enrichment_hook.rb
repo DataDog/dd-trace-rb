@@ -98,8 +98,13 @@ module Datadog
         end
 
         # Provider-close cleanup: mark the hook closed and drop all accumulated
-        # state. A trace that already subscribed still holds its state via
-        # the `span_before_finish` closure, so the closed flag (checked in
+        # state. State is dropped, not flushed, on purpose: each state only
+        # becomes a set of tags when ITS OWN root span finishes, and at
+        # provider-close time those roots are still open — there is no valid
+        # target to flush to, and writing partial tags onto in-flight spans
+        # would emit incomplete data (and double-write once the root finished).
+        # A trace that already subscribed still holds its state via the
+        # `span_before_finish` closure, so the closed flag (checked in
         # `write_tags_on_root`) is what actually prevents a stale write after
         # shutdown. Per-trace subscriptions die with their trace operations, so
         # there is nothing else to unsubscribe.

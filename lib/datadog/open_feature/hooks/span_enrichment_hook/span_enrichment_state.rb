@@ -50,14 +50,22 @@ module Datadog
             end
           end
 
+          # `value` is the flag's resolved runtime-default — any OpenFeature
+          # value type (String, boolean, number, or a structured Hash/Array).
+          # Non-strings are JSON-encoded (not `to_s`) so a structured default is
+          # captured faithfully rather than as Ruby's `inspect` form (e.g.
+          # `{"a"=>1}`, which is not valid JSON). The result is a bounded
+          # diagnostic PREVIEW, not a round-trippable value: it is truncated to
+          # the frozen 64-char cap, so a long JSON string is intentionally left
+          # as a non-parseable prefix. The backend treats this field as a
+          # display string, so a clipped value is acceptable.
           def add_default(flag_key, value)
             return if @defaults.key?(flag_key) # first-wins
             return if @defaults.size >= MAX_DEFAULTS
 
             value_str = value.is_a?(String) ? value : JSON.generate(value)
-            # Truncate to the frozen 64-char cap. Slicing is by codepoint, so a
-            # multibyte UTF-8 character is never split; `|| value_str` keeps the
-            # value non-nil for the zero-start slice.
+            # Slicing is by codepoint, so a multibyte UTF-8 character is never
+            # split; `|| value_str` keeps the value non-nil for the zero-start slice.
             @defaults[flag_key] = value_str[0, MAX_DEFAULT_VALUE_LENGTH] || value_str
           end
 

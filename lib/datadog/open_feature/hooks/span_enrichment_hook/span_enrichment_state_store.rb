@@ -6,8 +6,8 @@ module Datadog
   module OpenFeature
     module Hooks
       class SpanEnrichmentHook
-        # Holds per-root-span state, keyed WEAKLY by the trace
-        # operation (object identity). Using `ObjectSpace::WeakMap` means an
+        # Maps each trace operation to its `SpanEnrichmentState`, keyed WEAKLY by
+        # object identity. Using `ObjectSpace::WeakMap` means an
         # abandoned trace (root span never finishes) cannot pin its state:
         # once the trace operation is unreachable the entry is collected. The
         # state (the WeakMap *value*, which `WeakMap` would otherwise also

@@ -6,8 +6,7 @@ module Datadog
   module OpenFeature
     module Hooks
       class SpanEnrichmentHook
-        # Pure encoding/crypto helpers implementing the fixed cross-SDK wire
-        # format; uses only Ruby stdlib (no new dependencies).
+        # Encoding/crypto helpers implementing the fixed cross-SDK wire format.
         module Codec
           module_function
 
@@ -15,10 +14,11 @@ module Datadog
           LOW_7_BITS_MASK = 0x7F
           CONTINUATION_BIT = 0x80
 
-          # The buffer MUST be binary (ASCII-8BIT): `String#<<` with an Integer on a
-          # UTF-8 string appends a Unicode *codepoint*, so any byte >= 0x80 would be
-          # re-encoded as a 2-byte UTF-8 sequence and corrupt the varint (e.g. serial
-          # 2312 -> bytes 88 12, but UTF-8 would emit C2 88 12 = 296002 on decode).
+          # The `bytes` buffer built below MUST be binary (ASCII-8BIT): `String#<<`
+          # with an Integer on a UTF-8 string appends a Unicode *codepoint*, so any
+          # byte >= 0x80 would be re-encoded as a 2-byte UTF-8 sequence and corrupt
+          # the varint (e.g. serial 2312 -> bytes 88 12, but UTF-8 would emit
+          # C2 88 12 = 296002 on decode). `(+'').b` gives a mutable binary string.
           def encode_varint(value)
             bytes = (+'').b
             while value > LOW_7_BITS_MASK
