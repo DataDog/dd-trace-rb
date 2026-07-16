@@ -36,7 +36,7 @@ module Datadog
 
           attr_reader logger: Datadog::Core::Logger
 
-          def initialize: (agent_settings: Datadog::Core::Configuration::AgentSettings, ?logger: Datadog::Core::Logger) -> void
+          def initialize: (agent_settings: Datadog::Core::Configuration::AgentSettings, logger: Datadog::Core::Logger) -> void
           def self.finalizer_for: (Hash[Symbol, Proc] fork_hooks) -> Proc
           def close: () -> void
           def send_traces: (Array[Datadog::Tracing::TraceSegment] traces) -> Array[Response | InternalErrorResponse]

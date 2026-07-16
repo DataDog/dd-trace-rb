@@ -50,7 +50,7 @@ module Datadog
           # @param agent_settings [Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings]
           #   Agent connection settings (provides +#url+).
           # @param logger [Logger]
-          def initialize(agent_settings:, logger: Datadog.logger)
+          def initialize(agent_settings:, logger:)
             unless Native.supported?
               raise "Native transport is not supported: #{UNSUPPORTED_REASON}"
             end

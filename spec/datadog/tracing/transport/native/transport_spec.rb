@@ -142,7 +142,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       stub_const("#{native_module}::UNSUPPORTED_REASON", 'test failure')
 
       expect {
-        transport_class.new(agent_settings: agent_settings)
+        transport_class.new(agent_settings: agent_settings, logger: logger)
       }.to raise_error(RuntimeError, /not supported/)
     end
   end
