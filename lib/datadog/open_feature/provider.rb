@@ -174,7 +174,7 @@ module Datadog
       def build_flag_metadata(result, eval_time_ms)
         metadata = result.flag_metadata&.dup || {}
         allocation_key = result.allocation_key
-        metadata['__dd_allocation_key'] = allocation_key if allocation_key && !allocation_key.empty?
+        metadata[Ext::METADATA_ALLOCATION_KEY] = allocation_key if allocation_key && !allocation_key.empty?
 
         # Eval-time stamped at provider entry; the EVP hook reads 'dd.eval.timestamp_ms' for
         # accurate first/last_evaluation bounds (it falls back to hook-fire time when absent).
