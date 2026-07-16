@@ -349,6 +349,54 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         expect(transport.stats.consecutive_errors).to eq(1)
       end
     end
+
+    context 'with span fields the native exporter does not yet support' do
+      def trace_with(&block)
+        trace = make_trace_segment('web.request')
+        block.call(trace.spans.first)
+        trace
+      end
+
+      it 'warns when a span carries span events' do
+        trace = trace_with { |span| span.events << double('span event') }
+
+        expect(logger).to receive(:warn).once
+
+        expect(transport.send_traces([trace]).first.ok?).to be true
+      end
+
+      it 'warns when a span carries span links' do
+        trace = trace_with { |span| span.links << double('span link') }
+
+        expect(logger).to receive(:warn).once
+
+        expect(transport.send_traces([trace]).first.ok?).to be true
+      end
+
+      it 'warns when a span carries meta_struct' do
+        trace = trace_with { |span| span.metastruct['_dd.stack'] = {} }
+
+        expect(logger).to receive(:warn).once
+
+        expect(transport.send_traces([trace]).first.ok?).to be true
+      end
+
+      it 'does not warn for a span with only scalar fields, meta, and metrics' do
+        trace = make_trace_segment('web.request')
+
+        expect(logger).to_not receive(:warn)
+
+        transport.send_traces([trace])
+      end
+
+      it 'warns only once across multiple sends' do
+        expect(logger).to receive(:warn).once
+
+        2.times do
+          transport.send_traces([trace_with { |span| span.events << double('span event') }])
+        end
+      end
+    end
   end
 
   describe '#stats' do

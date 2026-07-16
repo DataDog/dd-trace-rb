@@ -56,6 +56,10 @@ module Datadog
 
             @logger = logger
 
+            # Guards the one-shot warning about span fields the native exporter
+            # does not yet convert (see #warn_unsupported_fields!).
+            @unsupported_fields_warned = false
+
             # Serializes native sends and is held across a fork. See the
             # fork-safety note below.
             @send_mutex = Mutex.new
@@ -235,6 +239,11 @@ module Datadog
             # Each trace segment becomes one inner array (one trace chunk).
             chunks = traces.map(&:spans)
 
+            # The native exporter only serializes scalar fields plus meta and
+            # metrics; span events, span links, and meta_struct are not yet
+            # converted and would be dropped. Warn (once) so the loss is visible.
+            warn_unsupported_fields!(chunks)
+
             # Serialize the native send and hold the mutex across it so a
             # concurrent fork's :before hook blocks until this send drains
             # (and `_native_before_fork` cannot tear down the runtime mid-send).
@@ -253,6 +262,32 @@ module Datadog
           end
 
           private
+
+          # Warn, at most once per transport, when a batch contains span fields
+          # the native exporter does not yet convert (span events, span links,
+          # meta_struct). These are silently dropped by the native path; full
+          # support is tracked separately. The check is cheap: the fields are
+          # already-materialized collections on each Span.
+          def warn_unsupported_fields!(chunks)
+            return if @unsupported_fields_warned
+
+            unsupported = []
+            chunks.each do |spans|
+              spans.each do |span|
+                unsupported << 'span events' if span.events.any?
+                unsupported << 'span links' if span.links.any?
+                unsupported << 'meta_struct' unless span.metastruct.to_h.empty?
+              end
+            end
+            return if unsupported.empty?
+
+            @unsupported_fields_warned = true
+            fields = unsupported.uniq.join(', ')
+            logger.warn do
+              "Native transport does not yet support: #{fields}. This data will not be sent to Datadog. " \
+                'Unset DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED to use the default transport if you rely on these.'
+            end
+          end
 
           def tracer_version_string
             defined?(Datadog::VERSION::STRING) ? Datadog::VERSION::STRING : 'unknown'

@@ -32,6 +32,7 @@ module Datadog
           @exporter: TraceExporter?
           @send_mutex: Thread::Mutex
           @fork_hooks: Hash[Symbol, Proc]?
+          @unsupported_fields_warned: bool
 
           attr_reader logger: Datadog::Core::Logger
 
@@ -42,6 +43,7 @@ module Datadog
 
           private
 
+          def warn_unsupported_fields!: (Array[Array[Datadog::Tracing::Span]] chunks) -> void
           def tracer_version_string: () -> String
         end
 
