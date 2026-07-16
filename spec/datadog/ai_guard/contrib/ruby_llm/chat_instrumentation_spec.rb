@@ -27,7 +27,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
         {
           status: 200,
           body: raw_response.to_json,
-          headers: {"Content-Type" => "application/json"}
+          headers: {"Content-Type" => "application/json"},
         }
       end
   end
@@ -51,9 +51,9 @@ RSpec.describe "RubyLLM chat instrumentation" do
               "reason" => "No rule matching",
               "tags" => [],
               "tag_probs" => {},
-              "is_blocking_enabled" => false
-            }
-          }
+              "is_blocking_enabled" => false,
+            },
+          },
         }
       end
 
@@ -83,9 +83,9 @@ RSpec.describe "RubyLLM chat instrumentation" do
               "reason" => "Rule matching: instruction-override",
               "tags" => ["instruction-override"],
               "tag_probs" => {"instruction-override" => 0.95},
-              "is_blocking_enabled" => false
-            }
-          }
+              "is_blocking_enabled" => false,
+            },
+          },
         }
       end
 
@@ -115,9 +115,9 @@ RSpec.describe "RubyLLM chat instrumentation" do
               "reason" => "Rule matching: instruction-override",
               "tags" => ["instruction-override"],
               "tag_probs" => {"instruction-override" => 0.95},
-              "is_blocking_enabled" => true
-            }
-          }
+              "is_blocking_enabled" => true,
+            },
+          },
         }
       end
 
@@ -147,9 +147,9 @@ RSpec.describe "RubyLLM chat instrumentation" do
             "reason" => "No rule matching",
             "tags" => [],
             "tag_probs" => {},
-            "is_blocking_enabled" => false
-          }
-        }
+            "is_blocking_enabled" => false,
+          },
+        },
       }
     end
 
@@ -278,7 +278,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
           tool_calls: {
             "tool_call_1" => RubyLLM::ToolCall.new(
               id: "tool_call_1", name: "shell", arguments: {"command" => "ls /"},
-            )
+            ),
           },
         ),
       )

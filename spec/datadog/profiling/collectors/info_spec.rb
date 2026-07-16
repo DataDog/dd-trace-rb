@@ -79,11 +79,11 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
                 f: [1, 2, 3],
                 g: {"a" => "a", "b" => "b"},
                 h: :a_symbol,
-                i: a_string_including("#<ComplexObject:")
+                i: a_string_including("#<ComplexObject:"),
               },
               proc_opt: a_string_including("#<Proc:"),
-              complex_obj_opt: a_string_including("#<ComplexObject:")
-            }
+              complex_obj_opt: a_string_including("#<ComplexObject:"),
+            },
           },
         )
       end
@@ -118,7 +118,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
 
         it "reports the gc tuning env vars" do
           expect(info.fetch(:runtime).fetch(:gc_tuning)).to eq({
-            RUBY_GC_HEAP_FREE_SLOTS: "12345"
+            RUBY_GC_HEAP_FREE_SLOTS: "12345",
           })
         end
       end

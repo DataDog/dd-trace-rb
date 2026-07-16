@@ -15,7 +15,7 @@ module Datadog
           DEFAULT_OPTIONS = {
             exclude: EXCLUDE_KEYS,
             show: SHOW_KEYS,
-            placeholder: PLACEHOLDER
+            placeholder: PLACEHOLDER,
           }.freeze
 
           module_function

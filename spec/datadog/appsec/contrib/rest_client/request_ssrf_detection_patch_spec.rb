@@ -42,7 +42,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
           "Content-Type" => "text/plain",
           "Set-Cookie" => ["a=1", "b=2"],
           "Via" => ["1.1 foo.io", "2.2 bar.io"],
-          "Age" => "1"
+          "Age" => "1",
         },
       )
 

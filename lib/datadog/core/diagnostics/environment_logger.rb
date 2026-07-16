@@ -75,7 +75,7 @@ module Datadog
               tags: tags,
               runtime_metrics_enabled: runtime_metrics_enabled,
               vm: vm,
-              health_metrics_enabled: health_metrics_enabled
+              health_metrics_enabled: health_metrics_enabled,
             }
           end
 

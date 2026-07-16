@@ -283,14 +283,14 @@ RSpec.describe Datadog::Core::Telemetry::Component do
           resource_name: "GET /events",
           operation_name: "http.request",
           method: "GET",
-          path: "/events"
+          path: "/events",
         },
         {
           type: "REST",
           resource_name: "GET /events/:id",
           operation_name: "http.request",
           method: "GET",
-          path: "/event/:id"
+          path: "/event/:id",
         },
       ]
     end

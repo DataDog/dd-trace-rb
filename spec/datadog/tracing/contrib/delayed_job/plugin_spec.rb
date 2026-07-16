@@ -29,7 +29,7 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
 
         def job_data
           {
-            "job_class" => "UnderlyingJobClass"
+            "job_class" => "UnderlyingJobClass",
           }
         end
       end,

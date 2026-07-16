@@ -548,7 +548,7 @@ RSpec.shared_examples "Datadog distributed format" do
         {
           prepare_key["x-datadog-trace-id"] => 0xffffffffffffffff.to_s,
           prepare_key["x-datadog-parent-id"] => 0xbbbbbbbbbbbbbbbb.to_s,
-          prepare_key["x-datadog-tags"] => "_dd.p.tid=0aaaaaaaaaaaaaaa"
+          prepare_key["x-datadog-tags"] => "_dd.p.tid=0aaaaaaaaaaaaaaa",
         }
       end
 
@@ -568,7 +568,7 @@ RSpec.shared_examples "Datadog distributed format" do
             {
               prepare_key["x-datadog-trace-id"] => 0xffffffffffffffff.to_s,
               prepare_key["x-datadog-parent-id"] => 0xbbbbbbbbbbbbbbbb.to_s,
-              prepare_key["x-datadog-tags"] => "_dd.p.tid= #{invalid_trace_id}"
+              prepare_key["x-datadog-tags"] => "_dd.p.tid= #{invalid_trace_id}",
             }
           end
 

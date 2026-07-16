@@ -31,7 +31,7 @@ module HealthMetricHelpers
     queue_dropped: {type: :count, name: Datadog::Tracing::Diagnostics::Ext::Health::Metrics::METRIC_QUEUE_DROPPED},
     transport_trace_too_large: {
       type: :count,
-      name: Datadog::Tracing::Diagnostics::Ext::Health::Metrics::METRIC_TRANSPORT_TRACE_TOO_LARGE
+      name: Datadog::Tracing::Diagnostics::Ext::Health::Metrics::METRIC_TRANSPORT_TRACE_TOO_LARGE,
     },
     transport_chunked: {
       type: :count, name: Datadog::Tracing::Diagnostics::Ext::Health::Metrics::METRIC_TRANSPORT_CHUNKED
@@ -43,7 +43,7 @@ module HealthMetricHelpers
     queue_spans: {type: :gauge, name: Datadog::Tracing::Diagnostics::Ext::Health::Metrics::METRIC_QUEUE_SPANS},
     sampling_service_cache_length: {
       type: :gauge, name: Datadog::Tracing::Diagnostics::Ext::Health::Metrics::METRIC_SAMPLING_SERVICE_CACHE_LENGTH
-    }
+    },
   }.freeze
 
   shared_context "health metrics" do

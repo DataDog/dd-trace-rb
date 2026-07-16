@@ -27,7 +27,7 @@ module Datadog
 
                   if context
                     persistent_data = {
-                      "graphql.server.all_resolvers" => gateway_multiplex.arguments
+                      "graphql.server.all_resolvers" => gateway_multiplex.arguments,
                     }
 
                     result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)

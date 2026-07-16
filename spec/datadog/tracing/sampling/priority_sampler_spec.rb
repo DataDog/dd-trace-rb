@@ -295,7 +295,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
       -1 => false,
       0 => false,
       1 => true,
-      2 => true
+      2 => true,
     }.each do |priority_sampling, sampled|
       context "with priority_sampling #{priority_sampling}" do
         let(:priority_sampling) { priority_sampling }

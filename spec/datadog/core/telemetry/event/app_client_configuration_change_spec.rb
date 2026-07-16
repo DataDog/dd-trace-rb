@@ -20,7 +20,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
           name: name,
           value: value,
           origin: origin,
-          seq_id: 6
+          seq_id: 6,
         }],
       )
     end

@@ -31,7 +31,7 @@ module Datadog
           @waf_builder = WAF::HandleBuilder.new(
             obfuscator: {
               key_regex: appsec_settings.obfuscator_key_regex,
-              value_regex: appsec_settings.obfuscator_value_regex
+              value_regex: appsec_settings.obfuscator_value_regex,
             },
           )
 
@@ -130,7 +130,7 @@ module Datadog
             tags: {
               waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
               event_rules_version: ruleset_version.to_s,
-              success: success.to_s
+              success: success.to_s,
             },
           )
         end
@@ -156,7 +156,7 @@ module Datadog
           common_tags = {
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
             event_rules_version: diagnostics["ruleset_version"].to_s,
-            action: action
+            action: action,
           }
 
           if diagnostics["error"]

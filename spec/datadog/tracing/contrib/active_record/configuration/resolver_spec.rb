@@ -35,7 +35,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
           host: "host",
           port: 123,
           username: nil,
-          unrelated_setting: "foo"
+          unrelated_setting: "foo",
         }
       end
 
@@ -47,7 +47,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
             {
               adapter: "adapter",
               host: "host",
-              port: 123
+              port: 123,
             } => config,
           )
       end
@@ -63,7 +63,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
           {
             adapter: "adapter",
             host: "host",
-            port: 123
+            port: 123,
           }
         end
 
@@ -92,7 +92,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
         {
           adapter: "adapter",
           host: "host",
-          port: 123
+          port: 123,
         }
       end
 
@@ -135,7 +135,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
         host: "host",
         port: 123,
         database: "database",
-        username: "username"
+        username: "username",
       }
     end
     let(:match_all) { {} }
@@ -166,7 +166,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
           host: "host",
           port: 123,
           database: "database",
-          username: "username"
+          username: "username",
         }
       end
 
@@ -183,7 +183,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
       context "that matches" do
         let(:matcher) do
           {
-            adapter: "adapter"
+            adapter: "adapter",
           }
         end
 
@@ -193,7 +193,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
       context "that does not match" do
         let(:matcher) do
           {
-            adapter: "not matching"
+            adapter: "not matching",
           }
         end
 
@@ -203,13 +203,13 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
       context "with a makara connection" do
         let(:actual) do
           {
-            name: "master/1"
+            name: "master/1",
           }
         end
 
         let(:matcher) do
           {
-            makara_role: "master"
+            makara_role: "master",
           }
         end
 
@@ -218,13 +218,13 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
         context "with a name not respecting the makara role pattern" do
           let(:actual) do
             {
-              name: "a14%_ #9(]"
+              name: "a14%_ #9(]",
             }
           end
 
           let(:matcher) do
             {
-              makara_role: "a14%_ #9(]"
+              makara_role: "a14%_ #9(]",
             }
           end
 
@@ -240,7 +240,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
           host: "host",
           port: 123,
           database: "database",
-          username: "username"
+          username: "username",
         }
       end
       let(:connection) do
@@ -266,13 +266,13 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
       context "that do not match" do
         let(:first_matcher) do
           {
-            port: 0
+            port: 0,
           }
         end
 
         let(:second_matcher) do
           {
-            adapter: "not matching"
+            adapter: "not matching",
           }
         end
 
@@ -282,13 +282,13 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
       context "when the first one matches" do
         let(:first_matcher) do
           {
-            database: "database"
+            database: "database",
           }
         end
 
         let(:second_matcher) do
           {
-            database: "not correct"
+            database: "not correct",
           }
         end
 
@@ -300,13 +300,13 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
       context "when the second one matches" do
         let(:first_matcher) do
           {
-            database: "not right"
+            database: "not right",
           }
         end
 
         let(:second_matcher) do
           {
-            database: "database"
+            database: "database",
           }
         end
 
@@ -319,13 +319,13 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
         context "and are the same matcher" do
           let(:first_matcher) do
             {
-              host: "host"
+              host: "host",
             }
           end
 
           let(:second_matcher) do
             {
-              host: "host"
+              host: "host",
             }
           end
 
@@ -337,7 +337,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
         context "and are not same matcher" do
           let(:first_matcher) do
             {
-              host: "host"
+              host: "host",
             }
           end
 

@@ -32,15 +32,15 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                   {"address" => "server.request.body"},
                   {"address" => "server.request.path_params"},
                   {"address" => "grpc.server.request.message"},
-                ]
+                ],
               },
-              "operator" => "is_sqli"
+              "operator" => "is_sqli",
             },
           ],
           "transformers" => ["removeNulls"],
-          "on_match" => ["block"]
+          "on_match" => ["block"],
         },
-      ]
+      ],
     }
   end
 

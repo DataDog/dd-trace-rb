@@ -146,7 +146,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
                 "span_id" => 2,
                 "trace_id" => 0x0123456789abcdef,
                 "trace_id_high" => 10,
-                "flags" => 0
+                "flags" => 0,
               },
               {"span_id" => 0, "trace_id" => 0, "flags" => 0}],
           ),

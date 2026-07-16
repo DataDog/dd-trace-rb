@@ -72,15 +72,15 @@ unless VALIDATE_BENCHMARK_MODE
     {
       # Invert since higher must be better
       item: "profiling - 1 / cpu sampling overhead",
-      samples: [1 / cpu_sampling_overhead]
+      samples: [1 / cpu_sampling_overhead],
     },
     {
       item: "profiling - samples",
-      samples: [samples]
+      samples: [samples],
     },
     {
       item: "profiling - skipped samples",
-      samples: [inactive_thread_samples_skipped]
+      samples: [inactive_thread_samples_skipped],
     },
   ]
   File.write(file, JSON.dump(json))

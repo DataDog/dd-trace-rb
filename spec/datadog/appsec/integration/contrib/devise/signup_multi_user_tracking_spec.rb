@@ -188,7 +188,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
   context "when user successfully signed up and immediately login" do
     before do
       form_data = {
-        user: {username: "JohnDoe", email: "john.doe@example.com", password: "123456", password_confirmation: "123456"}
+        user: {username: "JohnDoe", email: "john.doe@example.com", password: "123456", password_confirmation: "123456"},
       }
 
       post("/users", form_data)
@@ -214,7 +214,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
   context "when admin successfully signed up and immediately login" do
     before do
       form_data = {
-        admin: {username: "JohnDoe", email: "john.doe@example.com", password: "123456", password_confirmation: "123456"}
+        admin: {username: "JohnDoe", email: "john.doe@example.com", password: "123456", password_confirmation: "123456"},
       }
 
       post("/admins", form_data)
@@ -240,7 +240,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
   context "when user successfully signed up and must confirm email before loggin in" do
     before do
       form_data = {
-        user: {username: "JohnDoe", email: "john.doe@example.com", password: "123456", password_confirmation: "123456"}
+        user: {username: "JohnDoe", email: "john.doe@example.com", password: "123456", password_confirmation: "123456"},
       }
 
       post("/users", form_data)
@@ -297,7 +297,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
   context "when user successfully signed up and customer uses SDK to set user" do
     before do
       form_data = {
-        user: {username: "JohnDoe", email: "john.doe@example.com", password: "123456", password_confirmation: "123456"}
+        user: {username: "JohnDoe", email: "john.doe@example.com", password: "123456", password_confirmation: "123456"},
       }
 
       post("/users", form_data)

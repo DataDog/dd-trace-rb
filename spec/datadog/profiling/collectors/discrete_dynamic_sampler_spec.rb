@@ -331,7 +331,7 @@ RSpec.describe "Datadog::Profiling::Collectors::DiscreteDynamicSampler" do
           events_since_last_readjustment: be_between(0, 8),
           samples_since_last_readjustment: be_between(0, 2),
           max_sampling_time_ns: to_ns(1) * 0.02,
-          sampling_time_clamps: 0
+          sampling_time_clamps: 0,
         },
       )
     end

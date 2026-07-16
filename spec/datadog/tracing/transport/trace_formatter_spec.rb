@@ -61,7 +61,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         "foo" => "bar",
         "baz" => 42,
         "_dd.p.dm" => "-1",
-        "_dd.p.tid" => "aaaaaaaaaaaaaaaa"
+        "_dd.p.tid" => "aaaaaaaaaaaaaaaa",
       }
     end
   end
@@ -244,7 +244,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
           expect(first_span.meta).to include(
             {
               "_dd.git.repository_url" => git_repository_url,
-              "_dd.git.commit.sha" => git_commit_sha
+              "_dd.git.commit.sha" => git_commit_sha,
             },
           )
         end

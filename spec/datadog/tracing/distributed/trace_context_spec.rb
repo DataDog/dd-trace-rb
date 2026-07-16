@@ -410,7 +410,7 @@ RSpec.shared_examples "Trace Context distributed format" do
       let(:data) do
         {
           prepare_key["traceparent"] => "00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00",
-          prepare_key["tracestate"] => "dd=t.tid:cccccccccccccccc"
+          prepare_key["tracestate"] => "dd=t.tid:cccccccccccccccc",
         }
       end
 
@@ -435,7 +435,7 @@ RSpec.shared_examples "Trace Context distributed format" do
       let(:data) do
         {
           prepare_key["traceparent"] => "00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00",
-          prepare_key["tracestate"] => ""
+          prepare_key["tracestate"] => "",
         }
       end
 

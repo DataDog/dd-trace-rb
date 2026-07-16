@@ -1018,7 +1018,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           "exception.message" => "test error",
           "exception.stacktrace" => "this is a backtrace: test error (StandardError)\n",
           "custom_attr1" => "value",
-          "custom_attr2" => "value"
+          "custom_attr2" => "value",
         },
       )
     end
@@ -1036,7 +1036,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           "custom_attr5" => 2 << 65,
           "custom_attr6" => -2 << 65,
           "custom_attr7" => Float::NAN,
-          "custom_attr8" => Float::INFINITY
+          "custom_attr8" => Float::INFINITY,
         },
       )
 
@@ -1047,7 +1047,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           "exception.type" => "StandardError",
           "exception.message" => "test error",
           "exception.stacktrace" => "this is a backtrace: test error (StandardError)\n",
-          "custom_attr" => "value"
+          "custom_attr" => "value",
         },
       )
       expect(Datadog.logger).to have_received(:warn).with(

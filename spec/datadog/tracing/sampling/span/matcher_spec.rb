@@ -50,7 +50,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Matcher do
         {pattern: "web*site?one", input: "web--siteone", expected: false},
         {pattern: "web?site*one", input: "web-site  one", expected: true},
         {pattern: "web?site*one", input: "web-sitene", expected: false},
-      ]
+      ],
     }.each do |scenario, fixtures|
       context "for '#{scenario}'" do
         fixtures.each do |fixture|

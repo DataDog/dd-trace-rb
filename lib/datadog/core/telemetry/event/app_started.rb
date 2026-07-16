@@ -65,7 +65,7 @@ module Datadog
                 # actually enabled by env var or by implicit enablement via
                 # remote config.
                 enabled: components.dynamic_instrumentation&.started? || false,
-              }
+              },
             }
 
             if (unsupported_reason = Datadog::Profiling.unsupported_reason)

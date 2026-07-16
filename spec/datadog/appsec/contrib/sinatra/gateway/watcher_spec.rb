@@ -43,7 +43,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
             :method => "POST",
             :input => "name=john",
             "CONTENT_TYPE" => "application/x-www-form-urlencoded",
-            Datadog::AppSec::Ext::CONTEXT_KEY => context
+            Datadog::AppSec::Ext::CONTEXT_KEY => context,
           },
         ),
       )

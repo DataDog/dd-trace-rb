@@ -83,7 +83,7 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
             {
               local: {id: "12345", config: {"DD_LOGS_INJECTION" => "false"}},
               fleet: {id: "56789", config: {"DD_APPSEC_ENABLED" => "true"}},
-              logs: be_a(String)
+              logs: be_a(String),
             },
           )
         end
@@ -116,7 +116,7 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
             {
               local: {config: {"DD_LOGS_INJECTION" => "false"}},
               fleet: {config: {"DD_APPSEC_ENABLED" => "true"}},
-              logs: be_a(String)
+              logs: be_a(String),
             },
           )
         end

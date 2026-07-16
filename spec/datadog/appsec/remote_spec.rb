@@ -82,7 +82,7 @@ RSpec.describe Datadog::AppSec::Remote do
           {
             version: "2.2",
             metadata: {
-              rules_version: "1.5.2"
+              rules_version: "1.5.2",
             },
             rules: [
               {
@@ -90,27 +90,27 @@ RSpec.describe Datadog::AppSec::Remote do
                 name: "Block IP Addresses",
                 tags: {
                   type: "block_ip",
-                  category: "security_response"
+                  category: "security_response",
                 },
                 conditions: [
                   {
                     parameters: {
                       inputs: [
                         {
-                          address: "http.client_ip"
+                          address: "http.client_ip",
                         },
                       ],
-                      data: "blocked_ips"
+                      data: "blocked_ips",
                     },
-                    operator: "ip_match"
+                    operator: "ip_match",
                   },
                 ],
                 transformers: [],
                 on_match: [
                   "block",
-                ]
+                ],
               },
-            ]
+            ],
           }.to_json
         end
 
@@ -123,7 +123,7 @@ RSpec.describe Datadog::AppSec::Remote do
                 "v" => 1,
               },
               "hashes" => {"sha256" => Digest::SHA256.hexdigest(rules.to_json)},
-              "length" => rules.to_s.length
+              "length" => rules.to_s.length,
             },
           )
         end
@@ -183,7 +183,7 @@ RSpec.describe Datadog::AppSec::Remote do
             {
               version: "2.2",
               metadata: {
-                rules_version: "2.0.0"
+                rules_version: "2.0.0",
               },
               rules: [
                 {
@@ -192,7 +192,7 @@ RSpec.describe Datadog::AppSec::Remote do
                   tags: {
                     type: "sql_injection",
                     category: "exploit",
-                    module: "rasp"
+                    module: "rasp",
                   },
                   conditions: [
                     {
@@ -200,11 +200,11 @@ RSpec.describe Datadog::AppSec::Remote do
                       parameters: {
                         resource: [{address: "server.db.statement"}],
                         params: [{address: "server.request.query"}],
-                        db_type: [{address: "server.db.system"}]
-                      }
+                        db_type: [{address: "server.db.system"}],
+                      },
                     },
                   ],
-                  on_match: ["block-sqli"]
+                  on_match: ["block-sqli"],
                 },
               ],
               actions: [
@@ -214,10 +214,10 @@ RSpec.describe Datadog::AppSec::Remote do
                   parameters: {
                     status_code: "418",
                     grpc_status_code: "42",
-                    type: "auto"
-                  }
+                    type: "auto",
+                  },
                 },
-              ]
+              ],
             }.to_json
           end
 
@@ -246,7 +246,7 @@ RSpec.describe Datadog::AppSec::Remote do
                   "v" => 1,
                 },
                 "hashes" => {"sha256" => Digest::SHA256.hexdigest(rules_v2)},
-                "length" => rules_v2.length
+                "length" => rules_v2.length,
               },
             )
           end

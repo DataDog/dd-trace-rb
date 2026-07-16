@@ -311,7 +311,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           ClimateControl.modify(
             {
               Datadog::Tracing::Configuration::Ext::ENV_ENABLED => dd_enable,
-              "OTEL_TRACES_EXPORTER" => otel_exporter
+              "OTEL_TRACES_EXPORTER" => otel_exporter,
             },
           ) do
             example.run
@@ -1106,7 +1106,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       {
         "true" => true,
         "1" => true,
-        "false" => false
+        "false" => false,
       }.each do |env, value|
         context "when ENV['DD_TRACE_CLIENT_IP_ENABLED'] is '#{env}'" do
           around do |example|

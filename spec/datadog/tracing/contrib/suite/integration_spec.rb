@@ -65,7 +65,7 @@ RSpec.describe "contrib integration testing", :integration do
         "signed" => {
           "custom" => {},
           "targets" => targets_targets,
-        }
+        },
       }
 
       dynamic_configurations.each do |configuration|

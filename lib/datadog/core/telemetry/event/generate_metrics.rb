@@ -23,7 +23,7 @@ module Datadog
           def payload
             {
               namespace: @namespace,
-              series: @metric_series.map(&:to_h)
+              series: @metric_series.map(&:to_h),
             }
           end
 

@@ -61,7 +61,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
             ],
             config: {
               max_request_bytes: "1234",
-            }
+            },
           },
         )
       end
@@ -181,8 +181,8 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
                       hashes: {sha256: "dab741b6289e7dccc1ed42330cae1accc2b755ce8079c2cd5d4b5366c9f769a6"},
                       length: 8,
                     },
-                  }
-                }
+                  },
+                },
               },
             ),
             target_files: [

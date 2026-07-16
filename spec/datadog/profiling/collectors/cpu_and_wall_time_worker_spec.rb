@@ -39,7 +39,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       gvl_profiling_enabled: gvl_profiling_enabled,
       sighandler_sampling_enabled: sighandler_sampling_enabled,
       cpu_sampling_interval_ms: cpu_sampling_interval_ms,
-      **options
+      **options,
     }
   end
   let(:sample) {
@@ -547,7 +547,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             waiting_for_gvl_time: waiting_for_gvl_time,
             sample_states: samples.map { |s| s.labels[:state] },
             samples: samples.map { |s| [s.values, s.labels] },
-            threads: threads.map { |t| [t.inspect, t.object_id] }
+            threads: threads.map { |t| [t.inspect, t.object_id] },
           }
 
           # The background thread should spend almost all of its time waiting to run (since when it gets to run

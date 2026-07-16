@@ -16,7 +16,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
       flag_metadata: {
         "allocationKey" => "4-for-john-doe",
         "variationType" => "number",
-        "doLog" => true
+        "doLog" => true,
       },
       log?: true,
       error?: false,
@@ -36,7 +36,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
             "ratio" => 7.5,
             "nickname" => "johnny",
             "ignored_hash" => {foo: "bar"},
-            "ignored_array" => [1, 2]
+            "ignored_array" => [1, 2],
           },
         )
       end
@@ -48,8 +48,8 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
           variant: {key: "4"},
           subject: {
             id: "john-doe",
-            attributes: {"age" => 21, "active" => true, "ratio" => 7.5, "nickname" => "johnny"}
-          }
+            attributes: {"age" => 21, "active" => true, "ratio" => 7.5, "nickname" => "johnny"},
+          },
         }
       end
 
@@ -70,7 +70,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
           allocation: {key: "4-for-john-doe"},
           flag: {key: "feature_flag"},
           variant: {key: "4"},
-          subject: {id: "john-doe", attributes: {}}
+          subject: {id: "john-doe", attributes: {}},
         }
       end
 

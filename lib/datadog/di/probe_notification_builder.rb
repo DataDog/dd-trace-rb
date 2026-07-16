@@ -179,7 +179,7 @@ module Datadog
         if status == "ERROR"
           diagnostics[:exception] = { # steep:ignore
             type: exception ? exception.class.name : "Error",
-            message: exception ? exception.message : message
+            message: exception ? exception.message : message,
           }
         end
 

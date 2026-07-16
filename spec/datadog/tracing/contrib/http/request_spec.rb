@@ -349,7 +349,7 @@ RSpec.describe "net/http requests" do
           {
             "x-datadog-parent-id" => span.id,
             "x-datadog-trace-id" => low_order_trace_id(span.trace_id),
-            "x-datadog-sampling-priority" => sampling_priority
+            "x-datadog-sampling-priority" => sampling_priority,
           }
         end
 
@@ -383,7 +383,7 @@ RSpec.describe "net/http requests" do
           {
             "x-datadog-parent-id" => span.id,
             "x-datadog-trace-id" => low_order_trace_id(span.trace_id),
-            "x-datadog-sampling-priority" => sampling_priority
+            "x-datadog-sampling-priority" => sampling_priority,
           }
         end
 

@@ -15,7 +15,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::HeaderTagging do
       {
         "HTTP_X_DATADOG_ENDPOINT_SCAN" => "scan-uuid",
         "HTTP_X_DATADOG_SECURITY_TEST" => "test-uuid",
-        "HTTP_X_OTHER_HEADER" => "ignored"
+        "HTTP_X_OTHER_HEADER" => "ignored",
       }
     end
 
@@ -45,7 +45,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::HeaderTagging do
         let(:env) do
           {
             "HTTP_X_DATADOG_ENDPOINT_SCAN" => "",
-            "HTTP_X_DATADOG_SECURITY_TEST" => ""
+            "HTTP_X_DATADOG_SECURITY_TEST" => "",
           }
         end
 

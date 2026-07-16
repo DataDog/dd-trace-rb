@@ -72,7 +72,7 @@ RSpec.describe "ActiveRecord multi-database implementation" do
       database: ENV.fetch("TEST_MYSQL_DB", "mysql"),
       host: ENV.fetch("TEST_MYSQL_HOST", "127.0.0.1"),
       password: ENV.fetch("TEST_MYSQL_ROOT_PASSWORD", "root"),
-      port: ENV.fetch("TEST_MYSQL_PORT", "3306")
+      port: ENV.fetch("TEST_MYSQL_PORT", "3306"),
     }
   end
 
@@ -112,14 +112,14 @@ RSpec.describe "ActiveRecord multi-database implementation" do
               "host" => mysql[:host],
               "port" => mysql[:port].to_i,
               "password" => mysql[:password],
-              "database" => mysql[:database]
+              "database" => mysql[:database],
             },
             "widget" => {
               "adapter" => "sqlite3",
               "pool" => 5,
               "timeout" => 5000,
-              "database" => ":memory:"
-            }
+              "database" => ":memory:",
+            },
           }
         end
 

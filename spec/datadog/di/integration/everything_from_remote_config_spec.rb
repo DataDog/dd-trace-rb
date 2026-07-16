@@ -385,9 +385,9 @@ RSpec.describe "DI integration from remote config" do
         {
           id: "11", name: "bar", type: "LOG_PROBE",
           where: {
-            typeName: "EverythingFromRemoteConfigSpecTestClass", methodName: "target_method",
+            typeName: "EverythingFromRemoteConfigSpecTestClass", methodName: "target_method"
           },
-          when: {json: {foo: "bar"}, dsl: "(expression)"},
+          when: {json: {foo: "bar"}, dsl: "(expression)"}
         }
       end
 
@@ -432,7 +432,7 @@ RSpec.describe "DI integration from remote config" do
         {
           id: "11", name: "bar", type: "LOG_PROBE",
           where: {
-            typeName: "EverythingFromRemoteConfigSpecTestClass", methodName: "target_method",
+            typeName: "EverythingFromRemoteConfigSpecTestClass", methodName: "target_method"
           },
           segments: [
             # String segment
@@ -441,7 +441,7 @@ RSpec.describe "DI integration from remote config" do
             {json: {eq: [{ref: "@ivar"}, 51]}, dsl: "(good expression)"},
             # Another expression which fails evaluation at runtime
             {json: {filter: [{ref: "@ivar"}, "x"]}, dsl: "(failing expression)"},
-          ],
+          ]
         }
       end
 
@@ -609,9 +609,9 @@ RSpec.describe "DI integration from remote config" do
         {
           id: "11", name: "bar", type: "LOG_PROBE",
           where: {
-            sourceFile: "instrumentation_integration_test_class.rb", lines: [42],
+            sourceFile: "instrumentation_integration_test_class.rb", lines: [42]
           },
-          when: {json: {"contains" => [{"ref" => "bar"}, "baz"]}, dsl: "(expression)"},
+          when: {json: {"contains" => [{"ref" => "bar"}, "baz"]}, dsl: "(expression)"}
         }
       end
 
@@ -699,9 +699,9 @@ RSpec.describe "DI integration from remote config" do
           {
             id: "11", name: "bar", type: "LOG_PROBE",
             where: {
-              sourceFile: "instrumentation_integration_test_class.rb", lines: [67],
+              sourceFile: "instrumentation_integration_test_class.rb", lines: [67]
             },
-            when: {json: {"contains" => [{"ref" => "param"}, "baz"]}, dsl: "(expression)"},
+            when: {json: {"contains" => [{"ref" => "param"}, "baz"]}, dsl: "(expression)"}
           }
         end
 
@@ -814,11 +814,11 @@ RSpec.describe "DI integration from remote config" do
             {
               id: "11", name: "bar", type: "LOG_PROBE",
               where: {
-                sourceFile: "instrumentation_integration_test_class.rb", lines: [67],
+                sourceFile: "instrumentation_integration_test_class.rb", lines: [67]
               },
               when: {json: {"contains" => [{"ref" => "param"}, "baz"]}, dsl: "(expression)"},
               # Enable snapshot capture to get the lower rate limit (1/second)
-              captureSnapshot: true,
+              captureSnapshot: true
             }
           end
 

@@ -198,7 +198,7 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
           uri: "jdbc:mysql://jdbc-host:3306/catalog",
           host: "stale-host",
           port: 1234,
-          database: "stale-database"
+          database: "stale-database",
         }
       end
 

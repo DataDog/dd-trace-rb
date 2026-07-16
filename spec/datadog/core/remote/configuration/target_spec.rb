@@ -16,16 +16,16 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
               parameters: {
                 inputs: [
                   {
-                    address: "http.client_ip"
+                    address: "http.client_ip",
                   },
                 ],
                 list: [
                   "4.4.4.4",
-                ]
-              }
+                ],
+              },
             },
           ],
-          id: "874459ae-137f-4c99-9c54-109b1a117b86"
+          id: "874459ae-137f-4c99-9c54-109b1a117b86",
         },
         {
           conditions: [
@@ -34,25 +34,25 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
               parameters: {
                 inputs: [
                   {
-                    address: "server.request.uri.raw"
+                    address: "server.request.uri.raw",
                   },
                 ],
                 options: {
-                  case_sensitive: false
+                  case_sensitive: false,
                 },
-                regex: "^/waf"
-              }
+                regex: "^/waf",
+              },
             },
           ],
-          id: "d1390949-cf1a-408d-bc3f-043d0689d89e"
+          id: "d1390949-cf1a-408d-bc3f-043d0689d89e",
         },
         {
           id: "5fe8e530-d3ec-4e6d-bc06-0a6637c6e763",
           rules_target: [
             {
-              rule_id: "ua0-600-55x"
+              rule_id: "ua0-600-55x",
             },
-          ]
+          ],
         },
         {
           conditions: [
@@ -61,19 +61,19 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
               parameters: {
                 inputs: [
                   {
-                    address: "http.client_ip"
+                    address: "http.client_ip",
                   },
                 ],
                 list: [
                   "8.8.8.8",
-                ]
-              }
+                ],
+              },
             },
           ],
-          id: "081e1fbe-c73b-4ad2-bb83-4752354271bc"
+          id: "081e1fbe-c73b-4ad2-bb83-4752354271bc",
         },
       ],
-      rules_override: []
+      rules_override: [],
     }
   end
 
@@ -82,7 +82,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
       "signatures" => [
         {
           "keyid" => "44de082b06652b24c3ccfecba7dcbdb82f1cc58e3813f824665a6085a6d6b6a3",
-          "sig" => "0a66cbda8de50af143708a8811892786727260b707144b910c07d00e7950d"
+          "sig" => "0a66cbda8de50af143708a8811892786727260b707144b910c07d00e7950d",
         },
       ],
       "signed" =>
@@ -90,7 +90,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
           "_type" => "targets",
           "custom" => {
             "agent_refresh_interval" => 50,
-            "opaque_backend_state" => opaque_backend_state
+            "opaque_backend_state" => opaque_backend_state,
           },
           "expires" => "2023-06-15T15:25:56Z",
           "spec_version" => "1.0.0",
@@ -101,17 +101,17 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
                 "tracer-predicates" => {
                   "tracer_predicates_v1" => [
                     {
-                      "clientID" => "5bb79ec4-0f50-464c-8400-b88521e1b96e"
+                      "clientID" => "5bb79ec4-0f50-464c-8400-b88521e1b96e",
                     },
-                  ]
+                  ],
                 }, "v" => 21
               },
               "hashes" => {"sha256" => Digest::SHA256.hexdigest(raw.to_json)},
-              "length" => 645
+              "length" => 645,
             },
           },
           "version" => version,
-        }
+        },
     }
   end
   describe ".parse" do
@@ -141,7 +141,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
           "signatures" => [
             {
               "keyid" => "44de082b06652b24c3ccfecba7dcbdb82f1cc58e3813f824665a6085a6d6b6a3",
-              "sig" => "0a66cbda8de50af143708a881189278672"
+              "sig" => "0a66cbda8de50af143708a881189278672",
             },
           ],
           "signed" =>
@@ -149,15 +149,15 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
               "_type" => "targets",
               "custom" => {
                 "agent_refresh_interval" => 50,
-                "opaque_backend_state" => opaque_backend_state
+                "opaque_backend_state" => opaque_backend_state,
               },
               "expires" => "2023-06-15T15:25:56Z",
               "spec_version" => "1.0.0",
               "targets" => {
-                "invalid_path" => {}
+                "invalid_path" => {},
               },
               "version" => version,
-            }
+            },
         }
 
         expect { described_class.parse(invalid_data) }.to raise_error(
@@ -174,7 +174,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
           "v" => 1,
         },
         "hashes" => {"sha256" => Digest::SHA256.hexdigest(raw.to_json)},
-        "length" => 645
+        "length" => 645,
       }
     end
 
@@ -195,7 +195,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
 
           content_hash = {
             path: "datadog/603646/ASM/exclusion_filters/config",
-            content: string_io_content
+            content: string_io_content,
           }
           content = Datadog::Core::Remote::Configuration::Content.parse(content_hash)
 

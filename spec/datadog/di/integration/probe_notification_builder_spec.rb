@@ -115,7 +115,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
                 type: "NilClass",
                 isNull: true,
               },
-            }, throwable: nil,
+            }, throwable: nil
           }}
         end
 

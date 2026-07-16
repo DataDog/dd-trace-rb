@@ -346,7 +346,7 @@ module Datadog
           resource: @resource,
           service: @service,
           trace_id: @trace_id,
-          type: @type
+          type: @type,
         }
 
         if stopped?

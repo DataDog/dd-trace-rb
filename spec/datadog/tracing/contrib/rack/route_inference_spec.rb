@@ -8,7 +8,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::RouteInference do
       let(:env) do
         {
           "SCRIPT_NAME" => "/api",
-          "PATH_INFO" => "/users/1"
+          "PATH_INFO" => "/users/1",
         }
       end
 
@@ -27,7 +27,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::RouteInference do
         {
           "SCRIPT_NAME" => "/api",
           "PATH_INFO" => "/users/1",
-          "datadog.inferred_route" => "/some_route"
+          "datadog.inferred_route" => "/some_route",
         }
       end
 

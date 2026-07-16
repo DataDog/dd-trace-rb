@@ -65,7 +65,7 @@ RSpec.describe Datadog::Tracing::ClientIp do
         headers = Datadog::Core::HeaderCollection.from_hash(
           {
             "My-Custom-Header" => "1.11.1",
-            "X-Forwarded-For" => "1.11.1"
+            "X-Forwarded-For" => "1.11.1",
           },
         )
 
@@ -141,7 +141,7 @@ RSpec.describe Datadog::Tracing::ClientIp do
         Datadog::Core::HeaderCollection.from_hash(
           {
             "Accept" => "*/*",
-            "Authorization" => "Bearer XXXXXX"
+            "Authorization" => "Bearer XXXXXX",
           },
         )
       end

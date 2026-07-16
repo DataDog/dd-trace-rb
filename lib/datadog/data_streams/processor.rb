@@ -79,7 +79,7 @@ module Datadog
             topic: topic,
             partition: partition,
             offset: offset,
-            timestamp_ns: (now.to_f * 1e9).to_i
+            timestamp_ns: (now.to_f * 1e9).to_i,
           },
         )
         true
@@ -98,7 +98,7 @@ module Datadog
             topic: topic,
             partition: partition,
             offset: offset,
-            timestamp: now
+            timestamp: now,
           },
         )
         true
@@ -196,7 +196,7 @@ module Datadog
           partition: event[:partition],
           offset: event[:offset],
           timestamp: event[:timestamp],
-          timestamp_sec: event[:timestamp].to_f
+          timestamp_sec: event[:timestamp].to_f,
         }
 
         timestamp_ns = (event[:timestamp].to_f * 1e9).to_i
@@ -216,7 +216,7 @@ module Datadog
             expected_offset: previous_offset + 1,
             actual_offset: event[:offset],
             gap_size: event[:offset] - previous_offset - 1,
-            timestamp_sec: event[:timestamp].to_f
+            timestamp_sec: event[:timestamp].to_f,
           }
         end
 
@@ -321,7 +321,7 @@ module Datadog
           "TracerVersion" => Datadog::VERSION::STRING,
           "Lang" => "ruby",
           "Stats" => stats_buckets,
-          "Hostname" => hostname
+          "Hostname" => hostname,
         } # : ::Hash[::String, (::String | ::Array[::String])]
 
         payload["ProcessTags"] = Core::Environment::Process.tags if @settings.experimental_propagate_process_tags_enabled
@@ -400,7 +400,7 @@ module Datadog
             full_pathway_latency_sec: full_pathway_latency_sec,
             payload_size: payload_size,
             tags: tags,
-            timestamp_sec: timestamp_sec
+            timestamp_sec: timestamp_sec,
           },
         )
         true
@@ -449,14 +449,14 @@ module Datadog
             topic, partition = key.split(":", 2)
             backlogs << {
               "Tags" => ["type:kafka_produce", "topic:#{topic}", "partition:#{partition}"],
-              "Value" => offset
+              "Value" => offset,
             }
           end
           bucket[:latest_commit_offsets].each do |key, offset|
             group, topic, partition = key.split(":", 3)
             backlogs << {
               "Tags" => ["type:kafka_commit", "consumer_group:#{group}", "topic:#{topic}", "partition:#{partition}"],
-              "Value" => offset
+              "Value" => offset,
             }
           end
 
@@ -464,7 +464,7 @@ module Datadog
             "Start" => bucket_time_ns,
             "Duration" => @bucket_size_ns,
             "Stats" => bucket_stats,
-            "Backlogs" => backlogs + serialize_consumer_backlogs
+            "Backlogs" => backlogs + serialize_consumer_backlogs,
           }
         end
 
@@ -481,7 +481,7 @@ module Datadog
               "topic:#{stat[:topic]}",
               "partition:#{stat[:partition]}",
             ],
-            "Value" => stat[:offset]
+            "Value" => stat[:offset],
           }
         end
       end
@@ -494,7 +494,7 @@ module Datadog
         {
           pathway_stats: {},
           latest_produce_offsets: {},
-          latest_commit_offsets: {}
+          latest_commit_offsets: {},
         }
       end
 
@@ -503,7 +503,7 @@ module Datadog
           edge_latency: Datadog::Core::DDSketch.new,
           full_pathway_latency: Datadog::Core::DDSketch.new,
           payload_size_sum: 0,
-          payload_size_count: 0
+          payload_size_count: 0,
         }
       end
     end

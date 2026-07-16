@@ -94,7 +94,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           ClimateControl.modify(
             {
               Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED => dd_debug_env,
-              "OTEL_LOG_LEVEL" => otel_level_env
+              "OTEL_LOG_LEVEL" => otel_level_env,
             },
           ) do
             example.run

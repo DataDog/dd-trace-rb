@@ -616,7 +616,7 @@ module Datadog
           language_specifics: {
             visibility: method_visibility(klass, method_name),
             method_type: method_type.to_s,
-            arity: method.arity
+            arity: method.arity,
           },
           symbols: extract_method_parameters(method),
         )
@@ -841,7 +841,7 @@ module Datadog
 
         root = {
           name: file_path, type: "FILE", children: {},
-          methods: [], mod: nil, source_file: file_path, fqn: nil,
+          methods: [], mod: nil, source_file: file_path, fqn: nil
         }
 
         # Sort by FQN depth so parent namespaces are placed before children.
@@ -1043,7 +1043,7 @@ module Datadog
           language_specifics: {
             visibility: klass ? method_visibility(klass, method_name) : "public", # steep:ignore
             method_type: "instance",
-            arity: method.arity
+            arity: method.arity,
           },
           symbols: extract_method_parameters(method),
         )

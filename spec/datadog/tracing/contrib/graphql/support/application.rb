@@ -65,7 +65,7 @@ RSpec.shared_context "GraphQL test application" do
 
   let(:routes) do
     {
-      [:post, "/graphql"] => "graphql#execute"
+      [:post, "/graphql"] => "graphql#execute",
     }
   end
   let(:controllers) { [controller] }
@@ -92,7 +92,7 @@ RSpec.shared_context "GraphQL test application" do
                 query: param[:query],
                 operation_name: param[:operationName],
                 variables: prepare_variables(param[:variables]),
-                context: {}
+                context: {},
               }
             end
             TestGraphQL::Schema.multiplex(queries)

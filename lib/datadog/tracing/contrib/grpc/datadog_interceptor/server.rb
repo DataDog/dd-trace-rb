@@ -26,7 +26,7 @@ module Datadog
                 type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
                 service: service_name, # TODO: Remove server-side service name configuration
                 resource: formatter.resource_name,
-                on_error: on_error
+                on_error: on_error,
               }
               metadata = keywords[:call].metadata
 

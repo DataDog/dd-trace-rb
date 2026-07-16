@@ -293,7 +293,7 @@ RSpec.describe Datadog::DI::Remote do
                   "v" => 1,
                 },
                 "hashes" => {"sha256" => Digest::SHA256.hexdigest(value_json.to_json)},
-                "length" => value_json.length
+                "length" => value_json.length,
               },
             )
 

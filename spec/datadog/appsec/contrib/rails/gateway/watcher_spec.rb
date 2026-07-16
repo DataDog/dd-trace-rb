@@ -53,7 +53,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
           {
             "server.request.path_params" => {id: "1"},
             "server.request.body.byte_length" => 9,
-            "server.request.body" => {"name" => "john"}
+            "server.request.body" => {"name" => "john"},
           }, {}, anything
         )
       end
@@ -71,7 +71,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
         expect(context).to have_received(:run_waf).with(
           {
             "server.request.path_params" => {id: "1"},
-            "server.request.body.byte_length" => 9
+            "server.request.body.byte_length" => 9,
           }, {}, anything
         )
       end
@@ -92,7 +92,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
         expect(context).to have_received(:run_waf).with(
           {
             "server.request.path_params" => {id: "1"},
-            "server.request.body" => {"name" => "john"}
+            "server.request.body" => {"name" => "john"},
           }, {}, anything
         )
       end
@@ -143,7 +143,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
         expect(context).to have_received(:run_waf).with(
           {
             "server.request.path_params" => {id: "1"},
-            "server.request.body.byte_length" => 9
+            "server.request.body.byte_length" => 9,
           }, {}, anything
         )
       end
@@ -158,7 +158,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
         expect(context).to have_received(:run_waf).with(
           {
             "server.request.path_params" => {id: "1"},
-            "server.request.body.byte_length" => 9
+            "server.request.body.byte_length" => 9,
           }, {}, anything
         )
       end

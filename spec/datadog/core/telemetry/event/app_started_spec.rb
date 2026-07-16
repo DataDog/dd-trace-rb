@@ -110,7 +110,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
             name: "DD_GIT_REPOSITORY_URL",
             origin: "env_var",
             seq_id: 3,
-            value: "https://github.com/datadog/hello"
+            value: "https://github.com/datadog/hello",
           },
           {name: "DD_GIT_COMMIT_SHA", origin: "env_var", seq_id: 3, value: "1234hash"},
         )
@@ -343,7 +343,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
             allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
               {
                 fleet: {config: {"DD_APPSEC_ENABLED" => "true"}},
-                local: {config: {"DD_LOGS_INJECTION" => "false"}}
+                local: {config: {"DD_LOGS_INJECTION" => "false"}},
               },
             )
           end

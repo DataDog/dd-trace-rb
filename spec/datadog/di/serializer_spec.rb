@@ -136,20 +136,20 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {type: "DISerializerExceptionWithFieldsTestClass", fields: {
          "@test_field": {
            value: "bar", type: "String"
-         }
+         },
        }}},
       {name: "Exception instance with @message field", input: DISerializerExceptionWithMessageFieldTestClass.new("test error"),
        expected: {type: "DISerializerExceptionWithMessageFieldTestClass", fields: {
          "@message": {
            value: "bar", type: "String"
-         }
+         },
        }}},
       {name: "Custom exception instance which raises in #message", input: DISerializerExceptionWithMessageRaiseTestClass.new("test error"),
        expected: {type: "DISerializerExceptionWithMessageRaiseTestClass", fields: {
          # Fields are still serialized.
          "@message": {
            value: "bar", type: "String"
-         }
+         },
        }}},
     ]
 
@@ -235,9 +235,9 @@ RSpec.describe Datadog::DI::Serializer do
          ]}],
        ]}}},
       {name: "object with no attributes", input: {v: DISerializerSpecTestClass.new},
-       expected: {v: {type: "DISerializerSpecTestClass", fields: {}}},},
+       expected: {v: {type: "DISerializerSpecTestClass", fields: {}}}},
       {name: "object of anonymous class with no attributes", input: {v: Class.new.new},
-       expected: {v: {type: "[Unnamed class]", fields: {}}},},
+       expected: {v: {type: "[Unnamed class]", fields: {}}}},
       # TODO hash with a complex object as key?
     ]
 
@@ -344,7 +344,7 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {arg1: {type: "Integer", value: "1"},
                   arg2: {type: "String", value: "x"},
                   a: {type: "Integer", value: "42"},
-                  self: {type: "Object", fields: {}},}},
+                  self: {type: "Object", fields: {}}}},
       {name: "args, kwargs and instance vars",
        args: [1, "x"],
        kwargs: {a: 42},
@@ -357,7 +357,7 @@ RSpec.describe Datadog::DI::Serializer do
                     fields: {
                       "@ivar": {type: "String", value: "quux"},
                     },
-                  },},},
+                  }}},
       {name: "kwargs contains redacted identifier",
        args: [1, "x"],
        kwargs: {password: 42},
@@ -365,7 +365,7 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {arg1: {type: "Integer", value: "1"},
                   arg2: {type: "String", value: "x"},
                   password: {type: "Integer", notCapturedReason: "redactedIdent"},
-                  self: {type: "Object", fields: {}},}},
+                  self: {type: "Object", fields: {}}}},
     ]
 
     cases.each do |c|

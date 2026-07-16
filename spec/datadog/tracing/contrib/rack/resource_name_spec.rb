@@ -11,7 +11,7 @@ RSpec.describe "Rack integration with other middleware" do
   let(:rack_options) do
     {
       application: app,
-      middleware_names: true
+      middleware_names: true,
     }
   end
 

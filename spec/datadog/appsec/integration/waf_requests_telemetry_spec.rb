@@ -38,7 +38,7 @@ RSpec.describe "WAF requests telemetry" do
               capec: "1000/118/169",
               tool_name: "Nessus",
               confidence: "1",
-              module: "waf"
+              module: "waf",
             },
             conditions: [
               {
@@ -46,17 +46,17 @@ RSpec.describe "WAF requests telemetry" do
                   inputs: [
                     {
                       address: "server.request.headers.no_cookies",
-                      key_path: ["user-agent"]
+                      key_path: ["user-agent"],
                     },
                   ],
-                  regex: "(?i)^Nessus(/|([ :]+SOAP))"
+                  regex: "(?i)^Nessus(/|([ :]+SOAP))",
                 },
-                operator: "match_regex"
+                operator: "match_regex",
               },
             ],
-            transformers: []
+            transformers: [],
           },
-        ]
+        ],
       }
 
       c.remote.enabled = false

@@ -31,7 +31,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::AppSecTrace do
           "message" => "Field 'error' doesn't exist on type 'Query'",
           "locations" => [{"line" => 1, "column" => 13}],
           "path" => ["query test", "error"],
-          "extensions" => {"code" => "undefinedField", "typeName" => "Query", "fieldName" => "error"}
+          "extensions" => {"code" => "undefinedField", "typeName" => "Query", "fieldName" => "error"},
         },
       ],
     )
@@ -46,7 +46,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::AppSecTrace do
             {
               query: query.query_string,
               operation_name: query.operation_name,
-              variables: query.variables
+              variables: query.variables,
             }
           end,
         )
@@ -72,7 +72,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::AppSecTrace do
             {
               query: query.query_string,
               operation_name: query.operation_name,
-              variables: query.variables
+              variables: query.variables,
             }
           end,
         )
@@ -92,9 +92,9 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::AppSecTrace do
               "message" => "Field 'error' doesn't exist on type 'Query'",
               "locations" => [{"line" => 1, "column" => 13}],
               "path" => ["query test", "error"],
-              "extensions" => {"code" => "undefinedField", "typeName" => "Query", "fieldName" => "error"}
+              "extensions" => {"code" => "undefinedField", "typeName" => "Query", "fieldName" => "error"},
             },
-          ]
+          ],
         },
       ],
     )

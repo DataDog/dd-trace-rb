@@ -31,7 +31,7 @@ module TracerHelpers
     options = {
       transport: Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) do |t|
         t.adapter :test
-      end
+      end,
     }.merge(options)
 
     FauxWriter.new(options)

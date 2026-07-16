@@ -8,7 +8,7 @@ RSpec.describe Datadog::Core::HeaderCollection do
     context "when header exists in env" do
       let(:hash) do
         {
-          "X-Forwarded-For" => "me"
+          "X-Forwarded-For" => "me",
         }
       end
 
@@ -24,7 +24,7 @@ RSpec.describe Datadog::Core::HeaderCollection do
     context "when header does not exists in env" do
       let(:env) do
         {
-          "User-Agent" => "test"
+          "User-Agent" => "test",
         }
       end
 

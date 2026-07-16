@@ -17,7 +17,7 @@ module Datadog
             # TODO: Technically not accurate, if tracing version diverges from datadog gem version
             #       If we extract tracing to its own gem, this needs to be updated.
             "#{Ext::TAG_TRACER_VERSION}:#{Environment::Identity.gem_datadog_version}",
-          ].freeze
+          ].freeze,
         }.freeze
 
         def metric_options(options = nil)

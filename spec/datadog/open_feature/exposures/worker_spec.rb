@@ -31,7 +31,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       allocation: {key: "control"},
       flag: {key: "demo-flag"},
       variant: {key: "v1"},
-      subject: {id: "user-1", attributes: {"plan" => "pro"}}
+      subject: {id: "user-1", attributes: {"plan" => "pro"}},
     }
   end
 
@@ -56,7 +56,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
           allocation: {key: "control-2"},
           flag: {key: "demo-flag2"},
           variant: {key: "v2"},
-          subject: {id: "user-2", attributes: {"plan" => "pro"}}
+          subject: {id: "user-2", attributes: {"plan" => "pro"}},
         }
       end
       let(:event_3) do
@@ -65,7 +65,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
           allocation: {key: "control-3"},
           flag: {key: "demo-flag3"},
           variant: {key: "v3"},
-          subject: {id: "user-3", attributes: {"plan" => "pro"}}
+          subject: {id: "user-3", attributes: {"plan" => "pro"}},
         }
       end
 
@@ -149,7 +149,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
           allocation: {key: "control-2"},
           flag: {key: "demo-flag2"},
           variant: {key: "v2"},
-          subject: {id: "user-2", attributes: {"plan" => "pro"}}
+          subject: {id: "user-2", attributes: {"plan" => "pro"}},
         }
       end
 

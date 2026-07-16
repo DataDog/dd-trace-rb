@@ -43,7 +43,7 @@ RSpec.describe Datadog::AppSec::Event do
           events: [1],
           actions: {},
           attributes: {
-            "_dd.appsec.s.req.headers" => [{"host" => [8], "version" => [8]}]
+            "_dd.appsec.s.req.headers" => [{"host" => [8], "version" => [8]}],
           },
           keep: false,
           timeout: false,
@@ -357,7 +357,7 @@ RSpec.describe Datadog::AppSec::Event do
           events: [],
           actions: {},
           attributes: {
-            "_dd.appsec.s.req.headers" => [{"host" => [8], "version" => [8]}]
+            "_dd.appsec.s.req.headers" => [{"host" => [8], "version" => [8]}],
           },
           keep: false,
           timeout: false,

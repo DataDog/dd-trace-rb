@@ -36,7 +36,7 @@ RSpec.describe "Rack integration tests" do
         {
           status: 200,
           body: request.headers.to_json,
-          headers: {"Content-Type" => "application/json"}
+          headers: {"Content-Type" => "application/json"},
         }
       end
 
@@ -45,7 +45,7 @@ RSpec.describe "Rack integration tests" do
       {
         status: 200,
         body: request.headers.to_json,
-        headers: {"Content-Type" => "application/json"}
+        headers: {"Content-Type" => "application/json"},
       }
     end
 
@@ -665,7 +665,7 @@ RSpec.describe "Rack integration tests" do
             "HTTP_X_DATADOG_SAMPLING_PRIORITY" => headers_sampling_priority,
             "HTTP_X_DATADOG_ORIGIN" => headers_origin,
             "HTTP_X_DATADOG_TAGS" => headers_tags,
-            "HTTP_USER_AGENT" => user_agent
+            "HTTP_USER_AGENT" => user_agent,
           }
         end
         let(:env) { headers }
@@ -727,7 +727,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with APM disablement tags",
               {
                 tag_other_propagation: "1",
-                tag_sampling_priority_condition: ->(x) { x <= 0 }
+                tag_sampling_priority_condition: ->(x) { x <= 0 },
               }
             it_behaves_like "a request sent without propagated headers"
           end
@@ -738,7 +738,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with APM disablement tags",
               {
                 tag_other_propagation: "1",
-                tag_sampling_priority_condition: ->(x) { x <= 0 }
+                tag_sampling_priority_condition: ->(x) { x <= 0 },
               }
             it_behaves_like "a request sent without propagated headers"
           end
@@ -749,7 +749,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with APM disablement tags",
               {
                 tag_other_propagation: "1",
-                tag_sampling_priority_condition: ->(x) { x <= 0 }
+                tag_sampling_priority_condition: ->(x) { x <= 0 },
               }
             it_behaves_like "a request sent without propagated headers"
           end
@@ -760,7 +760,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with APM disablement tags",
               {
                 tag_other_propagation: "1",
-                tag_sampling_priority_condition: ->(x) { x <= 0 }
+                tag_sampling_priority_condition: ->(x) { x <= 0 },
               }
             it_behaves_like "a request sent without propagated headers"
           end
@@ -1306,7 +1306,7 @@ RSpec.describe "Rack integration tests" do
                   "Expires" => "Thu, 01 Dec 1994 16:00:00 GMT",
                   "Last-Modified" => "Tue, 15 Nov 1994 12:45:26 GMT",
                   "X-Request-ID" => "f058ebd6-02f7-4d3f-942e-904344e8cde5",
-                  "X-Fake-Response" => "Don't tag me."
+                  "X-Fake-Response" => "Don't tag me.",
                 }
                 [200, response_headers, ["OK"]]
               end,
@@ -1333,7 +1333,7 @@ RSpec.describe "Rack integration tests" do
                   # This lowercase 'Id' header doesn't match.
                   # Ensure middleware allows for case-insensitive matching.
                   "X-Request-Id",
-                ]
+                ],
               }
           end
         end
@@ -1395,7 +1395,7 @@ RSpec.describe "Rack integration tests" do
               {
                 "HTTP_CACHE_CONTROL" => "no-cache",
                 "HTTP_X_REQUEST_ID" => SecureRandom.uuid,
-                "HTTP_X_FAKE_REQUEST" => "Don't tag me."
+                "HTTP_X_FAKE_REQUEST" => "Don't tag me.",
               }
             end
 

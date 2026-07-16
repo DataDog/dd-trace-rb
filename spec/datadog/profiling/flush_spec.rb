@@ -15,10 +15,10 @@ RSpec.describe Datadog::Profiling::Flush do
       JSON.generate(
         {
           application: {
-            start_time: "2024-01-24T11:17:22Z"
+            start_time: "2024-01-24T11:17:22Z",
           },
           runtime: {
-            engine: "ruby"
+            engine: "ruby",
           },
         },
       )

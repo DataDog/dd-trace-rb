@@ -81,10 +81,10 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     JSON.generate(
       {
         application: {
-          start_time: "2024-01-24T11:17:22Z"
+          start_time: "2024-01-24T11:17:22Z",
         },
         runtime: {
-          engine: "ruby"
+          engine: "ruby",
         },
       },
     )
@@ -93,10 +93,10 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:info_string_keys) do
     {
       "application" => {
-        "start_time" => "2024-01-24T11:17:22Z"
+        "start_time" => "2024-01-24T11:17:22Z",
       },
       "runtime" => {
-        "engine" => "ruby"
+        "engine" => "ruby",
       },
     }
   end

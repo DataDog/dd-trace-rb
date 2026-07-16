@@ -245,7 +245,7 @@ RSpec.describe "OpenTelemetry Metrics Integration", ruby: ">= 3.1" do
           "OTEL_EXPORTER_OTLP_ENDPOINT" => "http://general:4317",
           "OTEL_EXPORTER_OTLP_PROTOCOL" => "http/protobuf",
           "OTEL_EXPORTER_OTLP_TIMEOUT" => "8000",
-          "OTEL_EXPORTER_OTLP_HEADERS" => "general=value"
+          "OTEL_EXPORTER_OTLP_HEADERS" => "general=value",
         }
       end
 

@@ -154,7 +154,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
             END_OF_QUERY
             variables: {
               "firstPostSlug" => "first-post",
-              "secondPostSlug" => "second-post"
+              "secondPostSlug" => "second-post",
             },
           ),
         ]
@@ -185,7 +185,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
             END_OF_QUERY
             variables: {
               "postSlug" => "some-post",
-              "ignoreDislikes" => true
+              "ignoreDislikes" => true,
             },
           ),
         ]
@@ -385,8 +385,8 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
                 "input" => {
                   "content" => "Some content",
                   "authorId" => "1",
-                  "title" => "Some title"
-                }
+                  "title" => "Some title",
+                },
               },
             ],
           ),

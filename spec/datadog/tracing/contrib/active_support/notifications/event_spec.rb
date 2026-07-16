@@ -27,7 +27,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event do
       {
         on_start: test_class.method(:on_start),
         on_finish: test_class.method(:on_finish),
-        trace: test_class.method(:trace?)
+        trace: test_class.method(:trace?),
       }
     end
 

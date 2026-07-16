@@ -1291,7 +1291,7 @@ RSpec.describe Datadog::Tracing::Tracer do
     it "sets span tags for the respective baggage key after formatting" do
       trace_digest = Datadog::Tracing::Contrib::HTTP.extract(
         {
-          "baggage" => "user.id=test-id,session.id=session-123,foo=bar"
+          "baggage" => "user.id=test-id,session.id=session-123,foo=bar",
         },
       )
 

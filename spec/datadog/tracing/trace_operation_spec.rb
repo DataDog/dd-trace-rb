@@ -935,7 +935,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     let(:options) do
       {
         resource: "Rails::HealthController#show",
-        sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP
+        sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP,
       }
     end
 
@@ -953,7 +953,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         {
           resource: "Rails::HealthController#show",
           sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP,
-          remote_parent: true
+          remote_parent: true,
         }
       end
 
@@ -987,7 +987,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       let(:options) do
         {
           resource: "Rails::HealthController#show",
-          sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+          sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP,
         }
       end
 

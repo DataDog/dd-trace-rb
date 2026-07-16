@@ -43,7 +43,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
         "content-type" => "text/html",
         "cookie" => "foo=bar",
         "user-agent" => "WebKit",
-        "content-length" => "0"
+        "content-length" => "0",
       }
       expect(request.headers).to eq(expected_headers)
     end
@@ -72,7 +72,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
           "" => "empty header",
           "123" => "numbered header",
           "123-foo" => "alphanumerical header",
-          "foo-123" => "reverse alphanumerical header"
+          "foo-123" => "reverse alphanumerical header",
         }
         expect(request.headers).to eq(expected_headers)
       end
@@ -187,7 +187,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
           {
             :method => "POST",
             :input => "name=john",
-            "CONTENT_TYPE" => "application/x-www-form-urlencoded"
+            "CONTENT_TYPE" => "application/x-www-form-urlencoded",
           },
         ),
       )

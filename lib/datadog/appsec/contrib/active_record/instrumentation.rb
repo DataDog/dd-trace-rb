@@ -25,7 +25,7 @@ module Datadog
 
             ephemeral_data = {
               "server.db.statement" => sql,
-              "server.db.system" => db_system
+              "server.db.system" => db_system,
             }
 
             waf_timeout = Datadog.configuration.appsec.waf_timeout

@@ -51,7 +51,7 @@ module Datadog
                 messages: truncate_content(truncate_messages(request.serialized_messages)),
                 attack_categories: result.tags,
                 sds: result.sds_findings,
-                tag_probs: result.tag_probabilities
+                tag_probs: result.tag_probabilities,
               },
             )
 
@@ -98,7 +98,7 @@ module Datadog
             else
               {
                 **message,
-                content: message[:content].byteslice(0, max_bytes)
+                content: message[:content].byteslice(0, max_bytes),
               }
             end
           end

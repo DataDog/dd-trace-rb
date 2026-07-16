@@ -28,7 +28,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
       flag_metadata: {
         "allocationKey" => "4-for-john-doe",
         "variationType" => "number",
-        "doLog" => true
+        "doLog" => true,
       },
       log?: true,
       error?: false,

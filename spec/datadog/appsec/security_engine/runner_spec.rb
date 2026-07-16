@@ -105,7 +105,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
           status: :match,
           events: [],
           actions: {
-            "block_request" => {"grpc_status_code" => "10", "status_code" => "403", "type" => "auto"}
+            "block_request" => {"grpc_status_code" => "10", "status_code" => "403", "type" => "auto"},
           },
           attributes: {},
           duration: 10,
@@ -137,7 +137,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
             status: :match,
             events: [],
             actions: {
-              "block_request" => {"grpc_status_code" => "10", "status_code" => "403", "type" => "auto"}
+              "block_request" => {"grpc_status_code" => "10", "status_code" => "403", "type" => "auto"},
             },
             attributes: {},
             duration: 10,

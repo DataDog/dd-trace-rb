@@ -10,7 +10,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Digest do
     Datadog::Core::Remote::Configuration::Content.parse(
       {
         path: "datadog/603646/ASM/exclusion_filters/config",
-        content: data
+        content: data,
       },
     )
   end

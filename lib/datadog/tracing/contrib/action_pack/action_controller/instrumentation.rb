@@ -108,9 +108,9 @@ module Datadog
                   headers: {
                     # The exception this controller was given in the request,
                     # which is typical if the controller is configured to handle exceptions.
-                    request_exception: request.headers["action_dispatch.exception"]
+                    request_exception: request.headers["action_dispatch.exception"],
                   },
-                  tracing_context: {}
+                  tracing_context: {},
                 }
 
                 begin

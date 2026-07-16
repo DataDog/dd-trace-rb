@@ -35,7 +35,7 @@ Style/TrailingCommaInArrayLiteral:
   EnforcedStyleForMultiline: comma
 
 Style/TrailingCommaInHashLiteral:
-  Enabled: false
+  EnforcedStyleForMultiline: comma
 
 Layout/LeadingCommentSpace:
   Enabled: false

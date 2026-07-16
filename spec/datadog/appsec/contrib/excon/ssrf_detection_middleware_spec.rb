@@ -33,7 +33,7 @@ RSpec.describe "AppSec excon SSRF detection middleware" do
           "Content-Type" => "text/plain",
           "Set-Cookie" => ["a=1", "b=2"],
           "Via" => ["1.1 foo.io", "2.2 bar.io"],
-          "Age" => "1"
+          "Age" => "1",
         },
       )
       ::Excon.stub(

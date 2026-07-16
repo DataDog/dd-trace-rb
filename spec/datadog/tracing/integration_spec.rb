@@ -911,7 +911,7 @@ RSpec.describe "Tracer integration tests" do
                "time_unix_nano" => 123,
                "attributes" => {"key" => {
                  "string_value" => "value", "type" => 0
-               }},},
+               }}},
             ],
           )
         end

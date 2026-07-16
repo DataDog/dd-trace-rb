@@ -26,7 +26,7 @@ module Datadog
             ephemeral_data = {
               "server.io.net.url" => url,
               "server.io.net.request.method" => env.method.to_s.upcase,
-              "server.io.net.request.headers" => headers
+              "server.io.net.request.headers" => headers,
             }
 
             is_redirect = context.state[:downstream_redirect_url] == url
@@ -56,7 +56,7 @@ module Datadog
             # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
             ephemeral_data = {
               "server.io.net.response.status" => env.status.to_s,
-              "server.io.net.response.headers" => headers
+              "server.io.net.response.headers" => headers,
             }
 
             is_redirect = REDIRECT_STATUS_CODES.cover?(env.status) && headers.key?("location")

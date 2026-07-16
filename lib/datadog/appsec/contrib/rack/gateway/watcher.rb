@@ -34,7 +34,7 @@ module Datadog
                     "server.request.headers" => gateway_request.headers,
                     "server.request.headers.no_cookies" => gateway_request.headers.dup.tap { |h| h.delete("cookie") },
                     "http.client_ip" => gateway_request.client_ip,
-                    "server.request.method" => gateway_request.method
+                    "server.request.method" => gateway_request.method,
                   }
 
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
@@ -63,7 +63,7 @@ module Datadog
                   persistent_data = {
                     "server.response.status" => gateway_response.status.to_s,
                     "server.response.headers" => gateway_response.headers,
-                    "server.response.headers.no_cookies" => gateway_response.headers.dup.tap { |h| h.delete("set-cookie") }
+                    "server.response.headers.no_cookies" => gateway_response.headers.dup.tap { |h| h.delete("set-cookie") },
                   }
 
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)

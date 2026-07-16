@@ -28,7 +28,7 @@ module Datadog
             {
               "operation" => command_name,
               "database" => database_name,
-              "collection" => command.values.first
+              "collection" => command.values.first,
             },
             options,
           )

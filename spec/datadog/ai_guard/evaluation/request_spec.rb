@@ -21,9 +21,9 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
             "reason" => "Because why not",
             "tags" => [],
             "tag_probs" => {},
-            "is_blocking_enabled" => false
-          }
-        }
+            "is_blocking_enabled" => false,
+          },
+        },
       }
     end
 
@@ -42,10 +42,10 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
               ],
               meta: {
                 service: Datadog.configuration.service,
-                env: Datadog.configuration.env
-              }
-            }
-          }
+                env: Datadog.configuration.env,
+              },
+            },
+          },
         },
       ).and_return(raw_response_mock)
 
@@ -111,7 +111,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
           content: [
             {type: "text", text: "What's in this image?"},
             {type: "image_url", image_url: {url: "https://example.com/img.png"}},
-          ]
+          ],
         },
       ])
     end

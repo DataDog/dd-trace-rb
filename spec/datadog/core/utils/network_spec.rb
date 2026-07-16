@@ -10,7 +10,7 @@ RSpec.describe Datadog::Core::Utils::Network do
           headers = Datadog::Core::HeaderCollection.from_hash(
             {"X-Forwarded-For" => "10.42.42.42",
              "True-Client-Ip" => "43.43.43.43",
-             "X-Cluster-Client-Ip" => "10.0.0.1",},
+             "X-Cluster-Client-Ip" => "10.0.0.1"},
           )
 
           result = described_class.stripped_ip_from_request_headers(headers)

@@ -56,7 +56,7 @@ RSpec.describe "AppSec ActiveRecord integration for Postgresql adapter" do
       host: ENV.fetch("TEST_POSTGRES_HOST", "127.0.0.1"),
       port: ENV.fetch("TEST_POSTGRES_PORT", 5432),
       username: ENV.fetch("TEST_POSTGRES_USER", "postgres"),
-      password: ENV.fetch("TEST_POSTGRES_PASSWORD", "postgres")
+      password: ENV.fetch("TEST_POSTGRES_PASSWORD", "postgres"),
     }
   end
 
@@ -113,7 +113,7 @@ RSpec.describe "AppSec ActiveRecord integration for Postgresql adapter" do
           {},
           {
             "server.db.statement" => expected_db_statement,
-            "server.db.system" => "postgresql"
+            "server.db.system" => "postgresql",
           },
           Datadog.configuration.appsec.waf_timeout,
         ).and_call_original,
@@ -129,7 +129,7 @@ RSpec.describe "AppSec ActiveRecord integration for Postgresql adapter" do
           {},
           {
             "server.db.statement" => "SELECT * FROM users WHERE name = 'Bob'",
-            "server.db.system" => "postgresql"
+            "server.db.system" => "postgresql",
           },
           Datadog.configuration.appsec.waf_timeout,
         ).and_call_original,
