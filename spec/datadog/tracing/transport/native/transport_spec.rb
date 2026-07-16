@@ -221,6 +221,13 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         expect { transport.close }.to_not raise_error
       end
 
+      it 'removes the finalizer so the exporter is not pinned after close' do
+        # (The spec teardown also disposes the transport, so allow more than
+        # one undefine; we only care that close itself performs it.)
+        expect(ObjectSpace).to receive(:undefine_finalizer).with(transport).at_least(:once)
+        transport.close
+      end
+
       it 'causes subsequent sends to return an internal error response' do
         transport.close
 

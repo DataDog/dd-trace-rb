@@ -201,6 +201,13 @@ module Datadog
             # cleanly in this (parent) process.
             @exporter = nil
 
+            # The finalizer only exists to deregister the hooks for a transport
+            # dropped without #close. We have just done that, so remove it;
+            # otherwise its captured hook blocks keep the exporter (and its
+            # runtime threads) alive until this still-reachable transport is
+            # itself collected.
+            ObjectSpace.undefine_finalizer(self)
+
             nil
           end
 
