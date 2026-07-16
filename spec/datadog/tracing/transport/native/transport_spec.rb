@@ -178,6 +178,12 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       it 'removes all of its hooks from the global registry' do
         hooks = transport.instance_variable_get(:@fork_hooks)
 
+        # Assert the hooks are registered to begin with, otherwise the
+        # post-close absence check below could pass vacuously.
+        hooks.each do |stage, block|
+          expect(registry_contains?(stage, block)).to be(true)
+        end
+
         transport.close
 
         hooks.each do |stage, block|
