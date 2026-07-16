@@ -367,6 +367,35 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
           .to change { transport.stats.internal_error }.from(0).to(1)
           .and change { transport.stats.consecutive_errors }.from(0).to(1)
       end
+
+      # The batch is converted and sent as a whole, so a single bad trace
+      # fails the entire call rather than being sent partially. These document
+      # that all-or-nothing behaviour for mixed batches.
+      it 'fails the whole batch when a good and a bad trace are mixed' do
+        allow(Datadog::Tracing::Transport::TraceFormatter).to receive(:format!)
+        mixed = [make_trace_segment('web.request'), double('bad_trace', spans: nil)]
+
+        responses = transport.send_traces(mixed)
+
+        expect(responses).to contain_exactly(
+          an_instance_of(native_module::InternalErrorResponse)
+        )
+      end
+
+      it 'fails the whole batch for a good-bad-good ordering' do
+        allow(Datadog::Tracing::Transport::TraceFormatter).to receive(:format!)
+        mixed = [
+          make_trace_segment('op1'),
+          double('bad_trace', spans: nil),
+          make_trace_segment('op2'),
+        ]
+
+        responses = transport.send_traces(mixed)
+
+        expect(responses).to contain_exactly(
+          an_instance_of(native_module::InternalErrorResponse)
+        )
+      end
     end
 
     context 'with span fields the native exporter does not yet support' do
