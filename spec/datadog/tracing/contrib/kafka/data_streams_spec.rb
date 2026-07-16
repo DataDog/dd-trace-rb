@@ -223,4 +223,60 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
       }.not_to raise_error
     end
   end
+
+  # Regression: the producer instrumentation must mirror the argument signature
+  # of the ruby-kafka methods it wraps. Kafka::Producer#deliver_messages takes
+  # no arguments and is always called with none. If the wrapper declares
+  # `**kwargs` and calls `super`, JRuby forwards an empty `**kwargs` as an empty
+  # positional hash, raising `ArgumentError: wrong number of arguments
+  # (given 1, expected 0)`. That crashes ruby-kafka's async delivery thread,
+  # which stops draining the queue and eventually raises Kafka::BufferOverflow.
+  describe 'argument forwarding to wrapped ruby-kafka methods' do
+    before do
+      Datadog.configure do |c|
+        c.tracing.instrument :kafka
+        c.data_streams.enabled = false
+      end
+    end
+
+    let(:producer_class) do
+      Class.new do
+        # Mirrors ruby-kafka's Kafka::Producer#deliver_messages: no arguments.
+        def deliver_messages
+          :delivered
+        end
+
+        # Mirrors a single-argument producer method.
+        def send_messages(messages)
+          messages
+        end
+
+        prepend Datadog::Tracing::Contrib::Kafka::Instrumentation::Producer
+      end
+    end
+
+    it 'calls deliver_messages with no arguments without raising' do
+      expect { producer_class.new.deliver_messages }.not_to raise_error
+    end
+
+    it 'passes the deliver_messages return value through' do
+      expect(producer_class.new.deliver_messages).to eq(:delivered)
+    end
+
+    it 'passes send_messages arguments through' do
+      expect(producer_class.new.send_messages([:a, :b])).to eq([:a, :b])
+    end
+
+    it 'wraps deliver_messages with a no-argument signature' do
+      params = Datadog::Tracing::Contrib::Kafka::Instrumentation::Producer::InstanceMethods
+        .instance_method(:deliver_messages).parameters
+      expect(params).to eq([])
+    end
+
+    it 'wraps send_messages without a keyword splat' do
+      params = Datadog::Tracing::Contrib::Kafka::Instrumentation::Producer::InstanceMethods
+        .instance_method(:send_messages).parameters
+      expect(params).to eq([[:req, :messages]])
+    end
+  end
 end
