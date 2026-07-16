@@ -6,19 +6,39 @@ module Datadog
 
         def self?.supported?: () -> bool
 
+        # Defined by the C extension in +ext/libdatadog_api/trace_exporter.c+.
+        class TraceExporter
+          def self._native_new: (
+            url: String,
+            tracer_version: String,
+            language: String,
+            language_version: String,
+            language_interpreter: String,
+            hostname: String?,
+            env: String?,
+            service: String?,
+            version: String?
+          ) -> TraceExporter
+          def _native_send_traces: (Array[Array[Datadog::Tracing::Span]] chunks) -> Array[Response]
+          def _native_before_fork: () -> void
+          def _native_after_fork_in_parent: () -> void
+          def _native_after_fork_in_child: () -> void
+        end
+
         class Transport
           include Statistics
 
-          @logger: untyped
-          @exporter: untyped
+          @logger: Datadog::Core::Logger
+          @exporter: TraceExporter?
+          @send_mutex: Thread::Mutex
           @fork_hooks: Hash[Symbol, Proc]?
 
-          attr_reader logger: untyped
+          attr_reader logger: Datadog::Core::Logger
 
-          def initialize: (agent_settings: untyped, ?logger: untyped) -> void
+          def initialize: (agent_settings: Datadog::Core::Configuration::AgentSettings, ?logger: Datadog::Core::Logger) -> void
           def self.finalizer_for: (Hash[Symbol, Proc] fork_hooks) -> Proc
           def close: () -> void
-          def send_traces: (Array[untyped] traces) -> Array[untyped]
+          def send_traces: (Array[Datadog::Tracing::TraceSegment] traces) -> Array[Response | InternalErrorResponse]
 
           private
 
@@ -26,11 +46,11 @@ module Datadog
         end
 
         class InternalErrorResponse
-          @error: untyped
+          @error: StandardError
 
-          attr_reader error: untyped
+          attr_reader error: StandardError
 
-          def initialize: (untyped error) -> void
+          def initialize: (StandardError error) -> void
           def ok?: () -> false
           def internal_error?: () -> true
           def server_error?: () -> false

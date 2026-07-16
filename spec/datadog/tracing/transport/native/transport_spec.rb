@@ -213,6 +213,16 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         transport.close
         expect { transport.close }.to_not raise_error
       end
+
+      it 'causes subsequent sends to return an internal error response' do
+        transport.close
+
+        responses = transport.send_traces([make_trace_segment('web.request')])
+
+        expect(responses).to contain_exactly(
+          an_instance_of(Datadog::Tracing::Transport::Native::InternalErrorResponse)
+        )
+      end
     end
 
     describe 'finalizer fallback' do

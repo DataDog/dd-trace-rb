@@ -74,7 +74,7 @@ module Datadog
             service = Datadog.configuration.service
             version = Datadog.configuration.version
 
-            @exporter = Native::TraceExporter._native_new(
+            exporter = Native::TraceExporter._native_new(
               url: url,
               tracer_version: tracer_version,
               language: language,
@@ -85,6 +85,7 @@ module Datadog
               service: service,
               version: version
             )
+            @exporter = exporter
 
             # Fork safety: the native exporter owns a long-lived tokio runtime
             # with background worker threads. Around a fork we must quiesce the
@@ -131,7 +132,6 @@ module Datadog
             # only the `exporter`/`send_mutex` locals (NOT `self`), so the
             # Transport stays GC-eligible and its finalizer can fire even when
             # #close was not called explicitly.
-            exporter = @exporter
             send_mutex = @send_mutex
             before_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:before) do
               # Pause the runtime first (safe to run concurrently with an
@@ -222,6 +222,12 @@ module Datadog
           def send_traces(traces)
             return [] if traces.empty?
 
+            # A closed transport has released its exporter; there is nothing to
+            # send through. Raising here is caught below and surfaced as an
+            # InternalErrorResponse, matching the other failure paths.
+            exporter = @exporter
+            raise 'Native transport has been closed' if exporter.nil?
+
             # Apply trace-level tags to root spans (same as the HTTP transport)
             traces.each { |trace| TraceFormatter.format!(trace) }
 
@@ -234,7 +240,7 @@ module Datadog
             # (and `_native_before_fork` cannot tear down the runtime mid-send).
             # `Mutex#synchronize` releases on exception / `rb_jump_tag` via its
             # ensure, so interrupt propagation stays correct.
-            responses = @send_mutex.synchronize { @exporter._native_send_traces(chunks) }
+            responses = @send_mutex.synchronize { exporter._native_send_traces(chunks) }
 
             # Update statistics from the response
             responses.each { |response| update_stats_from_response!(response) }
