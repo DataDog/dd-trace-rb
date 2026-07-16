@@ -1,0 +1,9 @@
+AllCops:
+  DisabledByDefault: true
+  TargetRubyVersion: 2.5
+  NewCops: disable
+  SuggestExtensions: false
+
+Style/StringLiterals:
+  Enabled: true
+  EnforcedStyle: single_quotes

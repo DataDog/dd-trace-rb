@@ -1,0 +1,10 @@
+{
+  "name": "string_literals",
+  "description": "OpenFeature development discovers and applies repository RuboCop rules.",
+  "prompt": "Update lib/datadog/open_feature/rubocop_eval_fixture.rb so Datadog::OpenFeature::RubocopEvalFixture.message returns the string after instead of before. Treat this as a normal code change: inspect the repository instructions, make the change, and run the relevant automated checks. Modify only that file; the evaluator provides the fixture and does not require tests, signatures, documentation, or a commit.",
+  "target_file": "lib/datadog/open_feature/rubocop_eval_fixture.rb",
+  "target_fixture": "string_literals_target.rb",
+  "rubocop_fixture": "future_rubocop.yml",
+  "gemfile_fixture": "rubocop.gemfile",
+  "expected_text": "'after'"
+}
