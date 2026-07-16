@@ -31,14 +31,15 @@ module Datadog
           UNSUPPORTED_REASON.nil?
         end
 
-        # The native module and classes are defined by the C extension in
-        # +ext/libdatadog_api/trace_exporter.c+ and become available after
-        # the native extension is loaded.
+        # +TraceExporter+ and +TracerSpan+ are defined by the C extension in
+        # +ext/libdatadog_api/trace_exporter.c+ and become available after the
+        # native extension is loaded. +Response+ is a plain Ruby class (see
+        # +native/response.rb+); the C side only resolves and instantiates it.
         #
         # The hierarchy is:
-        #   Datadog::Tracing::Transport::Native::TraceExporter
-        #   Datadog::Tracing::Transport::Native::TracerSpan
-        #   Datadog::Tracing::Transport::Native::Response
+        #   Datadog::Tracing::Transport::Native::TraceExporter (C)
+        #   Datadog::Tracing::Transport::Native::TracerSpan (C)
+        #   Datadog::Tracing::Transport::Native::Response (Ruby)
 
         # Drop-in transport that delegates to the native trace exporter.
         class Transport
