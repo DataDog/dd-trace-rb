@@ -124,9 +124,12 @@ module Datadog
             # practice only one writer thread sends, so serializing adds no real
             # contention.
             #
-            # Note: on Ruby 3.1+, the `:before` block runs before EVERY `_fork`,
-            # which includes `system`/`popen`/backtick subprocess spawns, so it
-            # must stay cheap.
+            # Note: the `:before` block runs before genuine forks (web-server
+            # workers, `Process.daemon`) that go through `Process._fork`. It
+            # does NOT run for `system`/backtick/`IO.popen`/`Process.spawn`,
+            # which spawn via `posix_spawn`/`vfork`+`exec` and replace the
+            # process image rather than carrying over the parent's work. Keeping
+            # it cheap is still worthwhile since real forks can be frequent.
             #
             # The hooks below are process-global and are never auto-removed by
             # the fork machinery, so each transport must deregister its own
