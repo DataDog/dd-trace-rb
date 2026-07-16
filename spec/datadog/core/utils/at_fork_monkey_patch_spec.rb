@@ -282,6 +282,25 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
           expect(process_module._fork).to be _fork_result
         end
       end
+
+      context 'when the fork fails in the parent' do
+        let(:process_module) do
+          Module.new do
+            def self.daemon(nochdir = nil, noclose = nil)
+              [nochdir, noclose]
+            end
+            define_singleton_method(:_fork) { raise Errno::EAGAIN }
+          end
+        end
+
+        it 'runs the parent callbacks (not child) and re-raises' do
+          expect(before_callback).to receive(:call).ordered
+          expect(parent_callback).to receive(:call).ordered
+          expect(child_callback).to_not receive(:call)
+
+          expect { process_module._fork }.to raise_error(Errno::EAGAIN)
+        end
+      end
     end
   end
 

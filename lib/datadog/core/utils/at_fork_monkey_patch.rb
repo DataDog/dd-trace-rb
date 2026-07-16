@@ -92,7 +92,14 @@ module Datadog
 
             # Start fork
             # If a block is provided, use the wrapped version.
-            result = child_block.nil? ? super : super(&child_block)
+            begin
+              result = child_block.nil? ? super : super(&child_block)
+            rescue Exception # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
+              # The fork failed and we are still in the parent; run `:parent` to
+              # restore any state the `:before` blocks set up, then re-raise.
+              AtForkMonkeyPatch.run_at_fork_blocks(:parent)
+              raise
+            end
 
             # When fork gets called without a block, it returns twice:
             # If we're in the fork, result = nil: trigger child callbacks.
@@ -115,7 +122,16 @@ module Datadog
           def _fork
             AtForkMonkeyPatch.run_at_fork_blocks(:before)
 
-            pid = super
+            begin
+              pid = super
+            rescue Exception # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
+              # The fork failed, so no child was created and we are still in the
+              # parent. The `:before` blocks already ran (and may hold resources,
+              # e.g. a locked mutex); run the `:parent` blocks so that state is
+              # restored, then re-raise.
+              AtForkMonkeyPatch.run_at_fork_blocks(:parent)
+              raise
+            end
 
             if pid == 0
               AtForkMonkeyPatch.run_at_fork_blocks(:child)
@@ -132,7 +148,14 @@ module Datadog
           def daemon(*args)
             AtForkMonkeyPatch.run_at_fork_blocks(:before)
 
-            result = super
+            begin
+              result = super
+            rescue Exception # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
+              # `daemon` failed, so the original process survives; run `:parent`
+              # to restore state the `:before` blocks set up, then re-raise.
+              AtForkMonkeyPatch.run_at_fork_blocks(:parent)
+              raise
+            end
 
             # `daemon` kills the parent, so there is no surviving parent to run
             # `:parent` callbacks in; only the child continues executing.
