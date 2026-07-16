@@ -317,7 +317,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
 
         expect(responses).to be_an(Array)
         expect(responses.length).to eq(1)
-        expect(responses.first.ok?).to be true
+        expect(responses.first).to be_ok
       end
 
       it 'updates stats on success' do
@@ -363,10 +363,9 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         bad_traces = [double('bad_trace', spans: nil)]
         allow(Datadog::Tracing::Transport::TraceFormatter).to receive(:format!)
 
-        transport.send_traces(bad_traces)
-
-        expect(transport.stats.internal_error).to eq(1)
-        expect(transport.stats.consecutive_errors).to eq(1)
+        expect { transport.send_traces(bad_traces) }
+          .to change { transport.stats.internal_error }.from(0).to(1)
+          .and change { transport.stats.consecutive_errors }.from(0).to(1)
       end
     end
 
