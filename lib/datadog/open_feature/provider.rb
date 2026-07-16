@@ -191,6 +191,11 @@ module Datadog
         hook = span_enrichment_hook
         return unless hook
 
+        # Hook resolved first so the common gate-off path short-circuits without
+        # resolving the tracer. With the gate on but no active trace there is
+        # nowhere to attach tags, so skip before building the capture call.
+        return unless Datadog::Tracing.active_trace
+
         hook.capture(
           flag_key: flag_key,
           variant: result.variant,
