@@ -4,6 +4,7 @@ require_relative '../../utils/base64_codec'
 require_relative '../../../appsec/remote'
 require_relative '../../../tracing/remote'
 require_relative '../../../di/remote'
+require_relative '../../../symbol_database'
 require_relative '../../../symbol_database/remote'
 require_relative '../../../open_feature/remote'
 
@@ -47,21 +48,35 @@ module Datadog
             register_receivers(Datadog::Tracing::Remote.receivers(@telemetry))
 
             # Skip DI registration entirely when DI is explicitly disabled
-            # (DD_DYNAMIC_INSTRUMENTATION_ENABLED=false): no component will be
-            # built, so advertising bit 38 or the LIVE_DEBUGGING product would
-            # invite an enable signal the tracer must refuse. When the env var
-            # is unset (default), DI is registered so RC can enable it.
+            # (DD_DYNAMIC_INSTRUMENTATION_ENABLED=false) or when the runtime
+            # cannot run DI (JRuby, Ruby 2.5): in either case no component will
+            # run, so advertising bit 38 or the LIVE_DEBUGGING product would
+            # invite probe configs and an enable signal the tracer must refuse.
+            # When the env var is unset (default) on a supported runtime, DI is
+            # registered so RC can enable it.
             if settings.respond_to?(:dynamic_instrumentation) &&
-                !Datadog::DI::Remote.explicitly_disabled?(settings)
+                !Datadog::DI::Remote.explicitly_disabled?(settings) &&
+                Datadog::DI.supported_runtime?
               register_capabilities(Datadog::DI::Remote.capabilities)
               register_products(Datadog::DI::Remote.products)
               register_receivers(Datadog::DI::Remote.receivers(@telemetry))
             end
 
-            if settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
-              register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
-              register_products(Datadog::SymbolDatabase::Remote.products)
-              register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
+            # Skip symbol database registration on runtimes that cannot run it
+            # (JRuby, Ruby < 2.7): DI supports Ruby 2.6 but Symbol Database does
+            # not, so advertising LIVE_DEBUGGING_SYMBOL_DB there would invite
+            # symbol-upload configs the component can never serve.
+            if settings.respond_to?(:symbol_database) && Datadog::SymbolDatabase.supported_runtime?
+              # Symbol database follows DI: when unset it advertises whenever DI
+              # advertises (mirror the DI branch above, including the unset/default
+              # case that RC may enable). An explicit symbol_database.enabled wins.
+              di_enabled = settings.respond_to?(:dynamic_instrumentation) &&
+                !Datadog::DI::Remote.explicitly_disabled?(settings)
+              if Datadog::SymbolDatabase.resolve_enabled(settings.symbol_database.enabled, di_enabled)
+                register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
+                register_products(Datadog::SymbolDatabase::Remote.products)
+                register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
+              end
             end
 
             if settings.respond_to?(:open_feature) && settings.open_feature.enabled

@@ -31,7 +31,7 @@ RubyVersion = Datadog::RubyVersion
 
 require 'support/core_helpers'
 require 'support/environment_helpers'
-require 'support/execute_in_fork'
+require 'support/forkable_example'
 require 'support/faux_transport'
 require 'support/faux_writer'
 require 'support/loaded_gem'
@@ -99,6 +99,7 @@ RSpec.configure do |config|
   config.filter_run focus: true
   config.run_all_when_everything_filtered = true
   config.example_status_persistence_file_path = 'tmp/example_status_persistence'
+  config.backtrace_exclusion_patterns << /spec\/support\/forkable_example\.rb/
 
   # rspec-wait configuration
   config.wait_timeout = 5 # default timeout for `wait_for(...)`, in seconds

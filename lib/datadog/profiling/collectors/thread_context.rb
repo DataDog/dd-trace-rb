@@ -45,9 +45,10 @@ module Datadog
           waiting_for_gvl_threshold_ns: 10_000_000,
           otel_context_enabled: false,
           native_filenames_enabled: true,
+          trigger_global_reset: true,
           **options
         )
-          new(
+          collector = new(
             recorder: recorder,
             max_frames: max_frames,
             tracer: tracer,
@@ -57,6 +58,13 @@ module Datadog
             native_filenames_enabled: native_filenames_enabled,
             **options,
           )
+
+          # By default, mirror what the CpuAndWallTimeWorker does when profiling starts: reset the global per-thread
+          # context state, which (among other things) resizes the per-thread sampling buffers to this collector's
+          # max_frames. Tests that need to control this explicitly can pass `trigger_global_reset: false`.
+          Testing._native_global_reset_per_thread_context(collector) if trigger_global_reset
+
+          collector
         end
 
         def inspect

@@ -132,9 +132,6 @@ if RUBY_PLATFORM.include?("linux")
   # but it's slower to build
   # so instead we just assume that we have the function we need on Linux, and nowhere else
   $defs << "-DHAVE_PTHREAD_GETCPUCLOCKID"
-
-  # Not available on macOS
-  $defs << "-DHAVE_CLOCK_MONOTONIC_COARSE"
 elsif RUBY_PLATFORM.include?("darwin")
   # On macOS, we use Mach thread APIs to get per-thread CPU time
   $defs << "-DHAVE_MACH_THREAD_INFO"
@@ -159,6 +156,11 @@ $defs << "-DNO_IMEMO_OBJECT_ID" unless RUBY_VERSION < "4"
 # because it's not safe to mutate objects during the newobj tracepoint
 # (see https://bugs.ruby-lang.org/issues/21710)
 $defs << "-DUSE_DEFERRED_HEAP_ALLOCATION_RECORDING" unless RUBY_VERSION < "4"
+
+# On Ruby 4.0, we've seen crashes when computing the memsize of a class/module/iclass:
+# rb_obj_memsize_of walks the per-namespace class extensions (classext_memsize), which seem to sometimes be in an inconsistent state
+# (see https://github.com/DataDog/dd-trace-rb/issues/5936)
+$defs << "-DNO_SAFE_CLASS_MEMSIZE" unless RUBY_VERSION < "4"
 
 # This symbol is exclusively visible on certain Ruby versions: 2.6 to 3.2, as well as 3.4 (but not 4.0+)
 # It's only used to get extra information about an object when a failure happens, so it's a "very nice to have" but not

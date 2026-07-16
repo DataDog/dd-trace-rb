@@ -53,7 +53,7 @@ module LoadedGem
       else
         Datadog
           .registry[integration]
-          .instance_variable_set('@patched', false)
+          .instance_variable_set(:@patched, false)
       end
     end
   end

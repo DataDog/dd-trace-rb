@@ -19,16 +19,15 @@ module Datadog
 
         # Declared here (not in Tracing::Remote::CAPABILITIES) so it is
         # registered only with the gated DI block in Capabilities#register:
-        # when DI is explicitly disabled that block — including this bit — is
-        # skipped. The enable signal itself is delivered in APM_TRACING
-        # payloads and routed here by Tracing::Remote.process_config.
+        # when DI is explicitly disabled, or the runtime cannot run DI
+        # (JRuby, Ruby 2.5), that block — including this bit — is skipped.
+        # The enable signal itself is delivered in APM_TRACING payloads and
+        # routed here by Tracing::Remote.process_config.
         CAPABILITIES = [
           1 << 38, # APM_TRACING_ENABLE_DYNAMIC_INSTRUMENTATION: Implicit DI enablement
         ].freeze
 
         def products
-          # TODO: do not send our product on unsupported runtimes
-          # (Ruby 2.5 / JRuby)
           [PRODUCT]
         end
 
@@ -229,7 +228,7 @@ module Datadog
           # we need to note it as being current so that we do not
           # try to remove instrumentation that is still supposed to be
           # active.
-          #current_probe_ids[probe_spec.fetch('id')] = true
+          # current_probe_ids[probe_spec.fetch('id')] = true
         rescue Exception => exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
           raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions

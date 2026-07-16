@@ -6,13 +6,13 @@ module Datadog
       # Monkey patches `Kernel#fork` and similar functions, adding an `at_fork` callback mechanism which
       # is used to restart observability after the VM forks (e.g. in multiprocess Ruby apps).
       module AtForkMonkeyPatch
-        AT_FORK_BEFORE_BLOCKS = [] # rubocop:disable Style/MutableConstant Used to store blocks to run, mutable by design.
+        AT_FORK_BEFORE_BLOCKS = [] # rubocop:disable Style/MutableConstant -- Used to store blocks to run, mutable by design.
         private_constant :AT_FORK_BEFORE_BLOCKS
 
-        AT_FORK_PARENT_BLOCKS = [] # rubocop:disable Style/MutableConstant Used to store blocks to run, mutable by design.
+        AT_FORK_PARENT_BLOCKS = [] # rubocop:disable Style/MutableConstant -- Used to store blocks to run, mutable by design.
         private_constant :AT_FORK_PARENT_BLOCKS
 
-        AT_FORK_CHILD_BLOCKS = [] # rubocop:disable Style/MutableConstant Used to store blocks to run, mutable by design.
+        AT_FORK_CHILD_BLOCKS = [] # rubocop:disable Style/MutableConstant -- Used to store blocks to run, mutable by design.
         private_constant :AT_FORK_CHILD_BLOCKS
 
         def self.supported?

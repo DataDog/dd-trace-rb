@@ -19,7 +19,7 @@ gem 'zstd-ruby'
 #       Since most of our customers won't have BUNDLE_FORCE_RUBY_PLATFORM=true, it's not something we want to add
 #       to our CI, so we just shortcut and exclude specific versions that were affecting our CI.
 gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1']
-gem 'json-schema', '< 3' # V3 only works with 2.5+
+gem 'json-schema', '~> 6.2'
 gem 'memory_profiler', '~> 0.9'
 gem 'mutex_m'
 gem 'os', '~> 1.1'
@@ -39,16 +39,7 @@ gem 'warning', '~> 1' # NOTE: Used in spec_helper.rb
 gem 'webmock', '>= 3.10.0'
 gem 'webrick', '>= 1.8.2'
 group :check do
-  gem 'rbs', '~> 4.0', require: false
-  gem 'steep', '~> 2.0', require: false
   gem 'ruby_memcheck', '>= 3'
-  gem 'standard', require: false
-  # Rubocop version must be pinned to major.minor because its demanded
-  # style changes between minor versions.
-  # Most recent standard as of this writing (1.45) depends on rubocop 1.71.
-  # There is rubocop 1.73 but that downgrades standard to 1.35.
-  # Kept as a direct dependency because our custom cops (rubocop/custom_cops) use its API.
-  gem 'rubocop', '~> 1.71.0', require: false
 end
 group :dev do
   gem 'ruby-lsp', require: false

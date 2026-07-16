@@ -73,6 +73,13 @@
         "default": "true"
       }
     ],
+    "DD_API_SECURITY_MAX_DOWNSTREAM_BODY_BYTES": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "10485760"
+      }
+    ],
     "DD_API_SECURITY_MAX_DOWNSTREAM_REQUEST_BODY_ANALYSIS": [
       {
         "version": "A",
@@ -287,6 +294,13 @@
         "default": "false"
       }
     ],
+    "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "200"
+      }
+    ],
     "DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE": [
       {
         "version": "A",
@@ -327,6 +341,13 @@
         "version": "A",
         "type": "string",
         "default": null
+      }
+    ],
+    "DD_FLAGGING_EVALUATION_COUNTS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS": [

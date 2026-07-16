@@ -11,6 +11,15 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   end
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
+  before do
+    # Most of this spec asserts DI / symbol database registration, which only
+    # happens on a runtime that can run them. Stub the platform checks so the
+    # assertions hold across the full Ruby matrix (the real checks are false on
+    # JRuby and old Rubies). The unsupported-runtime paths are covered below.
+    allow(Datadog::DI).to receive(:supported_runtime?).and_return(true)
+    allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+  end
+
   shared_examples 'tracing and DI capabilities' do
     it 'includes tracing capabilities and the DI enablement bit' do
       # Bits 12, 13, 14, 29 (tracing) + 38 (DI enablement, registered with the DI block)
@@ -174,10 +183,36 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         include_examples 'tracing and DI capabilities'
       end
     end
+
+    context 'on an unsupported runtime' do
+      let(:settings) do
+        settings = Datadog::Core::Configuration::Settings.new
+        settings.dynamic_instrumentation.enabled = true
+        settings
+      end
+
+      before do
+        allow(Datadog::DI).to receive(:supported_runtime?).and_return(false)
+      end
+
+      it 'does not register DI capabilities, products, or receivers even when enabled' do
+        expect(capabilities.capabilities).to_not include(1 << 38)
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING')
+        expect(capabilities.receivers).to_not include(
+          lambda { |r|
+            r.match? Datadog::Core::Remote::Configuration::Path.parse('datadog/2/LIVE_DEBUGGING/_/_')
+          }
+        )
+      end
+
+      describe '#base64_capabilities' do
+        include_examples 'tracing capabilities only'
+      end
+    end
   end
 
   context 'Symbol Database component' do
-    context 'when DI is disabled' do
+    context 'when DI is disabled and symbol_database is explicitly enabled' do
       let(:settings) do
         settings = Datadog::Core::Configuration::Settings.new
         settings.dynamic_instrumentation.enabled = false
@@ -185,11 +220,20 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         settings
       end
 
-      # Symbol database registration is decoupled from DI: symbol_database
-      # registers based on its own `enabled` setting alone, even when DI is
-      # explicitly disabled and the DI block is skipped entirely.
-      it 'registers symbol database product' do
+      it 'registers symbol database product (explicit opt-in is independent of DI)' do
         expect(capabilities.products).to include('LIVE_DEBUGGING_SYMBOL_DB')
+      end
+    end
+
+    context 'when DI is disabled and symbol_database is unset (nil)' do
+      let(:settings) do
+        settings = Datadog::Core::Configuration::Settings.new
+        settings.dynamic_instrumentation.enabled = false
+        settings
+      end
+
+      it 'does not register symbol database product (nil follows DI setting)' do
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING_SYMBOL_DB')
       end
     end
 
@@ -217,6 +261,59 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       it 'registers symbol database product and a receiver matching its path' do
         expect(capabilities.products).to include('LIVE_DEBUGGING_SYMBOL_DB')
         expect(capabilities.receivers).to include(
+          lambda { |r|
+            r.match? Datadog::Core::Remote::Configuration::Path.parse('datadog/2/LIVE_DEBUGGING_SYMBOL_DB/_/_')
+          }
+        )
+      end
+    end
+
+    context 'when DI is enabled and symbol_database is unset (nil)' do
+      let(:settings) do
+        settings = Datadog::Core::Configuration::Settings.new
+        settings.dynamic_instrumentation.enabled = true
+        settings
+      end
+
+      it 'registers symbol database product' do
+        expect(capabilities.products).to include('LIVE_DEBUGGING_SYMBOL_DB')
+      end
+    end
+
+    context 'when DI is in its default state (unset) and symbol_database is unset (nil)' do
+      let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+      it 'registers symbol database product (follows DI, which is advertised by default for RC enablement)' do
+        expect(capabilities.products).to include('LIVE_DEBUGGING_SYMBOL_DB')
+      end
+    end
+
+    context 'when the runtime does not support Symbol Database and symbol_database is unset (nil)' do
+      let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+      before { allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(false) }
+
+      it 'does not register symbol database product but still advertises DI' do
+        expect(capabilities.products).to include('LIVE_DEBUGGING')
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING_SYMBOL_DB')
+      end
+    end
+
+    context 'on an unsupported runtime' do
+      let(:settings) do
+        settings = Datadog::Core::Configuration::Settings.new
+        settings.dynamic_instrumentation.enabled = true
+        settings.symbol_database.enabled = true
+        settings
+      end
+
+      before do
+        allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(false)
+      end
+
+      it 'does not register the symbol database product or receiver even when enabled' do
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING_SYMBOL_DB')
+        expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse('datadog/2/LIVE_DEBUGGING_SYMBOL_DB/_/_')
           }

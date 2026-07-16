@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe(Datadog::DI) do
   describe 'instrumentation counters' do
     before do
-      described_class.remove_instance_variable('@instrumented_count')
+      described_class.remove_instance_variable(:@instrumented_count)
     rescue
       nil
     end
@@ -12,17 +12,17 @@ RSpec.describe(Datadog::DI) do
     describe '#instrumented_count' do
       context 'when the counter is not initialized' do
         it 'is 0' do
-          expect(described_class.instance_variable_get('@instrumented_count')).to be nil
+          expect(described_class.instance_variable_get(:@instrumented_count)).to be nil
 
           expect(described_class.instrumented_count).to eq 0
 
-          expect(described_class.instance_variable_get('@instrumented_count')).to be nil
+          expect(described_class.instance_variable_get(:@instrumented_count)).to be nil
         end
       end
 
       context 'when counter is incremented' do
         it 'is 1' do
-          expect(described_class.instance_variable_get('@instrumented_count')).to be nil
+          expect(described_class.instance_variable_get(:@instrumented_count)).to be nil
 
           expect(described_class.instrumented_count).to eq 0
 
@@ -36,7 +36,7 @@ RSpec.describe(Datadog::DI) do
       # the increment method.
       context 'when counter is incremented then decremented' do
         it 'is 0' do
-          expect(described_class.instance_variable_get('@instrumented_count')).to be nil
+          expect(described_class.instance_variable_get(:@instrumented_count)).to be nil
 
           expect(described_class.instrumented_count).to eq 0
 
@@ -54,7 +54,7 @@ RSpec.describe(Datadog::DI) do
       # the decrement method.
       context 'when counter is decremented then incremented' do
         it 'is 1' do
-          expect(described_class.instance_variable_get('@instrumented_count')).to be nil
+          expect(described_class.instance_variable_get(:@instrumented_count)).to be nil
 
           expect(described_class.instrumented_count).to eq 0
 
@@ -70,7 +70,7 @@ RSpec.describe(Datadog::DI) do
 
       context 'when counter is decremented into negative' do
         it 'is 0 and warns' do
-          expect(described_class.instance_variable_get('@instrumented_count')).to be nil
+          expect(described_class.instance_variable_get(:@instrumented_count)).to be nil
 
           expect(described_class.instrumented_count).to eq 0
 
@@ -84,7 +84,7 @@ RSpec.describe(Datadog::DI) do
     describe '#instrumented_count_inc' do
       context 'valid kind' do
         it 'increases only the respective counter' do
-          expect(described_class.instance_variable_get('@instrumented_count')).to be nil
+          expect(described_class.instance_variable_get(:@instrumented_count)).to be nil
 
           described_class.instrumented_count_inc(:line)
 
@@ -105,12 +105,12 @@ RSpec.describe(Datadog::DI) do
     describe '#instrumented_count_dec' do
       context 'valid kind' do
         it 'deccreases only the respective counter' do
-          expect(described_class.instance_variable_get('@instrumented_count')).to be nil
+          expect(described_class.instance_variable_get(:@instrumented_count)).to be nil
 
           described_class.instrumented_count_inc(:line)
           described_class.instrumented_count_inc(:method)
 
-          expect(described_class.instance_variable_get('@instrumented_count')).to eq(line: 1, method: 1)
+          expect(described_class.instance_variable_get(:@instrumented_count)).to eq(line: 1, method: 1)
 
           described_class.instrumented_count_dec(:line)
 
@@ -237,6 +237,40 @@ RSpec.describe(Datadog::DI) do
         # The helper must be callable from the RC handler, which doesn't have
         # settings in lexical scope.
         expect { described_class.unsupported_reason }.not_to raise_error
+      end
+    end
+  end
+
+  describe '.supported_runtime?' do
+    context 'on MRI 2.6+' do
+      before do
+        stub_const('RUBY_ENGINE', 'ruby')
+        stub_const('RUBY_VERSION', '2.6.0')
+        stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new('2.6.0'))
+      end
+
+      it 'returns true' do
+        expect(described_class.supported_runtime?).to be true
+      end
+    end
+
+    context 'on JRuby' do
+      before { stub_const('RUBY_ENGINE', 'jruby') }
+
+      it 'returns false' do
+        expect(described_class.supported_runtime?).to be false
+      end
+    end
+
+    context 'on MRI older than 2.6' do
+      before do
+        stub_const('RUBY_ENGINE', 'ruby')
+        stub_const('RUBY_VERSION', '2.5.9')
+        stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new('2.5.9'))
+      end
+
+      it 'returns false' do
+        expect(described_class.supported_runtime?).to be false
       end
     end
   end
