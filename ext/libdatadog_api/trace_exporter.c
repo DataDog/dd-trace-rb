@@ -716,14 +716,14 @@ static VALUE build_and_send_traces(VALUE arg) {
       ddog_TracerSpan *rust_span = convert_ruby_span_to_rust(rb_span);
 
       /* push_span consumes rust_span (ownership transferred to chunks).
-       * The error path is unreachable in practice: push only fails if no
-       * chunk was started (we always call begin_chunk above) or if the
-       * handle is NULL.  Free defensively just in case. */
+       * The error path should be unreachable: push only fails if no chunk was
+       * started (we always call begin_chunk above) or if the handle is NULL.
+       * Raise rather than swallow, so that if a future libdatadog change makes
+       * it reachable we find out loudly instead of silently sending a
+       * truncated chunk. rb_ensure frees chunks on the raise. */
       ddog_TraceExporterError *push_err =
           ddog_tracer_trace_chunks_push_span(ctx->chunks, rust_span);
-      if (push_err != NULL) {
-        ddog_trace_exporter_error_free(push_err);
-      }
+      check_exporter_error("Failed to push span into trace chunk", push_err);
     }
   }
 
