@@ -216,7 +216,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         expect(exporter).to_not have_received(:_native_after_fork_in_child)
       end
 
-      it 'is idempotent' do
+      it 'does not raise when closing an already closed transport' do
         transport.close
         expect { transport.close }.to_not raise_error
       end
