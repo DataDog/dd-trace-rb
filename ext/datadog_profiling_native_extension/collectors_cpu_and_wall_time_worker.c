@@ -154,10 +154,6 @@ typedef struct {
     unsigned int signal_handler_enqueued_sample;
     // How many times we prepared a sample (sampled directly) from the signal handler
     unsigned int signal_handler_prepared_sample;
-    // How many times we skipped sampling directly from the signal handler because we were running on the
-    // alternate signal stack (e.g. nested inside another signal handler such as the GC compaction read barrier),
-    // where walking the VM is unsafe. In this situation we fall back to the postponed job instead.
-    unsigned int signal_handler_skipped_sample_on_altstack;
     // How many times we actually tried to interrupt a thread for sampling
     unsigned int interrupt_thread_attempts;
 
@@ -296,6 +292,16 @@ static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused);
 static VALUE active_sampler_instance = Qnil;
 static cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
 static VALUE clock_failure_exception_class = Qnil;
+
+// Stats that live outside of any particular `cpu_and_wall_time_worker_state`, so that they can always be safely
+// touched, even when we're not sure it's save to touch the state (e.g. signal handler, no GVL, etc).
+typedef struct {
+  // How many times we skipped sampling directly from the signal handler because we were running on the alternate
+  // signal stack (e.g. nested inside another signal handler such as the GC compaction read barrier), where walking
+  // the VM is unsafe. In this situation we fall back to the postponed job instead.
+  unsigned int signal_handler_skipped_sample_on_altstack;
+} global_stats_t;
+static global_stats_t global_stats;
 
 // See handle_sampling_signal for details on what this does
 #ifdef NO_POSTPONED_TRIGGER
@@ -672,8 +678,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   // During GC compaction, Ruby protects pages containing Ruby objects, so many of the checks we do below are unsafe
   // since they can touch those pages, and thus we just bail out here in this situation to avoid crashes.
   if (is_running_on_alternate_signal_stack(ucontext)) {
-    cpu_and_wall_time_worker_state *state = active_sampler_instance_state;
-    if (state != NULL) state->stats.signal_handler_skipped_sample_on_altstack++;
+    global_stats.signal_handler_skipped_sample_on_altstack++;
     return;
   }
 
@@ -1162,7 +1167,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("simulated_signal_delivery")),                  /* => */ UINT2NUM(state->stats.simulated_signal_delivery),
     ID2SYM(rb_intern("signal_handler_enqueued_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_enqueued_sample),
     ID2SYM(rb_intern("signal_handler_prepared_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_prepared_sample),
-    ID2SYM(rb_intern("signal_handler_skipped_sample_on_altstack")),  /* => */ UINT2NUM(state->stats.signal_handler_skipped_sample_on_altstack),
+    ID2SYM(rb_intern("signal_handler_skipped_sample_on_altstack")),  /* => */ UINT2NUM(global_stats.signal_handler_skipped_sample_on_altstack),
     ID2SYM(rb_intern("interrupt_thread_attempts")),                  /* => */ UINT2NUM(state->stats.interrupt_thread_attempts),
 
     // CPU Stats
@@ -1232,6 +1237,7 @@ static void reset_stats_not_thread_safe(cpu_and_wall_time_worker_state *state) {
   //       * Included in the following stats window (writes after stats retrieval and reset).
   //       Given the expected infrequency of resetting (~once per 60s profile) and the auxiliary/non-critical nature of these stats
   //       this momentary loss of accuracy is deemed acceptable to keep overhead to a minimum.
+
   state->stats = (struct stats) {
     // All these values are initialized to their highest value possible since we always take the min between existing and latest sample
     .cpu_sampling_time_ns_min        = UINT64_MAX,
@@ -1239,6 +1245,7 @@ static void reset_stats_not_thread_safe(cpu_and_wall_time_worker_state *state) {
     .gvl_sampling_time_ns_min        = UINT64_MAX,
     // Other fields are reset to 0
   };
+  global_stats = (global_stats_t) {0};
 }
 
 static void sleep_for(uint64_t time_ns) {
