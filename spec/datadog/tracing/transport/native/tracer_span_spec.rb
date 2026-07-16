@@ -113,6 +113,19 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TracerSpan' do
       end
     end
 
+    context 'when the skip warning raises' do
+      it 'propagates the exception without crashing' do
+        span = make_ruby_span(meta: {'good' => 'value', 'bad' => 123})
+        allow(Datadog.logger).to receive(:warn).and_raise(RuntimeError, 'logger boom')
+
+        expect { tracer_span_class._native_from_span(span) }
+          .to raise_error(RuntimeError, 'logger boom')
+
+        # A leaked rust span would surface as a crash under GC pressure.
+        GC.start
+      end
+    end
+
     context 'with non-numeric metrics values (mixed hash)' do
       it 'skips the non-numeric entries and warns with their count' do
         span = make_ruby_span(metrics: {'_dd.measured' => 1.0, 'bad' => 'string'})

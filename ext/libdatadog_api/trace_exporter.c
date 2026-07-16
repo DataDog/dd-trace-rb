@@ -304,6 +304,23 @@ static int metrics_iter_cb(VALUE key, VALUE value, VALUE arg) {
   return ST_CONTINUE;
 }
 
+/*
+ * Emit a warning while a raw ddog_TracerSpan is held.
+ *
+ * log_warning calls into Ruby (Datadog.logger.warn), which can raise or be
+ * interrupted. A non-local exit here would leak rust_span (it is not yet
+ * owned by any chunk), so run the call under rb_protect and, on a pending
+ * jump, free rust_span before re-raising with rb_jump_tag.
+ */
+static void log_warning_owning_span(ddog_TracerSpan *rust_span, VALUE message) {
+  int state = 0;
+  rb_protect(log_warning, message, &state);
+  if (state) {
+    ddog_tracer_span_free(rust_span);
+    rb_jump_tag(state);
+  }
+}
+
 /* ========================================================================
  * Internal: convert a Ruby Span -> ddog_TracerSpan*
  *
@@ -381,7 +398,7 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
       check_exporter_error("Failed to set span meta", ctx.error);
     }
     if (ctx.skipped > 0) {
-      log_warning(rb_sprintf(
+      log_warning_owning_span(rust_span, rb_sprintf(
           "Native trace exporter: skipped %ld non-string meta entries",
           ctx.skipped));
       ctx.skipped = 0;
@@ -396,7 +413,7 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
       check_exporter_error("Failed to set span metric", ctx.error);
     }
     if (ctx.skipped > 0) {
-      log_warning(rb_sprintf(
+      log_warning_owning_span(rust_span, rb_sprintf(
           "Native trace exporter: skipped %ld non-numeric metrics entries",
           ctx.skipped));
     }
