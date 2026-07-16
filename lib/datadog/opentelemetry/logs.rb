@@ -57,7 +57,7 @@ module Datadog
       end
 
       def default_logs_endpoint
-        "#{@agent_ssl ? 'https' : 'http'}://#{@agent_host}:4318/v1/logs"
+        "#{@agent_ssl ? "https" : "http"}://#{@agent_host}:4318/v1/logs"
       end
 
       def configure_otlp_exporter(provider)

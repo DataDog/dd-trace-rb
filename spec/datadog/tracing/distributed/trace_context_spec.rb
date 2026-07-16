@@ -328,7 +328,7 @@ RSpec.shared_examples "Trace Context distributed format" do
             let(:options) do
               super().merge(
                 trace_origin: "origin",
-                trace_state_unknown_fields: "future=field;large:#{'x' * 300};small:ok;"
+                trace_state_unknown_fields: "future=field;large:#{"x" * 300};small:ok;"
               )
             end
 
@@ -590,7 +590,7 @@ RSpec.shared_examples "Trace Context distributed format" do
       # does not poison the parseable prefix.
       context "with an oversized ASCII-8BIT tracestate where invalid bytes are only in the truncated tail" do
         let(:tracestate) do
-          String.new("dd=o:origin,v=1,#{'a' * 600}\xFF", encoding: Encoding::ASCII_8BIT)
+          String.new("dd=o:origin,v=1,#{"a" * 600}\xFF", encoding: Encoding::ASCII_8BIT)
         end
 
         it "preserves the parseable prefix instead of dropping the whole field" do
@@ -619,7 +619,7 @@ RSpec.shared_examples "Trace Context distributed format" do
       end
 
       context "with oversized tracestate vendors" do
-        let(:tracestate) { Array.new(100) { |i| "v#{i}=#{'a' * 8}" }.join(",") }
+        let(:tracestate) { Array.new(100) { |i| "v#{i}=#{"a" * 8}" }.join(",") }
 
         it "truncates whole values to the tracestate limit" do
           expect(digest.trace_state.bytesize).to be <= 512

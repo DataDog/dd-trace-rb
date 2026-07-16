@@ -30,7 +30,7 @@ module ReleasePrep
   def draft_changelog(version)
     uri = URI("#{API_URL}/repos/#{REPO}/releases?per_page=100")
     request = Net::HTTP::Get.new(uri)
-    request["Authorization"] = "Bearer #{ENV['GITHUB_TOKEN']}"
+    request["Authorization"] = "Bearer #{ENV["GITHUB_TOKEN"]}"
     request["Accept"] = "application/vnd.github+json"
     request["X-GitHub-Api-Version"] = "2022-11-28"
     request["User-Agent"] = "dd-trace-rb-release-prep"

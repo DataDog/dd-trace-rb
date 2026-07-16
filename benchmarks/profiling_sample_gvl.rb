@@ -59,7 +59,7 @@ class ProfilerSampleGvlBenchmark
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gvl_running(@collector, @target_thread, false)
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 

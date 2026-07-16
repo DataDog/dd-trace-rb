@@ -30,8 +30,5 @@ Style/TrailingCommaInArrayLiteral:
 Style/TrailingCommaInHashLiteral:
   Enabled: false
 
-Style/StringLiteralsInInterpolation:
-  Enabled: false
-
 Layout/LeadingCommentSpace:
   Enabled: false

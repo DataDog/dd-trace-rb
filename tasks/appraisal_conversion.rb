@@ -46,7 +46,7 @@ module AppraisalConversion
   end
 
   def gemfile_pattern
-    root_path + gemfile_dir + "#{runtime_identifier.tr('-', '_')}_*.gemfile"
+    root_path + gemfile_dir + "#{runtime_identifier.tr("-", "_")}_*.gemfile"
   end
 
   def gemfile_dir
