@@ -192,8 +192,9 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       end
 
       it 'clears the exporter so it can be freed' do
-        transport.close
-        expect(transport.instance_variable_get(:@exporter)).to be_nil
+        expect { transport.close }
+          .to change { transport.instance_variable_get(:@exporter) }
+          .to(be_nil)
       end
 
       it 'stops the exporter native fork hooks from firing on a later fork' do
