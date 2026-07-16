@@ -11,7 +11,10 @@ module Datadog
       module HTTP
         # Module for handling HTTP body parsing
         module Body
-          def self.parse(body, media_type:)
+          # Matches Rack's default query bytesize limit
+          DEFAULT_BYTESIZE_LIMIT = 4 * 1024 * 1024
+
+          def self.parse(body, media_type:, limit: DEFAULT_BYTESIZE_LIMIT)
             return if body.nil?
 
             body.rewind if body.respond_to?(:rewind) # steep:ignore NoMethod
@@ -24,7 +27,7 @@ module Datadog
             if media_type.subtype == 'json' || media_type.subtype.end_with?('+json')
               JSON.parse(content)
             elsif media_type.subtype == 'x-www-form-urlencoded'
-              URLEncoded.parse(content)
+              URLEncoded.parse(content, limit: limit)
             end
           rescue => e
             AppSec.telemetry.report(e, description: 'AppSec: Failed to parse body')
