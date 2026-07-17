@@ -1068,79 +1068,55 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     describe "sampling from signal handler", :memcheck_valgrind_skip do
       let(:options) { {dynamic_sampling_rate_enabled: false} }
 
+      let(:sample_count) do
+        samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
+          .map { |it| it.values.fetch(:"cpu-samples") }.reduce(:+)
+      end
+      let(:signal_handler_prepared_sample) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_prepared_sample) }
+      let(:signal_handler_enqueued_sample) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) }
+
       before do
         allow(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
         allow(Datadog::Core::Telemetry::Logger).to receive(:error).with(/dynamic sampling rate disabled/)
 
         skip_if_signal_handler_sampling_not_supported
-      end
 
-      describe "prepare sample usage" do
-        let(:sample_count) do
-          samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
-            .map { |it| it.values.fetch(:"cpu-samples") }.reduce(:+)
-        end
-        let(:signal_handler_prepared_sample) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_prepared_sample) }
-        let(:signal_handler_enqueued_sample) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) }
+        GC.start
 
-        before do
-          GC.start
+        begin
+          # The expectations below compare number of enqueued samples with actual samples. To avoid flakiness from a
+          # slow GC in the middle of the test causing less samples than expected to be taken (since we only sample after
+          # GC ends), we disable GC during the test setup.
+          # (Note for future changes: Be careful with what you do with GC disabled!)
+          GC.disable
 
-          begin
-            # The expectations below compare number of enqueued samples with actual samples. To avoid flakiness from a
-            # slow GC in the middle of the test causing less samples than expected to be taken (since we only sample after
-            # GC ends), we disable GC during the test setup.
-            # (Note for future changes: Be careful with what you do with GC disabled!)
-            GC.disable
-
-            start
-
-            loop_until(check_condition_every_seconds: 0.01) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) >= 20 }
-
-            cpu_and_wall_time_worker.stop
-          ensure
-            GC.enable
-          end
-
-          expect(sample_count).to be > 0
-          expect(sample_count).to be_within(20).percent_of(signal_handler_enqueued_sample)
-        end
-
-        context "when signal handler sampling is enabled" do
-          let(:sighandler_sampling_enabled) { true }
-
-          it "prepares samples in the signal handler" do
-            expect(signal_handler_prepared_sample).to be > 0
-            expect(signal_handler_prepared_sample).to be_within(20).percent_of(signal_handler_enqueued_sample)
-          end
-        end
-
-        context "when signal handler sampling is disabled" do
-          let(:sighandler_sampling_enabled) { false }
-
-          it "does not prepare samples in the signal handler" do
-            expect(signal_handler_prepared_sample).to be 0
-          end
-        end
-      end
-
-      describe "crash-safety during GC compaction" do
-        let(:sighandler_sampling_enabled) { true }
-
-        # A profiler sample taken while GC compaction is moving objects can cause an issue because Ruby toggles memory
-        # protection of pages that the profiler may try to read, causing a crash.
-        it "skips sampling in the signal handler rather than walking the VM" do
           start
 
-          # Simulate signals arriving on the altstack
-          described_class::Testing._native_install_sigprof_handler_on_altstack
+          loop_until(check_condition_every_seconds: 0.01) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) >= 20 }
 
-          loop_until(check_condition_every_seconds: 0.01) do
-            cpu_and_wall_time_worker.stats.fetch(:signal_handler_skipped_sample_on_altstack) > 0
-          end
+          cpu_and_wall_time_worker.stop
+        ensure
+          GC.enable
+        end
 
-          # NOTE: We don't need to explicitly "uninstall" the altstack change, see comment on
-          # `_native_install_sigprof_handler_on_altstack` for mode details.
+        expect(sample_count).to be > 0
+        expect(sample_count).to be_within(20).percent_of(signal_handler_enqueued_sample)
+      end
+
+      context "when signal handler sampling is enabled" do
+        let(:sighandler_sampling_enabled) { true }
+
+        it "prepares samples in the signal handler" do
+          expect(signal_handler_prepared_sample).to be > 0
+          expect(signal_handler_prepared_sample).to be_within(20).percent_of(signal_handler_enqueued_sample)
+        end
+      end
+
+      context "when signal handler sampling is disabled" do
+        let(:sighandler_sampling_enabled) { false }
+
+        it "does not prepare samples in the signal handler" do
+          expect(signal_handler_prepared_sample).to be 0
         end
       end
 
@@ -1153,6 +1129,24 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # this is a safe simplification (these versions all include https://github.com/ruby/ruby/pull/11036)
           skip "Not safe to enable signal handler sampling on Ruby < 3.2.5 / Ruby < 3.3.4"
         end
+      end
+    end
+
+    describe "crash-safety during nested signal handler (such as during GC compaction)" do
+      # See `is_running_on_alternate_signal_stack` for details. Note that our little experiment here works on all Rubies,
+      # but GC compaction in particular is only for 2.7+
+      it "skips sampling in the signal handler" do
+        start
+
+        # Simulate signals arriving on the altstack
+        described_class::Testing._native_install_sigprof_handler_on_altstack
+
+        loop_until(check_condition_every_seconds: 0.01) do
+          cpu_and_wall_time_worker.stats.fetch(:signal_handler_skipped_sample_on_altstack) > 0
+        end
+
+        # NOTE: We don't need to explicitly "uninstall" the altstack change, see comment on
+        # `_native_install_sigprof_handler_on_altstack` for mode details.
       end
     end
 
