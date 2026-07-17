@@ -30,11 +30,12 @@ module Datadog
       real_req = count(real_params, :req)
       violations << "wrapper requires #{wrapper_req} positional args but real method requires #{real_req}" if wrapper_req > real_req
 
-      real_positional_slots = count(real_params, :req) + count(real_params, :opt)
-      if (has?(real_params, :rest) || real_positional_slots > wrapper_req) && !has?(wrapper_params, :rest)
+      wrapper_positional_slots = wrapper_req + count(wrapper_params, :opt)
+      real_positional_slots = real_req + count(real_params, :opt)
+      if (has?(real_params, :rest) || real_positional_slots > wrapper_positional_slots) && !has?(wrapper_params, :rest)
         violations << 'wrapper does not forward extra positional args the real method accepts (missing *args)'
       end
-      if has?(wrapper_params, :rest) && !has?(real_params, :rest) && real_positional_slots <= wrapper_req
+      if has?(wrapper_params, :rest) && !has?(real_params, :rest) && real_positional_slots <= wrapper_positional_slots
         violations << 'wrapper accepts extra positional args the real method does not (unexpected *args)'
       end
 
