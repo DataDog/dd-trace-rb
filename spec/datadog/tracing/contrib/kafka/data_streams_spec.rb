@@ -229,7 +229,8 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
     let(:instance_methods) { Datadog::Tracing::Contrib::Kafka::Instrumentation::Producer::InstanceMethods }
 
-    it 'wraps #deliver_messages compatibly with Kafka::Producer#deliver_messages', skip: 'fixed by #6060' do
+    it 'wraps #deliver_messages compatibly with Kafka::Producer#deliver_messages',
+      skip: 'Remove skip once #6060 merges' do
       wrapper_method = instance_methods.instance_method(:deliver_messages)
       real_method = Kafka::Producer.instance_method(:deliver_messages)
 
@@ -239,7 +240,8 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
     # send_messages has no matching public method on Kafka::Producer; there's no real
     # signature to compare against, so this only guards against it accepting an
     # unexpected extra param (the JRuby crash from **kwargs forwarded through `super`).
-    it 'wraps #send_messages without a keyword splat', skip: 'fixed by #6060' do
+    it 'wraps #send_messages without a keyword splat',
+      skip: 'Remove skip once #6060 merges' do
       wrapper_params = instance_methods.instance_method(:send_messages).parameters
 
       expect(wrapper_params).not_to include([:keyrest, :kwargs])
