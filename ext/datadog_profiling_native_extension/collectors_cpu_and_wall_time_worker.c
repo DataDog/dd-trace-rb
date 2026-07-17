@@ -653,35 +653,32 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception, const char *opt
 // Our SIGPROF handler is not installed with SA_ONSTACK (see `install_sigprof_signal_handler`).
 // If we detect our signal handler is running on the alt stack, it means we interrupted another signal handler
 // that IS running on the alt stack -- in practice, Ruby's GC compaction read-barrier handler.
-//
-// NOTE: On Linux we use the alt-stack bounds from the `ucontext` rather than `sigaltstack()`, because the latter is
-//   not documented as async-signal-safe (and we'd need to handle errno, etc).
 #ifdef __APPLE__
-// On macOS, `ucontext->uc_stack.ss_sp` reports the (live) stack pointer near the top of the alt stack rather than the
-// alt-stack base like Linux does, and `ss_size` is the full alt-stack size. Thus the `ucontext` bounds check below
-// doesn't work (the computed range points above the alt stack). Instead we query `sigaltstack()`, which correctly
-// reports whether we're currently running on the alt stack via the `SS_ONSTACK` flag. We save/restore errno since
-// `sigaltstack()` may clobber it.
-static bool is_running_on_alternate_signal_stack(DDTRACE_UNUSED void *ucontext) {
-  int old_errno = errno;
-  stack_t current_alt_stack;
-  bool on_alt_stack = sigaltstack(NULL, &current_alt_stack) == 0 && (current_alt_stack.ss_flags & SS_ONSTACK) != 0;
-  errno = old_errno;
-  return on_alt_stack;
-}
+  // On macOS, `ucontext->uc_stack.ss_sp` reports the (live) stack pointer near the top of the alt stack rather than the
+  // alt-stack base like Linux does, and `ss_size` is the full alt-stack size. Thus the linux version of the check
+  // didn't work for macOS.
+  // As an alternative, we query `sigaltstack()`; we save/restore errno since `sigaltstack()` may clobber it.
+  static bool is_running_on_alternate_signal_stack(DDTRACE_UNUSED void *ucontext) {
+    int old_errno = errno;
+    stack_t current_alt_stack;
+    bool on_alt_stack = sigaltstack(NULL, &current_alt_stack) == 0 && (current_alt_stack.ss_flags & SS_ONSTACK) != 0;
+    errno = old_errno;
+    return on_alt_stack;
+  }
 #else
-static bool is_running_on_alternate_signal_stack(void *ucontext) {
-  if (ucontext == NULL) return false;
+  // NOTE: On Linux we use the alt-stack bounds from the `ucontext` rather than `sigaltstack()`, allowing us to avoid one syscall.
+  static bool is_running_on_alternate_signal_stack(void *ucontext) {
+    if (ucontext == NULL) return false;
 
-  stack_t alt_stack = ((ucontext_t *) ucontext)->uc_stack;
-  if (alt_stack.ss_size == 0) return false; // No alternate signal stack registered on this thread
+    stack_t alt_stack = ((ucontext_t *) ucontext)->uc_stack;
+    if (alt_stack.ss_size == 0) return false; // No alternate signal stack registered on this thread
 
-  char stack_local;
-  uintptr_t current_sp = (uintptr_t) &stack_local;
-  uintptr_t alt_stack_start = (uintptr_t) alt_stack.ss_sp;
+    char stack_local;
+    uintptr_t current_sp = (uintptr_t) &stack_local;
+    uintptr_t alt_stack_start = (uintptr_t) alt_stack.ss_sp;
 
-  return current_sp >= alt_stack_start && current_sp < alt_stack_start + alt_stack.ss_size;
-}
+    return current_sp >= alt_stack_start && current_sp < alt_stack_start + alt_stack.ss_size;
+  }
 #endif
 
 // NOTE: Remember that this will run in the thread and within the scope of user code, including user C code.
