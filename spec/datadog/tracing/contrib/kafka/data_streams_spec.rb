@@ -256,7 +256,8 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
         Class.new do
           attr_writer :worker_events
 
-          def produce(_value, **_options); end
+          def produce(_value, **_options)
+          end
 
           def buffer_size
             0
@@ -266,7 +267,8 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
             @worker_events << :delivered
           end
 
-          def shutdown; end
+          def shutdown
+          end
 
           prepend Datadog::Tracing::Contrib::Kafka::Instrumentation::Producer
         end
@@ -293,11 +295,10 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
         allow(sync_producer).to receive(:buffer_size) { buffer_size }
         allow(sync_producer).to receive(:shutdown) do
           # Simulate producers continuing to enqueue after the delivery worker crashes.
-          begin
-            3.times { |index| async_producer.produce("queued-#{index}", topic: 'reproducer') }
-          rescue Kafka::BufferOverflow => e
-            worker_events << e
-          end
+
+          3.times { |index| async_producer.produce("queued-#{index}", topic: 'reproducer') }
+        rescue Kafka::BufferOverflow => e
+          worker_events << e
         end
       end
 
