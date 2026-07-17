@@ -58,7 +58,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       max_frames: max_frames,
       tracer: tracer,
       endpoint_collection_enabled: endpoint_collection_enabled,
-      waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
       otel_context_enabled: otel_context_enabled,
       native_filenames_enabled: native_filenames_enabled,
       show_classes: show_classes,
@@ -120,8 +119,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_gvl_waiting_at_for(thread)
   end
 
-  def on_gvl_running(thread)
-    described_class::Testing._native_on_gvl_running(thread_context_collector, thread)
+  def on_gvl_running(thread, threshold_ns = waiting_for_gvl_threshold_ns)
+    described_class::Testing._native_on_gvl_running(thread, threshold_ns)
   end
 
   def on_gvl_released(thread)
@@ -188,11 +187,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe ".new" do
-    it "sets the waiting_for_gvl_threshold_ns to the provided value" do
-      # This is a bit ugly but it saves us from having to introduce yet another way to poke at the native state
-      expect(thread_context_collector.inspect).to include("waiting_for_gvl_threshold_ns=222333444")
-    end
-
     context "when otel_context_enabled has an invalid value" do
       it "raises an ArgumentError with the value formatted via PRIsVALUE" do
         expect {

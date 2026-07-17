@@ -107,6 +107,8 @@ typedef struct {
   bool skip_idle_samples_for_testing;
   bool sighandler_sampling_enabled;
   uint32_t cpu_sampling_interval_ms;
+  // Minimum duration of a "Waiting for GVL" period to trigger a sample
+  uint32_t waiting_for_gvl_threshold_ns;
   VALUE self_instance;
   VALUE thread_context_collector_instance;
   VALUE idle_sampling_helper_instance;
@@ -408,6 +410,7 @@ static VALUE _native_new(VALUE klass) {
   state->skip_idle_samples_for_testing = false;
   state->sighandler_sampling_enabled = false;
   state->cpu_sampling_interval_ms = 10;
+  state->waiting_for_gvl_threshold_ns = 10 * 1000 * 1000;
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;
@@ -453,6 +456,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   VALUE skip_idle_samples_for_testing = rb_hash_fetch(options, ID2SYM(rb_intern("skip_idle_samples_for_testing")));
   VALUE sighandler_sampling_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("sighandler_sampling_enabled")));
   VALUE cpu_sampling_interval_ms = rb_hash_fetch(options, ID2SYM(rb_intern("cpu_sampling_interval_ms")));
+  VALUE waiting_for_gvl_threshold_ns = rb_hash_fetch(options, ID2SYM(rb_intern("waiting_for_gvl_threshold_ns")));
 
   ENFORCE_BOOLEAN(gc_profiling_enabled);
   ENFORCE_BOOLEAN(no_signals_workaround_enabled);
@@ -464,6 +468,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   ENFORCE_BOOLEAN(skip_idle_samples_for_testing)
   ENFORCE_BOOLEAN(sighandler_sampling_enabled)
   ENFORCE_TYPE(cpu_sampling_interval_ms, T_FIXNUM);
+  ENFORCE_TYPE(waiting_for_gvl_threshold_ns, T_FIXNUM);
 
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
@@ -477,6 +482,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   state->skip_idle_samples_for_testing = (skip_idle_samples_for_testing == Qtrue);
   state->sighandler_sampling_enabled = (sighandler_sampling_enabled == Qtrue);
   state->cpu_sampling_interval_ms = NUM2INT(cpu_sampling_interval_ms);
+  state->waiting_for_gvl_threshold_ns = NUM2UINT(waiting_for_gvl_threshold_ns);
 
   double total_overhead_target_percentage = NUM2DBL(dynamic_sampling_rate_overhead_target_percentage);
   if (!state->allocation_profiling_enabled) {
@@ -1548,10 +1554,11 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
       thread_context_collector_on_gvl_waiting(thread_context);
     } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
-      // Interesting note: A RUBY_INTERNAL_THREAD_EVENT_RESUMED is guaranteed to be called with the GVL being acquired
-      // and on the event thread.
-      // However, on_gvl_event() is called while holding the scheduler lock, so we do as little work as possible here,
-      // and perform the sample in a postponed_job.
+      // We must only use async-signal-safe functions here and not call arbitrary Ruby APIs and not allocate!
+      // One might assume RUBY_INTERNAL_THREAD_EVENT_RESUMED means having the GVL and running that thread.
+      // However, the reality is more complicated (https://bugs.ruby-lang.org/issues/22098),
+      // it only "sort of" has the GVL but not fully, and it's called while holding the scheduler lock,
+      // so we do as little work as possible here, and perform the sample in a postponed_job.
       cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
       if (state == NULL) return; // This should not happen, but just in case...
 
@@ -1563,7 +1570,8 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
       // that next.
       during_sample_enter(state);
 
-      on_gvl_running_result result = thread_context_collector_on_gvl_running(state->thread_context_collector_instance, target_thread, thread_context);
+      on_gvl_running_result result =
+        thread_context_collector_on_gvl_running(target_thread, thread_context, state->waiting_for_gvl_threshold_ns);
 
       during_sample_exit(state);
 
