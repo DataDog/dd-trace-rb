@@ -56,10 +56,10 @@ module Datadog
           # +rate_by_service+ map.  Returns +nil+ when the payload
           # is absent or does not contain sampling rates.
           def service_rates
-            body = payload
-            return nil if body.nil? || body.empty?
+            payload = @payload
+            return nil if payload.nil? || payload.empty?
 
-            parsed = JSON.parse(body)
+            parsed = JSON.parse(payload)
             parsed[SERVICE_RATE_KEY] if parsed.is_a?(Hash)
           rescue JSON::ParserError
             nil
