@@ -294,7 +294,7 @@ static cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
 static VALUE clock_failure_exception_class = Qnil;
 
 // Stats that live outside of any particular `cpu_and_wall_time_worker_state`, so that they can always be safely
-// touched, even when we're not sure it's save to touch the state (e.g. signal handler, no GVL, etc).
+// touched, even when we're not sure it's safe to touch the state (e.g. signal handler, no GVL, etc).
 typedef struct {
   // How many times we skipped sampling because we were running on the alternate  signal stack (e.g. nested inside
   // another signal handler, presumably GC compaction).
