@@ -2,6 +2,7 @@
 
 require_relative '../input_peeker'
 require_relative '../../../instrumentation/gateway/argument'
+require_relative '../../../utils/http/url_encoded'
 require_relative '../../../../core/header_collection'
 require_relative '../../../../tracing/client_ip'
 
@@ -24,12 +25,7 @@ module Datadog
             end
 
             def query
-              ::Rack::Utils.parse_query(request.query_string)
-            rescue => e
-              Datadog.logger.debug { "AppSec: Failed to parse request query string: #{e.class}: #{e.message}" }
-              AppSec.telemetry.report(e, description: 'AppSec: Failed to parse request query string')
-
-              {}
+              Utils::HTTP::URLEncoded.parse(request.query_string)
             end
 
             def method
