@@ -130,6 +130,13 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::Response#service_rates' do
       expect(resp.service_rates).to be_nil
     end
   end
+
+  context 'with JSON that does not parse to a Hash' do
+    it 'returns nil' do
+      resp = make_response(payload: '[1, 2, 3]')
+      expect(resp.service_rates).to be_nil
+    end
+  end
 end
 
 RSpec.describe 'Datadog::Tracing::Transport::Native::InternalErrorResponse#service_rates' do
