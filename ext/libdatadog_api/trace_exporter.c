@@ -241,11 +241,15 @@ static inline trace_id_t split_trace_id(VALUE trace_id) {
 /* ========================================================================
  * Hash iteration callbacks for meta / metrics
  *
- * We cannot raise Ruby exceptions from inside rb_hash_foreach callbacks
- * (longjmp would corrupt the hash iteration state).  Instead, the first
- * error is stashed in a context struct and iteration is stopped with
- * ST_STOP.  The caller checks for the error after rb_hash_foreach
- * returns.
+ * We avoid raising Ruby exceptions from inside rb_hash_foreach callbacks.
+ * rb_hash_foreach brackets each callback with an iteration-level increment
+ * and decrement on the hash being iterated; a longjmp out of the callback
+ * (from a raise) skips the decrement, leaving that hash marked as "being
+ * iterated" so later mutations of it (here, the user's own span.meta /
+ * span.metrics) spuriously raise "can't add a new key into hash during
+ * iteration".  Instead, the first error is stashed in a context struct and
+ * iteration is stopped with ST_STOP.  The caller checks for the error after
+ * rb_hash_foreach returns.
  * ======================================================================== */
 
 typedef struct {
@@ -258,11 +262,11 @@ static int meta_iter_cb(VALUE key, VALUE value, VALUE arg) {
   hash_iter_ctx *ctx = (hash_iter_ctx *)arg;
 
   /*
-   * We intentionally use direct struct initialization instead of
-   * char_slice_from_ruby_string() here: that helper contains
-   * ENFORCE_TYPE which can raise, and raising inside an
-   * rb_hash_foreach callback would longjmp out of the hash
-   * iteration and corrupt internal VM state.
+   * We build the ddog_CharSlice by direct struct initialization rather than
+   * char_slice_from_ruby_string(), which calls ENFORCE_TYPE and can raise:
+   * raising here would longjmp out of the rb_hash_foreach callback and leave
+   * the hash stuck in its iterating state (see the note above the callbacks).
+   * The type is already checked below, so no raise is needed anyway.
    */
   if (!RB_TYPE_P(key, T_STRING) || !RB_TYPE_P(value, T_STRING)) {
     ctx->skipped++;
