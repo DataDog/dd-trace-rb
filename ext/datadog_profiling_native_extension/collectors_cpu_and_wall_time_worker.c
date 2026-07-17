@@ -995,6 +995,10 @@ static VALUE _native_remove_testing_signal_handler(DDTRACE_UNUSED VALUE self) {
 // delivered while nested inside Ruby's read-barrier signal handler, which runs on the alternate signal stack. We
 // simulate that here by re-installing the production `handle_sampling_signal` with the `SA_ONSTACK` flag, so it runs
 // on the alternate signal stack just like it would in that scenario.
+//
+// The `SA_ONSTACK` will be undone by any next `replace_sigprof_signal_handler_with_empty_handler` /
+// `install_sigprof_signal_handler_internal` / `remove_sigprof_signal_handle` so this doesn't need a specific, symmetric
+// `uninstall` to undo this.
 static VALUE _native_install_sigprof_handler_on_altstack(DDTRACE_UNUSED VALUE self) {
   struct sigaction signal_handler_config = {
     .sa_flags = SA_RESTART | SA_SIGINFO | SA_ONSTACK,

@@ -1138,6 +1138,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           loop_until(check_condition_every_seconds: 0.01) do
             cpu_and_wall_time_worker.stats.fetch(:signal_handler_skipped_sample_on_altstack) > 0
           end
+
+          # NOTE: We don't need to explicitly "uninstall" the altstack change, see comment on
+          # `_native_install_sigprof_handler_on_altstack` for mode details.
         end
       end
 
