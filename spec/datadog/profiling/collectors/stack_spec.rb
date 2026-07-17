@@ -257,54 +257,54 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       # can't be used as a comparison. Yet, it's still useful to assert that we get something sane, so this
       # `golden_result` is the result of getting the stack on Ruby 3.4+, and we expect all supported Rubies to match it.
       let(:golden_result) {
-        [
-          "Kernel#sleep",
-          "IbhClassA#hello",
-          "IbhModuleB::IbhClassB#hello",
-          "IbhModuleC.hello",
-          "IbhClassWithStaticMethod.hello",
-          "IbhModuleD#hello",
-          "<module:IbhGlobals>",
-          "<module:IbhGlobals>",
-          "hello",
-          "IbhClassE#hello",
-          "Method#call",
-          "hello",
-          "IbhModuleE.hello",
-          "IbhClassH#method_missing",
-          "IbhClassF#hello",
-          "Integer#times",
-          "IbhClassF#hello",
-          "<top (required)>",
-          "hello",
-          "hello",
-          "hello",
-          "Object#ibh_method_with_complex_parameters",
-          "IbhClassJ#hello",
-          "IbhClassJ#hello_helper",
-          "IbhClassJ#hello",
-          "IbhClassJ#hello_helper",
-          "IbhClassJ#hello",
-          "IbhClassK#hello",
-          "Kernel#eval",
-          "IbhClassK#hello",
-          "IbhClassL#hello",
-          "BasicObject#instance_eval",
-          "IbhClassL#hello",
-          "IbhClassM#hello",
-          "Kernel#eval",
-          "IbhClassM#hello",
-          "<top (required)>",
-          "Integer#times",
-          "<top (required)>",
-          "hello",
-          "Array#map",
-          "hello",
-          "Object#ibh_subclass_of_anonymous_class",
-          "IbhModuleO.hello",
-          "Object#ibh_top_level_hello",
-          "<top (required)>",
-        ]
+        <<~BACKTRACE.lines.map(&:chomp)
+          Kernel#sleep
+          IbhClassA#hello
+          IbhModuleB::IbhClassB#hello
+          IbhModuleC.hello
+          IbhClassWithStaticMethod.hello
+          IbhModuleD#hello
+          block in <module:IbhGlobals>
+          block in <module:IbhGlobals>
+          hello
+          IbhClassE#hello
+          Method#call
+          hello
+          IbhModuleE.hello
+          IbhClassH#method_missing
+          block in IbhClassF#hello
+          Integer#times
+          IbhClassF#hello
+          block (2 levels) in <top (required)>
+          hello
+          hello
+          hello
+          Object#ibh_method_with_complex_parameters
+          block (2 levels) in IbhClassJ#hello
+          IbhClassJ#hello_helper
+          block in IbhClassJ#hello
+          IbhClassJ#hello_helper
+          IbhClassJ#hello
+          IbhClassK#hello
+          Kernel#eval
+          IbhClassK#hello
+          IbhClassL#hello
+          BasicObject#instance_eval
+          IbhClassL#hello
+          IbhClassM#hello
+          Kernel#eval
+          IbhClassM#hello
+          block (3 levels) in <top (required)>
+          Integer#times
+          block (2 levels) in <top (required)>
+          block in hello
+          Array#map
+          hello
+          Object#ibh_subclass_of_anonymous_class
+          IbhModuleO.hello
+          IbhOperator#<<
+          Object#ibh_top_level_hello
+        BACKTRACE
       }
 
       context "on a Ruby that can provide a reference including module names", if: RubyVersion.is?(">= 3.4") do
@@ -330,6 +330,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           # Validate that `golden_result` is still up-to-date
           # For some reason RSpec is terrible at showing differences with eq() and start_with(), so we do it ourselves
           gathered_stack_prefix = gathered_stack.map(&:base_label)[0, golden_result.size]
+          # puts nil, gathered_stack_prefix, nil, golden_result, nil
           expect(gathered_stack_prefix).to include(*golden_result)
           gathered_stack_prefix.zip(golden_result) { |a,e|
             expect(a).to eq(e)
@@ -892,8 +893,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         have_attributes(base_label: "Truncated Frames", path: "", lineno: 0),
         have_attributes(base_label: "DeepStackSimulator#deep_stack_4"),
         have_attributes(base_label: "DeepStackSimulator#deep_stack_3"),
-        have_attributes(base_label: "DeepStackSimulator.thread_with_stack_depth"),
-        have_attributes(base_label: "DatadogThreadDebugger#initialize"),
+        have_attributes(base_label: "block in DeepStackSimulator.thread_with_stack_depth"),
+        have_attributes(base_label: "block in DatadogThreadDebugger#initialize"),
       )
     end
 
@@ -1124,7 +1125,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   def convert_reference_stack(raw_reference_stack, module_names:)
     raw_reference_stack.map do |location|
       label =
-        module_names ? location.label.gsub(/^block(?: \(\d+ levels\))? in /, "") : location.base_label
+        module_names ? location.label : location.base_label
       ProfileHelpers::Frame.new(label, location.path, location.lineno).freeze
     end
   end

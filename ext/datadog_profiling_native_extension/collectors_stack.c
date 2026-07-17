@@ -326,9 +326,13 @@ void sample_thread(
     int line;
     bool top_of_the_stack = i == top_of_stack_position;
 
+    VALUE qualified_name = Qnil;
     if (buffer->stack_buffer[i].is_ruby_frame) {
       VALUE iseq = buffer->stack_buffer[i].as.ruby_frame.iseq;
       VALUE name = rb_iseq_base_label(iseq);
+      if (include_module_name) {
+        qualified_name = ddtrace_location_label(buffer->stack_buffer[i].as.ruby_frame.caching_cme, iseq);
+      }
       VALUE filename =
         // Note: We saw crash reports from a customer from dereferencing a null pointer inside `rb_iseq_path`.
         // It's not clear in what situation would the pathobj ever be NULL, yet it seems harmless from our side to
@@ -343,6 +347,10 @@ void sample_thread(
       last_ruby_line = line;
     } else {
       VALUE name = rb_id2str(buffer->stack_buffer[i].as.native_frame.method_id);
+      // VALUE name = rb_id2str(buffer->stack_buffer[i].as.native_frame.caching_cme->def->original_id);
+      if (include_module_name) {
+        qualified_name = ddtrace_location_label(buffer->stack_buffer[i].as.native_frame.caching_cme, Qfalse);
+      }
 
       name_slice = NIL_P(name) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
 
@@ -357,8 +365,6 @@ void sample_thread(
         native_filenames_cache
       );
     }
-
-    maybe_trim_template_random_ids(&name_slice, &filename_slice);
 
     // When there's only wall-time in a sample, this means that the thread was not active in the sampled period.
     if (top_of_the_stack && only_wall_time) {
@@ -419,11 +425,16 @@ void sample_thread(
       }
     }
 
+    // if (include_module_name) {
+    //   VALUE defined_class = buffer->stack_buffer[i].defined_class;
+    //   size_t remaining = qualified_name_buf_size - qualified_name_pos;
+    //   qualified_name_pos += build_qualified_name(defined_class, &name_slice, qualified_name_buf + qualified_name_pos, remaining);
+    // }
     if (include_module_name) {
-      VALUE defined_class = buffer->stack_buffer[i].defined_class;
-      size_t remaining = qualified_name_buf_size - qualified_name_pos;
-      qualified_name_pos += build_qualified_name(defined_class, &name_slice, qualified_name_buf + qualified_name_pos, remaining);
+      name_slice = char_slice_from_ruby_string(qualified_name);
     }
+
+    maybe_trim_template_random_ids(&name_slice, &filename_slice);
 
     int libdatadog_stores_stacks_flipped_from_rb_profile_frames_index = top_of_stack_position - i;
 
@@ -577,13 +588,16 @@ static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_Char
 }
 
 static VALUE get_class_attached_object(VALUE klass) {
-  #ifndef NO_CLASS_ATTACHED_OBJECT
-    return rb_class_attached_object(klass);
-  #else
-    return rb_ivar_get(klass, rb_intern("__attached__"));
-  #endif
+#ifndef NO_CLASS_ATTACHED_OBJECT
+  return rb_class_attached_object(klass);
+#else
+  return rb_ivar_get(klass, rb_intern("__attached__"));
+#endif
 }
 
+// Like Thread::Backtrace::Location#label in Ruby 4.0 (location_label(), rb_gen_method_name(), calculate_iseq_label())
+//
+// TODO:
 // Like CRuby rb_profile_frame_qualified_method_name() in Ruby 4.0.
 // We have our own because rb_profile_frame_qualified_method_name() uses rb_sprintf() which allocates a Ruby String.
 // Also we choose to only show the method name if the class is anonymous.
@@ -594,7 +608,6 @@ static VALUE get_class_attached_object(VALUE klass) {
 static size_t build_qualified_name(VALUE defined_class, ddog_CharSlice *name_slice, char *buf, size_t buf_size) {
   ddog_CharSlice method_name = *name_slice;
   if (method_name.len == 0) return 0;
-  if (method_name.ptr[0] == '<') return 0;
 
   // From Ruby 4.0 rb_profile_frame_classpath()
   VALUE klass = defined_class;
@@ -777,6 +790,9 @@ void sampling_buffer_mark(sampling_buffer *buffer) {
   for (int i = 0; i < buffer->pending_sample_result; i++) {
     if (buffer->stack_buffer[i].is_ruby_frame) {
       rb_gc_mark(buffer->stack_buffer[i].as.ruby_frame.iseq);
+      rb_gc_mark(buffer->stack_buffer[i].as.ruby_frame.caching_cme);
+    } else {
+      rb_gc_mark(buffer->stack_buffer[i].as.native_frame.caching_cme);
     }
     rb_gc_mark(buffer->stack_buffer[i].defined_class);
   }

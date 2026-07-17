@@ -878,3 +878,131 @@ bool pathobj_is_null(VALUE iseq) {
   const rb_iseq_t *iseq_ptr = (const rb_iseq_t *) iseq;
   return ISEQ_BODY(iseq_ptr)->location.pathobj == 0;
 }
+
+// Variant of functions related to Thread::Backtrace::Location#label in Ruby 4.0
+// (location_label(), rb_gen_method_name(), calculate_iseq_label()),
+// but formatting using a C buffer instead of allocating Ruby Strings.
+// Also, those functions are static functions in vm_backtrace.c so not reusable.
+// THere is also AFAIK no reasonable way to create a rb_backtrace_location_t from outside that file.
+
+// Return true if a given location is a C method or supposed to behave like one.
+static bool location_cfunc_p(const rb_callable_method_entry_t *cme) {
+  if (!cme) return false;
+
+  switch (cme->def->type) {
+    case VM_METHOD_TYPE_CFUNC:
+      return true;
+    // Upstream, but we don't want that behavior:
+    // case VM_METHOD_TYPE_ISEQ:
+    //   return is_internal_location(loc->cme->def->body.iseq.iseqptr);
+    default:
+      return false;
+  }
+}
+
+static bool RCLASS_SINGLETON_P(VALUE klass) {
+  return RB_TYPE_P(klass, T_CLASS) && FL_TEST_RAW(klass, FL_SINGLETON);
+}
+
+static VALUE get_class_attached_object(VALUE klass) {
+#ifndef NO_CLASS_ATTACHED_OBJECT
+  return rb_class_attached_object(klass);
+#else
+  return rb_ivar_get(klass, rb_intern("__attached__"));
+#endif
+}
+
+static VALUE alloc_free_rb_mod_name(VALUE mod) {
+#ifdef NO_ALLOC_FREE_MOD_NAME
+  return rb_attr_get(mod, rb_intern("__classpath__"));
+#else
+  return rb_mod_name(mod);
+#endif
+}
+
+static bool is_metaclass(VALUE mod, VALUE* attached) {
+  if (RCLASS_SINGLETON_P(mod)) {
+    VALUE attached_object = get_class_attached_object(mod);
+    if (RB_TYPE_P(attached_object, T_CLASS) || RB_TYPE_P(attached_object, T_MODULE)) {
+      *attached = attached_object;
+      return true;
+    }
+  }
+  return false;
+}
+
+static VALUE rb_gen_method_name(VALUE owner, VALUE method_name) {
+  if (!(RB_TYPE_P(owner, T_CLASS) || RB_TYPE_P(owner, T_MODULE))) {
+    return method_name;
+  }
+
+  VALUE mod = owner;
+  if (is_metaclass(owner, &mod)) {
+    // We don't have rb_mod_name0() so use alloc_free_rb_mod_name()
+    VALUE mod_name = alloc_free_rb_mod_name(mod);
+    if (!NIL_P(mod_name)) {
+      return rb_sprintf("%"PRIsVALUE".%"PRIsVALUE, mod_name, method_name);
+    }
+  } else {
+    VALUE mod_name = alloc_free_rb_mod_name(owner);
+    if (!NIL_P(mod_name)) {
+      return rb_sprintf("%"PRIsVALUE"#%"PRIsVALUE, mod_name, method_name);
+    }
+  }
+
+  return method_name;
+}
+
+static VALUE calculate_iseq_label(VALUE owner, const rb_iseq_t *iseq) {
+  switch (ISEQ_BODY(iseq)->type) {
+    case ISEQ_TYPE_TOP:
+    case ISEQ_TYPE_CLASS:
+    case ISEQ_TYPE_MAIN:
+      // Just the method name, not `Object#<top (required)>`
+      return ISEQ_BODY(iseq)->location.label;
+    case ISEQ_TYPE_METHOD:
+      return rb_gen_method_name(owner, ISEQ_BODY(iseq)->location.label);
+    case ISEQ_TYPE_BLOCK:
+    case ISEQ_TYPE_PLAIN: {
+      int level = 0;
+      const rb_iseq_t *orig_iseq = iseq;
+      if (ISEQ_BODY(orig_iseq)->parent_iseq != 0) {
+        while (ISEQ_BODY(orig_iseq)->local_iseq != iseq) {
+          if (ISEQ_BODY(iseq)->type == ISEQ_TYPE_BLOCK) {
+            level++;
+          }
+          iseq = ISEQ_BODY(iseq)->parent_iseq;
+        }
+      }
+
+      if (level <= 1) {
+        return rb_sprintf("block in %"PRIsVALUE, calculate_iseq_label(owner, iseq));
+      } else {
+        return rb_sprintf("block (%d levels) in %"PRIsVALUE, level, calculate_iseq_label(owner, iseq));
+      }
+    }
+    case ISEQ_TYPE_RESCUE:
+    case ISEQ_TYPE_ENSURE:
+    case ISEQ_TYPE_EVAL:
+      iseq = ISEQ_BODY(iseq)->parent_iseq;
+      return calculate_iseq_label(owner, iseq);
+    default:
+      // Upstream: rb_bug("calculate_iseq_label: unreachable");
+      return ISEQ_BODY(iseq)->location.label;
+  }
+}
+
+// MRI: location_label()
+// C methods don't have an iseq, only Ruby methods have
+VALUE ddtrace_location_label(VALUE cme_VALUE, VALUE iseq_VALUE) {
+  const rb_callable_method_entry_t *cme = (const rb_callable_method_entry_t *) cme_VALUE;
+  const rb_iseq_t *iseq = (const rb_iseq_t *) iseq_VALUE;
+  if (location_cfunc_p(cme)) {
+    VALUE method_name = rb_id2str(cme->def->original_id);
+    return rb_gen_method_name(cme->owner, method_name);
+  } else {
+    VALUE owner = cme ? cme->owner : Qnil;
+    return calculate_iseq_label(owner, iseq);
+  }
+}
+

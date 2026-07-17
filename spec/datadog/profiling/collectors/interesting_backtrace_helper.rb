@@ -192,8 +192,14 @@ module IbhModuleO
   end
 end
 
+class IbhOperator
+  def <<(_)
+    IbhModuleO.hello
+  end
+end
+
 def ibh_top_level_hello
-  IbhModuleO.hello
+  IbhOperator.new << :hello
 end
 
 1.times {

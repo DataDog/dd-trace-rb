@@ -87,3 +87,5 @@ VALUE current_fiber_for(VALUE thread);
 void self_test_current_fiber_for(void);
 
 bool pathobj_is_null(VALUE iseq);
+
+VALUE ddtrace_location_label(VALUE cme_VALUE, VALUE iseq_VALUE);
