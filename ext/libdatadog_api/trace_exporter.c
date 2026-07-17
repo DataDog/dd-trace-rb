@@ -241,15 +241,12 @@ static inline trace_id_t split_trace_id(VALUE trace_id) {
 /* ========================================================================
  * Hash iteration callbacks for meta / metrics
  *
- * We avoid raising Ruby exceptions from inside rb_hash_foreach callbacks.
- * rb_hash_foreach brackets each callback with an iteration-level increment
- * and decrement on the hash being iterated; a longjmp out of the callback
- * (from a raise) skips the decrement, leaving that hash marked as "being
- * iterated" so later mutations of it (here, the user's own span.meta /
- * span.metrics) spuriously raise "can't add a new key into hash during
- * iteration".  Instead, the first error is stashed in a context struct and
- * iteration is stopped with ST_STOP.  The caller checks for the error after
- * rb_hash_foreach returns.
+ * The libdatadog setters return owned errors rather than raising. Stash the
+ * first error in a context struct and stop iteration with ST_STOP so the
+ * caller can free the still-unowned Rust span before turning the error into
+ * a Ruby exception. (This is about span ownership, not hash iteration: MRI
+ * restores rb_hash_foreach's iteration state via rb_ensure if a callback
+ * exits non-locally.)
  * ======================================================================== */
 
 typedef struct {
@@ -262,11 +259,10 @@ static int meta_iter_cb(VALUE key, VALUE value, VALUE arg) {
   hash_iter_ctx *ctx = (hash_iter_ctx *)arg;
 
   /*
-   * We build the ddog_CharSlice by direct struct initialization rather than
-   * char_slice_from_ruby_string(), which calls ENFORCE_TYPE and can raise:
-   * raising here would longjmp out of the rb_hash_foreach callback and leave
-   * the hash stuck in its iterating state (see the note above the callbacks).
-   * The type is already checked below, so no raise is needed anyway.
+   * The types are checked below, so build the ddog_CharSlice directly instead
+   * of repeating char_slice_from_ruby_string()'s ENFORCE_TYPE check.
+   * libdatadog copies both slices before the FFI call returns and retains no
+   * pointer into the Ruby-owned string storage.
    */
   if (!RB_TYPE_P(key, T_STRING) || !RB_TYPE_P(value, T_STRING)) {
     ctx->skipped++;
@@ -295,7 +291,8 @@ static int metrics_iter_cb(VALUE key, VALUE value, VALUE arg) {
     return ST_CONTINUE;
   }
 
-  /* See meta_iter_cb for why we avoid char_slice_from_ruby_string() here. */
+  /* See meta_iter_cb: the key type is checked above, so build the slice
+   * directly. */
   ddog_CharSlice ks = {.ptr = RSTRING_PTR(key), .len = RSTRING_LEN(key)};
 
   ddog_TraceExporterError *err =
