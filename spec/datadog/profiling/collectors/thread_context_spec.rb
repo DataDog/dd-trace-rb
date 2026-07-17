@@ -119,7 +119,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   def on_gvl_running(thread)
-    described_class::Testing._native_on_gvl_running(thread_context_collector, thread)
+    # We touch the subject so the collector is initialized: its reset sets the global threshold that on_gvl_running reads
+    thread_context_collector
+    described_class::Testing._native_on_gvl_running(thread)
   end
 
   def on_gvl_released(thread)

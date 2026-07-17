@@ -1469,10 +1469,11 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
       thread_context_collector_on_gvl_waiting(thread_context);
     } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
-      // Interesting note: A RUBY_INTERNAL_THREAD_EVENT_RESUMED is guaranteed to be called with the GVL being acquired
-      // and on the event thread.
-      // However, on_gvl_event() is called while holding the scheduler lock, so we do as little work as possible here,
-      // and perform the sample in a postponed_job.
+      // We MUST only use async-signal-safe functions here and not call arbitrary Ruby APIs and not allocate!
+      // One might assume RUBY_INTERNAL_THREAD_EVENT_RESUMED means having the GVL and running that thread.
+      // HOWEVER, the reality is more complicated (https://bugs.ruby-lang.org/issues/22098),
+      // it only "sort of" has the GVL but not fully, and it's called while holding the scheduler lock,
+      // so we do as little work as possible here, and perform the sample in a postponed_job.
       cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
       if (state == NULL) return; // This should not happen, but just in case...
 
@@ -1484,7 +1485,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
       // that next.
       during_sample_enter(state);
 
-      on_gvl_running_result result = thread_context_collector_on_gvl_running(state->thread_context_collector_instance, target_thread, thread_context);
+      on_gvl_running_result result = thread_context_collector_on_gvl_running(target_thread, thread_context);
 
       during_sample_exit(state);
 
