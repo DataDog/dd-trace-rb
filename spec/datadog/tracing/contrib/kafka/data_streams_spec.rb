@@ -244,7 +244,8 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
     # send_messages has no matching public method on Kafka::Producer; there's no real
     # signature to compare against, so this only guards against it accepting an
-    # unexpected extra param (the JRuby crash from **kwargs forwarded through `super`).
+    # unexpected extra param (empty **kwargs forwarded through bare `super` raises
+    # ArgumentError, regardless of Ruby implementation).
     it 'wraps #send_messages without a keyword splat',
       skip: 'Remove skip once #6060 merges' do
       wrapper_params = instance_methods.instance_method(:send_messages).parameters
