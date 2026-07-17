@@ -4,6 +4,8 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/core'
 require 'datadog/core/ddsketch'
 require 'ostruct'
+require 'logger'
+require 'ruby-kafka'
 require 'datadog/tracing/contrib/kafka/integration'
 require 'datadog/tracing/contrib/kafka/instrumentation/producer'
 require 'datadog/tracing/contrib/kafka/instrumentation/consumer'
@@ -224,8 +226,8 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
     end
   end
 
-  # Regression: the wrappers must not add `**kwargs`. On JRuby an empty `**kwargs`
-  # forwarded through `super` becomes a positional hash and raises ArgumentError.
+  # Regression: the wrappers must not add `**kwargs`. On Ruby 2.5 and Ruby 2.6 an
+  # empty `**kwargs` forwarded through `super` becomes a positional hash and raises ArgumentError.
   describe 'argument forwarding to wrapped ruby-kafka methods' do
     before do
       Datadog.configure do |c|
@@ -245,6 +247,75 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
         end
 
         prepend Datadog::Tracing::Contrib::Kafka::Instrumentation::Producer
+      end
+    end
+
+    describe 'Kafka::AsyncProducer' do
+      let(:worker_events) { Queue.new }
+      let(:sync_producer_class) do
+        Class.new do
+          attr_writer :worker_events
+
+          def produce(_value, **_options); end
+
+          def buffer_size
+            0
+          end
+
+          def deliver_messages
+            @worker_events << :delivered
+          end
+
+          def shutdown; end
+
+          prepend Datadog::Tracing::Contrib::Kafka::Instrumentation::Producer
+        end
+      end
+      let(:sync_producer) do
+        producer = sync_producer_class.new
+        producer.worker_events = worker_events
+        producer
+      end
+      let(:kafka_logger) { Logger.new(File::NULL) }
+      let(:async_producer) do
+        Kafka::AsyncProducer.new(
+          sync_producer: sync_producer,
+          max_queue_size: 2,
+          delivery_threshold: 1,
+          instrumenter: Kafka::Instrumenter.new(client_id: 'buffer-overflow-reproducer'),
+          logger: kafka_logger
+        )
+      end
+
+      before do
+        buffer_size = 0
+        allow(sync_producer).to receive(:produce) { buffer_size += 1 }
+        allow(sync_producer).to receive(:buffer_size) { buffer_size }
+        allow(sync_producer).to receive(:shutdown) do
+          # Simulate producers continuing to enqueue after the delivery worker crashes.
+          begin
+            3.times { |index| async_producer.produce("queued-#{index}", topic: 'reproducer') }
+          rescue Kafka::BufferOverflow => e
+            worker_events << e
+          end
+        end
+      end
+
+      after do
+        allow(sync_producer).to receive(:shutdown)
+        begin
+          async_producer.shutdown
+        ensure
+          kafka_logger.close
+        end
+      end
+
+      it 'keeps the queue draining' do
+        async_producer.produce('first', topic: 'reproducer')
+        worker_event = worker_events.pop
+        raise worker_event if worker_event.is_a?(Kafka::BufferOverflow)
+
+        expect(worker_event).to eq(:delivered)
       end
     end
 
