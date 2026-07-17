@@ -296,9 +296,8 @@ static VALUE clock_failure_exception_class = Qnil;
 // Stats that live outside of any particular `cpu_and_wall_time_worker_state`, so that they can always be safely
 // touched, even when we're not sure it's save to touch the state (e.g. signal handler, no GVL, etc).
 typedef struct {
-  // How many times we skipped sampling directly from the signal handler because we were running on the alternate
-  // signal stack (e.g. nested inside another signal handler such as the GC compaction read barrier), where walking
-  // the VM is unsafe. In this situation we fall back to the postponed job instead.
+  // How many times we skipped sampling because we were running on the alternate  signal stack (e.g. nested inside
+  // another signal handler, presumably GC compaction).
   unsigned int signal_handler_skipped_sample_on_altstack;
 } global_stats_t;
 static global_stats_t global_stats;
