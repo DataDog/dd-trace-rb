@@ -172,7 +172,7 @@ Enforced by StandardRB: `bundle exec rake standard:fix`
 Additional team preferences:
 - Trailing commas in multi-line arrays, hashes, and arguments
 - RBS type definitions in `sig/` mirror `lib/` structure
-- Avoid `untyped`; use `Type?` not `(nil | Type)`
+- Use `Type?` over `(nil | Type)`
 - Use `any` only when every possible type is intentionally valid and the code does not depend on the value's concrete type. Do not use `any` merely because the type is unknown or has not yet been modeled; use `untyped` in those cases.
 
 Ruby idioms:
