@@ -540,8 +540,14 @@ RSpec.describe 'net/http requests' do
 
   describe 'wrapper signature parity with Net::HTTP' do
     it 'wraps #request compatibly with Net::HTTP#request' do
-      wrapper_method = Datadog::Tracing::Contrib::HTTP::Instrumentation::InstanceMethods.instance_method(:request)
-      real_method = Net::HTTP.instance_method(:request)
+      # Fetching the UnboundMethod via Net::HTTP (rather than the InstanceMethods module directly)
+      # is required for `super_method` to work below -- a method obtained straight from the module
+      # has no ancestor chain to walk. Since :http is already instrumented by the outer `before`
+      # block, this resolves to the prepended wrapper, not the real method.
+      wrapper_method = Net::HTTP.instance_method(:request)
+      # `super_method` follows the lookup chain past the wrapper to whatever #request it actually
+      # calls via `super` -- stdlib's Net::HTTP#request, or WebMock's shim when WebMock is enabled.
+      real_method = wrapper_method.super_method
 
       expect(wrapper_method).to be_signature_compatible_with(real_method)
     end

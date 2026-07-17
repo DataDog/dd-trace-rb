@@ -231,8 +231,13 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
     it 'wraps #deliver_messages compatibly with Kafka::Producer#deliver_messages',
       skip: 'Remove skip once #6060 merges' do
-      wrapper_method = instance_methods.instance_method(:deliver_messages)
-      real_method = Kafka::Producer.instance_method(:deliver_messages)
+      # Fetching the UnboundMethod via Kafka::Producer (rather than the InstanceMethods module
+      # directly) is required for `super_method` to work below -- a method obtained straight from
+      # the module has no ancestor chain to walk. Since :kafka is already instrumented by the outer
+      # `before` block, this resolves to the prepended wrapper, not the real method.
+      wrapper_method = Kafka::Producer.instance_method(:deliver_messages)
+      # `super_method` follows the lookup chain past the wrapper to the real gem method underneath.
+      real_method = wrapper_method.super_method
 
       expect(wrapper_method).to be_signature_compatible_with(real_method)
     end
