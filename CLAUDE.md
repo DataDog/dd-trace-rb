@@ -173,7 +173,7 @@ Additional team preferences:
 - Trailing commas in multi-line arrays, hashes, and arguments
 - RBS type definitions in `sig/` mirror `lib/` structure
 - Avoid `untyped`; use `Type?` not `(nil | Type)`
-- Use `any` when the value can be of any type
+- Use `any` only when every possible type is intentionally valid and the code does not depend on the value's concrete type. Do not use `any` merely because the type is unknown or has not yet been modeled; use `untyped` in those cases.
 
 Ruby idioms:
 - Prefer `x.to_s` over `x || ''` for nil-safe string conversion
