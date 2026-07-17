@@ -158,9 +158,11 @@ module Datadog
             rescue => e
               Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e.class}: #{e.message}" }
             ensure
-              # The forking thread owns the lock here; the guard avoids raising
-              # if :before failed to acquire it. Released even if the native
-              # call raised, so a failure can't leave the mutex locked forever.
+              # `:before`'s ensure always locks the mutex on the forking thread
+              # before any fork outcome, so it is normally owned here; the guard
+              # only covers `:before` being interrupted mid-lock (e.g. a kill
+              # between `_native_before_fork` and the lock). Released even if the
+              # native call raised, so a failure can't leave the mutex locked.
               send_mutex.unlock if send_mutex.owned?
             end
             child_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
@@ -168,8 +170,9 @@ module Datadog
             rescue => e
               Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e.class}: #{e.message}" }
             ensure
-              # The forking thread is the lone surviving thread in the child and
-              # owns the lock; the guard avoids raising if :before failed.
+              # See the :parent hook: normally owned (the forking thread is the
+              # lone survivor in the child); the guard only covers `:before`
+              # being interrupted mid-lock.
               send_mutex.unlock if send_mutex.owned?
             end
 
