@@ -654,8 +654,22 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception, const char *opt
 // If we detect our signal handler is running on the alt stack, it means we interrupted another signal handler
 // that IS running on the alt stack -- in practice, Ruby's GC compaction read-barrier handler.
 //
-// NOTE: We use the alt-stack bounds from the `ucontext` rather than `sigaltstack()`, because the latter is not
-//   documented as async-signal-safe (and we'd need to handle errno, etc).
+// NOTE: On Linux we use the alt-stack bounds from the `ucontext` rather than `sigaltstack()`, because the latter is
+//   not documented as async-signal-safe (and we'd need to handle errno, etc).
+#ifdef __APPLE__
+// On macOS, `ucontext->uc_stack.ss_sp` reports the (live) stack pointer near the top of the alt stack rather than the
+// alt-stack base like Linux does, and `ss_size` is the full alt-stack size. Thus the `ucontext` bounds check below
+// doesn't work (the computed range points above the alt stack). Instead we query `sigaltstack()`, which correctly
+// reports whether we're currently running on the alt stack via the `SS_ONSTACK` flag. We save/restore errno since
+// `sigaltstack()` may clobber it.
+static bool is_running_on_alternate_signal_stack(DDTRACE_UNUSED void *ucontext) {
+  int old_errno = errno;
+  stack_t current_alt_stack;
+  bool on_alt_stack = sigaltstack(NULL, &current_alt_stack) == 0 && (current_alt_stack.ss_flags & SS_ONSTACK) != 0;
+  errno = old_errno;
+  return on_alt_stack;
+}
+#else
 static bool is_running_on_alternate_signal_stack(void *ucontext) {
   if (ucontext == NULL) return false;
 
@@ -668,6 +682,7 @@ static bool is_running_on_alternate_signal_stack(void *ucontext) {
 
   return current_sp >= alt_stack_start && current_sp < alt_stack_start + alt_stack.ss_size;
 }
+#endif
 
 // NOTE: Remember that this will run in the thread and within the scope of user code, including user C code.
 // We need to be careful not to change any state that may be observed OR to restore it if we do. For instance, if anything
