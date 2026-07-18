@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'open_feature/sdk'
 require 'datadog/open_feature/provider'
 require 'datadog/open_feature/evaluation_engine'
 require 'datadog/open_feature/hooks/flag_eval_metrics_hook'
 require 'datadog/open_feature/hooks/flag_eval_evp_hook'
 require 'datadog/open_feature/flag_evaluation/writer'
+require 'datadog/open_feature/hooks/span_enrichment_hook'
 
 RSpec.describe Datadog::OpenFeature::Provider do
   before do
@@ -181,6 +183,8 @@ RSpec.describe Datadog::OpenFeature::Provider do
       allow(components).to receive(:open_feature).and_return(open_feature_component)
       allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(flag_eval_metrics_hook)
       allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(flag_eval_evp_hook)
+      # `evaluate` queries the span-enrichment hook via `enrich_span`; nil is a no-op.
+      allow(open_feature_component).to receive(:span_enrichment_hook).and_return(nil)
     end
 
     it 'passes provider success details to the EVP hook after SDK finalization' do

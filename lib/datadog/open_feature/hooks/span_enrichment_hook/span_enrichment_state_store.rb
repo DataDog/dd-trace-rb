@@ -1,0 +1,49 @@
+# frozen_string_literal: true
+
+require_relative 'span_enrichment_state'
+
+module Datadog
+  module OpenFeature
+    module Hooks
+      class SpanEnrichmentHook
+        # Maps each trace operation to its `SpanEnrichmentState`, keyed WEAKLY by
+        # object identity. Using `ObjectSpace::WeakMap` means an
+        # abandoned trace (root span never finishes) cannot pin its state:
+        # once the trace operation is unreachable the entry is collected. The
+        # state (the WeakMap *value*, which `WeakMap` would otherwise also
+        # collect once no strong ref remains) is kept alive for the trace's
+        # lifetime by the `span_before_finish` subscription closure, which is held
+        # by `trace_op.events`. So state lives exactly as long as the trace and
+        # dies with it.
+        #
+        # All access is serialized by the owning hook's mutex; the WeakMap itself
+        # is not thread-safe under concurrent mutation.
+        class SpanEnrichmentStateStore
+          def initialize
+            @states = ObjectSpace::WeakMap.new
+          end
+
+          def [](trace_op)
+            @states[trace_op]
+          end
+
+          def []=(trace_op, state)
+            @states[trace_op] = state
+          end
+
+          def delete(trace_op)
+            # `ObjectSpace::WeakMap#delete` was only added in Ruby 3.3; this gem
+            # supports Ruby 2.5+, so overwrite the slot with nil instead so a stale
+            # entry is never re-read after the root finishes. The slot itself is
+            # reclaimed when the trace operation is collected.
+            @states[trace_op] = nil
+          end
+
+          def clear!
+            @states = ObjectSpace::WeakMap.new
+          end
+        end
+      end
+    end
+  end
+end
