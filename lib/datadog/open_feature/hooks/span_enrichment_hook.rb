@@ -59,7 +59,7 @@ module Datadog
         def initialize(span_enrichment_state_store, logger:)
           @store = span_enrichment_state_store
           @mutex = Mutex.new
-          @closed = false
+          @active = true
           @logger = logger
         end
 
@@ -97,20 +97,20 @@ module Datadog
           @logger.debug { "Error capturing span enrichment: #{e.class}: #{e.message}" }
         end
 
-        # Provider-close cleanup: mark the hook closed and drop all accumulated
+        # Provider-close cleanup: mark the hook inactive and drop all accumulated
         # state. State is dropped, not flushed, on purpose: each state only
         # becomes a set of tags when ITS OWN root span finishes, and at
         # provider-close time those roots are still open — there is no valid
         # target to flush to, and writing partial tags onto in-flight spans
         # would emit incomplete data (and double-write once the root finished).
         # A trace that already subscribed still holds its state via the
-        # `span_before_finish` closure, so the closed flag (checked in
+        # `span_before_finish` closure, so clearing `@active` (checked in
         # `write_tags_on_root`) is what actually prevents a stale write after
         # shutdown. Per-trace subscriptions die with their trace operations, so
         # there is nothing else to unsubscribe.
         def shutdown
           @mutex.synchronize do
-            @closed = true
+            @active = false
             @store.clear!
           end
         end
@@ -162,12 +162,12 @@ module Datadog
           # thread cannot mutate the state's Sets/Hashes while we encode.
           tags = @mutex.synchronize do
             # After shutdown the store is cleared, but this trace's subscription
-            # closure still holds the state; skip the write so a provider
+            # closure still holds the state; write only while active so a provider
             # close/reconfigure never emits stale `ffe_*` tags on an open trace.
-            if @closed || !state.has_data?
-              {}
-            else
+            if @active && state.has_data?
               state.to_span_tags
+            else
+              {}
             end
           ensure
             # The caller only invokes this on the local root's finish, so cleanup

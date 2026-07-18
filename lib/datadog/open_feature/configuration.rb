@@ -25,6 +25,9 @@ module Datadog
               # the provider attaches `ffe_*` tags to the local root APM span on
               # finish. Distinct from `:enabled` (the provider gate) and off by
               # default so it can be rolled out independently.
+              #
+              # TODO: benchmark the per-span-finish overhead on a high-span-count
+              # trace with this gate on before enabling it by default.
               option :span_enrichment_enabled do |o|
                 o.type :bool
                 o.env 'DD_EXPERIMENTAL_FLAGGING_PROVIDER_SPAN_ENRICHMENT_ENABLED'

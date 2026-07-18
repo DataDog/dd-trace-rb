@@ -22,7 +22,7 @@ module Datadog
 
         @mutex: Thread::Mutex
 
-        @closed: bool
+        @active: bool
 
         @logger: Core::Logger
 
