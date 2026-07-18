@@ -112,7 +112,9 @@ module Datadog
             return unless media_type
 
             body = Core::Utils::Base64Codec.strict_decode64(body) if payload['base64_encoded']
-            AppSec::Utils::HTTP::Body.parse(body, media_type: media_type)
+            AppSec::Utils::HTTP::Body.parse(
+              body, media_type: media_type, limit: Datadog.configuration.appsec.body_parsing_size_limit
+            )
           rescue ArgumentError => e
             AppSec.telemetry.report(e, description: 'AppSec: Failed to decode base64 body')
 
