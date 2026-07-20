@@ -3,9 +3,11 @@ module Datadog
     module Contrib
       module Devise
         class TrackingMiddleware
-          WARDEN_KEY: ::String
+          type record_id = String | Integer
 
-          SESSION_ID_KEY: ::String
+          WARDEN_KEY: String
+
+          SESSION_ID_KEY: String
 
           @app: untyped
 
@@ -17,11 +19,11 @@ module Datadog
 
           # NOTE: can't use ::Warden::Proxy because this gem is not a part of the
           #       standard bundle
-          def extract_id: (untyped warden) -> ::String?
+          def extract_id: (untyped warden) -> record_id?
 
-          def extract_record_id: (untyped serialized_record) -> untyped
+          def extract_record_id: (untyped serialized_record) -> record_id?
 
-          def transform: (::String? value) -> ::String?
+          def transform: (record_id? value) -> String?
 
           def anonymize?: () -> bool
         end

@@ -84,15 +84,17 @@ module Datadog
             nil
           end
 
-          # Devise stores the record as `[record.to_key, authenticatable_salt]`,
-          # e.g. `[[1], "0abc..."]`. Applications are free to override the
-          # serialization and store any other shape, in which case we skip
-          # the extraction.
+          # NOTE: This supports Devise's default session serialization:
+          #       `[record.to_key, record.authenticatable_salt]`,
+          #       e.g. `[[1], "0abc..."]`
+          #
+          # WARNING: Applications can redefine Warden serialization, replacing
+          #          this default format
           def extract_record_id(serialized_record)
-            return unless serialized_record.is_a?(::Array)
+            return unless serialized_record.is_a?(Array)
 
             record_key = serialized_record[0]
-            return unless record_key.is_a?(::Array)
+            return unless record_key.is_a?(Array)
 
             record_key[0]
           end
