@@ -103,6 +103,26 @@ jobs:
       - name: Record stats
         run: bundle exec rake steep:stats[md] >> "$GITHUB_STEP_SUMMARY"
 
+  bundler-audit:
+    name: bundler-audit
+    runs-on: ubuntu-24.04
+    needs: ['build']
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Restore bundle cache
+        uses: ./.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.build.outputs.lockfile }}
+          cache-key: ${{ needs.build.outputs.cache-key }}
+      - run: bundle exec rake dependency:audit
+
   semgrep:
     name: semgrep/ci
     runs-on: ubuntu-24.04
@@ -175,6 +195,7 @@ jobs:
       - 'zizmor'
       - 'actionlint'
       - 'yaml-lint'
+      - 'bundler-audit'
     runs-on: ubuntu-24.04
     steps:
       - run: echo "Done"
