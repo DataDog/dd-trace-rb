@@ -49,7 +49,7 @@ RSpec.describe 'Datadog Provider OF.2: Optional Targeting Key' do
 
   let(:config) { Datadog::Core::FeatureFlags::Configuration.new(flags_json) }
 
-  context 'with nil targeting key' do
+  context 'with no targeting key in the evaluation context' do
     it 'evaluates static flag successfully' do
       result = config.get_assignment('static-flag', :string, {})
       expect(result.value).to eq('static-value')
