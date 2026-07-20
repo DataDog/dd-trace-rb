@@ -138,7 +138,7 @@ GEM
       dry-inflector (~> 1.0)
       dry-logic (~> 1.4)
       zeitwerk (~> 2.6)
-    erb (6.0.4)
+    erb (6.0.5)
     erubi (1.13.1)
     excon (1.2.3)
     faraday (2.12.2)
