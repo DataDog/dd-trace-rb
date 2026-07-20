@@ -24,14 +24,15 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
       end
     end
 
-    context 'when query string parsing failed' do
-      before { allow(::Rack::Utils).to receive(:parse_query).and_raise RangeError, 'too big' }
+    context 'when the query string contains malformed percent-encoding' do
+      let(:request) do
+        described_class.new(
+          Rack::MockRequest.env_for('http://example.com:8080/', 'QUERY_STRING' => 'bad=%&payload=%3Cscript%3E')
+        )
+      end
 
-      it 'returns empty query' do
-        expect(Datadog::AppSec.telemetry).to receive(:report)
-          .with(instance_of(RangeError), description: 'AppSec: Failed to parse request query string')
-
-        expect(request.query).to eq({})
+      it 'still exposes the remaining parameters to the WAF' do
+        expect(request.query).to eq({'bad' => '%', 'payload' => '<script>'})
       end
     end
   end

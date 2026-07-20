@@ -5,6 +5,7 @@ require 'open_feature/sdk'
 require 'datadog/open_feature/component'
 require 'datadog/open_feature/flag_evaluation/writer'
 require 'datadog/open_feature/hooks/flag_eval_evp_hook'
+require 'datadog/open_feature/hooks/span_enrichment_hook'
 
 RSpec.describe Datadog::OpenFeature::Component do
   before do
@@ -44,6 +45,31 @@ RSpec.describe Datadog::OpenFeature::Component do
           expect(component.engine).to be_a(Datadog::OpenFeature::EvaluationEngine)
 
           expect(Datadog::OpenFeature::Exposures::Reporter).to have_received(:new)
+        end
+
+        describe 'span enrichment hook gate' do
+          context 'when span enrichment is disabled (default)' do
+            it 'does not construct the span enrichment hook' do
+              expect(component.span_enrichment_hook).to be_nil
+            end
+
+            it 'never loads the span enrichment hook (no idle overhead)' do
+              expect(Datadog::OpenFeature::Hooks::SpanEnrichmentHook).not_to receive(:new)
+
+              component
+            end
+          end
+
+          context 'when span enrichment is enabled' do
+            before do
+              settings.open_feature.span_enrichment_enabled = true
+            end
+
+            it 'constructs the span enrichment hook' do
+              expect(component.span_enrichment_hook)
+                .to be_a(Datadog::OpenFeature::Hooks::SpanEnrichmentHook)
+            end
+          end
         end
 
         context 'when libdatadog is unavailable' do
@@ -137,6 +163,20 @@ RSpec.describe Datadog::OpenFeature::Component do
       expect(worker).to receive(:graceful_shutdown)
 
       component.shutdown!
+    end
+
+    context 'when span enrichment is enabled' do
+      before do
+        stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', nil)
+        settings.open_feature.span_enrichment_enabled = true
+        allow(worker).to receive(:graceful_shutdown)
+      end
+
+      it 'shuts down the span enrichment hook (symmetric teardown)' do
+        expect(component.span_enrichment_hook).to receive(:shutdown)
+
+        component.shutdown!
+      end
     end
 
     # Shutdown stops the EVP writer (which drains + final-flushes its queue).

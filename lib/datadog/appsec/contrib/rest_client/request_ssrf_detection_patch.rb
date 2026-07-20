@@ -104,7 +104,7 @@ module Datadog
             content = read_body(body, limit: limit)
             return if content.nil? || content.bytesize > limit
 
-            Utils::HTTP::Body.parse(content, media_type: media_type)
+            Utils::HTTP::Body.parse(content, media_type: media_type, limit: limit)
           end
 
           def parse_response_body(body, headers:, context:)
@@ -143,7 +143,7 @@ module Datadog
               return
             end
 
-            Utils::HTTP::Body.parse(content, media_type: media_type)
+            Utils::HTTP::Body.parse(content, media_type: media_type, limit: content_length)
           end
 
           def readable_body?(body)
