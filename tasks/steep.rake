@@ -6,9 +6,27 @@ namespace :steep do
     else
       args_sh = args.to_a.map { |a| "'#{a}'" }.join(' ')
 
-      begin
-        sh "steep check #{args_sh}".strip
-      rescue
+      # Exit status 127 (or a nil status when the process could not be spawned)
+      # means the shell could not find `steep`, i.e. it is not installed in the
+      # current bundle -- distinct from steep running and reporting type errors.
+      sh "steep check #{args_sh}".strip do |ok, status|
+        next if ok
+
+        if status.nil? || status.exitstatus == 127
+          warn <<-EOS
+          +------------------------------------------------------------------------------+
+          |  **Steep is not installed in the current bundle**                            |
+          |                                                                              |
+          | The `steep` executable could not be found, so no type checking was           |
+          | performed. This is NOT a type error.                                         |
+          |                                                                              |
+          | Install it with `bundle install`, or run this task from a bundle that        |
+          | includes the `steep` gem.                                                     |
+          +------------------------------------------------------------------------------+
+          EOS
+          exit 1
+        end
+
         warn <<-EOS
           +------------------------------------------------------------------------------+
           |  **Hello there, fellow contributor who just triggered a Steep type error**   |
