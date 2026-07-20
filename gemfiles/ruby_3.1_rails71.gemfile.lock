@@ -198,7 +198,7 @@ GEM
       stringio
     public_suffix (6.0.2)
     racc (1.8.1)
-    rack (3.1.7)
+    rack (3.2.6)
     rack-session (2.0.0)
       rack (>= 3.0.0)
     rack-test (2.1.0)
@@ -322,4 +322,4 @@ DEPENDENCIES
   zstd-ruby
 
 BUNDLED WITH
-   2.6.9
+  4.0.10
