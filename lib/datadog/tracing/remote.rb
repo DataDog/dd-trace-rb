@@ -54,7 +54,17 @@ module Datadog
 
             if di_enabled
               components&.symbol_database&.resume_pending_upload
-              components&.remote&.add_products(*di_products)
+              # Advertise the DI products only if the component actually started.
+              # handle_rc_enablement above no-ops when DI cannot run — the
+              # component is nil on an unsupported runtime, or the enable signal
+              # is blocked by DD_DYNAMIC_INSTRUMENTATION_ENABLED=false. Advertising
+              # then would report DI as in use when it is not and invite probe
+              # configs the tracer must refuse; withdraw the products otherwise.
+              if components&.dynamic_instrumentation&.started?
+                components&.remote&.add_products(*di_products)
+              else
+                components&.remote&.remove_products(*di_products)
+              end
             else
               components&.symbol_database&.stop_for_di_disable
               components&.remote&.remove_products(*di_products)
