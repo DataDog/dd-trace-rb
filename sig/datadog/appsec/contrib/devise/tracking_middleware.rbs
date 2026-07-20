@@ -19,6 +19,8 @@ module Datadog
           #       standard bundle
           def extract_id: (untyped warden) -> ::String?
 
+          def extract_record_id: (untyped serialized_record) -> untyped
+
           def transform: (::String? value) -> ::String?
 
           def anonymize?: () -> bool
