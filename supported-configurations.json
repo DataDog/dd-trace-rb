@@ -371,6 +371,13 @@
         "default": "false"
       }
     ],
+    "DD_EXPERIMENTAL_FLAGGING_PROVIDER_SPAN_ENRICHMENT_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED": [
       {
         "version": "A",

@@ -12,7 +12,7 @@ module Datadog
             end
 
             module InstanceMethods
-              def deliver_messages(**kwargs)
+              def deliver_messages
                 if Datadog::DataStreams.enabled?
                   begin
                     pending_messages = instance_variable_get(:@pending_message_queue)
@@ -37,7 +37,7 @@ module Datadog
                 super
               end
 
-              def send_messages(messages, **kwargs)
+              def send_messages(messages)
                 if Datadog::DataStreams.enabled?
                   begin
                     messages.each do |message|
