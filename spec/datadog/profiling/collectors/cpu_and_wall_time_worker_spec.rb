@@ -1132,7 +1132,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
-    describe "crash-safety during nested signal handler (such as during GC compaction)" do
+    describe "crash-safety during nested signal handler (such as during GC compaction)", :memcheck_valgrind_skip do
       # See `is_running_on_alternate_signal_stack` for details. Note that our little experiment here works on all Rubies,
       # but GC compaction in particular is only for 2.7+
       it "skips sampling in the signal handler" do
