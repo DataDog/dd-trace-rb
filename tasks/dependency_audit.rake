@@ -1,19 +1,12 @@
-# standard:disable Lint/RequireRelativeSelfPath -- requires the DependencyAudit
-# module (dependency_audit.rb), not this .rake file; the cop matches on basename
-# only and treats the different extensions as a self-require.
-begin
-  require_relative 'dependency_audit'
-rescue LoadError
-  # bundler-audit is only declared in the check group of gemfiles/ruby-4.0.gemfile.
-  # Every rake invocation imports tasks/*.rake unconditionally (see Rakefile), and
-  # lock-dependency.yml runs `bundle exec rake dependency:all` with
-  # BUNDLE_WITHOUT: check even on Ruby 4.0 -- so the gem is unavailable there.
-  # Skip defining the :audit task rather than aborting the whole rake process.
-end
-# standard:enable Lint/RequireRelativeSelfPath
 require_relative 'security_capabilities'
 
-if defined?(DependencyAudit)
+if Gem.loaded_specs.key?('bundler-audit')
+  # standard:disable Lint/RequireRelativeSelfPath -- requires the DependencyAudit
+  # module (dependency_audit.rb), not this .rake file; the cop matches on basename
+  # only and treats the different extensions as a self-require.
+  require_relative 'dependency_audit'
+  # standard:enable Lint/RequireRelativeSelfPath
+
   namespace :dependency do
     desc 'Audit eligible lockfiles for high/critical CVE advisories'
     task :audit do

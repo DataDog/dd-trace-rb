@@ -1,14 +1,8 @@
 require 'spec_helper'
 
-begin
+if Gem.loaded_specs.key?('bundler-audit')
   require_relative '../../tasks/dependency_audit'
-rescue LoadError
-  # bundler-audit is only declared in gemfiles/ruby-4.0.gemfile; on every
-  # other Ruby this file (and its module) is unavailable, so skip the whole
-  # suite there instead of aborting the run at load time.
-end
 
-if defined?(DependencyAudit)
   RSpec.describe DependencyAudit do
     # Uses the real advisory database; update it once for the suite so results
     # are deterministic within the run. Requires git + network.
