@@ -66,7 +66,7 @@ if defined?(DependencyAudit) && defined?(RelockLockfile)
       gemfile = File.join(dir, 'Gemfile')
       File.write(gemfile, File.read(gemfile) + "\ngem 'this-gem-does-not-exist-anywhere'\n")
 
-      result = described_class.attempt(lockfile, ['rack', 'this-gem-does-not-exist-anywhere'], database: @database, ignore: [])
+      result = described_class.attempt(lockfile, ['this-gem-does-not-exist-anywhere'], database: @database, ignore: [])
 
       expect(result[:status]).to eq(RelockLockfile::ERROR)
       expect(result[:error_message]).to be_a(String)
