@@ -152,6 +152,10 @@ namespace :spec do
     t.pattern = 'spec/datadog/open_feature/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
+  # Some open_feature specs drive the libdatadog_api C extension directly
+  # (Core::FeatureFlags::Configuration#get_assignment), so the extension must be
+  # compiled before this task runs.
+  Rake::Task['spec:open_feature'].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:rails) do |t, args|
