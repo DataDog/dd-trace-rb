@@ -3,13 +3,10 @@
 require 'spec_helper'
 require 'datadog/core/feature_flags'
 
-# Tests for OpenFeature spec OF.2: optional targeting key
+# The OpenFeature evaluation context makes the targeting key optional
+# (Requirement 3.1.1). These examples verify flag evaluation when no targeting
+# key is supplied, across static, sharded, and rule-match flags.
 # See: https://openfeature.dev/specification/sections/evaluation-context#requirement-311
-#
-# When targeting key is missing (nil), SDKs must still attempt evaluation:
-# - Static flags (no shards): return value normally
-# - Sharded flags: return TARGETING_KEY_MISSING error
-# - Rule-match flags (no shards): return value if rule matches on non-id attribute
 
 RSpec.describe 'Datadog Provider OF.2: Optional Targeting Key' do
 
