@@ -85,6 +85,12 @@ module Datadog
       attr_reader :telemetry
       attr_reader :code_tracker
 
+      # The code tracker is a global singleton created lazily by
+      # DI.activate_tracking. When DI is enabled after boot via remote
+      # configuration this instrumenter was already built with a nil tracker;
+      # Component#start! assigns the now-current tracker here.
+      attr_writer :code_tracker
+
       def capture_expression_evaluator
         @capture_expression_evaluator ||= CaptureExpressionEvaluator.new(
           settings: settings, serializer: serializer, logger: logger, telemetry: telemetry,
@@ -875,7 +881,11 @@ module Datadog
         has_per_method = code_tracker&.send(:instance_variable_defined?, :@per_method_registry) &&
           code_tracker.send(:per_method_registry).key?(loaded_path)
 
-        if has_per_method
+        if code_tracker.nil?
+          raise Error::DITargetNotInRegistry,
+            "File #{loaded_path} is loaded but code tracking is not active; " \
+            "line probes cannot be targeted."
+        elsif has_per_method
           raise Error::DITargetNotInRegistry,
             "File #{loaded_path} is loaded and has per-method iseqs, " \
             "but none cover line #{line_no}. " \
