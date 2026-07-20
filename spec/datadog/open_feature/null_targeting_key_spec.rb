@@ -9,7 +9,6 @@ require 'datadog/core/feature_flags'
 # See: https://openfeature.dev/specification/sections/evaluation-context#requirement-311
 
 RSpec.describe 'Datadog Provider OF.2: Optional Targeting Key' do
-
   let(:flags_json) do
     <<~JSON
       {
