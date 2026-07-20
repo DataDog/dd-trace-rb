@@ -38,6 +38,17 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
       end
     end
 
+    context 'when symbol_database is explicitly set to nil (follow DI) and supported' do
+      before do
+        settings.symbol_database.enabled = nil
+        allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+      end
+
+      it 'defers the symbol database product (same as the default)' do
+        expect(described_class.deferred_products(settings)).to contain_exactly('LIVE_DEBUGGING_SYMBOL_DB')
+      end
+    end
+
     context 'when symbol_database is set explicitly (manages its own product at startup)' do
       before do
         settings.symbol_database.enabled = true

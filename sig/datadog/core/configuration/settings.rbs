@@ -197,8 +197,6 @@ module Datadog
 
           def enabled=: (bool) -> void
 
-          def using_default?: (Symbol option_name) -> bool
-
           def internal: () -> _SymbolDatabaseInternal
         end
 

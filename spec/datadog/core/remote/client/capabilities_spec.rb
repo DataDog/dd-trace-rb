@@ -280,6 +280,19 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
     end
 
+    context 'when DI is enabled and symbol_database is explicitly set to nil (follow DI)' do
+      let(:settings) do
+        settings = Datadog::Core::Configuration::Settings.new
+        settings.dynamic_instrumentation.enabled = true
+        settings.symbol_database.enabled = nil
+        settings
+      end
+
+      it 'defers the symbol database product (explicit nil follows DI, same as the default)' do
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING_SYMBOL_DB')
+      end
+    end
+
     context 'when DI is in its default state (unset) and symbol_database is unset (nil)' do
       let(:settings) { Datadog::Core::Configuration::Settings.new }
 

@@ -39,9 +39,14 @@ module Datadog
           []
         end
 
+        # Symbol Database follows DI when its enabled setting is nil — the
+        # default, or an explicit c.symbol_database.enabled = nil. In that
+        # follow-DI case the product is deferred and added/removed alongside DI
+        # so it is never advertised while DI is inactive. An explicit true/false
+        # is independent and manages its own product at startup.
         def deferred_products(settings)
           if settings.respond_to?(:symbol_database) &&
-              settings.symbol_database.using_default?(:enabled) &&
+              settings.symbol_database.enabled.nil? &&
               Datadog::SymbolDatabase.supported_runtime?
             [PRODUCT]
           else

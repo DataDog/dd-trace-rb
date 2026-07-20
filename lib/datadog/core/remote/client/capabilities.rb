@@ -84,7 +84,12 @@ module Datadog
               if Datadog::SymbolDatabase.resolve_enabled(settings.symbol_database.enabled, di_enabled)
                 register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
                 register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
-                unless settings.symbol_database.using_default?(:enabled)
+                # Register the product at startup only when symbol_database is
+                # explicitly set (true here, since resolve_enabled already
+                # excluded false). When it follows DI (enabled nil, default or
+                # explicit), defer the product so it is advertised only once DI
+                # actually starts.
+                unless settings.symbol_database.enabled.nil?
                   register_products(Datadog::SymbolDatabase::Remote.products)
                 end
               end
