@@ -12,7 +12,7 @@ module Datadog
 
         def []: (any key) -> any
 
-        def []=: (any key, any value) -> any
+        def []=: [T < Object] (any key, T value) -> T
 
         def clear: () -> void
 
