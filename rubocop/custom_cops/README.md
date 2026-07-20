@@ -2,6 +2,24 @@
 
 This directory contains custom RuboCop cops for the dd-trace-rb project.
 
+## OpenFeatureNamespacePathCop
+
+The `CustomCops::OpenFeatureNamespacePathCop` requires OpenFeature class and module definitions to live at the snake-case path implied by their namespace. This also prevents new helper classes from being embedded in a parent implementation file.
+
+```ruby
+# bad: Datadog::OpenFeature::FlagEvaluation::Writer
+lib/datadog/open_feature/flagevaluation/writer.rb
+
+# good
+lib/datadog/open_feature/flag_evaluation/writer.rb
+```
+
+Legacy definitions that predate the convention are listed explicitly in `.customcops.yml`; the allowlist must not be expanded for new code.
+
+## OpenFeatureSteepIgnoreCop
+
+The `CustomCops::OpenFeatureSteepIgnoreCop` rejects new `steep:ignore` comments under `lib/datadog/open_feature/`. Model the type in RBS instead. The single existing suppression for an upstream Steep limitation is allowlisted by its exact file and comment.
+
 ## EnvUsageCop
 
 The `CustomCops::EnvUsageCop` prevents direct usage of the `ENV` hash to access environment variables.
