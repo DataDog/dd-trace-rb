@@ -10,7 +10,7 @@
 # (e.g. `ruby tasks/remediate_audit_backlog.rb 3.4`), run once per Ruby
 # version inside that version's container.
 
-require_relative 'dependency_audit'
+require_relative 'dependency_auditing'
 require_relative 'audit_remediation/relock_lockfile'
 require 'bundler/audit/database'
 require 'fileutils'
@@ -21,9 +21,9 @@ LOCKFILE_GLOBS = ["gemfiles/ruby_#{RUBY_VERSION_ARG}*.gemfile.lock", "gemfiles/r
 
 def find_target_lockfiles(database, ignore)
   lockfiles = LOCKFILE_GLOBS.flat_map { |pattern| Dir.glob(pattern) }.sort.uniq
-  findings = DependencyAudit.high_critical_findings(lockfiles, database: database, ignore: ignore)
+  findings = DependencyAuditing.findings(lockfiles, database: database, ignore: ignore)
 
-  findings.group_by { |f| f[:lockfile] }.transform_values { |fs| fs.map { |f| f[:gem] }.uniq }
+  findings.group_by(&:lockfile).transform_values { |fs| fs.map(&:gem).uniq }
 end
 
 def write_report(unresolved_entries)
@@ -42,7 +42,7 @@ def write_report(unresolved_entries)
           if entry[:status] == RelockLockfile::ERROR
             "bundler error: #{entry[:error_message]}"
           else
-            entry[:remaining_findings].map { |rf| "#{rf[:gem]} #{rf[:version]} (#{rf[:id]})" }.join('; ')
+            entry[:remaining_findings].map { |rf| "#{rf.gem} #{rf.version} (#{rf.id})" }.join('; ')
           end
         f.puts "| #{entry[:lockfile]} | #{entry[:gems].join(', ')} | #{entry[:status]} | #{detail} |"
       end
@@ -54,7 +54,7 @@ def main
   puts 'Updating advisory database...'
   Bundler::Audit::Database.update!(quiet: true)
   database = Bundler::Audit::Database.new
-  ignore = DependencyAudit.load_ignore_list
+  ignore = DependencyAuditing.load_ignore_list
 
   targets = find_target_lockfiles(database, ignore)
   puts "Found #{targets.size} lockfile(s) with high/critical findings."

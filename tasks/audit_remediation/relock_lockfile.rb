@@ -33,12 +33,12 @@ module RelockLockfile
         next
       end
 
-      remaining_for_gem = DependencyAudit.high_critical_findings([lockfile_path], database: database, ignore: ignore)
-        .select { |f| f[:gem] == gem_name }
+      remaining_for_gem = DependencyAuditing.findings([lockfile_path], database: database, ignore: ignore)
+        .select { |f| f.gem == gem_name }
       File.write(lockfile_path, before_contents) unless remaining_for_gem.empty?
     end
 
-    remaining = DependencyAudit.high_critical_findings([lockfile_path], database: database, ignore: ignore)
+    remaining = DependencyAuditing.findings([lockfile_path], database: database, ignore: ignore)
     error_message = errors.empty? ? nil : errors.values.join('; ')
 
     if remaining.empty? && errors.empty?

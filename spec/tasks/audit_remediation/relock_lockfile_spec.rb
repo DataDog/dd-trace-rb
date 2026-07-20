@@ -1,19 +1,19 @@
 require 'spec_helper'
 
 begin
-  require_relative '../../../tasks/dependency_audit'
+  require_relative '../../../tasks/dependency_auditing'
   require_relative '../../../tasks/audit_remediation/relock_lockfile'
 rescue LoadError
   # bundler-audit is only declared in the check group of gemfiles/ruby-4.0.gemfile;
   # on every other Ruby these modules are unavailable, so skip the whole suite
   # there instead of aborting the run at load time. See tasks/dependency_audit.rake
-  # for the same guard applied to the rake task definition. dependency_audit is
+  # for the same guard applied to the rake task definition. dependency_auditing is
   # required first so the LoadError is raised (and caught) before relock_lockfile
   # -- which itself only requires 'bundler' and would load fine either way --
   # ever gets a chance to define RelockLockfile.
 end
 
-if defined?(DependencyAudit) && defined?(RelockLockfile)
+if defined?(DependencyAuditing) && defined?(RelockLockfile)
   require 'bundler/audit/database'
   require 'fileutils'
   require 'tmpdir'
