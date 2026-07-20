@@ -82,7 +82,7 @@ GEM
       method_source (~> 1.0)
       reline (>= 0.6.0)
     public_suffix (7.0.5)
-    rack (2.2.9)
+    rack (2.2.23)
     rack-contrib (2.5.0)
       rack (< 4)
     rack-protection (3.2.0)
