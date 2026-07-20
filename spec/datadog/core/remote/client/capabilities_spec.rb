@@ -156,9 +156,9 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         settings
       end
 
-      it 'registers capabilities, products, and receivers' do
+      it 'registers the DI capability and receiver but defers the LIVE_DEBUGGING product' do
         expect(capabilities.capabilities).to include(1 << 38)
-        expect(capabilities.products).to include('LIVE_DEBUGGING')
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING')
         expect(capabilities.receivers).to include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse('datadog/2/LIVE_DEBUGGING/_/_')
@@ -174,9 +174,9 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     context 'when left at default (env var unset)' do
       let(:settings) { Datadog::Core::Configuration::Settings.new }
 
-      it 'registers DI so remote configuration can enable it' do
+      it 'registers the DI capability so remote configuration can enable it; product deferred' do
         expect(capabilities.capabilities).to include(1 << 38)
-        expect(capabilities.products).to include('LIVE_DEBUGGING')
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING')
       end
 
       describe '#base64_capabilities' do
@@ -275,16 +275,29 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         settings
       end
 
-      it 'registers symbol database product' do
-        expect(capabilities.products).to include('LIVE_DEBUGGING_SYMBOL_DB')
+      it 'defers the symbol database product (mirrors DI; added when DI starts)' do
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING_SYMBOL_DB')
+      end
+    end
+
+    context 'when DI is enabled and symbol_database is explicitly set to nil (follow DI)' do
+      let(:settings) do
+        settings = Datadog::Core::Configuration::Settings.new
+        settings.dynamic_instrumentation.enabled = true
+        settings.symbol_database.enabled = nil
+        settings
+      end
+
+      it 'defers the symbol database product (explicit nil follows DI, same as the default)' do
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING_SYMBOL_DB')
       end
     end
 
     context 'when DI is in its default state (unset) and symbol_database is unset (nil)' do
       let(:settings) { Datadog::Core::Configuration::Settings.new }
 
-      it 'registers symbol database product (follows DI, which is advertised by default for RC enablement)' do
-        expect(capabilities.products).to include('LIVE_DEBUGGING_SYMBOL_DB')
+      it 'defers the symbol database product (mirrors DI; added when DI starts)' do
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING_SYMBOL_DB')
       end
     end
 
@@ -293,8 +306,9 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
       before { allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(false) }
 
-      it 'does not register symbol database product but still advertises DI' do
-        expect(capabilities.products).to include('LIVE_DEBUGGING')
+      it 'registers neither product at build time but still advertises the DI capability' do
+        expect(capabilities.capabilities).to include(1 << 38)
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING')
         expect(capabilities.products).to_not include('LIVE_DEBUGGING_SYMBOL_DB')
       end
     end
@@ -380,6 +394,40 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
     it 'returns base64 string' do
       expect(capabilities.send(:capabilities_to_base64)).to eq('Bg==')
+    end
+  end
+
+  describe 'runtime product subscription' do
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+    it '#products returns a snapshot copy that does not mutate the internal list' do
+      snapshot = capabilities.products
+      snapshot << 'LIVE_DEBUGGING'
+      expect(capabilities.products).to_not include('LIVE_DEBUGGING')
+    end
+
+    it '#add_products advertises a product on the next read' do
+      expect(capabilities.products).to_not include('LIVE_DEBUGGING')
+      capabilities.add_products('LIVE_DEBUGGING')
+      expect(capabilities.products).to include('LIVE_DEBUGGING')
+    end
+
+    it '#add_products is idempotent' do
+      capabilities.add_products('LIVE_DEBUGGING')
+      capabilities.add_products('LIVE_DEBUGGING')
+      expect(capabilities.products.count('LIVE_DEBUGGING')).to eq(1)
+    end
+
+    it '#remove_products withdraws products' do
+      capabilities.add_products('LIVE_DEBUGGING', 'LIVE_DEBUGGING_SYMBOL_DB')
+      capabilities.remove_products('LIVE_DEBUGGING', 'LIVE_DEBUGGING_SYMBOL_DB')
+      expect(capabilities.products).to_not include('LIVE_DEBUGGING')
+      expect(capabilities.products).to_not include('LIVE_DEBUGGING_SYMBOL_DB')
+    end
+
+    it '#remove_products leaves other products intact' do
+      capabilities.remove_products('LIVE_DEBUGGING')
+      expect(capabilities.products).to include('APM_TRACING')
     end
   end
 end
