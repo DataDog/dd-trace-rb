@@ -18,7 +18,7 @@ namespace :steep do
           |  **Steep is not installed in the current bundle**                            |
           |                                                                              |
           | The `steep` executable could not be found, so no type checking was           |
-          | performed. This is NOT a type error.                                         |
+          | performed.                                                                   |
           |                                                                              |
           | Install it with `bundle install`, or run this task from a bundle that        |
           | includes the `steep` gem.                                                     |
