@@ -290,6 +290,10 @@ module Datadog
             if settings.dynamic_instrumentation.enabled || old_state&.di_implicitly_enabled?
               DI.activate_tracking
               dynamic_instrumentation.start!
+              remote&.add_products(
+                *Datadog::DI::Remote.products,
+                *Datadog::SymbolDatabase::Remote.deferred_products(settings),
+              )
             end
           end
 
