@@ -5,8 +5,10 @@ require 'datadog/core/feature_flags'
 
 # The OpenFeature evaluation context makes the targeting key optional
 # (Requirement 3.1.1). These examples verify flag evaluation across static,
-# sharded, and rule-match flags when the targeting key is absent -- either
-# omitted from the context or supplied as an explicit nil.
+# sharded, and rule-match flags for an absent targeting key (omitted or explicit
+# nil) and for an empty string. The two differ on sharded flags: an absent key
+# cannot be sharded (TARGETING_KEY_MISSING), whereas an empty string is a present
+# key that gets hashed.
 # See: https://openfeature.dev/specification/sections/evaluation-context#requirement-311
 
 RSpec.describe 'Datadog Provider OF.2: Optional Targeting Key' do
@@ -81,5 +83,32 @@ RSpec.describe 'Datadog Provider OF.2: Optional Targeting Key' do
     let(:base_context) { {'targeting_key' => nil} }
 
     it_behaves_like 'an absent targeting key'
+  end
+
+  context 'with an empty string targeting key' do
+    let(:base_context) { {'targeting_key' => ''} }
+
+    it 'evaluates a static flag' do
+      result = config.get_assignment('static-flag', :string, base_context)
+      expect(result.value).to eq('static-value')
+      expect(result.reason).to eq('STATIC')
+      expect(result.error?).to be(false)
+    end
+
+    it 'treats the empty string as a present key on a sharded flag (no TARGETING_KEY_MISSING)' do
+      # "" hashes outside the flag's 0-5000 shard range, so it falls through to
+      # the flag default rather than being rejected as a missing key.
+      result = config.get_assignment('sharded-flag', :string, base_context)
+      expect(result.error?).to be(false)
+      expect(result.error_code).to be_nil
+      expect(result.reason).to eq('DEFAULT')
+    end
+
+    it 'evaluates a rule-match flag on a non-id attribute' do
+      result = config.get_assignment('rule-flag', :string, base_context.merge('email' => 'user@example.com'))
+      expect(result.value).to eq('rule-value')
+      expect(result.reason).to eq('TARGETING_MATCH')
+      expect(result.error?).to be(false)
+    end
   end
 end
