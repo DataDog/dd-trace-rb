@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../ext'
+
 module Datadog
   module OpenFeature
     module Hooks
@@ -75,12 +77,11 @@ module Datadog
           fields.reject { |k, _| k.to_s == ::OpenFeature::SDK::EvaluationContext::TARGETING_KEY }
         end
 
-        # Same key as OTel hook ('__dd_allocation_key') — do not diverge.
         def extract_allocation_key(evaluation_details)
           metadata = evaluation_details.flag_metadata
           return unless metadata.is_a?(Hash)
 
-          metadata['__dd_allocation_key']
+          metadata[Ext::METADATA_ALLOCATION_KEY]
         end
 
         def extract_error_message(evaluation_details)
