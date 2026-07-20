@@ -558,6 +558,7 @@ target :datadog do
   library 'net-http'
   library 'securerandom'
   library 'digest'
+  library 'base64'
   library 'zlib'
   library 'time'
   library 'pp'
