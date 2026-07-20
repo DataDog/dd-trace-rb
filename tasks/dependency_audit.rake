@@ -11,7 +11,11 @@ namespace :dependency do
     require 'bundler/audit/database'
 
     puts 'Updating advisory database...'
-    Bundler::Audit::Database.update!(quiet: true)
+    begin
+      Bundler::Audit::Database.update!(quiet: true)
+    rescue => e
+      abort("Could not refresh the ruby-advisory-db (needs git + network): #{e.message}")
+    end
     database = Bundler::Audit::Database.new
 
     lockfiles = SecurityCapabilities.audit_eligible_lockfiles
