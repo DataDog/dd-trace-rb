@@ -2,6 +2,9 @@
 
 require_relative '../../metadata/ext'
 require_relative '../utils/database'
+require_relative 'ext'
+require_relative '../ext'
+require_relative '../span_attribute_schema'
 
 module Datadog
   module Tracing
@@ -32,6 +35,39 @@ module Datadog
               Contrib::Utils::Database.normalize_vendor(database.database_type.to_s)
             end
 
+            # Parses a JDBC connection string of the form
+            #   jdbc:<vendor>://<host>[:<port>][/<database>][?<params> | ;<params>]
+            # extracting host, port, and (best-effort) database name.
+            def parse_jdbc_uri(uri)
+              result = {host: nil, port: nil, database: nil}
+              return result unless uri.is_a?(String) && uri.valid_encoding?
+
+              match = %r{\Ajdbc:[^:/]+://(?<authority>[^/;?]*)(?<path>/[^;?]*)?(?<params>[;?].*)?\z}i.match(uri)
+              return result unless match
+
+              host, port = match[:authority].split(':', 2)
+              result[:host] = host unless host.nil? || host.empty?
+              result[:port] = port if port && /\A\d+\z/.match?(port)
+
+              if match[:path]
+                database = match[:path].sub(%r{\A/}, '').split('/').first
+                result[:database] = database unless database.nil? || database.empty?
+              end
+
+              if result[:database].nil? && match[:params]
+                params = {}
+                match[:params].sub(/\A[;?]/, '').split(/[;&]/).each do |pair|
+                  key, value = pair.split('=', 2)
+                  params[key.downcase] = value if key && value
+                end
+                db = params['databasename'] || params['database'] || params['libraries']
+                db = db.split(',').first if db
+                result[:database] = db unless db.nil? || db.empty?
+              end
+
+              result
+            end
+
             def parse_opts(sql, opts, db_opts, dataset = nil)
               # Prepared statements don't provide their sql query in the +sql+ parameter.
               if !sql.is_a?(String) && dataset&.respond_to?(:prepared_sql) &&
@@ -53,15 +89,50 @@ module Datadog
             def set_common_tags(span, db)
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
+              span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+              span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, database_type(db))
 
-              # TODO: Extract host for Sequel with JDBC. The easiest way seem to be through
-              # TODO: the database URI. Unfortunately, JDBC URIs do not work with `URI.parse`.
-              # host, _port = extract_host_port_from_uri(db.uri)
-              # span.set_tag(Tracing::Metadata::Ext::TAG_DESTINATION_NAME, host)
-              span.set_tag(Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME, db.opts[:host]) if db.opts[:host]
+              metadata = connection_metadata(db)
+
+              # Embedded/hostless databases (e.g. SQLite) have no network peer; skip peer-identifying tags.
+              if metadata[:host] && !metadata[:host].empty?
+                span.set_tag(Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME, metadata[:host])
+                span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, metadata[:host])
+                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, metadata[:host])
+                span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, metadata[:port]) if metadata[:port]
+
+                if metadata[:database] && !metadata[:database].empty?
+                  span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, metadata[:database])
+                  span.set_tag(Ext::TAG_DB_NAME, metadata[:database])
+                end
+
+                Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
+              end
 
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
+            end
+
+            # Resolves the connection host/port/database for a Sequel::Database. When the
+            # connection string is a JDBC URL (Sequel's JDBC adapter, used on JRuby), the
+            # host/port/database are parsed from it regardless of whether opts[:host] is set.
+            def connection_metadata(db)
+              opts = db.opts || {}
+              host = opts[:host]
+              port = opts[:port]
+              database = opts[:database]
+
+              # A JDBC URL (in :uri, :url, or :database) can carry credentials, so always parse
+              # it and emit only the parsed database name -- never the raw connection string.
+              conn = opts[:uri] || opts[:url] || opts[:database]
+              if conn.is_a?(String) && /\Ajdbc:/i.match?(conn)
+                parsed = parse_jdbc_uri(conn)
+                host = parsed[:host] if host.nil? || host.empty?
+                port ||= parsed[:port]
+                database = parsed[:database]
+              end
+
+              {host: host, port: port, database: database}
             end
 
             private

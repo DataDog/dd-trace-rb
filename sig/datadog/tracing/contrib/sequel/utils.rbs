@@ -6,7 +6,11 @@ module Datadog
           def self.adapter_name: (untyped database) -> untyped
           def self.database_type: (untyped database) -> untyped
 
+          def self.parse_jdbc_uri: (String? uri) -> { host: String?, port: String?, database: String? }
+
           def self.parse_opts: (untyped sql, untyped opts, untyped db_opts, ?untyped? dataset) -> { name: untyped, query: untyped, prepared_name: untyped, database: untyped, host: untyped }
+
+          def self.connection_metadata: (untyped db) -> { host: untyped, port: untyped, database: untyped }
 
           def self.set_common_tags: (untyped span, untyped db) -> untyped
 
