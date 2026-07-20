@@ -9,14 +9,17 @@ module Datadog
       module Events
         # The second version of Business Logic Events SDK
         module V2
+          SIGNUP_EVENT = 'users.signup'
           LOGIN_SUCCESS_EVENT = 'users.login.success'
           LOGIN_FAILURE_EVENT = 'users.login.failure'
+
           TELEMETRY_METRICS_NAMESPACE = 'appsec'
           TELEMETRY_METRICS_SDK_EVENT = 'sdk.event'
           TELEMETRY_METRICS_SDK_VERSION = 'v2'
           TELEMETRY_METRICS_EVENTS_INTO_TYPES = {
             LOGIN_SUCCESS_EVENT => 'login_success',
-            LOGIN_FAILURE_EVENT => 'login_failure'
+            LOGIN_FAILURE_EVENT => 'login_failure',
+            SIGNUP_EVENT => 'signup'
           }.freeze
 
           class << self
@@ -125,6 +128,61 @@ module Datadog
               ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
             end
 
+            # Attach user signup information to the service entry span
+            # and trigger AppSec event processing.
+            #
+            # @param login [String] The user login (e.g., username or email).
+            # @param user_or_id [String, Hash<Symbol, String>] (optional) If a
+            #   String, considered as a user ID, if a Hash, considered as a user
+            #   attributes. The Hash must include `:id` as a key.
+            # @param metadata [Hash<Symbol, String>] Additional flat free-form
+            #   metadata to attach to the event.
+            #
+            # @example Login only
+            #   Datadog::Kit::AppSec::Events::V2.track_user_signup('alice@example.com')
+            #
+            # @example Login, user attributes, and metadata
+            #   Datadog::Kit::AppSec::Events::V2.track_user_signup(
+            #     'alice@example.com',
+            #     { id: 'user-123', email: 'alice@example.com', name: 'Alice' },
+            #     ip: '192.168.1.1', device: 'mobile', 'usr.country': 'US'
+            #   )
+            #
+            # @return [void]
+            def track_user_signup(login, user_or_id = nil, metadata = {})
+              trace = service_entry_trace
+              span = service_entry_span
+
+              if trace.nil? || span.nil?
+                return Datadog.logger.warn(
+                  'Kit::AppSec: Tracing is not enabled. Please enable tracing if you want to track events'
+                )
+              end
+
+              raise TypeError, '`login` argument must be a String' unless login.is_a?(String)
+              raise TypeError, '`metadata` argument must be a Hash' unless metadata.is_a?(Hash)
+
+              user_attributes = build_user_attributes(user_or_id, login)
+
+              set_span_tags(span, metadata, namespace: SIGNUP_EVENT)
+              set_span_tags(span, user_attributes, namespace: "#{SIGNUP_EVENT}.usr")
+              span.set_tag('appsec.events.users.signup.track', 'true')
+              span.set_tag('_dd.appsec.events.users.signup.sdk', 'true')
+
+              ::Datadog::AppSec::TraceKeeper.keep!(trace)
+
+              record_event_telemetry_metric(SIGNUP_EVENT)
+
+              if user_attributes.key?(:id)
+                Kit::Identity.set_user(trace, span, **user_attributes)
+              else
+                # NOTE: {Datadog::Kit::Identity.set_user} requires an ID,
+                #       but WAF can evaluate login alone
+                user = ::Datadog::AppSec::Instrumentation::Gateway::User.new(nil, login)
+                ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
+              end
+            end
+
             private
 
             # NOTE: Current tracer implementation does not provide a way to
@@ -155,7 +213,7 @@ module Datadog
                 raise ArgumentError, 'missing required user key `:id`' unless user_or_id.key?(:id)
                 raise TypeError, 'user key `:id` must be a String' unless user_or_id[:id].is_a?(String)
 
-                user_or_id.merge(login: login) #: {login: ::String, ?id: ::String?}
+                user_or_id.merge(login: login)
               else
                 raise TypeError, '`user_or_id` argument must be either String or Hash'
               end

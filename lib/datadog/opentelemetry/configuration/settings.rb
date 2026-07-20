@@ -152,6 +152,71 @@ module Datadog
                   o.setter(&Settings.normalize_protocol('OTEL_EXPORTER_OTLP_METRICS_PROTOCOL'))
                 end
               end
+
+              settings :logs do
+                option :enabled do |o|
+                  o.type :bool
+                  o.env 'DD_LOGS_OTEL_ENABLED'
+                  o.default false
+                end
+
+                option :exporter do |o|
+                  o.type :string
+                  o.env 'OTEL_LOGS_EXPORTER'
+                  o.default 'otlp'
+                end
+
+                option :endpoint do |o|
+                  o.type :string, nilable: true
+                  o.env 'OTEL_EXPORTER_OTLP_LOGS_ENDPOINT'
+                  o.default nil
+                end
+
+                option :headers do |o|
+                  o.skip_telemetry true
+                  o.type :hash, nilable: true
+                  o.env 'OTEL_EXPORTER_OTLP_LOGS_HEADERS'
+                  o.default nil
+                  o.env_parser(&Settings.headers_parser('OTEL_EXPORTER_OTLP_LOGS_HEADERS'))
+                end
+
+                option :timeout_millis do |o|
+                  o.type :int, nilable: true
+                  o.env 'OTEL_EXPORTER_OTLP_LOGS_TIMEOUT'
+                  o.default 10_000
+                end
+
+                option :protocol do |o|
+                  o.type :string, nilable: true
+                  o.env 'OTEL_EXPORTER_OTLP_LOGS_PROTOCOL'
+                  o.default "http/protobuf"
+                  o.setter(&Settings.normalize_protocol('OTEL_EXPORTER_OTLP_LOGS_PROTOCOL'))
+                end
+
+                option :max_queue_size do |o|
+                  o.type :int
+                  o.env 'OTEL_BLRP_MAX_QUEUE_SIZE'
+                  o.default 2048
+                end
+
+                option :schedule_delay_millis do |o|
+                  o.type :int
+                  o.env 'OTEL_BLRP_SCHEDULE_DELAY'
+                  o.default 1000
+                end
+
+                option :export_timeout_millis do |o|
+                  o.type :int
+                  o.env 'OTEL_BLRP_EXPORT_TIMEOUT'
+                  o.default 30_000
+                end
+
+                option :max_export_batch_size do |o|
+                  o.type :int
+                  o.env 'OTEL_BLRP_MAX_EXPORT_BATCH_SIZE'
+                  o.default 512
+                end
+              end
             end
           end
         end

@@ -16,6 +16,12 @@ module Datadog
               Tracing::Sampling::Ext::Decision::AI_GUARD
             )
             trace.set_tag(Ext::EVENT_TAG, true)
+            trace.set_tag(Ext::TRACE_EXECUTED_TAG, "1")
+
+            Ext::TRACE_ANOMALY_DETECTION_TAGS.each do |tag|
+              value = trace.get_tag(tag)
+              span.set_tag(tag, value) if value
+            end
 
             if (last_message = messages.last)
               if last_message.tool_call

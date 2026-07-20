@@ -33,7 +33,7 @@ module Datadog
           if RUBY_ENGINE != 'ruby'
             logger.warn("error tracking: cannot enable error tracking: MRI is required, but running on #{RUBY_ENGINE}")
             false
-          elsif RUBY_VERSION < '2.7'
+          elsif RubyVersion.is?('< 2.7')
             logger.warn(
               "error tracking: cannot enable error tracking: Ruby 2.7+ is required, but running
               on #{RUBY_VERSION}"
@@ -63,7 +63,7 @@ module Datadog
         # Before Ruby3.3 the TracePoint listen for :raise events.
         # If an error is not handled, we will delete the according
         # span event in the collector.
-        event = (RUBY_VERSION >= '3.3') ? :rescue : :raise
+        event = RubyVersion.is?('>= 3.3') ? :rescue : :raise
 
         # This TracePoint is in charge of capturing the handled exceptions
         # and of adding the corresponding span events to the collector

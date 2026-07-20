@@ -4,6 +4,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 require 'datadog'
 require 'mongo'
@@ -194,6 +195,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
 
     it_behaves_like 'measured span for integration', false
     it_behaves_like 'environment service name', 'DD_TRACE_MONGO_SERVICE_NAME'
+    it_behaves_like 'tags _dd.svc_src', 'mongodb'
     it_behaves_like 'configured peer service span', 'DD_TRACE_MONGO_PEER_SERVICE'
     it_behaves_like 'schema version span'
   end
@@ -549,7 +551,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
 
           expect(auth_span).to have_error
           expect(auth_span).to have_error_type('Mongo::Monitoring::Event::CommandFailed')
-          expect(auth_span).to have_error_message(/Unsupported mechanism PLAIN/)
+          expect(auth_span).to have_error_message(/Unsupported mechanism 'PLAIN'/)
         end
       end
     end

@@ -8,6 +8,7 @@ require 'datadog/tracing/contrib/action_cable/events/broadcast'
 require 'datadog/tracing/contrib/rails/rails_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
+require 'datadog/tracing/contrib/svc_src_examples'
 require 'spec/datadog/tracing/contrib/rails/support/deprecation'
 
 begin
@@ -26,19 +27,16 @@ RSpec.describe 'ActionCable patcher', execute_in_fork: ::ActionCable.version.seg
   end
 
   before do
-    Datadog.configure do |c|
-      c.tracing.instrument :action_cable, configuration_options
+    reset_subscription_state!(:action_cable, Datadog::Tracing::Contrib::ActionCable::Events) do
+      Datadog.configure do |c|
+        c.tracing.instrument :action_cable, configuration_options
+      end
     end
 
     raise_on_rails_deprecation!
   end
 
-  around do |example|
-    # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:action_cable].reset_configuration!
-    example.run
-    Datadog.registry[:action_cable].reset_configuration!
-  end
+  after { Datadog.registry[:action_cable].reset_configuration! }
 
   context 'with server' do
     let(:channel) { 'chat_room' }
@@ -53,6 +51,13 @@ RSpec.describe 'ActionCable patcher', execute_in_fork: ::ActionCable.version.seg
 
     context 'on broadcast' do
       subject(:broadcast) { server.broadcast(channel, message) }
+
+      context 'when service_name is overridden' do
+        let(:configuration_options) { {service_name: 'custom-action_cable'} }
+        it_behaves_like 'tags _dd.svc_src', 'action_cable' do
+          before { broadcast }
+        end
+      end
 
       it 'traces broadcast event' do
         broadcast

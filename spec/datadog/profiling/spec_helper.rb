@@ -34,7 +34,7 @@ module ProfileHelpers
 
     # Ensure profiling was loaded correctly
     raise "Profiling does not seem to be available: #{Datadog::Profiling.unsupported_reason}. " \
-      "Try running `bundle exec rake compile` before running this test."
+      "Try running `bundle exec rake clean compile` before running this test."
   end
 
   def decode_profile(encoded_profile)
@@ -71,11 +71,8 @@ module ProfileHelpers
   end
 
   def object_id_from(thread_id)
-    if thread_id != "GC"
-      Integer(thread_id.match(/\d+ \((?<object_id>\d+)\)/)[:object_id])
-    else
-      -1
-    end
+    match = thread_id.match(/\d+ \((?<object_id>\d+)\)/)
+    match ? Integer(match[:object_id]) : -1
   end
 
   def samples_for_thread(samples, thread, expected_size: nil)
@@ -106,9 +103,44 @@ module ProfileHelpers
   end
 
   def skip_if_gvl_profiling_not_supported(testcase)
-    if RUBY_VERSION < "3.2."
+    if RubyVersion.is?("< 3.2")
       testcase.skip "GVL profiling is only supported on Ruby >= 3.2"
     end
+  end
+
+  def asan_build?
+    %w[CFLAGS LDFLAGS configure_args].any? do |key|
+      RbConfig::CONFIG[key].to_s.include?("sanitize=address")
+    end
+  end
+
+  # Under ASAN-built Ruby, we've seen flakiness in some of our tests.
+  # We suspect this may be the ASAN fake stack keeping things alive, although we're not entirely sure...
+  # For now let's skip these tests when testing with ASAN to avoid impacting CI
+  def skip_asan_flaky
+    skip "Skipped test to avoid flakiness in ASAN builds" if asan_build?
+  end
+
+  def loop_until(timeout_seconds: 5, check_condition_every_seconds: 0)
+    started_at = Datadog::Core::Utils::Time.get_time
+
+    deadline = started_at + timeout_seconds
+    condition_deadline = started_at + check_condition_every_seconds
+
+    while (now = Datadog::Core::Utils::Time.get_time) < deadline
+      if check_condition_every_seconds > 0
+        if now >= condition_deadline
+          condition_deadline = now + check_condition_every_seconds
+        else
+          next
+        end
+      end
+
+      result = yield
+      return result if result
+    end
+
+    raise("Wait time exhausted!")
   end
 end
 

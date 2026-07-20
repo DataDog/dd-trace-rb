@@ -15,7 +15,7 @@ module Datadog
   module AIGuard
     # Component for API Guard product
     class Component
-      attr_reader :api_client, :logger
+      attr_reader :api_client, :logger, :telemetry
 
       def self.build(settings, logger:, telemetry:)
         return unless settings.respond_to?(:ai_guard) && settings.ai_guard.enabled

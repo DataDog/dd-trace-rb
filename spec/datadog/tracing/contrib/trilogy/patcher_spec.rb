@@ -6,6 +6,7 @@ require 'datadog/tracing/contrib/sql_comment_propagation_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 require 'datadog'
 require 'trilogy'
@@ -44,6 +45,10 @@ RSpec.describe 'Trlogy::Client patcher' do
   end
 
   describe 'tracing' do
+    it_behaves_like 'tags _dd.svc_src', 'trilogy' do
+      before { client.query('SELECT 1') }
+    end
+
     describe '#query' do
       subject(:query) { client.query(sql_statement) }
 

@@ -19,31 +19,35 @@ runs:
       run: |
         id=$(ruby -e "puts RUBY_DESCRIPTION") # Includes patchlevel, os, and arch
         echo "id=$id" >> "$GITHUB_OUTPUT"
-    - name: Generate lockfile
+    - name: Resolve lockfile
       id: lockfile
       shell: bash
       env:
         LOCKFILE: lockfile-${{ steps.ruby-env-id.outputs.id }}
       run: |
-        bundle lock
-        echo "lockfile=$LOCKFILE" >> "$GITHUB_OUTPUT"
+        path="${BUNDLE_GEMFILE:-Gemfile}.lock"
+        if [ ! -f "$path" ]; then
+          echo "::error::Expected lockfile $path not found. Regenerate via the lock-dependency workflow." >&2
+          exit 1
+        fi
+        { echo "lockfile=$LOCKFILE"; echo "path=$path"; } >> "$GITHUB_OUTPUT"
     - name: Upload lockfile
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ steps.lockfile.outputs.lockfile }}
-        path: "*.lock"
+        path: ${{ steps.lockfile.outputs.path }}
     - name: Restore cache
-      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       id: restore-cache
       with:
-        key: bundle-${{ steps.ruby-env-id.outputs.id }}-${{ hashFiles('*.lock') }}
+        key: bundle-${{ steps.ruby-env-id.outputs.id }}-${{ hashFiles(steps.lockfile.outputs.path) }}
         path: "/usr/local/bundle"
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       shell: bash
       run: bundle install
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       name: Save cache
-      uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"

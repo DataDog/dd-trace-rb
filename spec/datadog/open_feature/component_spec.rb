@@ -1,13 +1,21 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'open_feature/sdk'
 require 'datadog/open_feature/component'
+require 'datadog/open_feature/flag_evaluation/writer'
+require 'datadog/open_feature/hooks/flag_eval_evp_hook'
+require 'datadog/open_feature/hooks/span_enrichment_hook'
 
 RSpec.describe Datadog::OpenFeature::Component do
   before do
     allow(Datadog::OpenFeature::Transport::HTTP).to receive(:build).and_return(transport)
+    allow(Datadog::OpenFeature::Transport::HTTP).to receive(:build_flagevaluations).and_return(transport)
     allow(Datadog::OpenFeature::Exposures::Worker).to receive(:new).and_return(worker)
     allow(Datadog::OpenFeature::Exposures::Reporter).to receive(:new).and_return(reporter)
+    # Never spawn the EVP writer's real background thread in component specs (avoid resource leaks).
+    allow_any_instance_of(Datadog::OpenFeature::FlagEvaluation::Writer)
+      .to receive(:start_background_thread).and_return(nil)
   end
 
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
@@ -37,6 +45,31 @@ RSpec.describe Datadog::OpenFeature::Component do
           expect(component.engine).to be_a(Datadog::OpenFeature::EvaluationEngine)
 
           expect(Datadog::OpenFeature::Exposures::Reporter).to have_received(:new)
+        end
+
+        describe 'span enrichment hook gate' do
+          context 'when span enrichment is disabled (default)' do
+            it 'does not construct the span enrichment hook' do
+              expect(component.span_enrichment_hook).to be_nil
+            end
+
+            it 'never loads the span enrichment hook (no idle overhead)' do
+              expect(Datadog::OpenFeature::Hooks::SpanEnrichmentHook).not_to receive(:new)
+
+              component
+            end
+          end
+
+          context 'when span enrichment is enabled' do
+            before do
+              settings.open_feature.span_enrichment_enabled = true
+            end
+
+            it 'constructs the span enrichment hook' do
+              expect(component.span_enrichment_hook)
+                .to be_a(Datadog::OpenFeature::Hooks::SpanEnrichmentHook)
+            end
+          end
         end
 
         context 'when libdatadog is unavailable' do
@@ -78,16 +111,82 @@ RSpec.describe Datadog::OpenFeature::Component do
     end
   end
 
+  # The EVP killswitch is read through the config registry (settings.open_feature
+  # .evaluation_counts_enabled), NOT raw ENV. When disabled, the EVP hook is not created and the
+  # OTel hook is unaffected (non-regression).
+  # Hooks only exist when the OpenFeature SDK supports them (>= 0.5); skip on the min appraisal.
+  describe 'EVP killswitch via config registry', skip: !Datadog::OpenFeature::Hooks::FlagEvalEVPHook.available? do
+    before do
+      settings.open_feature.enabled = true
+      settings.remote.enabled = true
+      stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', nil)
+    end
+
+    subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
+
+    context 'when evaluation_counts_enabled is true (default)' do
+      it 'creates the EVP hook' do
+        expect(component.flag_eval_evp_hook).to be_a(Datadog::OpenFeature::Hooks::FlagEvalEVPHook)
+      end
+
+      it 'passes telemetry to the EVP writer' do
+        expect(Datadog::OpenFeature::FlagEvaluation::Writer).to receive(:new).with(
+          transport: transport,
+          logger: logger,
+          telemetry: telemetry,
+        ).and_call_original
+
+        component
+      end
+    end
+
+    context 'when evaluation_counts_enabled is false' do
+      before { settings.open_feature.evaluation_counts_enabled = false }
+
+      it 'does not create the EVP hook (killswitch), leaving the OTel hook intact' do
+        expect(component.flag_eval_evp_hook).to be_nil
+        expect(component.flag_eval_metrics_hook).to be_a(Datadog::OpenFeature::Hooks::FlagEvalMetricsHook)
+      end
+    end
+  end
+
   describe '#shutdown!' do
     before do
       settings.open_feature.enabled = true
       settings.remote.enabled = true
+      stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', nil)
     end
 
     subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
 
     it 'gracefully shutdown the worker' do
       expect(worker).to receive(:graceful_shutdown)
+
+      component.shutdown!
+    end
+
+    context 'when span enrichment is enabled' do
+      before do
+        stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', nil)
+        settings.open_feature.span_enrichment_enabled = true
+        allow(worker).to receive(:graceful_shutdown)
+      end
+
+      it 'shuts down the span enrichment hook (symmetric teardown)' do
+        expect(component.span_enrichment_hook).to receive(:shutdown)
+
+        component.shutdown!
+      end
+    end
+
+    # Shutdown stops the EVP writer (which drains + final-flushes its queue).
+    # Only meaningful when the SDK supports hooks (>= 0.5) — skip on the min appraisal.
+    it 'stops the EVP flagevaluation writer so it drains and flushes',
+      skip: !Datadog::OpenFeature::Hooks::FlagEvalEVPHook.available? do
+      evp_writer = component.instance_variable_get(:@flag_eval_evp_writer)
+      expect(evp_writer).to be_a(Datadog::OpenFeature::FlagEvaluation::Writer)
+      expect(evp_writer).to receive(:stop)
+      allow(worker).to receive(:graceful_shutdown)
 
       component.shutdown!
     end

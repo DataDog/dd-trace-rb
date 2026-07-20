@@ -163,25 +163,33 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
 
         crashtracker.report_unhandled_exception(exception)
 
-        try_wait_until { messages.length == 2 }
+        # Crashtracker sends both errors in take messages (flat, with :error key)
+        # and telemetry messages (with :payload.logs wrapping a JSON string). Wait for all 4.
+        try_wait_until { messages.length == 4 }
 
-        parsed_messages = messages.map { |msg| JSON.parse(msg.body.to_s, symbolize_names: true).fetch(:payload).fetch(:logs).first }
+        parsed_messages = messages.map { |msg| JSON.parse(msg.body.to_s, symbolize_names: true) }
 
-        expect(parsed_messages).to include(
-          a_hash_including(is_crash: false, tags: a_string_including('is_crash_ping')),
-          a_hash_including(is_crash: true),
-        )
+        # Errors intake messages: flat objects with an :error key
+        errors_intake = parsed_messages.select { |msg| msg.key?(:error) }
+        crash_ping_intake = errors_intake.find { |msg| msg.dig(:error, :is_crash) == false }
+        expect(crash_ping_intake).to_not be_nil
+        expect(crash_ping_intake[:ddtags]).to include('is_crash_ping:true')
 
-        crash_report = JSON.parse(parsed_messages.find { |msg| msg[:is_crash] == true }.fetch(:message), symbolize_names: true)
+        # Telemetry messages: wrapped in payload.logs, message field is a JSON string
+        telemetry = parsed_messages.select { |msg| msg.key?(:payload) }
+          .flat_map { |msg| msg.fetch(:payload).fetch(:logs) }
+        crash_report_log = telemetry.find { |log| log[:is_crash] == true }
+        expect(crash_report_log).to_not be_nil
+
+        crash_report = JSON.parse(crash_report_log.fetch(:message), symbolize_names: true)
 
         # Verify metadata
         expect(crash_report[:metadata]).to include(
           library_name: 'dd-trace-rb',
           library_version: Datadog::VERSION::STRING,
-          family: 'ruby'
+          family: 'ruby',
+          tags: ['tag1:value1', 'tag2:value2', 'language:ruby-testing-123', 'service:ruby-testing-123'],
         )
-        expect(crash_report[:metadata][:tags]).to be_an(Array)
-        expect(crash_report[:metadata][:tags]).to_not be_empty
 
         # Verify error kind is unhandled exception
         expect(crash_report[:error][:kind]).to eq('UnhandledException')
@@ -191,14 +199,14 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           "Process was terminated due to an unhandled exception of type 'StandardError'. Message: Test unhandled exception with backtrace"
         )
 
-        # Verify stack trace is present (ddog_crasht_CrashInfoBuilder_with_stack)
+        # Verify stack trace is present and complete
         stack_frames = crash_report[:error][:stack][:frames]
-        exception_backtrace = exception.backtrace_locations
         expect(stack_frames).to be_an(Array)
         expect(stack_frames.length).to be > 0
         expect(crash_report[:error][:stack][:incomplete]).to be false
 
         # Verify that the stack frames match the exception backtrace
+        exception_backtrace = exception.backtrace_locations
         (0..stack_frames.length - 1).each do |i|
           expect(stack_frames[i][:function]).to eq(exception_backtrace[i].label)
           expect(stack_frames[i][:file]).to eq(exception_backtrace[i].path)
@@ -330,8 +338,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
             raise StandardError, 'Test Ruby unhandled exception'
           end
 
-          # check that at least crash ping and crash report were sent
-          expect(messages.length).to eq(2)
+          # Errors intake sends 2 messages, telemetry sends 2 messages
+          expect(messages.length).to eq(4)
         end
       end
 

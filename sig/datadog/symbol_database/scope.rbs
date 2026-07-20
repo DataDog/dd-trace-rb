@@ -11,7 +11,7 @@ module Datadog
 
       @end_line: Integer?
 
-      @injectible_lines: Array[Hash[::Symbol, Integer]]?
+      @targetable_lines: Array[Hash[::Symbol, Integer]]?
 
       @language_specifics: Hash[::Symbol, untyped]
 
@@ -25,7 +25,7 @@ module Datadog
         ?source_file: String?,
         ?start_line: Integer?,
         ?end_line: Integer?,
-        ?injectible_lines: Array[Hash[::Symbol, Integer]]?,
+        ?targetable_lines: Array[Hash[::Symbol, Integer]]?,
         ?language_specifics: Hash[::Symbol, untyped]?,
         ?symbols: Array[Datadog::SymbolDatabase::Symbol]?,
         ?scopes: Array[Scope]?
@@ -41,9 +41,9 @@ module Datadog
 
       attr_reader end_line: Integer?
 
-      def injectible_lines?: () -> bool
+      def targetable_lines?: () -> bool
 
-      attr_reader injectible_lines: Array[Hash[::Symbol, Integer]]?
+      attr_reader targetable_lines: Array[Hash[::Symbol, Integer]]?
 
       attr_reader language_specifics: Hash[::Symbol, untyped]
 

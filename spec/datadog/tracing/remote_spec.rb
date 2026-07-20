@@ -8,7 +8,7 @@ RSpec.describe Datadog::Tracing::Remote do
     expect(remote.products).to contain_exactly('APM_TRACING')
   end
 
-  it 'declares rule sampling capabilities' do
+  it 'declares tracing capabilities (DI enablement bit 38 lives in DI::Remote)' do
     expect(remote.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29)
   end
 
@@ -75,6 +75,44 @@ RSpec.describe Datadog::Tracing::Remote do
 
           expect(content.apply_state).to eq(2)
           expect(content.apply_error).to be_nil
+        end
+      end
+
+      context 'and dynamic_instrumentation_enabled is configured' do
+        let(:symbol_database) { instance_double(Datadog::SymbolDatabase::Component) }
+
+        before do
+          # Isolate the Symbol Database replay wiring from DI's own enablement.
+          allow(Datadog::DI::Remote).to receive(:handle_rc_enablement)
+          components = Datadog.send(:components)
+          allow(components).to receive(:symbol_database).and_return(symbol_database)
+          allow(components.telemetry).to receive(:client_configuration_change!)
+        end
+
+        context 'to true' do
+          let(:config) { {'lib_config' => {'dynamic_instrumentation_enabled' => true}} }
+
+          it 'replays any deferred Symbol Database upload' do
+            expect(symbol_database).to receive(:resume_pending_upload)
+            expect(symbol_database).not_to receive(:stop_for_di_disable)
+
+            process_config
+
+            expect(content.apply_state).to eq(2)
+          end
+        end
+
+        context 'to false' do
+          let(:config) { {'lib_config' => {'dynamic_instrumentation_enabled' => false}} }
+
+          it 'stops Symbol Database (follows-DI case) and does not replay' do
+            expect(symbol_database).to receive(:stop_for_di_disable)
+            expect(symbol_database).not_to receive(:resume_pending_upload)
+
+            process_config
+
+            expect(content.apply_state).to eq(2)
+          end
         end
       end
     end

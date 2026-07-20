@@ -26,15 +26,27 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@c4e5b1316158f92e3d49443a9d58b31d25ac0f8f # v1.306.0
+      - uses: ruby/setup-ruby@d45b1a4e94b71acab930e56e79c6aa188764e7f9 # v1.316.0
         with:
-          ruby-version: "3.3.7"
+          ruby-version: "4.0.1"
 
       - id: version
         run: echo "version=$(ruby -e 'puts Gem::Specification::load(Dir.glob("*.gemspec").first).version')" >> "$GITHUB_OUTPUT"
+
+      # Reject prerelease versions (e.g. X.Y.Z.dev). The in-repo version.rb keeps
+      # PRE='dev' between releases; publishing without flipping PRE to nil would
+      # push a .dev gem to RubyGems, which cannot be reused once yanked.
+      - name: Verify version is not a prerelease
+        env:
+          GEM_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if ruby -e "exit Gem::Version.new(ENV['GEM_VERSION']).prerelease?"; then
+            echo "::error::Version $GEM_VERSION is a prerelease (e.g. .dev) - refusing to publish"
+            exit 1
+          fi
 
       # Check if the gem version is already published
       - name: Verify gem version
@@ -163,8 +175,10 @@ jobs:
       id-token: write
     env:
       SKIP_SIMPLECOV: 1
+      BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+      BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false # `rubygems/release-gem` action handles credentials itself
       - uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
@@ -173,11 +187,11 @@ jobs:
           scope: DataDog/dd-trace-rb
           policy: self.publish
       - name: Set up Ruby
-        uses: ruby/setup-ruby@c4e5b1316158f92e3d49443a9d58b31d25ac0f8f # v1.306.0
+        uses: ruby/setup-ruby@d45b1a4e94b71acab930e56e79c6aa188764e7f9 # v1.316.0
         with:
-          ruby-version: "3.3.7"
+          ruby-version: "4.0.1"
       - run: bundle install
-      - uses: rubygems/release-gem@6317d8d1f7e28c24d28f6eff169ea854948bd9f7 # v1.2.0
+      - uses: rubygems/release-gem@052cc82692552de3ef2b81fd670e41d13cba8092 # v1.4.0
         with:
           token: ${{ steps.octo-sts.outputs.token }}
 
@@ -219,21 +233,27 @@ jobs:
       - rubygems-release
     env:
       GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
+      BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+      BUNDLE_FROZEN: "true"
     outputs:
       next_version: ${{ steps.next_version.outputs.next_version }}
+      next_dev_version: ${{ steps.next_dev_version.outputs.next_dev_version }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           fetch-depth: 0
       - name: Set up Ruby
-        uses: ruby/setup-ruby@c4e5b1316158f92e3d49443a9d58b31d25ac0f8f # v1.306.0
+        uses: ruby/setup-ruby@d45b1a4e94b71acab930e56e79c6aa188764e7f9 # v1.316.0
         with:
-          ruby-version: "3.3.7"
+          ruby-version: "4.0.1"
       - run: bundle install
       - id: next_version
         run: |
           echo "next_version=$(bundle exec rake version:next)" >> "$GITHUB_OUTPUT"
+      - id: next_dev_version
+        run: |
+          echo "next_dev_version=$(bundle exec rake version:next_dev)" >> "$GITHUB_OUTPUT"
 
   bump-gem-version:
     if: github.ref_name == 'master'
@@ -246,7 +266,7 @@ jobs:
       - update-gem-version
     uses: ./.github/workflows/bump-gem-version.yml
     with:
-      version: ${{ needs.update-gem-version.outputs.next_version }}
+      version: ${{ needs.update-gem-version.outputs.next_dev_version }}
     secrets: inherit # zizmor: ignore[secrets-inherit]
 
   # https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28
@@ -365,7 +385,7 @@ jobs:
         with:
           scope: DataDog/dd-trace-rb
           policy: self.update-release-branch
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: true # required for `git` operations (push) at later steps
           token: ${{ steps.generate-token.outputs.token }}

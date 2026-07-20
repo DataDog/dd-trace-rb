@@ -58,6 +58,7 @@ module Datadog
 
       # Creates a new TraceOperation.
       #
+      # @param span_links [Array<Datadog::Tracing::SpanLink>, nil] links to attach to the local root span.
       # @param auto_finish [Boolean] when true, automatically finishes the trace when the local root span finishes.
       #   When false, the trace remains unfinished until {#finish!} is called.
       #   This is useful when this {TraceOperation} represents the continuation of a remote {TraceDigest},
@@ -72,6 +73,7 @@ module Datadog
         name: nil,
         origin: nil,
         parent_span_id: nil,
+        span_links: nil,
         rate_limiter_rate: nil,
         resource: nil,
         rule_sample_rate: nil,
@@ -98,7 +100,7 @@ module Datadog
         @parent_span_id = parent_span_id
         @sampled = sampled.nil? || sampled
         @remote_parent = remote_parent
-
+        @span_links = span_links
         # Tags
         @agent_sample_rate = agent_sample_rate
         @hostname = hostname
@@ -301,6 +303,11 @@ module Datadog
           start_span(span_op)
         end
 
+        # Before finish: allow enrichment before the span is finalized, publish events.
+        span_events.before_finish.subscribe do |span_op|
+          before_finish_span(span_op)
+        end
+
         # After finish: deactivate the span, record, publish events.
         span_events.after_finish.subscribe do |span, span_op|
           finish_span(span, span_op, parent)
@@ -313,6 +320,7 @@ module Datadog
           events: span_events,
           on_error: on_error,
           parent_id: parent_id,
+          links: (@root_span.nil? ? @span_links : nil),
           resource: resource || op_name,
           service: service,
           start_time: start_time,
@@ -449,6 +457,7 @@ module Datadog
         include Tracing::Events
 
         attr_reader \
+          :span_before_finish,
           :span_before_start,
           :span_finished,
           :trace_finished,
@@ -456,11 +465,20 @@ module Datadog
           :trace_resource_change
 
         def initialize
+          @span_before_finish = SpanBeforeFinish.new
           @span_before_start = SpanBeforeStart.new
           @span_finished = SpanFinished.new
           @trace_finished = TraceFinished.new
           @trace_propagated = TracePropagated.new
           @trace_resource_change = TraceResourceChange.new
+        end
+
+        # Triggered just before a span is finalized, mirroring SpanOperation::Events::BeforeFinish.
+        # Subscribers can still mutate tags on the SpanOperation at this point.
+        class SpanBeforeFinish < Tracing::Event
+          def initialize
+            super(:span_before_finish)
+          end
         end
 
         # Triggered before a span starts.
@@ -544,6 +562,13 @@ module Datadog
         events.span_before_start.publish(span_op, self)
       rescue => e
         logger.debug { "Error starting span on trace: #{e.class}: #{e.message} Backtrace: #{e.backtrace.first(3)}" }
+      end
+
+      def before_finish_span(span_op)
+        # Publish :span_before_finish event
+        events.span_before_finish.publish(span_op, self)
+      rescue => e
+        logger.debug { "Error in before_finish_span on trace: #{e.class}: #{e.message} Backtrace: #{e.backtrace.first(3)}" }
       end
 
       # For traces with automatic context management (auto_finish),

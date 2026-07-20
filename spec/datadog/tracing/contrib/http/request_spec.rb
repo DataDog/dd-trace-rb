@@ -5,6 +5,7 @@ require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/http_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 require 'datadog/tracing/contrib/support/http'
 
 require 'datadog'
@@ -44,6 +45,13 @@ RSpec.describe 'net/http requests' do
     before { stub_request(:any, "#{uri}#{path}").to_return(status: status_code, body: '{}') }
 
     include_examples 'with error status code configuration', env: 'DD_TRACE_HTTP_ERROR_STATUS_CODES'
+  end
+
+  it_behaves_like 'tags _dd.svc_src', 'net/http' do
+    before do
+      stub_request(:any, "#{uri}#{path}").to_return(status: 200)
+      client.get(path)
+    end
   end
 
   describe '#get' do

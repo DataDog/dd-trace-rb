@@ -604,11 +604,12 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
 
       describe '#timeline_enabled=' do
-        it 'updates the #timeline_enabled setting from its default of true' do
-          expect { settings.profiling.advanced.timeline_enabled = false }
-            .to change { settings.profiling.advanced.timeline_enabled }
-            .from(true)
-            .to(false)
+        before { allow(Datadog::Core).to receive(:log_deprecation) }
+
+        it "logs a warning informing customers this no longer does anything" do
+          expect(Datadog::Core).to receive(:log_deprecation)
+
+          settings.profiling.advanced.timeline_enabled = false
         end
       end
 
@@ -902,31 +903,46 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         subject(:sighandler_sampling_enabled) { settings.profiling.advanced.sighandler_sampling_enabled }
 
         context 'on Ruby 3.2.4 and below' do
-          before { stub_const('RUBY_VERSION', '3.2.4') }
+          before do
+            stub_const('RUBY_VERSION', '3.2.4')
+            stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
+          end
 
           it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED', default: false
         end
 
         context 'on Ruby 3.3 < 3.3.4' do
-          before { stub_const('RUBY_VERSION', '3.3.3') }
+          before do
+            stub_const('RUBY_VERSION', '3.3.3')
+            stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
+          end
 
           it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED', default: false
         end
 
         context 'on Ruby 3.2 >= 3.2.5' do
-          before { stub_const('RUBY_VERSION', '3.2.5') }
+          before do
+            stub_const('RUBY_VERSION', '3.2.5')
+            stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
+          end
 
           it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED', default: true
         end
 
         context 'on Ruby 3.3 >= 3.3.4' do
-          before { stub_const('RUBY_VERSION', '3.3.4') }
+          before do
+            stub_const('RUBY_VERSION', '3.3.4')
+            stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
+          end
 
           it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED', default: true
         end
 
         context 'on Ruby 3.4' do
-          before { stub_const('RUBY_VERSION', '3.4.0') }
+          before do
+            stub_const('RUBY_VERSION', '3.4.0')
+            stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
+          end
 
           it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED', default: true
         end
@@ -1493,7 +1509,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     context 'when default' do
-      before { allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC, unit).and_return(1) }
+      before { allow(Process).to receive(:clock_gettime).with(Datadog::Core::Utils::Time::MONOTONIC_CLOCK_ID, unit).and_return(1) }
 
       it 'delegates to Process.clock_gettime' do
         expect(settings.get_time_provider.call(unit)).to eq(get_time)
@@ -1526,7 +1542,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       before do
         set_get_time_provider
-        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC, unit).and_return(original_get_time)
+        allow(Process).to receive(:clock_gettime).with(Datadog::Core::Utils::Time::MONOTONIC_CLOCK_ID, unit).and_return(original_get_time)
       end
 
       it 'returns the provided time' do

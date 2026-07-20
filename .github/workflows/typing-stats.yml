@@ -42,16 +42,17 @@ jobs:
             return undefined === comment ? null : comment.id
 
       - name: Checkout current branch
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@c4e5b1316158f92e3d49443a9d58b31d25ac0f8f # v1.306.0
+        uses: ruby/setup-ruby@d45b1a4e94b71acab930e56e79c6aa188764e7f9 # v1.316.0
         with:
           ruby-version: "4.0"
 
       - name: Install steep
+        # zizmor: ignore[adhoc-packages] pinned tool install for computing typing stats, not an app dependency
         run: gem install steep -v 2.0
 
       - name: Copy scripts to directory outside of workspace
@@ -68,7 +69,7 @@ jobs:
           ruby ${{ runner.temp }}/typing_stats_compute.rb >> "${{ runner.temp }}/typing-stats-current.json"
 
       - name: Checkout base branch
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           ref: ${{ github.event.pull_request.base.ref }}

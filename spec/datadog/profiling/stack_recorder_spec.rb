@@ -7,24 +7,20 @@ RSpec.describe Datadog::Profiling::StackRecorder do
   before { skip_if_profiling_not_supported }
 
   let(:numeric_labels) { [] }
-  let(:cpu_time_enabled) { true }
   let(:alloc_samples_enabled) { true }
   # Disabling these by default since they require some extra setup and produce separate samples.
   # Enabling this is tested in a particular context below.
   let(:heap_samples_enabled) { false }
   let(:heap_size_enabled) { false }
   let(:heap_sample_every) { 1 }
-  let(:timeline_enabled) { true }
   let(:heap_clean_after_gc_enabled) { true }
 
   subject(:stack_recorder) do
     described_class.new(
-      cpu_time_enabled: cpu_time_enabled,
       alloc_samples_enabled: alloc_samples_enabled,
       heap_samples_enabled: heap_samples_enabled,
       heap_size_enabled: heap_size_enabled,
       heap_sample_every: heap_sample_every,
-      timeline_enabled: timeline_enabled,
       heap_clean_after_gc_enabled: heap_clean_after_gc_enabled,
     )
   end
@@ -138,11 +134,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
 
       describe "profile types configuration" do
-        let(:cpu_time_enabled) { true }
         let(:alloc_samples_enabled) { true }
         let(:heap_samples_enabled) { true }
         let(:heap_size_enabled) { true }
-        let(:timeline_enabled) { true }
         let(:all_profile_types) do
           {
             "cpu-time" => "nanoseconds",
@@ -165,14 +159,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         context "when all profile types are enabled" do
           it "returns a pprof with the configured sample types" do
             expect(sample_types_from(decoded_profile)).to eq(all_profile_types)
-          end
-        end
-
-        context "when cpu-time is disabled" do
-          let(:cpu_time_enabled) { false }
-
-          it "returns a pprof without the cpu-type type" do
-            expect(sample_types_from(decoded_profile)).to eq(profile_types_without("cpu-time"))
           end
         end
 
@@ -201,25 +187,17 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           end
         end
 
-        context "when timeline is disabled" do
-          let(:timeline_enabled) { false }
-
-          it "returns a pprof without the timeline type" do
-            expect(sample_types_from(decoded_profile)).to eq(profile_types_without("timeline"))
-          end
-        end
-
         context "when all optional types are disabled" do
-          let(:cpu_time_enabled) { false }
           let(:alloc_samples_enabled) { false }
           let(:heap_samples_enabled) { false }
           let(:heap_size_enabled) { false }
-          let(:timeline_enabled) { false }
 
           it "returns a pprof without the optional types" do
             expect(sample_types_from(decoded_profile)).to eq(
+              "cpu-time" => "nanoseconds",
               "cpu-samples" => "count",
               "wall-time" => "nanoseconds",
+              "timeline" => "nanoseconds",
             )
           end
         end
@@ -306,11 +284,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
 
       context "when disabling an optional profile sample type" do
-        let(:cpu_time_enabled) { false }
+        let(:alloc_samples_enabled) { false }
 
         it "encodes the sample with the metrics provided, ignoring the disabled ones" do
           expect(samples.first.values).to eq(
-            "cpu-samples": 456, "wall-time": 789, "alloc-samples": 4242, "alloc-samples-unscaled": 2222, timeline: 1111
+            "cpu-time": 123, "cpu-samples": 456, "wall-time": 789, timeline: 1111
           )
         end
       end
@@ -422,6 +400,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
 
       before do
+        skip "Heap profiling relies on ObjectSpace._id2ref, removed in Ruby 4.1" if RubyVersion.is?(">= 4.1")
+
         allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
           {"z" => -1, "y" => "-2", "x" => false}, Object.new]
         @num_allocations = 0
@@ -482,10 +462,12 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         before do
-          skip "Heap profiling is only supported on Ruby >= 2.7" if RUBY_VERSION < "2.7"
+          skip "Heap profiling is only supported on Ruby >= 2.7" unless RubyVersion.is?(">= 2.7")
         end
 
         it "include the stack and sample counts for the objects still left alive" do
+          skip_asan_flaky
+
           # There should be 3 different allocation class labels so we expect 3 different heap samples
           expect(heap_samples.size).to eq(3)
 
@@ -494,6 +476,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "include accurate object sizes" do
+          skip_asan_flaky
+
           string_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "String" }
           expect(string_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_string) * sample_rate)
 
@@ -502,6 +486,30 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
           hash_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "Hash" }
           expect(hash_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_hash) * sample_rate)
+        end
+
+        # Regression test for https://github.com/DataDog/dd-trace-rb/issues/5936,
+        # see comments on `ruby_obj_memsize_of` for details
+        context "for class objects" do
+          let(:a_class) { Class.new }
+
+          before do
+            sample_allocation(a_class)
+            GC.start # Age the class past the current GC gen so it is reported as a live heap object (gen_age > 0)
+          end
+
+          it "tracks the class without crashing and reports a size that is safe for the current Ruby" do
+            skip_asan_flaky
+
+            class_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "Class" }
+            expect(class_sample).to_not be_nil
+
+            if RubyVersion.is?(">= 4")
+              expect(class_sample.values[:"heap-live-size"]).to eq(0)
+            else
+              expect(class_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_class) * sample_rate)
+            end
+          end
         end
 
         it "include accurate object ages" do
@@ -617,6 +625,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "contribute to recorded samples stats" do
+          skip_asan_flaky
+
           test_num_allocated_object = 123
           live_objects = Array.new(test_num_allocated_object)
 
@@ -662,6 +672,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           let(:heap_sample_every) { 2 }
 
           it "only keeps track of some allocations" do
+            skip_asan_flaky
+
             # By only sampling every 2nd allocation we only track the odd objects which means our array
             # should be the only heap sample captured (string is index 0, array is index 1, hash is 4)
             expect(heap_samples.size)
@@ -784,6 +796,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
             context "when there's a heap serialization ongoing" do
               it "does nothing" do
+                skip_asan_flaky
+
                 described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
 
                 test_object_id = sample_and_clear
@@ -804,6 +818,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             end
 
             it "enforces a minimum time between heap updates" do
+              skip_asan_flaky
+
               test_object_id_1 = sample_and_clear
 
               expect { recorder_after_gc_step }.to change { is_object_recorded?(test_object_id_1) }.from(true).to(false)
@@ -814,6 +830,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             end
 
             it "does not apply the minimum time between heap updates when serializing" do
+              skip_asan_flaky
+
               test_object_id_1 = sample_and_clear
 
               expect { recorder_after_gc_step }.to change { is_object_recorded?(test_object_id_1) }.from(true).to(false)
@@ -830,6 +848,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             let(:heap_clean_after_gc_enabled) { false }
 
             it "does nothing" do
+              skip_asan_flaky
+
               # Every object is still being tracked at this point
               expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
 
@@ -1030,7 +1050,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       let(:heap_size_enabled) { true }
 
       before do
-        skip "Heap profiling is only supported on Ruby >= 2.7" if RUBY_VERSION < "2.7"
+        skip "Heap profiling is only supported on Ruby >= 2.7" unless RubyVersion.is?(">= 2.7")
+        skip "Heap profiling relies on ObjectSpace._id2ref, removed in Ruby 4.1" if RubyVersion.is?(">= 4.1")
       end
 
       def sample_allocation(obj)

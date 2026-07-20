@@ -8,9 +8,10 @@ target :datadog do
 
   check 'lib/'
 
-  # Profiling files that use inline RBS type annotations instead of sig/*.rbs.
+  # Files that use inline RBS type annotations instead of sig/*.rbs.
   # Inline checking requires Steep 2.0+. Some profiling files still need some
   # info that can't yet live on the .rb, so we keep the sig/*.rbs.
+  check 'lib/datadog/ruby_version.rb', inline: true
   check 'lib/datadog/profiling/encoded_profile.rb', inline: true
   check 'lib/datadog/profiling/exporter.rb', inline: true
   check 'lib/datadog/profiling/ext.rb', inline: true
@@ -54,11 +55,8 @@ target :datadog do
   # Excluded due to https://github.com/soutaro/steep/issues/1232
   ignore 'lib/datadog/appsec/configuration.rb'
   ignore 'lib/datadog/appsec/contrib/devise/tracking_middleware.rb'
-  ignore 'lib/datadog/appsec/contrib/rack/gateway/request.rb'
-  ignore 'lib/datadog/appsec/contrib/rack/patcher.rb'
   ignore 'lib/datadog/appsec/contrib/rack/request_middleware.rb'
   ignore 'lib/datadog/appsec/contrib/rails/patcher.rb'
-  ignore 'lib/datadog/appsec/monitor/gateway/watcher.rb'
   ignore 'lib/datadog/core/buffer/thread_safe.rb'
   ignore 'lib/datadog/core/configuration.rb'
   ignore 'lib/datadog/core/configuration/base.rb'
@@ -560,6 +558,7 @@ target :datadog do
   library 'net-http'
   library 'securerandom'
   library 'digest'
+  library 'base64'
   library 'zlib'
   library 'time'
   library 'pp'

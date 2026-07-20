@@ -216,28 +216,22 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {x: {type: "DISerializerSpecRedactedInstanceVariable", fields: {
          "@session": {type: "Integer", notCapturedReason: "redactedIdent"},
        }}}},
-      {name: "depth exceeded: array", input: {v: {a: {b: {c: []}}}},
+      {name: "depth exceeded: array", input: {v: {a: {b: []}}},
        expected: {v: {type: "Hash", entries: [
          [{type: "Symbol", value: "a"}, {type: "Hash", entries: [
-           [{type: "Symbol", value: "b"}, {type: "Hash", entries: [
-             [{type: "Symbol", value: "c"}, {type: "Array", notCapturedReason: "depth"}],
-           ]}],
+           [{type: "Symbol", value: "b"}, {type: "Array", notCapturedReason: "depth"}],
          ]}],
        ]}}},
-      {name: "depth exceeded: hash", input: {v: {a: {b: {c: {}}}}},
+      {name: "depth exceeded: hash", input: {v: {a: {b: {}}}},
        expected: {v: {type: "Hash", entries: [
          [{type: "Symbol", value: "a"}, {type: "Hash", entries: [
-           [{type: "Symbol", value: "b"}, {type: "Hash", entries: [
-             [{type: "Symbol", value: "c"}, {type: "Hash", notCapturedReason: "depth"}],
-           ]}],
+           [{type: "Symbol", value: "b"}, {type: "Hash", notCapturedReason: "depth"}],
          ]}],
        ]}}},
-      {name: "depth exceeded: object", input: {v: {a: {b: {c: Object.new}}}},
+      {name: "depth exceeded: object", input: {v: {a: {b: Object.new}}},
        expected: {v: {type: "Hash", entries: [
          [{type: "Symbol", value: "a"}, {type: "Hash", entries: [
-           [{type: "Symbol", value: "b"}, {type: "Hash", entries: [
-             [{type: "Symbol", value: "c"}, {type: "Object", notCapturedReason: "depth"}],
-           ]}],
+           [{type: "Symbol", value: "b"}, {type: "Object", notCapturedReason: "depth"}],
          ]}],
        ]}}},
       {name: "object with no attributes", input: {v: DISerializerSpecTestClass.new},
@@ -629,6 +623,41 @@ RSpec.describe Datadog::DI::Serializer do
         expect(serialized[:type]).to eq('String')
         expect(serialized[:value]).to eq('second serializer')
       end
+
+      it 'skips the custom serializer when the condition raises a non-StandardError' do
+        # NotImplementedError inherits from ScriptError, not StandardError, so the
+        # previous `rescue => e` would have let it escape the whole serialization.
+        condition = lambda do |value|
+          raise NotImplementedError, 'boom' if value == 'trigger non-standard'
+          false
+        end
+        described_class.register(condition: condition) do |serializer, value, name:, depth:|
+          serializer.serialize_value('should not be called')
+        end
+
+        expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: NotImplementedError/)
+        expect(telemetry).to receive(:report).with(
+          an_instance_of(NotImplementedError),
+          description: "Custom serializer condition failed"
+        )
+
+        serialized = serializer.serialize_value('trigger non-standard')
+
+        expect(serialized[:type]).to eq('String')
+        expect(serialized[:value]).to eq('trigger non-standard')
+      end
+
+      it 'propagates a fatal exception raised by the condition' do
+        condition = lambda do |value|
+          raise SystemExit if value == 'trigger fatal'
+          false
+        end
+        described_class.register(condition: condition) do |serializer, value, name:, depth:|
+          serializer.serialize_value('should not be called')
+        end
+
+        expect { serializer.serialize_value('trigger fatal') }.to raise_error(SystemExit)
+      end
     end
   end
 
@@ -656,6 +685,20 @@ RSpec.describe Datadog::DI::Serializer do
       ]
 
       define_serialize_value_cases(cases)
+    end
+  end
+
+  context 'when serialization raises a fatal exception' do
+    with_di_registry_change
+
+    before do
+      Datadog::DI::Serializer.register(condition: lambda { |value| DISerializerCustomExceptionTestClass === value }) do |*args|
+        raise SystemExit
+      end
+    end
+
+    it 'propagates the fatal exception instead of returning a safe stub' do
+      expect { serializer.serialize_value(DISerializerCustomExceptionTestClass.new) }.to raise_error(SystemExit)
     end
   end
 

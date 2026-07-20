@@ -1,0 +1,374 @@
+[
+  {
+    "integration": "action_cable",
+    "package": "actioncable",
+    "source": "rubygems.org",
+    "min_tested": "5.2.8.1",
+    "max_tested": "8.1.3"
+  },
+  {
+    "integration": "action_mailer",
+    "package": "actionmailer",
+    "source": "rubygems.org",
+    "min_tested": "4.2.11.3",
+    "max_tested": "8.1.3"
+  },
+  {
+    "integration": "action_pack",
+    "package": "actionpack",
+    "source": "rubygems.org",
+    "min_tested": "4.2.11.3",
+    "max_tested": "8.1.3"
+  },
+  {
+    "integration": "action_view",
+    "package": "actionview",
+    "source": "rubygems.org",
+    "min_tested": "4.2.11.3",
+    "max_tested": "8.1.3"
+  },
+  {
+    "integration": "active_job",
+    "package": "activejob",
+    "source": "rubygems.org",
+    "min_tested": "4.2.11.3",
+    "max_tested": "8.1.3"
+  },
+  {
+    "integration": "active_model_serializers",
+    "package": "active_model_serializers",
+    "source": "rubygems.org",
+    "min_tested": "0.10.13",
+    "max_tested": "0.10.15"
+  },
+  {
+    "integration": "active_record",
+    "package": "activerecord",
+    "source": "rubygems.org",
+    "min_tested": "4.2.11.3",
+    "max_tested": "8.1.3"
+  },
+  {
+    "integration": "active_support",
+    "package": "activesupport",
+    "source": "rubygems.org",
+    "min_tested": "4.2.11.3",
+    "max_tested": "8.1.3"
+  },
+  {
+    "integration": "aws",
+    "package": "aws-sdk",
+    "source": "rubygems.org",
+    "min_tested": "3.1.0",
+    "max_tested": "3.3.0"
+  },
+  {
+    "integration": "concurrent_ruby",
+    "package": "concurrent-ruby",
+    "source": "rubygems.org",
+    "min_tested": "1.3.7",
+    "max_tested": "1.3.7"
+  },
+  {
+    "integration": "dalli",
+    "package": "dalli",
+    "source": "rubygems.org",
+    "min_tested": "2.7.11",
+    "max_tested": "5.0.5"
+  },
+  {
+    "integration": "delayed_job",
+    "package": "delayed_job",
+    "source": "rubygems.org",
+    "min_tested": "4.1.11",
+    "max_tested": "4.1.13"
+  },
+  {
+    "integration": "elasticsearch",
+    "package": "elasticsearch",
+    "source": "rubygems.org",
+    "min_tested": "7.17.11",
+    "max_tested": "9.4.3"
+  },
+  {
+    "integration": "ethon",
+    "package": "ethon",
+    "source": "rubygems.org",
+    "min_tested": "0.15.0",
+    "max_tested": "0.18.0"
+  },
+  {
+    "integration": "excon",
+    "package": "excon",
+    "source": "rubygems.org",
+    "min_tested": "0.109.0",
+    "max_tested": "1.5.0"
+  },
+  {
+    "integration": "faraday",
+    "package": "faraday",
+    "source": "rubygems.org",
+    "min_tested": "0.14.0",
+    "max_tested": "2.14.3"
+  },
+  {
+    "integration": "grape",
+    "package": "grape",
+    "source": "rubygems.org",
+    "min_tested": "1.7.0",
+    "max_tested": "3.1.1"
+  },
+  {
+    "integration": "graphql",
+    "package": "graphql",
+    "source": "rubygems.org",
+    "min_tested": "1.13.21",
+    "max_tested": "2.3.22"
+  },
+  {
+    "integration": "grpc",
+    "package": "grpc",
+    "source": "rubygems.org",
+    "min_tested": "1.48.0",
+    "max_tested": "1.67.0"
+  },
+  {
+    "integration": "hanami",
+    "package": "hanami",
+    "source": "rubygems.org",
+    "min_tested": "1.3.5",
+    "max_tested": "1.3.5"
+  },
+  {
+    "integration": "http",
+    "package": "http",
+    "source": "rubygems.org",
+    "min_tested": "5.0.1",
+    "max_tested": "6.0.2"
+  },
+  {
+    "integration": "httpclient",
+    "package": "httpclient",
+    "source": "rubygems.org",
+    "min_tested": "2.8.3",
+    "max_tested": "2.9.0"
+  },
+  {
+    "integration": "httprb",
+    "package": "http",
+    "source": "rubygems.org",
+    "min_tested": "5.0.1",
+    "max_tested": "6.0.2"
+  },
+  {
+    "integration": "httpx",
+    "package": null,
+    "source": null,
+    "min_tested": null,
+    "max_tested": null,
+    "support_kind": "third_party"
+  },
+  {
+    "integration": "kafka",
+    "package": "ruby-kafka",
+    "source": "rubygems.org",
+    "min_tested": "1.5.0",
+    "max_tested": "1.5.0"
+  },
+  {
+    "integration": "karafka",
+    "package": "karafka",
+    "source": "rubygems.org",
+    "min_tested": "2.0.41",
+    "max_tested": "2.5.9"
+  },
+  {
+    "integration": "kicks",
+    "package": "kicks",
+    "source": "rubygems.org",
+    "min_tested": "3.0.0",
+    "max_tested": "3.2.0"
+  },
+  {
+    "integration": "lograge",
+    "package": "lograge",
+    "source": "rubygems.org",
+    "min_tested": "0.12.0",
+    "max_tested": "0.14.0"
+  },
+  {
+    "integration": "makara",
+    "package": "makara",
+    "source": "rubygems.org",
+    "min_tested": "0.5.1",
+    "max_tested": "0.5.1"
+  },
+  {
+    "integration": "mongo",
+    "package": "mongo",
+    "source": "rubygems.org",
+    "min_tested": "2.11.0",
+    "max_tested": "2.24.1"
+  },
+  {
+    "integration": "mysql2",
+    "package": "mysql2",
+    "source": "rubygems.org",
+    "min_tested": "0.5.5",
+    "max_tested": "0.5.7"
+  },
+  {
+    "integration": "opensearch",
+    "package": "opensearch-ruby",
+    "source": "rubygems.org",
+    "min_tested": "2.1.0",
+    "max_tested": "3.4.0"
+  },
+  {
+    "integration": "pg",
+    "package": "pg",
+    "source": "rubygems.org",
+    "min_tested": "0.21.0",
+    "max_tested": "1.6.2"
+  },
+  {
+    "integration": "presto",
+    "package": "presto-client",
+    "source": "rubygems.org",
+    "min_tested": "0.6.6",
+    "max_tested": "0.6.6"
+  },
+  {
+    "integration": "que",
+    "package": "que",
+    "source": "rubygems.org",
+    "min_tested": "1.4.1",
+    "max_tested": "2.4.1"
+  },
+  {
+    "integration": "racecar",
+    "package": "racecar",
+    "source": "rubygems.org",
+    "min_tested": "2.6.0",
+    "max_tested": "2.12.0"
+  },
+  {
+    "integration": "rack",
+    "package": "rack",
+    "source": "rubygems.org",
+    "min_tested": "1.6.13",
+    "max_tested": "3.2.6"
+  },
+  {
+    "integration": "rails",
+    "package": "rails",
+    "source": "rubygems.org",
+    "min_tested": "4.2.11.3",
+    "max_tested": "8.1.3"
+  },
+  {
+    "integration": "rake",
+    "package": "rake",
+    "source": "rubygems.org",
+    "min_tested": "12.3.3",
+    "max_tested": "13.4.2"
+  },
+  {
+    "integration": "redis",
+    "package": "redis",
+    "source": "rubygems.org",
+    "min_tested": "3.3.5",
+    "max_tested": "5.4.1"
+  },
+  {
+    "integration": "resque",
+    "package": "resque",
+    "source": "rubygems.org",
+    "min_tested": "2.4.0",
+    "max_tested": "2.7.0"
+  },
+  {
+    "integration": "rest_client",
+    "package": "rest-client",
+    "source": "rubygems.org",
+    "min_tested": "2.1.0",
+    "max_tested": "2.1.0"
+  },
+  {
+    "integration": "roda",
+    "package": "roda",
+    "source": "rubygems.org",
+    "min_tested": "3.65.0",
+    "max_tested": "3.96.0"
+  },
+  {
+    "integration": "semantic_logger",
+    "package": "semantic_logger",
+    "source": "rubygems.org",
+    "min_tested": "4.12.0",
+    "max_tested": "4.17.0"
+  },
+  {
+    "integration": "sequel",
+    "package": "sequel",
+    "source": "rubygems.org",
+    "min_tested": "5.83.1",
+    "max_tested": "5.100.0"
+  },
+  {
+    "integration": "shoryuken",
+    "package": "shoryuken",
+    "source": "rubygems.org",
+    "min_tested": "6.0.0",
+    "max_tested": "6.2.1"
+  },
+  {
+    "integration": "sidekiq",
+    "package": "sidekiq",
+    "source": "rubygems.org",
+    "min_tested": "5.2.8",
+    "max_tested": "8.0.7"
+  },
+  {
+    "integration": "sinatra",
+    "package": "sinatra",
+    "source": "rubygems.org",
+    "min_tested": "2.2.4",
+    "max_tested": "4.1.1"
+  },
+  {
+    "integration": "sneakers",
+    "package": "sneakers",
+    "source": "rubygems.org",
+    "min_tested": "2.12.0",
+    "max_tested": "2.12.0"
+  },
+  {
+    "integration": "stripe",
+    "package": "stripe",
+    "source": "rubygems.org",
+    "min_tested": "5.15.0",
+    "max_tested": "19.3.0"
+  },
+  {
+    "integration": "sucker_punch",
+    "package": "sucker_punch",
+    "source": "rubygems.org",
+    "min_tested": "3.1.0",
+    "max_tested": "3.2.0"
+  },
+  {
+    "integration": "trilogy",
+    "package": "trilogy",
+    "source": "rubygems.org",
+    "min_tested": "2.6.0",
+    "max_tested": "2.9.0"
+  },
+  {
+    "integration": "waterdrop",
+    "package": "waterdrop",
+    "source": "rubygems.org",
+    "min_tested": "2.6.14",
+    "max_tested": "2.10.2"
+  }
+]

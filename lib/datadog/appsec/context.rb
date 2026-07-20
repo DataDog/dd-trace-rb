@@ -20,7 +20,7 @@ module Datadog
       ActiveContextError = Class.new(StandardError) # steep:ignore IncompatibleAssignment
 
       # TODO: add delegators for active trace span
-      attr_reader :trace, :span
+      attr_reader :trace, :span, :metrics
 
       # Shared mutable storage for counters, flags, and data accumulated during
       # the request's lifecycle.
@@ -103,7 +103,8 @@ module Datadog
       end
 
       def extract_schema!
-        waf_result = @waf_runner.run({'waf.context.processor' => {'extract-schema' => true}}, {})
+        persistent_data = {'waf.context.processor' => {'extract-schema' => true}}
+        waf_result = run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
         security_event = AppSec::SecurityEvent.new(waf_result, trace: trace, span: span)
 
         @state[:schema_extracted] = security_event.schema?
@@ -116,6 +117,7 @@ module Datadog
 
         Metrics::Exporter.export_waf_metrics(@metrics.waf, @span)
         Metrics::Exporter.export_rasp_metrics(@metrics.rasp, @span)
+        Metrics::Exporter.export_downstream_response_metrics(@metrics.downstream_responses, @span)
       end
 
       def export_request_telemetry

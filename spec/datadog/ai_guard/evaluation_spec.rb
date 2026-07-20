@@ -74,6 +74,34 @@ RSpec.describe Datadog::AIGuard::Evaluation do
       expect(trace.send(:meta).fetch("ai_guard.event")).to eq("true")
     end
 
+    it "adds Anomaly Detection tags from trace to AI Guard span" do
+      Datadog::Tracing.trace("root") do |_span, trace|
+        trace.set_tag(Datadog::AIGuard::Ext::TRACE_HTTP_USERAGENT_TAG, "Mozilla/5.0")
+        trace.set_tag(Datadog::AIGuard::Ext::TRACE_HTTP_CLIENT_IP_TAG, "198.51.100.42")
+        trace.set_tag(Datadog::AIGuard::Ext::TRACE_NETWORK_CLIENT_IP_TAG, "203.0.113.5")
+
+        described_class.perform([
+          Datadog::AIGuard.message(role: :user, content: "Some content")
+        ])
+      end
+
+      expect(ai_guard_span.tags.fetch(Datadog::AIGuard::Ext::TRACE_HTTP_USERAGENT_TAG)).to eq("Mozilla/5.0")
+      expect(ai_guard_span.tags.fetch(Datadog::AIGuard::Ext::TRACE_HTTP_CLIENT_IP_TAG)).to eq("198.51.100.42")
+      expect(ai_guard_span.tags.fetch(Datadog::AIGuard::Ext::TRACE_NETWORK_CLIENT_IP_TAG)).to eq("203.0.113.5")
+    end
+
+    it "does not add Anomaly Detection when they are not set on the trace" do
+      Datadog::Tracing.trace("root") do
+        described_class.perform([
+          Datadog::AIGuard.message(role: :user, content: "Some content")
+        ])
+      end
+
+      Datadog::AIGuard::Ext::TRACE_ANOMALY_DETECTION_TAGS.each do |tag|
+        expect(ai_guard_span.tags).not_to have_key(tag)
+      end
+    end
+
     it "sets target tag to 'prompt' when last message is a prompt" do
       described_class.perform([
         Datadog::AIGuard.message(role: :system, content: "Some content"),

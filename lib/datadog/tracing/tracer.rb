@@ -372,9 +372,7 @@ module Datadog
       end
 
       def build_trace(digest, auto_finish)
-        # Resolve hostname if configured
-        hostname = Core::Environment::Socket.hostname if Datadog.configuration.tracing.report_hostname
-        hostname = (hostname && !hostname.empty?) ? hostname : nil
+        hostname = Core::Environment::Socket.resolved_hostname(Datadog.configuration)
 
         if digest
           sampling_priority = if propagate_sampling_priority?(upstream_tags: digest.trace_distributed_tags)
@@ -389,6 +387,7 @@ module Datadog
             origin: digest.trace_origin,
             parent_span_id: digest.span_id,
             sampling_priority: sampling_priority,
+            span_links: digest.span_links,
             # Distributed tags are just regular trace tags with special meaning to Datadog
             tags: digest.trace_distributed_tags,
             trace_state: digest.trace_state,
@@ -417,6 +416,15 @@ module Datadog
         events.span_before_start.subscribe do |event_span_op, event_trace_op|
           event_trace_op.service ||= @default_service
           event_span_op.service ||= @default_service
+        end
+
+        events.span_before_finish.subscribe do |event_span_op, _event_trace_op|
+          if event_span_op.service && event_span_op.service != @default_service
+            event_span_op.set_tag(Tracing::Metadata::Ext::TAG_BASE_SERVICE, @default_service)
+            event_span_op.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Tracing::Metadata::Ext::SVC_SRC_MANUAL) unless event_span_op.get_tag(Tracing::Metadata::Ext::TAG_SVC_SRC)
+          else
+            event_span_op.send(:meta).delete(Tracing::Metadata::Ext::TAG_SVC_SRC)
+          end
         end
 
         events.trace_propagated.subscribe do |event_trace_op|

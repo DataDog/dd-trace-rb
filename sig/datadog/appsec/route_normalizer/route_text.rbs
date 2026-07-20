@@ -1,0 +1,19 @@
+module Datadog
+  module AppSec
+    module RouteNormalizer
+      module RouteText
+        DISALLOWED_CHARS: Regexp
+
+        BYTE_ENCODING_TABLE: Array[String]
+
+        MAX_ENCODED_BYTE_SIZE: Integer
+
+        def self.escape: (String text) -> String
+
+        private
+
+        def escape: (String text) -> String
+      end
+    end
+  end
+end

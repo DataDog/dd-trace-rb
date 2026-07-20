@@ -16,6 +16,7 @@ module Datadog
             }
 
             Tracing.trace(Ext::SPAN_JOB, **trace_options) do |request_span|
+              request_span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               request_span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_COMPONENT)
 
               request_span.resource = job.class.name.to_s

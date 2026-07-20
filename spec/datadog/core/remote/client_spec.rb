@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'datadog/core/utils/base64'
+require 'datadog/core/utils/base64_codec'
 require 'datadog/core/remote/transport/http'
 require 'datadog/core/remote/client'
 
@@ -212,21 +212,21 @@ RSpec.describe Datadog::Core::Remote::Client do
   let(:rules_data_response) do
     {
       'path' => 'datadog/603646/ASM_DD/latest/config',
-      'raw' => Datadog::Core::Utils::Base64.strict_encode64(rules_data).chomp
+      'raw' => Datadog::Core::Utils::Base64Codec.strict_encode64(rules_data).chomp
     }
   end
 
   let(:blocked_ips_data_response) do
     {
       'path' => 'datadog/603646/ASM_DATA/blocked_ips/config',
-      'raw' => Datadog::Core::Utils::Base64.strict_encode64(blocked_ips).chomp
+      'raw' => Datadog::Core::Utils::Base64Codec.strict_encode64(blocked_ips).chomp
     }
   end
 
   let(:exclusion_data_response) do
     {
       'path' => 'datadog/603646/ASM/exclusion_filters/config',
-      'raw' => Datadog::Core::Utils::Base64.strict_encode64(exclusions).chomp
+      'raw' => Datadog::Core::Utils::Base64Codec.strict_encode64(exclusions).chomp
     }
   end
 
@@ -236,8 +236,8 @@ RSpec.describe Datadog::Core::Remote::Client do
 
   let(:response_body) do
     {
-      'roots' => roots.map { |r| Datadog::Core::Utils::Base64.strict_encode64(r.to_json).chomp },
-      'targets' => Datadog::Core::Utils::Base64.strict_encode64(targets.to_json).chomp,
+      'roots' => roots.map { |r| Datadog::Core::Utils::Base64Codec.strict_encode64(r.to_json).chomp },
+      'targets' => Datadog::Core::Utils::Base64Codec.strict_encode64(targets.to_json).chomp,
       'target_files' => target_files,
       'client_configs' => client_configs,
     }.to_json
@@ -393,12 +393,12 @@ RSpec.describe Datadog::Core::Remote::Client do
       context 'invalid response body' do
         let(:response_body) do
           {
-            'roots' => roots.map { |r| Datadog::Core::Utils::Base64.strict_encode64(r.to_json).chomp },
-            'targets' => Datadog::Core::Utils::Base64.strict_encode64(targets.to_json).chomp,
+            'roots' => roots.map { |r| Datadog::Core::Utils::Base64Codec.strict_encode64(r.to_json).chomp },
+            'targets' => Datadog::Core::Utils::Base64Codec.strict_encode64(targets.to_json).chomp,
             'target_files' => [
               {
                 'path' => 'datadog/603646/ASM/exclusion_filters/config',
-                'raw' => Datadog::Core::Utils::Base64.strict_encode64(exclusions).chomp
+                'raw' => Datadog::Core::Utils::Base64Codec.strict_encode64(exclusions).chomp
               }
             ],
             'client_configs' => [

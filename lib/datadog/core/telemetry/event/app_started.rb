@@ -57,7 +57,14 @@ module Datadog
                 enabled: !!components.profiler,
               },
               dynamic_instrumentation: {
-                enabled: !!components.dynamic_instrumentation,
+                # With always-build, the DI component is constructed by
+                # default (when the runtime supports DI, RC is available, and
+                # DI is not explicitly disabled) regardless of whether the
+                # customer turned DI on. Its presence therefore no longer
+                # indicates the enabled state. started? reflects whether DI was
+                # actually enabled by env var or by implicit enablement via
+                # remote config.
+                enabled: components.dynamic_instrumentation&.started? || false,
               }
             }
 
@@ -142,27 +149,6 @@ module Datadog
                 'tracing.writer_options.flush_interval',
                 # Steep: Value is always a hash for writer_options (ensured by o.type :hash)
                 to_telemetry_value(value[:flush_interval]), # steep:ignore NoMethod
-                precedence
-              )
-            end
-
-            # OpenTelemetry configuration options (using environment variable names)
-            otel_exporter_headers_option = resolve_option(settings, 'opentelemetry.exporter.headers')
-            otel_exporter_headers_option.values_per_precedence.each do |precedence, value|
-              list << conf_value(
-                option_telemetry_name(otel_exporter_headers_option),
-                # Steep: Value is always a hash for opentelemetry.exporter.headers (ensured by o.type :hash)
-                value&.map { |key, header_value| "#{key}=#{header_value}" }&.join(','), # steep:ignore NoMethod
-                precedence
-              )
-            end
-
-            otel_metrics_headers_option = resolve_option(settings, 'opentelemetry.metrics.headers')
-            otel_metrics_headers_option.values_per_precedence.each do |precedence, value|
-              list << conf_value(
-                option_telemetry_name(otel_metrics_headers_option),
-                # Steep: Value is always a hash for opentelemetry.metrics.headers (ensured by o.type :hash)
-                value&.map { |key, header_value| "#{key}=#{header_value}" }&.join(','), # steep:ignore NoMethod
                 precedence
               )
             end

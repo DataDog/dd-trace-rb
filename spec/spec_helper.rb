@@ -1,7 +1,7 @@
 $LOAD_PATH.unshift File.expand_path('..', __dir__)
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 
-Thread.main.name = 'Thread.main' unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+Thread.main.name = 'Thread.main'
 
 require 'pry'
 require 'rspec/collection_matchers'
@@ -25,9 +25,13 @@ require 'datadog/core/encoding'
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/span'
 
+# Expose the version helper to specs as a bare `RubyVersion` (alias for Datadog::RubyVersion).
+require 'datadog/ruby_version'
+RubyVersion = Datadog::RubyVersion
+
 require 'support/core_helpers'
 require 'support/environment_helpers'
-require 'support/execute_in_fork'
+require 'support/forkable_example'
 require 'support/faux_transport'
 require 'support/faux_writer'
 require 'support/loaded_gem'
@@ -45,6 +49,7 @@ require 'support/test_helpers'
 require 'support/telemetry_helpers'
 require 'support/tracer_helpers'
 require 'support/http_server_helpers'
+require 'support/webmock_helper'
 
 begin
   # Ignore interpreter warnings from external libraries
@@ -93,6 +98,7 @@ RSpec.configure do |config|
   config.filter_run focus: true
   config.run_all_when_everything_filtered = true
   config.example_status_persistence_file_path = 'tmp/example_status_persistence'
+  config.backtrace_exclusion_patterns << /spec\/support\/forkable_example\.rb/
 
   # rspec-wait configuration
   config.wait_timeout = 5 # default timeout for `wait_for(...)`, in seconds
@@ -134,9 +140,57 @@ RSpec.configure do |config|
     skip "Test requires Ruby #{example.metadata[:ruby]}"
   end
 
+  # Skip all symbol_database specs on unsupported platforms. Symbol database requires
+  # MRI Ruby 2.7+; on JRuby and Ruby <2.7 the entire suite is skipped wholesale so that
+  # individual specs do not need to repeat the platform guard.
+  #
+  # To run a spec on an otherwise-skipped platform, tag it with
+  # `symdb_supported_platforms: true`. This opt-out exists for tests that validate the
+  # platform-guard behavior itself (e.g. that the Component refuses to initialize on
+  # JRuby) — those tests must run on JRuby/<2.7 to be meaningful.
+  #
+  #    describe 'Component build on unsupported platform', symdb_supported_platforms: true do
+  #      ...
+  #    end
+  #
+  #    it 'returns nil on JRuby', symdb_supported_platforms: true do
+  #      ...
+  #    end
+  if PlatformHelpers.jruby?
+    config.before(:each) do |example|
+      if example.file_path.include?('/symbol_database/') && !example.metadata[:symdb_supported_platforms]
+        skip 'Symbol database not supported on JRuby'
+      end
+    end
+  end
+
+  if RubyVersion.is?('< 2.7')
+    config.before(:each) do |example|
+      if example.file_path.include?('/symbol_database/') && !example.metadata[:symdb_supported_platforms]
+        skip 'Symbol database requires Ruby 2.7+'
+      end
+    end
+  end
+
   config.before(:example, ractors: true) do
     unless config.filter_manager.inclusions[:ractors]
       skip 'Skipping ractor tests. Use rake spec:profiling:ractors or pass -t ractors to rspec to run.'
+    end
+  end
+
+  # Repeat each example N times to flush out transient failures.
+  # Usage: RSPEC_REPEAT=100 bundle exec rspec spec/path/to_spec.rb:123
+  if (repeat_count = Integer(ENV['RSPEC_REPEAT'] || 1)) > 1
+    config.around do |example|
+      repeat_count.times do |i|
+        example.run
+        if example.exception
+          warn "Failed on repetition #{i + 1}/#{repeat_count}"
+          break
+        end
+        example.example_group_instance.send(:__init_memoized)
+        example.instance_variable_set(:@exception, nil)
+      end
     end
   end
 
@@ -206,20 +260,6 @@ RSpec.configure do |config|
       end
 
       unless background_threads.empty?
-        # TODO: Temporarily disabled for `spec/datadog/tracing/workers`
-        # was meaningful changes are required to address clean
-        # teardown in those tests.
-        # They currently flood the output, making our test
-        # suite output unreadable.
-        if example.file_path.start_with?(
-          './spec/datadog/core/workers/',
-          './spec/datadog/tracing/workers/'
-        )
-          puts # Add newline so we get better output when the progress formatter is being used
-          RSpec.warning("FIXME: #{example.file_path}:#{example.metadata[:line_number]} is leaking threads")
-          next
-        end
-
         info = background_threads.each_with_index.flat_map do |t, idx|
           backtrace = t.backtrace
           if backtrace.nil? && t.alive? # Maybe the thread hasn't run yet? Let's give it a second chance
@@ -304,7 +344,7 @@ require 'spec/support/thread_helpers'
 if ENV.key?('CI')
   ThreadHelpers.with_leaky_thread_creation('Deadline thread') do
     Thread.new do
-      Thread.current.name = 'spec_helper.rb CI debugging Deadline thread' unless RUBY_VERSION.start_with?('2.1.', '2.2.')
+      Thread.current.name = 'spec_helper.rb CI debugging Deadline thread'
 
       sleep_time = 30 * 60 # 30 minutes
       sleep(sleep_time)

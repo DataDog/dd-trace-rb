@@ -12,35 +12,33 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
   describe "grab_gvl_and_raise" do
     it "raises the requested exception with the passed in message" do
-      expect { described_class::Testing._native_grab_gvl_and_raise(::RuntimeError, "this is a test", nil, true) }
+      expect { described_class::Testing._native_grab_gvl_and_raise_cstr_arg(::RuntimeError, "this is a test", nil, true) }
         .to raise_error(::RuntimeError) do |error|
           expect(error.message).to eq("this is a test")
           expect(error.instance_variable_get(:@telemetry_message)).to eq("this is a test")
         end
     end
 
+    it "formats correctly with %PRIsVALUE" do
+      expect {
+        described_class::Testing._native_grab_gvl_and_raise_value_arg(::RuntimeError, String, true)
+      }.to raise_error(::RuntimeError) do |error|
+        expect(error.message).to eq(">String<")
+      end
+    end
+
     it "on printf-style, only report the fixed string for telemetry" do
-      expect { described_class::Testing._native_grab_gvl_and_raise(::RuntimeError, "message %s", "oops", true) }
+      expect { described_class::Testing._native_grab_gvl_and_raise_cstr_arg(::RuntimeError, "message %s", "oops", true) }
         .to raise_error(::RuntimeError) do |error|
           expect(error.message).to eq("message oops")
           expect(error.instance_variable_get(:@telemetry_message)).to eq("message %s")
         end
     end
 
-    it "limits the exception message to 255 characters" do
-      big_message = "a" * 500
-
-      expect { described_class::Testing._native_grab_gvl_and_raise(::RuntimeError, big_message, nil, true) }
-        .to raise_error(::RuntimeError) do |error|
-          expect(error.message).to match(/a{255}\z/)
-          expect(error.instance_variable_get(:@telemetry_message)).to match(/a{255}\z/)
-        end
-    end
-
     context "when called without releasing the gvl" do
       it "raises a RuntimeError with appropriate error handling when called without GVL" do
         expect do
-          described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "message %s", 'oops', false)
+          described_class::Testing._native_grab_gvl_and_raise_cstr_arg(ZeroDivisionError, "message %s", 'oops', false)
         end.to raise_error(::RuntimeError) do |error|
           expect(error.message).to include('grab_gvl_and_raise called by thread holding the global VM lock: message oops')
           expect(error.instance_variable_get(:@telemetry_message)).to include('grab_gvl_and_raise called by thread holding the global VM lock: message %s')
@@ -50,7 +48,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
     context "when raising RuntimeError" do
       subject(:raise_native_runtime_error) do
-        described_class::Testing._native_grab_gvl_and_raise(::RuntimeError, "runtime error test", nil, true)
+        described_class::Testing._native_grab_gvl_and_raise_cstr_arg(::RuntimeError, "runtime error test", nil, true)
       end
 
       it "raises a RuntimeError" do
@@ -63,7 +61,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
     context "when raising ArgumentError" do
       subject(:raise_native_argument_error) do
-        described_class::Testing._native_grab_gvl_and_raise(::ArgumentError, "argument error test", nil, true)
+        described_class::Testing._native_grab_gvl_and_raise_cstr_arg(::ArgumentError, "argument error test", nil, true)
       end
 
       it "raises an ArgumentError" do
@@ -76,7 +74,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
     context "when raising TypeError" do
       subject(:raise_native_type_error) do
-        described_class::Testing._native_grab_gvl_and_raise(::TypeError, "type error test", nil, true)
+        described_class::Testing._native_grab_gvl_and_raise_cstr_arg(::TypeError, "type error test", nil, true)
       end
 
       it "raises a TypeError" do
@@ -84,6 +82,16 @@ RSpec.describe Datadog::Profiling::NativeExtension do
           expect(error.message).to eq("type error test")
           expect(error.instance_variable_get(:@telemetry_message)).to eq("type error test")
         end
+      end
+    end
+  end
+
+  describe "raise_error" do
+    it "formats correctly with %PRIsVALUE" do
+      expect {
+        described_class::Testing._native_raise_error_value_arg(::RuntimeError, String)
+      }.to raise_error(::RuntimeError) do |error|
+        expect(error.message).to eq(">String<")
       end
     end
   end
@@ -110,14 +118,6 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       end
     end
 
-    it "limits the caller-provided exception message to 255 characters" do
-      big_message = "a" * 500
-
-      expect do
-        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, big_message, nil, true)
-      end.to raise_exception(Errno::EINTR, /.+a{255}\z/)
-    end
-
     context "when called without releasing the gvl" do
       it "raises a RuntimeError with appropriate error handling" do
         expect do
@@ -134,19 +134,19 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     subject(:ddtrace_rb_ractor_main_p) { described_class::Testing._native_ddtrace_rb_ractor_main_p }
 
     context "when Ruby has no support for Ractors" do
-      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3" }
+      before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 3") }
 
       it { is_expected.to be true }
     end
 
     context "when Ruby has support for Ractors" do
-      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3" }
+      before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 3") }
 
       context "on the main Ractor" do
         it { is_expected.to be true }
       end
 
-      context "on a background Ractor", ractors: true do
+      context "on a non-main Ractor", ractors: true do
         before do
           # @ivoanjo: When we initially added this test, our test suite kept deadlocking in CI in a later test (not on
           # this one).
@@ -157,13 +157,13 @@ RSpec.describe Datadog::Profiling::NativeExtension do
           # I was able to see this even on both Linux with 3.0.3 and macOS with 3.0.4. Thus, I decided to skip this
           # spec on Ruby 3.0. We can always run it manually if we change something around this helper; and we have
           # coverage on 3.1+ anyway.
-          skip "Ruby 3.0 Ractors are too buggy to run this spec" if RUBY_VERSION.start_with?("3.0.")
+          skip "Ruby 3.0 Ractors are too buggy to run this spec" if RubyVersion.is?(">= 3", "< 3.1")
         end
 
         subject(:ddtrace_rb_ractor_main_p) do
           Ractor.new do
             Datadog::Profiling::NativeExtension::Testing._native_ddtrace_rb_ractor_main_p
-          end.yield_self { |r| (RUBY_VERSION < "4") ? r.take : r.value }
+          end.yield_self { |r| RubyVersion.is?("< 4") ? r.take : r.value }
         end
 
         it { is_expected.to be false }
@@ -252,13 +252,18 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
   end
 
+  # `safe_object_info` is a helper used only for debugging, but we can't use it on every Ruby so we have a quick check
+  # here that we don't "oops" this, even though it's only for testing
   describe "safe_object_info" do
     let(:object_to_inspect) { "Hey, I'm a string!" }
 
     subject(:safe_object_info) { described_class::Testing._native_safe_object_info(object_to_inspect) }
 
+    # Yes, 3.4 dropped it and it came back in 4.0, you're reading right ;)
+    let(:has_object_info) { RubyVersion.is?("< 2.6") || RubyVersion.is?(">= 3.3", "< 3.4") || RubyVersion.is?(">= 4") }
+
     context "on a Ruby with rb_obj_info" do
-      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION.start_with?("2.5", "3.3", "4.0") }
+      before { skip "Behavior does not apply to current Ruby version" if has_object_info }
 
       it "returns a string with information about the object" do
         expect(safe_object_info).to include("T_STRING")
@@ -266,7 +271,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
 
     context "on a Ruby without rb_obj_info" do
-      before { skip "Behavior does not apply to current Ruby version" unless RUBY_VERSION.start_with?("2.5", "3.3", "4.0") }
+      before { skip "Behavior does not apply to current Ruby version" unless has_object_info }
 
       it "returns a placeholder string and does not otherwise fail" do
         expect(safe_object_info).to eq "(No rb_obj_info for current Ruby)"

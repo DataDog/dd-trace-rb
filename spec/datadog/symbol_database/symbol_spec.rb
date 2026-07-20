@@ -47,7 +47,8 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       expect(symbol.to_h).to eq({
         symbol_type: 'STATIC_FIELD',
         name: 'CONSTANT',
-        line: 5
+        line: 5,
+        type: nil
       })
     end
 
@@ -69,7 +70,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       )
     end
 
-    it 'removes nil values via compact' do
+    it 'keeps the type key with nil value, omits nil language_specifics' do
       symbol = described_class.new(
         symbol_type: 'FIELD',
         name: '@var',
@@ -83,9 +84,10 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       expect(hash).to eq({
         symbol_type: 'FIELD',
         name: '@var',
-        line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE
+        line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
+        type: nil
       })
-      expect(hash).not_to have_key(:type)
+      expect(hash).to have_key(:type)
       expect(hash).not_to have_key(:language_specifics)
     end
 

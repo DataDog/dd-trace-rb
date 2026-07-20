@@ -608,6 +608,88 @@ RSpec.describe Datadog::DI::CodeTracker do
     end
   end
 
+  describe "#iseqs_for_path_suffix with case-different known paths" do
+    # Verifies the case-sensitive-first / case-insensitive-fallback ordering
+    # described in the design comment in utils.rb (steps 5-8). When two
+    # registry paths differ only in case, a correctly-cased probe path must
+    # uniquely match the corresponding entry; the case-insensitive fallback
+    # is only consulted when no case-sensitive match was found.
+    around do |example|
+      tracker.define_singleton_method(:backfill_registry) {}
+      tracker.start
+
+      registry = tracker.send(:registry)
+      registry["/app/foo.rb"] = "/app/foo.rb"
+      registry["/app/FOO.rb"] = "/app/FOO.rb"
+
+      example.run
+
+      tracker.stop
+    end
+
+    it "uniquely matches a lowercase probe path" do
+      expect(tracker.iseqs_for_path_suffix("foo.rb")).to eq(["/app/foo.rb", "/app/foo.rb"])
+    end
+
+    it "uniquely matches an uppercase probe path" do
+      expect(tracker.iseqs_for_path_suffix("FOO.rb")).to eq(["/app/FOO.rb", "/app/FOO.rb"])
+    end
+
+    it "falls back to case-insensitive when no case-sensitive match exists" do
+      tracker.send(:registry).delete("/app/foo.rb")
+      expect(tracker.iseqs_for_path_suffix("foo.rb")).to eq(["/app/FOO.rb", "/app/FOO.rb"])
+    end
+
+    it "raises when the case-insensitive fallback is ambiguous" do
+      tracker.send(:registry).clear
+      tracker.send(:registry)["/app/foo.rb"] = "/app/foo.rb"
+      tracker.send(:registry)["/app/bar/foo.rb"] = "/app/bar/foo.rb"
+      # "FOO.RB" matches nothing case-sensitively at any suffix; the
+      # case-insensitive pass matches both registry entries.
+      expect do
+        tracker.iseqs_for_path_suffix("FOO.RB")
+      end.to raise_error(Datadog::DI::Error::MultiplePathsMatch)
+    end
+  end
+
+  describe "#iseqs_for_path_suffix with Windows backslash suffix" do
+    # Verifies that backslash separators (DEBUG-5111) are normalized upfront so
+    # the suffix-shortening loop can strip leading components. Probe paths from
+    # IDE tooling on Windows arrive with backslashes; the runtime registry path
+    # has forward slashes and typically lacks the leading directory components
+    # of the source repository path.
+    around do |example|
+      tracker.define_singleton_method(:backfill_registry) {}
+      tracker.start
+
+      registry = tracker.send(:registry)
+      # Runtime path on the deployed weblog — no shared/rails/ prefix.
+      registry["/app/controllers/debugger_controller.rb"] = "/app/controllers/debugger_controller.rb"
+
+      example.run
+
+      tracker.stop
+    end
+
+    it "matches when the probe path uses backslashes and needs prefix stripping" do
+      expect(
+        tracker.iseqs_for_path_suffix('shared\rails\app\controllers\debugger_controller.rb'),
+      ).to eq(["/app/controllers/debugger_controller.rb", "/app/controllers/debugger_controller.rb"])
+    end
+
+    it "matches when the probe path uses backslashes and uppercase, needing both fallbacks" do
+      expect(
+        tracker.iseqs_for_path_suffix('SHARED\RAILS\APP\CONTROLLERS\DEBUGGER_CONTROLLER.RB'),
+      ).to eq(["/app/controllers/debugger_controller.rb", "/app/controllers/debugger_controller.rb"])
+    end
+
+    it "matches when the probe path is an absolute Windows-style path" do
+      expect(
+        tracker.iseqs_for_path_suffix('\app\controllers\debugger_controller.rb'),
+      ).to eq(["/app/controllers/debugger_controller.rb", "/app/controllers/debugger_controller.rb"])
+    end
+  end
+
   describe '#iseq_for_line' do
     before do
       allow(Datadog::DI).to receive(:respond_to?).and_call_original
@@ -869,6 +951,60 @@ RSpec.describe Datadog::DI::CodeTracker do
       tracker.clear
 
       expect(tracker.send(:per_method_registry)).to be_empty
+    end
+  end
+
+  describe 'registry survives Component#stop!' do
+    # Guards the "no registry clearing" decision: when DI is stopped
+    # via RC and later restarted (RC disable → enable),
+    # the code tracker must retain its registry of pre-loaded iseqs.
+    # Otherwise a line probe targeting a file loaded earlier in process
+    # life would silently fail after a stop!/start! cycle, because
+    # backfill_registry on the second start only sees still-reachable
+    # whole-file iseqs (most of which are GC'd shortly after load).
+
+    let(:settings) do
+      Datadog::Core::Configuration::Settings.new.tap do |s|
+        s.remote.enabled = true
+        s.dynamic_instrumentation.internal.development = true
+      end
+    end
+
+    let(:agent_settings) { instance_double_agent_settings_with_stubs }
+    let(:logger) { instance_double(Logger) }
+
+    let(:component) do
+      Datadog::DI::Component.build(settings, agent_settings, logger).tap do |c|
+        raise "Component failed to build" if c.nil?
+      end
+    end
+
+    before do
+      Datadog::DI.deactivate_tracking!
+    end
+
+    after do
+      component.shutdown!
+      Datadog::DI.deactivate_tracking!
+    end
+
+    it 'preserves the registry across stop!/start! cycles' do
+      Datadog::DI.activate_tracking
+      tracker = Datadog::DI.code_tracker
+      # load (not require) so this fixture is re-loaded even if another
+      # test in the suite has already required it, ensuring the
+      # :script_compiled trace point sees it.
+      load File.join(File.dirname(__FILE__), 'code_tracker_load_class.rb')
+      registry_before = tracker.send(:registry).keys.dup
+      expect(registry_before).not_to be_empty
+
+      component.start!
+      component.stop!
+      component.start!
+
+      registry_after = tracker.send(:registry).keys
+      # Every path tracked before stop! must still be tracked after restart.
+      expect(registry_after).to include(*registry_before)
     end
   end
 end

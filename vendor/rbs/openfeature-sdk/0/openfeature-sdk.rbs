@@ -3,6 +3,8 @@ module OpenFeature
     class EvaluationContext
       type fields_t = ::Hash[::String, untyped]
 
+      TARGETING_KEY: ::String
+
       def targeting_key: () -> ::String?
 
       def fields: () -> fields_t
@@ -43,6 +45,7 @@ module OpenFeature
       def variant: () -> ::String?
       def reason: () -> ::String?
       def error_code: () -> ::String?
+      def value: () -> untyped
       def flag_metadata: () -> ::Hash[::String, untyped]?
     end
 
@@ -52,6 +55,8 @@ module OpenFeature
 
       class HookContext
         def flag_key: () -> ::String
+
+        def evaluation_context: () -> EvaluationContext?
       end
     end
   end

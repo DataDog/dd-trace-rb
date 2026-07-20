@@ -7,11 +7,11 @@ module Datadog
       # Configuration settings for symbol database upload feature.
       #
       # Public environment variable:
-      # - DD_SYMBOL_DATABASE_UPLOAD_ENABLED (default: true) - Feature gate
+      # - DD_SYMBOL_DATABASE_UPLOAD_ENABLED - Feature gate, tri-state
+      #   (true/false/nil). See the :enabled option.
       #
       # Extended into: Core::Configuration::Settings (via extend)
       # Accessed as: Datadog.configuration.symbol_database.enabled
-      # Used by: Component.build (checks if feature enabled)
       module Settings
         # Hook called when this module is extended into a class.
         # @param base [Class, Module] The class or module being extended
@@ -28,10 +28,18 @@ module Datadog
           base.class_eval do
             # steep:ignore:start
             settings :symbol_database do
+              # @return [Boolean, nil]
+              # When nil (the default), symbol database mirrors Dynamic
+              # Instrumentation: it is advertised and built alongside DI, but
+              # only extracts and uploads symbols when DI is actually enabled
+              # (via DD_DYNAMIC_INSTRUMENTATION_ENABLED or implicit enablement
+              # through the DI UI). Set true/false explicitly via
+              # DD_SYMBOL_DATABASE_UPLOAD_ENABLED or c.symbol_database.enabled to
+              # override: true uploads regardless of DI, false disables entirely.
               option :enabled do |o|
-                o.type :bool
                 o.env 'DD_SYMBOL_DATABASE_UPLOAD_ENABLED'
-                o.default true
+                o.default nil
+                o.type :bool, nilable: true
               end
 
               # Settings in the 'internal' group are for internal Datadog

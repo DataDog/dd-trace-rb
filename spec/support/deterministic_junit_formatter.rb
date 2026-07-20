@@ -15,6 +15,7 @@ class DeterministicJunitFormatter < RspecJunitFormatter
   RSpec::Core::Formatters.register self, :start, :stop, :dump_summary
 
   SANITIZATIONS = [
+
     # Object with memory address: #<Foo::Bar:0x00007f... attrs> → #<Foo::Bar:0xXXXX>
     [/#<([A-Z][a-zA-Z_:]*):0x[0-9a-f]{6,}[^>]*>/, '#<\1:0xXXXX>'],
     # Proc or lambda: #<Proc:0x00007f... /path:line (lambda)> → #<Proc:0xXXXX>
@@ -24,7 +25,17 @@ class DeterministicJunitFormatter < RspecJunitFormatter
     # ISO 8601 timestamp: "2026-04-02 14:19:20.830733764 +0000" → <timestamp>
     [/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}[\d. +-]*/, '<timestamp>'],
     # Time.now.to_i → <time>
-    [/\d{10}/, '<time>']
+    [/\b\d{10}(\.\d+)?\b/, '<time>'],
+    # hostname=>"15c5f63b0f37" → hostname=>"<hostname>"
+    [/hostname=>"[0-9a-f]{12}"/, 'hostname=>"<hostname>"'],
+    # "time_unix_nano" => 1779815589385879876 → time_unix_nano => <time_unix_nano>
+    [/"time_unix_nano" ?=> ?\d{15,}/, 'time_unix_nano => <time_unix_nano>'],
+
+    # more agressive sanitizers, as many occurence does not have recognizable patterns
+    [/0x[0-9a-f]{2,}/, '<hex>'],
+    [/[0-9a-f]{16,}/, '<hex>'],  # 16 to not scrub short words with a-f only
+    [/\d+\.\d+/, '<float>'],
+    [/\d{4,}/, '<int>'],
   ]
 
   private

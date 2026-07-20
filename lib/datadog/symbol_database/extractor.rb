@@ -3,15 +3,16 @@
 require_relative 'scope'
 require_relative 'symbol'
 require_relative 'file_hash'
-require_relative '../core/utils/array'
+require_relative '../core/utils/enumerable_compat'
+require_relative '../di/fatal_exceptions'
 
 module Datadog
   module SymbolDatabase
     # Extracts symbol metadata from loaded Ruby modules and classes via introspection.
     #
-    # Instance created by Component with injected dependencies (logger, settings,
-    # telemetry). All methods are instance methods accessing @logger, @settings,
-    # @telemetry directly — no parameter threading needed.
+    # Instance created by Component with injected dependencies (logger, settings).
+    # All methods are instance methods accessing @logger, @settings directly —
+    # no parameter threading needed.
     #
     # Uses Ruby's reflection APIs (Module#constants, Class#instance_methods, Method#parameters)
     # to build hierarchical Scope structures representing code organization.
@@ -46,10 +47,9 @@ module Datadog
     #    for post-hoc diagnosis, return nil or empty array. One bad method/module
     #    doesn't kill the entire class extraction.
     #
-    # 3. **Top-level entry rescues** (`rescue => e` with logging + telemetry):
+    # 3. **Top-level entry rescues** (`rescue => e` with logging):
     #    extract() and extract_all() are the error boundaries. Any exception that
-    #    escapes layers 1-2 is caught here, logged, and tracked via telemetry.
-    #    These are the only rescue blocks that increment telemetry counters.
+    #    escapes layers 1-2 is caught here and logged.
     #
     # @api private
     class Extractor
@@ -71,27 +71,50 @@ module Datadog
       EXCLUDED_COMMON_MODULES = ['Kernel', 'PP::', 'JSON::', 'Enumerable', 'Comparable'].freeze
 
       # RubyVM::InstructionSequence#trace_points event types included when
-      # computing injectable lines on METHOD scopes.
+      # computing targetable lines on METHOD scopes.
       # :line — any line with executable bytecode (primary line probe target)
       # :return — last expression before method returns (DI instruments return events)
       # :call excluded — method entry is handled by method probes, not line probes
-      INJECTABLE_LINE_EVENTS = [:line, :return].freeze
+      TARGETABLE_LINE_EVENTS = [:line, :return].freeze
 
       # Cached unbound Module#singleton_class? — dispatched explicitly so user classes
       # that define their own `singleton_class?` (e.g. with required arguments) cannot
       # intercept the predicate and cause the module to be silently dropped from
-      # extract_all. Cached at load time because collect_extractable_modules iterates
+      # extract_all. Cached at load time because build_per_file_index iterates
       # ObjectSpace.each_object(Module) over tens of thousands of modules.
       MODULE_SINGLETON_CLASS_PRED = Module.instance_method(:singleton_class?)
       private_constant :MODULE_SINGLETON_CLASS_PRED
 
+      # Cached UnboundMethod for Module#name — avoids resolving it on every
+      # safe_mod_name call. Some classes override .name (e.g. Faker::Travel::Airport),
+      # so we bind the original Module#name to get the real module name safely.
+      MODULE_NAME = Module.instance_method(:name)
+
+      # Cached UnboundMethods for the remaining class/module/object introspection
+      # used during extraction. Like MODULE_NAME, these bind the original
+      # implementations and are dispatched explicitly so that application code
+      # which overrides any of them (per-class, on a subclass, or in a singleton
+      # class) can neither intercept extraction nor be executed as a side effect
+      # of it. KERNEL_CLASS recovers an object's real class without calling a
+      # possibly-overridden #class.
+      CLASS_SUPERCLASS = Class.instance_method(:superclass)
+      MODULE_INCLUDED_MODULES = Module.instance_method(:included_modules)
+      MODULE_ANCESTORS = Module.instance_method(:ancestors)
+      MODULE_CLASS_VARIABLES = Module.instance_method(:class_variables)
+      MODULE_CONSTANTS = Module.instance_method(:constants)
+      MODULE_AUTOLOAD_P = Module.instance_method(:autoload?)
+      MODULE_CONST_GET = Module.instance_method(:const_get)
+      MODULE_CONST_DEFINED = Module.instance_method(:const_defined?)
+      KERNEL_CLASS = ::Kernel.instance_method(:class)
+      private_constant :CLASS_SUPERCLASS, :MODULE_INCLUDED_MODULES, :MODULE_ANCESTORS,
+        :MODULE_CLASS_VARIABLES, :MODULE_CONSTANTS, :MODULE_AUTOLOAD_P, :MODULE_CONST_GET,
+        :MODULE_CONST_DEFINED, :KERNEL_CLASS
+
       # @param logger [Logger] Logger instance (SymbolDatabase::Logger facade or compatible)
       # @param settings [Configuration::Settings] Tracer settings
-      # @param telemetry [Telemetry, nil] Optional telemetry for metrics
-      def initialize(logger:, settings:, telemetry: nil)
+      def initialize(logger:, settings:)
         @logger = logger
         @settings = settings
-        @telemetry = telemetry
       end
 
       # Extract symbols from a single module or class.
@@ -107,7 +130,7 @@ module Datadog
       # @param mod [Module, Class] The module or class to extract from
       # @return [Scope, nil] FILE scope wrapping extracted scope, or nil if filtered out
       def extract(mod)
-        return nil unless mod.is_a?(Module)
+        return nil unless Module === mod
         mod_name = safe_mod_name(mod)
         return nil unless mod_name
 
@@ -116,16 +139,16 @@ module Datadog
         source_file = find_source_file(mod)
         return nil unless source_file
 
-        inner_scope = if mod.is_a?(Class)
+        inner_scope = if Class === mod
           extract_class_scope(mod)
         else
           extract_module_scope(mod)
         end
 
         wrap_in_file_scope(source_file, [inner_scope])
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: failed to extract #{mod_name || '<unknown>'}: #{e.class}: #{e.message}" }
-        @telemetry&.inc('tracers', 'symbol_database.extract_error', 1)
         nil
       end
 
@@ -133,22 +156,66 @@ module Datadog
       # Returns an array of FILE scopes with proper FQN-based nesting.
       #
       # Two-pass algorithm:
-      # Pass 1: Iterate ObjectSpace, collect all extractable modules with methods grouped by file
-      # Pass 2: Build FILE scope trees with nested MODULE/CLASS hierarchy from FQN splitting
+      # Pass 1 (`build_per_file_index`): iterate ObjectSpace once, building
+      #   `{ file_path => [[mod_name, mod, [method_name_symbol, ...]], ...] }`.
+      #   Stores Symbol method names + Module refs only; no UnboundMethod retention
+      #   between passes.
+      # Pass 2 (`build_file_scope`): for each file in the index, resolve
+      #   UnboundMethods just-in-time, build the nested MODULE/CLASS scope tree from
+      #   FQN splitting, and produce one FILE Scope. The per-file working set is
+      #   released as soon as the FILE scope is yielded (or accumulated into the
+      #   returned Array, in legacy mode).
       #
       # This is the production path used by Component. Methods are split by source file,
       # so a class reopened across two files produces two FILE scopes, each with only
       # the methods defined in that file.
       #
-      # @return [Array<Scope>] Array of FILE scopes
+      # Memory profile (with a block):
+      #   - Pass 1 builds a per-file index containing only Symbol method names plus
+      #     Module references. No UnboundMethod objects are retained between passes.
+      #   - Pass 2 processes one file at a time. The peak per file is bounded by the
+      #     number of methods that live in that one file across all its modules
+      #     (typical Rails: tens of methods; pathological case: a single very large
+      #     source file). Once a FILE scope is yielded and the caller stops referencing
+      #     it, the entire per-file working set becomes garbage.
+      #
+      # This is O(largest_file + batch_buffer), not O(total_classes).
+      #
+      # Without a block, returns the full `Array<Scope>` (legacy form, used by specs).
+      # The Array itself still scales with the number of files, so block form is the
+      # one to use for production memory bounds.
+      #
+      # @yieldparam scope [Scope] FILE scope for one source file
+      # @return [Array<Scope>, nil] Array of FILE scopes when called without a block; nil when a block is given
       def extract_all
-        entries = collect_extractable_modules
-        file_trees = build_file_trees(entries)
-        convert_trees_to_scopes(file_trees)
-      rescue => e
+        index = build_per_file_index
+
+        if block_given?
+          # Drain the index destructively so each per-file entry becomes eligible for
+          # collection as soon as its FILE scope is yielded and consumed. Hash#shift
+          # returns [key, value] on a non-empty hash and nil when empty, so the
+          # `while (pair = ...)` form is the drain. Indexing pair[0]/pair[1] rather
+          # than destructuring avoids introducing names into method scope that would
+          # then shadow the else-branch's block parameters.
+          while (pair = index.shift)
+            scope = build_file_scope(pair[0], pair[1])
+            yield scope if scope
+          end
+          nil
+        else
+          # Legacy non-block form for specs. No memory bound — the full Array is
+          # materialized.
+          result = []
+          index.each do |path, file_entries|
+            scope = build_file_scope(path, file_entries)
+            result << scope if scope
+          end
+          result
+        end
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: error in extract_all: #{e.class}: #{e.message}" }
-        @telemetry&.inc('tracers', 'symbol_database.extract_all_error', 1)
-        []
+        block_given? ? nil : []
       end
 
       private
@@ -159,10 +226,53 @@ module Datadog
       # @param mod [Module] The module
       # @return [String, nil] Module name or nil
       def safe_mod_name(mod)
-        Module.instance_method(:name).bind(mod).call
-      rescue => e
+        MODULE_NAME.bind(mod).call
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: safe_mod_name failed: #{e.class}: #{e.message}" }
         nil
+      end
+
+      # Verify that mod_name still resolves to mod through Ruby's constant
+      # table. Returns false when a Class/Module has been detached from its
+      # constant (via remove_const) but still carries the cached Module#name —
+      # see build_per_file_index for the failure mode this protects.
+      #
+      # Walks the namespace path segment-by-segment. For each segment:
+      # 1. Check for a pending autoload directly on the current namespace.
+      #    If present, const_get would trigger it — loading customer code as
+      #    a side effect of symbol extraction and raising LoadError if the
+      #    target file is missing (LoadError is ScriptError, not StandardError,
+      #    and would propagate past the outer rescue in
+      #    build_per_file_index). Return false instead.
+      # 2. Otherwise, require the constant to be directly defined on this
+      #    namespace (const_defined?(sym, false)) and descend via
+      #    const_get(sym, false). The direct-only lookup means an ancestor's
+      #    pending autoload at the same name does not affect the result: a
+      #    subclass with its own binding resolves through the binding, an
+      #    inherited autoload triggers nothing.
+      #
+      # Uses `current.autoload?(sym, false)` (the inherit=false form, added
+      # in Ruby 2.7) so the question is strictly "is there an autoload
+      # registered directly on this namespace?" and ancestors' pending
+      # autoloads at the same name do not affect the result.
+      # @param mod_name [String]
+      # @param mod [Module]
+      # @return [Boolean]
+      def resolves_to_same_module?(mod_name, mod)
+        current = Object
+        mod_name.split('::').each do |seg|
+          sym = seg.to_sym
+          return false if MODULE_AUTOLOAD_P.bind(current).call(sym, false)
+          return false unless MODULE_CONST_DEFINED.bind(current).call(sym, false)
+          current = MODULE_CONST_GET.bind(current).call(sym, false)
+        end
+        current.equal?(mod)
+      rescue NameError, ArgumentError, TypeError
+        # Expected "no" outcome for stale/detached classes — the whole point
+        # of this predicate. Per the rescue convention in this file's header
+        # comment: inner per-item rescues are expected failures, no logging.
+        false
       end
 
       # Check if module is from user code (not gems or stdlib)
@@ -228,14 +338,9 @@ module Datadog
       # AR models get filtered out as gem code.
       #
       # For namespace-only modules (no instance or singleton methods), falls back to
-      # Module#const_source_location (Ruby 2.7+) to locate the module via its constants.
+      # Module#const_source_location to locate the module via its constants.
       # This handles patterns like `module ApplicationCable; class Channel...; end; end`
       # where the namespace module itself has no methods but defines user-code classes.
-      #
-      # On Ruby 2.6 (where const_source_location is unavailable), namespace-only modules
-      # and classes whose only methods are generated (e.g., AR models with only associations)
-      # may not be found — the extraction silently omits them. This is a graceful degradation:
-      # fewer symbols uploaded, no errors.
       #
       # @param mod [Module] The module
       # @return [String, nil] Source file path or nil
@@ -266,18 +371,19 @@ module Datadog
           fallback ||= path # steep:ignore
         end
 
-        # Try const_source_location (Ruby 2.7+) to find where this class/module is declared.
+        # Use const_source_location to find where this class/module is declared.
         # This handles two cases:
         #   1. Classes with no user-defined methods (e.g. AR models with only associations) whose
         #      generated methods point to gem code — we find the `class Foo` declaration instead.
         #   2. Namespace-only modules (`module Foo; class Bar; end; end`) with no methods at all.
-        if Module.method_defined?(:const_source_location) && mod.name
+        mod_name = safe_mod_name(mod)
+        if mod_name
           # Look up the class/module by its last name component in its enclosing namespace.
-          parts = mod.name.split('::')
+          parts = mod_name.split('::')
           const_name = parts.last
           namespace = if parts.length > 1
             begin
-              Object.const_get(parts[0..-2].join('::')) # steep:ignore
+              MODULE_CONST_GET.bind(Object).call(parts[0..-2].join('::')) # steep:ignore
             rescue NameError
               nil
             end
@@ -288,7 +394,8 @@ module Datadog
           if namespace
             location = begin
               namespace.const_source_location(const_name)
-            rescue => e
+            rescue Exception => e # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(e)
               @logger.debug { "symdb: const_source_location(#{const_name}) failed: #{e.class}: #{e.message}" }
               nil
             end
@@ -301,10 +408,11 @@ module Datadog
           end
 
           # Also scan constants defined by mod itself (namespace-only modules).
-          mod.constants(false).each do |child_const_name|
+          MODULE_CONSTANTS.bind(mod).call(false).each do |child_const_name|
             location = begin
               mod.const_source_location(child_const_name)
-            rescue => e
+            rescue Exception => e # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(e)
               @logger.debug { "symdb: const_source_location(#{child_const_name}) failed: #{e.class}: #{e.message}" }
               nil
             end
@@ -320,7 +428,8 @@ module Datadog
         end
 
         fallback
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: error finding source file for #{safe_mod_name(mod) || '<unknown>'}: #{e.class}: #{e.message}" }
         nil
       end
@@ -357,7 +466,7 @@ module Datadog
 
         Scope.new(
           scope_type: 'MODULE',
-          name: mod.name,
+          name: safe_mod_name(mod),
           source_file: source_file,
           start_line: UNKNOWN_MIN_LINE,
           end_line: UNKNOWN_MAX_LINE,
@@ -375,7 +484,7 @@ module Datadog
 
         Scope.new(
           scope_type: 'CLASS',
-          name: klass.name,
+          name: safe_mod_name(klass),
           source_file: source_file,
           start_line: start_line,
           end_line: end_line,
@@ -399,15 +508,16 @@ module Datadog
           location = method.source_location
           next unless location && location[0]
           starts << location[1]
-          _ranges, method_end = extract_injectable_lines(method, location[1])
+          _ranges, method_end = extract_targetable_lines(method, location[1])
           ends << method_end
         end
 
         return [UNKNOWN_MIN_LINE, UNKNOWN_MAX_LINE] if starts.empty?
 
         [starts.min, ends.max]
-      rescue => e
-        @logger.debug { "symdb: error calculating line range for #{klass.name}: #{e.class}: #{e.message}" }
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
+        @logger.debug { "symdb: error calculating line range for #{safe_mod_name(klass)}: #{e.class}: #{e.message}" }
         [UNKNOWN_MIN_LINE, UNKNOWN_MAX_LINE]
       end
 
@@ -421,8 +531,9 @@ module Datadog
         # Emitted as an array named super_classes — consistent with Java, .NET, and Python.
         # Array allows for multiple entries if future Ruby versions or mixins expand the chain.
         # Anonymous superclasses (class Foo < Class.new { ... }) have nil name; compact to skip.
-        if klass.superclass && klass.superclass != Object && klass.superclass != BasicObject
-          super_name = klass.superclass.name # steep:ignore
+        superclass = CLASS_SUPERCLASS.bind(klass).call
+        if superclass && !superclass.equal?(Object) && !superclass.equal?(BasicObject)
+          super_name = safe_mod_name(superclass)
           specifics[:super_classes] = [super_name] if super_name
         end
 
@@ -430,7 +541,7 @@ module Datadog
         # included_modules returns the entire ancestor chain's mixins, not only directly
         # included ones. This is intentional: the field reports "modules this class
         # responds to," which is what the consumer (UI navigation, probe context) needs.
-        included = klass.included_modules.map(&:name).reject do |name|
+        included = MODULE_INCLUDED_MODULES.bind(klass).call.map { |m| safe_mod_name(m) }.reject do |name|
           name.nil? || EXCLUDED_COMMON_MODULES.any? { |prefix| name.start_with?(prefix) }
         end
         specifics[:included_modules] = included unless included.empty?
@@ -441,16 +552,17 @@ module Datadog
         # Single-pass collection avoids the intermediate arrays from take_while.map.compact.
         # Test coverage: spec/datadog/symbol_database/extractor_spec.rb tests prepend behavior.
         prepended = []
-        klass.ancestors.each do |a|
-          break if a == klass
-          name = a.name
+        MODULE_ANCESTORS.bind(klass).call.each do |a|
+          break if a.equal?(klass)
+          name = safe_mod_name(a)
           prepended << name if name
         end
         specifics[:prepended_modules] = prepended unless prepended.empty?
 
         specifics
-      rescue => e
-        @logger.debug { "symdb: error building language specifics for #{klass.name}: #{e.class}: #{e.message}" }
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
+        @logger.debug { "symdb: error building language specifics for #{safe_mod_name(klass)}: #{e.class}: #{e.message}" }
         {}
       end
 
@@ -472,8 +584,9 @@ module Datadog
         end
 
         scopes
-      rescue => e
-        @logger.debug { "symdb: failed to extract methods from #{klass.name}: #{e.class}: #{e.message}" }
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
+        @logger.debug { "symdb: failed to extract methods from #{safe_mod_name(klass)}: #{e.class}: #{e.message}" }
         []
       end
 
@@ -491,7 +604,7 @@ module Datadog
         source_file, line = location
         return nil unless user_code_path?(source_file)  # Skip gem/stdlib methods
 
-        injectable_lines, end_line = extract_injectable_lines(method, line)
+        targetable_lines, end_line = extract_targetable_lines(method, line)
 
         Scope.new(
           scope_type: 'METHOD',
@@ -499,7 +612,7 @@ module Datadog
           source_file: source_file,
           start_line: line,
           end_line: end_line,
-          injectible_lines: injectable_lines,
+          targetable_lines: targetable_lines,
           language_specifics: {
             visibility: method_visibility(klass, method_name),
             method_type: method_type.to_s,
@@ -507,8 +620,9 @@ module Datadog
           },
           symbols: extract_method_parameters(method)
         )
-      rescue => e
-        @logger.debug { "symdb: failed to extract method #{klass.name}##{method_name}: #{e.class}: #{e.message}" }
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
+        @logger.debug { "symdb: failed to extract method #{safe_mod_name(klass)}##{method_name}: #{e.class}: #{e.message}" }
         nil
       end
 
@@ -526,29 +640,29 @@ module Datadog
         end
       end
 
-      # Extract injectable lines and end_line from a method's bytecode.
+      # Extract targetable lines and end_line from a method's bytecode.
       # Returns [ranges, end_line] where ranges is an array of {start:, end:} hashes
       # or nil if iseq is unavailable (C-extension methods).
       # @param method [Method, UnboundMethod] The method
       # @param start_line [Integer] Fallback end_line if iseq unavailable
       # @return [Array(Array<Hash>, Integer), Array(nil, Integer)]
-      def extract_injectable_lines(method, start_line)
+      def extract_targetable_lines(method, start_line)
         iseq = RubyVM::InstructionSequence.of(method) # steep:ignore
         unless iseq
-          @logger.debug { "symdb: no iseq for #{method.name} (C extension or native), skipping injectable lines" }
+          @logger.debug { "symdb: no iseq for #{method.name} (C extension or native), skipping targetable lines" }
           return [nil, start_line]
         end
 
         lines = iseq.trace_points
-          .select { |_, event| INJECTABLE_LINE_EVENTS.include?(event) }
+          .select { |_, event| TARGETABLE_LINE_EVENTS.include?(event) }
           .map(&:first)
           .uniq
           .sort
 
         end_line = lines.max || start_line
-        ranges = build_injectable_ranges(lines)
+        ranges = build_targetable_ranges(lines)
         result = ranges.empty? ? nil : ranges
-        @logger.debug { "symdb: #{method.name} injectable lines: #{result ? "#{ranges.size} range(s), lines #{lines.first}..#{lines.last}" : 'none (no matching events)'}" }
+        @logger.debug { "symdb: #{method.name} targetable lines: #{result ? "#{ranges.size} range(s), lines #{lines.first}..#{lines.last}" : 'none (no matching events)'}" }
         [result, end_line]
       end
 
@@ -556,7 +670,7 @@ module Datadog
       # [4, 5, 6, 8, 10, 11] => [{start: 4, end: 6}, {start: 8, end: 8}, {start: 10, end: 11}]
       # @param lines [Array<Integer>] Sorted, deduplicated line numbers
       # @return [Array<Hash>] Array of {start:, end:} range hashes
-      def build_injectable_ranges(lines)
+      def build_targetable_ranges(lines)
         return [] if lines.empty?
 
         ranges = []
@@ -585,7 +699,8 @@ module Datadog
       def extract_method_parameters(method)
         method_name = begin
           method.name.to_s
-        rescue => e
+        rescue Exception => e # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(e)
           @logger.debug { "symdb: method.name failed: #{e.class}: #{e.message}" }
           'unknown'
         end
@@ -593,7 +708,7 @@ module Datadog
 
         return [] if params.nil? || params.empty?
 
-        Core::Utils::Array.filter_map(params) do |param_type, param_name|
+        Core::Utils::EnumerableCompat.filter_map(params) do |param_type, param_name|
           # Skip block parameters for MVP
           next if param_type == :block
 
@@ -607,108 +722,173 @@ module Datadog
             line: UNKNOWN_MIN_LINE,  # Parameters available in entire method
           )
         end
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: failed to extract parameters from #{method_name}: #{e.class}: #{e.message}" }
         []
       end
 
       # ── extract_all helpers ──────────────────────────────────────────────
 
-      # Pass 1: Collect all extractable modules with methods grouped by source file.
-      # @return [Hash] { mod_name => { mod:, methods_by_file: { path => [{name:, method:, type:}] } } }
-      def collect_extractable_modules
-        entries = {}
+      # Sleep between chunks of modules processed in build_per_file_index so
+      # request-handling threads have guaranteed CPU time while extraction is in
+      # flight. Unlike Thread.pass (which only offers the GVL among runnable
+      # threads and leaves the extractor immediately re-runnable), sleep removes
+      # the extractor thread from the runnable set for a fixed duration, capping
+      # its CPU share at sleep_work_ratio regardless of GVL scheduling.
+      #
+      # The cadence is measured in modules that pass the singleton-class fast-path
+      # skip — singleton classes are discarded in microseconds and counting them
+      # would add wall-clock delay disproportionate to the work being done (e.g.
+      # on heavily monkey-patched processes that retain large singleton chains).
+      SLEEP_EVERY_N_MODULES = 100
+      SLEEP_SECONDS = 0.001
+      private_constant :SLEEP_EVERY_N_MODULES, :SLEEP_SECONDS
+
+      # Pass 1 (memory-bounded form): build a per-file index of
+      # `{ file_path => [[mod_name, mod, [method_name_symbol, ...]], ...] }`.
+      #
+      # Stores Symbol method names plus Module references only — no UnboundMethod
+      # objects retained between passes. UnboundMethods created here (to read
+      # `source_location`) become garbage as the inner loop ends.
+      #
+      # The Module references are pointer-sized and the modules are already kept
+      # alive in ObjectSpace, so adding them to the index costs no extra retention.
+      #
+      # @return [Hash{String=>Array<Array(String, Module, Array<Symbol>)>}]
+      def build_per_file_index
+        index = {}
+        seen = 0
 
         ObjectSpace.each_object(Module) do |mod|
           # Singleton classes (per-object metaclasses) are never user-code classes.
           # They're not const-referenced, DI cannot instrument methods on a singular
-          # object instance, and on Ruby 2.6 specifically, Module#name on unnamed
-          # singleton classes with long ancestor chains (e.g. through monkey-patches
-          # prepended into Kernel, common in dd-trace-rb test processes) is O(ancestors)
-          # — measured ~20ms per call, which dominates extract_all on heavily-loaded
-          # processes. Ruby 2.7+ optimized this path; the skip is a no-op there.
+          # object instance, so skipping them is both correct and cheap.
           next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
+
+          seen += 1
+          sleep SLEEP_SECONDS if (seen % SLEEP_EVERY_N_MODULES).zero?
 
           mod_name = safe_mod_name(mod)
           next unless mod_name
+          next unless resolves_to_same_module?(mod_name, mod)
           next unless user_code_module?(mod)
 
-          methods_by_file = group_methods_by_file(mod)
+          file_to_names = collect_method_names_by_file(mod)
 
-          # For modules/classes with no methods but valid source, use find_source_file as fallback.
-          # This handles namespace modules and classes with only constants.
-          if methods_by_file.empty?
+          # Namespace-only modules (no own methods) — use find_source_file as the
+          # canonical file so the FILE scope still gets a MODULE entry.
+          if file_to_names.empty?
             source_file = find_source_file(mod)
-            methods_by_file[source_file] = [] if source_file
+            file_to_names[source_file] = [] if source_file
           end
 
-          next if methods_by_file.empty?
+          next if file_to_names.empty?
 
-          entries[mod_name] = {mod: mod, methods_by_file: methods_by_file}
-        rescue => e
-          @logger.debug { "symdb: error collecting #{mod_name || '<unknown>'}: #{e.class}: #{e.message}" }
+          file_to_names.each do |file_path, method_names|
+            (index[file_path] ||= []) << [mod_name, mod, method_names]
+          end
+        rescue Exception => e # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(e)
+          @logger.debug { "symdb: error indexing #{mod_name || '<unknown>'}: #{e.class}: #{e.message}" }
         end
 
-        entries
+        index
       end
 
-      # Group a module's methods by their source file path.
-      # @param mod [Module] The module
-      # @return [Hash] { file_path => [{name:, method:, type:}] }
-      def group_methods_by_file(mod)
+      # For a single module, return `{ file_path => [method_name_symbol, ...] }`.
+      # Stores only the method-name symbols and their file paths — UnboundMethod
+      # objects allocated to read `source_location` are not retained between
+      # passes, so they can be GC'd as soon as the inner loop ends.
+      def collect_method_names_by_file(mod)
         result = Hash.new { |h, k| h[k] = [] } # steep:ignore
 
-        # Instance methods (public, protected, private)
-        all_methods = mod.instance_methods(false) +
-          mod.protected_instance_methods(false) +
-          mod.private_instance_methods(false)
-        all_methods.uniq!
+        # Module#instance_methods(false) already returns both public and protected
+        # methods, so iterating it plus private_instance_methods covers all three
+        # visibilities without an intermediate merged array.
+        [mod.instance_methods(false), mod.private_instance_methods(false)].each do |method_names|
+          method_names.each do |method_name|
+            method = mod.instance_method(method_name)
+            loc = method.source_location
+            next unless loc
+            next unless user_code_path?(loc[0])
 
-        all_methods.each do |method_name|
-          method = mod.instance_method(method_name)
-          loc = method.source_location
-          next unless loc
-          next unless user_code_path?(loc[0])
-
-          result[loc[0]] << {name: method_name, method: method, type: :instance}
-        rescue => e
-          @logger.debug { "symdb: error grouping method #{method_name}: #{e.class}: #{e.message}" }
+            result[loc[0]] << method_name
+          rescue Exception => e # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(e)
+            @logger.debug { "symdb: error indexing method #{method_name}: #{e.class}: #{e.message}" }
+          end
         end
 
         result
-      rescue => e
-        @logger.debug { "symdb: error grouping methods: #{e.class}: #{e.message}" }
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
+        @logger.debug { "symdb: error indexing methods: #{e.class}: #{e.message}" }
         {}
       end
 
-      # Pass 2: Build per-file trees from collected entries.
-      # Uses hash nodes during construction, converted to Scope objects at the end.
+      # Pass 2: build the FILE scope for one source file by walking just the modules
+      # that contribute methods to it. Resolves UnboundMethods just-in-time per
+      # method; the per-method scratch is collected by GC as each module's loop body
+      # ends. The returned Scope is the only thing the caller needs to keep alive
+      # — once the caller drops it, the entire per-file working set is collectable.
       #
-      # Node structure: { name:, type:, children: {name => node}, methods: [], mod:, source_file:, fqn: }
-      #
-      # @param entries [Hash] Output from collect_extractable_modules
-      # @return [Hash] { file_path => root_node }
-      def build_file_trees(entries)
-        file_trees = {}
+      # @param file_path [String]
+      # @param entries [Array<Array(String, Module, Array<Symbol>)>] tuples produced by build_per_file_index
+      # @return [Scope, nil] FILE scope, or nil if nothing extractable
+      def build_file_scope(file_path, entries)
+        return nil if entries.empty?
 
-        # Sort by FQN depth so parents are placed before children.
-        # This ensures intermediate nodes created for parents have correct scope_type.
-        sorted = entries.sort_by { |name, _| name.count(':') }
+        root = {
+          name: file_path, type: 'FILE', children: {},
+          methods: [], mod: nil, source_file: file_path, fqn: nil,
+        }
 
-        sorted.each do |mod_name, entry|
-          entry[:methods_by_file].each do |file_path, methods|
-            root = file_trees[file_path] ||= {
-              name: file_path, type: 'FILE', children: {},
-              methods: [], mod: nil, source_file: file_path, fqn: nil
-            }
-            parts = mod_name.split('::')
-            place_in_tree(root, parts, entry[:mod], mod_name, methods, file_path)
+        # Sort by FQN depth so parent namespaces are placed before children.
+        sorted = entries.sort_by { |(mod_name, _, _)| mod_name.count(':') }
+
+        sorted.each do |mod_name, mod, method_names|
+          # Resolve UnboundMethods for this (mod, file) just-in-time. These objects
+          # live only as long as the tree node holds them; they are released when
+          # convert_tree_to_scope finishes building the file's Scope.
+          method_infos = Core::Utils::EnumerableCompat.filter_map(method_names) do |name|
+            method = mod.instance_method(name)
+            # Pass 1 (build_per_file_index) recorded this method under file_path.
+            # If the method has been redefined in another file between the two
+            # passes (e.g. a class reopened during a Rails reload while extract_all
+            # is iterating), the resolved UnboundMethod's source_location now
+            # points elsewhere. Drop the stale entry — the hot-load TracePoint
+            # enqueues the redefined class and the next debounce window extracts
+            # it under the new file_path.
+            loc = method.source_location
+            next nil unless loc && loc[0] == file_path
+            {name: name, method: method, type: :instance}
+          rescue Exception => e # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(e)
+            @logger.debug { "symdb: error resolving #{mod_name}##{name}: #{e.class}: #{e.message}" }
+            nil
           end
-        rescue => e
-          @logger.debug { "symdb: error building tree for #{mod_name}: #{e.class}: #{e.message}" }
+
+          # If Pass 1 recorded methods for this module but every one of them has
+          # moved out of file_path between the passes, drop the entry — otherwise
+          # the FILE scope would carry an empty CLASS/MODULE node at a location
+          # the module no longer lives in.
+          next if method_names.any? && method_infos.empty?
+
+          parts = mod_name.split('::')
+          place_in_tree(root, parts, mod, mod_name, method_infos, file_path)
+        rescue Exception => e # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(e)
+          @logger.debug { "symdb: error placing #{mod_name} in tree: #{e.class}: #{e.message}" }
         end
 
-        file_trees
+        # steep:ignore:start
+        # Steep widens root[:children] to the union of all value types declared in
+        # the literal (String | Hash | Array | nil), losing the Hash narrowing.
+        return nil if root[:children].empty?
+        # steep:ignore:end
+
+        convert_tree_to_scope(file_path, root)
       end
 
       # Place a module/class in the file tree at the correct nesting depth.
@@ -736,12 +916,12 @@ module Datadog
         if leaf
           # Node exists (was created as intermediate or from another entry).
           # Update type and mod — the actual module object is authoritative.
-          leaf[:type] = mod.is_a?(Class) ? 'CLASS' : 'MODULE'
+          leaf[:type] = (Class === mod) ? 'CLASS' : 'MODULE'
           leaf[:mod] = mod
         else
           leaf = {
             name: mod_name,
-            type: mod.is_a?(Class) ? 'CLASS' : 'MODULE',
+            type: (Class === mod) ? 'CLASS' : 'MODULE',
             children: {}, methods: [],
             mod: mod, source_file: file_path,
             fqn: mod_name
@@ -758,32 +938,43 @@ module Datadog
       # @param fqn [String] Fully-qualified name (e.g. "Authentication::Strategies")
       # @return [String] 'CLASS' or 'MODULE'
       def resolve_scope_type(fqn)
-        const = Object.const_get(fqn)
-        const.is_a?(Class) ? 'CLASS' : 'MODULE'
-      rescue => e
+        current = Object
+        fqn.split('::').each do |seg|
+          sym = seg.to_sym
+          pending_autoload = if RubyVersion.is?('>= 2.7')
+            MODULE_AUTOLOAD_P.bind(current).call(sym, false)
+          else
+            MODULE_AUTOLOAD_P.bind(current).call(sym)
+          end
+          return 'MODULE' if pending_autoload
+          return 'MODULE' unless MODULE_CONST_DEFINED.bind(current).call(sym, false)
+          current = MODULE_CONST_GET.bind(current).call(sym, false)
+        end
+        (Class === current) ? 'CLASS' : 'MODULE'
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: resolve_scope_type(#{fqn}) failed: #{e.class}: #{e.message}, defaulting to MODULE" }
         'MODULE'
       end
 
-      # Convert hash-based file trees to Scope objects.
-      # @param file_trees [Hash] { file_path => root_node }
-      # @return [Array<Scope>] Array of FILE scopes
-      def convert_trees_to_scopes(file_trees)
-        file_trees.map do |file_path, root|
-          file_hash = FileHash.compute(file_path, logger: @logger)
-          lang = {}
-          lang[:file_hash] = file_hash if file_hash
+      # Convert a single file tree (built by build_file_scope) to a FILE Scope.
+      # @param file_path [String] Source file path
+      # @param root [Hash] Tree node from build_file_scope
+      # @return [Scope] FILE scope
+      def convert_tree_to_scope(file_path, root)
+        file_hash = FileHash.compute(file_path, logger: @logger)
+        lang = {}
+        lang[:file_hash] = file_hash if file_hash
 
-          Scope.new(
-            scope_type: 'FILE',
-            name: file_path,
-            source_file: file_path,
-            start_line: UNKNOWN_MIN_LINE,
-            end_line: UNKNOWN_MAX_LINE,
-            language_specifics: lang,
-            scopes: root[:children].values.map { |child| convert_node_to_scope(child) }
-          )
-        end
+        Scope.new(
+          scope_type: 'FILE',
+          name: file_path,
+          source_file: file_path,
+          start_line: UNKNOWN_MIN_LINE,
+          end_line: UNKNOWN_MAX_LINE,
+          language_specifics: lang,
+          scopes: root[:children].values.map { |child| convert_node_to_scope(child) },
+        )
       end
 
       # Convert a single hash node to a Scope object (recursive).
@@ -791,7 +982,7 @@ module Datadog
       # @return [Scope] Scope object
       def convert_node_to_scope(node)
         # Build method scopes from collected method entries
-        method_scopes = Core::Utils::Array.filter_map(node[:methods]) do |method_info|
+        method_scopes = Core::Utils::EnumerableCompat.filter_map(node[:methods]) do |method_info|
           build_instance_method_scope(node[:mod], method_info[:name], method_info[:method])
         end
 
@@ -840,7 +1031,7 @@ module Datadog
 
         source_file, line = location
 
-        injectable_lines, end_line = extract_injectable_lines(method, line)
+        targetable_lines, end_line = extract_targetable_lines(method, line)
 
         Scope.new(
           scope_type: 'METHOD',
@@ -848,7 +1039,7 @@ module Datadog
           source_file: source_file,
           start_line: line,
           end_line: end_line,
-          injectible_lines: injectable_lines,
+          targetable_lines: targetable_lines,
           language_specifics: {
             visibility: klass ? method_visibility(klass, method_name) : 'public', # steep:ignore
             method_type: 'instance',
@@ -856,7 +1047,8 @@ module Datadog
           },
           symbols: extract_method_parameters(method)
         )
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         klass_name = klass ? (safe_mod_name(klass) || '<unknown>') : '<unknown>'
         @logger.debug { "symdb: failed to build method scope #{klass_name}##{method_name}: #{e.class}: #{e.message}" }
         nil
@@ -870,8 +1062,8 @@ module Datadog
         symbols = []
 
         # Class variables (only for classes)
-        if mod.is_a?(Class)
-          mod.class_variables(false).each do |var_name|
+        if Class === mod
+          MODULE_CLASS_VARIABLES.bind(mod).call(false).each do |var_name|
             symbols << Symbol.new(
               symbol_type: 'STATIC_FIELD',
               name: var_name.to_s,
@@ -882,30 +1074,33 @@ module Datadog
 
         # Constants (excluding nested modules/classes).
         # Skip autoloaded constants to avoid triggering loading as a side effect.
-        mod.constants(false).each do |const_name|
-          next if mod.autoload?(const_name)
-          const_value = mod.const_get(const_name)
-          next if const_value.is_a?(Module)
+        MODULE_CONSTANTS.bind(mod).call(false).each do |const_name|
+          next if MODULE_AUTOLOAD_P.bind(mod).call(const_name)
+          const_value = MODULE_CONST_GET.bind(mod).call(const_name)
+          next if Module === const_value
 
           symbols << Symbol.new(
             symbol_type: 'STATIC_FIELD',
             name: const_name.to_s,
             line: UNKNOWN_MIN_LINE,
-            type: const_value.class.name
+            type: safe_mod_name(KERNEL_CLASS.bind(const_value).call)
           )
-        rescue NameError, LoadError, NoMethodError => e # standard:disable Lint/ShadowedException
-          # Expected: constant removed/undefined, autoload failure, or const value missing
-          # #class. Logged separately from unexpected errors so the latter stand out in triage.
-          # Lint/ShadowedException disabled: NameError/NoMethodError do descend from
-          # StandardError, but Ruby's rescue-clause-order semantics ensure the bare rescue
-          # below only catches exceptions not matched here.
+        rescue NameError, LoadError, NoMethodError, TypeError => e # standard:disable Lint/ShadowedException
+          # Expected: constant removed/undefined (NameError), autoload failure (LoadError),
+          # or a value whose class cannot be read (NoMethodError/TypeError). Skipping one
+          # constant here keeps the rest of the module's symbols. Logged separately from
+          # unexpected errors so the latter stand out in triage. Lint/ShadowedException
+          # disabled: these descend from StandardError, but Ruby's rescue-clause-order
+          # semantics ensure the catch-all rescue below only catches exceptions not matched here.
           @logger.debug { "symdb: skipping module constant #{const_name}: #{e.class}: #{e.message}" }
-        rescue => e
+        rescue Exception => e # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(e)
           @logger.debug { "symdb: unexpected error reading module constant #{const_name}: #{e.class}: #{e.message}" }
         end
 
         symbols
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         mod_name = safe_mod_name(mod) || '<unknown>'
         @logger.debug { "symdb: failed to extract symbols from #{mod_name}: #{e.class}: #{e.message}" }
         []

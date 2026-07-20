@@ -4,7 +4,7 @@ require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
 require_relative 'utils'
-require_relative '../utils/quantization/hash'
+require_relative '../utils/quantization/hash_formatter'
 require_relative 'distributed/propagation'
 
 module Datadog
@@ -36,6 +36,7 @@ module Datadog
               type: Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
               on_error: @on_error
             ) do |span|
+              span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               span.resource = resource
 
               span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_COMPONENT)
@@ -68,7 +69,7 @@ module Datadog
 
               args = job['args']
               if args && !args.empty?
-                span.set_tag(Ext::TAG_JOB_ARGS, Contrib::Utils::Quantization::Hash.format(args, (@quantize[:args] || {})))
+                span.set_tag(Ext::TAG_JOB_ARGS, Contrib::Utils::Quantization::HashFormatter.format(args, @quantize[:args] || {}))
               end
 
               yield

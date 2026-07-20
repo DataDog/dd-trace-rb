@@ -3,6 +3,7 @@
 # rubocop:disable Lint/AssignmentInCondition
 
 require_relative 'error'
+require_relative 'fatal_exceptions'
 
 module Datadog
   module DI
@@ -120,7 +121,8 @@ module Datadog
           end
         end
         nil
-      rescue => exc
+      rescue Exception => exc # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(exc)
         # Backfill is best-effort — if it fails, line probes on
         # pre-loaded code won't work but everything else is unaffected.
         if component = DI.current_component
@@ -191,7 +193,8 @@ module Datadog
           # Since this method normally is called from customer applications,
           # rescue any exceptions that might not be handled to not break said
           # customer applications.
-          rescue => exc
+          rescue Exception => exc # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(exc)
             # Code tracker may be loaded without the rest of DI,
             # in which case DI.component will not yet be defined,
             # but we will have DI.current_component (set to nil).
@@ -249,23 +252,34 @@ module Datadog
           exact = registry[suffix]
           return [suffix, exact] if exact
 
-          suffix = suffix.dup
-          loop do
-            inexact = []
-            registry.each do |path, iseq|
-              if Utils.path_matches_suffix?(path, suffix)
-                inexact << [path, iseq]
+          # Normalize Windows-style backslash separators (DEBUG-5111) upfront
+          # so the suffix-shortening loop's "/+" regex can strip leading
+          # components on probes whose sourceFile uses backslashes.
+          suffix = Utils.normalize_windows_separators(suffix)
+
+          # Per the design comment in utils.rb, attempt case-sensitive
+          # matching first (steps 5-6) and only fall back to case-insensitive
+          # matching (steps 7-8) when no case-sensitive match is found.
+          [false, true].each do |case_insensitive|
+            working_suffix = suffix.dup
+            loop do
+              inexact = []
+              registry.each do |path, iseq|
+                if Utils.path_matches_suffix?(path, working_suffix, case_insensitive: case_insensitive)
+                  inexact << [path, iseq]
+                end
               end
+              if inexact.length > 1
+                raise Error::MultiplePathsMatch, "Multiple paths matched requested suffix"
+              end
+              if inexact.any?
+                return inexact.first
+              end
+              break unless working_suffix.include?('/')
+              working_suffix.sub!(%r{.*/+}, '')
             end
-            if inexact.length > 1
-              raise Error::MultiplePathsMatch, "Multiple paths matched requested suffix"
-            end
-            if inexact.any?
-              return inexact.first
-            end
-            return nil unless suffix.include?('/')
-            suffix.sub!(%r{.*/+}, '')
           end
+          nil
         end
       end
 
@@ -365,15 +379,25 @@ module Datadog
         # Exact match.
         return suffix if paths.include?(suffix)
 
-        # Suffix match.
-        suffix = suffix.dup
-        loop do
-          matches = paths.select { |p| Utils.path_matches_suffix?(p, suffix) }
-          raise Error::MultiplePathsMatch, "Multiple paths matched requested suffix" if matches.length > 1
-          return matches.first if matches.any?
-          return nil unless suffix.include?('/')
-          suffix.sub!(%r{.*/+}, '')
+        # Normalize Windows-style backslash separators (DEBUG-5111) upfront
+        # so the suffix-shortening loop's "/+" regex can strip leading
+        # components on probes whose sourceFile uses backslashes.
+        suffix = Utils.normalize_windows_separators(suffix)
+
+        # Suffix match. Per the design comment in utils.rb, attempt
+        # case-sensitive matching first (steps 5-6) and only fall back to
+        # case-insensitive (steps 7-8) when no case-sensitive match is found.
+        [false, true].each do |case_insensitive|
+          working_suffix = suffix.dup
+          loop do
+            matches = paths.select { |p| Utils.path_matches_suffix?(p, working_suffix, case_insensitive: case_insensitive) }
+            raise Error::MultiplePathsMatch, "Multiple paths matched requested suffix" if matches.length > 1
+            return matches.first if matches.any?
+            break unless working_suffix.include?('/')
+            working_suffix.sub!(%r{.*/+}, '')
+          end
         end
+        nil
       end
     end
   end

@@ -144,7 +144,7 @@ module Datadog
                 #   timeout and an integer otherwise
                 # - before Ruby 3.2, ConditionVariable returns itself
                 # so we have to rely on @once having been set
-                if RUBY_VERSION >= '3.2'
+                if RubyVersion.is?('>= 3.2')
                   lifted = @condition.wait(@mutex, timeout)
                 else
                   @condition.wait(@mutex, timeout)

@@ -3,30 +3,45 @@ module Datadog
     class ServiceVersion
       @service: String
 
-      @env: String
+      @env: String?
 
-      @version: String
+      @version: String?
 
       @language: String
 
       @scopes: Array[Scope]
 
+      @upload_id: String?
+
+      @batch_num: Integer?
+
+      @final: bool?
+
       def initialize: (
-        service: String,
+        service: String?,
         env: String?,
         version: String?,
-        scopes: Array[Scope]
+        scopes: Array[Scope],
+        ?upload_id: String?,
+        ?batch_num: Integer?,
+        ?final: bool?
       ) -> void
 
       attr_reader service: String
 
-      attr_reader env: String
+      attr_reader env: String?
 
-      attr_reader version: String
+      attr_reader version: String?
 
       attr_reader language: String
 
       attr_reader scopes: Array[Scope]
+
+      attr_reader upload_id: String?
+
+      attr_reader batch_num: Integer?
+
+      attr_reader final: bool?
 
       def to_h: () -> Hash[::Symbol, untyped]
 
