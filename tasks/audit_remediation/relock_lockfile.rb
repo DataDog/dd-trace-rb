@@ -16,13 +16,10 @@ module RelockLockfile
     original_contents = File.read(lockfile_path)
 
     begin
-      Bundler.with_unbundled_env do
-        system(
-          {'BUNDLE_GEMFILE' => gemfile_path},
-          "bundle lock --update #{gems.join(' ')}",
-          exception: true,
-        )
+      success = Bundler.with_unbundled_env do
+        system({'BUNDLE_GEMFILE' => gemfile_path}, "bundle lock --update #{gems.join(' ')}")
       end
+      raise "bundle lock exited with status #{$?.exitstatus}" unless success
     rescue => e
       File.write(lockfile_path, original_contents)
       return {lockfile: lockfile_path, status: ERROR, remaining_findings: [], error_message: e.message}
