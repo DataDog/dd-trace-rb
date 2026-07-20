@@ -44,4 +44,23 @@ module SecurityCapabilities
 
     for_version(match[1])[:audit]
   end
+
+  # All lockfiles eligible for checksum coverage: the underscore appraisal
+  # variants (ruby_X.Y_*.gemfile.lock) and the dash base lockfiles
+  # (ruby-X.Y.gemfile.lock), for every checksum-eligible Ruby version.
+  def checksum_eligible_lockfiles(gemfiles_dir = "gemfiles")
+    dir = Pathname.new(gemfiles_dir)
+    lockfiles = Dir.glob(dir.join("*.gemfile.lock").to_s)
+    eligible = lockfiles.select { |path| checksum_eligible_lockfile?(File.basename(path)) }
+    eligible.sort
+  end
+
+  # A lockfile is eligible when its embedded Ruby version is checksum-capable.
+  # Handles both "ruby_3.1_contrib.gemfile.lock" and "ruby-3.1.gemfile.lock".
+  def checksum_eligible_lockfile?(basename)
+    match = basename.match(/\Aruby[_-](\d+\.\d+)/)
+    return false unless match
+
+    for_version(match[1])[:checksum]
+  end
 end
