@@ -544,18 +544,18 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
 
             stack_buffer[i].same_frame =
               stack_buffer[i].is_ruby_frame &&
-              stack_buffer[i].as.ruby_frame.iseq == (VALUE) cfp->iseq &&
+              stack_buffer[i].as.ruby_frame.iseq == cfp->iseq &&
               stack_buffer[i].as.ruby_frame.caching_pc == cfp->pc &&
-              stack_buffer[i].as.ruby_frame.caching_cme == (VALUE) cme;
+              stack_buffer[i].as.ruby_frame.caching_cme == cme;
 
             if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
               i++;
               continue;
             }
 
-            stack_buffer[i].as.ruby_frame.iseq = (VALUE)cfp->iseq;
+            stack_buffer[i].as.ruby_frame.iseq = cfp->iseq;
             stack_buffer[i].as.ruby_frame.caching_pc = (void *) cfp->pc;
-            stack_buffer[i].as.ruby_frame.caching_cme = (VALUE) cme;
+            stack_buffer[i].as.ruby_frame.caching_cme = cme;
             stack_buffer[i].defined_class = cme ? cme->defined_class : Qnil;
 
             // The topmost frame may not have an updated PC because the JIT
@@ -585,14 +585,14 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
 
                 stack_buffer[i].same_frame =
                   !stack_buffer[i].is_ruby_frame &&
-                  stack_buffer[i].as.native_frame.caching_cme == (VALUE) cme;
+                  stack_buffer[i].as.native_frame.caching_cme == cme;
 
                 if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
                   i++;
                   continue;
                 }
 
-                stack_buffer[i].as.native_frame.caching_cme = (VALUE)cme;
+                stack_buffer[i].as.native_frame.caching_cme = cme;
                 stack_buffer[i].defined_class = cme->defined_class;
                 stack_buffer[i].as.native_frame.method_id = cme->def->original_id;
                 stack_buffer[i].as.native_frame.function = cme->def->body.cfunc.func;
@@ -874,9 +874,8 @@ bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)
   void self_test_current_fiber_for(void) { } // Nothing to do
 #endif
 
-bool pathobj_is_null(VALUE iseq) {
-  const rb_iseq_t *iseq_ptr = (const rb_iseq_t *) iseq;
-  return ISEQ_BODY(iseq_ptr)->location.pathobj == 0;
+bool pathobj_is_null(const rb_iseq_t* iseq) {
+  return ISEQ_BODY(iseq)->location.pathobj == 0;
 }
 
 // Variant of functions related to Thread::Backtrace::Location#label in Ruby 4.0
@@ -994,9 +993,7 @@ static VALUE calculate_iseq_label(VALUE owner, const rb_iseq_t *iseq) {
 
 // MRI: location_label()
 // C methods don't have an iseq, only Ruby methods have
-VALUE ddtrace_location_label(VALUE cme_VALUE, VALUE iseq_VALUE) {
-  const rb_callable_method_entry_t *cme = (const rb_callable_method_entry_t *) cme_VALUE;
-  const rb_iseq_t *iseq = (const rb_iseq_t *) iseq_VALUE;
+VALUE ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq) {
   if (location_cfunc_p(cme)) {
     VALUE method_name = rb_id2str(cme->def->original_id);
     return rb_gen_method_name(cme->owner, method_name);

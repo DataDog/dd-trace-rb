@@ -47,8 +47,8 @@ static size_t build_qualified_name(VALUE defined_class, ddog_CharSlice *name_sli
 
 // These two functions are exposed as symbols by the VM but are not in any header.
 // Their signatures actually take a `const rb_iseq_t *iseq` but it gets casted back and forth between VALUE.
-extern VALUE rb_iseq_path(const VALUE);
-extern VALUE rb_iseq_base_label(const VALUE);
+// Actually this is in iseq.h
+extern VALUE rb_iseq_base_label(const rb_iseq_t *iseq);
 
 // NULL if dladdr is not available or we weren't able to get the native filename for the Ruby VM
 static const char *ruby_native_filename = NULL;
@@ -328,7 +328,7 @@ void sample_thread(
 
     VALUE qualified_name = Qnil;
     if (buffer->stack_buffer[i].is_ruby_frame) {
-      VALUE iseq = buffer->stack_buffer[i].as.ruby_frame.iseq;
+      const rb_iseq_t* iseq = buffer->stack_buffer[i].as.ruby_frame.iseq;
       VALUE name = rb_iseq_base_label(iseq);
       if (include_module_name) {
         qualified_name = ddtrace_location_label(buffer->stack_buffer[i].as.ruby_frame.caching_cme, iseq);
@@ -349,7 +349,7 @@ void sample_thread(
       VALUE name = rb_id2str(buffer->stack_buffer[i].as.native_frame.method_id);
       // VALUE name = rb_id2str(buffer->stack_buffer[i].as.native_frame.caching_cme->def->original_id);
       if (include_module_name) {
-        qualified_name = ddtrace_location_label(buffer->stack_buffer[i].as.native_frame.caching_cme, Qfalse);
+        qualified_name = ddtrace_location_label(buffer->stack_buffer[i].as.native_frame.caching_cme, NULL);
       }
 
       name_slice = NIL_P(name) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
@@ -789,10 +789,10 @@ void sampling_buffer_mark(sampling_buffer *buffer) {
 
   for (int i = 0; i < buffer->pending_sample_result; i++) {
     if (buffer->stack_buffer[i].is_ruby_frame) {
-      rb_gc_mark(buffer->stack_buffer[i].as.ruby_frame.iseq);
-      rb_gc_mark(buffer->stack_buffer[i].as.ruby_frame.caching_cme);
+      rb_gc_mark((VALUE) buffer->stack_buffer[i].as.ruby_frame.iseq);
+      rb_gc_mark((VALUE) buffer->stack_buffer[i].as.ruby_frame.caching_cme);
     } else {
-      rb_gc_mark(buffer->stack_buffer[i].as.native_frame.caching_cme);
+      rb_gc_mark((VALUE) buffer->stack_buffer[i].as.native_frame.caching_cme);
     }
     rb_gc_mark(buffer->stack_buffer[i].defined_class);
   }

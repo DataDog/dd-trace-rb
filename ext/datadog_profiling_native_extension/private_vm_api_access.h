@@ -8,6 +8,7 @@
 #ifndef PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
   #include <ruby/thread_native.h>
   #include <ruby/vm.h>
+  #include <vm_core.h>
 #endif
 
 #include "extconf.h"
@@ -23,13 +24,13 @@ typedef struct {
 typedef struct {
   union {
     struct {
-      VALUE iseq; // Needs marking, kept alive by sampling_buffer
-      VALUE caching_cme; // For caching validation/invalidation only (does not need marking)
+      const rb_iseq_t* iseq; // Needs marking, kept alive by sampling_buffer
+      const rb_callable_method_entry_t* caching_cme; // For caching validation/invalidation only (does not need marking)
       void *caching_pc; // For caching validation/invalidation only (does not need marking)
       int line;
     } ruby_frame;
     struct {
-      VALUE caching_cme; // For caching validation/invalidation only (does not need marking)
+      const rb_callable_method_entry_t* caching_cme; // For caching validation/invalidation only (does not need marking)
       ID method_id;
       void *function;
     } native_frame;
@@ -86,6 +87,6 @@ VALUE current_fiber_for(VALUE thread);
 
 void self_test_current_fiber_for(void);
 
-bool pathobj_is_null(VALUE iseq);
+bool pathobj_is_null(const rb_iseq_t* iseq);
 
-VALUE ddtrace_location_label(VALUE cme_VALUE, VALUE iseq_VALUE);
+VALUE ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq);
