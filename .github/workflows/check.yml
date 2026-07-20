@@ -127,6 +127,29 @@ jobs:
           cache-key: ${{ needs.build.outputs.cache-key }}
       - run: bundle exec rake dependency:audit
 
+  checksum-coverage:
+    name: checksum-coverage
+    # TODO: re-enable once lockfiles are regenerated with CHECKSUMS sections
+    # (supply-chain-checksum-write). Until then this job would fail on every PR.
+    if: false
+    runs-on: ubuntu-24.04
+    needs: ['build']
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Restore bundle cache
+        uses: ./.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.build.outputs.lockfile }}
+          cache-key: ${{ needs.build.outputs.cache-key }}
+      - run: bundle exec rake dependency:checksum_coverage
+
   semgrep:
     name: semgrep/ci
     runs-on: ubuntu-24.04
@@ -199,9 +222,9 @@ jobs:
       - 'zizmor'
       - 'actionlint'
       - 'yaml-lint'
-      # TODO: add 'bundler-audit' back to this list once the job is no
-      # longer disabled (see the `if: false` above) — a skipped dependency
-      # would otherwise make this aggregate job skip too.
+      # TODO: add 'bundler-audit' and 'checksum-coverage' back to this list
+      # once those jobs are no longer disabled (see their `if: false` above)
+      # — a skipped dependency would otherwise make this aggregate job skip too.
     runs-on: ubuntu-24.04
     steps:
       - run: echo "Done"
