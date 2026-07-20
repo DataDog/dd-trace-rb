@@ -20,8 +20,7 @@ namespace :steep do
           | The `steep` executable could not be found, so no type checking was           |
           | performed.                                                                   |
           |                                                                              |
-          | Install it with `bundle install`, or run this task from a bundle that        |
-          | includes the `steep` gem.                                                     |
+          | Run this task from a bundle that includes the `steep` gem.                   |
           +------------------------------------------------------------------------------+
           EOS
           exit 1
