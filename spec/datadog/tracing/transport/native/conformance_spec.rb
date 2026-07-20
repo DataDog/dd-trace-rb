@@ -98,19 +98,11 @@ RSpec.describe 'Native transport wire-level conformance' do
     end
 
     def stop
+      NativeTransportForkIsolation.reap_process(@pid)
+    ensure
       begin
-        Process.kill('TERM', @pid)
-      rescue
-        nil
-      end
-      begin
-        Process.wait(@pid)
-      rescue
-        nil
-      end
-      begin
-        @read_io.close
-      rescue
+        @read_io.close unless @read_io.closed?
+      rescue IOError
         nil
       end
     end
@@ -120,32 +112,30 @@ RSpec.describe 'Native transport wire-level conformance' do
   # Helpers
   # ---------------------------------------------------------------------------
 
-  # A single mock agent and transport are shared across all examples.
-  #
-  # The Rust TraceExporter spawns background workers (e.g. /info fetcher)
-  # that keep connections alive.  Creating one per test leaves orphaned
-  # workers that interfere with subsequent tests. Using before/after(:all)
-  # keeps everything scoped to this describe block.
-  before(:all) do
+  around do |example|
     @mock_agent = CapturingMockAgent.new
     agent_settings = Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}")
     @transport = Datadog::Tracing::Transport::Native::Transport.new(
       agent_settings: agent_settings,
       logger: Logger.new(File::NULL)
     )
-  end
 
-  after(:all) do
-    # Deterministically release the transport (deregister its at-fork closures
-    # and undefine its finalizer) and force GC so that ddog_trace_exporter_free
-    # runs, shutting down the Rust TraceExporter and its background workers
-    # (e.g. /info fetcher) before we kill the mock agent process they connect
-    # to -- and so it cannot survive to interpreter exit, where freeing it
-    # after a fork can deadlock.
-    NativeTransportForkIsolation.dispose(@transport)
-    @transport = nil
-    GC.start
-    @mock_agent&.stop
+    example.run
+  ensure
+    begin
+      NativeTransportForkIsolation.dispose(@transport)
+    ensure
+      @transport = nil
+      begin
+        GC.start
+      ensure
+        begin
+          @mock_agent&.stop
+        ensure
+          @mock_agent = nil
+        end
+      end
+    end
   end
 
   let(:mock_agent) { @mock_agent }

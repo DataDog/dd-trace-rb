@@ -27,37 +27,6 @@ RSpec.describe 'Native transport fork safety and cancellation' do
   # Mock agents (run in forked processes; no Ruby threads leak into the parent)
   # ---------------------------------------------------------------------------
 
-  # Forcefully terminate and reap a forked mock-agent process.
-  #
-  # Uses SIGKILL (which cannot be trapped/ignored, unlike SIGTERM which the
-  # child may inherit a handler for from the RSpec process) and reaps with a
-  # bounded, non-blocking poll so cleanup can never hang the suite.
-  module ForkSpecHelpers # rubocop:disable Lint/ConstantDefinitionInBlock
-    module_function
-
-    def reap_process(pid)
-      return if pid.nil?
-
-      begin
-        Process.kill('KILL', pid)
-      rescue
-        nil
-      end
-      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 5
-      loop do
-        reaped = begin
-          Process.wait(pid, Process::WNOHANG)
-        rescue
-          pid
-        end # treat ECHILD as done
-        break if reaped
-        break if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
-
-        sleep 0.02
-      end
-    end
-  end
-
   # Accepts connections and answers every request with `200 OK` plus a small
   # JSON body shaped like the agent's `rate_by_service` response.
   class RespondingMockAgent # rubocop:disable Lint/ConstantDefinitionInBlock
@@ -104,7 +73,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
     end
 
     def stop
-      ForkSpecHelpers.reap_process(@pid)
+      NativeTransportForkIsolation.reap_process(@pid)
     end
   end
 
@@ -151,7 +120,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
     end
 
     def stop
-      ForkSpecHelpers.reap_process(@pid)
+      NativeTransportForkIsolation.reap_process(@pid)
       begin
         @read_io.close
       rescue
@@ -229,7 +198,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
     end
 
     def stop
-      ForkSpecHelpers.reap_process(@pid)
+      NativeTransportForkIsolation.reap_process(@pid)
       begin
         @read_io.close
       rescue
@@ -242,9 +211,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
   # Shared helpers
   # ---------------------------------------------------------------------------
 
-  # Save/restore the global AtForkMonkeyPatch registries. Defined as module
-  # functions so they are callable from `before(:all)`/`after(:all)` hooks,
-  # which run outside example scope.
+  # Save/restore the global AtForkMonkeyPatch registries.
   module AtForkRegistryHelpers # rubocop:disable Lint/ConstantDefinitionInBlock
     module_function
 
@@ -283,41 +250,49 @@ RSpec.describe 'Native transport fork safety and cancellation' do
     Datadog::Tracing::TraceSegment.new([span], id: trace_id, root_span_id: span.id)
   end
 
+  def run_with_transport(example, fork_hooks: false, stop_agent_first: false)
+    saved_at_fork = AtForkRegistryHelpers.snapshot_and_clear
+    Datadog::Core::Utils::AtForkMonkeyPatch.apply! if fork_hooks
+
+    @mock_agent = yield
+    agent_settings = Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}")
+    @transport = Datadog::Tracing::Transport::Native::Transport.new(
+      agent_settings: agent_settings,
+      logger: Logger.new(File::NULL),
+    )
+
+    example.run
+  ensure
+    begin
+      @mock_agent&.stop if stop_agent_first
+    ensure
+      begin
+        NativeTransportForkIsolation.dispose(@transport)
+      ensure
+        begin
+          AtForkRegistryHelpers.restore(saved_at_fork)
+        ensure
+          @transport = nil
+          begin
+            GC.start
+          ensure
+            begin
+              @mock_agent&.stop unless stop_agent_first
+            ensure
+              @mock_agent = nil
+            end
+          end
+        end
+      end
+    end
+  end
+
   # ===========================================================================
   # 1. Fork lifecycle
   # ===========================================================================
   describe 'fork lifecycle' do
-    before(:all) do
-      # Isolate the global AtForkMonkeyPatch registries so the only fork hooks
-      # that fire during these tests are the ones registered by our transport.
-      # Restored in after(:all).
-      @saved_at_fork = AtForkRegistryHelpers.snapshot_and_clear
-
-      # Enable the `_fork` / `fork` interception so that the transport's
-      # before/parent/child hooks fire around a real fork.
-      Datadog::Core::Utils::AtForkMonkeyPatch.apply!
-
-      # Fork the mock agent *before* the transport registers its hooks: the
-      # registries are empty at this point, so this fork is a hook no-op.
-      @mock_agent = RespondingMockAgent.new
-
-      agent_settings = Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}")
-      @transport = Datadog::Tracing::Transport::Native::Transport.new(
-        agent_settings: agent_settings,
-        logger: Logger.new(File::NULL),
-      )
-    end
-
-    after(:all) do
-      # Deterministically release the exporter (deregister its at-fork closures
-      # and undefine its finalizer) and free it via GC while the responding
-      # agent is still alive, so its final flush succeeds quickly. Only then
-      # restore the global registry and stop the agent.
-      NativeTransportForkIsolation.dispose(@transport)
-      AtForkRegistryHelpers.restore(@saved_at_fork)
-      @transport = nil
-      GC.start
-      @mock_agent&.stop
+    around do |example|
+      run_with_transport(example, fork_hooks: true) { RespondingMockAgent.new }
     end
 
     let(:transport) { @transport }
@@ -375,31 +350,8 @@ RSpec.describe 'Native transport fork safety and cancellation' do
   # 2. Cooperative cancellation / interrupt propagation
   # ===========================================================================
   describe 'cooperative cancellation' do
-    before(:all) do
-      # The transport registers fork hooks on creation; keep them out of the
-      # global registries so they cannot fire on unrelated forks elsewhere.
-      @saved_at_fork = AtForkRegistryHelpers.snapshot_and_clear
-
-      @mock_agent = SilentMockAgent.new
-      agent_settings = Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}")
-      @transport = Datadog::Tracing::Transport::Native::Transport.new(
-        agent_settings: agent_settings,
-        logger: Logger.new(File::NULL),
-      )
-    end
-
-    after(:all) do
-      # Stop the silent agent FIRST: it holds connections open and never
-      # responds, so freeing the exporter while those connections are live
-      # could block on a flush. Killing the agent closes the sockets, so the
-      # exporter's flush fails fast and shutdown completes. Then deterministically
-      # release the exporter (deregister its at-fork closures and undefine its
-      # finalizer) before the GC that frees it.
-      @mock_agent&.stop
-      NativeTransportForkIsolation.dispose(@transport)
-      AtForkRegistryHelpers.restore(@saved_at_fork)
-      @transport = nil
-      GC.start
+    around do |example|
+      run_with_transport(example, stop_agent_first: true) { SilentMockAgent.new }
     end
 
     let(:transport) { @transport }
@@ -458,30 +410,8 @@ RSpec.describe 'Native transport fork safety and cancellation' do
     # the fork blocked for the send to drain.
     AGENT_DELAY = 1.0 # rubocop:disable Lint/ConstantDefinitionInBlock
 
-    before(:all) do
-      # Isolate the global registries so only our transport's hooks fire, and
-      # enable `_fork`/`fork` interception so before/parent/child hooks run
-      # around a real fork.
-      @saved_at_fork = AtForkRegistryHelpers.snapshot_and_clear
-      Datadog::Core::Utils::AtForkMonkeyPatch.apply!
-
-      # Forked before the transport registers its hooks (registries are empty),
-      # so this fork is a hook no-op.
-      @mock_agent = DelayingMockAgent.new(delay: AGENT_DELAY)
-
-      agent_settings = Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}")
-      @transport = Datadog::Tracing::Transport::Native::Transport.new(
-        agent_settings: agent_settings,
-        logger: Logger.new(File::NULL),
-      )
-    end
-
-    after(:all) do
-      NativeTransportForkIsolation.dispose(@transport)
-      AtForkRegistryHelpers.restore(@saved_at_fork)
-      @transport = nil
-      GC.start
-      @mock_agent&.stop
+    around do |example|
+      run_with_transport(example, fork_hooks: true) { DelayingMockAgent.new(delay: AGENT_DELAY) }
     end
 
     let(:transport) { @transport }

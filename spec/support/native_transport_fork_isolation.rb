@@ -55,6 +55,34 @@ module NativeTransportForkIsolation
     ObjectSpace.undefine_finalizer(transport)
   end
 
+  # Mock agents are forked from a process that may have inherited signal
+  # handlers and native runtime state. SIGKILL and a bounded reap prevent test
+  # cleanup from turning a stuck child into a suite-wide timeout.
+  def reap_process(pid, timeout: 5)
+    return unless pid
+
+    begin
+      Process.kill('KILL', pid)
+    rescue Errno::ESRCH
+      return
+    end
+
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
+    loop do
+      begin
+        return if Process.waitpid(pid, Process::WNOHANG)
+      rescue Errno::ECHILD
+        return
+      end
+
+      break if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+
+      sleep 0.02
+    end
+
+    raise "Timed out reaping forked process #{pid}"
+  end
+
   def registry
     require 'datadog/core/utils/at_fork_monkey_patch'
     Datadog::Core::Utils::AtForkMonkeyPatch
