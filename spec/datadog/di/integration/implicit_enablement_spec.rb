@@ -54,6 +54,10 @@ RSpec.describe 'DI implicit enablement integration' do
     )
   end
 
+  let(:remote) do
+    instance_double(Datadog::Core::Remote::Component, add_products: nil, remove_products: nil)
+  end
+
   let(:components) do
     # Stand-in for Core::Configuration::Components. handle_rc_enablement
     # reaches the component via Datadog.send(:components).dynamic_instrumentation
@@ -64,6 +68,7 @@ RSpec.describe 'DI implicit enablement integration' do
       dynamic_instrumentation: component,
       telemetry: telemetry,
       symbol_database: symbol_database,
+      remote: remote,
     )
   end
 
@@ -116,6 +121,19 @@ RSpec.describe 'DI implicit enablement integration' do
 
       expect(component.started?).to be true
       expect(rc_content).to have_received(:applied)
+    end
+
+    it 'advertises the DI products via remote config once the component starts' do
+      # End-to-end: the enable signal starts the real component, and only then
+      # does the product become advertised. supported_runtime? is pinned so the
+      # deferred Symbol Database product is deterministic across Ruby versions.
+      allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+      expect(component.started?).to be false
+      expect(remote).to receive(:add_products).with('LIVE_DEBUGGING', 'LIVE_DEBUGGING_SYMBOL_DB')
+
+      Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+
+      expect(component.started?).to be true
     end
 
     it 'activates code tracking when the enable signal arrives' do
