@@ -185,6 +185,10 @@ module Datadog
         interface _OpenFeature
           def enabled: () -> bool
 
+          def span_enrichment_enabled: () -> bool
+
+          def span_enrichment_enabled=: (bool) -> void
+
           def evaluation_counts_enabled: () -> bool
         end
 
