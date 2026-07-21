@@ -10,10 +10,15 @@ if Gem.loaded_specs.key?('bundler-audit')
 
       puts 'Updating advisory database...'
       begin
-        Bundler::Audit::Database.update!(quiet: true)
+        updated = Bundler::Audit::Database.update!(quiet: true)
       rescue => e
         abort("Could not refresh the ruby-advisory-db (needs git + network): #{e.message}")
       end
+      # `update!` returns `false` only when a `git pull`/download attempt
+      # actually failed; it returns `nil` when the existing database isn't a
+      # git checkout (nothing to pull, but the database is still usable), so
+      # only `false` should be treated as a fatal error here.
+      abort('Could not refresh the ruby-advisory-db (needs git + network)') if updated == false
       database = Bundler::Audit::Database.new
 
       lockfiles = SecurityCapabilities.audit_eligible_lockfiles
