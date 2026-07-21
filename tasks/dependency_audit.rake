@@ -1,11 +1,7 @@
 require_relative 'security_capabilities'
 
 if Gem.loaded_specs.key?('bundler-audit')
-  # standard:disable Lint/RequireRelativeSelfPath -- requires the DependencyAudit
-  # module (dependency_audit.rb), not this .rake file; the cop matches on basename
-  # only and treats the different extensions as a self-require.
-  require_relative 'dependency_audit'
-  # standard:enable Lint/RequireRelativeSelfPath
+  require_relative 'dependency_auditing'
 
   namespace :dependency do
     desc 'Audit eligible lockfiles for high/critical CVE advisories'

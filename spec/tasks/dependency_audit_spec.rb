@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 if Gem.loaded_specs.key?('bundler-audit')
-  require_relative '../../tasks/dependency_audit'
+  require_relative '../../tasks/dependency_auditing'
 
   RSpec.describe DependencyAudit do
     let(:fixtures) { 'spec/fixtures/bundler_audit' }
