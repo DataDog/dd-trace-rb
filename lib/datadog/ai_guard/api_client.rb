@@ -61,7 +61,7 @@ module Datadog
         else
           error_message = begin
             parsed_body = JSON.parse(response.body)
-            Array(parsed_body.fetch('errors')).join(', ')
+            Array(parsed_body.fetch("errors")).join(", ")
           rescue JSON::ParserError, KeyError
             response.body
           end
@@ -77,7 +77,7 @@ module Datadog
       end
 
       def use_ssl?
-        @endpoint_uri.scheme == 'https'
+        @endpoint_uri.scheme == "https"
       end
     end
   end

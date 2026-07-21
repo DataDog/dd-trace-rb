@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require 'json'
-require_relative 'rate_limiter'
-require_relative 'trace_keeper'
-require_relative 'compressed_json'
+require "json"
+require_relative "rate_limiter"
+require_relative "trace_keeper"
+require_relative "compressed_json"
 
 module Datadog
   module AppSec
     # AppSec event
     module Event
-      ATTRIBUTES_SCHEMA_KEY_PREFIX = '_dd.appsec.s.'
+      ATTRIBUTES_SCHEMA_KEY_PREFIX = "_dd.appsec.s."
       ATTRIBUTES_SCHEMA_MAX_COMPRESSED_SIZE = 25000
       ALLOWED_REQUEST_HEADERS = %w[
         x-forwarded-for
@@ -36,11 +36,11 @@ module Datadog
         def tag(context, waf_result)
           return if context.span.nil?
 
-          if waf_result.actions.key?('block_request') || waf_result.actions.key?('redirect_request')
-            context.span.set_tag('appsec.blocked', 'true')
+          if waf_result.actions.key?("block_request") || waf_result.actions.key?("redirect_request")
+            context.span.set_tag("appsec.blocked", "true")
           end
 
-          context.span.set_tag('appsec.event', 'true')
+          context.span.set_tag("appsec.event", "true")
         end
 
         def record(context, request: nil)
@@ -57,7 +57,7 @@ module Datadog
               if event_group.any? { |event| event.keep? || event.schema? }
                 TraceKeeper.keep!(trace)
 
-                context.span['_dd.origin'] = 'appsec'
+                context.span["_dd.origin"] = "appsec"
                 context.span.set_tags(request_tags(request)) if request
               end
 
@@ -71,9 +71,9 @@ module Datadog
         def request_tags(request)
           tags = {}
 
-          tags['http.host'] = request.host if request.host
-          tags['http.useragent'] = request.user_agent if request.user_agent
-          tags['network.client.ip'] = request.remote_addr if request.remote_addr
+          tags["http.host"] = request.host if request.host
+          tags["http.useragent"] = request.user_agent if request.user_agent
+          tags["network.client.ip"] = request.remote_addr if request.remote_addr
 
           request.headers.each_with_object(tags) do |(name, value), memo|
             next unless ALLOWED_REQUEST_HEADERS.include?(name)
@@ -103,7 +103,7 @@ module Datadog
             end
           end
 
-          tags['_dd.appsec.json'] = json_parse({triggers: triggers}) unless triggers.empty?
+          tags["_dd.appsec.json"] = json_parse({triggers: triggers}) unless triggers.empty?
           tags
         end
 
@@ -113,7 +113,7 @@ module Datadog
         def json_parse(value)
           JSON.dump(value)
         rescue ArgumentError, Encoding::UndefinedConversionError, JSON::JSONError => e
-          AppSec.telemetry.report(e, description: 'AppSec: Failed to convert value into JSON')
+          AppSec.telemetry.report(e, description: "AppSec: Failed to convert value into JSON")
 
           nil
         end

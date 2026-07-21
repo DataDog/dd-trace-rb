@@ -13,7 +13,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
     end
 
     it "raises an ArgumentError when an empty role is passed" do
-      expect { described_class.new(role: '') }.to raise_error(ArgumentError, "Role must be set to a non-empty value")
+      expect { described_class.new(role: "") }.to raise_error(ArgumentError, "Role must be set to a non-empty value")
     end
 
     it "raises an ArgumentError when :tool_call is not a ToolCall" do

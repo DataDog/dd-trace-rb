@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'app_started'
+require_relative "app_started"
 
 module Datadog
   module Core
@@ -13,7 +13,7 @@ module Datadog
           end
 
           def type
-            'app-extended-heartbeat'
+            "app-extended-heartbeat"
           end
 
           def payload

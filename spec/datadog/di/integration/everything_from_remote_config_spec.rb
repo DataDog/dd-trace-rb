@@ -1,5 +1,5 @@
-require 'spec_helper'
-require 'datadog/di/spec_helper'
+require "spec_helper"
+require "datadog/di/spec_helper"
 
 class EverythingFromRemoteConfigSpecTestClass
   def target_method
@@ -7,12 +7,12 @@ class EverythingFromRemoteConfigSpecTestClass
   end
 end
 
-RSpec.describe 'DI integration from remote config' do
+RSpec.describe "DI integration from remote config" do
   di_test
   skip_unless_integration_testing_enabled
 
   let(:remote) { Datadog::DI::Remote }
-  let(:path) { 'datadog/2/LIVE_DEBUGGING/logProbe_uuid/hash' }
+  let(:path) { "datadog/2/LIVE_DEBUGGING/logProbe_uuid/hash" }
 
   before(:all) do
     # if code tracking is active, it invokes methods on mock objects
@@ -31,7 +31,7 @@ RSpec.describe 'DI integration from remote config' do
   end
 
   let(:probe_configs) do
-    {'datadog/2/LIVE_DEBUGGING/foo/bar' => probe_spec}
+    {"datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec}
   end
 
   let(:receiver) { remote.receivers(telemetry)[0] }
@@ -97,102 +97,102 @@ RSpec.describe 'DI integration from remote config' do
 
   let(:expected_received_payload) do
     {
-      path: '/debugger/v1/diagnostics',
-      ddsource: 'dd_debugger',
+      path: "/debugger/v1/diagnostics",
+      ddsource: "dd_debugger",
       debugger: {
         diagnostics: {
           parentId: nil,
-          probeId: '11',
+          probeId: "11",
           probeVersion: 0,
           runtimeId: be_valid_uuid,
-          status: 'RECEIVED',
+          status: "RECEIVED",
         },
       },
-      message: 'Probe 11 has been received correctly',
-      service: 'rspec',
+      message: "Probe 11 has been received correctly",
+      service: "rspec",
       timestamp: Integer,
     }
   end
 
   let(:expected_installed_payload) do
     {
-      path: '/debugger/v1/diagnostics',
-      ddsource: 'dd_debugger',
+      path: "/debugger/v1/diagnostics",
+      ddsource: "dd_debugger",
       debugger: {
         diagnostics: {
           parentId: nil,
-          probeId: '11',
+          probeId: "11",
           probeVersion: 0,
           runtimeId: be_valid_uuid,
-          status: 'INSTALLED',
+          status: "INSTALLED",
         },
       },
-      message: 'Probe 11 has been instrumented correctly',
-      service: 'rspec',
+      message: "Probe 11 has been instrumented correctly",
+      service: "rspec",
       timestamp: Integer,
     }
   end
 
   let(:expected_emitting_payload) do
     {
-      path: '/debugger/v1/diagnostics',
-      ddsource: 'dd_debugger',
+      path: "/debugger/v1/diagnostics",
+      ddsource: "dd_debugger",
       debugger: {
         diagnostics: {
           parentId: nil,
-          probeId: '11',
+          probeId: "11",
           probeVersion: 0,
           runtimeId: be_valid_uuid,
-          status: 'EMITTING',
+          status: "EMITTING",
         },
       },
-      message: 'Probe 11 is emitting',
-      service: 'rspec',
+      message: "Probe 11 is emitting",
+      service: "rspec",
       timestamp: Integer,
     }
   end
 
   let(:expected_errored_payload) do
     {
-      path: '/debugger/v1/diagnostics',
-      ddsource: 'dd_debugger',
+      path: "/debugger/v1/diagnostics",
+      ddsource: "dd_debugger",
       debugger: {
         diagnostics: {
           parentId: nil,
-          probeId: '11',
+          probeId: "11",
           probeVersion: 0,
           runtimeId: be_valid_uuid,
-          status: 'ERROR',
+          status: "ERROR",
           exception: {
-            type: 'Datadog::DI::Error::DITargetNotInRegistry',
+            type: "Datadog::DI::Error::DITargetNotInRegistry",
             message: String,
           },
         },
       },
       message: /Instrumentation for probe 11 failed:.*instrumentation_integration_test_class.rb.*no surviving iseqs|no per-method iseqs/,
-      service: 'rspec',
+      service: "rspec",
       timestamp: Integer,
     }
   end
 
   let(:expected_snapshot_payload) do
     {
-      path: '/debugger/v1/input',
+      path: "/debugger/v1/input",
       # We do not have active span/trace in the test.
       "dd.span_id": nil,
       "dd.trace_id": nil,
       debugger: {
-        type: 'snapshot',
+        type: "snapshot",
         snapshot: {
           captures: {},
           evaluationErrors: [],
           id: be_valid_uuid,
-          language: 'ruby',
+          language: "ruby",
           probe: {
-            id: '11',
+            id: "11",
             location: {
-              method: 'target_method',
-              type: 'EverythingFromRemoteConfigSpecTestClass',
+              method: "target_method",
+              type: "EverythingFromRemoteConfigSpecTestClass",
             },
             version: 0,
           },
@@ -200,19 +200,19 @@ RSpec.describe 'DI integration from remote config' do
           timestamp: Integer,
         },
       },
-      ddsource: 'dd_debugger',
+      ddsource: "dd_debugger",
       duration: Integer,
       host: nil,
       logger: {
-        method: 'target_method',
+        method: "target_method",
         name: nil,
         thread_id: nil,
-        thread_name: 'Thread.main',
+        thread_name: "Thread.main",
         version: 2,
       },
       message: nil,
       process_tags: String,
-      service: 'rspec',
+      service: "rspec",
       timestamp: Integer,
     }
   end
@@ -244,7 +244,7 @@ RSpec.describe 'DI integration from remote config' do
     expect(diagnostics_transport).to receive(:send_diagnostics).at_least(:once) do |notify_payload|
       expect(notify_payload).to be_a(Array)
       notify_payload.each do |payload|
-        payloads << payload.merge(path: '/debugger/v1/diagnostics')
+        payloads << payload.merge(path: "/debugger/v1/diagnostics")
       end
     end
     allow(input_transport).to receive(:send_input) do |notify_payload|
@@ -252,7 +252,7 @@ RSpec.describe 'DI integration from remote config' do
       notify_payload.each do |payload|
         # Quick hack to deep stringify keys
         payload = JSON.parse(payload.to_json)
-        payloads << payload.merge(path: '/debugger/v1/input')
+        payloads << payload.merge(path: "/debugger/v1/input")
       end
     end
 
@@ -261,12 +261,12 @@ RSpec.describe 'DI integration from remote config' do
     component.probe_notifier_worker.flush
   end
 
-  context 'method probe received not matching a loaded class' do
+  context "method probe received not matching a loaded class" do
     let(:probe_spec) do
-      {id: '11', name: 'bar', type: 'LOG_PROBE', where: {typeName: 'Foo', methodName: 'bar'}}
+      {id: "11", name: "bar", type: "LOG_PROBE", where: {typeName: "Foo", methodName: "bar"}}
     end
 
-    it 'adds a probe to pending list' do
+    it "adds a probe to pending list" do
       expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
 
       do_rc
@@ -303,12 +303,12 @@ RSpec.describe 'DI integration from remote config' do
     expect(installed_payload).to match(expected_errored_payload)
   end
 
-  context 'method probe received matching a loaded class' do
+  context "method probe received matching a loaded class" do
     let(:probe_spec) do
-      {id: '11', name: 'bar', type: 'LOG_PROBE', where: {typeName: 'EverythingFromRemoteConfigSpecTestClass', methodName: 'target_method'}}
+      {id: "11", name: "bar", type: "LOG_PROBE", where: {typeName: "EverythingFromRemoteConfigSpecTestClass", methodName: "target_method"}}
     end
 
-    it 'instruments code and adds probe to installed list' do
+    it "instruments code and adds probe to installed list" do
       expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
 
       do_rc
@@ -317,8 +317,8 @@ RSpec.describe 'DI integration from remote config' do
       expect(probe_manager.probe_repository.installed_probes.length).to eq 1
     end
 
-    context 'and target method is invoked' do
-      it 'notifies about execution' do
+    context "and target method is invoked" do
+      it "notifies about execution" do
         expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
 
         do_rc
@@ -347,21 +347,21 @@ RSpec.describe 'DI integration from remote config' do
       end
     end
 
-    context 'unknown type probe followed by method probe' do
+    context "unknown type probe followed by method probe" do
       # If exceptions are propagated, remote config processing will stop
       # at the first, failing, probe specification.
       let(:propagate_all_exceptions) { false }
 
       let(:unknown_probe_spec) do
-        {id: '12', name: 'foo', type: 'UNKNOWN_PROBE'}
+        {id: "12", name: "foo", type: "UNKNOWN_PROBE"}
       end
 
       let(:probe_configs) do
-        {'datadog/2/LIVE_DEBUGGING/foo1/bar1' => unknown_probe_spec,
-         'datadog/2/LIVE_DEBUGGING/foo2/bar2' => probe_spec}
+        {"datadog/2/LIVE_DEBUGGING/foo1/bar1" => unknown_probe_spec,
+         "datadog/2/LIVE_DEBUGGING/foo2/bar2" => probe_spec}
       end
 
-      it 'installs the second, known, probe' do
+      it "installs the second, known, probe" do
         expect_lazy_log(logger, :debug, /Unrecognized probe type:/)
         expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
 
@@ -380,20 +380,20 @@ RSpec.describe 'DI integration from remote config' do
       end
     end
 
-    context 'invalid expression language expression' do
+    context "invalid expression language expression" do
       let(:probe_spec) do
         {
-          id: '11', name: 'bar', type: 'LOG_PROBE',
+          id: "11", name: "bar", type: "LOG_PROBE",
           where: {
-            typeName: 'EverythingFromRemoteConfigSpecTestClass', methodName: 'target_method',
+            typeName: "EverythingFromRemoteConfigSpecTestClass", methodName: "target_method",
           },
-          when: {json: {foo: 'bar'}, dsl: '(expression)'},
+          when: {json: {foo: "bar"}, dsl: "(expression)"},
         }
       end
 
       let(:propagate_all_exceptions) { false }
 
-      it 'catches the exception and reports probe status error' do
+      it "catches the exception and reports probe status error" do
         expect_lazy_log(logger, :debug, /di: unhandled exception handling a probe in DI remote receiver: Datadog::DI::Error::InvalidExpression: Unknown operation: foo/)
 
         do_rc(expect_add_probe: false)
@@ -402,22 +402,22 @@ RSpec.describe 'DI integration from remote config' do
         payload = payloads.first
         expect(payload).to be_a(Hash)
         expect(payload).to match(
-          ddsource: 'dd_debugger',
+          ddsource: "dd_debugger",
           debugger: {
             diagnostics: {
               parentId: nil,
-              probeId: '11',
+              probeId: "11",
               probeVersion: 0,
               runtimeId: String,
-              status: 'ERROR',
+              status: "ERROR",
               exception: {
-                type: 'Datadog::DI::Error::InvalidExpression',
+                type: "Datadog::DI::Error::InvalidExpression",
                 message: String,
               },
             },
           },
-          path: '/debugger/v1/diagnostics',
-          service: 'rspec',
+          path: "/debugger/v1/diagnostics",
+          service: "rspec",
           timestamp: Integer,
           message: String,
         )
@@ -427,44 +427,44 @@ RSpec.describe 'DI integration from remote config' do
       end
     end
 
-    context 'when there is a message template' do
+    context "when there is a message template" do
       let(:probe_spec) do
         {
-          id: '11', name: 'bar', type: 'LOG_PROBE',
+          id: "11", name: "bar", type: "LOG_PROBE",
           where: {
-            typeName: 'EverythingFromRemoteConfigSpecTestClass', methodName: 'target_method',
+            typeName: "EverythingFromRemoteConfigSpecTestClass", methodName: "target_method",
           },
           segments: [
             # String segment
-            {str: 'hello '},
+            {str: "hello "},
             # Expression segment - valid at runtime
-            {json: {eq: [{ref: '@ivar'}, 51]}, dsl: '(good expression)'},
+            {json: {eq: [{ref: "@ivar"}, 51]}, dsl: "(good expression)"},
             # Another expression which fails evaluation at runtime
-            {json: {filter: [{ref: '@ivar'}, 'x']}, dsl: '(failing expression)'},
+            {json: {filter: [{ref: "@ivar"}, "x"]}, dsl: "(failing expression)"},
           ],
         }
       end
 
       let(:expected_snapshot_payload) do
         {
-          path: '/debugger/v1/input',
+          path: "/debugger/v1/input",
           # We do not have active span/trace in the test.
           "dd.span_id": nil,
           "dd.trace_id": nil,
           debugger: {
-            type: 'snapshot',
+            type: "snapshot",
             snapshot: {
               captures: {},
               evaluationErrors: [
-                {'expr' => '(failing expression)', 'message' => 'Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: NilClass'},
+                {"expr" => "(failing expression)", "message" => "Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: NilClass"},
               ],
               id: be_valid_uuid,
-              language: 'ruby',
+              language: "ruby",
               probe: {
-                id: '11',
+                id: "11",
                 location: {
-                  method: 'target_method',
-                  type: 'EverythingFromRemoteConfigSpecTestClass',
+                  method: "target_method",
+                  type: "EverythingFromRemoteConfigSpecTestClass",
                 },
                 version: 0,
               },
@@ -472,26 +472,26 @@ RSpec.describe 'DI integration from remote config' do
               timestamp: Integer,
             },
           },
-          ddsource: 'dd_debugger',
+          ddsource: "dd_debugger",
           duration: Integer,
           host: nil,
           logger: {
-            method: 'target_method',
+            method: "target_method",
             name: nil,
             thread_id: nil,
-            thread_name: 'Thread.main',
+            thread_name: "Thread.main",
             version: 2,
           },
           # false is the result of first expression evaluation
           # second expression fails evaluation
-          message: 'hello false[evaluation error]',
+          message: "hello false[evaluation error]",
           process_tags: String,
-          service: 'rspec',
+          service: "rspec",
           timestamp: Integer,
         }
       end
 
-      it 'evaluates expressions and reports errors' do
+      it "evaluates expressions and reports errors" do
         expect_lazy_log(logger, :debug, /di: received log probe/)
 
         do_rc
@@ -516,17 +516,17 @@ RSpec.describe 'DI integration from remote config' do
     end
   end
 
-  context 'line probe' do
+  context "line probe" do
     with_code_tracking
 
-    shared_context 'targeting integration test class via load' do
+    shared_context "targeting integration test class via load" do
       before do
         begin
           Object.send(:remove_const, :InstrumentationIntegrationTestClass)
         rescue
           nil
         end
-        load File.join(File.dirname(__FILE__), 'instrumentation_integration_test_class.rb')
+        load File.join(File.dirname(__FILE__), "instrumentation_integration_test_class.rb")
 
         # We want the probe status to be reported, therefore need to
         # disable exception propagation.
@@ -534,7 +534,7 @@ RSpec.describe 'DI integration from remote config' do
       end
     end
 
-    shared_context 'targeting integration test class via require' do
+    shared_context "targeting integration test class via require" do
       before do
         begin
           Object.send(:remove_const, :InstrumentationIntegrationTestClass)
@@ -545,9 +545,9 @@ RSpec.describe 'DI integration from remote config' do
         # use 'require'.
         # Note that the other tests use 'load' because they want the
         # code to always be loaded.
-        require_relative 'instrumentation_integration_test_class'
+        require_relative "instrumentation_integration_test_class"
         expect($LOADED_FEATURES.detect do |path|
-          File.basename(path) == 'instrumentation_integration_test_class.rb'
+          File.basename(path) == "instrumentation_integration_test_class.rb"
         end).to be_truthy
 
         # We want the probe status to be reported, therefore need to
@@ -556,16 +556,16 @@ RSpec.describe 'DI integration from remote config' do
       end
     end
 
-    context 'line probe with path containing extra prefix directories' do
+    context "line probe with path containing extra prefix directories" do
       let(:probe_spec) do
-        {id: '11', name: 'bar', type: 'LOG_PROBE', where: {
-          sourceFile: 'junk/prefix/instrumentation_integration_test_class.rb', lines: [42]
+        {id: "11", name: "bar", type: "LOG_PROBE", where: {
+          sourceFile: "junk/prefix/instrumentation_integration_test_class.rb", lines: [42]
         }}
       end
 
-      include_context 'targeting integration test class via load'
+      include_context "targeting integration test class via load"
 
-      it 'instruments code and adds probe to installed list' do
+      it "instruments code and adds probe to installed list" do
         expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
 
         do_rc(expect_hook: :hook_line)
@@ -575,20 +575,20 @@ RSpec.describe 'DI integration from remote config' do
       end
     end
 
-    context 'line probe received targeting loaded code not in code tracker' do
+    context "line probe received targeting loaded code not in code tracker" do
       let(:probe_spec) do
-        {id: '11', name: 'bar', type: 'LOG_PROBE', where: {
-          sourceFile: 'instrumentation_integration_test_class.rb', lines: [42]
+        {id: "11", name: "bar", type: "LOG_PROBE", where: {
+          sourceFile: "instrumentation_integration_test_class.rb", lines: [42]
         }}
       end
 
-      include_context 'targeting integration test class via require'
+      include_context "targeting integration test class via require"
 
       before do
         component.code_tracker.clear
       end
 
-      it 'marks RC payload as errored' do
+      it "marks RC payload as errored" do
         expect_lazy_log_many(logger, :debug,
           /received log probe at .+ via RC/,
           /error processing probe configuration:.*no surviving iseqs|no per-method iseqs/,)
@@ -600,46 +600,46 @@ RSpec.describe 'DI integration from remote config' do
       end
     end
 
-    context 'when condition evaluation fails at runtime' do
+    context "when condition evaluation fails at runtime" do
       with_code_tracking
 
       let(:propagate_all_exceptions) { true }
 
       let(:probe_spec) do
         {
-          id: '11', name: 'bar', type: 'LOG_PROBE',
+          id: "11", name: "bar", type: "LOG_PROBE",
           where: {
-            sourceFile: 'instrumentation_integration_test_class.rb', lines: [42],
+            sourceFile: "instrumentation_integration_test_class.rb", lines: [42],
           },
-          when: {json: {'contains' => [{'ref' => 'bar'}, 'baz']}, dsl: '(expression)'},
+          when: {json: {"contains" => [{"ref" => "bar"}, "baz"]}, dsl: "(expression)"},
         }
       end
 
       before do
-        load File.join(File.dirname(__FILE__), 'instrumentation_integration_test_class.rb')
+        load File.join(File.dirname(__FILE__), "instrumentation_integration_test_class.rb")
       end
 
       let(:evaluation_error_message) do
-        'Datadog::DI::Error::ExpressionEvaluationError: Invalid arguments for contains: , baz'
+        "Datadog::DI::Error::ExpressionEvaluationError: Invalid arguments for contains: , baz"
       end
 
       let(:expected_snapshot_payload) do
         {
-          path: '/debugger/v1/input',
+          path: "/debugger/v1/input",
           # We do not have active span/trace in the test.
           "dd.span_id": nil,
           "dd.trace_id": nil,
           debugger: {
-            type: 'snapshot',
+            type: "snapshot",
             snapshot: {
               captures: {},
               evaluationErrors: [
-                {'expr' => '(expression)', 'message' => evaluation_error_message},
+                {"expr" => "(expression)", "message" => evaluation_error_message},
               ],
               id: be_valid_uuid,
-              language: 'ruby',
+              language: "ruby",
               probe: {
-                id: '11',
+                id: "11",
                 location: {
                   file: String,
                   lines: [String],
@@ -650,25 +650,25 @@ RSpec.describe 'DI integration from remote config' do
               timestamp: Integer,
             },
           },
-          ddsource: 'dd_debugger',
+          ddsource: "dd_debugger",
           duration: Integer,
           host: nil,
           logger: {
             method: nil,
-            name: 'instrumentation_integration_test_class.rb',
+            name: "instrumentation_integration_test_class.rb",
             thread_id: nil,
-            thread_name: 'Thread.main',
+            thread_name: "Thread.main",
             version: 2,
           },
           # No message since we stopped execution at condition evaluation.
           message: nil,
           process_tags: String,
-          service: 'rspec',
+          service: "rspec",
           timestamp: Integer,
         }
       end
 
-      it 'executes target code still and notifies about failed condition evaluation' do
+      it "executes target code still and notifies about failed condition evaluation" do
         expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
         do_rc(expect_hook: :hook_line)
         assert_received_and_installed
@@ -694,41 +694,41 @@ RSpec.describe 'DI integration from remote config' do
         expect(order_hash_keys(snapshot_payload)).to match(deep_stringify_keys(order_hash_keys(expected_snapshot_payload)))
       end
 
-      context 'when second invocation successfully evaluates condition' do
+      context "when second invocation successfully evaluates condition" do
         let(:probe_spec) do
           {
-            id: '11', name: 'bar', type: 'LOG_PROBE',
+            id: "11", name: "bar", type: "LOG_PROBE",
             where: {
-              sourceFile: 'instrumentation_integration_test_class.rb', lines: [67],
+              sourceFile: "instrumentation_integration_test_class.rb", lines: [67],
             },
-            when: {json: {'contains' => [{'ref' => 'param'}, 'baz']}, dsl: '(expression)'},
+            when: {json: {"contains" => [{"ref" => "param"}, "baz"]}, dsl: "(expression)"},
           }
         end
 
         let(:evaluation_error_message) do
-          'Datadog::DI::Error::ExpressionEvaluationError: Invalid arguments for contains: false, baz'
+          "Datadog::DI::Error::ExpressionEvaluationError: Invalid arguments for contains: false, baz"
         end
 
         let(:expected_captures) { {} }
 
         let(:expected_second_snapshot_payload) do
           {
-            path: '/debugger/v1/input',
+            path: "/debugger/v1/input",
             # We do not have active span/trace in the test.
             "dd.span_id": nil,
             "dd.trace_id": nil,
             debugger: {
-              type: 'snapshot',
+              type: "snapshot",
               snapshot: {
                 captures: expected_captures,
                 evaluationErrors: [],
                 id: be_valid_uuid,
-                language: 'ruby',
+                language: "ruby",
                 probe: {
-                  id: '11',
+                  id: "11",
                   location: {
-                    file: File.join(File.dirname(__FILE__), 'instrumentation_integration_test_class.rb'),
-                    lines: ['67'],
+                    file: File.join(File.dirname(__FILE__), "instrumentation_integration_test_class.rb"),
+                    lines: ["67"],
                   },
                   version: 0,
                 },
@@ -736,24 +736,24 @@ RSpec.describe 'DI integration from remote config' do
                 timestamp: Integer,
               },
             },
-            ddsource: 'dd_debugger',
+            ddsource: "dd_debugger",
             duration: Integer,
             host: nil,
             logger: {
               method: nil,
-              name: 'instrumentation_integration_test_class.rb',
+              name: "instrumentation_integration_test_class.rb",
               thread_id: nil,
-              thread_name: 'Thread.main',
+              thread_name: "Thread.main",
               version: 2,
             },
             message: nil,
             process_tags: String,
-            service: 'rspec',
+            service: "rspec",
             timestamp: Integer,
           }
         end
 
-        it 'notifies emitting on second invocation' do
+        it "notifies emitting on second invocation" do
           expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
           do_rc(expect_hook: :hook_line)
           assert_received_and_installed
@@ -781,7 +781,7 @@ RSpec.describe 'DI integration from remote config' do
           # Second call with a different type of value passed in as parameter.
           # Condition evaluation does not raise an exception but
           # the condition is not met.
-          rv = InstrumentationIntegrationTestClass.new.test_method_with_conditional('hello foo')
+          rv = InstrumentationIntegrationTestClass.new.test_method_with_conditional("hello foo")
           expect(rv).to eq 2
 
           component.probe_notifier_worker.flush
@@ -793,7 +793,7 @@ RSpec.describe 'DI integration from remote config' do
           expect(payloads.length).to eq 0
 
           # Condition is met for this invocation.
-          rv = InstrumentationIntegrationTestClass.new.test_method_with_conditional('hello baz')
+          rv = InstrumentationIntegrationTestClass.new.test_method_with_conditional("hello baz")
           expect(rv).to eq 2
 
           component.probe_notifier_worker.flush
@@ -809,14 +809,14 @@ RSpec.describe 'DI integration from remote config' do
           expect(order_hash_keys(snapshot_payload)).to match(deep_stringify_keys(order_hash_keys(expected_second_snapshot_payload)))
         end
 
-        context 'when code is invoked several times' do
+        context "when code is invoked several times" do
           let(:probe_spec) do
             {
-              id: '11', name: 'bar', type: 'LOG_PROBE',
+              id: "11", name: "bar", type: "LOG_PROBE",
               where: {
-                sourceFile: 'instrumentation_integration_test_class.rb', lines: [67],
+                sourceFile: "instrumentation_integration_test_class.rb", lines: [67],
               },
-              when: {json: {'contains' => [{'ref' => 'param'}, 'baz']}, dsl: '(expression)'},
+              when: {json: {"contains" => [{"ref" => "param"}, "baz"]}, dsl: "(expression)"},
               # Enable snapshot capture to get the lower rate limit (1/second)
               captureSnapshot: true,
             }
@@ -824,7 +824,7 @@ RSpec.describe 'DI integration from remote config' do
 
           let(:expected_captures) { Hash }
 
-          it 'respects rate limits' do
+          it "respects rate limits" do
             expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
             do_rc(expect_hook: :hook_line)
             assert_received_and_installed
@@ -860,7 +860,7 @@ RSpec.describe 'DI integration from remote config' do
             expect(payloads.length).to eq 0
 
             # Condition is met for this invocation.
-            rv = InstrumentationIntegrationTestClass.new.test_method_with_conditional('hello baz')
+            rv = InstrumentationIntegrationTestClass.new.test_method_with_conditional("hello baz")
             expect(rv).to eq 2
 
             component.probe_notifier_worker.flush
@@ -876,7 +876,7 @@ RSpec.describe 'DI integration from remote config' do
             expect(order_hash_keys(snapshot_payload)).to match(deep_stringify_keys(order_hash_keys(expected_second_snapshot_payload)))
 
             # Call again - no payloads emitted because of rate limit.
-            rv = InstrumentationIntegrationTestClass.new.test_method_with_conditional('hello baz')
+            rv = InstrumentationIntegrationTestClass.new.test_method_with_conditional("hello baz")
             expect(rv).to eq 2
 
             component.probe_notifier_worker.flush

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../core/remote/dispatcher'
-require_relative 'processor/rule_loader'
+require_relative "../core/remote/dispatcher"
+require_relative "processor/rule_loader"
 
 module Datadog
   module AppSec
@@ -56,10 +56,10 @@ module Datadog
         ].freeze
 
         ASM_PRODUCTS = [
-          'ASM_DD',       # Datadog employee issued configuration
-          'ASM',          # customer issued configuration (rulesets, passlist...)
-          'ASM_FEATURES', # capabilities
-          'ASM_DATA',     # config files (IP addresses or users for blocking)
+          "ASM_DD",       # Datadog employee issued configuration
+          "ASM",          # customer issued configuration (rulesets, passlist...)
+          "ASM_FEATURES", # capabilities
+          "ASM_DATA",     # config files (IP addresses or users for blocking)
         ].freeze
 
         def capabilities

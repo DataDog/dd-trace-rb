@@ -1,17 +1,17 @@
 # frozen_string_literal: true
 
-require 'datadog/appsec/spec_helper'
-require 'active_record'
+require "datadog/appsec/spec_helper"
+require "active_record"
 
-require 'spec/datadog/tracing/contrib/rails/support/deprecation'
+require "spec/datadog/tracing/contrib/rails/support/deprecation"
 
 if PlatformHelpers.jruby?
-  require 'activerecord-jdbc-adapter'
+  require "activerecord-jdbc-adapter"
 else
-  require 'mysql2'
+  require "mysql2"
 end
 
-RSpec.describe 'AppSec ActiveRecord integration for Mysql2 adapter' do
+RSpec.describe "AppSec ActiveRecord integration for Mysql2 adapter" do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:settings) do
     Datadog::Core::Configuration::Settings.new.tap do |settings|
@@ -23,7 +23,7 @@ RSpec.describe 'AppSec ActiveRecord integration for Mysql2 adapter' do
     Datadog::AppSec::SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
   end
 
-  let(:span) { Datadog::Tracing::SpanOperation.new('root') }
+  let(:span) { Datadog::Tracing::SpanOperation.new("root") }
   let(:trace) { Datadog::Tracing::TraceOperation.new }
   let(:context) { Datadog::AppSec::Context.new(trace, span, security_engine.new_runner) }
 
@@ -34,10 +34,10 @@ RSpec.describe 'AppSec ActiveRecord integration for Mysql2 adapter' do
   end
 
   let!(:user_class) do
-    stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
+    stub_const("User", Class.new(ActiveRecord::Base)).tap do |klass|
       klass.establish_connection(db_config)
 
-      klass.connection.create_table 'users', force: :cascade do |t|
+      klass.connection.create_table "users", force: :cascade do |t|
         t.string :name, null: false
         t.string :email, null: false
         t.timestamps
@@ -51,11 +51,11 @@ RSpec.describe 'AppSec ActiveRecord integration for Mysql2 adapter' do
 
   let(:db_config) do
     {
-      adapter: 'mysql2',
-      database: ENV.fetch('TEST_MYSQL_DB', 'mysql'),
-      host: ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'),
-      password: ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root'),
-      port: ENV.fetch('TEST_MYSQL_PORT', '3306')
+      adapter: "mysql2",
+      database: ENV.fetch("TEST_MYSQL_DB", "mysql"),
+      host: ENV.fetch("TEST_MYSQL_HOST", "127.0.0.1"),
+      password: ENV.fetch("TEST_MYSQL_ROOT_PASSWORD", "root"),
+      port: ENV.fetch("TEST_MYSQL_PORT", "3306")
     }
   end
 
@@ -76,53 +76,53 @@ RSpec.describe 'AppSec ActiveRecord integration for Mysql2 adapter' do
     Datadog::AppSec::Contrib::ActiveRecord::Patcher.instance_variable_set(:@patched, false)
   end
 
-  context 'when RASP is disabled' do
+  context "when RASP is disabled" do
     before do
       allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(false)
     end
 
-    it 'does not call waf when querying using .where' do
+    it "does not call waf when querying using .where" do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
 
-      User.where(name: 'Bob').to_a
+      User.where(name: "Bob").to_a
     end
 
-    it 'does not call waf when querying using .find_by_sql' do
+    it "does not call waf when querying using .find_by_sql" do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
 
       User.find_by_sql("SELECT * FROM users WHERE name = 'Bob'").to_a
     end
   end
 
-  context 'when RASP is enabled' do
+  context "when RASP is enabled" do
     before do
       allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(true)
     end
 
-    it 'calls waf with correct arguments when querying using .where' do
+    it "calls waf with correct arguments when querying using .where" do
       expect(Datadog::AppSec.active_context).to(
         receive(:run_rasp).with(
           Datadog::AppSec::Ext::RASP_SQLI,
           {},
           {
-            'server.db.statement' => "SELECT `users`.* FROM `users` WHERE `users`.`name` = 'Bob'",
-            'server.db.system' => 'mysql2'
+            "server.db.statement" => "SELECT `users`.* FROM `users` WHERE `users`.`name` = 'Bob'",
+            "server.db.system" => "mysql2"
           },
           Datadog.configuration.appsec.waf_timeout
         ).and_call_original
       )
 
-      User.where(name: 'Bob').to_a
+      User.where(name: "Bob").to_a
     end
 
-    it 'calls waf with correct arguments when querying using .find_by_sql' do
+    it "calls waf with correct arguments when querying using .find_by_sql" do
       expect(Datadog::AppSec.active_context).to(
         receive(:run_rasp).with(
           Datadog::AppSec::Ext::RASP_SQLI,
           {},
           {
-            'server.db.statement' => "SELECT * FROM users WHERE name = 'Bob'",
-            'server.db.system' => 'mysql2'
+            "server.db.statement" => "SELECT * FROM users WHERE name = 'Bob'",
+            "server.db.system" => "mysql2"
           },
           Datadog.configuration.appsec.waf_timeout
         ).and_call_original
@@ -131,11 +131,11 @@ RSpec.describe 'AppSec ActiveRecord integration for Mysql2 adapter' do
       User.find_by_sql("SELECT * FROM users WHERE name = 'Bob'").to_a
     end
 
-    context 'when waf result is a match' do
+    context "when waf result is a match" do
       let(:result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
           events: [],
-          actions: {'generate_stack' => {'stack_id' => 'some-id'}},
+          actions: {"generate_stack" => {"stack_id" => "some-id"}},
           attributes: {},
           keep: false,
           timeout: false,
@@ -149,8 +149,8 @@ RSpec.describe 'AppSec ActiveRecord integration for Mysql2 adapter' do
         allow(Datadog::AppSec.active_context).to receive(:run_rasp).and_return(result)
       end
 
-      it 'adds an event to context events' do
-        expect { User.where(name: 'Bob').to_a }.to change(Datadog::AppSec.active_context.events, :size).by(1)
+      it "adds an event to context events" do
+        expect { User.where(name: "Bob").to_a }.to change(Datadog::AppSec.active_context.events, :size).by(1)
       end
     end
   end

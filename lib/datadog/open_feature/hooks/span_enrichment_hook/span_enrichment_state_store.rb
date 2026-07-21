@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'span_enrichment_state'
+require_relative "span_enrichment_state"
 
 module Datadog
   module OpenFeature

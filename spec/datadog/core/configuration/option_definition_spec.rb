@@ -1,6 +1,6 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog'
+require "datadog"
 
 RSpec.describe Datadog::Core::Configuration::OptionDefinition do
   subject(:definition) { described_class.new(name, meta, &block) }
@@ -9,121 +9,121 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
   let(:meta) { {} }
   let(:block) { nil }
 
-  describe '#default' do
+  describe "#default" do
     subject(:default) { definition.default }
 
-    context 'when not initialized with a value' do
+    context "when not initialized with a value" do
       it { is_expected.to be nil }
     end
 
-    context 'when initialized with a value' do
+    context "when initialized with a value" do
       let(:meta) { {default: default_value} }
-      let(:default_value) { double('default') }
+      let(:default_value) { double("default") }
 
       it { is_expected.to be default_value }
     end
   end
 
-  describe '#name' do
+  describe "#name" do
     subject(:result) { definition.name }
 
-    context 'when given a String' do
-      let(:name) { 'enabled' }
+    context "when given a String" do
+      let(:name) { "enabled" }
 
       it { is_expected.to be name.to_sym }
     end
 
-    context 'when given a Symbol' do
+    context "when given a Symbol" do
       let(:name) { :enabled }
 
       it { is_expected.to be name }
     end
   end
 
-  describe '#after_set' do
+  describe "#after_set" do
     subject(:after_set) { definition.after_set }
 
-    context 'when given a value' do
+    context "when given a value" do
       let(:meta) { {after_set: after_set_value} }
-      let(:after_set_value) { double('after_set') }
+      let(:after_set_value) { double("after_set") }
 
       it { is_expected.to be after_set_value }
     end
 
-    context 'when not initialized' do
+    context "when not initialized" do
       it { is_expected.to be nil }
     end
   end
 
-  describe '#skip_telemetry' do
+  describe "#skip_telemetry" do
     subject(:skip_telemetry) { definition.skip_telemetry }
 
-    context 'when given a value' do
+    context "when given a value" do
       let(:meta) { {skip_telemetry: true} }
 
       it { is_expected.to be true }
     end
 
-    context 'when not initialized' do
+    context "when not initialized" do
       it { is_expected.to be nil }
     end
   end
 
-  describe '#setter' do
+  describe "#setter" do
     subject(:setter) { definition.setter }
 
-    context 'when given a value' do
+    context "when given a value" do
       let(:meta) { {setter: setter_value} }
-      let(:setter_value) { double('setter') }
+      let(:setter_value) { double("setter") }
 
       it { is_expected.to be setter_value }
     end
 
-    context 'when initialized with a block' do
+    context "when initialized with a block" do
       let(:block) { proc {} }
 
       it { is_expected.to be block }
     end
 
-    context 'when not initialized' do
+    context "when not initialized" do
       it { is_expected.to be described_class::IDENTITY }
     end
   end
 
-  describe '#resetter' do
+  describe "#resetter" do
     subject(:resetter) { definition.resetter }
 
-    context 'when given a value' do
+    context "when given a value" do
       let(:meta) { {resetter: resetter_value} }
-      let(:resetter_value) { double('resetter') }
+      let(:resetter_value) { double("resetter") }
 
       it { is_expected.to be resetter_value }
     end
 
-    context 'when not initialized' do
+    context "when not initialized" do
       it { is_expected.to be nil }
     end
   end
 
-  describe '#type' do
+  describe "#type" do
     subject(:type) { definition.type }
 
-    context 'when given a value' do
+    context "when given a value" do
       let(:meta) { {type: type_value} }
-      let(:type_value) { double('type') }
+      let(:type_value) { double("type") }
 
       it { is_expected.to be type_value }
     end
 
-    context 'when not initialized' do
+    context "when not initialized" do
       it { is_expected.to be nil }
     end
   end
 
-  describe '#build' do
+  describe "#build" do
     subject(:build) { definition.build(context) }
 
-    let(:context) { double('context') }
+    let(:context) { double("context") }
     let(:option) { instance_double(Datadog::Core::Configuration::Option) }
 
     before do
@@ -143,21 +143,21 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
   let(:initialize_options) { {} }
   let(:initialize_block) { nil }
 
-  describe '#initialize' do
-    context 'given no arguments' do
-      context 'creates a Builder' do
-        context 'where #helpers' do
+  describe "#initialize" do
+    context "given no arguments" do
+      context "creates a Builder" do
+        context "where #helpers" do
           subject(:helpers) { builder.helpers }
 
           it { is_expected.to eq({}) }
         end
 
-        context 'where #to_definition' do
+        context "where #to_definition" do
           subject(:definition) { builder.to_definition }
 
           it { is_expected.to be_a_kind_of(Datadog::Core::Configuration::OptionDefinition) }
 
-          it 'generates an OptionDefinition with defaults' do
+          it "generates an OptionDefinition with defaults" do
             is_expected.to have_attributes(
               default: nil,
               default_proc: nil,
@@ -176,29 +176,29 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       end
     end
 
-    context 'given a block' do
-      it 'yields to the block' do
+    context "given a block" do
+      it "yields to the block" do
         expect { |b| described_class.new(name, initialize_options, &b) }.to yield_with_args(kind_of(described_class))
       end
     end
 
-    context 'given options and a block' do
-      context 'that override one another' do
+    context "given options and a block" do
+      context "that override one another" do
         let(:initialize_options) { {default: true} }
         let(:initialize_block) { proc { |o| o.default false } }
 
-        describe '#to_definition' do
+        describe "#to_definition" do
           subject(:definition) { builder.to_definition }
 
-          it 'yields an OptionDefinition with the block\'s value' do
+          it "yields an OptionDefinition with the block's value" do
             is_expected.to have_attributes(default: false)
           end
         end
       end
     end
 
-    context 'validate_options!' do
-      context 'when default and default_proc is provided' do
+    context "validate_options!" do
+      context "when default and default_proc is provided" do
         let(:initialize_block) do
           proc do |o|
             o.default false
@@ -215,25 +215,25 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     end
   end
 
-  describe '#default' do
+  describe "#default" do
     subject(:default) { builder.default(value, &block) }
 
     let(:value) { nil }
     let(:block) { nil }
 
-    context 'given a value' do
+    context "given a value" do
       let(:value) { true }
 
       it { is_expected.to be value }
     end
 
-    context 'given a block' do
+    context "given a block" do
       let(:block) { proc { false } }
 
       it { is_expected.to be block }
     end
 
-    context 'given a value and block' do
+    context "given a value and block" do
       let(:value) { true }
       let(:block) { proc { false } }
 
@@ -241,43 +241,43 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     end
   end
 
-  describe '#default_proc' do
+  describe "#default_proc" do
     subject(:default_proc) { builder.default_proc(&block) }
 
-    context 'given a block' do
+    context "given a block" do
       let(:block) { proc { false } }
 
       it { is_expected.to be block }
     end
   end
 
-  describe '#helper' do
+  describe "#helper" do
     subject(:helper) { builder.helper(name, *args, &block) }
 
     let(:name) { :enabled }
     let(:args) { [] }
     let(:block) { nil }
 
-    context 'given false and no block' do
+    context "given false and no block" do
       let(:args) { [false] }
 
-      it 'defines a nil helper' do
+      it "defines a nil helper" do
         is_expected.to be nil
         expect(builder.helpers).to include(name => nil)
       end
     end
 
-    context 'given a block' do
+    context "given a block" do
       let(:block) { proc { :bar } }
 
-      it 'defines a helper' do
+      it "defines a helper" do
         is_expected.to be block
         expect(builder.helpers).to include(name => block)
       end
     end
   end
 
-  describe '#after_set' do
+  describe "#after_set" do
     subject(:after_set) { builder.after_set(&block) }
 
     let(:block) { proc {} }
@@ -285,7 +285,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     it { is_expected.to be block }
   end
 
-  describe '#skip_telemetry' do
+  describe "#skip_telemetry" do
     subject(:skip_telemetry) { builder.skip_telemetry(value) }
 
     let(:value) { true }
@@ -294,7 +294,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     it { expect { skip_telemetry }.to change { builder.attributes[:skip_telemetry] }.from(false).to(value) }
   end
 
-  describe '#resetter' do
+  describe "#resetter" do
     subject(:resetter) { builder.resetter(&block) }
 
     let(:block) { proc {} }
@@ -302,7 +302,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     it { is_expected.to be block }
   end
 
-  describe '#setter' do
+  describe "#setter" do
     subject(:setter) { builder.setter(&block) }
 
     let(:block) { proc {} }
@@ -310,19 +310,19 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     it { is_expected.to be block }
   end
 
-  describe '#type' do
+  describe "#type" do
     subject(:type) { builder.type(value, **opts) }
     let(:value) { nil }
     let(:opts) { {} }
 
-    context 'given a value' do
+    context "given a value" do
       let(:value) { :string }
 
       it { is_expected.to be value }
       it { expect { type }.to change { builder.attributes[:type] }.from(nil).to(value) }
     end
 
-    context 'given options' do
+    context "given options" do
       let(:value) { :string }
       let(:opts) { {nilable: true} }
 
@@ -332,34 +332,34 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     end
   end
 
-  describe '#env' do
+  describe "#env" do
     subject(:env) { builder.env(value) }
 
-    context 'given a value' do
-      let(:value) { 'TEST' }
+    context "given a value" do
+      let(:value) { "TEST" }
 
       it { is_expected.to be value }
     end
   end
 
-  describe '#env_parser' do
+  describe "#env_parser" do
     subject(:env_parser) { builder.env_parser(&block) }
 
-    context 'given a block' do
+    context "given a block" do
       let(:block) { proc { false } }
 
       it { is_expected.to be block }
     end
   end
 
-  describe '#apply_options!' do
+  describe "#apply_options!" do
     subject(:apply_options!) { builder.apply_options!(options) }
 
     let(:options) { {} }
 
-    context 'given :default' do
+    context "given :default" do
       let(:options) { {default: value} }
-      let(:value) { double('value') }
+      let(:value) { double("value") }
 
       it do
         expect(builder).to receive(:default).with(value)
@@ -367,7 +367,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       end
     end
 
-    context 'given :after_set' do
+    context "given :after_set" do
       let(:options) { {after_set: value} }
       let(:value) { proc {} }
 
@@ -380,7 +380,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       end
     end
 
-    context 'given :skip_telemetry' do
+    context "given :skip_telemetry" do
       let(:options) { {skip_telemetry: value} }
       let(:value) { true }
 
@@ -390,7 +390,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       end
     end
 
-    context 'given :resetter' do
+    context "given :resetter" do
       let(:options) { {resetter: value} }
       let(:value) { proc {} }
 
@@ -403,7 +403,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       end
     end
 
-    context 'given :setter' do
+    context "given :setter" do
       let(:options) { {setter: value} }
       let(:value) { proc {} }
 
@@ -417,7 +417,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     end
   end
 
-  describe '#to_definition' do
+  describe "#to_definition" do
     subject(:definition) { builder.to_definition }
 
     let(:option_definition) { instance_double(Datadog::Core::Configuration::OptionDefinition) }
@@ -431,12 +431,12 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     it { is_expected.to be option_definition }
   end
 
-  describe '#attributes' do
+  describe "#attributes" do
     subject(:attributes) { builder.attributes }
 
     it { is_expected.to be_a_kind_of(Hash) }
 
-    it 'contains the arguments for OptionDefinition' do
+    it "contains the arguments for OptionDefinition" do
       expect(attributes.keys).to include(
         :default,
         :default_proc,

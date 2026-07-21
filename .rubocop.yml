@@ -21,6 +21,10 @@ AllCops:
   NewCops: disable
   SuggestExtensions: false
 
+# The cops disabled below should stay in sync with .standard_todo.yml's
+# "**/**" ignore list (Layout/LeadingCommentSpace has an extra reason
+# there) so it stays clear which tool is, or is not, enforcing each cop.
+
 Style/TrailingCommaInArguments:
   Enabled: false
 
@@ -28,15 +32,6 @@ Style/TrailingCommaInArrayLiteral:
   Enabled: false
 
 Style/TrailingCommaInHashLiteral:
-  Enabled: false
-
-Style/StringLiterals:
-  Enabled: false
-
-Style/QuotedSymbols:
-  EnforcedStyle: double_quotes
-
-Style/StringLiteralsInInterpolation:
   Enabled: false
 
 Layout/LeadingCommentSpace:

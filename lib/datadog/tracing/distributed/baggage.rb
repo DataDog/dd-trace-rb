@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require_relative '../ext'
-require_relative '../metadata/ext'
-require_relative '../trace_digest'
-require_relative 'datadog_tags_codec'
-require_relative '../utils'
-require_relative 'helpers'
-require 'uri'
+require_relative "../ext"
+require_relative "../metadata/ext"
+require_relative "../trace_digest"
+require_relative "datadog_tags_codec"
+require_relative "../utils"
+require_relative "helpers"
+require "uri"
 
 module Datadog
   module Tracing
@@ -15,10 +15,10 @@ module Datadog
       # The baggage header is propagated through `baggage`.
       # @see https://www.w3.org/TR/baggage/
       class Baggage
-        BAGGAGE_KEY = 'baggage'
+        BAGGAGE_KEY = "baggage"
         DD_TRACE_BAGGAGE_MAX_ITEMS = 64
         DD_TRACE_BAGGAGE_MAX_BYTES = 8192
-        BAGGAGE_TAG_KEYS_MATCH_ALL = ['*'].freeze
+        BAGGAGE_TAG_KEYS_MATCH_ALL = ["*"].freeze
         SAFE_CHARACTERS_KEY = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$!#&'*+-.^_`|~"
         SAFE_CHARACTERS_VALUE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$!#&'()*+-./:<>?@[]^_`{|}~"
 
@@ -43,9 +43,9 @@ module Datadog
               ::Datadog.logger.warn("Baggage item limit (#{DD_TRACE_BAGGAGE_MAX_ITEMS}) exceeded, dropping excess items")
               # Record telemetry for item count truncation
               record_telemetry_metric(
-                'context_header.truncated',
+                "context_header.truncated",
                 1,
-                {'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded'}
+                {"header_style" => "baggage", "truncation_reason" => "baggage_item_count_exceeded"}
               )
               baggage_items = baggage_items.first(DD_TRACE_BAGGAGE_MAX_ITEMS)
             end
@@ -60,9 +60,9 @@ module Datadog
                 ::Datadog.logger.warn("Baggage header size (#{DD_TRACE_BAGGAGE_MAX_BYTES}) exceeded, dropping excess items")
                 # Record telemetry for byte count truncation
                 record_telemetry_metric(
-                  'context_header.truncated',
+                  "context_header.truncated",
                   1,
-                  {'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded'}
+                  {"header_style" => "baggage", "truncation_reason" => "baggage_byte_count_exceeded"}
                 )
                 break # stop adding items when size limit is reached
               end
@@ -73,10 +73,10 @@ module Datadog
             # edge case where a single item is too large
             return if encoded_items.empty?
 
-            data[@baggage_key] = encoded_items.join(',')
+            data[@baggage_key] = encoded_items.join(",")
 
             # Record telemetry for successful injection
-            record_telemetry_metric('context_header_style.injected', 1, {'header_style' => 'baggage'})
+            record_telemetry_metric("context_header_style.injected", 1, {"header_style" => "baggage"})
           rescue => e
             ::Datadog.logger.warn("Failed to encode and inject baggage header: #{e.class}: #{e.message}")
           end
@@ -95,7 +95,7 @@ module Datadog
 
           # Record telemetry for successful extraction only if baggage is not empty
           unless baggage.empty?
-            record_telemetry_metric('context_header_style.extracted', 1, {'header_style' => 'baggage'})
+            record_telemetry_metric("context_header_style.extracted", 1, {"header_style" => "baggage"})
           end
 
           TraceDigest.new(
@@ -110,7 +110,7 @@ module Datadog
           # Strip whitespace and URL-encode the item
           result = URI.encode_www_form_component(item.strip)
           # Replace '+' with '%20' for space encoding consistency with W3C spec
-          result = result.gsub('+', '%20')
+          result = result.gsub("+", "%20")
           # Selectively decode percent-encoded characters that are considered "safe" in W3C Baggage spec
           result.gsub(/%[0-9A-F]{2}/) do |encoded|
             if encoded.size >= 3 && encoded[1..2] =~ /\A[0-9A-F]{2}\z/
@@ -118,7 +118,7 @@ module Datadog
               next encoded unless hex_str && !hex_str.empty?
 
               # Convert hex representation back to character
-              char = [hex_str.hex].pack('C')
+              char = [hex_str.hex].pack("C")
               # Keep the character as-is if it's in the safe character set, otherwise keep it encoded
               safe_characters.include?(char) ? char : encoded
             else
@@ -145,12 +145,12 @@ module Datadog
           # the typical Rack path is unaffected; only UTF-8-tagged-but-actually-invalid
           # input (e.g. headers re-encoded upstream) is short-circuited here.
           unless baggage_header.valid_encoding?
-            record_telemetry_metric('context_header_style.malformed', 1, {'header_style' => 'baggage'})
+            record_telemetry_metric("context_header_style.malformed", 1, {"header_style" => "baggage"})
             return {}
           end
 
           if baggage_header.bytesize > DD_TRACE_BAGGAGE_MAX_BYTES
-            record_telemetry_metric('context_header.truncated', 1, {'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded'})
+            record_telemetry_metric("context_header.truncated", 1, {"header_style" => "baggage", "truncation_reason" => "baggage_byte_count_exceeded"})
 
             # We MUST NOT propagate partial entries, but we SHOULD try
             # to parse as much of the baggage as possible:
@@ -158,7 +158,7 @@ module Datadog
 
             # We parse 1 byte over the limit to detect if the last entry
             # is a partial entry (toss) or ends exactly at the limit (keep).
-            remove_last_entry = baggage_header.byteslice(DD_TRACE_BAGGAGE_MAX_BYTES, 1) != ','
+            remove_last_entry = baggage_header.byteslice(DD_TRACE_BAGGAGE_MAX_BYTES, 1) != ","
 
             # To ensure we don't have a trailing partial UTF-8 codepoint, we keep one extra byte
             # and safely remove it with `#chop`.
@@ -171,10 +171,10 @@ module Datadog
           baggage = {}
           # DEV: To avoid unnecessary eager string allocation, replace with
           # DEV: `split(',') { |s| ... }` when Ruby 2.5 is no longer supported.
-          baggages = baggage_header.split(',', DD_TRACE_BAGGAGE_MAX_ITEMS + 1) # Stop splitting if we've reached max size
+          baggages = baggage_header.split(",", DD_TRACE_BAGGAGE_MAX_ITEMS + 1) # Stop splitting if we've reached max size
           baggages.each_with_index do |key_value, index|
             if index >= DD_TRACE_BAGGAGE_MAX_ITEMS
-              record_telemetry_metric('context_header.truncated', 1, {'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded'})
+              record_telemetry_metric("context_header.truncated", 1, {"header_style" => "baggage", "truncation_reason" => "baggage_item_count_exceeded"})
               break
             end
 
@@ -184,11 +184,11 @@ module Datadog
             # Empty items are skipped
             next if key_value.strip.empty?
 
-            key, value = key_value.split('=', 2)
+            key, value = key_value.split("=", 2)
             # If baggage is malformed, return an empty hash
             if key.nil? || value.nil?
               # Record telemetry for malformed header
-              record_telemetry_metric('context_header_style.malformed', 1, {'header_style' => 'baggage'})
+              record_telemetry_metric("context_header_style.malformed", 1, {"header_style" => "baggage"})
               return {}
             end
 
@@ -199,13 +199,13 @@ module Datadog
               # `URI.decode_www_form_component` raises on malformed percent encoding
               # (e.g. `%XX`, lone `%`). Treat as malformed rather than letting it
               # propagate to `Propagation#extract`'s caller.
-              record_telemetry_metric('context_header_style.malformed', 1, {'header_style' => 'baggage'})
+              record_telemetry_metric("context_header_style.malformed", 1, {"header_style" => "baggage"})
               return {}
             end
 
             if key.empty? || value.empty?
               # Record telemetry for malformed header
-              record_telemetry_metric('context_header_style.malformed', 1, {'header_style' => 'baggage'})
+              record_telemetry_metric("context_header_style.malformed", 1, {"header_style" => "baggage"})
               return {}
             end
 

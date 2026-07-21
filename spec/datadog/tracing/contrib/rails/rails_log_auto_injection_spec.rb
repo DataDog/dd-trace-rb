@@ -1,11 +1,11 @@
-require 'datadog/tracing/contrib/rails/rails_helper'
+require "datadog/tracing/contrib/rails/rails_helper"
 
-RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >= 8 do
+RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >= 8 do
   include Rack::Test::Methods
-  include_context 'Rails test application'
+  include_context "Rails test application"
 
   let(:routes) do
-    {'/logging' => 'logging_test#index'}
+    {"/logging" => "logging_test#index"}
   end
   # defined in rails support apps
   let(:logs) { log_output.string }
@@ -20,7 +20,7 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
 
   let(:logging_test_controller) do
     stub_const(
-      'LoggingTestController',
+      "LoggingTestController",
       Class.new(ActionController::Base) do
         def index
           # subscribers = ::ActiveSupport::Notifications.notifier.instance_variable_get(:@subscribers)
@@ -47,12 +47,12 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
           # puts "Lograge Logger: #{::Lograge.logger && ::Lograge.logger.object_id}"
           # puts "logger: #{logger.object_id}"
           # puts "Rails.logger: #{::Rails.logger.object_id}"
-          ::Rails.logger.info 'MY VOICE SHALL BE HEARD!'
+          ::Rails.logger.info "MY VOICE SHALL BE HEARD!"
 
-          if ::Rails.version >= '4'
-            render plain: 'OK'
+          if ::Rails.version >= "4"
+            render plain: "OK"
           else
-            render inline: 'OK'
+            render inline: "OK"
           end
         end
       end
@@ -74,14 +74,14 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
   end
 
   subject(:response) do
-    get '/logging'
+    get "/logging"
   end
 
-  context 'with log injection enabled' do
+  context "with log injection enabled" do
     let(:log_injection) { true }
 
-    context 'with default Ruby logger' do
-      it 'does not contain trace id' do
+    context "with default Ruby logger" do
+      it "does not contain trace id" do
         is_expected.to be_ok
 
         expect(logs).to_not be_empty
@@ -95,13 +95,13 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
       end
     end
 
-    context 'with Tagged Logging' do
+    context "with Tagged Logging" do
       let(:logger) do
         ::ActiveSupport::TaggedLogging.new(super())
       end
 
-      context 'with Tagged logging setup and no tags' do
-        it 'injects trace_id into logs' do
+      context "with Tagged logging setup and no tags" do
+        it "injects trace_id into logs" do
           is_expected.to be_ok
 
           expect(logs).to_not be_empty
@@ -115,12 +115,12 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
         end
       end
 
-      context 'with tagged logging setup and existing log_tags' do
+      context "with tagged logging setup and existing log_tags" do
         let(:log_tags) do
           %w[some_info some_other_info]
         end
 
-        it 'injects trace_id into logs and preserve existing log tags' do
+        it "injects trace_id into logs and preserve existing log tags" do
           is_expected.to be_ok
 
           expect(logs).to_not be_empty
@@ -129,29 +129,29 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
           rack_rails_logger_entry, my_entry = log_entries
 
           expect(rack_rails_logger_entry).to include "dd.trace_id=#{format_for_correlation(trace.id)}"
-          expect(rack_rails_logger_entry).to include '[some_info]'
-          expect(rack_rails_logger_entry).to include '[some_other_info]'
+          expect(rack_rails_logger_entry).to include "[some_info]"
+          expect(rack_rails_logger_entry).to include "[some_other_info]"
 
           expect(my_entry).to include format_for_correlation(trace.id)
-          expect(my_entry).to include '[some_info]'
-          expect(my_entry).to include '[some_other_info]'
+          expect(my_entry).to include "[some_info]"
+          expect(my_entry).to include "[some_other_info]"
         end
       end
     end
 
     # Lograge does not support tagged logging, the default logger since Rails 5
-    if Rails.version >= '4' && Rails.version < '5'
-      context 'with Lograge' do
+    if Rails.version >= "4" && Rails.version < "5"
+      context "with Lograge" do
         # for log_injection testing
-        require 'lograge'
+        require "lograge"
 
         let(:lograge_options) do
           {enabled?: true}
         end
 
-        context 'with lograge enabled' do
-          context 'with Lograge setup and no custom_options' do
-            it 'injects trace_id into logs' do
+        context "with lograge enabled" do
+          context "with Lograge setup and no custom_options" do
+            it "injects trace_id into logs" do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
@@ -162,23 +162,23 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
               expect(rack_rails_logger_entry).not_to include format_for_correlation(trace.id)
 
               expect(controller_logger_entry).to include format_for_correlation(trace.id)
-              expect(controller_logger_entry).to include 'ddsource=ruby'
+              expect(controller_logger_entry).to include "ddsource=ruby"
 
               expect(my_entry).not_to include format_for_correlation(trace.id)
             end
           end
 
-          context 'with Lograge and existing custom_options as a hash' do
+          context "with Lograge and existing custom_options as a hash" do
             let(:lograge_options) do
               super().merge(
                 custom_options: {
-                  'some_hash_info' => 'test_hash_value',
-                  'some_other_hash_info' => 'other_test_hash_value'
+                  "some_hash_info" => "test_hash_value",
+                  "some_other_hash_info" => "other_test_hash_value"
                 }
               )
             end
 
-            it 'injects trace_id into logs and preserve existing hash' do
+            it "injects trace_id into logs and preserve existing hash" do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
@@ -189,27 +189,27 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
               expect(rack_rails_logger_entry).not_to include format_for_correlation(trace.id)
 
               expect(controller_logger_entry).to include format_for_correlation(trace.id)
-              expect(controller_logger_entry).to include 'ddsource=ruby'
-              expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
-              expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
+              expect(controller_logger_entry).to include "ddsource=ruby"
+              expect(controller_logger_entry).to include "some_hash_info=test_hash_value"
+              expect(controller_logger_entry).to include "some_other_hash_info=other_test_hash_value"
 
               expect(my_entry).not_to include format_for_correlation(trace.id)
             end
           end
 
-          context 'with Lograge and existing custom_options as a lambda' do
+          context "with Lograge and existing custom_options as a lambda" do
             let(:lograge_options) do
               super().merge(
                 custom_options: lambda do |_event|
                   {
-                    'some_lambda_info' => 'test_lambda_value',
-                    'some_other_lambda_info' => 'other_test_lambda_value'
+                    "some_lambda_info" => "test_lambda_value",
+                    "some_other_lambda_info" => "other_test_lambda_value"
                   }
                 end
               )
             end
 
-            it 'injects trace_id into logs and preserve existing lambda' do
+            it "injects trace_id into logs and preserve existing lambda" do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
@@ -220,21 +220,21 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
               expect(rack_rails_logger_entry).not_to include format_for_correlation(trace.id)
 
               expect(controller_logger_entry).to include format_for_correlation(trace.id)
-              expect(controller_logger_entry).to include 'ddsource=ruby'
-              expect(controller_logger_entry).to include 'some_lambda_info=test_lambda_value'
-              expect(controller_logger_entry).to include 'some_other_lambda_info=other_test_lambda_value'
+              expect(controller_logger_entry).to include "ddsource=ruby"
+              expect(controller_logger_entry).to include "some_lambda_info=test_lambda_value"
+              expect(controller_logger_entry).to include "some_other_lambda_info=other_test_lambda_value"
 
               expect(my_entry).not_to include format_for_correlation(trace.id)
             end
           end
         end
 
-        context 'with lograge disabled' do
+        context "with lograge disabled" do
           before do
             Datadog.configuration.tracing[:lograge].enabled = false
           end
 
-          it 'does not inject trace_id into logs' do
+          it "does not inject trace_id into logs" do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
@@ -251,9 +251,9 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
         end
       end
 
-      context 'with Tagged Logging and Lograge' do
+      context "with Tagged Logging and Lograge" do
         # for log_injection testing
-        require 'lograge'
+        require "lograge"
 
         let(:logger) do
           ::ActiveSupport::TaggedLogging.new(super())
@@ -263,9 +263,9 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
           {enabled?: true}
         end
 
-        context 'with lograge and tagged logging enabled' do
-          context 'with no custom_options' do
-            it 'injects trace_id into logs' do
+        context "with lograge and tagged logging enabled" do
+          context "with no custom_options" do
+            it "injects trace_id into logs" do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
@@ -278,14 +278,14 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
               expect(my_entry).to include "dd.trace_id=#{format_for_correlation(trace.id)}"
 
               expect(controller_logger_entry.scan(format_for_correlation(trace.id))).to have(2).times
-              expect(controller_logger_entry).to include 'ddsource=ruby'
+              expect(controller_logger_entry).to include "ddsource=ruby"
             end
           end
 
-          context 'with tagged logging setup and existing log_tags' do
+          context "with tagged logging setup and existing log_tags" do
             let(:log_tags) { %w[some_info some_other_info] }
 
-            it 'injects trace_id into logs and preserve existing log tags' do
+            it "injects trace_id into logs and preserve existing log tags" do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
@@ -294,31 +294,31 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
               expect(rack_rails_logger_entry).to include "dd.trace_id=#{format_for_correlation(trace.id)}"
-              expect(rack_rails_logger_entry).to include '[some_info]'
-              expect(rack_rails_logger_entry).to include '[some_other_info]'
+              expect(rack_rails_logger_entry).to include "[some_info]"
+              expect(rack_rails_logger_entry).to include "[some_other_info]"
 
               expect(my_entry).to include "dd.trace_id=#{format_for_correlation(trace.id)}"
-              expect(my_entry).to include '[some_info]'
-              expect(my_entry).to include '[some_other_info]'
+              expect(my_entry).to include "[some_info]"
+              expect(my_entry).to include "[some_other_info]"
 
               expect(controller_logger_entry.scan(format_for_correlation(trace.id))).to have(2).times
-              expect(controller_logger_entry).to include 'ddsource=ruby'
-              expect(controller_logger_entry).to include '[some_info]'
-              expect(controller_logger_entry).to include '[some_other_info]'
+              expect(controller_logger_entry).to include "ddsource=ruby"
+              expect(controller_logger_entry).to include "[some_info]"
+              expect(controller_logger_entry).to include "[some_other_info]"
             end
           end
 
-          context 'with Lograge and existing custom_options as a hash' do
+          context "with Lograge and existing custom_options as a hash" do
             let(:lograge_options) do
               super().merge(
                 custom_options: {
-                  'some_hash_info' => 'test_hash_value',
-                  'some_other_hash_info' => 'other_test_hash_value'
+                  "some_hash_info" => "test_hash_value",
+                  "some_other_hash_info" => "other_test_hash_value"
                 }
               )
             end
 
-            it 'injects trace_id into logs and preserve existing hash' do
+            it "injects trace_id into logs and preserve existing hash" do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
@@ -331,25 +331,25 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
               expect(my_entry).to include "dd.trace_id=#{format_for_correlation(trace.id)}"
 
               expect(controller_logger_entry.scan(format_for_correlation(trace.id))).to have(2).times
-              expect(controller_logger_entry).to include 'ddsource=ruby'
-              expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
-              expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
+              expect(controller_logger_entry).to include "ddsource=ruby"
+              expect(controller_logger_entry).to include "some_hash_info=test_hash_value"
+              expect(controller_logger_entry).to include "some_other_hash_info=other_test_hash_value"
             end
           end
 
-          context 'with Lograge and existing custom_options as a lambda' do
+          context "with Lograge and existing custom_options as a lambda" do
             let(:lograge_options) do
               super().merge(
                 custom_options: lambda do |_event|
                   {
-                    'some_lambda_info' => 'test_lambda_value',
-                    'some_other_lambda_info' => 'other_test_lambda_value'
+                    "some_lambda_info" => "test_lambda_value",
+                    "some_other_lambda_info" => "other_test_lambda_value"
                   }
                 end
               )
             end
 
-            it 'injects trace_id into logs and preserve existing lambda' do
+            it "injects trace_id into logs and preserve existing lambda" do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
@@ -362,25 +362,25 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
               expect(my_entry).to include "dd.trace_id=#{format_for_correlation(trace.id)}"
 
               expect(controller_logger_entry.scan(format_for_correlation(trace.id))).to have(2).times
-              expect(controller_logger_entry).to include 'ddsource=ruby'
-              expect(controller_logger_entry).to include 'some_lambda_info=test_lambda_value'
-              expect(controller_logger_entry).to include 'some_other_lambda_info=other_test_lambda_value'
+              expect(controller_logger_entry).to include "ddsource=ruby"
+              expect(controller_logger_entry).to include "some_lambda_info=test_lambda_value"
+              expect(controller_logger_entry).to include "some_other_lambda_info=other_test_lambda_value"
             end
           end
 
-          context 'with existing log_tags and Lograge custom_options' do
+          context "with existing log_tags and Lograge custom_options" do
             let(:log_tags) { %w[some_info some_other_info] }
 
             let(:lograge_options) do
               super().merge(
                 custom_options: {
-                  'some_hash_info' => 'test_hash_value',
-                  'some_other_hash_info' => 'other_test_hash_value'
+                  "some_hash_info" => "test_hash_value",
+                  "some_other_hash_info" => "other_test_hash_value"
                 }
               )
             end
 
-            it 'injects trace_id into logs' do
+            it "injects trace_id into logs" do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
@@ -389,19 +389,19 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
               expect(rack_rails_logger_entry).to include "dd.trace_id=#{format_for_correlation(trace.id)}"
-              expect(rack_rails_logger_entry).to include '[some_info]'
-              expect(rack_rails_logger_entry).to include '[some_other_info]'
+              expect(rack_rails_logger_entry).to include "[some_info]"
+              expect(rack_rails_logger_entry).to include "[some_other_info]"
 
               expect(my_entry).to include "dd.trace_id=#{format_for_correlation(trace.id)}"
-              expect(my_entry).to include '[some_info]'
-              expect(my_entry).to include '[some_other_info]'
+              expect(my_entry).to include "[some_info]"
+              expect(my_entry).to include "[some_other_info]"
 
               expect(controller_logger_entry.scan(format_for_correlation(trace.id))).to have(2).times
-              expect(controller_logger_entry).to include '[some_info]'
-              expect(controller_logger_entry).to include '[some_other_info]'
-              expect(controller_logger_entry).to include 'ddsource=ruby'
-              expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
-              expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
+              expect(controller_logger_entry).to include "[some_info]"
+              expect(controller_logger_entry).to include "[some_other_info]"
+              expect(controller_logger_entry).to include "ddsource=ruby"
+              expect(controller_logger_entry).to include "some_hash_info=test_hash_value"
+              expect(controller_logger_entry).to include "some_other_hash_info=other_test_hash_value"
             end
           end
         end
@@ -409,11 +409,11 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
     end
   end
 
-  context 'with log injection disabled' do
+  context "with log injection disabled" do
     let(:log_injection) { false }
 
-    context 'with default Ruby logger' do
-      it 'does not contain trace id' do
+    context "with default Ruby logger" do
+      it "does not contain trace id" do
         is_expected.to be_ok
 
         expect(logs).to_not be_empty
@@ -427,13 +427,13 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
       end
     end
 
-    context 'with Tagged Logging' do
+    context "with Tagged Logging" do
       let(:logger) do
         ::ActiveSupport::TaggedLogging.new(super())
       end
 
-      context 'with Tagged logging setup and no tags' do
-        it 'does not inject trace_id' do
+      context "with Tagged logging setup and no tags" do
+        it "does not inject trace_id" do
           is_expected.to be_ok
 
           expect(logs).to_not be_empty
@@ -447,10 +447,10 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
         end
       end
 
-      context 'with tagged logging setup and existing log_tags' do
+      context "with tagged logging setup and existing log_tags" do
         let(:log_tags) { %w[some_info some_other_info] }
 
-        it 'does not inject trace_id' do
+        it "does not inject trace_id" do
           is_expected.to be_ok
 
           expect(logs).to_not be_empty
@@ -459,23 +459,23 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
           rack_rails_logger_entry, my_entry = log_entries
 
           expect(rack_rails_logger_entry).not_to include format_for_correlation(trace.id)
-          expect(rack_rails_logger_entry).to include '[some_info]'
-          expect(rack_rails_logger_entry).to include '[some_other_info]'
+          expect(rack_rails_logger_entry).to include "[some_info]"
+          expect(rack_rails_logger_entry).to include "[some_other_info]"
 
           expect(my_entry).not_to include format_for_correlation(trace.id)
-          expect(my_entry).to include '[some_info]'
-          expect(my_entry).to include '[some_other_info]'
+          expect(my_entry).to include "[some_info]"
+          expect(my_entry).to include "[some_other_info]"
         end
       end
 
-      context 'then enabled at runtime' do
-        context 'with Tagged logging setup and no tags' do
+      context "then enabled at runtime" do
+        context "with Tagged logging setup and no tags" do
           before do
             app # Initialize app before enabling log injection
             Datadog.configure { |c| c.tracing.log_injection = true }
           end
 
-          it 'injects trace_id into logs' do
+          it "injects trace_id into logs" do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
@@ -492,18 +492,18 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
     end
 
     # Lograge does not support tagged logging, the default logger since Rails 5
-    if Rails.version >= '4' && Rails.version < '5'
-      context 'with Lograge' do
+    if Rails.version >= "4" && Rails.version < "5"
+      context "with Lograge" do
         # for log_injection testing
-        require 'lograge'
+        require "lograge"
 
         let(:lograge_options) do
           {enabled?: true}
         end
 
-        context 'with lograge enabled' do
-          context 'with Lograge setup and no custom_options' do
-            it 'does not inject trace_id' do
+        context "with lograge enabled" do
+          context "with Lograge setup and no custom_options" do
+            it "does not inject trace_id" do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
@@ -519,17 +519,17 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
             end
           end
 
-          context 'with Lograge and existing custom_options as a hash' do
+          context "with Lograge and existing custom_options as a hash" do
             let(:lograge_options) do
               super().merge(
                 custom_options: {
-                  'some_hash_info' => 'test_hash_value',
-                  'some_other_hash_info' => 'other_test_hash_value'
+                  "some_hash_info" => "test_hash_value",
+                  "some_other_hash_info" => "other_test_hash_value"
                 }
               )
             end
 
-            it 'does not inject trace_id and preserve existing hash' do
+            it "does not inject trace_id and preserve existing hash" do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
@@ -542,24 +542,24 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
               expect(my_entry).not_to include format_for_correlation(trace.id)
 
               expect(controller_logger_entry).not_to include format_for_correlation(trace.id)
-              expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
-              expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
+              expect(controller_logger_entry).to include "some_hash_info=test_hash_value"
+              expect(controller_logger_entry).to include "some_other_hash_info=other_test_hash_value"
             end
           end
 
-          context 'with Lograge and existing custom_options as a lambda' do
+          context "with Lograge and existing custom_options as a lambda" do
             let(:lograge_options) do
               super().merge(
                 custom_options: lambda do |_event|
                   {
-                    'some_lambda_info' => 'test_lambda_value',
-                    'some_other_lambda_info' => 'other_test_lambda_value'
+                    "some_lambda_info" => "test_lambda_value",
+                    "some_other_lambda_info" => "other_test_lambda_value"
                   }
                 end
               )
             end
 
-            it 'does not inject trace_id and preserve existing lambda' do
+            it "does not inject trace_id and preserve existing lambda" do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
@@ -572,18 +572,18 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
               expect(my_entry).not_to include format_for_correlation(trace.id)
 
               expect(controller_logger_entry).not_to include format_for_correlation(trace.id)
-              expect(controller_logger_entry).to include 'some_lambda_info=test_lambda_value'
-              expect(controller_logger_entry).to include 'some_other_lambda_info=other_test_lambda_value'
+              expect(controller_logger_entry).to include "some_lambda_info=test_lambda_value"
+              expect(controller_logger_entry).to include "some_other_lambda_info=other_test_lambda_value"
             end
           end
         end
 
-        context 'with lograge disabled' do
+        context "with lograge disabled" do
           before do
             Datadog.configuration.tracing[:lograge].enabled = false
           end
 
-          it 'does not inject trace_id into logs' do
+          it "does not inject trace_id into logs" do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty

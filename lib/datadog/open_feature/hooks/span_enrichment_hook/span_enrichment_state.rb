@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'set'
-require 'json'
+require "set"
+require "json"
 
-require_relative 'codec'
+require_relative "codec"
 
 module Datadog
   module OpenFeature

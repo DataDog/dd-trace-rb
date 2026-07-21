@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require 'zlib'
-require_relative 'pathway_context'
-require_relative 'transport/http'
-require_relative '../version'
-require_relative '../core/worker'
-require_relative '../core/workers/polling'
-require_relative '../core/ddsketch'
-require_relative '../core/buffer/cruby'
-require_relative '../core/utils/time'
-require_relative '../core/utils/fnv'
+require "zlib"
+require_relative "pathway_context"
+require_relative "transport/http"
+require_relative "../version"
+require_relative "../core/worker"
+require_relative "../core/workers/polling"
+require_relative "../core/ddsketch"
+require_relative "../core/buffer/cruby"
+require_relative "../core/utils/time"
+require_relative "../core/utils/fnv"
 
 module Datadog
   module DataStreams
@@ -22,7 +22,7 @@ module Datadog
     class Processor < Core::Worker
       include Core::Workers::Polling
 
-      PROPAGATION_KEY = 'dd-pathway-ctx-base64'
+      PROPAGATION_KEY = "dd-pathway-ctx-base64"
 
       # Default buffer size for lock-free event queue
       # Set to handle high-throughput scenarios (e.g., 10k events/sec for 10s interval)
@@ -41,7 +41,7 @@ module Datadog
       #   (default: DEFAULT_BUFFER_SIZE). Higher values support more throughput but use more memory.
       # @raise [UnsupportedError] if DDSketch is not available on this platform
       def initialize(interval:, logger:, settings:, agent_settings:, agent_info:, buffer_size: DEFAULT_BUFFER_SIZE)
-        raise UnsupportedError, 'DDSketch is not supported' unless Datadog::Core::DDSketch.supported?
+        raise UnsupportedError, "DDSketch is not supported" unless Datadog::Core::DDSketch.supported?
 
         @settings = settings
         @agent_settings = agent_settings
@@ -112,8 +112,8 @@ module Datadog
       # @yield [key, value] Block to inject context into carrier
       # @return [String] Base64 encoded pathway context
       def set_produce_checkpoint(type:, destination:, manual_checkpoint: true, tags: {}, &block)
-        checkpoint_tags = ["type:#{type}", "topic:#{destination}", 'direction:out']
-        checkpoint_tags << 'manual_checkpoint:true' if manual_checkpoint
+        checkpoint_tags = ["type:#{type}", "topic:#{destination}", "direction:out"]
+        checkpoint_tags << "manual_checkpoint:true" if manual_checkpoint
         checkpoint_tags.concat(tags.map { |k, v| "#{k}:#{v}" }) unless tags.empty?
 
         span = Datadog::Tracing.active_span
@@ -140,8 +140,8 @@ module Datadog
           end
         end
 
-        checkpoint_tags = ["type:#{type}", "topic:#{source}", 'direction:in']
-        checkpoint_tags << 'manual_checkpoint:true' if manual_checkpoint
+        checkpoint_tags = ["type:#{type}", "topic:#{source}", "direction:in"]
+        checkpoint_tags << "manual_checkpoint:true" if manual_checkpoint
         checkpoint_tags.concat(tags.map { |k, v| "#{k}:#{v}" }) unless tags.empty?
 
         span = Datadog::Tracing.active_span
@@ -228,7 +228,7 @@ module Datadog
         bucket_time_ns = now_ns - (now_ns % @bucket_size_ns)
         bucket = @buckets[bucket_time_ns] ||= create_bucket
 
-        aggr_key = [event[:tags].join(','), event[:hash], event[:parent_hash]]
+        aggr_key = [event[:tags].join(","), event[:hash], event[:parent_hash]]
         stats = bucket[:pathway_stats][aggr_key] ||= create_pathway_stats
 
         stats[:edge_latency].add(event[:edge_latency_sec])
@@ -247,7 +247,7 @@ module Datadog
 
         direction = nil # : ::String?
         tags.each do |tag|
-          if tag.start_with?('direction:')
+          if tag.start_with?("direction:")
             direction = tag
             break
           end
@@ -272,7 +272,7 @@ module Datadog
         new_hash = compute_pathway_hash(parent_hash, tags)
 
         # Tag the APM span with the pathway hash to link DSM and APM
-        span&.set_tag('pathway.hash', new_hash.to_s)
+        span&.set_tag("pathway.hash", new_hash.to_s)
 
         edge_latency_sec = [now - current_context.current_edge_start, 0.0].max
         full_pathway_latency_sec = [now - current_context.pathway_start, 0.0].max
@@ -316,15 +316,15 @@ module Datadog
         end
 
         payload = {
-          'Env' => @settings.env || 'none',
-          'Service' => @settings.service,
-          'TracerVersion' => Datadog::VERSION::STRING,
-          'Lang' => 'ruby',
-          'Stats' => stats_buckets,
-          'Hostname' => hostname
+          "Env" => @settings.env || "none",
+          "Service" => @settings.service,
+          "TracerVersion" => Datadog::VERSION::STRING,
+          "Lang" => "ruby",
+          "Stats" => stats_buckets,
+          "Hostname" => hostname
         } # : ::Hash[::String, (::String | ::Array[::String])]
 
-        payload['ProcessTags'] = Core::Environment::Process.tags if @settings.experimental_propagate_process_tags_enabled
+        payload["ProcessTags"] = Core::Environment::Process.tags if @settings.experimental_propagate_process_tags_enabled
 
         # Send to agent outside mutex to avoid blocking customer code if agent is slow/hung.
         send_stats_to_agent(payload)
@@ -357,9 +357,9 @@ module Datadog
       end
 
       def decode_and_set_pathway_context(headers)
-        return unless headers && headers['dd-pathway-ctx-base64']
+        return unless headers && headers["dd-pathway-ctx-base64"]
 
-        pathway_ctx = decode_pathway_context(headers['dd-pathway-ctx-base64'])
+        pathway_ctx = decode_pathway_context(headers["dd-pathway-ctx-base64"])
         set_pathway_context(pathway_ctx) if pathway_ctx
       end
 
@@ -369,21 +369,21 @@ module Datadog
       # The hash only needs to be internally consistent:
       # @see Datadog::Core::Environment::AgentInfo#container_tags_checksum
       def compute_pathway_hash(current_hash, tags)
-        service = @settings.service || 'ruby-service'
-        env = @settings.env || 'none'
+        service = @settings.service || "ruby-service"
+        env = @settings.env || "none"
 
         bytes = service.bytes + env.bytes
 
         if @settings.experimental_propagate_process_tags_enabled
           propagation_checksum = @agent_info.propagation_checksum
-          bytes += [propagation_checksum].pack('Q<').bytes if propagation_checksum
+          bytes += [propagation_checksum].pack("Q<").bytes if propagation_checksum
         end
 
         tags.each { |tag| bytes += tag.bytes }
-        byte_string = bytes.pack('C*')
+        byte_string = bytes.pack("C*")
 
         node_hash = Core::Utils::FNV.fnv1_64(byte_string)
-        combined_bytes = [node_hash, current_hash].pack('QQ')
+        combined_bytes = [node_hash, current_hash].pack("QQ")
         Core::Utils::FNV.fnv1_64(combined_bytes)
       end
 
@@ -433,38 +433,38 @@ module Datadog
           bucket_stats = []
           bucket[:pathway_stats].each do |aggr_key, stats|
             edge_tags_str, hash_value, parent_hash = aggr_key
-            edge_tags_array = edge_tags_str.split(',')
+            edge_tags_array = edge_tags_str.split(",")
 
             bucket_stats << {
-              'EdgeTags' => edge_tags_array,
-              'Hash' => hash_value,
-              'ParentHash' => parent_hash,
-              'PathwayLatency' => stats[:full_pathway_latency].encode,
-              'EdgeLatency' => stats[:edge_latency].encode,
+              "EdgeTags" => edge_tags_array,
+              "Hash" => hash_value,
+              "ParentHash" => parent_hash,
+              "PathwayLatency" => stats[:full_pathway_latency].encode,
+              "EdgeLatency" => stats[:edge_latency].encode,
             }
           end
 
           backlogs = []
           bucket[:latest_produce_offsets].each do |key, offset|
-            topic, partition = key.split(':', 2)
+            topic, partition = key.split(":", 2)
             backlogs << {
-              'Tags' => ['type:kafka_produce', "topic:#{topic}", "partition:#{partition}"],
-              'Value' => offset
+              "Tags" => ["type:kafka_produce", "topic:#{topic}", "partition:#{partition}"],
+              "Value" => offset
             }
           end
           bucket[:latest_commit_offsets].each do |key, offset|
-            group, topic, partition = key.split(':', 3)
+            group, topic, partition = key.split(":", 3)
             backlogs << {
-              'Tags' => ['type:kafka_commit', "consumer_group:#{group}", "topic:#{topic}", "partition:#{partition}"],
-              'Value' => offset
+              "Tags" => ["type:kafka_commit", "consumer_group:#{group}", "topic:#{topic}", "partition:#{partition}"],
+              "Value" => offset
             }
           end
 
           serialized_buckets << {
-            'Start' => bucket_time_ns,
-            'Duration' => @bucket_size_ns,
-            'Stats' => bucket_stats,
-            'Backlogs' => backlogs + serialize_consumer_backlogs
+            "Start" => bucket_time_ns,
+            "Duration" => @bucket_size_ns,
+            "Stats" => bucket_stats,
+            "Backlogs" => backlogs + serialize_consumer_backlogs
           }
         end
 
@@ -476,12 +476,12 @@ module Datadog
       def serialize_consumer_backlogs
         @consumer_stats.map do |stat|
           {
-            'Tags' => [
-              'type:kafka_commit',
+            "Tags" => [
+              "type:kafka_commit",
               "topic:#{stat[:topic]}",
               "partition:#{stat[:partition]}"
             ],
-            'Value' => stat[:offset]
+            "Value" => stat[:offset]
           }
         end
       end
