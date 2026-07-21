@@ -67,7 +67,7 @@ module Datadog
             session_serializer = warden.session_serializer
 
             key = session_key_for(session_serializer, ::Devise.default_scope)
-            id = session_serializer.session[key]&.dig(0, 0)
+            id = extract_record_id(session_serializer.session[key])
 
             return id if ::Devise.mappings.size == 1
             return "#{::Devise.default_scope}:#{id}" if id
@@ -76,12 +76,27 @@ module Datadog
               next if scope == ::Devise.default_scope
 
               key = session_key_for(session_serializer, scope)
-              id = session_serializer.session[key]&.dig(0, 0)
+              id = extract_record_id(session_serializer.session[key])
 
               return "#{scope}:#{id}" if id
             end
 
             nil
+          end
+
+          # NOTE: This supports Devise's default session serialization:
+          #       `[record.to_key, record.authenticatable_salt]`,
+          #       e.g. `[[1], "0abc..."]`
+          #
+          # WARNING: Applications can redefine Warden serialization, replacing
+          #          this default format
+          def extract_record_id(serialized_record)
+            return unless serialized_record.is_a?(Array)
+
+            record_key = serialized_record[0]
+            return unless record_key.is_a?(Array)
+
+            record_key[0]
           end
 
           def session_key_for(session_serializer, scope)
