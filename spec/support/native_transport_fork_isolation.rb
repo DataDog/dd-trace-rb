@@ -62,7 +62,7 @@ module NativeTransportForkIsolation
     return unless pid
 
     begin
-      Process.kill('KILL', pid)
+      Process.kill("KILL", pid)
     rescue Errno::ESRCH
       return
     end
@@ -84,7 +84,7 @@ module NativeTransportForkIsolation
   end
 
   def registry
-    require 'datadog/core/utils/at_fork_monkey_patch'
+    require "datadog/core/utils/at_fork_monkey_patch"
     Datadog::Core::Utils::AtForkMonkeyPatch
   end
 

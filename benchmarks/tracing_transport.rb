@@ -1,10 +1,10 @@
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require_relative 'benchmarks_helper'
-require 'socket'
+require_relative "benchmarks_helper"
+require "socket"
 
 # Compares the native trace transport (Rust via C FFI) against the default
 # pure-Ruby HTTP transport.
@@ -40,7 +40,7 @@ class TracingTransportBenchmark
         end
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   ensure
@@ -55,18 +55,18 @@ class TracingTransportBenchmark
       spans = spans_per_trace.times.map do |i|
         Datadog::Tracing::Span.new(
           "benchmark.op.#{i}",
-          service: 'benchmark-svc',
+          service: "benchmark-svc",
           resource: "GET /bench/#{i}",
-          type: 'web',
+          type: "web",
           id: rand(1 << 62),
           parent_id: (i == 0) ? 0 : rand(1 << 62),
           trace_id: trace_id,
         ).tap do |span|
-          span.set_tag('http.method', 'GET')
-          span.set_tag('http.url', "/bench/#{i}")
-          span.set_tag('http.status_code', '200')
-          span.set_metric('_dd.measured', 1.0)
-          span.set_metric('_sampling_priority_v1', 1.0)
+          span.set_tag("http.method", "GET")
+          span.set_tag("http.url", "/bench/#{i}")
+          span.set_tag("http.status_code", "200")
+          span.set_metric("_dd.measured", 1.0)
+          span.set_metric("_sampling_priority_v1", 1.0)
         end
       end
       Datadog::Tracing::TraceSegment.new(
@@ -89,7 +89,7 @@ class TracingTransportBenchmark
   end
 
   def build_native_transport
-    require 'datadog/tracing/transport/native'
+    require "datadog/tracing/transport/native"
 
     unless Datadog::Tracing::Transport::Native.supported?
       puts "WARNING: Native transport not available: #{Datadog::Tracing::Transport::Native::UNSUPPORTED_REASON}"
@@ -112,7 +112,7 @@ class TracingTransportBenchmark
 
     def initialize
       # Bind before forking so the parent knows the port.
-      server = TCPServer.new('127.0.0.1', 0)
+      server = TCPServer.new("127.0.0.1", 0)
       @port = server.addr[1]
 
       @pid = fork do
@@ -134,7 +134,7 @@ class TracingTransportBenchmark
                 # Drain headers + body
                 content_length = 0
                 while (line = client.gets) && line != "\r\n"
-                  content_length = line.split(': ', 2).last.to_i if line.start_with?('Content-Length')
+                  content_length = line.split(": ", 2).last.to_i if line.start_with?("Content-Length")
                 end
                 client.read(content_length) if content_length > 0
 
@@ -167,7 +167,7 @@ class TracingTransportBenchmark
 
     def stop
       begin
-        Process.kill('TERM', @pid)
+        Process.kill("TERM", @pid)
       rescue
         nil
       end

@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require 'datadog/core'
-require 'datadog/tracing/span'
-require 'socket'
-require 'json'
+require "datadog/core"
+require "datadog/tracing/span"
+require "socket"
+require "json"
 
-RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter#_native_send_traces' do
+RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_traces" do
   before do
     skip_if_libdatadog_not_supported
   end
@@ -29,7 +29,7 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       @status = status
       @body = body
       @requests = []
-      @server = TCPServer.new('127.0.0.1', 0)
+      @server = TCPServer.new("127.0.0.1", 0)
       @port = @server.addr[1]
       @thread = Thread.new { run }
     end
@@ -64,12 +64,12 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
 
       headers = {}
       while (line = client.gets) && line != "\r\n"
-        key, value = line.split(': ', 2)
+        key, value = line.split(": ", 2)
         headers[key.downcase] = value&.strip
       end
 
-      body_len = (headers['content-length'] || 0).to_i
-      body = (body_len > 0) ? client.read(body_len) : ''
+      body_len = (headers["content-length"] || 0).to_i
+      body = (body_len > 0) ? client.read(body_len) : ""
 
       @requests << {request_line: request_line.strip, headers: headers, body: body}
 
@@ -81,7 +81,7 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       client.print response_body
       client.close
     rescue => e
-      warn "MockAgent error: #{e}" if ENV['DEBUG']
+      warn "MockAgent error: #{e}" if ENV["DEBUG"]
       client&.close
     end
   end
@@ -96,22 +96,22 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
   let(:exporter) do
     trace_exporter_class._native_new(
       url: "http://127.0.0.1:#{mock_agent.port}",
-      tracer_version: '1.0.0-test',
-      language: 'ruby',
+      tracer_version: "1.0.0-test",
+      language: "ruby",
       language_version: RUBY_VERSION,
       language_interpreter: RUBY_ENGINE,
-      hostname: 'test-host',
-      env: 'test-env',
-      service: 'test-service',
-      version: '0.0.1',
+      hostname: "test-host",
+      env: "test-env",
+      service: "test-service",
+      version: "0.0.1",
     )
   end
 
-  def make_span(name = 'test.op', **overrides)
+  def make_span(name = "test.op", **overrides)
     defaults = {
-      service: 'test-svc',
-      resource: 'GET /test',
-      type: 'web',
+      service: "test-svc",
+      resource: "GET /test",
+      type: "web",
       id: rand(1 << 62),
       parent_id: 0,
       trace_id: rand(1 << 62),
@@ -123,15 +123,15 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
   # Tests
   # ---------------------------------------------------------------------------
 
-  describe 'with an empty array' do
-    it 'returns an empty array without contacting the server' do
+  describe "with an empty array" do
+    it "returns an empty array without contacting the server" do
       responses = exporter._native_send_traces([])
       expect(responses).to eq([])
     end
   end
 
-  describe 'with a single trace containing one span' do
-    it 'returns a success response' do
+  describe "with a single trace containing one span" do
+    it "returns a success response" do
       spans = [make_span]
       responses = exporter._native_send_traces([spans])
 
@@ -146,7 +146,7 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       expect(resp.trace_count).to eq(1)
     end
 
-    it 'returns a payload with the agent response body' do
+    it "returns a payload with the agent response body" do
       spans = [make_span]
       responses = exporter._native_send_traces([spans])
       resp = responses.first
@@ -154,14 +154,14 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       # The payload should contain the mock agent's JSON body
       expect(resp.payload).to be_a(String)
       parsed = JSON.parse(resp.payload)
-      expect(parsed).to have_key('rate_by_service')
+      expect(parsed).to have_key("rate_by_service")
     end
   end
 
-  describe 'with multiple trace chunks' do
-    it 'sends all chunks and returns a success response' do
-      chunk1 = [make_span('op1'), make_span('op2')]
-      chunk2 = [make_span('op3')]
+  describe "with multiple trace chunks" do
+    it "sends all chunks and returns a success response" do
+      chunk1 = [make_span("op1"), make_span("op2")]
+      chunk2 = [make_span("op3")]
       responses = exporter._native_send_traces([chunk1, chunk2])
 
       expect(responses.length).to eq(1)
@@ -170,22 +170,22 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
     end
   end
 
-  describe 'with spans containing meta and metrics' do
-    it 'does not raise' do
+  describe "with spans containing meta and metrics" do
+    it "does not raise" do
       span = make_span
-      span.set_tag('http.method', 'GET')
-      span.set_tag('http.url', '/test')
-      span.set_metric('_dd.measured', 1.0)
+      span.set_tag("http.method", "GET")
+      span.set_tag("http.url", "/test")
+      span.set_metric("_dd.measured", 1.0)
 
       responses = exporter._native_send_traces([[span]])
       expect(responses.first.ok?).to be true
     end
   end
 
-  describe 'when the agent returns an error' do
+  describe "when the agent returns an error" do
     let(:mock_agent) { MockAgent.new(status: 500, body: '{"error":"server overloaded"}') }
 
-    it 'returns an error response' do
+    it "returns an error response" do
       responses = exporter._native_send_traces([[make_span]])
 
       expect(responses.length).to eq(1)
@@ -196,13 +196,13 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
     end
   end
 
-  describe 'argument validation' do
-    it 'raises TypeError for non-array argument' do
-      expect { exporter._native_send_traces('not an array') }.to raise_error(TypeError)
+  describe "argument validation" do
+    it "raises TypeError for non-array argument" do
+      expect { exporter._native_send_traces("not an array") }.to raise_error(TypeError)
     end
 
-    it 'raises TypeError for non-array inner element' do
-      expect { exporter._native_send_traces(['not an array']) }.to raise_error(TypeError)
+    it "raises TypeError for non-array inner element" do
+      expect { exporter._native_send_traces(["not an array"]) }.to raise_error(TypeError)
     end
   end
 end

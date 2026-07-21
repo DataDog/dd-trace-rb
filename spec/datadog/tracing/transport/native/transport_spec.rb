@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/transport/native'
-require 'datadog/tracing/writer'
-require 'datadog/tracing/span'
-require 'datadog/tracing/trace_segment'
-require 'datadog/tracing/transport/trace_formatter'
-require 'datadog/core/utils/at_fork_monkey_patch'
-require 'socket'
-require 'json'
+require "datadog/tracing/transport/native"
+require "datadog/tracing/writer"
+require "datadog/tracing/span"
+require "datadog/tracing/trace_segment"
+require "datadog/tracing/transport/trace_formatter"
+require "datadog/core/utils/at_fork_monkey_patch"
+require "socket"
+require "json"
 
 RSpec.describe Datadog::Tracing::Transport::Native::Transport do
   before do
@@ -27,7 +27,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
     def initialize(status: 200, body: '{"rate_by_service":{"service:,env:":1.0}}')
       @status = status
       @body = body
-      @server = TCPServer.new('127.0.0.1', 0)
+      @server = TCPServer.new("127.0.0.1", 0)
       @port = @server.addr[1]
       @thread = Thread.new { run }
     end
@@ -62,11 +62,11 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
 
       headers = {}
       while (line = client.gets) && line != "\r\n"
-        key, value = line.split(': ', 2)
+        key, value = line.split(": ", 2)
         headers[key.downcase] = value&.strip
       end
 
-      body_len = (headers['content-length'] || 0).to_i
+      body_len = (headers["content-length"] || 0).to_i
       client.read(body_len) if body_len > 0
 
       client.print "HTTP/1.1 #{@status} OK\r\n"
@@ -76,7 +76,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       client.print @body
       client.close
     rescue => e
-      warn "MockAgent error: #{e}" if ENV['DEBUG']
+      warn "MockAgent error: #{e}" if ENV["DEBUG"]
       client&.close
     end
   end
@@ -89,7 +89,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
   after { mock_agent.stop }
 
   let(:agent_settings) do
-    double('agent_settings', url: "http://127.0.0.1:#{mock_agent.port}")
+    double("agent_settings", url: "http://127.0.0.1:#{mock_agent.port}")
   end
 
   # Track every transport built by these examples so we can deterministically
@@ -112,8 +112,8 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
     spans = span_names.map do |name|
       Datadog::Tracing::Span.new(
         name,
-        service: 'test-svc',
-        resource: 'GET /test',
+        service: "test-svc",
+        resource: "GET /test",
         id: rand(1 << 62),
         parent_id: 0,
         trace_id: trace_id,
@@ -126,20 +126,20 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
   # Tests
   # ---------------------------------------------------------------------------
 
-  describe '.supported?' do
-    it 'returns true when native extension is loaded' do
+  describe ".supported?" do
+    it "returns true when native extension is loaded" do
       expect(native_module.supported?).to be true
     end
   end
 
-  describe '#initialize' do
-    it 'creates a transport' do
+  describe "#initialize" do
+    it "creates a transport" do
       expect(transport).to be_a(transport_class)
     end
 
-    it 'raises when native extension is not available' do
+    it "raises when native extension is not available" do
       allow(native_module).to receive(:supported?).and_return(false)
-      stub_const("#{native_module}::UNSUPPORTED_REASON", 'test failure')
+      stub_const("#{native_module}::UNSUPPORTED_REASON", "test failure")
 
       expect {
         transport_class.new(agent_settings: agent_settings, logger: logger)
@@ -147,7 +147,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
     end
   end
 
-  describe 'fork-hook lifecycle' do
+  describe "fork-hook lifecycle" do
     let(:at_fork) { Datadog::Core::Utils::AtForkMonkeyPatch }
 
     def registry(stage)
@@ -163,8 +163,8 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       registry(stage).any? { |b| b.equal?(block) }
     end
 
-    describe '#initialize' do
-      it 'registers one before/parent/child hook' do
+    describe "#initialize" do
+      it "registers one before/parent/child hook" do
         hooks = transport.instance_variable_get(:@fork_hooks)
 
         expect(hooks.keys).to contain_exactly(:before, :parent, :child)
@@ -174,8 +174,8 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       end
     end
 
-    describe '#close' do
-      it 'removes all of its hooks from the global registry' do
+    describe "#close" do
+      it "removes all of its hooks from the global registry" do
         hooks = transport.instance_variable_get(:@fork_hooks)
 
         # Assert the hooks are registered to begin with, otherwise the
@@ -191,13 +191,13 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         end
       end
 
-      it 'clears the exporter so it can be freed' do
+      it "clears the exporter so it can be freed" do
         expect { transport.close }
           .to change { transport.instance_variable_get(:@exporter) }
           .to(be_nil)
       end
 
-      it 'stops the exporter native fork hooks from firing on a later fork' do
+      it "stops the exporter native fork hooks from firing on a later fork" do
         exporter = transport.instance_variable_get(:@exporter)
         # If our hooks were still registered, running the blocks would invoke
         # these native methods.
@@ -216,22 +216,22 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         expect(exporter).to_not have_received(:_native_after_fork_in_child)
       end
 
-      it 'does not raise when closing an already closed transport' do
+      it "does not raise when closing an already closed transport" do
         transport.close
         expect { transport.close }.to_not raise_error
       end
 
-      it 'removes the finalizer so the exporter is not pinned after close' do
+      it "removes the finalizer so the exporter is not pinned after close" do
         # (The spec teardown also disposes the transport, so allow more than
         # one undefine; we only care that close itself performs it.)
         expect(ObjectSpace).to receive(:undefine_finalizer).with(transport).at_least(:once)
         transport.close
       end
 
-      it 'causes subsequent sends to return an internal error response' do
+      it "causes subsequent sends to return an internal error response" do
         transport.close
 
-        responses = transport.send_traces([make_trace_segment('web.request')])
+        responses = transport.send_traces([make_trace_segment("web.request")])
 
         expect(responses).to contain_exactly(
           an_instance_of(Datadog::Tracing::Transport::Native::InternalErrorResponse)
@@ -239,15 +239,15 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       end
     end
 
-    describe 'finalizer fallback' do
-      it 'registers a finalizer on the transport at construction' do
+    describe "finalizer fallback" do
+      it "registers a finalizer on the transport at construction" do
         # The finalizer guards against a transport that is dropped without
         # #close: it must still deregister the global fork hooks.
         expect(ObjectSpace).to receive(:define_finalizer).with(kind_of(transport_class), kind_of(Proc))
         transport
       end
 
-      it 'builds a finalizer in class scope so it cannot capture a transport instance' do
+      it "builds a finalizer in class scope so it cannot capture a transport instance" do
         # A finalizer that closed over the Transport it is attached to would
         # keep that object reachable, so it would never fire. Building it in a
         # class method guarantees its binding receiver is the class, not an
@@ -259,7 +259,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         expect(finalizer.binding.receiver).to_not be(transport)
       end
 
-      it 'removes all the hooks when the finalizer runs' do
+      it "removes all the hooks when the finalizer runs" do
         hooks = transport.instance_variable_get(:@fork_hooks)
         finalizer = transport_class.send(:finalizer_for, hooks)
 
@@ -279,12 +279,12 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       end
     end
 
-    describe 'teardown via Writer#stop' do
+    describe "teardown via Writer#stop" do
       # The native transport is plugged into a Writer via its :transport option.
       # Stopping a Writer is a permanent teardown, so it must deterministically
       # #close the native transport, deregistering its global fork hooks rather
       # than leaving them to the GC finalizer.
-      it 'closes the native transport and removes its fork hooks on writer stop' do
+      it "closes the native transport and removes its fork hooks on writer stop" do
         hooks = transport.instance_variable_get(:@fork_hooks)
 
         writer = Datadog::Tracing::Writer.new(
@@ -310,16 +310,16 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
     end
   end
 
-  describe '#send_traces' do
-    context 'with an empty array' do
-      it 'returns an empty array' do
+  describe "#send_traces" do
+    context "with an empty array" do
+      it "returns an empty array" do
         expect(transport.send_traces([])).to eq([])
       end
     end
 
-    context 'with a single trace' do
-      it 'returns a success response' do
-        trace = make_trace_segment('web.request')
+    context "with a single trace" do
+      it "returns a success response" do
+        trace = make_trace_segment("web.request")
         responses = transport.send_traces([trace])
 
         expect(responses).to be_an(Array)
@@ -327,8 +327,8 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         expect(responses.first).to be_ok
       end
 
-      it 'updates stats on success' do
-        trace = make_trace_segment('web.request')
+      it "updates stats on success" do
+        trace = make_trace_segment("web.request")
 
         expect { transport.send_traces([trace]) }
           .to change { transport.stats.success }.from(0).to(1)
@@ -336,11 +336,11 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       end
     end
 
-    context 'with multiple traces' do
-      it 'returns a success response' do
+    context "with multiple traces" do
+      it "returns a success response" do
         traces = [
-          make_trace_segment('op1', 'op2'),
-          make_trace_segment('op3'),
+          make_trace_segment("op1", "op2"),
+          make_trace_segment("op3"),
         ]
         responses = transport.send_traces(traces)
 
@@ -349,13 +349,13 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       end
     end
 
-    context 'when an exception occurs' do
-      it 'returns an InternalErrorResponse' do
+    context "when an exception occurs" do
+      it "returns an InternalErrorResponse" do
         allow_any_instance_of(transport_class)
-          .to receive(:tracer_version_string).and_return('1.0')
+          .to receive(:tracer_version_string).and_return("1.0")
 
         # Force an error by passing something that will fail conversion
-        bad_traces = [double('bad_trace', spans: nil)]
+        bad_traces = [double("bad_trace", spans: nil)]
         allow(Datadog::Tracing::Transport::TraceFormatter).to receive(:format!)
 
         responses = transport.send_traces(bad_traces)
@@ -366,8 +366,8 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         expect(responses.first.internal_error?).to be true
       end
 
-      it 'updates stats on exception' do
-        bad_traces = [double('bad_trace', spans: nil)]
+      it "updates stats on exception" do
+        bad_traces = [double("bad_trace", spans: nil)]
         allow(Datadog::Tracing::Transport::TraceFormatter).to receive(:format!)
 
         expect { transport.send_traces(bad_traces) }
@@ -378,9 +378,9 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       # The batch is converted and sent as a whole, so a single bad trace
       # fails the entire call rather than being sent partially. These document
       # that all-or-nothing behaviour for mixed batches.
-      it 'fails the whole batch when a good and a bad trace are mixed' do
+      it "fails the whole batch when a good and a bad trace are mixed" do
         allow(Datadog::Tracing::Transport::TraceFormatter).to receive(:format!)
-        mixed = [make_trace_segment('web.request'), double('bad_trace', spans: nil)]
+        mixed = [make_trace_segment("web.request"), double("bad_trace", spans: nil)]
 
         responses = transport.send_traces(mixed)
 
@@ -389,12 +389,12 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         )
       end
 
-      it 'fails the whole batch for a good-bad-good ordering' do
+      it "fails the whole batch for a good-bad-good ordering" do
         allow(Datadog::Tracing::Transport::TraceFormatter).to receive(:format!)
         mixed = [
-          make_trace_segment('op1'),
-          double('bad_trace', spans: nil),
-          make_trace_segment('op2'),
+          make_trace_segment("op1"),
+          double("bad_trace", spans: nil),
+          make_trace_segment("op2"),
         ]
 
         responses = transport.send_traces(mixed)
@@ -405,62 +405,62 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       end
     end
 
-    context 'with span fields the native exporter does not yet support' do
+    context "with span fields the native exporter does not yet support" do
       def trace_with(&block)
-        trace = make_trace_segment('web.request')
+        trace = make_trace_segment("web.request")
         block.call(trace.spans.first)
         trace
       end
 
-      it 'warns when a span carries span events' do
-        trace = trace_with { |span| span.events << double('span event') }
+      it "warns when a span carries span events" do
+        trace = trace_with { |span| span.events << double("span event") }
 
         expect(logger).to receive(:warn).once
 
         expect(transport.send_traces([trace]).first.ok?).to be true
       end
 
-      it 'warns when a span carries span links' do
-        trace = trace_with { |span| span.links << double('span link') }
+      it "warns when a span carries span links" do
+        trace = trace_with { |span| span.links << double("span link") }
 
         expect(logger).to receive(:warn).once
 
         expect(transport.send_traces([trace]).first.ok?).to be true
       end
 
-      it 'warns when a span carries meta_struct' do
-        trace = trace_with { |span| span.metastruct['_dd.stack'] = {} }
+      it "warns when a span carries meta_struct" do
+        trace = trace_with { |span| span.metastruct["_dd.stack"] = {} }
 
         expect(logger).to receive(:warn).once
 
         expect(transport.send_traces([trace]).first.ok?).to be true
       end
 
-      it 'does not warn for a span with only scalar fields, meta, and metrics' do
-        trace = make_trace_segment('web.request')
+      it "does not warn for a span with only scalar fields, meta, and metrics" do
+        trace = make_trace_segment("web.request")
 
         expect(logger).to_not receive(:warn)
 
         transport.send_traces([trace])
       end
 
-      it 'warns only once across multiple sends' do
+      it "warns only once across multiple sends" do
         expect(logger).to receive(:warn).once
 
         2.times do
-          transport.send_traces([trace_with { |span| span.events << double('span event') }])
+          transport.send_traces([trace_with { |span| span.events << double("span event") }])
         end
       end
     end
   end
 
-  describe '#stats' do
-    it 'returns a Statistics::Counts object' do
+  describe "#stats" do
+    it "returns a Statistics::Counts object" do
       counts = transport.stats
       expect(counts).to respond_to(:success, :client_error, :server_error, :internal_error, :consecutive_errors, :reset!)
     end
 
-    it 'starts with zero counts' do
+    it "starts with zero counts" do
       counts = transport.stats
       expect(counts.success).to eq(0)
       expect(counts.client_error).to eq(0)
@@ -472,7 +472,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
 end
 
 RSpec.describe Datadog::Tracing::Transport::Native::InternalErrorResponse do
-  let(:error) { RuntimeError.new('test error') }
+  let(:error) { RuntimeError.new("test error") }
   subject(:response) { described_class.new(error) }
 
   it { expect(response.ok?).to be false }
@@ -484,5 +484,5 @@ RSpec.describe Datadog::Tracing::Transport::Native::InternalErrorResponse do
   it { expect(response.payload).to be_nil }
   it { expect(response.trace_count).to eq(0) }
   it { expect(response.error).to eq(error) }
-  it { expect(response.inspect).to include('RuntimeError') }
+  it { expect(response.inspect).to include("RuntimeError") }
 end

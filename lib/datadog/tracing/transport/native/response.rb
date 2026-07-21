@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
 module Datadog
   module Tracing
@@ -12,7 +12,7 @@ module Datadog
         # Implements the same predicate interface as the HTTP transport's
         # response so callers can treat both uniformly.
         class Response
-          SERVICE_RATE_KEY = 'rate_by_service'
+          SERVICE_RATE_KEY = "rate_by_service"
 
           attr_reader :trace_count, :payload
 

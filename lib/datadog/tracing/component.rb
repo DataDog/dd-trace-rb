@@ -112,12 +112,12 @@ module Datadog
       end
 
       def build_native_transport(agent_settings)
-        require_relative 'transport/native'
+        require_relative "transport/native"
 
         unless Transport::Native.supported?
           Datadog.logger.warn(
             "Native transport requested but not available: #{Transport::Native::UNSUPPORTED_REASON}. " \
-            'Falling back to default HTTP transport.'
+            "Falling back to default HTTP transport."
           )
           return nil
         end

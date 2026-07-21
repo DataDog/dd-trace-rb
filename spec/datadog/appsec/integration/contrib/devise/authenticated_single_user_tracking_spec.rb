@@ -300,23 +300,23 @@ RSpec.describe "Devise auto authenticated sing-user tracking" do
     end
   end
 
-  context 'when application serializes the record into the session in a non-standard shape' do
+  context "when application serializes the record into the session in a non-standard shape" do
     before do
       allow(User).to receive(:serialize_into_session) { |record| [record.id] }
       allow(User).to receive(:serialize_from_session) { |id| User.to_adapter.get(id) }
 
-      user = User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
+      user = User.create!(username: "JohnDoe", email: "john.doe@example.com", password: "123456")
       login_as(user)
     end
 
-    it 'allows authenticated user to visit private page and does not track it' do
-      get('/private')
+    it "allows authenticated user to visit private page and does not track it" do
+      get("/private")
 
       expect(response).to be_ok
-      expect(response.body).to eq('This is private page')
+      expect(response.body).to eq("This is private page")
 
-      expect(http_service_entry_span.tags).not_to have_key('usr.id')
-      expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.usr.id')
+      expect(http_service_entry_span.tags).not_to have_key("usr.id")
+      expect(http_service_entry_span.tags).not_to have_key("_dd.appsec.usr.id")
     end
   end
 end

@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/transport/native'
-require 'datadog/tracing/span'
-require 'datadog/tracing/trace_segment'
-require 'datadog/tracing/transport/trace_formatter'
-require 'socket'
-require 'msgpack'
+require "datadog/tracing/transport/native"
+require "datadog/tracing/span"
+require "datadog/tracing/trace_segment"
+require "datadog/tracing/transport/trace_formatter"
+require "socket"
+require "msgpack"
 
 # Verifies that span data put into traces arrives on the wire (at the
 # mock agent) with the correct field values after going through the
@@ -13,7 +13,7 @@ require 'msgpack'
 #
 #   Ruby Span -> C extension -> Rust serialization -> msgpack -> HTTP -> mock agent
 #
-RSpec.describe 'Native transport wire-level conformance' do
+RSpec.describe "Native transport wire-level conformance" do
   before do
     skip_if_libdatadog_not_supported
   end
@@ -28,7 +28,7 @@ RSpec.describe 'Native transport wire-level conformance' do
 
     def initialize
       @read_io, @write_io = IO.pipe
-      server = TCPServer.new('127.0.0.1', 0)
+      server = TCPServer.new("127.0.0.1", 0)
       @port = server.addr[1]
 
       @pid = fork do
@@ -51,20 +51,20 @@ RSpec.describe 'Native transport wire-level conformance' do
 
             # Read headers
             content_length = 0
-            path = request_line.split(' ')[1]
+            path = request_line.split(" ")[1]
             while (line = c.gets) && line != "\r\n"
-              content_length = line.split(': ', 2).last.to_i if line.downcase.start_with?('content-length')
+              content_length = line.split(": ", 2).last.to_i if line.downcase.start_with?("content-length")
             end
 
             # Read body
-            request_body = (content_length > 0) ? c.read(content_length) : ''
+            request_body = (content_length > 0) ? c.read(content_length) : ""
             c.print http_response
 
             # Write captured trace payloads (skip /info requests)
-            if path&.include?('/traces') && !request_body.empty?
+            if path&.include?("/traces") && !request_body.empty?
               payload = Marshal.dump(request_body)
               pipe_mutex.synchronize do
-                @write_io.write([payload.bytesize].pack('N'))
+                @write_io.write([payload.bytesize].pack("N"))
                 @write_io.write(payload)
                 @write_io.flush
               end
@@ -88,12 +88,12 @@ RSpec.describe 'Native transport wire-level conformance' do
     # Returns the raw msgpack bytes.
     def read_payload(timeout: 5)
       ready = IO.select([@read_io], nil, nil, timeout)
-      raise 'Timeout waiting for agent to receive a trace payload' unless ready
+      raise "Timeout waiting for agent to receive a trace payload" unless ready
 
       len_bytes = @read_io.read(4)
-      raise 'Agent pipe closed' if len_bytes.nil? || len_bytes.bytesize < 4
+      raise "Agent pipe closed" if len_bytes.nil? || len_bytes.bytesize < 4
 
-      len = len_bytes.unpack1('N')
+      len = len_bytes.unpack1("N")
       Marshal.load(@read_io.read(len)) # rubocop:disable Security/MarshalLoad
     end
 
@@ -147,7 +147,7 @@ RSpec.describe 'Native transport wire-level conformance' do
     spans = spans_attrs.map do |attrs|
       Datadog::Tracing::Span.new(
         attrs[:name],
-        service: attrs[:service] || 'conformance-svc',
+        service: attrs[:service] || "conformance-svc",
         resource: attrs[:resource] || attrs[:name],
         type: attrs[:type],
         id: attrs[:id] || rand(1 << 62),
@@ -174,13 +174,13 @@ RSpec.describe 'Native transport wire-level conformance' do
   # Tests
   # ---------------------------------------------------------------------------
 
-  describe 'single span' do
-    it 'preserves scalar fields on the wire' do
+  describe "single span" do
+    it "preserves scalar fields on the wire" do
       trace = make_trace([{
-        name: 'web.request',
-        service: 'my-service',
-        resource: 'GET /users',
-        type: 'web',
+        name: "web.request",
+        service: "my-service",
+        resource: "GET /users",
+        type: "web",
         id: 12345,
         parent_id: 67890,
         error: 1,
@@ -196,101 +196,101 @@ RSpec.describe 'Native transport wire-level conformance' do
       expect(chunk.length).to eq(1) # one span
 
       span = chunk.first
-      expect(span['name']).to eq('web.request')
-      expect(span['service']).to eq('my-service')
-      expect(span['resource']).to eq('GET /users')
-      expect(span['type']).to eq('web')
-      expect(span['span_id']).to eq(12345)
-      expect(span['parent_id']).to eq(67890)
-      expect(span['error']).to eq(1)
+      expect(span["name"]).to eq("web.request")
+      expect(span["service"]).to eq("my-service")
+      expect(span["resource"]).to eq("GET /users")
+      expect(span["type"]).to eq("web")
+      expect(span["span_id"]).to eq(12345)
+      expect(span["parent_id"]).to eq(67890)
+      expect(span["error"]).to eq(1)
     end
   end
 
-  describe 'meta and metrics' do
-    it 'preserves string tags on the wire' do
+  describe "meta and metrics" do
+    it "preserves string tags on the wire" do
       trace = make_trace([{
-        name: 'op',
+        name: "op",
         meta: {
-          'http.method' => 'POST',
-          'http.url' => '/api/v1/traces',
-          'component' => 'rack',
+          "http.method" => "POST",
+          "http.url" => "/api/v1/traces",
+          "component" => "rack",
         },
       }])
 
       decoded = send_and_decode([trace])
-      meta = decoded.first.first['meta']
+      meta = decoded.first.first["meta"]
 
-      expect(meta['http.method']).to eq('POST')
-      expect(meta['http.url']).to eq('/api/v1/traces')
-      expect(meta['component']).to eq('rack')
+      expect(meta["http.method"]).to eq("POST")
+      expect(meta["http.url"]).to eq("/api/v1/traces")
+      expect(meta["component"]).to eq("rack")
     end
 
-    it 'preserves numeric metrics on the wire' do
+    it "preserves numeric metrics on the wire" do
       trace = make_trace([{
-        name: 'op',
+        name: "op",
         metrics: {
-          '_dd.measured' => 1.0,
-          '_sampling_priority_v1' => 2.0,
-          'custom.metric' => 42.5,
+          "_dd.measured" => 1.0,
+          "_sampling_priority_v1" => 2.0,
+          "custom.metric" => 42.5,
         },
       }])
 
       decoded = send_and_decode([trace])
-      metrics = decoded.first.first['metrics']
+      metrics = decoded.first.first["metrics"]
 
-      expect(metrics['_dd.measured']).to eq(1.0)
-      expect(metrics['_sampling_priority_v1']).to eq(2.0)
-      expect(metrics['custom.metric']).to eq(42.5)
+      expect(metrics["_dd.measured"]).to eq(1.0)
+      expect(metrics["_sampling_priority_v1"]).to eq(2.0)
+      expect(metrics["custom.metric"]).to eq(42.5)
     end
   end
 
-  describe 'trace ID' do
-    it 'preserves 64-bit trace IDs' do
+  describe "trace ID" do
+    it "preserves 64-bit trace IDs" do
       tid = 0x00000000deadbeef
-      trace = make_trace([{name: 'op', trace_id: tid}])
+      trace = make_trace([{name: "op", trace_id: tid}])
       decoded = send_and_decode([trace])
-      expect(decoded.first.first['trace_id']).to eq(tid)
+      expect(decoded.first.first["trace_id"]).to eq(tid)
     end
 
-    it 'preserves the low 64 bits of 128-bit trace IDs' do
+    it "preserves the low 64 bits of 128-bit trace IDs" do
       low = 0xdeadbeef12345678
       high = 0x00000001
       tid = (high << 64) | low
-      trace = make_trace([{name: 'op', trace_id: tid}])
+      trace = make_trace([{name: "op", trace_id: tid}])
       decoded = send_and_decode([trace])
 
       # The wire format trace_id field is 64-bit (low half only);
       # high bits go into meta as _dd.p.tid
-      expect(decoded.first.first['trace_id']).to eq(low)
+      expect(decoded.first.first["trace_id"]).to eq(low)
     end
   end
 
-  describe 'multiple spans in one trace' do
-    it 'preserves all spans in a single chunk' do
+  describe "multiple spans in one trace" do
+    it "preserves all spans in a single chunk" do
       trace = make_trace([
-        {name: 'parent.op', id: 100, parent_id: 0},
-        {name: 'child.op', id: 200, parent_id: 100},
-        {name: 'sibling.op', id: 300, parent_id: 100},
+        {name: "parent.op", id: 100, parent_id: 0},
+        {name: "child.op", id: 200, parent_id: 100},
+        {name: "sibling.op", id: 300, parent_id: 100},
       ])
 
       decoded = send_and_decode([trace])
 
       expect(decoded.length).to eq(1)
-      names = decoded.first.map { |s| s['name'] }.sort
-      expect(names).to eq(['child.op', 'parent.op', 'sibling.op'])
+      names = decoded.first.map { |s| s["name"] }.sort
+      expect(names).to eq(["child.op", "parent.op", "sibling.op"])
     end
   end
 
-  describe 'multiple trace chunks' do
-    it 'sends all chunks in one payload' do
-      trace1 = make_trace([{name: 'trace1.op'}])
-      trace2 = make_trace([{name: 'trace2.op'}])
+  describe "multiple trace chunks" do
+    it "sends all chunks in one payload" do
+      trace1 = make_trace([{name: "trace1.op"}])
+      trace2 = make_trace([{name: "trace2.op"}])
 
       decoded = send_and_decode([trace1, trace2])
 
       expect(decoded.length).to eq(2)
-      names = decoded.map { |chunk| chunk.first['name'] }.sort
-      expect(names).to eq(['trace1.op', 'trace2.op'])
+      names = decoded.map { |chunk| chunk.first["name"] }.sort
+      expect(names).to eq(["trace1.op", "trace2.op"])
     end
   end
 end

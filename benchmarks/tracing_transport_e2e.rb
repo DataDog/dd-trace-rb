@@ -1,10 +1,10 @@
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require_relative 'benchmarks_helper'
-require 'socket'
+require_relative "benchmarks_helper"
+require "socket"
 
 # End-to-end benchmark comparing native vs HTTP trace transport using
 # the full `Datadog::Tracing.trace` pipeline.
@@ -46,7 +46,7 @@ class TracingTransportE2EBenchmark
         end
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   ensure
@@ -58,7 +58,7 @@ class TracingTransportE2EBenchmark
 
   def build_trace_code(depth)
     opens = depth.times.map { |i| "Datadog::Tracing.trace('op.#{i}') {" }
-    closes = depth.times.map { '}' }
+    closes = depth.times.map { "}" }
     (opens + closes).join
   end
 
@@ -67,7 +67,7 @@ class TracingTransportE2EBenchmark
   end
 
   def native_supported?
-    require 'datadog/tracing/transport/native'
+    require "datadog/tracing/transport/native"
 
     return true if Datadog::Tracing::Transport::Native.supported?
 
@@ -93,13 +93,13 @@ class TracingTransportE2EBenchmark
     case mode
     when :http
       agent_settings = Struct.new(:url, :adapter, :ssl, :hostname, :port, :uds_path, :timeout_seconds)
-        .new(agent_url, :net_http, false, '127.0.0.1', @mock_agent.port, nil, 5)
+        .new(agent_url, :net_http, false, "127.0.0.1", @mock_agent.port, nil, 5)
       Datadog::Tracing::Transport::HTTP.default(
         agent_settings: agent_settings,
         logger: Logger.new(File::NULL),
       )
     when :native
-      require 'datadog/tracing/transport/native'
+      require "datadog/tracing/transport/native"
       agent_settings = Struct.new(:url).new(agent_url)
       Datadog::Tracing::Transport::Native::Transport.new(
         agent_settings: agent_settings,
@@ -113,7 +113,7 @@ class TracingTransportE2EBenchmark
     attr_reader :port
 
     def initialize
-      server = TCPServer.new('127.0.0.1', 0)
+      server = TCPServer.new("127.0.0.1", 0)
       @port = server.addr[1]
 
       @pid = fork do
@@ -132,7 +132,7 @@ class TracingTransportE2EBenchmark
 
                 content_length = 0
                 while (line = client.gets) && line != "\r\n"
-                  content_length = line.split(': ', 2).last.to_i if line.downcase.start_with?('content-length')
+                  content_length = line.split(": ", 2).last.to_i if line.downcase.start_with?("content-length")
                 end
                 client.read(content_length) if content_length > 0
 
@@ -164,7 +164,7 @@ class TracingTransportE2EBenchmark
 
     def stop
       begin
-        Process.kill('TERM', @pid)
+        Process.kill("TERM", @pid)
       rescue
         nil
       end

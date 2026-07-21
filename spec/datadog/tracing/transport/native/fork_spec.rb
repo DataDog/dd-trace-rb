@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/transport/native'
-require 'datadog/tracing/span'
-require 'datadog/tracing/trace_segment'
-require 'datadog/core/utils/at_fork_monkey_patch'
-require 'socket'
-require 'timeout'
+require "datadog/tracing/transport/native"
+require "datadog/tracing/span"
+require "datadog/tracing/trace_segment"
+require "datadog/core/utils/at_fork_monkey_patch"
+require "socket"
+require "timeout"
 
 # Integration tests for the native trace exporter's fork-safety and
 # cooperative cancellation behaviour.
@@ -16,11 +16,11 @@ require 'timeout'
 #
 #   Ruby Span -> C extension -> Rust pipeline -> HTTP -> mock agent
 #
-RSpec.describe 'Native transport fork safety and cancellation' do
+RSpec.describe "Native transport fork safety and cancellation" do
   before { skip_if_libdatadog_not_supported }
 
   before(:all) do
-    skip 'Fork not supported on this platform' unless ::Process.respond_to?(:fork)
+    skip "Fork not supported on this platform" unless ::Process.respond_to?(:fork)
   end
 
   # ---------------------------------------------------------------------------
@@ -33,7 +33,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
     attr_reader :port
 
     def initialize
-      server = TCPServer.new('127.0.0.1', 0)
+      server = TCPServer.new("127.0.0.1", 0)
       @port = server.addr[1]
 
       @pid = fork do
@@ -53,7 +53,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
 
             content_length = 0
             while (line = c.gets) && line != "\r\n"
-              content_length = line.split(': ', 2).last.to_i if line.downcase.start_with?('content-length')
+              content_length = line.split(": ", 2).last.to_i if line.downcase.start_with?("content-length")
             end
             c.read(content_length) if content_length > 0
 
@@ -86,7 +86,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
 
     def initialize
       @read_io, @write_io = IO.pipe
-      server = TCPServer.new('127.0.0.1', 0)
+      server = TCPServer.new("127.0.0.1", 0)
       @port = server.addr[1]
 
       @pid = fork do
@@ -100,7 +100,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
           end
           held << client
           begin
-            @write_io.write('x')
+            @write_io.write("x")
           rescue
             nil
           end
@@ -114,7 +114,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
     # Block until the agent has accepted at least one connection.
     def wait_for_connection(timeout: 5)
       ready = IO.select([@read_io], nil, nil, timeout)
-      raise 'Timed out waiting for the native send to reach the mock agent' unless ready
+      raise "Timed out waiting for the native send to reach the mock agent" unless ready
 
       @read_io.read(1)
     end
@@ -139,7 +139,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
 
     def initialize(delay:)
       @read_io, @write_io = IO.pipe
-      server = TCPServer.new('127.0.0.1', 0)
+      server = TCPServer.new("127.0.0.1", 0)
       @port = server.addr[1]
 
       @pid = fork do
@@ -160,14 +160,14 @@ RSpec.describe 'Native transport fork safety and cancellation' do
 
             content_length = 0
             while (line = c.gets) && line != "\r\n"
-              content_length = line.split(': ', 2).last.to_i if line.downcase.start_with?('content-length')
+              content_length = line.split(": ", 2).last.to_i if line.downcase.start_with?("content-length")
             end
             c.read(content_length) if content_length > 0
 
             # Signal that the request has arrived and is in-flight, THEN delay
             # before replying so the send stays in-flight for `delay` seconds.
             begin
-              @write_io.write('x')
+              @write_io.write("x")
             rescue
               nil
             end
@@ -192,7 +192,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
     # Block until the agent has received at least one request (send in-flight).
     def wait_for_connection(timeout: 5)
       ready = IO.select([@read_io], nil, nil, timeout)
-      raise 'Timed out waiting for the native send to reach the mock agent' unless ready
+      raise "Timed out waiting for the native send to reach the mock agent" unless ready
 
       @read_io.read(1)
     end
@@ -236,13 +236,13 @@ RSpec.describe 'Native transport fork safety and cancellation' do
     end
   end
 
-  def build_trace(name: 'fork.op')
+  def build_trace(name: "fork.op")
     trace_id = rand(1 << 62)
     span = Datadog::Tracing::Span.new(
       name,
-      service: 'fork-svc',
+      service: "fork-svc",
       resource: name,
-      type: 'web',
+      type: "web",
       id: rand(1 << 62),
       parent_id: 0,
       trace_id: trace_id,
@@ -290,7 +290,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
   # ===========================================================================
   # 1. Fork lifecycle
   # ===========================================================================
-  describe 'fork lifecycle' do
+  describe "fork lifecycle" do
     around do |example|
       run_with_transport(example, fork_hooks: true) { RespondingMockAgent.new }
     end
@@ -298,7 +298,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
     let(:transport) { @transport }
     let(:exporter) { transport.instance_variable_get(:@exporter) }
 
-    it 'sends successfully from both the parent and a forked child, and fires the parent-side hooks' do
+    it "sends successfully from both the parent and a forked child, and fires the parent-side hooks" do
       # Spy on the lifecycle hooks but keep their real behaviour, so we can
       # assert the registered :before/:parent stages fired in the parent
       # around the fork without breaking the runtime.
@@ -315,8 +315,8 @@ RSpec.describe 'Native transport fork safety and cancellation' do
         # `_fork`, rebuilding the runtime that the inherited copy left dead.
         result =
           begin
-            response = transport.send_traces([build_trace(name: 'child.op')]).first
-            response.ok? ? 'OK' : "NOT_OK:#{response.inspect}"
+            response = transport.send_traces([build_trace(name: "child.op")]).first
+            response.ok? ? "OK" : "NOT_OK:#{response.inspect}"
           rescue => e
             "RAISED:#{e.class}:#{e.message}"
           end
@@ -334,7 +334,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
         end
       _, status = Process.wait2(pid)
 
-      expect(child_result).to eq('OK')
+      expect(child_result).to eq("OK")
       expect(status.success?).to be(true)
 
       # The parent-side stages fired around the fork.
@@ -349,7 +349,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
   # ===========================================================================
   # 2. Cooperative cancellation / interrupt propagation
   # ===========================================================================
-  describe 'cooperative cancellation' do
+  describe "cooperative cancellation" do
     around do |example|
       run_with_transport(example, stop_agent_first: true) { SilentMockAgent.new }
     end
@@ -357,7 +357,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
     let(:transport) { @transport }
     let(:mock_agent) { @mock_agent }
 
-    it 'returns promptly when the sending thread is killed mid-flight, without masking the interrupt' do
+    it "returns promptly when the sending thread is killed mid-flight, without masking the interrupt" do
       # A queue that only receives a value if `send_traces` *returns* (either a
       # success or an error response). If the kill is masked by an ordinary
       # response, this queue ends up non-empty.
@@ -365,7 +365,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
 
       sender = Thread.new do
         Thread.current.report_on_exception = false
-        response = transport.send_traces([build_trace(name: 'blocking.op')])
+        response = transport.send_traces([build_trace(name: "blocking.op")])
         # Only reached if the blocking send returned instead of being killed.
         returned.push(response)
       end
@@ -384,7 +384,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
       joined = sender.join(10)
       elapsed = Datadog::Core::Utils::Time.get_time - kill_started
 
-      expect(joined).to_not be_nil, 'sending thread did not terminate promptly after kill (it hung)'
+      expect(joined).to_not be_nil, "sending thread did not terminate promptly after kill (it hung)"
       expect(sender.alive?).to be(false)
       expect(elapsed).to be < 5
 
@@ -405,7 +405,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
   # Rust-internal locks (deadlock/crash). The transport guards this with a
   # per-transport mutex held across the fork: the `:before` hook blocks until
   # any in-flight send drains before `_native_before_fork` runs.
-  describe 'fork while a send is in-flight' do
+  describe "fork while a send is in-flight" do
     # Keep the delay comfortably larger than the slack we allow when asserting
     # the fork blocked for the send to drain.
     AGENT_DELAY = 1.0 # rubocop:disable Lint/ConstantDefinitionInBlock
@@ -417,13 +417,13 @@ RSpec.describe 'Native transport fork safety and cancellation' do
     let(:transport) { @transport }
     let(:mock_agent) { @mock_agent }
 
-    it 'drains the in-flight send before the fork, and both child and parent send succeed' do
+    it "drains the in-flight send before the fork, and both child and parent send succeed" do
       # The background send's result, pushed only when send_traces returns.
       sender_result = Queue.new
 
       sender = Thread.new do
         Thread.current.report_on_exception = false
-        sender_result.push(transport.send_traces([build_trace(name: 'inflight.op')]))
+        sender_result.push(transport.send_traces([build_trace(name: "inflight.op")]))
       end
 
       # Wait until the send has actually reached the agent (is in-flight). The
@@ -442,8 +442,8 @@ RSpec.describe 'Native transport fork safety and cancellation' do
           read_io.close
           result =
             begin
-              response = transport.send_traces([build_trace(name: 'child.op')]).first
-              response.ok? ? 'OK' : "NOT_OK:#{response.inspect}"
+              response = transport.send_traces([build_trace(name: "child.op")]).first
+              response.ok? ? "OK" : "NOT_OK:#{response.inspect}"
             rescue => e
               "RAISED:#{e.class}:#{e.message}"
             end
@@ -472,10 +472,10 @@ RSpec.describe 'Native transport fork safety and cancellation' do
         "expected fork to block until the in-flight send drained (>= #{AGENT_DELAY * 0.5}s), " \
         "but it returned after #{fork_elapsed}s"
       expect(sender_result).to_not be_empty,
-        'expected the in-flight send to have completed before the child started'
+        "expected the in-flight send to have completed before the child started"
 
       # No deadlock/crash/SIGSEGV: the child sent successfully and exited 0.
-      expect(child_result).to eq('OK')
+      expect(child_result).to eq("OK")
       expect(status.success?).to be(true)
 
       # The in-flight parent send completed without error.
@@ -484,7 +484,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
       expect(sender.join(10)).to_not be_nil
 
       # The parent transport still works after the fork.
-      expect(transport.send_traces([build_trace(name: 'after.op')]).first.ok?).to be(true)
+      expect(transport.send_traces([build_trace(name: "after.op")]).first.ok?).to be(true)
     end
   end
 end

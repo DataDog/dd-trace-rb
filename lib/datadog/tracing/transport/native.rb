@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'json'
-require_relative 'trace_formatter'
-require_relative 'statistics'
+require "json"
+require_relative "trace_formatter"
+require_relative "statistics"
 
 module Datadog
   module Tracing
@@ -21,7 +21,7 @@ module Datadog
         # Returns +nil+ when the native extension is available, or a +String+
         # describing why it is not.
         UNSUPPORTED_REASON = begin
-          require 'datadog/core'
+          require "datadog/core"
           Datadog::Core::LIBDATADOG_API_FAILURE
         rescue => e
           e.message
@@ -244,7 +244,7 @@ module Datadog
             # send through. Raising here is caught below and surfaced as an
             # InternalErrorResponse, matching the other failure paths.
             exporter = @exporter
-            raise 'Native transport has been closed' if exporter.nil?
+            raise "Native transport has been closed" if exporter.nil?
 
             # Apply trace-level tags to root spans (same as the HTTP transport)
             traces.each { |trace| TraceFormatter.format!(trace) }
@@ -288,23 +288,23 @@ module Datadog
             unsupported = []
             chunks.each do |spans|
               spans.each do |span|
-                unsupported << 'span events' if span.events.any?
-                unsupported << 'span links' if span.links.any?
-                unsupported << 'meta_struct' unless span.metastruct.to_h.empty?
+                unsupported << "span events" if span.events.any?
+                unsupported << "span links" if span.links.any?
+                unsupported << "meta_struct" unless span.metastruct.to_h.empty?
               end
             end
             return if unsupported.empty?
 
             @unsupported_fields_warned = true
-            fields = unsupported.uniq.join(', ')
+            fields = unsupported.uniq.join(", ")
             logger.warn do
               "Native transport does not yet support: #{fields}. This data will not be sent to Datadog. " \
-                'Unset DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED to use the default transport if you rely on these.'
+                "Unset DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED to use the default transport if you rely on these."
             end
           end
 
           def tracer_version_string
-            defined?(Datadog::VERSION::STRING) ? Datadog::VERSION::STRING : 'unknown'
+            defined?(Datadog::VERSION::STRING) ? Datadog::VERSION::STRING : "unknown"
           end
         end
 
