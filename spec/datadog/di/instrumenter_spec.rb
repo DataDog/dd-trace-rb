@@ -2079,14 +2079,14 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
   end
 
-  describe 'global rate limiting' do
-    describe 'constants and limiters' do
-      it 'defines the global snapshot and log rate limits' do
+  describe "global rate limiting" do
+    describe "constants and limiters" do
+      it "defines the global snapshot and log rate limits" do
         expect(described_class::GLOBAL_SNAPSHOT_RATE_LIMIT).to eq 100
         expect(described_class::GLOBAL_LOG_RATE_LIMIT).to eq 5000
       end
 
-      it 'builds token bucket limiters at those rates' do
+      it "builds token bucket limiters at those rates" do
         expect(instrumenter.global_snapshot_rate_limiter).to be_a(Datadog::Core::TokenBucket)
         expect(instrumenter.global_snapshot_rate_limiter.rate).to eq 100
         expect(instrumenter.global_log_rate_limiter).to be_a(Datadog::Core::TokenBucket)
@@ -2094,31 +2094,31 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    describe '#global_rate_limiter_for' do
+    describe "#global_rate_limiter_for" do
       let(:snapshot_probe) do
-        Datadog::DI::Probe.new(id: 1, type: :log, type_name: 'HookTestClass',
-          method_name: 'hook_test_method', capture_snapshot: true)
+        Datadog::DI::Probe.new(id: 1, type: :log, type_name: "HookTestClass",
+          method_name: "hook_test_method", capture_snapshot: true)
       end
 
       let(:log_probe) do
-        Datadog::DI::Probe.new(id: 1, type: :log, type_name: 'HookTestClass',
-          method_name: 'hook_test_method', capture_snapshot: false)
+        Datadog::DI::Probe.new(id: 1, type: :log, type_name: "HookTestClass",
+          method_name: "hook_test_method", capture_snapshot: false)
       end
 
-      it 'returns the snapshot limiter for capturing probes' do
+      it "returns the snapshot limiter for capturing probes" do
         expect(instrumenter.global_rate_limiter_for(snapshot_probe))
           .to be(instrumenter.global_snapshot_rate_limiter)
       end
 
-      it 'returns the log limiter for non-capturing probes' do
+      it "returns the log limiter for non-capturing probes" do
         expect(instrumenter.global_rate_limiter_for(log_probe))
           .to be(instrumenter.global_log_rate_limiter)
       end
     end
 
-    describe 'method probe enforcement' do
+    describe "method probe enforcement" do
       let(:probe) do
-        Datadog::DI::Probe.new(type_name: 'HookTestClass', method_name: 'hook_test_method',
+        Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
           id: 1, type: :log)
       end
 
@@ -2126,13 +2126,13 @@ RSpec.describe Datadog::DI::Instrumenter do
         instrumenter.unhook(probe)
       end
 
-      context 'when the global limit rejects' do
+      context "when the global limit rejects" do
         before do
           allow(logger).to receive(:debug)
           expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_return(false)
         end
 
-        it 'does not invoke the callback but still runs the target method' do
+        it "does not invoke the callback but still runs the target method" do
           hook_method(probe) do |payload|
             observed_calls << payload
           end
@@ -2144,13 +2144,13 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context 'when the per-probe limit rejects' do
+      context "when the per-probe limit rejects" do
         let(:probe) do
-          Datadog::DI::Probe.new(type_name: 'HookTestClass', method_name: 'hook_test_method',
+          Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
             id: 1, type: :log, rate_limit: 0)
         end
 
-        it 'does not consult the global limiter' do
+        it "does not consult the global limiter" do
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
           hook_method(probe) do |payload|
@@ -2163,8 +2163,8 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context 'when both limits allow' do
-        it 'invokes the callback and consumes a global token' do
+      context "when both limits allow" do
+        it "invokes the callback and consumes a global token" do
           expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_call_original
 
           hook_method(probe) do |payload|
@@ -2178,26 +2178,26 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    describe 'line probe enforcement' do
+    describe "line probe enforcement" do
       before do
         expect(di_internal_settings).to receive(:untargeted_trace_points).and_return(true)
       end
 
       let(:probe) do
-        Datadog::DI::Probe.new(file: 'hook_line.rb', line_no: 3, id: 1, type: :log)
+        Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3, id: 1, type: :log)
       end
 
       after do
         instrumenter.unhook(probe)
       end
 
-      context 'when the global limit rejects' do
+      context "when the global limit rejects" do
         before do
           allow(logger).to receive(:debug)
           expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_return(false)
         end
 
-        it 'does not invoke the callback' do
+        it "does not invoke the callback" do
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
 
           hook_line(probe) do |payload|
@@ -2211,8 +2211,8 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context 'when both limits allow' do
-        it 'invokes the callback' do
+      context "when both limits allow" do
+        it "invokes the callback" do
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
 
           hook_line(probe) do |payload|
