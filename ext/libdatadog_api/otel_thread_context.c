@@ -80,6 +80,17 @@ static void on_fiber_switch(
   publish_context(get_or_create_current_fiber_context());
 }
 
+#ifdef RUBY_INTERNAL_THREAD_EVENT_EXITED
+static void on_thread_exited(
+  DDTRACE_UNUSED rb_event_flag_t event,
+  DDTRACE_UNUSED const rb_internal_thread_event_data_t *event_data,
+  DDTRACE_UNUSED void *user_data
+) {
+  struct ddog_ThreadContextHandle *ctx = ddog_otel_thread_ctx_detach();
+  if (ctx) ddog_otel_thread_ctx_free(ctx);
+}
+#endif
+
 static VALUE native_set(DDTRACE_UNUSED VALUE _self, VALUE trace_id, VALUE span_id, VALUE local_root_span_id) {
   otel_fiber_context *ctx = get_or_create_current_fiber_context();
 
@@ -101,6 +112,10 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
   if (enabled) return Qfalse;
 
   rb_add_event_hook(on_fiber_switch, RUBY_EVENT_FIBER_SWITCH, Qnil);
+
+  #ifdef RUBY_INTERNAL_THREAD_EVENT_EXITED
+    rb_internal_thread_add_event_hook(on_thread_exited, RUBY_INTERNAL_THREAD_EVENT_EXITED, NULL);
+  #endif
 
   enabled = true;
   return Qtrue;
@@ -161,4 +176,4 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
 static VALUE native_debug_read(VALUE _self) {
   return Qnil;
 }
-#end
+#endif
