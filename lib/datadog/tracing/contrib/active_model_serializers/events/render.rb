@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../../metadata/ext'
-require_relative '../ext'
-require_relative '../event'
+require_relative "../../../metadata/ext"
+require_relative "../ext"
+require_relative "../event"
 
 module Datadog
   module Tracing
@@ -13,13 +13,13 @@ module Datadog
           module Render
             include ActiveModelSerializers::Event
 
-            EVENT_NAME = 'render.active_model_serializers'
+            EVENT_NAME = "render.active_model_serializers"
 
             module_function
 
             def supported?
-              Gem.loaded_specs['active_model_serializers'] \
-                && Gem.loaded_specs['active_model_serializers'].version >= Gem::Version.new('0.10')
+              Gem.loaded_specs["active_model_serializers"] \
+                && Gem.loaded_specs["active_model_serializers"].version >= Gem::Version.new("0.10")
             end
 
             def event_name
@@ -35,7 +35,7 @@ module Datadog
 
               set_common_tags(span, payload)
             rescue => e
-              Datadog.logger.debug(e.message)
+              Datadog.logger.debug { "#{e.class}: #{e.message}" }
             end
           end
         end

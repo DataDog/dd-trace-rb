@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../core/environment/ext'
-require_relative '../core/buffer/thread_safe'
-require_relative '../core/buffer/cruby'
-require_relative '../core/diagnostics/health'
+require_relative "../core/environment/ext"
+require_relative "../core/buffer/thread_safe"
+require_relative "../core/buffer/cruby"
+require_relative "../core/diagnostics/health"
 
 module Datadog
   module Tracing
@@ -56,7 +56,7 @@ module Datadog
         @buffer_spans += trace.length
       rescue => e
         Datadog.logger.debug(
-          "Failed to measure queue accept. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
+          "Failed to measure queue accept. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
         )
       end
 
@@ -66,7 +66,7 @@ module Datadog
         @buffer_spans -= trace.length
       rescue => e
         Datadog.logger.debug(
-          "Failed to measure queue drop. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
+          "Failed to measure queue drop. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
         )
       end
 
@@ -91,7 +91,7 @@ module Datadog
         @buffer_spans = 0
       rescue => e
         Datadog.logger.debug(
-          "Failed to measure queue. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
+          "Failed to measure queue. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
         )
       end
     end
@@ -120,7 +120,7 @@ module Datadog
     #
     # TODO We should restructure this module, so that classes are not declared at top-level ::Datadog.
     # TODO Making such a change is potentially breaking for users manually configuring the tracer.
-    TraceBuffer = if Core::Environment::Ext::RUBY_ENGINE == 'ruby'
+    TraceBuffer = if Core::Environment::Ext::RUBY_ENGINE == "ruby"
       CRubyTraceBuffer
     else
       ThreadSafeTraceBuffer

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../event'
-require_relative '../../trace_keeper'
-require_relative '../../security_event'
+require_relative "../../event"
+require_relative "../../trace_keeper"
+require_relative "../../security_event"
 
 module Datadog
   module AppSec
@@ -21,11 +21,11 @@ module Datadog
             # libddwaf expects db system to be lowercase,
             # in case of sqlite adapter, libddwaf expects 'sqlite' as db system
             db_system = adapter_name.downcase
-            db_system = 'sqlite' if db_system == 'sqlite3'
+            db_system = "sqlite" if db_system == "sqlite3"
 
             ephemeral_data = {
-              'server.db.statement' => sql,
-              'server.db.system' => db_system
+              "server.db.statement" => sql,
+              "server.db.system" => db_system
             }
 
             waf_timeout = Datadog.configuration.appsec.waf_timeout

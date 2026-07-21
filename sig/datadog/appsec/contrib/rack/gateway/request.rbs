@@ -4,35 +4,43 @@ module Datadog
       module Rack
         module Gateway
           class Request < Instrumentation::Gateway::Argument
-            @env: ::Hash[::String, any]
+            @env: ::Rack::env
 
-            attr_reader env: ::Hash[::String, any]
+            @request: ::Rack::Request?
 
-            def initialize: (::Hash[::String, any] env) -> void
+            attr_reader env: ::Rack::env
+
+            def initialize: (::Rack::env env) -> void
 
             def request: () -> ::Rack::Request
 
-            def query: () -> ::Hash[::String, any]
+            def query: () -> ::Rack::query
 
-            def headers: () -> ::Hash[::String, ::String]
+            def headers: () -> Hash[String, String]
 
-            def body: () -> ::String
+            def method: () -> String
 
-            def method: () -> ::String
+            def url: () -> String
 
-            def url: () -> ::String
+            def fullpath: () -> String
 
-            def cookies: () -> ::Hash[::String, ::String]
+            def path: () -> String
 
-            def host: () -> ::String
+            def cookies: () -> Hash[String, String]
 
-            def user_agent: () -> ::String
+            def host: () -> String
 
-            def remote_addr: () -> ::String
+            def user_agent: () -> String
 
-            def form_hash: () -> ::Hash[::String, any]
+            def remote_addr: () -> String
 
-            def client_ip: () -> ::String?
+            def form_hash: () -> Hash[String, any]?
+
+            def body_bytesize: (Integer limit) -> Integer?
+
+            def collectable_body?: () -> bool
+
+            def client_ip: () -> String?
           end
         end
       end

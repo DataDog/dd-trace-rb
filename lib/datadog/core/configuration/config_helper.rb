@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'supported_configurations'
-require_relative '../logger'
+require_relative "supported_configurations"
+require_relative "../logger"
 
 module Datadog
   module Core
@@ -40,6 +40,12 @@ module Datadog
           !get_environment_variable(name).nil?
         end
 
+        # Returns the source environment as a Hash. Used when the full environment
+        # must be passed through (e.g. Process.spawn child env).
+        def to_h
+          @source_env.to_h
+        end
+
         alias_method :has_key?, :key?
         alias_method :include?, :key?
         alias_method :member?, :key?
@@ -56,7 +62,7 @@ module Datadog
           # datadog-ci-rb is using dd-trace-rb config DSL, which uses this method.
           # Until we've correctly implemented support for datadog-ci-rb, we disable config inversion if ci is enabled.
           if !defined?(::Datadog::CI) &&
-              (name.start_with?('DD_', 'OTEL_') || @alias_to_canonical[name]) &&
+              (name.start_with?("DD_", "OTEL_") || @alias_to_canonical[name]) &&
               !@supported_configurations.include?(name)
             if defined?(@raise_on_unknown_env_var) && @raise_on_unknown_env_var # Only enabled for tests!
               if @alias_to_canonical[name]
@@ -96,5 +102,8 @@ module Datadog
         private_constant :UNSET
       end
     end
+  end
+  unless const_defined?(:DATADOG_ENV, false)
+    DATADOG_ENV = Core::Configuration::ConfigHelper.new
   end
 end

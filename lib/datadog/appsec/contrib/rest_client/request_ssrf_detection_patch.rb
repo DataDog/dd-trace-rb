@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../../event'
-require_relative '../../trace_keeper'
-require_relative '../../security_event'
-require_relative '../../utils/http/media_type'
-require_relative '../../utils/http/body'
+require_relative "../../event"
+require_relative "../../trace_keeper"
+require_relative "../../security_event"
+require_relative "../../utils/http/body"
+require_relative "../../utils/http/body_reader"
+require_relative "../../utils/http/media_type"
 
 module Datadog
   module AppSec
@@ -21,9 +22,9 @@ module Datadog
             headers = normalize_request_headers
             # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
             ephemeral_data = {
-              'server.io.net.url' => url,
-              'server.io.net.request.method' => method.to_s.upcase,
-              'server.io.net.request.headers' => headers
+              "server.io.net.url" => url,
+              "server.io.net.request.method" => method.to_s.upcase,
+              "server.io.net.request.headers" => headers
             }
 
             is_redirect = context.state[:downstream_redirect_url] == url
@@ -35,8 +36,8 @@ module Datadog
             end
 
             if !is_redirect && sample_body
-              body = parse_body(payload.to_s, content_type: headers['content-type'])
-              ephemeral_data['server.io.net.request.body'] = body if body
+              body = parse_request_body(payload, content_type: headers["content-type"])
+              ephemeral_data["server.io.net.request.body"] = body if body
             end
 
             timeout = Datadog.configuration.appsec.waf_timeout
@@ -66,16 +67,16 @@ module Datadog
             headers = normalize_response_headers(response)
             # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
             ephemeral_data = {
-              'server.io.net.response.status' => response.code.to_s,
-              'server.io.net.response.headers' => headers
+              "server.io.net.response.status" => response.code.to_s,
+              "server.io.net.response.headers" => headers
             }
 
-            is_redirect = REDIRECT_STATUS_CODES.cover?(response.code.to_i) && headers.key?('location')
-            context.state[:downstream_redirect_url] = URI.join(url, headers['location']).to_s if is_redirect && sample_body
+            is_redirect = REDIRECT_STATUS_CODES.cover?(response.code.to_i) && headers.key?("location")
+            context.state[:downstream_redirect_url] = URI.join(url, headers["location"]).to_s if is_redirect && sample_body
 
             if sample_body && !is_redirect
-              body = parse_body(response.body, content_type: headers['content-type'])
-              ephemeral_data['server.io.net.response.body'] = body if body
+              body = parse_response_body(response.body, headers: headers, context: context)
+              ephemeral_data["server.io.net.response.body"] = body if body
             end
 
             timeout = Datadog.configuration.appsec.waf_timeout
@@ -94,13 +95,65 @@ module Datadog
             true
           end
 
-          def parse_body(body, content_type:)
-            return if body.empty?
-
+          def parse_request_body(body, content_type:)
             media_type = Utils::HTTP::MediaType.parse(content_type)
             return unless media_type
 
-            Utils::HTTP::Body.parse(body, media_type: media_type)
+            # NOTE: Request body analysis is best-effort, non-rewindable payloads are skipped
+            limit = Datadog.configuration.appsec.api_security.downstream_body_analysis.max_downstream_body_bytes
+            content = read_body(body, limit: limit)
+            return if content.nil? || content.bytesize > limit
+
+            Utils::HTTP::Body.parse(content, media_type: media_type, limit: limit)
+          end
+
+          def parse_response_body(body, headers:, context:)
+            return unless readable_body?(body)
+
+            media_type = Utils::HTTP::MediaType.parse(headers["content-type"])
+            if !media_type || media_type.type != "application"
+              context.metrics.record_ignored_downstream_response_body(:content_type_invalid)
+              return
+            end
+
+            subtype = media_type.subtype
+            if subtype != "json" && !subtype.end_with?("+json") && subtype != "x-www-form-urlencoded"
+              context.metrics.record_ignored_downstream_response_body(:content_type_invalid)
+              return
+            end
+
+            content_length_value = headers["content-length"]
+            if !content_length_value.is_a?(String) || !content_length_value.match?(/\A[1-9][0-9]*\z/)
+              context.metrics.record_ignored_downstream_response_body(:content_length_missing)
+              return
+            end
+
+            content_length = content_length_value.to_i
+            max = Datadog.configuration.appsec.api_security.downstream_body_analysis.max_downstream_body_bytes
+            if content_length > max
+              context.metrics.record_ignored_downstream_response_body(:content_length_too_big)
+              return
+            end
+
+            content = read_body(body, limit: content_length)
+            return if content.nil?
+
+            if content.bytesize > content_length
+              context.metrics.record_ignored_downstream_response_body(:content_exceed_content_length)
+              return
+            end
+
+            Utils::HTTP::Body.parse(content, media_type: media_type, limit: content_length)
+          end
+
+          def readable_body?(body)
+            body.is_a?(String) || (body.respond_to?(:read) && body.respond_to?(:rewind))
+          end
+
+          def read_body(body, limit:)
+            Utils::HTTP::BodyReader.read(body, limit: limit, rewind_before_read: true)
+          rescue
+            nil
           end
 
           # NOTE: Starting version 2.1.0 headers are already normalized via internal
@@ -120,7 +173,7 @@ module Datadog
           #        type and it failed with "Cannot allow block body" error
           def normalize_response_headers(response) # steep:ignore MethodBodyTypeMismatch
             response.net_http_res.to_hash
-              .transform_values! { |value| Array(value).join(', ') } # steep:ignore BlockBodyTypeMismatch
+              .transform_values! { |value| Array(value).join(", ") } # steep:ignore BlockBodyTypeMismatch
           end
 
           def handle(result, context:)

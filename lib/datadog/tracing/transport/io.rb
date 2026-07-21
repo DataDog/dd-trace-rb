@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../core/encoding'
-require_relative 'io/client'
-require_relative 'io/traces'
+require_relative "../../core/encoding"
+require_relative "io/client"
+require_relative "io/traces"
 
 module Datadog
   module Tracing

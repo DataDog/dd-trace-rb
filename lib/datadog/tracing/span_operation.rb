@@ -1,19 +1,19 @@
 # frozen_string_literal: true
 
-require 'time'
+require "time"
 
-require_relative '../core/environment/identity'
-require_relative '../core/utils'
-require_relative '../core/utils/time'
-require_relative '../core/utils/safe_dup'
+require_relative "../core/environment/identity"
+require_relative "../core/utils"
+require_relative "../core/utils/time"
+require_relative "../core/utils/safe_dup"
 
-require_relative 'event'
-require_relative 'metadata'
-require_relative 'metadata/ext'
-require_relative 'span'
-require_relative 'span_event'
-require_relative 'span_link'
-require_relative 'utils'
+require_relative "event"
+require_relative "metadata"
+require_relative "metadata/ext"
+require_relative "span"
+require_relative "span_event"
+require_relative "span_link"
+require_relative "utils"
 
 module Datadog
   module Tracing
@@ -146,7 +146,7 @@ module Datadog
       end
 
       def measure
-        raise ArgumentError, 'Must provide block to measure!' unless block_given?
+        raise ArgumentError, "Must provide block to measure!" unless block_given?
         # TODO: Should we just invoke the block and skip tracing instead?
         raise AlreadyStartedError if started?
 
@@ -158,7 +158,7 @@ module Datadog
           begin
             start
           rescue => e
-            logger.debug { "Failed to start span: #{e}" }
+            logger.debug { "Failed to start span: #{e.class}: #{e.message}" }
           ensure
             # We should yield to the provided block when possible, as this
             # block is application code that we don't want to hinder.
@@ -166,7 +166,7 @@ module Datadog
             #   end its execution (either due to a system error or graceful shutdown).
             # @type var e: Exception?
             # Steep: https://github.com/soutaro/steep/issues/919
-            return_value = yield(self) unless e && !e.is_a?(StandardError) # steep:ignore FallbackAny
+            return_value = yield(self) unless e && !e.is_a?(StandardError)
           end
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
@@ -270,6 +270,9 @@ module Datadog
         # Stop timing
         stop(end_time)
 
+        # Allow subscribers to enrich the span before it is finalized.
+        events.before_finish.publish(self)
+
         # Build span
         # Memoize for performance reasons
         @span = build_span
@@ -315,14 +318,14 @@ module Datadog
         exc = Core::Error.build_from(exception)
 
         event_attributes = {
-          'exception.type' => exc.type,
-          'exception.message' => exc.message,
-          'exception.stacktrace' => exc.backtrace,
+          "exception.type" => exc.type,
+          "exception.message" => exc.message,
+          "exception.stacktrace" => exc.backtrace,
         }
 
         # Steep: Caused by wrong declaration, should be the same parameters as `merge`
         # https://github.com/ruby/rbs/blob/3d0fb3a7fdde60af7120e875fe3bd7237b5b6a88/core/hash.rbs#L1468
-        @span_events << SpanEvent.new('exception', attributes: event_attributes.merge!(attributes)) # steep:ignore ArgumentTypeMismatch
+        @span_events << SpanEvent.new("exception", attributes: event_attributes.merge!(attributes)) # steep:ignore ArgumentTypeMismatch
       end
 
       # Return a string representation of the span.
@@ -371,19 +374,19 @@ module Datadog
           q.text "Start: #{start_time}\n"
           q.text "End: #{end_time}\n"
           q.text "Duration: #{duration.to_f if stopped?}\n"
-          q.group(2, 'Tags: [', "]\n") do
+          q.group(2, "Tags: [", "]\n") do
             q.breakable
             q.seplist meta.each do |key, value|
               q.text "#{key} => #{value}"
             end
           end
-          q.group(2, 'Metrics: [', "]\n") do
+          q.group(2, "Metrics: [", "]\n") do
             q.breakable
             q.seplist metrics.each do |key, value|
               q.text "#{key} => #{value}"
             end
           end
-          q.group(2, 'Metastruct: [', ']') do
+          q.group(2, "Metastruct: [", "]") do
             metastruct.pretty_print(q)
           end
         end
@@ -400,12 +403,14 @@ module Datadog
           :logger,
           :after_finish,
           :after_stop,
+          :before_finish,
           :before_start
 
         def initialize(logger: Datadog.logger)
           @logger = logger
           @after_finish = AfterFinish.new
           @after_stop = AfterStop.new
+          @before_finish = BeforeFinish.new
           @before_start = BeforeStart.new
         end
 
@@ -426,6 +431,14 @@ module Datadog
         class AfterStop < Tracing::Event
           def initialize
             super(:after_stop)
+          end
+        end
+
+        # Triggered just before the span is finalized into a Span object.
+        # Subscribers can still mutate tags on the SpanOperation at this point.
+        class BeforeFinish < Tracing::Event
+          def initialize
+            super(:before_finish)
           end
         end
 
@@ -459,7 +472,7 @@ module Datadog
             rescue => e
               logger.debug do
                 "Custom on_error handler #{@handler} failed, using fallback behavior. \
-                  Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
+                  Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
               end
 
               original&.call(op, error)
@@ -471,7 +484,7 @@ module Datadog
               @handler.call(*args)
             rescue => e
               logger.debug do
-                "Error in on_error handler '#{@handler}': #{e.class}: #{e} at #{Array(e.backtrace).first}"
+                "Error in on_error handler '#{@handler}': #{e.class}: #{e.message} at #{Array(e.backtrace).first}"
               end
             end
 
@@ -483,7 +496,7 @@ module Datadog
       # Error when the span attempts to start again after being started
       class AlreadyStartedError < StandardError
         def message
-          'Cannot measure an already started span!'
+          "Cannot measure an already started span!"
         end
       end
 

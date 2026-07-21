@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require 'uri'
+require "uri"
 
-require_relative '../../../core/utils/hash'
-require_relative '../../metadata/ext'
-require_relative '../http'
-require_relative 'ext'
-require_relative '../http_annotation_helper'
+require_relative "../../../core/utils/hash"
+require_relative "../../metadata/ext"
+require_relative "../http"
+require_relative "ext"
+require_relative "../http_annotation_helper"
 
 module Datadog
   module Tracing
@@ -53,7 +53,7 @@ module Datadog
                 response_code = (response_options[:response_code] || response_options[:code]).to_i
                 if response_code.zero?
                   return_code = response_options[:return_code]
-                  message = return_code ? ::Ethon::Curl.easy_strerror(return_code) : 'unknown reason'
+                  message = return_code ? ::Ethon::Curl.easy_strerror(return_code) : "unknown reason"
                   set_span_error_message("Request has failed: #{message}")
                 else
                   @datadog_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response_code)
@@ -133,6 +133,7 @@ module Datadog
 
             def datadog_tag_request
               span = @datadog_span
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               method = Ext::NOT_APPLICABLE_METHOD
               method = @datadog_method.to_s if instance_variable_defined?(:@datadog_method) && !@datadog_method.nil?
               span.resource = method
@@ -142,11 +143,6 @@ module Datadog
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                   datadog_configuration[:peer_service]
                 )
-              end
-
-              # Tag original global service name if not used
-              if span.service != Datadog.configuration.service
-                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
               end
 
               # Set analytics sample rate
@@ -217,7 +213,7 @@ module Datadog
 
               # Find only well-behaved HTTP headers.
               lines.map do |line|
-                header = line.split(':', 2)
+                header = line.split(":", 2)
                 (header.size != 2) ? nil : header
               end.compact.to_h
             end

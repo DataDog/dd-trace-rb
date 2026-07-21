@@ -9,20 +9,21 @@
 # components supported by Datadog.
 
 # Load Tracing
-require_relative 'tracing'
-require_relative 'tracing/contrib'
+require_relative "tracing"
+require_relative "tracing/contrib"
 
-require_relative 'opentelemetry/api/context'
-require_relative 'opentelemetry/api/baggage'
+require_relative "opentelemetry/api/context"
+require_relative "opentelemetry/api/baggage"
 
 # DEV: Should this be a Contrib integration, that depends on the `opentelemetry-sdk`
 # DEV: and checks for compatibility?
 # DEV: This is different from our existing OpenTracer API, but there are many safety
 # DEV: features built into Contrib instrumentation today.
-require_relative 'opentelemetry/sdk/configurator' if defined?(OpenTelemetry::SDK)
-require_relative 'opentelemetry/sdk/trace/span' if defined?(OpenTelemetry::SDK)
+require_relative "opentelemetry/sdk/configurator" if defined?(OpenTelemetry::SDK)
+require_relative "opentelemetry/sdk/trace/span" if defined?(OpenTelemetry::SDK)
 
-require_relative 'opentelemetry/metrics' if defined?(OpenTelemetry::SDK::Metrics)
+require_relative "opentelemetry/metrics" if defined?(OpenTelemetry::SDK::Metrics)
+require_relative "opentelemetry/logs" if defined?(OpenTelemetry::SDK::Logs)
 
 module Datadog
   # Datadog OpenTelemetry integration.

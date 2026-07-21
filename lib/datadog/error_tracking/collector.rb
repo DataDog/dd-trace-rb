@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
+require_relative "ext"
+require_relative "../ruby_version"
 
 module Datadog
   module ErrorTracking
@@ -52,7 +53,7 @@ module Datadog
         end
       end
 
-      if RUBY_VERSION >= Ext::RUBY_VERSION_WITH_RESCUE_EVENT
+      if RubyVersion.is?(">= #{Ext::RUBY_VERSION_WITH_RESCUE_EVENT}")
         # Starting from ruby3.3, as we are listening to :rescue event,
         # we just want to remove the span event if the error was
         # previously handled

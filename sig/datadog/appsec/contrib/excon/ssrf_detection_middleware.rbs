@@ -3,9 +3,9 @@ module Datadog
     module Contrib
       module Excon
         class SSRFDetectionMiddleware
-          REDIRECT_STATUS_CODES: ::Range[::Integer]
+          REDIRECT_STATUS_CODES: Range[Integer]
 
-          SAMPLE_BODY_KEY: ::Symbol
+          SAMPLE_BODY_KEY: Symbol
 
           def request_call: (::Excon::Middleware::Base::datum data) -> Excon::Middleware::Base::datum
 
@@ -15,11 +15,17 @@ module Datadog
 
           def mark_body_sampling!: (::Excon::Middleware::Base::datum data, context: Context) -> void
 
-          def parse_body: (Utils::HTTP::Body::body body, content_type: ::String?) -> ::Helpers::json?
+          def parse_request_body: (Utils::HTTP::Body::body body, content_type: String?) -> Datadog::Helpers::json?
 
-          def request_url: (::Excon::Middleware::Base::datum data) -> ::String
+          def parse_response_body: (Utils::HTTP::Body::body body, headers: Hash[String, String], context: Context) -> Datadog::Helpers::json?
 
-          def normalize_headers: (::Hash[::String, ::String | ::Array[::String]]? headers) -> ::Hash[::String, ::String]
+          def readable_body?: (Utils::HTTP::Body::body body) -> bool
+
+          def read_body: (Utils::HTTP::Body::body body, limit: Integer) -> String?
+
+          def request_url: (::Excon::Middleware::Base::datum data) -> String
+
+          def normalize_headers: (::Hash[String, String | Array[String]]? headers) -> Hash[String, String]
 
           def handle: (SecurityEngine::result result, context: Context) -> void
         end

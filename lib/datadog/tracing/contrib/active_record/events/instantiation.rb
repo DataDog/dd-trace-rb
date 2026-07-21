@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../../../metadata/ext'
-require_relative '../../analytics'
-require_relative '../ext'
-require_relative '../event'
-require_relative '../../../../core/telemetry/logger'
+require_relative "../../../metadata/ext"
+require_relative "../../analytics"
+require_relative "../ext"
+require_relative "../event"
+require_relative "../../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -15,13 +15,13 @@ module Datadog
           module Instantiation
             include ActiveRecord::Event
 
-            EVENT_NAME = 'instantiation.active_record'
+            EVENT_NAME = "instantiation.active_record"
 
             module_function
 
             def supported?
-              Gem.loaded_specs['activerecord'] \
-                && Gem.loaded_specs['activerecord'].version >= Gem::Version.new('4.2')
+              Gem.loaded_specs["activerecord"] \
+                && Gem.loaded_specs["activerecord"].version >= Gem::Version.new("4.2")
             end
 
             def event_name
@@ -49,7 +49,7 @@ module Datadog
               span.set_tag(Ext::TAG_INSTANTIATION_CLASS_NAME, payload.fetch(:class_name))
               span.set_tag(Ext::TAG_INSTANTIATION_RECORD_COUNT, payload.fetch(:record_count))
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
           end

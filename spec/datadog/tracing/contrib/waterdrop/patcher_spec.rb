@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'waterdrop'
-require 'datadog'
+require "datadog/tracing/contrib/support/spec_helper"
+require "waterdrop"
+require "datadog"
 
-RSpec.describe 'Waterdrop patcher' do
+RSpec.describe "Waterdrop patcher" do
   before do
     Datadog.configure do |c|
       c.tracing.instrument :waterdrop
@@ -18,8 +18,8 @@ RSpec.describe 'Waterdrop patcher' do
     Datadog.registry[:waterdrop].reset_configuration!
   end
 
-  describe 'patch' do
-    it 'patches the producer class and adds our middleware to the instance' do
+  describe "patch" do
+    it "patches the producer class and adds our middleware to the instance" do
       producer = WaterDrop::Producer.new do |config|
         config.client_class = WaterDrop::Clients::Buffered # Dummy - doesn't try to connect to Kafka
       end
@@ -33,7 +33,7 @@ RSpec.describe 'Waterdrop patcher' do
       )
     end
 
-    context 'when other middleware is present on the producer' do
+    context "when other middleware is present on the producer" do
       let(:dummy_middleware) { ->(message) { message } }
       let(:producer) do
         WaterDrop::Producer.new do |config|
@@ -42,7 +42,7 @@ RSpec.describe 'Waterdrop patcher' do
         end
       end
 
-      it 'appends our middleware after existing ones' do
+      it "appends our middleware after existing ones" do
         expect(producer.middleware.instance_variable_get(:@steps)).to eq(
           [
             dummy_middleware,
@@ -52,7 +52,7 @@ RSpec.describe 'Waterdrop patcher' do
       end
     end
 
-    context 'when our middleware is already present' do
+    context "when our middleware is already present" do
       let(:producer) do
         WaterDrop::Producer.new do |config|
           config.client_class = WaterDrop::Clients::Buffered # Dummy - doesn't try to connect to Kafka
@@ -60,7 +60,7 @@ RSpec.describe 'Waterdrop patcher' do
         end
       end
 
-      it 'does not append it again' do
+      it "does not append it again" do
         expect(producer.middleware.instance_variable_get(:@steps)).to eq(
           [
             Datadog::Tracing::Contrib::WaterDrop::Middleware
@@ -69,12 +69,12 @@ RSpec.describe 'Waterdrop patcher' do
       end
     end
 
-    context 'when DataStreams is enabled' do
+    context "when DataStreams is enabled" do
       before do
         allow(Datadog::DataStreams).to receive(:enabled?).and_return(true)
       end
 
-      it 'patches without errors' do
+      it "patches without errors" do
         expect do
           WaterDrop::Producer.new do |config|
             config.client_class = WaterDrop::Clients::Buffered

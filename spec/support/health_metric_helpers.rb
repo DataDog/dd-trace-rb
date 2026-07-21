@@ -1,6 +1,6 @@
-require 'support/metric_helpers'
-require 'datadog'
-require 'datadog/tracing/diagnostics/ext'
+require "support/metric_helpers"
+require "datadog"
+require "datadog/tracing/diagnostics/ext"
 
 module HealthMetricHelpers
   include RSpec::Mocks::ArgumentMatchers
@@ -46,8 +46,8 @@ module HealthMetricHelpers
     }
   }.freeze
 
-  shared_context 'health metrics' do
-    include_context 'metrics'
+  shared_context "health metrics" do
+    include_context "metrics"
 
     let(:health_metrics) { Datadog.health_metrics }
     before { METRICS.each_key { |metric| allow(health_metrics).to receive(metric) } }

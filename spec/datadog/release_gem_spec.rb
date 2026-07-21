@@ -1,11 +1,11 @@
-RSpec.describe 'gem release process' do
-  context 'datadog.gemspec' do
-    subject(:gemspec) { Gem::Specification.load('datadog.gemspec') }
+RSpec.describe "gem release process" do
+  context "datadog.gemspec" do
+    subject(:gemspec) { Gem::Specification.load("datadog.gemspec") }
 
-    context 'files' do
+    context "files" do
       # It's easy to forget to ship new files, especially when a new paradigm is
       # introduced (e.g. introducing native files requires the inclusion `ext/`)
-      it 'includes all important files' do
+      it "includes all important files" do
         single_files_excluded = %r{
           ^
           (
@@ -30,15 +30,16 @@ RSpec.describe 'gem release process' do
            |CONTRIBUTING.md
            |SECURITY.md
            |Gemfile
-           |AGENTS\.md
+           |(.*/)?AGENTS\.md
            |AGENTS_TODO\.md
-           |CLAUDE\.md
+           |(.*/)?CLAUDE\.md
            |(ruby|jruby)-\d+.\d+.gemfile
            |Rakefile
            |Matrixfile
            |Steepfile
            |datadog\.gemspec
            |docker-compose\.yml
+           |mise\.toml
            |shell\.nix
            |default\.nix
            |flake\.nix
@@ -48,6 +49,7 @@ RSpec.describe 'gem release process' do
            |.rspec-local.example
            |\.customcops\.yml
            |supported-configurations\.json
+           |.projections\.json
           )
           $
         }x
@@ -85,20 +87,24 @@ RSpec.describe 'gem release process' do
       end
     end
 
-    context 'lib injection dependencies' do
+    context "lib injection dependencies" do
       it do
-        file = Tempfile.new('Gemfile')
+        file = Tempfile.new("Gemfile")
 
         begin
           file.write "source 'https://rubygems.org'\n"
           file.write "gem '#{gemspec.name}', path: '#{FileUtils.pwd}'\n"
           file.rewind
 
-          gemfile = Bundler::Dsl.evaluate(file.path, nil, {})
-          lock_file_parser = Bundler::LockfileParser.new(gemfile.to_lock)
+          # Override BUNDLE_FROZEN so dependency resolution proceeds for the ad-hoc Gemfile;
+          # without this, `to_lock` returns an empty specs section under frozen CI envs.
+          gem_version_mapping = Bundler.settings.temporary(frozen: false) do
+            gemfile = Bundler::Dsl.evaluate(file.path, nil, {})
+            lock_file_parser = Bundler::LockfileParser.new(gemfile.to_lock)
 
-          gem_version_mapping = lock_file_parser.specs.each_with_object({}) do |spec, hash|
-            hash[spec.name] = spec.version.to_s
+            lock_file_parser.specs.each_with_object({}) do |spec, hash|
+              hash[spec.name] = spec.version.to_s
+            end
           end
         ensure
           file.close
@@ -111,29 +117,29 @@ RSpec.describe 'gem release process' do
           # This list MUST NOT derive from the `gemspec.dependencies`,
           # since it is used to alarm when dependencies are modified.
           # ADD NEW DEPENDENCIES HERE
-          'datadog',
-          'datadog-ruby_core_source',
-          'ffi',
-          'libdatadog',
-          'libddwaf',
-          'msgpack',
-          'logger',
-          'cgi',
+          "datadog",
+          "datadog-ruby_core_source",
+          "ffi",
+          "libdatadog",
+          "libddwaf",
+          "msgpack",
+          "logger",
+          "cgi",
         )
       end
     end
 
-    context 'licenses' do
-      it 'returns dual licenses (BSD-3-Clause and Apache-2)' do
-        expect(gemspec.licenses).to contain_exactly('BSD-3-Clause', 'Apache-2.0')
+    context "licenses" do
+      it "returns dual licenses (BSD-3-Clause and Apache-2)" do
+        expect(gemspec.licenses).to contain_exactly("BSD-3-Clause", "Apache-2.0")
       end
     end
 
-    describe '#metadata' do
+    describe "#metadata" do
       it do
         {
-          'changelog_uri' => "https://github.com/DataDog/dd-trace-rb/blob/v#{gemspec.version}/CHANGELOG.md",
-          'source_code_uri' => "https://github.com/DataDog/dd-trace-rb/tree/v#{gemspec.version}"
+          "changelog_uri" => "https://github.com/DataDog/dd-trace-rb/blob/v#{gemspec.version}/CHANGELOG.md",
+          "source_code_uri" => "https://github.com/DataDog/dd-trace-rb/tree/v#{gemspec.version}"
         }.each do |key, value|
           expect(gemspec.metadata[key]).to eq(value)
         end
@@ -141,13 +147,13 @@ RSpec.describe 'gem release process' do
 
       # `allowed_push_host` is overwritten by automated scripts
       # in order to publish to another destination repository.
-      context 'allowed_push_host' do
-        it { expect(gemspec.metadata).to have_key('allowed_push_host') }
+      context "allowed_push_host" do
+        it { expect(gemspec.metadata).to have_key("allowed_push_host") }
 
         it do
-          expect(gemspec.metadata['allowed_push_host'])
-            .to eq('https://rubygems.org')
-            .or eq('https://rubygems.pkg.github.com/DataDog')
+          expect(gemspec.metadata["allowed_push_host"])
+            .to eq("https://rubygems.org")
+            .or eq("https://rubygems.pkg.github.com/DataDog")
         end
       end
     end

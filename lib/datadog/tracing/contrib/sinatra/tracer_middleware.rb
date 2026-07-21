@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative '../rack/ext'
-require_relative '../rack/header_tagging'
-require_relative 'env'
-require_relative 'ext'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "../rack/ext"
+require_relative "../rack/header_tagging"
+require_relative "env"
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -28,6 +28,7 @@ module Datadog
               service: configuration[:service_name],
               type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
             ) do |span|
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               # this is kept nil until we set a correct one (either in the route or with a fallback in the ensure below)
               # the nil signals that there's no good one yet and is also seen by profiler, when sampling the resource
               span.resource = nil
@@ -56,7 +57,7 @@ module Datadog
 
               # If this app handled the request, then Contrib::Sinatra::Tracer OR Contrib::Sinatra::Base set the
               # resource; if no resource was set, let's use a fallback
-              span.resource = env['REQUEST_METHOD'] if span.resource.nil?
+              span.resource = env["REQUEST_METHOD"] if span.resource.nil?
 
               rack_request_span = env[Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
 
@@ -71,7 +72,7 @@ module Datadog
 
                   span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, sinatra_response.status)
                   if Datadog.configuration.tracing.http_error_statuses.server.include?(sinatra_response.status)
-                    span.set_error(env['sinatra.error'])
+                    span.set_error(env["sinatra.error"])
                   end
                 end
 

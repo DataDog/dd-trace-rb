@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../../core/environment/ext'
-require_relative '../utils/database'
+require_relative "../../../core/environment/ext"
+require_relative "../utils/database"
 
 module Datadog
   module Tracing
@@ -58,7 +58,7 @@ module Datadog
 
           # DEV: JRuby responds to {ObjectSpace._id2ref}, despite raising an error
           # DEV: when invoked. Thus, we have to explicitly check for Ruby runtime.
-          if Core::Environment::Ext::RUBY_ENGINE != 'jruby'
+          if Core::Environment::Ext::RUBY_ENGINE != "jruby"
             # CRuby has access to {ObjectSpace._id2ref}, which allows for
             # direct look up of the connection object.
             def self.connection_from_id(connection_id)
@@ -77,7 +77,7 @@ module Datadog
               # in case.
               Datadog.logger.debug(
                 "connection_id #{connection_id} does not represent a valid object. " \
-                        "Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
+                        "Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
               )
             end
           else

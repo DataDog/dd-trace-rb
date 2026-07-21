@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
-require 'datadog/appsec/spec_helper'
-require 'graphql'
-require 'datadog/appsec/contrib/graphql/patcher'
+require "datadog/appsec/spec_helper"
+require "ostruct" # graphql 1.13 uses OpenStruct without requiring ostruct itself
+require "graphql"
+require "datadog/appsec/contrib/graphql/patcher"
 
 RSpec.describe Datadog::AppSec::Contrib::GraphQL::Patcher do
   let(:gateway) { Datadog::AppSec::Instrumentation::Gateway.new }
@@ -29,9 +30,9 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Patcher do
     Datadog.configuration.reset!
   end
 
-  describe '.patch' do
-    context 'when called twice via instrument' do
-      it 'does not register gateway watchers twice' do
+  describe ".patch" do
+    context "when called twice via instrument" do
+      it "does not register gateway watchers twice" do
         Datadog.configuration.appsec.instrument :graphql
 
         expect { Datadog.configuration.appsec.instrument :graphql }.not_to change {
@@ -40,8 +41,8 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Patcher do
       end
 
       # trace_with and trace_modules_for were introduced in graphql 2.0.19
-      if Gem.loaded_specs['graphql'].version >= Gem::Version.new('2.0.19')
-        it 'does not call trace_with on GraphQL::Schema twice' do
+      if Gem.loaded_specs["graphql"].version >= Gem::Version.new("2.0.19")
+        it "does not call trace_with on GraphQL::Schema twice" do
           Datadog.configuration.appsec.instrument :graphql
           expect(GraphQL::Schema).to have_received(:trace_with).once
 

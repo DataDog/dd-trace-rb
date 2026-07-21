@@ -8,10 +8,10 @@ module Datadog
         class << self
           def call(value)
             [].tap do |array|
-              value.split(',').each do |e|
+              value.split(",").each do |e|
                 next unless e
 
-                v = e.split('-')
+                v = e.split("-")
 
                 case v.length
                 when 0 then next

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'libdatadog'
+require "libdatadog"
 
-require_relative 'tag_builder'
+require_relative "tag_builder"
 
 module Datadog
   module Core
@@ -21,11 +21,11 @@ module Datadog
           agent_base_url = agent_settings.url
 
           ld_library_path = ::Libdatadog.ld_library_path
-          logger.warn('Missing ld_library_path; cannot enable crash tracking') unless ld_library_path
+          logger.warn("Missing ld_library_path; cannot enable crash tracking") unless ld_library_path
 
           path_to_crashtracking_receiver_binary = ::Libdatadog.path_to_crashtracking_receiver_binary
           unless path_to_crashtracking_receiver_binary
-            logger.warn('Missing path_to_crashtracking_receiver_binary; cannot enable crash tracking')
+            logger.warn("Missing path_to_crashtracking_receiver_binary; cannot enable crash tracking")
           end
 
           return unless agent_base_url
@@ -55,7 +55,7 @@ module Datadog
             # Unhandled exception report triggering means that the application is already in a bad state
             # We don't want to swallow non-StandardError exceptions here; we would rather just let the
             # application crash
-            Datadog.logger.debug("Crashtracker failed to report unhandled exception: #{e.message}")
+            Datadog.logger.debug { "Crashtracker failed to report unhandled exception: #{e.class}: #{e.message}" }
           end
         end
 
@@ -97,10 +97,10 @@ module Datadog
           # @type var frames_data: Array[[String, String, Integer]]
           frames_data = backtrace_slice.map do |loc|
             file = loc.path
-            file = '<unknown>' if file.nil? || file.empty? || !file.is_a?(String)
+            file = "<unknown>" if file.nil? || file.empty? || !file.is_a?(String)
 
             function = loc.label
-            function = '<unknown>' if function.nil? || function.empty? || !function.is_a?(String)
+            function = "<unknown>" if function.nil? || function.empty? || !function.is_a?(String)
 
             line = loc.lineno
             line = 0 if line.nil? || line < 0 || !line.is_a?(Integer)
@@ -111,7 +111,7 @@ module Datadog
           # Add truncation indicator frame if we had to cut off frames
           if was_truncated
             truncated_count = all_backtrace_locations.length - max_exception_stack_frames
-            frames_data << ['<truncated>', "<truncated #{truncated_count} more frames>", 0]
+            frames_data << ["<truncated>", "<truncated #{truncated_count} more frames>", 0]
           end
 
           exception_message = exception.message
@@ -123,14 +123,14 @@ module Datadog
             frames_data,
           )
 
-          logger.debug('Crashtracker failed to report unhandled exception to crash tracker') unless success
+          logger.debug("Crashtracker failed to report unhandled exception to crash tracker") unless success
         end
 
         def stop
           self.class._native_stop
-          logger.debug('Crash tracking stopped successfully')
+          logger.debug("Crash tracking stopped successfully")
         rescue => e
-          logger.error("Failed to stop crash tracking: #{e.message}")
+          logger.error("Failed to stop crash tracking: #{e.class}: #{e.message}")
         end
 
         private
@@ -149,7 +149,7 @@ module Datadog
           )
           logger.debug("Crash tracking action: #{action} successful")
         rescue => e
-          logger.error("Failed to #{action} crash tracking: #{e.message}")
+          logger.error("Failed to #{action} crash tracking: #{e.class}: #{e.message}")
         end
       end
     end

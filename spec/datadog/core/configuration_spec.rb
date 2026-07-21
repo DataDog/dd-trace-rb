@@ -1,10 +1,10 @@
-require 'spec_helper'
-require 'datadog/profiling/spec_helper'
+require "spec_helper"
+require "datadog/profiling/spec_helper"
 
-require 'datadog/core/configuration'
-require 'datadog/core/pin'
-require 'datadog/statsd'
-require 'datadog/tracing/tracer'
+require "datadog/core/configuration"
+require "datadog/core/pin"
+require "datadog/statsd"
+require "datadog/tracing/tracer"
 
 RSpec.describe Datadog::Core::Configuration do
   let(:default_log_level) { ::Logger::INFO }
@@ -24,13 +24,13 @@ RSpec.describe Datadog::Core::Configuration do
     allow(Datadog::DI::Component).to receive(:build)
   end
 
-  context 'when extended by a class' do
-    subject(:test_class) { stub_const('TestClass', Class.new { extend Datadog::Core::Configuration }) }
+  context "when extended by a class" do
+    subject(:test_class) { stub_const("TestClass", Class.new { extend Datadog::Core::Configuration }) }
 
-    describe '#configure' do
+    describe "#configure" do
       subject(:configure) { test_class.configure {} }
 
-      context 'when Settings are configured' do
+      context "when Settings are configured" do
         before do
           allow(Datadog::Core::Configuration::Components).to receive(:new)
             .and_wrap_original do |m, *args|
@@ -41,13 +41,13 @@ RSpec.describe Datadog::Core::Configuration do
             end
         end
 
-        context 'and components have been initialized' do
+        context "and components have been initialized" do
           before do
             @original_components = test_class.send(:components)
           end
 
           it do
-            #expect(@original_components.telemetry).to receive(:enabled)
+            # expect(@original_components.telemetry).to receive(:enabled)
 
             # Components should have changed
             expect { configure }
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Core::Configuration do
           end
         end
 
-        context 'and components have not been initialized' do
+        context "and components have not been initialized" do
           it do
             expect_any_instance_of(Datadog::Core::Configuration::Components)
               .to_not receive(:shutdown!)
@@ -92,8 +92,8 @@ RSpec.describe Datadog::Core::Configuration do
         end
       end
 
-      context 'when debug mode' do
-        it 'is toggled with default settings' do
+      context "when debug mode" do
+        it "is toggled with default settings" do
           # If configuration is not initialized, and components neither, we create a temporary logger with debug level
           # In order to test that the default log level is INFO, we need to ensure that configuration is initialized.
           test_class.configuration
@@ -119,7 +119,7 @@ RSpec.describe Datadog::Core::Configuration do
           expect(test_class.logger.level).to be default_log_level
         end
 
-        context 'is disabled with a custom logger in use' do
+        context "is disabled with a custom logger in use" do
           let(:initial_log_level) { ::Logger::INFO }
           let(:logger) do
             ::Logger.new(StringIO.new).tap do |l|
@@ -138,8 +138,8 @@ RSpec.describe Datadog::Core::Configuration do
         end
       end
 
-      context 'when the logger' do
-        context 'is replaced' do
+      context "when the logger" do
+        context "is replaced" do
           let(:old_logger) { Datadog::Core::Logger.new($stdout) }
           let(:new_logger) { Datadog::Core::Logger.new($stdout) }
 
@@ -152,12 +152,12 @@ RSpec.describe Datadog::Core::Configuration do
             test_class.configure { |c| c.logger.instance = new_logger }
           end
 
-          it 'replaces the old logger' do
+          it "replaces the old logger" do
             expect(test_class.logger).to be new_logger
           end
         end
 
-        context 'is reused' do
+        context "is reused" do
           let(:logger) { Datadog::Core::Logger.new($stdout) }
 
           before do
@@ -167,12 +167,12 @@ RSpec.describe Datadog::Core::Configuration do
             test_class.configure { |c| c.logger.instance = logger }
           end
 
-          it 'reuses the same logger' do
+          it "reuses the same logger" do
             expect(test_class.logger).to be logger
           end
         end
 
-        context 'is not changed' do
+        context "is not changed" do
           let(:logger) { Datadog::Core::Logger.new($stdout) }
 
           before do
@@ -182,14 +182,14 @@ RSpec.describe Datadog::Core::Configuration do
             test_class.configure { |_c| }
           end
 
-          it 'reuses the same logger' do
+          it "reuses the same logger" do
             expect(test_class.logger).to be logger
           end
         end
       end
 
-      context 'when the metrics' do
-        context 'are replaced' do
+      context "when the metrics" do
+        context "are replaced" do
           let(:old_statsd) { instance_double(Datadog::Statsd) }
           let(:new_statsd) { instance_double(Datadog::Statsd) }
 
@@ -207,13 +207,13 @@ RSpec.describe Datadog::Core::Configuration do
             end
           end
 
-          it 'replaces the old Statsd and closes it' do
+          it "replaces the old Statsd and closes it" do
             expect(test_class.send(:components).runtime_metrics.metrics.statsd).to be new_statsd
             expect(test_class.health_metrics.statsd).to be new_statsd
           end
         end
 
-        context 'have one of a few replaced' do
+        context "have one of a few replaced" do
           let(:old_statsd) { instance_double(Datadog::Statsd) }
           let(:new_statsd) { instance_double(Datadog::Statsd) }
 
@@ -231,13 +231,13 @@ RSpec.describe Datadog::Core::Configuration do
             end
           end
 
-          it 'uses new and old Statsd but does not close the old Statsd' do
+          it "uses new and old Statsd but does not close the old Statsd" do
             expect(test_class.send(:components).runtime_metrics.metrics.statsd).to be new_statsd
             expect(test_class.health_metrics.statsd).to be old_statsd
           end
         end
 
-        context 'are reused' do
+        context "are reused" do
           let(:statsd) { instance_double(Datadog::Statsd) }
 
           before do
@@ -254,12 +254,12 @@ RSpec.describe Datadog::Core::Configuration do
             end
           end
 
-          it 'reuses the same Statsd' do
+          it "reuses the same Statsd" do
             expect(test_class.send(:components).runtime_metrics.metrics.statsd).to be statsd
           end
         end
 
-        context 'are not changed' do
+        context "are not changed" do
           let(:statsd) { instance_double(Datadog::Statsd) }
 
           before do
@@ -273,14 +273,14 @@ RSpec.describe Datadog::Core::Configuration do
             test_class.configure { |_c| }
           end
 
-          it 'reuses the same Statsd' do
+          it "reuses the same Statsd" do
             expect(test_class.send(:components).runtime_metrics.metrics.statsd).to be statsd
           end
         end
       end
 
-      context 'when the tracer' do
-        context 'is replaced' do
+      context "when the tracer" do
+        context "is replaced" do
           let(:old_tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
           let(:new_tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
 
@@ -291,12 +291,12 @@ RSpec.describe Datadog::Core::Configuration do
             test_class.send(:configure) { |c| c.tracing.instance = new_tracer }
           end
 
-          it 'replaces the old tracer and shuts it down' do
+          it "replaces the old tracer and shuts it down" do
             expect(test_class.send(:components).tracer).to be new_tracer
           end
         end
 
-        context 'is reused' do
+        context "is reused" do
           let(:tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
 
           before do
@@ -306,12 +306,12 @@ RSpec.describe Datadog::Core::Configuration do
             test_class.send(:configure) { |c| c.tracing.instance = tracer }
           end
 
-          it 'reuses the same tracer' do
+          it "reuses the same tracer" do
             expect(test_class.send(:components).tracer).to be tracer
           end
         end
 
-        context 'is not changed' do
+        context "is not changed" do
           let(:tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
 
           before do
@@ -321,14 +321,14 @@ RSpec.describe Datadog::Core::Configuration do
             test_class.send(:configure) { |_c| }
           end
 
-          it 'reuses the same tracer' do
+          it "reuses the same tracer" do
             expect(test_class.send(:components).tracer).to be tracer
           end
         end
       end
 
-      context 'when reconfigured multiple times' do
-        context 'with runtime metrics active' do
+      context "when reconfigured multiple times" do
+        context "with runtime metrics active" do
           before do
             test_class.configure do |c|
               c.runtime_metrics.enabled = true
@@ -341,7 +341,7 @@ RSpec.describe Datadog::Core::Configuration do
             end
           end
 
-          it 'stops the old runtime metrics worker' do
+          it "stops the old runtime metrics worker" do
             expect(@old_runtime_metrics.enabled?).to be false
             expect(@old_runtime_metrics.running?).to be false
 
@@ -354,13 +354,13 @@ RSpec.describe Datadog::Core::Configuration do
       end
     end
 
-    describe '#configure_onto' do
+    describe "#configure_onto" do
       subject(:configure_onto) { test_class.configure_onto(object, **options) }
 
       let(:object) { Object.new }
       let(:options) { {any: :thing} }
 
-      it 'attaches a pin to the object' do
+      it "attaches a pin to the object" do
         expect(Datadog::Core::Pin)
           .to receive(:set_on)
           .with(object, **options)
@@ -369,32 +369,32 @@ RSpec.describe Datadog::Core::Configuration do
       end
     end
 
-    describe '#configuration_for' do
+    describe "#configuration_for" do
       subject(:configuration_for) { test_class.configuration_for(object, option_name) }
 
-      let(:object) { double('object') }
+      let(:object) { double("object") }
       let(:option_name) { :a_setting }
 
-      context 'when the object has not been configured' do
+      context "when the object has not been configured" do
         it { is_expected.to be nil }
       end
 
-      context 'when the object has been configured' do
+      context "when the object has been configured" do
         let(:options) { {} }
 
         before { test_class.configure_onto(object, **options) }
 
-        context 'but no option is provided' do
+        context "but no option is provided" do
           let(:option_name) { nil }
           it { is_expected.to be_a_kind_of(Datadog::Core::Pin) }
         end
 
-        context 'but an option is provided' do
-          context 'and it has not been set' do
+        context "but an option is provided" do
+          context "and it has not been set" do
             it { is_expected.to be nil }
           end
 
-          context 'and it has been set' do
+          context "and it has been set" do
             let(:option_value) { :a_value }
             let(:options) { {option_name => option_value} }
 
@@ -404,33 +404,33 @@ RSpec.describe Datadog::Core::Configuration do
       end
     end
 
-    describe '#health_metrics' do
+    describe "#health_metrics" do
       subject(:health_metrics) { test_class.health_metrics }
 
       it { is_expected.to be_a_kind_of(Datadog::Core::Diagnostics::Health::Metrics) }
     end
 
-    describe '#logger' do
+    describe "#logger" do
       subject(:logger) { test_class.logger }
 
       it { is_expected.to be_a_kind_of(Datadog::Core::Logger) }
       it { expect(logger.level).to be ::Logger::INFO }
 
-      context 'when components are not initialized' do
-        it 'does not cause them to be initialized' do
+      context "when components are not initialized" do
+        it "does not cause them to be initialized" do
           logger
 
           expect(test_class.send(:components?)).to be false
         end
       end
 
-      context 'when components are being replaced' do
+      context "when components are being replaced" do
         before do
           test_class.configure {}
           allow(test_class.send(:components)).to receive(:shutdown!)
         end
 
-        it 'returns the old logger' do
+        it "returns the old logger" do
           old_logger = test_class.logger
           logger_during_component_replacement = nil
 
@@ -447,20 +447,20 @@ RSpec.describe Datadog::Core::Configuration do
       end
     end
 
-    describe '#logger_without_configuration' do
+    describe "#logger_without_configuration" do
       subject(:logger_without_configuration) { test_class.send(:logger_without_configuration) }
-      context 'when configuration is not initialized and DD_TRACE_DEBUG is not set' do
+      context "when configuration is not initialized and DD_TRACE_DEBUG is not set" do
         it { expect(logger_without_configuration.level).to be ::Logger::INFO }
       end
 
-      context 'when configuration is not initialized and DD_TRACE_DEBUG is set' do
-        with_env 'DD_TRACE_DEBUG' => 'true'
+      context "when configuration is not initialized and DD_TRACE_DEBUG is set" do
+        with_env "DD_TRACE_DEBUG" => "true"
 
         it { expect(logger_without_configuration.level).to be ::Logger::DEBUG }
       end
     end
 
-    describe '#runtime_metrics' do
+    describe "#runtime_metrics" do
       subject(:runtime_metrics) { test_class.send(:components).runtime_metrics }
 
       it { is_expected.to be_a_kind_of(Datadog::Core::Workers::RuntimeMetrics) }
@@ -468,42 +468,42 @@ RSpec.describe Datadog::Core::Configuration do
       it { expect(runtime_metrics.running?).to be false }
     end
 
-    describe '#shutdown!' do
+    describe "#shutdown!" do
       subject(:shutdown!) { test_class.shutdown! }
 
       let!(:original_components) { test_class.send(:components) }
 
-      it 'gracefully shuts down components' do
+      it "gracefully shuts down components" do
         expect(original_components).to receive(:shutdown!)
 
         shutdown!
       end
 
-      it 'does not attempt to recreate components' do
+      it "does not attempt to recreate components" do
         shutdown!
 
         expect(test_class.send(:components)).to be(original_components)
       end
     end
 
-    describe '#reset!' do
+    describe "#reset!" do
       subject(:reset!) { test_class.send(:reset!) }
 
       let!(:original_components) { test_class.send(:components) }
 
-      it 'gracefully shuts down components' do
+      it "gracefully shuts down components" do
         expect(original_components).to receive(:shutdown!)
 
         reset!
       end
 
-      it 'allows for component re-creation' do
+      it "allows for component re-creation" do
         reset!
 
         expect(test_class.send(:components)).to_not be(original_components)
       end
 
-      context 'with configuration values set' do
+      context "with configuration values set" do
         let(:default_value) { 100 }
         let(:custom_value) { 777 }
 
@@ -511,23 +511,23 @@ RSpec.describe Datadog::Core::Configuration do
           test_class.configuration.tracing.sampling.rate_limit = custom_value
         end
 
-        it 'resets the configuration' do
+        it "resets the configuration" do
           expect { reset! }.to change { test_class.configuration.tracing.sampling.rate_limit }
             .from(custom_value).to(default_value)
         end
       end
     end
 
-    describe '#components' do
-      context 'when components are not initialized' do
-        it 'initializes the components' do
+    describe "#components" do
+      context "when components are not initialized" do
+        it "initializes the components" do
           test_class.send(:components)
 
           expect(test_class.send(:components?)).to be true
         end
 
-        context 'when allow_initialization is false' do
-          it 'does not initialize the components' do
+        context "when allow_initialization is false" do
+          it "does not initialize the components" do
             test_class.send(:components, allow_initialization: false)
 
             expect(test_class.send(:components?)).to be false
@@ -535,12 +535,12 @@ RSpec.describe Datadog::Core::Configuration do
         end
       end
 
-      context 'when components are initialized' do
+      context "when components are initialized" do
         before { test_class.send(:components) }
 
         after { described_class.const_get(:COMPONENTS_WRITE_LOCK).tap { |lock| lock.unlock if lock.owned? } }
 
-        it 'returns the components without touching the COMPONENTS_WRITE_LOCK' do
+        it "returns the components without touching the COMPONENTS_WRITE_LOCK" do
           described_class.const_get(:COMPONENTS_WRITE_LOCK).lock
 
           expect(test_class.send(:components)).to_not be_nil
@@ -548,8 +548,8 @@ RSpec.describe Datadog::Core::Configuration do
       end
     end
 
-    describe '#safely_synchronize' do
-      it 'runs the given block while holding the COMPONENTS_WRITE_LOCK' do
+    describe "#safely_synchronize" do
+      it "runs the given block while holding the COMPONENTS_WRITE_LOCK" do
         block_ran = false
 
         test_class.send(:safely_synchronize) do
@@ -560,11 +560,11 @@ RSpec.describe Datadog::Core::Configuration do
         expect(block_ran).to be true
       end
 
-      it 'returns the value of the given block' do
+      it "returns the value of the given block" do
         expect(test_class.send(:safely_synchronize) { :returned_value }).to be :returned_value
       end
 
-      it 'provides a write_components callback that can be used to update the components' do
+      it "provides a write_components callback that can be used to update the components" do
         test_class.send(:safely_synchronize) do |write_components|
           write_components.call(:updated_components)
         end
@@ -572,40 +572,40 @@ RSpec.describe Datadog::Core::Configuration do
         expect(test_class.send(:components)).to be :updated_components
       end
 
-      context 'when recursive execution triggers a deadlock' do
+      context "when recursive execution triggers a deadlock" do
         subject(:safely_synchronize) { test_class.send(:safely_synchronize) { test_class.send(:safely_synchronize) } }
 
         before do
           allow(test_class.send(:logger_without_components)).to receive(:error)
         end
 
-        it 'logs an error' do
+        it "logs an error" do
           expect(test_class.send(:logger_without_components)).to receive(:error).with(/Detected deadlock/)
 
           safely_synchronize
         end
 
-        it 'does not let the exception propagate' do
+        it "does not let the exception propagate" do
           expect { safely_synchronize }.to_not raise_error
         end
 
-        it 'returns nil' do
+        it "returns nil" do
           expect(safely_synchronize).to be nil
         end
       end
     end
 
     # NOTE: This spec is a bit too coupled with the implementation, but I couldn't think of a better way (@ivoanjo)
-    describe '#handle_interrupt_shutdown!' do
+    describe "#handle_interrupt_shutdown!" do
       subject(:handle_interrupt_shutdown!) { test_class.send(:handle_interrupt_shutdown!) }
 
       let(:fake_thread) do
-        instance_double(Thread, 'fake thread').tap do |it|
-          expect(it).to(receive(:name=).with('Datadog::Core::Configuration'))
+        instance_double(Thread, "fake thread").tap do |it|
+          expect(it).to(receive(:name=).with("Datadog::Core::Configuration"))
         end
       end
 
-      it 'calls #shutdown! in a background thread' do
+      it "calls #shutdown! in a background thread" do
         allow(fake_thread).to receive(:join).and_return(fake_thread)
 
         expect(Thread).to receive(:new) do |&block|
@@ -617,7 +617,7 @@ RSpec.describe Datadog::Core::Configuration do
         handle_interrupt_shutdown!
       end
 
-      context 'when #shutdown! is taking longer than the set threshold' do
+      context "when #shutdown! is taking longer than the set threshold" do
         let(:threshold_seconds) { 0.2 }
 
         before do
@@ -628,26 +628,26 @@ RSpec.describe Datadog::Core::Configuration do
           allow(Datadog.logger).to receive(:info)
         end
 
-        it 'logs a message' do
+        it "logs a message" do
           expect(Datadog.logger).to receive(:info).with(/ctrl\+c/)
 
           handle_interrupt_shutdown!
         end
 
-        it 'waits for the background thread to finish its work' do
+        it "waits for the background thread to finish its work" do
           expect(fake_thread).to receive(:join).with(no_args)
 
           handle_interrupt_shutdown!
         end
       end
 
-      context 'when #shutdown! finishes faster than the set threshold' do
+      context "when #shutdown! finishes faster than the set threshold" do
         before do
           expect(Thread).to receive(:new).and_return(fake_thread)
           expect(fake_thread).to receive(:join).and_return(fake_thread)
         end
 
-        it 'does not log a message' do
+        it "does not log a message" do
           expect(Datadog.logger).to_not receive(:info)
 
           handle_interrupt_shutdown!

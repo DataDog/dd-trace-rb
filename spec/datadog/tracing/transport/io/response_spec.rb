@@ -1,20 +1,20 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/tracing/transport/io/response'
+require "datadog/tracing/transport/io/response"
 
 RSpec.describe Datadog::Tracing::Transport::IO::Response do
-  context 'when implemented by a class' do
+  context "when implemented by a class" do
     subject(:response) { described_class.new(result) }
 
-    let(:result) { double('result') }
+    let(:result) { double("result") }
 
-    describe '#result' do
+    describe "#result" do
       subject(:get_result) { response.result }
 
       it { is_expected.to eq result }
     end
 
-    describe '#ok?' do
+    describe "#ok?" do
       subject(:ok?) { response.ok? }
 
       it { is_expected.to be true }

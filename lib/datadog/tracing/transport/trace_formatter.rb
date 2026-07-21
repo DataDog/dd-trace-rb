@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require_relative '../../core/environment/identity'
-require_relative '../../core/environment/process'
-require_relative '../../core/environment/socket'
-require_relative '../../core/environment/git'
-require_relative '../../core/git/ext'
-require_relative '../../core/runtime/ext'
-require_relative '../metadata/ext'
-require_relative '../trace_segment'
+require_relative "../../core/environment/identity"
+require_relative "../../core/environment/process"
+require_relative "../../core/environment/socket"
+require_relative "../../core/environment/git"
+require_relative "../../core/git/ext"
+require_relative "../../core/runtime/ext"
+require_relative "../metadata/ext"
+require_relative "../trace_segment"
 
 module Datadog
   module Tracing
@@ -49,6 +49,7 @@ module Datadog
 
           tag_agent_sample_rate!
           tag_hostname!
+          tag_knuth_sampling_rate!
           tag_lang!
           tag_origin!
           tag_process_id!
@@ -107,6 +108,16 @@ module Datadog
           root_span.set_tag(
             Tracing::Metadata::Ext::NET::TAG_HOSTNAME,
             trace.hostname
+          )
+        end
+
+        def tag_knuth_sampling_rate!
+          rate = trace.rule_sample_rate || trace.agent_sample_rate
+          return unless rate
+
+          root_span.set_tag(
+            Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE,
+            format("%.6f", (rate * 1e6).round / 1e6).sub(/\.?0+\z/, "")
           )
         end
 

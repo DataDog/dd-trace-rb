@@ -2,9 +2,9 @@
 
 ## Overview
 
-Dynamic Instrumentation for Ruby is currently in **limited preview**.
+Dynamic Instrumentation for Ruby is in **limited preview**.
 While the core functionality is stable, some features available in other
-languages (Java, Python, .NET) are not yet available for Ruby.
+languages (Java, Python, .NET) are not available for Ruby.
 
 > **New to Dynamic Instrumentation?**
 > This document covers Ruby-specific setup and limitations. For an
@@ -20,11 +20,13 @@ practices for using Dynamic Instrumentation.
 
 - Datadog Agent 7.49.0 or higher
 - Ruby 2.6 or higher
-  - Only MRI (CRuby) is supported; JRuby and other Ruby implementations are not currently supported
+  - Only MRI (CRuby) is supported; JRuby and other Ruby implementations are not supported
+  - The `libdatadog_api` C extension must be compiled; DI will not
+    activate without it
 - Rack-based applications only
   - Includes Rails, Sinatra, and other Rack-compatible frameworks
-  - Non-Rack applications are not currently supported
-  - Background processes and jobs (including Sidekiq, Resque, etc.) are not yet supported
+  - Non-Rack applications are not supported
+  - Background processes and jobs (including Sidekiq, Resque, etc.) are not supported
 - [Remote Configuration Management](https://docs.datadoghq.com/remote_configuration/) enabled
   - Remote Configuration is enabled by default.
   - If it's disabled, follow the [instructions to enable it](https://docs.datadoghq.com/remote_configuration/#enable-remote-configuration).
@@ -32,7 +34,11 @@ practices for using Dynamic Instrumentation.
 
 ## Getting Started
 
-To use dynamic instrumentation:
+There are two ways to turn on Dynamic Instrumentation: from your service
+configuration (the env-var path) or from the Datadog UI when you create a
+probe (the in-app / "implicit" enablement path). Either is sufficient.
+
+### Option A: Enable from service configuration
 
 1. Enable Dynamic Instrumentation:
 
@@ -48,6 +54,21 @@ To use dynamic instrumentation:
 
        export DD_GIT_REPOSITORY_URL=https://github.com/example-org/repo
        export DD_GIT_COMMIT_SHA=`git rev-parse HEAD`
+
+### Option B: Enable from the Datadog UI ("implicit enablement")
+
+If `DD_DYNAMIC_INSTRUMENTATION_ENABLED` is unset, the tracer will still
+listen for an enablement signal from remote configuration. Creating a
+probe in the Datadog UI sends that signal, and the tracer turns on
+Dynamic Instrumentation without an application restart.
+
+The DD_ENV and source code metadata variables (steps 3 and 4 above)
+still need to be set for probes to appear correctly in the UI.
+
+**Precedence:** if `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false` is set
+explicitly, the env-var setting takes precedence and remote-config
+enablement is ignored. Leave the variable unset (do not set it to
+`false`) to allow UI-driven enablement.
 
 ## Creating Your First Probe
 
@@ -65,7 +86,7 @@ For detailed instructions on creating and configuring probes, see the
 
 ### Currently Supported
 
-Ruby Dynamic Instrumentation currently supports **log probes**, which can be
+Ruby Dynamic Instrumentation supports **log probes**, which can be
 created as either line probes or method probes.
 
 #### Line Probes
@@ -97,9 +118,13 @@ the entire method execution.
 - Exceptions raised
 
 **Limitations:**
-- Local variables defined within the method are not currently captured
+- Local variables defined within the method are not captured
 - **Workaround:** Use line probes inside the method if you need to
   capture local variables at specific points during execution
+- Method probes can only target instance methods. Class/singleton methods
+  (defined via `def self.method_name`, `class << self`, or `module_function`)
+  cannot be instrumented with method probes. Line probes inside class
+  methods still work since line probes are not method-bound.
 
 **Additional considerations:**
 - Stack traces are always captured, but methods defined via
@@ -112,9 +137,9 @@ the entire method execution.
 - You're debugging method-level behavior
 - You need to track method execution time
 
-### Not Yet Supported
+### Not Supported
 
-The following probe types available in other languages are not yet
+The following probe types available in other languages are not
 supported for Ruby:
 
 - Metric probes
@@ -206,7 +231,7 @@ can be targeted if you wish to instrument the method definition itself,
 but if you want to instrument the defined method's execution, you must
 set the line probe on a line inside of the method.
 
-**Important:** Dynamic instrumentation cannot currently report when line
+**Important:** Dynamic instrumentation cannot report when line
 probes target non-executable lines. Setting line probes on non-executable
 lines will succeed (the UI will report that the code is instrumented, if
 the referenced file is loaded and tracked), but no snapshots will be
@@ -214,20 +239,10 @@ generated.
 
 ## Code Loading and Instrumentation
 
-### Code Tracking Requirement
-- Files must be loaded **after** Dynamic Instrumentation code tracking
-  starts
-- Code loaded before the tracer initializes cannot be instrumented with
-  line probes
-- Method probes can still work for classes defined before code tracking
-  starts
-- Best practice: Ensure the Datadog tracer initializes early in your
-  application boot process
-
 ### Application Must Be Processing Requests
 - Dynamic Instrumentation is initialized via Rack middleware when
   processing HTTP requests
-- An application that has just booted but has not yet served any requests
+- An application that has just booted but has not served any requests
   will not have Dynamic Instrumentation activated
 - Dynamic Instrumentation will be automatically activated when the first
   HTTP request is processed
@@ -271,14 +286,14 @@ per-probe in the probe definition.
   data at the default depth of 3
 - Their attributes are often nested deeper than 3 levels
 - Custom serializers are available for internal Datadog use but the API
-  is not yet finalized for customer use
+  is not finalized for customer use
 - **Workaround:** Increase the capture depth for probes targeting code
   that works with complex objects
 
 #### Custom Serializers
 
 Custom serializers allow you to define how specific objects are serialized
-in Dynamic Instrumentation snapshots. The API is currently internal and
+in Dynamic Instrumentation snapshots. The API is internal and
 subject to change.
 
 **Exception Handling:** If a custom serializer's condition lambda raises
@@ -288,19 +303,59 @@ serializer will be skipped and the next serializer will be tried. This
 prevents custom serializers from breaking the entire serialization process.
 The value will fall back to default serialization.
 
-## Application Data Sent to Datadog
+## What Data Is Captured
 
 Dynamic instrumentation sends some of the application data to Datadog.
-The following data is generally sent:
 
-- Class names of objects
-- Serialized object values, subject to redaction. There are built-in
-  redaction rules based on identifier names that are always active.
-  Additionally, it is possible to provide a list of class names whose
-  object values should always be redacted, and a list of additional
-  identifiers to be redacted.
-- Exception class names and messages
-- Exception stack traces
+**Probe snapshots** (captured when probes fire):
+
+- **Variable values** — local variables, method arguments, and return
+  values, subject to the capture depth and collection size limits
+  described below. Values are automatically redacted when their
+  identifier names match built-in redaction rules. You can also
+  configure additional identifiers and class names to redact.
+- **Object class names** — the class of each captured value.
+- **Exception details** (method probes only) — the exception class name
+  and the message passed to the exception's constructor.
+  - The reported message is the value given to the constructor, not the
+    return value of the `message` method. If a custom exception class
+    overrides `message`, the reported value may differ.
+  - If the constructor argument is not a string (or is nil), the
+    exception type is still reported but the message will show as
+    redacted.
+- **Stack traces** — the call stack at the point the probe fires.
+
+**Symbol Database** (uploaded once at startup, see below):
+
+- Class, module, and method names from user application code
+- Method parameter names (not values)
+- Source file paths and line ranges
+- File content hashes (for source code version matching)
+- No runtime values, variable contents, or application data
+
+## Symbol Database
+
+The Symbol Database powers auto-completion in the Dynamic Instrumentation
+UI. When enabled, the tracer extracts symbol information (classes,
+modules, methods, parameters) from your running application and uploads
+it to Datadog via the Agent. This allows the DI UI to suggest class
+names, method names, and method parameters when creating probes.
+
+### Enabling the Symbol Database
+
+Symbol Database upload follows Dynamic Instrumentation. By default it
+uploads symbols only when Dynamic Instrumentation is actually enabled —
+either explicitly (`DD_DYNAMIC_INSTRUMENTATION_ENABLED=true`) or implicitly
+when you open the DI UI for your service (which enables Dynamic
+Instrumentation via Remote Configuration).
+
+To upload symbols regardless of Dynamic Instrumentation:
+
+    export DD_SYMBOL_DATABASE_UPLOAD_ENABLED=true
+
+To explicitly disable it:
+
+    export DD_SYMBOL_DATABASE_UPLOAD_ENABLED=false
 
 ## Rate Limiting and Performance
 

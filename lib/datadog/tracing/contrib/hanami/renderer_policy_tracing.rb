@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative '../../metadata/ext'
+require_relative "ext"
+require_relative "../../metadata/ext"
 
 module Datadog
   module Tracing
@@ -10,7 +10,7 @@ module Datadog
         # Hanami Instrumentation for `hanami.render`
         module RendererPolicyTracing
           def render(env, response)
-            action = env['hanami.action']
+            action = env["hanami.action"]
             # env['hanami.action'] could be empty for endpoints without an action
             #
             # For example in config/routes.rb:
@@ -24,6 +24,7 @@ module Datadog
               resource: action_klass.to_s,
               type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
             ) do |span_op, _trace_op|
+              span_op.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               span_op.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span_op.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_RENDER)
 

@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/appsec/spec_helper'
-require 'rack/test'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/appsec/spec_helper"
+require "rack/test"
 
-require 'rack/contrib'
-require 'datadog/tracing'
-require 'datadog/appsec'
+require "rack/contrib"
+require "datadog/tracing"
+require "datadog/appsec"
 
-RSpec.describe 'Blocking with deny and pass list configuration' do
+RSpec.describe "Blocking with deny and pass list configuration" do
   include Rack::Test::Methods
 
   let(:ip_passlist) { [] }
@@ -17,28 +17,28 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
 
   let(:sqli_blocking_ruleset) do
     {
-      'version' => '2.2',
-      'metadata' => {'rules_version' => '1.4.1'},
-      'rules' => [
+      "version" => "2.2",
+      "metadata" => {"rules_version" => "1.4.1"},
+      "rules" => [
         {
-          'id' => 'crs-942-100',
-          'name' => 'SQL Injection Attack Detected via libinjection',
-          'tags' => {'type' => 'sql_injection', 'category' => 'attack_attempt'},
-          'conditions' => [
+          "id" => "crs-942-100",
+          "name" => "SQL Injection Attack Detected via libinjection",
+          "tags" => {"type" => "sql_injection", "category" => "attack_attempt"},
+          "conditions" => [
             {
-              'parameters' => {
-                'inputs' => [
-                  {'address' => 'server.request.query'},
-                  {'address' => 'server.request.body'},
-                  {'address' => 'server.request.path_params'},
-                  {'address' => 'grpc.server.request.message'}
+              "parameters" => {
+                "inputs" => [
+                  {"address" => "server.request.query"},
+                  {"address" => "server.request.body"},
+                  {"address" => "server.request.path_params"},
+                  {"address" => "grpc.server.request.message"}
                 ]
               },
-              'operator' => 'is_sqli'
+              "operator" => "is_sqli"
             }
           ],
-          'transformers' => ['removeNulls'],
-          'on_match' => ['block']
+          "transformers" => ["removeNulls"],
+          "on_match" => ["block"]
         },
       ]
     }
@@ -52,8 +52,8 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
       use Rack::JSONBodyParser
       use Datadog::AppSec::Contrib::Rack::RequestBodyMiddleware
 
-      map '/test' do
-        run ->(_) { [200, {'Content-Type' => 'text/html'}, ['OK']] }
+      map "/test" do
+        run ->(_) { [200, {"Content-Type" => "text/html"}, ["OK"]] }
       end
     end
 
@@ -91,36 +91,36 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
 
   subject(:response) { last_response }
 
-  context 'when deny and pass lists are not set' do
-    before { get('/test', {q: '1 OR 1;'}, {'HTTP_X_FORWARDED_FOR' => '1.2.3.4'}) }
+  context "when deny and pass lists are not set" do
+    before { get("/test", {q: "1 OR 1;"}, {"HTTP_X_FORWARDED_FOR" => "1.2.3.4"}) }
 
     it { expect(response).to be_forbidden }
   end
 
-  context 'when deny and pass lists are set' do
-    let(:ip_denylist) { ['1.2.3.4'] }
-    let(:ip_passlist) { ['1.2.3.4'] }
+  context "when deny and pass lists are set" do
+    let(:ip_denylist) { ["1.2.3.4"] }
+    let(:ip_passlist) { ["1.2.3.4"] }
 
     before do
-      get('/test', {q: '1 OR 1;'}, {'HTTP_X_FORWARDED_FOR' => '1.2.3.4'})
+      get("/test", {q: "1 OR 1;"}, {"HTTP_X_FORWARDED_FOR" => "1.2.3.4"})
     end
 
     it { expect(response).to be_ok }
   end
 
-  context 'when pass list is set' do
-    let(:ip_passlist) { ['1.2.3.4'] }
+  context "when pass list is set" do
+    let(:ip_passlist) { ["1.2.3.4"] }
 
     before do
-      get('/test', {q: '1 OR 1;'}, {'HTTP_X_FORWARDED_FOR' => '1.2.3.4'})
+      get("/test", {q: "1 OR 1;"}, {"HTTP_X_FORWARDED_FOR" => "1.2.3.4"})
     end
 
     it { expect(response).to be_ok }
   end
 
-  context 'when deny and pass lists are set and body contains SQLi' do
-    let(:ip_denylist) { ['1.2.3.4'] }
-    let(:ip_passlist) { ['1.2.3.4'] }
+  context "when deny and pass lists are set and body contains SQLi" do
+    let(:ip_denylist) { ["1.2.3.4"] }
+    let(:ip_passlist) { ["1.2.3.4"] }
 
     before do
       body = {statement: <<~SQL}
@@ -128,7 +128,7 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
         select count(*) from payments where created_at >= '2025-03-01' and created_at < '2025-03-08'
       SQL
 
-      post('/test', body.to_json, {'CONTENT_TYPE' => 'application/json', 'HTTP_X_FORWARDED_FOR' => '1.2.3.4'})
+      post("/test", body.to_json, {"CONTENT_TYPE" => "application/json", "HTTP_X_FORWARDED_FOR" => "1.2.3.4"})
     end
 
     it { expect(response).to be_ok }

@@ -1,25 +1,25 @@
 # frozen_string_literal: true
 
-require_relative '../metadata/ext'
-require_relative '../trace_digest'
-require_relative 'datadog_tags_codec'
-require_relative '../utils'
-require_relative 'helpers'
+require_relative "../metadata/ext"
+require_relative "../trace_digest"
+require_relative "datadog_tags_codec"
+require_relative "../utils"
+require_relative "helpers"
 
 module Datadog
   module Tracing
     module Distributed
       # Datadog-style trace propagation.
       class Datadog
-        TRACE_ID_KEY = 'x-datadog-trace-id'
-        PARENT_ID_KEY = 'x-datadog-parent-id'
-        SAMPLING_PRIORITY_KEY = 'x-datadog-sampling-priority'
-        ORIGIN_KEY = 'x-datadog-origin'
+        TRACE_ID_KEY = "x-datadog-trace-id"
+        PARENT_ID_KEY = "x-datadog-parent-id"
+        SAMPLING_PRIORITY_KEY = "x-datadog-sampling-priority"
+        ORIGIN_KEY = "x-datadog-origin"
         # Distributed trace-level tags
-        TAGS_KEY = 'x-datadog-tags'
+        TAGS_KEY = "x-datadog-tags"
 
         # Prefix used by all Datadog-specific distributed tags
-        TAGS_PREFIX = 'x-datadog-'
+        TAGS_PREFIX = "x-datadog-"
 
         def initialize(
           fetcher:,
@@ -108,7 +108,7 @@ module Datadog
 
           return tags if high_order == 0
 
-          tags.merge(Tracing::Metadata::Ext::Distributed::TAG_TID => format('%016x', high_order))
+          tags.merge(Tracing::Metadata::Ext::Distributed::TAG_TID => format("%016x", high_order))
         end
 
         # Side effect: Remove high order 64 bit hex-encoded `tid` tag from distributed tags
@@ -127,21 +127,19 @@ module Datadog
         # DEV: This means errors cannot be reported if there's not active span.
         # DEV: Ideally, we'd have a dedicated error reporting stream for all of datadog.
         def inject_tags!(tags, data)
-          return set_tags_propagation_error(reason: 'disabled') if tags_disabled?
+          return set_tags_propagation_error(reason: "disabled") if tags_disabled?
 
           encoded_tags = DatadogTagsCodec.encode(tags)
 
-          return set_tags_propagation_error(reason: 'inject_max_size') if tags_too_large?(
-            encoded_tags.size,
-            scenario: 'inject'
-          )
+          return set_tags_propagation_error(reason: "inject_max_size") if tags_too_large?(encoded_tags, scenario: "inject")
 
           data[@tags_key] = encoded_tags
         rescue => e
-          set_tags_propagation_error(reason: 'encoding_error')
+          set_tags_propagation_error(reason: "encoding_error")
           ::Datadog.logger.warn(
-            "Failed to inject x-datadog-tags: #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
+            "Failed to inject x-datadog-tags: #{e.class}: #{e.message} at #{Array(e.backtrace).first}"
           )
+          nil
         end
 
         # Import `x-datadog-tags` tags as trace distributed tags.
@@ -154,8 +152,8 @@ module Datadog
           tags = fetcher[@tags_key]
 
           return if !tags || tags.empty?
-          return set_tags_propagation_error(reason: 'disabled') if tags_disabled?
-          return set_tags_propagation_error(reason: 'extract_max_size') if tags_too_large?(tags.size, scenario: 'extract')
+          return set_tags_propagation_error(reason: "disabled") if tags_disabled?
+          return set_tags_propagation_error(reason: "extract_max_size") if tags_too_large?(tags, scenario: "extract")
 
           tags_hash = DatadogTagsCodec.decode(tags)
           # Only extract keys with the expected Datadog prefix
@@ -164,15 +162,16 @@ module Datadog
           end
           tags_hash
         rescue => e
-          set_tags_propagation_error(reason: 'decoding_error')
+          set_tags_propagation_error(reason: "decoding_error")
           ::Datadog.logger.warn(
-            "Failed to extract x-datadog-tags: #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
+            "Failed to extract x-datadog-tags: #{e.class}: #{e.message} at #{Array(e.backtrace).first}"
           )
+          nil
         end
 
         def set_tags_propagation_error(reason:)
           active_trace = Tracing.active_trace
-          active_trace&.set_tag('_dd.propagation_error', reason)
+          active_trace&.set_tag("_dd.propagation_error", reason)
           nil
         end
 
@@ -180,20 +179,23 @@ module Datadog
           ::Datadog.configuration.tracing.x_datadog_tags_max_length <= 0
         end
 
-        def tags_too_large?(size, scenario:)
-          return false if size <= ::Datadog.configuration.tracing.x_datadog_tags_max_length
+        def tags_too_large?(tags, scenario:)
+          size = tags.bytesize
+          max_length = ::Datadog.configuration.tracing.x_datadog_tags_max_length
+
+          return false if size <= max_length
 
           ::Datadog.logger.warn(
-            "Failed to #{scenario} x-datadog-tags: tags are too large for configured limit (size:#{size} >= " \
-              "limit:#{::Datadog.configuration.tracing.x_datadog_tags_max_length}). This limit can be configured " \
-              'through the DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH environment variable.'
+            "Failed to #{scenario} x-datadog-tags: tags are too large for configured limit (bytesize:#{size} >= " \
+              "limit:#{max_length}). This limit can be configured " \
+              "through the DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH environment variable."
           )
 
           true
         end
 
         # We want to exclude tags that we don't want to propagate downstream.
-        EXCLUDED_TAG = '_dd.p.upstream_services'
+        EXCLUDED_TAG = "_dd.p.upstream_services"
         private_constant :EXCLUDED_TAG
       end
     end

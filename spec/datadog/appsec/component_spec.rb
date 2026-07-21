@@ -1,51 +1,52 @@
-require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/component'
+require "datadog/appsec/spec_helper"
+require "datadog/appsec/component"
 
 RSpec.describe Datadog::AppSec::Component do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:settings) { Datadog::Core::Configuration::Settings.new }
 
-  describe '.build_appsec_component' do
-    context 'when appsec is enabled' do
+  describe ".build_appsec_component" do
+    context "when appsec is enabled" do
       before do
         settings.appsec.enabled = true
         allow(telemetry).to receive(:inc)
       end
 
-      it 'returns a Datadog::AppSec::Component instance' do
+      it "returns a Datadog::AppSec::Component instance" do
         component = described_class.build_appsec_component(settings, telemetry: telemetry)
         expect(component).to be_a(described_class)
       end
 
-      context 'when using ffi version that is known to leak memory with Ruby >= 3.3.0' do
+      context "when using ffi version that is known to leak memory with Ruby >= 3.3.0" do
         before do
-          stub_const('RUBY_VERSION', '3.3.0')
-          allow(Gem).to receive(:loaded_specs).and_return('ffi' => double(version: Gem::Version.new('1.15.4')))
+          stub_const("RUBY_VERSION", "3.3.0")
+          stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
+          allow(Gem).to receive(:loaded_specs).and_return("ffi" => double(version: Gem::Version.new("1.15.4")))
         end
 
-        it 'returns nil, warns and reports telemetry' do
+        it "returns nil, warns and reports telemetry" do
           expect(Datadog.logger).to receive(:warn)
           expect(telemetry).to receive(:error)
-            .with('AppSec: Component not loaded, ffi version is leaky with ruby > 3.3.0')
+            .with("AppSec: Component not loaded, ffi version is leaky with ruby > 3.3.0")
 
           component = described_class.build_appsec_component(settings, telemetry: telemetry)
           expect(component).to be_nil
         end
       end
 
-      context 'when ffi is not loaded' do
+      context "when ffi is not loaded" do
         before { allow(Gem).to receive(:loaded_specs).and_return({}) }
 
-        it 'returns nil, warns and reports telemetry' do
+        it "returns nil, warns and reports telemetry" do
           expect(Datadog.logger).to receive(:warn)
-          expect(telemetry).to receive(:error).with('AppSec: Component not loaded, due to missing FFI gem')
+          expect(telemetry).to receive(:error).with("AppSec: Component not loaded, due to missing FFI gem")
 
           component = described_class.build_appsec_component(settings, telemetry: telemetry)
           expect(component).to be_nil
         end
       end
 
-      it 'returns nil when security engine fails to instantiate' do
+      it "returns nil when security engine fails to instantiate" do
         settings.appsec.ruleset = {}
 
         expect(telemetry).to receive(:report)
@@ -53,21 +54,33 @@ RSpec.describe Datadog::AppSec::Component do
 
         expect(described_class.build_appsec_component(settings, telemetry: telemetry)).to be_nil
       end
+
+      context "when require of libddwaf raises non standard exception" do
+        before do
+          allow(described_class).to receive(:require_libddwaf).and_raise(LoadError, "libddwaf not found")
+        end
+
+        it "returns nil and logs a warning" do
+          expect(Datadog.logger).to receive(:warn).with(/LoadError.*libddwaf not found/)
+
+          expect(described_class.build_appsec_component(settings, telemetry: telemetry)).to be_nil
+        end
+      end
     end
 
-    context 'when appsec is not enabled' do
+    context "when appsec is not enabled" do
       before do
         settings.appsec.enabled = false
       end
 
-      it 'returns nil' do
+      it "returns nil" do
         component = described_class.build_appsec_component(settings, telemetry: telemetry)
         expect(component).to be_nil
       end
     end
 
-    context 'when appsec is not active' do
-      it 'returns nil' do
+    context "when appsec is not active" do
+      it "returns nil" do
         component = described_class.build_appsec_component(
           double(Datadog::Core::Configuration::Settings),
           telemetry: telemetry

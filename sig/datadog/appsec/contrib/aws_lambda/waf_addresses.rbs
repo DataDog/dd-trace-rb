@@ -1,0 +1,31 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module AwsLambda
+        module WAFAddresses
+          BASE64_CHARS_PER_GROUP: Integer
+          BASE64_BYTES_PER_GROUP: Integer
+          BASE64_PADDING_BYTE: Integer
+
+          def self?.from_request: (Hash[String, untyped] payload) -> Hash[String, untyped]
+
+          def self?.from_response: (Hash[String, untyped]? payload) -> Hash[String, untyped]
+
+          def self?.parse_headers: (Hash[String, untyped] payload) -> Hash[String, String]
+
+          def self?.parse_cookies: (Hash[String, untyped] payload, Hash[String, String] headers) -> Hash[String, String?]?
+
+          def self?.build_fullpath: (Hash[String, untyped] payload) -> String?
+
+          def self?.build_query_string: (Hash[String, untyped] payload) -> String?
+
+          def self?.extract_client_ip: (String? remote_ip, Hash[String, String] headers) -> String?
+
+          def self?.parse_body: (Hash[String, untyped] payload, Hash[String, String] headers) -> untyped
+
+          def self?.body_byte_length: (Hash[String, untyped] payload) -> Integer?
+        end
+      end
+    end
+  end
+end

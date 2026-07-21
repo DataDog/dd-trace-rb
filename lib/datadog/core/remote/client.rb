@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'securerandom'
+require "securerandom"
 
-require_relative 'configuration'
-require_relative 'dispatcher'
+require_relative "configuration"
+require_relative "dispatcher"
 
 module Datadog
   module Core
@@ -43,7 +43,7 @@ module Datadog
         def process_response(response)
           # when response is completely empty, do nothing as in: leave as is
           if response.empty?
-            logger.debug { 'remote: empty response => NOOP' }
+            logger.debug { "remote: empty response => NOOP" }
 
             return
           end
@@ -57,7 +57,7 @@ module Datadog
 
             contents = Configuration::ContentList.parse(response.target_files)
           rescue Remote::Configuration::Path::ParseError => e
-            raise SyncError, e.message
+            raise SyncError, "#{e.class}: #{e.message}"
           end
 
           # To make sure steep does not complain
@@ -117,7 +117,7 @@ module Datadog
           end
 
           if changes.empty?
-            logger.debug { 'remote: no changes' }
+            logger.debug { "remote: no changes" }
           else
             dispatcher.dispatch(changes, repository)
           end
@@ -210,40 +210,40 @@ module Datadog
         def native_platform
           return @native_platform unless @native_platform.nil?
 
-          os = if RUBY_ENGINE == 'jruby'
-            os_name = java.lang.System.get_property('os.name')
+          os = if RUBY_ENGINE == "jruby"
+            os_name = java.lang.System.get_property("os.name")
 
             case os_name
-            when /linux/i then 'linux'
-            when /mac/i then 'darwin'
+            when /linux/i then "linux"
+            when /mac/i then "darwin"
             else os_name
             end
           else
             Gem::Platform.local.os
           end
 
-          version = if os != 'linux'
+          version = if os != "linux"
             nil
           elsif RUBY_PLATFORM =~ /linux-(.+)$/
             # Old rubygems don't handle non-gnu linux correctly
             Regexp.last_match(1)
           else
-            'gnu'
+            "gnu"
           end
 
-          cpu = if RUBY_ENGINE == 'jruby'
-            os_arch = java.lang.System.get_property('os.arch')
+          cpu = if RUBY_ENGINE == "jruby"
+            os_arch = java.lang.System.get_property("os.arch")
 
             case os_arch
-            when 'amd64' then 'x86_64'
-            when 'aarch64' then (os == 'darwin') ? 'arm64' : 'aarch64'
+            when "amd64" then "x86_64"
+            when "aarch64" then (os == "darwin") ? "arm64" : "aarch64"
             else os_arch
             end
           else
             Gem::Platform.local.cpu
           end
 
-          @native_platform = [cpu, os, version].compact.join('-')
+          @native_platform = [cpu, os, version].compact.join("-")
         end
 
         GemSpecificationFallback = _ = Struct.new(:version, :platform) # rubocop:disable Naming/ConstantName

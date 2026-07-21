@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-require 'datadog/core/remote/component'
+require "spec_helper"
+require "datadog/core/remote/component"
 
 RSpec.describe Datadog::Core::Remote::Component, :integration do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
@@ -12,32 +12,32 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
 
   let(:logger) { logger_allowing_debug }
 
-  with_env 'DD_REMOTE_CONFIGURATION_ENABLED' => nil
+  with_env "DD_REMOTE_CONFIGURATION_ENABLED" => nil
 
-  describe '.build' do
+  describe ".build" do
     subject(:build) { described_class.build(settings, agent_settings, logger: logger, telemetry: telemetry) }
 
     after { build&.shutdown! }
 
-    context 'remote disabled' do
+    context "remote disabled" do
       let(:remote) do
-        mock = double('remote')
+        mock = double("remote")
         expect(mock).to receive(:enabled).and_return(false)
         mock
       end
 
       before { expect(settings).to receive(:remote).and_return(remote) }
 
-      it 'returns nil ' do
+      it "returns nil " do
         is_expected.to be_nil
       end
     end
 
-    context 'enabled' do
-      let(:capabilities) { double('capabilities') }
-      let(:component) { double('component', shutdown!: nil) }
+    context "enabled" do
+      let(:capabilities) { double("capabilities") }
+      let(:component) { double("component", shutdown!: nil) }
 
-      it 'initializes component' do
+      it "initializes component" do
         expect(Datadog::Core::Remote::Client::Capabilities).to receive(:new).with(
           settings,
           telemetry
@@ -54,15 +54,15 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
     end
   end
 
-  describe '#initialize' do
+  describe "#initialize" do
     subject(:component) { described_class.new(settings, capabilities, agent_settings, logger: logger) }
 
     after do
       component.shutdown!
     end
 
-    context 'logging' do
-      it 'logs client ID and registered products' do
+    context "logging" do
+      it "logs client ID and registered products" do
         expect(logger).to receive(:debug) do |&block|
           message = block.call
           expect(message).to match(/new remote configuration client: [0-9a-f-]+/)
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
       end
     end
 
-    context 'worker' do
+    context "worker" do
       let(:worker) { component.instance_eval { @worker } }
       let(:client) { double }
       let(:transport_v7) { double }
@@ -87,33 +87,33 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
         expect(worker).to receive(:stop).and_call_original
       end
 
-      context 'when client sync succeeds' do
+      context "when client sync succeeds" do
         before do
           expect(negotiation).to receive(:endpoint?).and_return(true)
           expect(worker).to receive(:call).and_call_original
           expect(client).to receive(:sync).and_return(nil)
         end
 
-        it 'does not log any error' do
+        it "does not log any error" do
           expect(logger).to_not receive(:error)
 
           component.barrier(:once)
         end
       end
 
-      context 'when client sync raises' do
+      context "when client sync raises" do
         before do
           expect(negotiation).to receive(:endpoint?).and_return(true)
           expect(worker).to receive(:call).and_call_original
-          expect(client).to receive(:sync).and_raise(exception, 'test')
+          expect(client).to receive(:sync).and_raise(exception, "test")
           allow(logger).to receive(:error).and_return(nil)
         end
 
-        context 'StandardError' do
+        context "StandardError" do
           let(:second_client) { double }
           let(:exception) { Class.new(StandardError) }
 
-          it 'logs an error' do
+          it "logs an error" do
             allow(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
 
             expect(logger).to receive(:error).and_return(nil)
@@ -121,7 +121,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
             component.barrier(:once)
           end
 
-          it 'catches exceptions' do
+          it "catches exceptions" do
             allow(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
 
             # if the error is uncaught it will crash the test, so a mere passing is good
@@ -129,7 +129,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
             component.barrier(:once)
           end
 
-          it 'creates a new client' do
+          it "creates a new client" do
             expect(Datadog::Core::Remote::Client).to receive(:new).and_return(second_client)
 
             expect(component.client.object_id).to eql(client.object_id)
@@ -139,7 +139,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
             expect(component.client.object_id).to eql(second_client.object_id)
           end
 
-          it 'resets the negotiation object' do
+          it "resets the negotiation object" do
             allow(Datadog::Core::Remote::Client).to receive(:new).and_return(second_client)
 
             component.barrier(:once)
@@ -148,10 +148,10 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
           end
         end
 
-        context 'Client::SyncError' do
+        context "Client::SyncError" do
           let(:exception) { Class.new(Datadog::Core::Remote::Client::SyncError) }
 
-          it 'logs an error' do
+          it "logs an error" do
             allow(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
 
             expect(logger).to receive(:error).and_return(nil)
@@ -159,7 +159,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
             component.barrier(:once)
           end
 
-          it 'catches exceptions' do
+          it "catches exceptions" do
             allow(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
 
             # if the error is uncaught it will crash the test, so a mere passing is good
@@ -167,7 +167,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
             component.barrier(:once)
           end
 
-          it 'does not creates a new client' do
+          it "does not creates a new client" do
             expect(Datadog::Core::Remote::Client).to_not receive(:new)
 
             expect(component.client.object_id).to eql(client.object_id)
@@ -181,43 +181,43 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
     end
   end
 
-  describe '#start' do
+  describe "#start" do
     subject(:start) { component.start }
     after { component.shutdown! }
 
     before do
       allow_any_instance_of(Datadog::Core::Remote::Negotiation).to receive(:endpoint?).and_return(true)
-      allow(component.worker.instance_variable_get("@block")).to receive(:call)
+      allow(component.worker.instance_variable_get(:@block)).to receive(:call)
     end
 
     it { expect { start }.to change { component.started? }.from(false).to(true) }
 
-    it 'does not wait for first sync' do
+    it "does not wait for first sync" do
       expect(component.client).to_not receive(:sync)
       start
     end
 
-    context 'when already started' do
+    context "when already started" do
       before { component.start }
 
       it { expect { start }.to_not change { component.started? }.from(true) }
     end
   end
 
-  describe '#started?' do
+  describe "#started?" do
     subject(:started?) { component.started? }
 
-    context 'before start' do
+    context "before start" do
       it { is_expected.to eq(false) }
     end
 
-    context 'after start' do
+    context "after start" do
       before { component.start }
       after { component.shutdown! }
 
       it { is_expected.to eq(true) }
 
-      context 'then shutdown' do
+      context "then shutdown" do
         before { component.shutdown! }
 
         it { is_expected.to eq(false) }
@@ -225,7 +225,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
     end
   end
 
-  describe '#after_fork' do
+  describe "#after_fork" do
     subject(:after_fork) { component.after_fork }
 
     let(:original_client) { component.client }
@@ -233,20 +233,20 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
 
     after { component.shutdown! }
 
-    it 'creates a new client instance' do
+    it "creates a new client instance" do
       expect { after_fork }.to change { component.client.object_id }
     end
 
-    it 'generates a new client ID' do
+    it "generates a new client ID" do
       expect { after_fork }.to change { component.client.id }.from(original_client_id)
     end
 
-    it 'resets healthy flag to false' do
+    it "resets healthy flag to false" do
       component.instance_variable_set(:@healthy, true)
       expect { after_fork }.to change { component.healthy }.from(true).to(false)
     end
 
-    it 'logs the new client ID and products' do
+    it "logs the new client ID and products" do
       # Allow the initial debug message during component initialization
       allow(logger).to receive(:debug)
 
@@ -262,6 +262,23 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
       after_fork
     end
   end
+
+  describe "runtime product subscription" do
+    subject(:component) { described_class.new(settings, capabilities, agent_settings, logger: logger) }
+
+    after { component.shutdown! }
+
+    it "#add_products advertises on the capabilities read by the client payload" do
+      component.add_products("LIVE_DEBUGGING")
+      expect(capabilities.products).to include("LIVE_DEBUGGING")
+    end
+
+    it "#remove_products withdraws a previously advertised product" do
+      component.add_products("LIVE_DEBUGGING")
+      component.remove_products("LIVE_DEBUGGING")
+      expect(capabilities.products).to_not include("LIVE_DEBUGGING")
+    end
+  end
 end
 
 RSpec.describe Datadog::Core::Remote::Component::Barrier do
@@ -272,7 +289,7 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
   subject(:barrier) { described_class.new(instance_timeout) }
 
-  shared_context('lifter thread') do
+  shared_context("lifter thread") do
     let(:thr) do
       Thread.new do
         loop do
@@ -294,19 +311,19 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
     end
   end
 
-  describe '#initialize' do
-    it 'accepts one argument' do
+  describe "#initialize" do
+    it "accepts one argument" do
       expect { described_class.new(instance_timeout) }.to_not raise_error
     end
 
-    it 'accepts zero argument' do
+    it "accepts zero argument" do
       expect { described_class.new }.to_not raise_error
     end
   end
 
-  describe '#lift' do
-    context 'without waiters' do
-      it 'does not block' do
+  describe "#lift" do
+    context "without waiters" do
+      it "does not block" do
         record << :one
         barrier.lift
         record << :two
@@ -315,9 +332,9 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
       end
     end
 
-    context 'with waiters' do
-      it 'unblocks waiters' do
-        skip('Known flaky (assertion below sometimes fails with timeout)')
+    context "with waiters" do
+      it "unblocks waiters" do
+        skip("Known flaky (assertion below sometimes fails with timeout)")
 
         waiter_thread = Thread.new(record) do |record|
           record << :one
@@ -352,10 +369,10 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
     end
   end
 
-  describe '#wait_once' do
-    include_context 'lifter thread'
+  describe "#wait_once" do
+    include_context "lifter thread"
 
-    it 'blocks once' do
+    it "blocks once" do
       record << :one
       expect(barrier.wait_once).to eq :lift
       record << :two
@@ -363,7 +380,7 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
       expect(record).to eq [:one, :lift, :two]
     end
 
-    it 'blocks only once' do
+    it "blocks only once" do
       record << :one
       expect(barrier.wait_once).to eq :lift
       record << :two
@@ -373,11 +390,11 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
       expect(record).to eq [:one, :lift, :two, :three]
     end
 
-    context('with a local timeout') do
+    context("with a local timeout") do
       let(:timeout) { delay / 4 }
 
-      context('shorter than lift') do
-        it 'unblocks on timeout' do
+      context("shorter than lift") do
+        it "unblocks on timeout" do
           record << :one
           expect(barrier.wait_once(timeout)).to eq :timeout
           record << :two
@@ -388,10 +405,10 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
         end
       end
 
-      context('longer than lift') do
+      context("longer than lift") do
         let(:timeout) { delay * 2 }
 
-        it 'unblocks before timeout' do
+        it "unblocks before timeout" do
           record << :one
           expect(barrier.wait_once(timeout)).to eq :lift
           record << :two
@@ -402,10 +419,10 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
         end
       end
 
-      context('and an instance timeout') do
+      context("and an instance timeout") do
         let(:instance_timeout) { delay * 2 }
 
-        it 'prefers the local timeout' do
+        it "prefers the local timeout" do
           record << :one
           expect(barrier.wait_once(timeout)).to eq :timeout
           record << :two
@@ -417,7 +434,7 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
       end
     end
 
-    context('with an instance timeout') do
+    context("with an instance timeout") do
       let(:instance_timeout) { delay / 4 }
 
       it "unblocks on timeout with" do
@@ -428,6 +445,16 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
         record << :three
 
         expect(record).to eq [:one, :two, :three]
+      end
+    end
+
+    context "when lift happens before wait_once" do
+      it "returns :lift on first call, not :pass" do
+        # Simulate the race: worker lifts barrier before wait_once is called
+        barrier.lift
+
+        expect(barrier.wait_once).to eq :lift
+        expect(barrier.wait_once).to eq :pass
       end
     end
   end
