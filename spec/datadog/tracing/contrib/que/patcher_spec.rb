@@ -1,9 +1,9 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog'
-require 'que'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog"
+require "que"
 
 RSpec.describe Datadog::Tracing::Contrib::Que::Patcher do
-  describe '.patch' do
+  describe ".patch" do
     subject!(:patch) { described_class.patch }
 
     let(:middlewares) { ::Que.job_middleware.to_a }

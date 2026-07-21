@@ -1,58 +1,58 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/svc_src_examples'
-require_relative 'support/helper'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/tracing/contrib/svc_src_examples"
+require_relative "support/helper"
 
-RSpec.describe 'Tracer configuration' do
-  include_context 'Sidekiq testing'
+RSpec.describe "Tracer configuration" do
+  include_context "Sidekiq testing"
 
   subject(:perform_async) { job_class.perform_async }
 
   let(:job_class) { EmptyWorker }
   let(:on_error) { nil }
 
-  context 'with custom middleware configuration' do
+  context "with custom middleware configuration" do
     before do
       Sidekiq::Testing.server_middleware do |chain|
         chain.add(
           Datadog::Tracing::Contrib::Sidekiq::ServerTracer,
-          service_name: 'my-service',
+          service_name: "my-service",
           on_error: on_error
         )
       end
     end
 
-    it 'instruments with custom values' do
+    it "instruments with custom values" do
       perform_async
 
       expect(spans).to have(2).items
 
       span, _push = spans
-      expect(span.service).to eq('my-service')
+      expect(span.service).to eq("my-service")
     end
 
-    it_behaves_like 'tags _dd.svc_src', 'sidekiq' do
+    it_behaves_like "tags _dd.svc_src", "sidekiq" do
       let(:span) { spans.first }
       before { perform_async }
     end
 
-    context 'with custom error handler' do
+    context "with custom error handler" do
       let(:job_class) { ErrorWorker }
       let(:on_error) { proc { @error_handler_called = true } }
 
       before do
         stub_const(
-          'ErrorWorker',
+          "ErrorWorker",
           Class.new do
             include Sidekiq::Worker
 
             def perform
-              raise ZeroDivisionError, 'job error'
+              raise ZeroDivisionError, "job error"
             end
           end
         )
       end
 
-      it 'uses custom error handler' do
+      it "uses custom error handler" do
         expect { perform_async }.to raise_error(ZeroDivisionError)
         expect(@error_handler_called).to be_truthy
       end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../core/utils/only_once'
-require_relative '../../core/telemetry/logger'
+require_relative "../../core/utils/only_once"
+require_relative "../../core/telemetry/logger"
 
 module Datadog
   module Tracing

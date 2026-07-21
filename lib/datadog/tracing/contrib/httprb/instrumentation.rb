@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../http'
-require_relative '../analytics'
-require_relative '../http_annotation_helper'
-require_relative '../../../core/telemetry/logger'
+require_relative "../../metadata/ext"
+require_relative "../http"
+require_relative "../analytics"
+require_relative "../http_annotation_helper"
+require_relative "../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -106,7 +106,7 @@ module Datadog
               if request_options[:error_status_codes].include? response.code.to_i
                 # https://github.com/DataDog/dd-trace-rb/issues/1116
                 # parsing the response body message will alter downstream application behavior
-                span.set_error(["Error #{response.code}", 'Error'])
+                span.set_error(["Error #{response.code}", "Error"])
               end
 
               span.set_tags(

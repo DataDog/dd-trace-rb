@@ -19,11 +19,15 @@ module Datadog
 
       @flag_eval_evp_writer: FlagEvaluation::Writer?
 
+      @span_enrichment_hook: Hooks::SpanEnrichmentHook?
+
       attr_reader engine: EvaluationEngine
 
       attr_reader flag_eval_metrics_hook: Hooks::FlagEvalMetricsHook?
 
       attr_reader flag_eval_evp_hook: Hooks::FlagEvalEVPHook?
+
+      attr_reader span_enrichment_hook: Hooks::SpanEnrichmentHook?
 
       def self.build: (
         Core::Configuration::Settings settings,
@@ -46,6 +50,8 @@ module Datadog
       def create_flag_eval_metrics_hook: () -> Hooks::FlagEvalMetricsHook?
 
       def create_flag_eval_evp_hook: () -> Hooks::FlagEvalEVPHook?
+
+      def create_span_enrichment_hook: () -> Hooks::SpanEnrichmentHook?
     end
   end
 end

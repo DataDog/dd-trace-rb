@@ -8,7 +8,7 @@ RSpec.describe Datadog::DI::Probe do
 
   shared_context "method probe" do
     let(:probe) do
-      described_class.new(id: "42", type: :log, type_name: 'Foo', method_name: "bar")
+      described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar")
     end
   end
 
@@ -47,7 +47,7 @@ RSpec.describe Datadog::DI::Probe do
       end
     end
 
-    context 'line number given but file is not' do
+    context "line number given but file is not" do
       let(:probe) do
         described_class.new(id: "42", type: :log, line_no: 5)
       end
@@ -59,14 +59,14 @@ RSpec.describe Datadog::DI::Probe do
       end
     end
 
-    context 'unsupported type' do
+    context "unsupported type" do
       let(:probe) do
         # LOG_PROBE is a valid type in RC probe specification but not
         # as an argument to Probe constructor.
-        described_class.new(id: '42', type: 'LOG_PROBE', file: 'x', line_no: 1)
+        described_class.new(id: "42", type: "LOG_PROBE", file: "x", line_no: 1)
       end
 
-      it 'raises ArgumentError' do
+      it "raises ArgumentError" do
         expect do
           probe
         end.to raise_error(ArgumentError, /Unknown probe type/)
@@ -164,7 +164,7 @@ RSpec.describe Datadog::DI::Probe do
 
   describe "#line_no" do
     context "one line number" do
-      let(:probe) { described_class.new(id: "x", type: :log, file: 'x', line_no: 5) }
+      let(:probe) { described_class.new(id: "x", type: :log, file: "x", line_no: 5) }
 
       it "returns the line number" do
         expect(probe.line_no).to eq 5
@@ -182,7 +182,7 @@ RSpec.describe Datadog::DI::Probe do
 
   describe "#line_no!" do
     context "one line number" do
-      let(:probe) { described_class.new(id: "x", type: :log, file: 'x', line_no: 5) }
+      let(:probe) { described_class.new(id: "x", type: :log, file: "x", line_no: 5) }
 
       it "returns the line number" do
         expect(probe.line_no!).to eq 5

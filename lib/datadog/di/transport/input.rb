@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require_relative '../../core/chunker'
-require_relative '../../core/encoding'
-require_relative '../../core/tag_builder'
-require_relative '../../core/transport/parcel'
-require_relative '../../core/transport/request'
-require_relative '../../core/transport/transport'
-require_relative '../error'
-require_relative '../fatal_exceptions'
-require_relative 'http/input'
+require_relative "../../core/chunker"
+require_relative "../../core/encoding"
+require_relative "../../core/tag_builder"
+require_relative "../../core/transport/parcel"
+require_relative "../../core/transport/request"
+require_relative "../../core/transport/transport"
+require_relative "../error"
+require_relative "../fatal_exceptions"
+require_relative "http/input"
 
 module Datadog
   module DI

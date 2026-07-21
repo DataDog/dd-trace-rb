@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../core/utils/duration'
-require_relative 'sample_rate'
+require_relative "../core/utils/duration"
+require_relative "sample_rate"
 
 module Datadog
   module AppSec
@@ -14,26 +14,26 @@ module Datadog
         DEFAULT_OBFUSCATOR_VALUE_REGEX = '(?i)(?:p(?:ass)?w(?:or)?d|pass(?:[_-]?phrase)?|secret(?:[_-]?key)?|(?:(?:api|private|public|access)[_-]?)key(?:[_-]?id)?|(?:(?:auth|access|id|refresh)[_-]?)?token|consumer[_-]?(?:id|key|secret)|sign(?:ed|ature)?|auth(?:entication|orization)?|jsessionid|phpsessid|asp\.net(?:[_-]|-)sessionid|sid|jwt)(?:\s*=[^;]|"\s*:\s*"[^"]+")|bearer\s+[a-z0-9\._\-]+|token:[a-z0-9]{13}|gh[opsu]_[0-9a-zA-Z]{36}|ey[I-L][\w=-]+\.ey[I-L][\w=-]+(?:\.[\w.+\/=-]+)?|[\-]{5}BEGIN[a-z\s]+PRIVATE\sKEY[\-]{5}[^\-]+[\-]{5}END[a-z\s]+PRIVATE\sKEY|ssh-rsa\s*[a-z0-9\/\.+]{100,}'
         # rubocop:enable Layout/LineLength
 
-        DISABLED_AUTO_USER_INSTRUMENTATION_MODE = 'disabled'
-        ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE = 'anonymization'
-        IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE = 'identification'
+        DISABLED_AUTO_USER_INSTRUMENTATION_MODE = "disabled"
+        ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE = "anonymization"
+        IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE = "identification"
         AUTO_USER_INSTRUMENTATION_MODES = [
           DISABLED_AUTO_USER_INSTRUMENTATION_MODE,
           ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE,
           IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE
         ].freeze
         AUTO_USER_INSTRUMENTATION_MODES_ALIASES = {
-          'ident' => IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE,
-          'anon' => ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE,
+          "ident" => IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE,
+          "anon" => ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE,
         }.freeze
 
         # NOTE: These two constants are deprecated
-        SAFE_TRACK_USER_EVENTS_MODE = 'safe'
-        EXTENDED_TRACK_USER_EVENTS_MODE = 'extended'
+        SAFE_TRACK_USER_EVENTS_MODE = "safe"
+        EXTENDED_TRACK_USER_EVENTS_MODE = "extended"
         APPSEC_VALID_TRACK_USER_EVENTS_MODE = [
           SAFE_TRACK_USER_EVENTS_MODE, EXTENDED_TRACK_USER_EVENTS_MODE
         ].freeze
-        APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES = ['1', 'true'].concat(
+        APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES = ["1", "true"].concat(
           APPSEC_VALID_TRACK_USER_EVENTS_MODE
         ).freeze
 
@@ -48,7 +48,7 @@ module Datadog
             settings :appsec do
               option :enabled do |o|
                 o.type :bool
-                o.env 'DD_APPSEC_ENABLED'
+                o.env "DD_APPSEC_ENABLED"
                 o.default false
               end
 
@@ -70,12 +70,12 @@ module Datadog
               # any potential side-effects on the application resulting from the use of said malicious inputs.
               option :rasp_enabled do |o|
                 o.type :bool, nilable: true
-                o.env 'DD_APPSEC_RASP_ENABLED'
+                o.env "DD_APPSEC_RASP_ENABLED"
                 o.default true
               end
 
               option :ruleset do |o|
-                o.env 'DD_APPSEC_RULES'
+                o.env "DD_APPSEC_RULES"
                 o.default :recommended
               end
 
@@ -86,8 +86,8 @@ module Datadog
                   next value if value.nil? || value.empty?
 
                   Datadog::Core.log_deprecation(disallowed_next_major: false) do
-                    'The ip_passlist setting is deprecated and will be removed in the next release. ' \
-                    'Please migrate this configuration to your service settings via the Datadog UI'
+                    "The ip_passlist setting is deprecated and will be removed in the next release. " \
+                    "Please migrate this configuration to your service settings via the Datadog UI"
                   end
 
                   value
@@ -102,8 +102,8 @@ module Datadog
                   next value if value.nil? || value.empty?
 
                   Datadog::Core.log_deprecation(disallowed_next_major: false) do
-                    'The ip_denylist setting is deprecated and will be removed in the next release. ' \
-                    'Please migrate this configuration to your service settings via the Datadog UI'
+                    "The ip_denylist setting is deprecated and will be removed in the next release. " \
+                    "Please migrate this configuration to your service settings via the Datadog UI"
                   end
 
                   value
@@ -118,8 +118,8 @@ module Datadog
                   next value if value.nil? || value.empty?
 
                   Datadog::Core.log_deprecation(disallowed_next_major: false) do
-                    'The user_id_denylist setting is deprecated and will be removed in the next release. ' \
-                    'Please migrate this configuration to your service settings via the Datadog UI'
+                    "The user_id_denylist setting is deprecated and will be removed in the next release. " \
+                    "Please migrate this configuration to your service settings via the Datadog UI"
                   end
 
                   value
@@ -127,7 +127,7 @@ module Datadog
               end
 
               option :waf_timeout do |o|
-                o.env 'DD_APPSEC_WAF_TIMEOUT' # us
+                o.env "DD_APPSEC_WAF_TIMEOUT" # us
                 o.default 5_000
                 o.setter do |v|
                   Datadog::Core::Utils::Duration.call(v.to_s, base: :us)
@@ -137,38 +137,38 @@ module Datadog
               # NOTE: A value of 0 (or less) disables request body collection
               option :body_parsing_size_limit do |o|
                 o.type :int
-                o.env 'DD_APPSEC_BODY_PARSING_SIZE_LIMIT' # bytes
+                o.env "DD_APPSEC_BODY_PARSING_SIZE_LIMIT" # bytes
                 o.default 10_485_760
               end
 
               option :waf_debug do |o|
-                o.env 'DD_APPSEC_WAF_DEBUG'
+                o.env "DD_APPSEC_WAF_DEBUG"
                 o.default false
                 o.type :bool
               end
 
               option :trace_rate_limit do |o|
                 o.type :int
-                o.env 'DD_APPSEC_TRACE_RATE_LIMIT' # trace/s
+                o.env "DD_APPSEC_TRACE_RATE_LIMIT" # trace/s
                 o.default 100
               end
 
               option :obfuscator_key_regex do |o|
                 o.type :string
-                o.env 'DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP'
+                o.env "DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP"
                 o.default DEFAULT_OBFUSCATOR_KEY_REGEX
               end
 
               option :obfuscator_value_regex do |o|
                 o.type :string
-                o.env 'DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP'
+                o.env "DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP"
                 o.default DEFAULT_OBFUSCATOR_VALUE_REGEX
               end
 
               settings :block do
                 settings :templates do
                   option :html do |o|
-                    o.env 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML'
+                    o.env "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML"
                     o.type :string, nilable: true
                     o.setter do |value|
                       if value
@@ -177,13 +177,13 @@ module Datadog
                             "appsec.templates.html: file not found: #{value}")
                         end
 
-                        File.binread(value) || ''
+                        File.binread(value) || ""
                       end
                     end
                   end
 
                   option :json do |o|
-                    o.env 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON'
+                    o.env "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON"
                     o.type :string, nilable: true
                     o.setter do |value|
                       if value
@@ -192,13 +192,13 @@ module Datadog
                             "appsec.templates.json: file not found: #{value}")
                         end
 
-                        File.binread(value) || ''
+                        File.binread(value) || ""
                       end
                     end
                   end
 
                   option :text do |o|
-                    o.env 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT'
+                    o.env "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT"
                     o.type :string, nilable: true
                     o.setter do |value|
                       if value
@@ -207,7 +207,7 @@ module Datadog
                             "appsec.templates.text: file not found: #{value}")
                         end
 
-                        File.binread(value) || ''
+                        File.binread(value) || ""
                       end
                     end
                   end
@@ -217,7 +217,7 @@ module Datadog
               settings :stack_trace do
                 option :enabled do |o|
                   o.type :bool
-                  o.env 'DD_APPSEC_STACK_TRACE_ENABLED'
+                  o.env "DD_APPSEC_STACK_TRACE_ENABLED"
                   o.default true
                 end
 
@@ -233,7 +233,7 @@ module Datadog
                 # Default value is 32
                 option :max_depth do |o|
                   o.type :int
-                  o.env 'DD_APPSEC_MAX_STACK_TRACE_DEPTH'
+                  o.env "DD_APPSEC_MAX_STACK_TRACE_DEPTH"
                   o.default 32
 
                   o.setter do |value|
@@ -247,7 +247,7 @@ module Datadog
                 # Default value is 75
                 option :top_percentage do |o|
                   o.type :int
-                  o.env 'DD_APPSEC_MAX_STACK_TRACE_DEPTH_TOP_PERCENT'
+                  o.env "DD_APPSEC_MAX_STACK_TRACE_DEPTH_TOP_PERCENT"
                   o.default 75
 
                   o.setter do |value|
@@ -264,7 +264,7 @@ module Datadog
                 # Default value is 2
                 option :max_stack_traces do |o|
                   o.type :int
-                  o.env 'DD_APPSEC_MAX_STACK_TRACES'
+                  o.env "DD_APPSEC_MAX_STACK_TRACES"
                   o.default 2
 
                   o.setter do |value|
@@ -279,14 +279,14 @@ module Datadog
 
                 option :mode do |o|
                   o.type :string
-                  o.env 'DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE'
+                  o.env "DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE"
                   o.default IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE
                   o.setter do |value|
                     mode = AUTO_USER_INSTRUMENTATION_MODES_ALIASES.fetch(value, value)
                     next mode if AUTO_USER_INSTRUMENTATION_MODES.include?(mode)
 
                     Datadog.logger.warn(
-                      'The appsec.auto_user_instrumentation.mode value provided is not supported. ' \
+                      "The appsec.auto_user_instrumentation.mode value provided is not supported. " \
                       "Supported values are: #{AUTO_USER_INSTRUMENTATION_MODES.join(" | ")}. " \
                       "Using value: #{DISABLED_AUTO_USER_INSTRUMENTATION_MODE}."
                     )
@@ -301,9 +301,9 @@ module Datadog
                 option :enabled do |o|
                   o.default true
                   o.type :bool
-                  o.env 'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING'
+                  o.env "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING"
                   o.env_parser do |env_value|
-                    if env_value == 'disabled'
+                    if env_value == "disabled"
                       false
                     else
                       APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES.include?(env_value.strip.downcase)
@@ -312,9 +312,9 @@ module Datadog
                   o.after_set do |_, _, precedence|
                     unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
                       Core.log_deprecation(key: :appsec_track_user_events_enabled) do
-                        'The appsec.track_user_events.enabled setting is deprecated. ' \
-                        'Please remove it from your Datadog.configure block and use ' \
-                        'appsec.auto_user_instrumentation.mode instead.'
+                        "The appsec.track_user_events.enabled setting is deprecated. " \
+                        "Please remove it from your Datadog.configure block and use " \
+                        "appsec.auto_user_instrumentation.mode instead."
                       end
                     end
                   end
@@ -322,16 +322,16 @@ module Datadog
 
                 option :mode do |o|
                   o.type :string
-                  o.env 'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING'
+                  o.env "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING"
                   o.default SAFE_TRACK_USER_EVENTS_MODE
                   o.setter do |v|
                     if APPSEC_VALID_TRACK_USER_EVENTS_MODE.include?(v)
                       v
-                    elsif v == 'disabled'
+                    elsif v == "disabled"
                       SAFE_TRACK_USER_EVENTS_MODE
                     else
                       Datadog.logger.warn(
-                        'The appsec.track_user_events.mode value provided is not supported.' \
+                        "The appsec.track_user_events.mode value provided is not supported." \
                         "Supported values are: #{APPSEC_VALID_TRACK_USER_EVENTS_MODE.join(" | ")}." \
                         "Using default value: #{SAFE_TRACK_USER_EVENTS_MODE}."
                       )
@@ -342,9 +342,9 @@ module Datadog
                   o.after_set do |_, _, precedence|
                     unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
                       Core.log_deprecation(key: :appsec_track_user_events_mode) do
-                        'The appsec.track_user_events.mode setting is deprecated. ' \
-                        'Please remove it from your Datadog.configure block and use ' \
-                        'appsec.auto_user_instrumentation.mode instead.'
+                        "The appsec.track_user_events.mode setting is deprecated. " \
+                        "Please remove it from your Datadog.configure block and use " \
+                        "appsec.auto_user_instrumentation.mode instead."
                       end
                     end
                   end
@@ -356,7 +356,7 @@ module Datadog
 
                 option :enabled do |o|
                   o.type :bool
-                  o.env 'DD_API_SECURITY_ENABLED'
+                  o.env "DD_API_SECURITY_ENABLED"
                   o.default true
                 end
 
@@ -364,7 +364,7 @@ module Datadog
                   # Enables reporting of application routes at application start via telemetry
                   option :enabled do |o|
                     o.type :bool, nilable: true
-                    o.env 'DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED'
+                    o.env "DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED"
                     o.default true
                   end
                 end
@@ -375,7 +375,7 @@ module Datadog
                 # WARNING: The value will be converted to Integer.
                 option :sample_delay do |o|
                   o.type :float
-                  o.env 'DD_API_SECURITY_SAMPLE_DELAY'
+                  o.env "DD_API_SECURITY_SAMPLE_DELAY"
                   o.default 30
                   o.setter do |value|
                     value.to_i
@@ -385,7 +385,7 @@ module Datadog
                 # DEV-3.0: Remove `api_security.sample_rate` option
                 option :sample_rate do |o|
                   o.type :float
-                  o.env 'DD_API_SECURITY_REQUEST_SAMPLE_RATE'
+                  o.env "DD_API_SECURITY_REQUEST_SAMPLE_RATE"
                   o.default 0.1
                   o.setter do |value|
                     value = 1 if value > 1
@@ -395,9 +395,9 @@ module Datadog
                     next if precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
 
                     Core.log_deprecation(key: :appsec_api_security_sample_rate) do
-                      'The appsec.api_security.sample_rate setting is deprecated. ' \
-                      'Please remove it from your Datadog.configure block and use ' \
-                      'appsec.api_security.sample_delay instead.'
+                      "The appsec.api_security.sample_rate setting is deprecated. " \
+                      "Please remove it from your Datadog.configure block and use " \
+                      "appsec.api_security.sample_delay instead."
                     end
                   end
                 end
@@ -405,19 +405,19 @@ module Datadog
                 settings :downstream_body_analysis do
                   option :sample_rate do |o|
                     o.type :float
-                    o.env 'DD_API_SECURITY_DOWNSTREAM_BODY_ANALYSIS_SAMPLE_RATE'
+                    o.env "DD_API_SECURITY_DOWNSTREAM_BODY_ANALYSIS_SAMPLE_RATE"
                     o.default 0.5
                   end
 
                   option :max_requests do |o|
                     o.type :int
-                    o.env 'DD_API_SECURITY_MAX_DOWNSTREAM_REQUEST_BODY_ANALYSIS'
+                    o.env "DD_API_SECURITY_MAX_DOWNSTREAM_REQUEST_BODY_ANALYSIS"
                     o.default 1
                   end
 
                   option :max_downstream_body_bytes do |o|
                     o.type :int
-                    o.env 'DD_API_SECURITY_MAX_DOWNSTREAM_BODY_BYTES'
+                    o.env "DD_API_SECURITY_MAX_DOWNSTREAM_BODY_BYTES"
                     o.default 10_485_760
                   end
                 end
@@ -425,7 +425,7 @@ module Datadog
 
               option :sca_enabled do |o|
                 o.type :bool, nilable: true
-                o.env 'DD_APPSEC_SCA_ENABLED'
+                o.env "DD_APPSEC_SCA_ENABLED"
               end
             end
           end

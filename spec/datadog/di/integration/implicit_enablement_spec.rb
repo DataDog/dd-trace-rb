@@ -1,7 +1,7 @@
-require 'spec_helper'
-require 'datadog/di/spec_helper'
-require 'datadog/di'
-require 'datadog/tracing/remote'
+require "spec_helper"
+require "datadog/di/spec_helper"
+require "datadog/di"
+require "datadog/tracing/remote"
 
 # Target class for the method probe used below. Loaded before the RC
 # enable signal arrives — this is the canonical "code loaded before
@@ -12,7 +12,7 @@ class ImplicitEnablementSpecTargetClass
   end
 end
 
-RSpec.describe 'DI implicit enablement integration' do
+RSpec.describe "DI implicit enablement integration" do
   di_test
   deactivate_code_tracking
 
@@ -54,6 +54,10 @@ RSpec.describe 'DI implicit enablement integration' do
     )
   end
 
+  let(:remote) do
+    instance_double(Datadog::Core::Remote::Component, add_products: nil, remove_products: nil)
+  end
+
   let(:components) do
     # Stand-in for Core::Configuration::Components. handle_rc_enablement
     # reaches the component via Datadog.send(:components).dynamic_instrumentation
@@ -64,6 +68,7 @@ RSpec.describe 'DI implicit enablement integration' do
       dynamic_instrumentation: component,
       telemetry: telemetry,
       symbol_database: symbol_database,
+      remote: remote,
     )
   end
 
@@ -98,8 +103,8 @@ RSpec.describe 'DI implicit enablement integration' do
 
   after { component&.shutdown! }
 
-  describe 'RC enables DI → method probe installs and fires' do
-    let(:rc_payload_enable) { {'lib_config' => {'dynamic_instrumentation_enabled' => true}} }
+  describe "RC enables DI → method probe installs and fires" do
+    let(:rc_payload_enable) { {"lib_config" => {"dynamic_instrumentation_enabled" => true}} }
     let(:rc_content) { instance_double(Datadog::Core::Remote::Configuration::Content) }
 
     before do
@@ -108,7 +113,7 @@ RSpec.describe 'DI implicit enablement integration' do
       allow(telemetry).to receive(:client_configuration_change!)
     end
 
-    it 'starts the component when dynamic_instrumentation_enabled=true arrives' do
+    it "starts the component when dynamic_instrumentation_enabled=true arrives" do
       expect(component).not_to be_nil
       expect(component.started?).to be false
 
@@ -118,7 +123,20 @@ RSpec.describe 'DI implicit enablement integration' do
       expect(rc_content).to have_received(:applied)
     end
 
-    it 'activates code tracking when the enable signal arrives' do
+    it "advertises the DI products via remote config once the component starts" do
+      # End-to-end: the enable signal starts the real component, and only then
+      # does the product become advertised. supported_runtime? is pinned so the
+      # deferred Symbol Database product is deterministic across Ruby versions.
+      allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+      expect(component.started?).to be false
+      expect(remote).to receive(:add_products).with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
+
+      Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+
+      expect(component.started?).to be true
+    end
+
+    it "activates code tracking when the enable signal arrives" do
       # activate_tracking is the precondition for line probes to work on
       # code loaded between enablement and the probe arrival. Verifying
       # the side effect directly without depending on tracking's runtime
@@ -128,7 +146,7 @@ RSpec.describe 'DI implicit enablement integration' do
       Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
     end
 
-    context 'after the component is started, a LIVE_DEBUGGING method probe arrives' do
+    context "after the component is started, a LIVE_DEBUGGING method probe arrives" do
       # The implicit-enablement-specific assertion is that the RC enable
       # signal flips the receiver from "silently drops probes" (component
       # stopped) to "installs probes" (component started). The probe-fires
@@ -137,18 +155,18 @@ RSpec.describe 'DI implicit enablement integration' do
 
       let(:probe_spec) do
         {
-          id: 'test-probe-14',
-          name: 'bar',
-          type: 'LOG_PROBE',
+          id: "test-probe-14",
+          name: "bar",
+          type: "LOG_PROBE",
           where: {
-            typeName: 'ImplicitEnablementSpecTargetClass',
-            methodName: 'target_method',
+            typeName: "ImplicitEnablementSpecTargetClass",
+            methodName: "target_method",
           },
         }
       end
 
       let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
-      let(:probe_configs) { {'datadog/2/LIVE_DEBUGGING/foo/bar' => probe_spec} }
+      let(:probe_configs) { {"datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec} }
       let(:transaction) do
         DIHelpers::TestRemoteConfigGenerator.new(probe_configs).insert_transaction(repository)
       end
@@ -159,14 +177,14 @@ RSpec.describe 'DI implicit enablement integration' do
         allow(Datadog::DI).to receive(:activate_tracking)
       end
 
-      it 'is silently dropped if delivered while the component is stopped' do
+      it "is silently dropped if delivered while the component is stopped" do
         expect(component.started?).to be false
         di_receiver.call(repository, transaction)
         expect(component.probe_manager.probe_repository.installed_probes.length).to eq 0
         expect(component.probe_manager.probe_repository.pending_probes.length).to eq 0
       end
 
-      it 'is installed after the APM_TRACING enable signal arrives' do
+      it "is installed after the APM_TRACING enable signal arrives" do
         Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
         expect(component.started?).to be true
 
@@ -178,9 +196,9 @@ RSpec.describe 'DI implicit enablement integration' do
     end
   end
 
-  describe 'RC disable stops the component and unhooks probes' do
-    let(:rc_payload_enable) { {'lib_config' => {'dynamic_instrumentation_enabled' => true}} }
-    let(:rc_payload_disable) { {'lib_config' => {'dynamic_instrumentation_enabled' => false}} }
+  describe "RC disable stops the component and unhooks probes" do
+    let(:rc_payload_enable) { {"lib_config" => {"dynamic_instrumentation_enabled" => true}} }
+    let(:rc_payload_disable) { {"lib_config" => {"dynamic_instrumentation_enabled" => false}} }
     let(:rc_content) { instance_double(Datadog::Core::Remote::Configuration::Content, applied: nil, errored: nil) }
 
     before do
@@ -188,7 +206,7 @@ RSpec.describe 'DI implicit enablement integration' do
       allow(Datadog::DI).to receive(:activate_tracking)
     end
 
-    it 'stops the component when dynamic_instrumentation_enabled=false arrives' do
+    it "stops the component when dynamic_instrumentation_enabled=false arrives" do
       Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
       expect(component.started?).to be true
 
@@ -196,14 +214,14 @@ RSpec.describe 'DI implicit enablement integration' do
       expect(component.started?).to be false
     end
 
-    it 'is idempotent: false → false stays stopped without error' do
+    it "is idempotent: false → false stays stopped without error" do
       Datadog::Tracing::Remote.process_config(rc_payload_disable, rc_content)
       expect(component.started?).to be false
       expect { Datadog::Tracing::Remote.process_config(rc_payload_disable, rc_content) }.not_to raise_error
       expect(component.started?).to be false
     end
 
-    it 'supports restart: true → false → true' do
+    it "supports restart: true → false → true" do
       Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
       expect(component.started?).to be true
       Datadog::Tracing::Remote.process_config(rc_payload_disable, rc_content)
@@ -212,21 +230,21 @@ RSpec.describe 'DI implicit enablement integration' do
       expect(component.started?).to be true
     end
 
-    context 'with an installed probe' do
+    context "with an installed probe" do
       let(:probe_spec) do
         {
-          id: 'test-probe-15',
-          name: 'bar',
-          type: 'LOG_PROBE',
+          id: "test-probe-15",
+          name: "bar",
+          type: "LOG_PROBE",
           where: {
-            typeName: 'ImplicitEnablementSpecTargetClass',
-            methodName: 'target_method',
+            typeName: "ImplicitEnablementSpecTargetClass",
+            methodName: "target_method",
           },
         }
       end
 
       let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
-      let(:probe_configs) { {'datadog/2/LIVE_DEBUGGING/foo/bar' => probe_spec} }
+      let(:probe_configs) { {"datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec} }
       let(:transaction) do
         DIHelpers::TestRemoteConfigGenerator.new(probe_configs).insert_transaction(repository)
       end
@@ -236,7 +254,7 @@ RSpec.describe 'DI implicit enablement integration' do
         allow(Datadog::DI).to receive(:component).and_return(component)
       end
 
-      it 'unhooks the probe but preserves it in the repository when the component is stopped via RC disable' do
+      it "unhooks the probe but preserves it in the repository when the component is stopped via RC disable" do
         Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
         di_receiver.call(repository, transaction)
         component.probe_notifier_worker.flush
@@ -263,7 +281,7 @@ RSpec.describe 'DI implicit enablement integration' do
     end
   end
 
-  describe 'combined RC transaction: LIVE_DEBUGGING + APM_TRACING dispatched together' do
+  describe "combined RC transaction: LIVE_DEBUGGING + APM_TRACING dispatched together" do
     # Regression test for the dispatch-order bug: when a
     # single RC response contains both a LIVE_DEBUGGING probe insert AND an
     # APM_TRACING `dynamic_instrumentation_enabled=true` toggle, the receiver
@@ -280,23 +298,23 @@ RSpec.describe 'DI implicit enablement integration' do
 
     let(:probe_spec) do
       {
-        id: 'test-probe-combined',
-        name: 'bar',
-        type: 'LOG_PROBE',
+        id: "test-probe-combined",
+        name: "bar",
+        type: "LOG_PROBE",
         where: {
-          typeName: 'ImplicitEnablementSpecTargetClass',
-          methodName: 'target_method',
+          typeName: "ImplicitEnablementSpecTargetClass",
+          methodName: "target_method",
         },
       }
     end
 
-    let(:apm_tracing_payload) { {'lib_config' => {'dynamic_instrumentation_enabled' => true}} }
+    let(:apm_tracing_payload) { {"lib_config" => {"dynamic_instrumentation_enabled" => true}} }
 
     let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
     let(:combined_configs) do
       {
-        'datadog/2/LIVE_DEBUGGING/foo/bar' => probe_spec,
-        'datadog/2/APM_TRACING/lib_config/config' => apm_tracing_payload,
+        "datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec,
+        "datadog/2/APM_TRACING/lib_config/config" => apm_tracing_payload,
       }
     end
     let(:transaction) do
@@ -313,7 +331,7 @@ RSpec.describe 'DI implicit enablement integration' do
       allow(Datadog::DI).to receive(:activate_tracking)
     end
 
-    it 'installs the probe in a single dispatch (Tracing receiver enables DI first)' do
+    it "installs the probe in a single dispatch (Tracing receiver enables DI first)" do
       expect(component.started?).to be false
 
       dispatcher.dispatch(transaction, repository)
@@ -324,7 +342,7 @@ RSpec.describe 'DI implicit enablement integration' do
     end
   end
 
-  describe 'probe delivered in an earlier poll while stopped, enable in a later poll' do
+  describe "probe delivered in an earlier poll while stopped, enable in a later poll" do
     # Regression test for the cross-poll edge case: a probe can land in
     # one RC poll while DI is stopped and the enable signal arrive in a *separate*
     # later poll. The DI receiver drops the probe while stopped, and
@@ -336,12 +354,12 @@ RSpec.describe 'DI implicit enablement integration' do
 
     let(:probe_spec) do
       {
-        id: 'test-probe-earlier-poll',
-        name: 'bar',
-        type: 'LOG_PROBE',
+        id: "test-probe-earlier-poll",
+        name: "bar",
+        type: "LOG_PROBE",
         where: {
-          typeName: 'ImplicitEnablementSpecTargetClass',
-          methodName: 'target_method',
+          typeName: "ImplicitEnablementSpecTargetClass",
+          methodName: "target_method",
         },
       }
     end
@@ -353,7 +371,7 @@ RSpec.describe 'DI implicit enablement integration' do
     # Poll N: only the LIVE_DEBUGGING probe (DI still stopped).
     let(:poll_with_probe_only) do
       DIHelpers::TestRemoteConfigGenerator.new(
-        {'datadog/2/LIVE_DEBUGGING/foo/bar' => probe_spec}
+        {"datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec}
       ).mock_response
     end
 
@@ -361,8 +379,8 @@ RSpec.describe 'DI implicit enablement integration' do
     let(:poll_with_enable) do
       DIHelpers::TestRemoteConfigGenerator.new(
         {
-          'datadog/2/LIVE_DEBUGGING/foo/bar' => probe_spec,
-          'datadog/2/APM_TRACING/lib_config/config' => {'lib_config' => {'dynamic_instrumentation_enabled' => true}},
+          "datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec,
+          "datadog/2/APM_TRACING/lib_config/config" => {"lib_config" => {"dynamic_instrumentation_enabled" => true}},
         }
       ).mock_response
     end
@@ -372,7 +390,7 @@ RSpec.describe 'DI implicit enablement integration' do
       allow(Datadog::DI).to receive(:activate_tracking)
     end
 
-    it 'installs the probe once DI is enabled, without waiting for redelivery' do
+    it "installs the probe once DI is enabled, without waiting for redelivery" do
       expect(component.started?).to be false
 
       # Poll N: probe arrives while DI is stopped — dropped, not in the repository.
@@ -390,7 +408,7 @@ RSpec.describe 'DI implicit enablement integration' do
 
       expect(component.started?).to be true
       expect(component.probe_manager.probe_repository.installed_probes.length).to eq 1
-      expect(component.probe_manager.probe_repository.installed_probes.keys).to include('test-probe-earlier-poll')
+      expect(component.probe_manager.probe_repository.installed_probes.keys).to include("test-probe-earlier-poll")
     end
   end
 end

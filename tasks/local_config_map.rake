@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require 'json'
-require 'pp' # rubocop:disable Lint/RedundantRequireStatement
-require 'set'
+require "json"
+require "pp" # rubocop:disable Lint/RedundantRequireStatement
+require "set"
 
 # Pretty print setup
 class Array
   def pretty_print(q)
-    q.group(2, '[', ']') do # The only diff with original source code the offset that has been changed to 2 to comply to standard-rb.
+    q.group(2, "[", "]") do # The only diff with original source code the offset that has been changed to 2 to comply to standard-rb.
       q.seplist(self) { |v| q.pp v }
     end
   end
@@ -15,7 +15,7 @@ end
 
 class ConfigPrinter < ::PP
   def self.pp(data)
-    output = +''
+    output = +""
     q = new(output, 124)
     q.group(8) do
       q.pp(data)
@@ -27,7 +27,7 @@ end
 
 namespace :local_config_map do
   # We only keep env vars as strings
-  data = JSON.parse(File.read('supported-configurations.json')).transform_keys(&:to_sym)
+  data = JSON.parse(File.read("supported-configurations.json")).transform_keys(&:to_sym)
   aliases = {}
   deprecations = Set.new
   alias_to_canonical = {}
@@ -57,12 +57,12 @@ namespace :local_config_map do
   alias_to_canonical = alias_to_canonical.sort.to_h
 
   # Read the data from the JSON file and generate ahead-of-time map for supported configurations, aliases and deprecations
-  desc 'Generate the supported configurations, aliases and deprecations map'
+  desc "Generate the supported configurations, aliases and deprecations map"
   task :generate do
     # On versions older than 3.4, the result would look like {:key=>'value'}
-    raise('Please run this task on Ruby >= 3.4') unless RUBY_VERSION >= '3.4'
+    raise("Please run this task on Ruby >= 3.4") unless RUBY_VERSION >= "3.4"
     File.write(
-      'lib/datadog/core/configuration/supported_configurations.rb',
+      "lib/datadog/core/configuration/supported_configurations.rb",
       <<~RUBY
         # frozen_string_literal: true
 

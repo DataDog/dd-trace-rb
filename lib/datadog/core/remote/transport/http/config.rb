@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
-require_relative '../../../transport/http/api/endpoint'
-require_relative '../../../transport/http/response'
-require_relative '../../../utils/base64_codec'
-require_relative '../../../utils/truncation'
+require_relative "../../../transport/http/api/endpoint"
+require_relative "../../../transport/http/response"
+require_relative "../../../utils/base64_codec"
+require_relative "../../../utils/truncation"
 
 module Datadog
   module Core
@@ -35,7 +35,7 @@ module Datadog
 
                 # TODO: these fallbacks should be improved
                 roots = payload[:roots] || []
-                targets = payload[:targets] || Datadog::Core::Utils::Base64Codec.strict_encode64('{}')
+                targets = payload[:targets] || Datadog::Core::Utils::Base64Codec.strict_encode64("{}")
                 target_files = payload[:target_files] || []
                 client_configs = payload[:client_configs] || []
 
@@ -180,7 +180,7 @@ module Datadog
             module API
               # Endpoint for remote configuration
               class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
-                HEADER_CONTENT_TYPE = 'Content-Type'
+                HEADER_CONTENT_TYPE = "Content-Type"
 
                 attr_reader :encoder
 

@@ -1,4 +1,4 @@
-source 'https://rubygems.org'
+source "https://rubygems.org"
 
 # This gemfile's lockfile is not maintained by the lock-dependency workflow.
 # Regenerate manually after changing dependencies:
@@ -7,8 +7,8 @@ source 'https://rubygems.org'
 #     ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc \
 #     bundle lock --add-platform x86_64-linux aarch64-linux
 
-gemspec path: '..'
+gemspec path: ".."
 
-gem 'rake'
-gem 'redcarpet'
-gem 'yard'
+gem "rake"
+gem "redcarpet"
+gem "yard"

@@ -1132,6 +1132,24 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
+    describe "crash-safety during nested signal handler (such as during GC compaction)", :memcheck_valgrind_skip do
+      # See `is_running_on_alternate_signal_stack` for details. Note that our little experiment here works on all Rubies,
+      # but GC compaction in particular is only for 2.7+
+      it "skips sampling in the signal handler" do
+        start
+
+        # Simulate signals arriving on the altstack
+        described_class::Testing._native_install_sigprof_handler_on_altstack
+
+        loop_until(check_condition_every_seconds: 0.01) do
+          cpu_and_wall_time_worker.stats.fetch(:signal_handler_skipped_sample_on_altstack) > 0
+        end
+
+        # NOTE: We don't need to explicitly "uninstall" the altstack change, see comment on
+        # `_native_install_sigprof_handler_on_altstack` for mode details.
+      end
+    end
+
     context "Process::Waiter crash regression tests" do
       # On Ruby 2.3 to 2.6, there's a crash when accessing instance variables of the `process_waiter_thread`,
       # see https://bugs.ruby-lang.org/issues/17807 .
@@ -1409,6 +1427,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           simulated_signal_delivery: 0,
           signal_handler_enqueued_sample: 0,
           signal_handler_prepared_sample: 0,
+          signal_handler_skipped_sample_on_altstack: 0,
           interrupt_thread_attempts: 0,
           cpu_sampled: 0,
           cpu_skipped: 0,
