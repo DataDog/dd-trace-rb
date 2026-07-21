@@ -1,6 +1,6 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/tracing/transport/traces'
+require "datadog/tracing/transport/traces"
 
 RSpec.describe Datadog::Tracing::Transport::Traces::Parcel do
   subject(:parcel) { described_class.new(data, trace_count: trace_count) }
@@ -8,11 +8,11 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Parcel do
   let(:data) { instance_double(Array) }
   let(:trace_count) { 123 }
 
-  describe '#initialize' do
+  describe "#initialize" do
     it { is_expected.to have_attributes(data: data) }
   end
 
-  describe '#trace_count' do
+  describe "#trace_count" do
     subject { parcel.trace_count }
 
     it { is_expected.to eq(trace_count) }
@@ -20,14 +20,14 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Parcel do
 end
 
 RSpec.describe Datadog::Tracing::Transport::Traces::Response do
-  context 'when implemented by a class' do
+  context "when implemented by a class" do
     subject(:response) { response_class.new }
 
     let(:response_class) do
-      stub_const('TestResponse', Class.new { include Datadog::Tracing::Transport::Traces::Response })
+      stub_const("TestResponse", Class.new { include Datadog::Tracing::Transport::Traces::Response })
     end
 
-    describe '#service_rates' do
+    describe "#service_rates" do
       it { is_expected.to respond_to(:service_rates) }
     end
   end
@@ -43,10 +43,10 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
   let(:trace_encoder) { Datadog::Tracing::Transport::Traces::Encoder }
   let(:max_size) { 10 }
 
-  describe '#encode_in_chunks' do
+  describe "#encode_in_chunks" do
     subject(:encode_in_chunks) { chunker.encode_in_chunks(traces) }
 
-    context 'with traces' do
+    context "with traces" do
       let(:traces) { get_test_traces(3) }
 
       before do
@@ -55,36 +55,36 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
           traces[0],
           logger: logger,
           native_events_supported: native_events_supported
-        ).and_return('1')
+        ).and_return("1")
         allow(trace_encoder).to receive(:encode_trace).with(
           encoder,
           traces[1],
           logger: logger,
           native_events_supported: native_events_supported
-        ).and_return('22')
+        ).and_return("22")
         allow(trace_encoder).to receive(:encode_trace).with(
           encoder,
           traces[2],
           logger: logger,
           native_events_supported: native_events_supported
-        ).and_return('333')
-        allow(encoder).to receive(:join) { |arr| arr.join(',') }
+        ).and_return("333")
+        allow(encoder).to receive(:join) { |arr| arr.join(",") }
       end
 
       it do
-        is_expected.to eq([['1,22,333', 3]])
+        is_expected.to eq([["1,22,333", 3]])
       end
 
-      context 'with batching required' do
+      context "with batching required" do
         let(:max_size) { 3 }
 
         it do
-          is_expected.to eq([['1,22', 2], ['333', 1]])
+          is_expected.to eq([["1,22", 2], ["333", 1]])
         end
       end
 
-      context 'with individual traces too large' do
-        include_context 'health metrics'
+      context "with individual traces too large" do
+        include_context "health metrics"
 
         let(:max_size) { 1 }
 
@@ -93,24 +93,24 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
           allow(Datadog.logger).to receive(:debug)
         end
 
-        it 'drops all traces except the smallest' do
-          is_expected.to eq([['1', 1]])
+        it "drops all traces except the smallest" do
+          is_expected.to eq([["1", 1]])
           expect(logger).to have_lazy_debug_logged(/Payload too large/)
           expect(health_metrics).to have_received(:transport_trace_too_large).with(1).twice
         end
       end
     end
 
-    context 'with a lazy enumerator' do
+    context "with a lazy enumerator" do
       let(:traces) { [].lazy }
 
       before do
-        if PlatformHelpers.jruby? && PlatformHelpers.engine_version < Gem::Version.new('9.2.9.0')
-          skip 'This runtime returns eager enumerators on Enumerator::Lazy methods calls'
+        if PlatformHelpers.jruby? && PlatformHelpers.engine_version < Gem::Version.new("9.2.9.0")
+          skip "This runtime returns eager enumerators on Enumerator::Lazy methods calls"
         end
       end
 
-      it 'does not force enumerator expansion' do
+      it "does not force enumerator expansion" do
         expect(encode_in_chunks).to be_a(Enumerator::Lazy)
       end
     end
@@ -122,7 +122,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
 
   subject(:transport) { described_class.new(apis, current_api_id, logger: logger) }
 
-  shared_context 'APIs with fallbacks' do
+  shared_context "APIs with fallbacks" do
     let(:current_api_id) { :v2 }
     let(:apis) do
       Datadog::Core::Transport::HTTP::API::Map[
@@ -131,23 +131,23 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
       ].with_fallbacks(v2: :v1)
     end
 
-    let(:api_v1) { instance_double(Datadog::Core::Transport::HTTP::API::Instance, 'v1', encoder: encoder_v1) }
-    let(:api_v2) { instance_double(Datadog::Core::Transport::HTTP::API::Instance, 'v2', encoder: encoder_v2) }
-    let(:encoder_v1) { instance_double(Datadog::Core::Encoding::Encoder, 'v1', content_type: 'text/plain') }
-    let(:encoder_v2) { instance_double(Datadog::Core::Encoding::Encoder, 'v2', content_type: 'text/csv') }
+    let(:api_v1) { instance_double(Datadog::Core::Transport::HTTP::API::Instance, "v1", encoder: encoder_v1) }
+    let(:api_v2) { instance_double(Datadog::Core::Transport::HTTP::API::Instance, "v2", encoder: encoder_v2) }
+    let(:encoder_v1) { instance_double(Datadog::Core::Encoding::Encoder, "v1", content_type: "text/plain") }
+    let(:encoder_v2) { instance_double(Datadog::Core::Encoding::Encoder, "v2", content_type: "text/csv") }
   end
 
-  describe '#initialize' do
-    include_context 'APIs with fallbacks'
+  describe "#initialize" do
+    include_context "APIs with fallbacks"
 
     it { expect(transport.stats).to be_a(Datadog::Tracing::Transport::Statistics::Counts) }
 
     it { is_expected.to have_attributes(apis: apis, current_api_id: current_api_id) }
   end
 
-  describe '#send_traces' do
-    include_context 'APIs with fallbacks'
-    include_context 'health metrics'
+  describe "#send_traces" do
+    include_context "APIs with fallbacks"
+    include_context "health metrics"
 
     subject(:send_traces) { transport.send_traces(traces) }
 
@@ -196,26 +196,26 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
         .and_return(agent_info_response)
     end
 
-    context 'which returns an OK response' do
+    context "which returns an OK response" do
       before { allow(response).to receive(:ok?).and_return(true) }
 
-      it 'sends to only the current API once' do
+      it "sends to only the current API once" do
         is_expected.to eq(responses)
         expect(client_v2).to have_received(:send_request).with(:traces, request).once
 
         expect(health_metrics).to have_received(:transport_chunked).with(1)
       end
 
-      context 'with a runtime that returns eagerly loaded chunks' do
+      context "with a runtime that returns eagerly loaded chunks" do
         before do
-          if !PlatformHelpers.jruby? || PlatformHelpers.engine_version >= Gem::Version.new('9.2.9.0')
-            skip 'This runtime correctly returns lazy enumerators on Enumerator::Lazy#slice_before calls'
+          if !PlatformHelpers.jruby? || PlatformHelpers.engine_version >= Gem::Version.new("9.2.9.0")
+            skip "This runtime correctly returns lazy enumerators on Enumerator::Lazy#slice_before calls"
           end
         end
 
         let(:lazy_chunks) { chunks }
 
-        it 'successfully sends a single request' do
+        it "successfully sends a single request" do
           is_expected.to eq(responses)
           expect(client_v2).to have_received(:send_traces_payload).with(request).once
 
@@ -223,7 +223,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
         end
       end
 
-      context 'with many chunks' do
+      context "with many chunks" do
         let(:chunks) { [[], []] }
         let(:responses) { [response, response] }
 
@@ -234,13 +234,13 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
       end
     end
 
-    context 'which returns a not found response' do
+    context "which returns a not found response" do
       before do
         allow(response).to receive(:not_found?).and_return(true)
         allow(response).to receive(:client_error?).and_return(true)
       end
 
-      it 'attempts each API once as it falls back after each failure' do
+      it "attempts each API once as it falls back after each failure" do
         is_expected.to eq(responses)
 
         expect(client_v2).to have_received(:send_request).with(:traces, request).once
@@ -250,13 +250,13 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
       end
     end
 
-    context 'which returns an unsupported response' do
+    context "which returns an unsupported response" do
       before do
         allow(response).to receive(:unsupported?).and_return(true)
         allow(response).to receive(:client_error?).and_return(true)
       end
 
-      it 'attempts each API once as it falls back after each failure' do
+      it "attempts each API once as it falls back after each failure" do
         is_expected.to eq(responses)
 
         expect(client_v2).to have_received(:send_request).with(:traces, request).once
@@ -266,19 +266,19 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
       end
     end
 
-    context 'for native span event support by the agent' do
+    context "for native span event support by the agent" do
       after do
         Datadog.configuration.tracing.reset_options!
       end
-      context 'when native_span_events option is configured' do
-        context 'when set to true' do
+      context "when native_span_events option is configured" do
+        context "when set to true" do
           before do
             Datadog.configuration.tracing.native_span_events = true
           end
 
           let(:native_events_supported) { true }
 
-          it 'uses the configured value' do
+          it "uses the configured value" do
             expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
               encoder_v2,
               logger: logger,
@@ -288,7 +288,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
             send_traces
           end
 
-          it 'does not query the agent' do
+          it "does not query the agent" do
             allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).and_return(chunker)
             expect_any_instance_of(Datadog::Core::Environment::AgentInfo).not_to receive(:fetch)
 
@@ -296,14 +296,14 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
           end
         end
 
-        context 'when set to false' do
+        context "when set to false" do
           before do
             Datadog.configuration.tracing.native_span_events = false
           end
 
           let(:native_events_supported) { false }
 
-          it 'uses the configured value' do
+          it "uses the configured value" do
             expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
               encoder_v2,
               logger: logger,
@@ -312,7 +312,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
             send_traces
           end
 
-          it 'does not query the agent' do
+          it "does not query the agent" do
             allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).and_return(chunker)
             expect_any_instance_of(Datadog::Core::Environment::AgentInfo).not_to receive(:fetch)
 
@@ -321,12 +321,12 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
         end
       end
 
-      context 'when native_span_events option is not configured' do
-        context 'on a successful agent info call' do
-          context 'with support not advertised' do
+      context "when native_span_events option is not configured" do
+        context "on a successful agent info call" do
+          context "with support not advertised" do
             let(:native_events_supported) { nil }
 
-            it 'does not encode native span events' do
+            it "does not encode native span events" do
               expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
                 encoder_v2,
                 logger: logger,
@@ -336,10 +336,10 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
             end
           end
 
-          context 'with support advertised as supported' do
+          context "with support advertised as supported" do
             let(:native_events_supported) { true }
 
-            it 'encodes native span events' do
+            it "encodes native span events" do
               expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
                 encoder_v2,
                 logger: logger,
@@ -349,10 +349,10 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
             end
           end
 
-          context 'with support advertised as unsupported' do
+          context "with support advertised as unsupported" do
             let(:native_events_supported) { false }
 
-            it 'encodes native span events' do
+            it "encodes native span events" do
               expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
                 encoder_v2,
                 logger: logger,
@@ -362,7 +362,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
             end
           end
 
-          it 'caches the agent result' do
+          it "caches the agent result" do
             transport.send_traces(traces)
             transport.send_traces(traces)
 
@@ -370,10 +370,10 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
           end
         end
 
-        context 'on an unsuccessful agent info call' do
+        context "on an unsuccessful agent info call" do
           let(:agent_info_response) { nil }
 
-          it 'does not cache the agent result' do
+          it "does not cache the agent result" do
             transport.send_traces(traces)
             transport.send_traces(traces)
 

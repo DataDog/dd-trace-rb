@@ -41,7 +41,7 @@ module Datadog
           def eval(*args)
             source = args[0]
 
-            if args[2] == 'stdin'
+            if args[2] == "stdin"
               name = Ext::SPAN_RUNNER_STDIN
               operation = Ext::TAG_OPERATION_STDIN
             else

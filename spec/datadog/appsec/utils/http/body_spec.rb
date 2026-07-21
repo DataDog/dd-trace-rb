@@ -1,52 +1,52 @@
 # frozen_string_literal: true
 
-require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/utils/http/body'
-require 'datadog/appsec/utils/http/media_type'
+require "datadog/appsec/spec_helper"
+require "datadog/appsec/utils/http/body"
+require "datadog/appsec/utils/http/media_type"
 
-require 'stringio'
-require 'tempfile'
+require "stringio"
+require "tempfile"
 
 RSpec.describe Datadog::AppSec::Utils::HTTP::Body do
-  describe '.parse' do
-    context 'when body is nil' do
+  describe ".parse" do
+    context "when body is nil" do
       let(:media_type) do
-        Datadog::AppSec::Utils::HTTP::MediaType.new(type: 'application', subtype: 'json')
+        Datadog::AppSec::Utils::HTTP::MediaType.new(type: "application", subtype: "json")
       end
       let(:result) { described_class.parse(nil, media_type: media_type) }
 
       it { expect(result).to be_nil }
     end
 
-    context 'when body is empty' do
+    context "when body is empty" do
       let(:media_type) do
-        Datadog::AppSec::Utils::HTTP::MediaType.new(type: 'application', subtype: 'x-www-form-urlencoded')
+        Datadog::AppSec::Utils::HTTP::MediaType.new(type: "application", subtype: "x-www-form-urlencoded")
       end
-      let(:result) { described_class.parse('', media_type: media_type) }
+      let(:result) { described_class.parse("", media_type: media_type) }
 
       it { expect(result).to be_nil }
     end
 
-    context 'when media type is application/json' do
+    context "when media type is application/json" do
       let(:media_type) do
-        Datadog::AppSec::Utils::HTTP::MediaType.new(type: 'application', subtype: 'json')
+        Datadog::AppSec::Utils::HTTP::MediaType.new(type: "application", subtype: "json")
       end
 
-      context 'when body is a String' do
+      context "when body is a String" do
         let(:result) { described_class.parse('{"key":"value"}', media_type: media_type) }
 
-        it { expect(result).to eq({'key' => 'value'}) }
+        it { expect(result).to eq({"key" => "value"}) }
       end
 
-      context 'when body is a StringIO' do
+      context "when body is a StringIO" do
         let(:result) { described_class.parse(StringIO.new('{"key":"value"}'), media_type: media_type) }
 
-        it { expect(result).to eq({'key' => 'value'}) }
+        it { expect(result).to eq({"key" => "value"}) }
       end
 
-      context 'when body is an IO object' do
+      context "when body is an IO object" do
         let(:tempfile) do
-          Tempfile.new('body').tap do |f|
+          Tempfile.new("body").tap do |f|
             f.write('{"key":"value"}')
             f.rewind
           end
@@ -55,62 +55,62 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::Body do
 
         after { tempfile.close! }
 
-        it { expect(result).to eq({'key' => 'value'}) }
+        it { expect(result).to eq({"key" => "value"}) }
       end
 
-      context 'when body is invalid JSON' do
+      context "when body is invalid JSON" do
         before { allow(Datadog::AppSec.telemetry).to receive(:report) }
 
-        let(:result) { described_class.parse('not json', media_type: media_type) }
+        let(:result) { described_class.parse("not json", media_type: media_type) }
 
-        it 'returns nil and reports error to telemetry' do
+        it "returns nil and reports error to telemetry" do
           expect(result).to be_nil
           expect(Datadog::AppSec.telemetry).to have_received(:report)
-            .with(an_instance_of(JSON::ParserError), description: 'AppSec: Failed to parse body')
+            .with(an_instance_of(JSON::ParserError), description: "AppSec: Failed to parse body")
         end
       end
     end
 
-    context 'when media type is application/vnd.api+json' do
+    context "when media type is application/vnd.api+json" do
       let(:media_type) do
-        Datadog::AppSec::Utils::HTTP::MediaType.new(type: 'application', subtype: 'vnd.api+json')
+        Datadog::AppSec::Utils::HTTP::MediaType.new(type: "application", subtype: "vnd.api+json")
       end
       let(:result) { described_class.parse('{"data":"value"}', media_type: media_type) }
 
-      it { expect(result).to eq({'data' => 'value'}) }
+      it { expect(result).to eq({"data" => "value"}) }
     end
 
-    context 'when media type is application/x-www-form-urlencoded' do
+    context "when media type is application/x-www-form-urlencoded" do
       let(:media_type) do
-        Datadog::AppSec::Utils::HTTP::MediaType.new(type: 'application', subtype: 'x-www-form-urlencoded')
+        Datadog::AppSec::Utils::HTTP::MediaType.new(type: "application", subtype: "x-www-form-urlencoded")
       end
 
-      context 'when body is a String' do
-        let(:result) { described_class.parse('key=value&foo=bar', media_type: media_type) }
+      context "when body is a String" do
+        let(:result) { described_class.parse("key=value&foo=bar", media_type: media_type) }
 
-        it { expect(result).to eq({'key' => 'value', 'foo' => 'bar'}) }
+        it { expect(result).to eq({"key" => "value", "foo" => "bar"}) }
       end
 
-      context 'when body is a StringIO' do
-        let(:result) { described_class.parse(StringIO.new('key=value'), media_type: media_type) }
+      context "when body is a StringIO" do
+        let(:result) { described_class.parse(StringIO.new("key=value"), media_type: media_type) }
 
-        it { expect(result).to eq({'key' => 'value'}) }
+        it { expect(result).to eq({"key" => "value"}) }
       end
 
-      context 'when a limit is given' do
-        let(:result) { described_class.parse('a=1&b=2&c=3', media_type: media_type, limit: 10) }
+      context "when a limit is given" do
+        let(:result) { described_class.parse("a=1&b=2&c=3", media_type: media_type, limit: 10) }
 
-        it 'forwards the limit to the parser' do
-          expect(result).to eq({'a' => '1', 'b' => '2'})
+        it "forwards the limit to the parser" do
+          expect(result).to eq({"a" => "1", "b" => "2"})
         end
       end
     end
 
-    context 'when media type is unsupported' do
+    context "when media type is unsupported" do
       let(:media_type) do
-        Datadog::AppSec::Utils::HTTP::MediaType.new(type: 'text', subtype: 'plain')
+        Datadog::AppSec::Utils::HTTP::MediaType.new(type: "text", subtype: "plain")
       end
-      let(:result) { described_class.parse('some text', media_type: media_type) }
+      let(:result) { described_class.parse("some text", media_type: media_type) }
 
       it { expect(result).to be_nil }
     end

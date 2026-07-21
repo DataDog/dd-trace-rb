@@ -1,26 +1,26 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require "spec_helper"
 
-require 'ostruct'
-require 'datadog/core/utils/base64_codec'
-require 'datadog/core/remote/transport/http'
-require 'datadog/core/remote/transport/http/negotiation'
-require 'datadog/core/remote/transport/negotiation'
+require "ostruct"
+require "datadog/core/utils/base64_codec"
+require "datadog/core/remote/transport/http"
+require "datadog/core/remote/transport/http/negotiation"
+require "datadog/core/remote/transport/negotiation"
 
 RSpec.describe Datadog::Core::Remote::Transport::HTTP do
   skip_unless_integration_testing_enabled
 
   let(:logger) { logger_allowing_debug }
 
-  describe '.root' do
+  describe ".root" do
     subject(:transport) { described_class.root(agent_settings: test_agent_settings, logger: logger, &client_options) }
 
     let(:client_options) { proc { |_client| } }
 
     it { is_expected.to be_a(Datadog::Core::Remote::Transport::Negotiation::Transport) }
 
-    describe '#send_info' do
+    describe "#send_info" do
       subject(:response) { transport.send_info }
 
       it { is_expected.to be_a(Datadog::Core::Remote::Transport::HTTP::Negotiation::Response) }
@@ -32,8 +32,8 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
     end
   end
 
-  describe '.v7' do
-    before { skip 'TODO: needs remote config on api key+agent+backend' if ENV['TEST_DATADOG_INTEGRATION'] }
+  describe ".v7" do
+    before { skip "TODO: needs remote config on api key+agent+backend" if ENV["TEST_DATADOG_INTEGRATION"] }
 
     subject(:transport) { described_class.v7(agent_settings: test_agent_settings, logger: logger, &client_options) }
 
@@ -41,7 +41,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
 
     it { is_expected.to be_a(Datadog::Core::Remote::Transport::Config::Transport) }
 
-    describe '#send_config' do
+    describe "#send_config" do
       let(:state) do
         OpenStruct.new(
           {
@@ -49,8 +49,8 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
             targets_version: 0,           # from scratch, so zero
             config_states: [],            # from scratch, so empty
             has_error: false,             # from scratch, so false
-            error: '',                    # from scratch, so blank
-            opaque_backend_state: '',     # from scratch, so blank
+            error: "",                    # from scratch, so blank
+            opaque_backend_state: "",     # from scratch, so blank
           }
         )
       end
@@ -64,10 +64,10 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
       let(:capabilities_binary) do
         capabilities
           .to_s(16)
-          .tap { |s| s.size.odd? && s.prepend('0') }
+          .tap { |s| s.size.odd? && s.prepend("0") }
           .scan(/\h\h/)
           .map { |e| e.to_i(16) }
-          .pack('C*')
+          .pack("C*")
       end
 
       let(:payload) do

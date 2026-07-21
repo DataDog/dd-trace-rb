@@ -60,7 +60,7 @@ RSpec.describe Datadog::AIGuard::Evaluation do
 
       trace = traces.first
       expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
-      expect(trace.send(:sampling_decision_maker)).to eq('-13')
+      expect(trace.send(:sampling_decision_maker)).to eq("-13")
     end
 
     it "sets ai_guard.event tag on the trace with AI Guard evaluations" do
@@ -147,7 +147,7 @@ RSpec.describe Datadog::AIGuard::Evaluation do
     end
 
     context "when empty messages array is passed" do
-      it 'raises ArgumentError' do
+      it "raises ArgumentError" do
         expect { described_class.perform([]) }.to raise_error(ArgumentError, "Messages must not be empty")
       end
     end

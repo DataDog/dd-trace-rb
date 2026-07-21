@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -24,23 +24,23 @@ module Datadog
               consumer = job.executor.topic.consumer
 
               action = case job_type
-              when 'Periodic', 'PeriodicNonBlocking'
-                'tick'
-              when 'Shutdown'
-                'shutdown'
-              when 'Revoked', 'RevokedNonBlocking'
-                'revoked'
-              when 'Idle'
-                'idle'
-              when 'Eofed', 'EofedNonBlocking'
-                'eofed'
+              when "Periodic", "PeriodicNonBlocking"
+                "tick"
+              when "Shutdown"
+                "shutdown"
+              when "Revoked", "RevokedNonBlocking"
+                "revoked"
+              when "Idle"
+                "idle"
+              when "Eofed", "EofedNonBlocking"
+                "eofed"
               else
-                'consume'
+                "consume"
               end
 
               span.resource = "#{consumer}##{action}"
 
-              if action == 'consume'
+              if action == "consume"
                 span.set_tag(Ext::TAG_MESSAGE_COUNT, job.messages.count)
                 span.set_tag(Ext::TAG_PARTITION, job.executor.partition)
                 span.set_tag(Ext::TAG_OFFSET, job.messages.first.metadata.offset)
@@ -68,7 +68,7 @@ module Datadog
 
           def fetch_job_type(job_class)
             @job_types_cache ||= {}
-            @job_types_cache[job_class] ||= job_class.to_s.split('::').last
+            @job_types_cache[job_class] ||= job_class.to_s.split("::").last
           end
         end
       end

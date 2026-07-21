@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../anonymizer'
+require_relative "../../anonymizer"
 
 module Datadog
   module AppSec
@@ -9,8 +9,8 @@ module Datadog
         # Extracts user identification data from Devise resources.
         # Supports both regular and anonymized data extraction modes.
         class DataExtractor
-          PRIORITY_ORDERED_ID_KEYS = [:id, 'id', :uuid, 'uuid'].freeze
-          PRIORITY_ORDERED_LOGIN_KEYS = [:email, 'email', :username, 'username', :login, 'login'].freeze
+          PRIORITY_ORDERED_ID_KEYS = [:id, "id", :uuid, "uuid"].freeze
+          PRIORITY_ORDERED_LOGIN_KEYS = [:email, "email", :username, "username", :login, "login"].freeze
 
           def initialize(mode:)
             @mode = mode

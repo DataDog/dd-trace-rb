@@ -165,7 +165,7 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
 
-        context "when gc_enabled is true", ruby: '>= 2.7' do
+        context "when gc_enabled is true", ruby: ">= 2.7" do
           before do
             settings.profiling.advanced.gc_enabled = true
 
@@ -339,7 +339,7 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
-        context "when heap profiling is enabled", ruby: '>= 2.7' do
+        context "when heap profiling is enabled", ruby: ">= 2.7" do
           # Universally supported ruby version for allocation profiling by default
           let(:testing_version) { "3.3.0" }
           let(:heap_size_profiling_available) { RubyVersion.is?("< 4") } # Currently incompatible with Ruby 4
@@ -690,7 +690,7 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
-        context "when can_apply_exec_monkey_patch? is true", ruby: '>= 2.7' do
+        context "when can_apply_exec_monkey_patch? is true", ruby: ">= 2.7" do
           let(:exec_monkey_patch) { class_double(exec_monkey_patch_name, apply!: true) }
 
           before do

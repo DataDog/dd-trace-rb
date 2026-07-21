@@ -1,20 +1,20 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'rack/test'
-require 'securerandom'
-require 'rack'
-require 'datadog'
-require 'datadog/tracing/contrib/rack/middlewares'
-require 'datadog/tracing/contrib/support/integration/shared_examples'
-require_relative '../support/http'
+require "datadog/tracing/contrib/support/spec_helper"
+require "rack/test"
+require "securerandom"
+require "rack"
+require "datadog"
+require "datadog/tracing/contrib/rack/middlewares"
+require "datadog/tracing/contrib/support/integration/shared_examples"
+require_relative "../support/http"
 
 begin
-  require 'rack/contrib/json_body_parser'
+  require "rack/contrib/json_body_parser"
 rescue LoadError
   # fallback for old rack-contrib
-  require 'rack/contrib/post_body_content_type_parser'
+  require "rack/contrib/post_body_content_type_parser"
 end
 
-RSpec.describe 'Rack integration tests' do
+RSpec.describe "Rack integration tests" do
   include Rack::Test::Methods
 
   let(:rack_options) { {} }
@@ -31,21 +31,21 @@ RSpec.describe 'Rack integration tests' do
   # This before block is executed before booting the tracer, which is why we add mocks here
   before do
     WebMock.enable!
-    stub_request(:get, 'http://localhost:3000/returnheaders')
+    stub_request(:get, "http://localhost:3000/returnheaders")
       .to_return do |request|
         {
           status: 200,
           body: request.headers.to_json,
-          headers: {'Content-Type' => 'application/json'}
+          headers: {"Content-Type" => "application/json"}
         }
       end
 
     # Mocked agent that returns the headers sent
-    stub_request(:post, 'http://localhost:6218/v0.4/traces').to_return do |request|
+    stub_request(:post, "http://localhost:6218/v0.4/traces").to_return do |request|
       {
         status: 200,
         body: request.headers.to_json,
-        headers: {'Content-Type' => 'application/json'}
+        headers: {"Content-Type" => "application/json"}
       }
     end
 
@@ -75,22 +75,22 @@ RSpec.describe 'Rack integration tests' do
     Datadog.registry[:rack].reset_configuration!
   end
 
-  shared_examples 'a rack GET 200 span' do
+  shared_examples "a rack GET 200 span" do
     it do
-      expect(span.name).to eq('rack.request')
-      expect(span.type).to eq('web')
+      expect(span.name).to eq("rack.request")
+      expect(span.type).to eq("web")
       expect(span.service).to eq(tracer.default_service)
-      expect(span.resource).to eq('GET 200')
-      expect(span.get_tag('http.method')).to eq('GET')
-      expect(span.get_tag('http.status_code')).to eq('200')
+      expect(span.resource).to eq("GET 200")
+      expect(span.get_tag("http.method")).to eq("GET")
+      expect(span.get_tag("http.status_code")).to eq("200")
       expect(span.status).to eq(0)
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rack')
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
-      expect(span.get_tag('span.kind')).to eq('server')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("rack")
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq("request")
+      expect(span.get_tag("span.kind")).to eq("server")
     end
   end
 
-  context 'for an application' do
+  context "for an application" do
     let(:app) do
       app_routes = routes
 
@@ -100,7 +100,7 @@ RSpec.describe 'Rack integration tests' do
       end.to_app
     end
 
-    context 'with remote configuration' do
+    context "with remote configuration" do
       before do
         if remote_enabled
           allow(Datadog::Core::Remote::Transport::HTTP).to receive(:v7).and_return(transport_v7)
@@ -120,8 +120,8 @@ RSpec.describe 'Rack integration tests' do
 
       let(:routes) do
         proc do
-          map '/success/' do
-            run(proc { |_env| [200, {'Content-Type' => 'text/html'}, ['OK']] })
+          map "/success/" do
+            run(proc { |_env| [200, {"Content-Type" => "text/html"}, ["OK"]] })
           end
         end
       end
@@ -132,34 +132,34 @@ RSpec.describe 'Rack integration tests' do
 
       let(:response) { get route }
 
-      context 'disabled' do
+      context "disabled" do
         let(:remote_enabled) { false }
-        let(:route) { '/success/' }
+        let(:route) { "/success/" }
 
-        it 'has no remote configuration tags' do
+        it "has no remote configuration tags" do
           expect(response).to be_ok
           expect(spans).to have(1).items
-          expect(span).to_not have_tag('_dd.rc.boot.time')
-          expect(span).to_not have_tag('_dd.rc.boot.ready')
-          expect(span).to_not have_tag('_dd.rc.boot.timeout')
-          expect(span).to_not have_tag('_dd.rc.client_id')
-          expect(span).to_not have_tag('_dd.rc.status')
+          expect(span).to_not have_tag("_dd.rc.boot.time")
+          expect(span).to_not have_tag("_dd.rc.boot.ready")
+          expect(span).to_not have_tag("_dd.rc.boot.timeout")
+          expect(span).to_not have_tag("_dd.rc.client_id")
+          expect(span).to_not have_tag("_dd.rc.status")
           expect(span).to be_root_span
         end
       end
 
-      context 'enabled' do
+      context "enabled" do
         let(:remote_enabled) { true }
         let(:remote_boot_timeout) { 1.0 }
-        let(:route) { '/success/' }
+        let(:route) { "/success/" }
 
         let(:component) { Datadog::Core::Remote.active_remote }
         let(:worker) { component.instance_eval { @worker } }
-        let(:client) { double('Client') }
-        let(:transport_v7) { double('Transport') }
-        let(:negotiation) { double('Negotiation') }
+        let(:client) { double("Client") }
+        let(:transport_v7) { double("Transport") }
+        let(:negotiation) { double("Negotiation") }
 
-        context 'and responding' do
+        context "and responding" do
           before do
             allow(negotiation).to receive(:endpoint?).and_return(true)
             allow(worker).to receive(:call).and_call_original
@@ -177,30 +177,30 @@ RSpec.describe 'Rack integration tests' do
             end
           end
 
-          context 'faster than timeout' do
+          context "faster than timeout" do
             let(:remote_client_sync_delay) { 0.1 }
 
-            it 'has boot tags' do
+            it "has boot tags" do
               expect(response).to be_ok
               expect(spans).to have(1).items
-              expect(span).to have_tag('_dd.rc.boot.time')
-              expect(span.get_tag('_dd.rc.boot.time')).to be_a Float
-              expect(span).to have_tag('_dd.rc.boot.ready')
-              expect(span.get_tag('_dd.rc.boot.ready')).to eq 'true'
-              expect(span).to_not have_tag('_dd.rc.boot.timeout')
+              expect(span).to have_tag("_dd.rc.boot.time")
+              expect(span.get_tag("_dd.rc.boot.time")).to be_a Float
+              expect(span).to have_tag("_dd.rc.boot.ready")
+              expect(span.get_tag("_dd.rc.boot.ready")).to eq "true"
+              expect(span).to_not have_tag("_dd.rc.boot.timeout")
               expect(span).to be_root_span
             end
 
-            it 'has remote configuration tags' do
+            it "has remote configuration tags" do
               expect(response).to be_ok
               expect(spans).to have(1).items
-              expect(span).to have_tag('_dd.rc.client_id')
-              expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
-              expect(span).to have_tag('_dd.rc.status')
-              expect(span.get_tag('_dd.rc.status')).to eq 'ready'
+              expect(span).to have_tag("_dd.rc.client_id")
+              expect(span.get_tag("_dd.rc.client_id")).to eq remote_client_id
+              expect(span).to have_tag("_dd.rc.status")
+              expect(span.get_tag("_dd.rc.status")).to eq "ready"
             end
 
-            context 'on second request' do
+            context "on second request" do
               let(:remote_client_sync_delay) { remote_boot_timeout }
 
               let(:response) do
@@ -211,51 +211,51 @@ RSpec.describe 'Rack integration tests' do
 
               let(:last_span) { spans.last }
 
-              it 'does not have boot tags' do
+              it "does not have boot tags" do
                 expect(response).to be_ok
                 expect(spans).to have(2).items
-                expect(last_span).to_not have_tag('_dd.rc.boot.time')
-                expect(last_span).to_not have_tag('_dd.rc.boot.ready')
-                expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
+                expect(last_span).to_not have_tag("_dd.rc.boot.time")
+                expect(last_span).to_not have_tag("_dd.rc.boot.ready")
+                expect(last_span).to_not have_tag("_dd.rc.boot.timeout")
                 expect(last_span).to be_root_span
               end
 
-              it 'has remote configuration tags' do
+              it "has remote configuration tags" do
                 expect(response).to be_ok
                 expect(spans).to have(2).items
-                expect(last_span).to have_tag('_dd.rc.client_id')
-                expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
-                expect(last_span).to have_tag('_dd.rc.status')
-                expect(last_span.get_tag('_dd.rc.status')).to eq 'ready'
+                expect(last_span).to have_tag("_dd.rc.client_id")
+                expect(last_span.get_tag("_dd.rc.client_id")).to eq remote_client_id
+                expect(last_span).to have_tag("_dd.rc.status")
+                expect(last_span.get_tag("_dd.rc.status")).to eq "ready"
               end
             end
           end
 
-          context 'and responding slower than timeout' do
+          context "and responding slower than timeout" do
             let(:remote_client_sync_delay) { 2 * remote_boot_timeout }
 
-            it 'has boot tags' do
+            it "has boot tags" do
               expect(response).to be_ok
               expect(spans).to have(1).items
-              expect(span).to have_tag('_dd.rc.boot.time')
-              expect(span.get_tag('_dd.rc.boot.time')).to be_a Float
-              expect(span).to have_tag('_dd.rc.boot.timeout')
-              expect(span.get_tag('_dd.rc.boot.timeout')).to eq 'true'
-              expect(span).to_not have_tag('_dd.rc.boot.ready')
+              expect(span).to have_tag("_dd.rc.boot.time")
+              expect(span.get_tag("_dd.rc.boot.time")).to be_a Float
+              expect(span).to have_tag("_dd.rc.boot.timeout")
+              expect(span.get_tag("_dd.rc.boot.timeout")).to eq "true"
+              expect(span).to_not have_tag("_dd.rc.boot.ready")
               expect(span).to be_root_span
             end
 
-            it 'has remote configuration tags' do
+            it "has remote configuration tags" do
               expect(response).to be_ok
               expect(spans).to have(1).items
-              expect(span).to have_tag('_dd.rc.client_id')
-              expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
-              expect(span).to have_tag('_dd.rc.status')
-              expect(span.get_tag('_dd.rc.status')).to eq 'disconnected'
+              expect(span).to have_tag("_dd.rc.client_id")
+              expect(span.get_tag("_dd.rc.client_id")).to eq remote_client_id
+              expect(span).to have_tag("_dd.rc.status")
+              expect(span.get_tag("_dd.rc.status")).to eq "disconnected"
             end
 
-            context 'on second request' do
-              context 'before sync' do
+            context "on second request" do
+              context "before sync" do
                 let(:response) do
                   get route
                   get route
@@ -263,26 +263,26 @@ RSpec.describe 'Rack integration tests' do
 
                 let(:last_span) { spans.last }
 
-                it 'does not have boot tags' do
+                it "does not have boot tags" do
                   expect(response).to be_ok
                   expect(spans).to have(2).items
-                  expect(last_span).to_not have_tag('_dd.rc.boot.time')
-                  expect(last_span).to_not have_tag('_dd.rc.boot.ready')
-                  expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
+                  expect(last_span).to_not have_tag("_dd.rc.boot.time")
+                  expect(last_span).to_not have_tag("_dd.rc.boot.ready")
+                  expect(last_span).to_not have_tag("_dd.rc.boot.timeout")
                   expect(last_span).to be_root_span
                 end
 
-                it 'has remote configuration tags' do
+                it "has remote configuration tags" do
                   expect(response).to be_ok
                   expect(spans).to have(2).items
-                  expect(last_span).to have_tag('_dd.rc.client_id')
-                  expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
-                  expect(last_span).to have_tag('_dd.rc.status')
-                  expect(last_span.get_tag('_dd.rc.status')).to eq 'disconnected'
+                  expect(last_span).to have_tag("_dd.rc.client_id")
+                  expect(last_span.get_tag("_dd.rc.client_id")).to eq remote_client_id
+                  expect(last_span).to have_tag("_dd.rc.status")
+                  expect(last_span.get_tag("_dd.rc.status")).to eq "disconnected"
                 end
               end
 
-              context 'after sync' do
+              context "after sync" do
                 let(:remote_client_sync_delay) { 2 * remote_boot_timeout }
 
                 let(:response) do
@@ -293,59 +293,59 @@ RSpec.describe 'Rack integration tests' do
 
                 let(:last_span) { spans.last }
 
-                it 'does not have boot tags' do
+                it "does not have boot tags" do
                   expect(response).to be_ok
                   expect(spans).to have(2).items
-                  expect(last_span).to_not have_tag('_dd.rc.boot.time')
-                  expect(last_span).to_not have_tag('_dd.rc.boot.ready')
-                  expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
+                  expect(last_span).to_not have_tag("_dd.rc.boot.time")
+                  expect(last_span).to_not have_tag("_dd.rc.boot.ready")
+                  expect(last_span).to_not have_tag("_dd.rc.boot.timeout")
                   expect(last_span).to be_root_span
                 end
 
-                it 'has remote configuration tags' do
+                it "has remote configuration tags" do
                   expect(response).to be_ok
                   expect(spans).to have(2).items
-                  expect(last_span).to have_tag('_dd.rc.client_id')
-                  expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
-                  expect(last_span).to have_tag('_dd.rc.status')
-                  expect(last_span.get_tag('_dd.rc.status')).to eq 'ready'
+                  expect(last_span).to have_tag("_dd.rc.client_id")
+                  expect(last_span.get_tag("_dd.rc.client_id")).to eq remote_client_id
+                  expect(last_span).to have_tag("_dd.rc.status")
+                  expect(last_span.get_tag("_dd.rc.status")).to eq "ready"
                 end
               end
             end
           end
         end
 
-        context 'not responding' do
+        context "not responding" do
           let(:exception) { Class.new(StandardError) }
 
           before do
             allow(negotiation).to receive(:endpoint?).and_return(true)
             allow(worker).to receive(:call).and_call_original
-            allow(client).to receive(:sync).and_raise(exception, 'test')
+            allow(client).to receive(:sync).and_raise(exception, "test")
             allow(logger).to receive(:error).and_return(nil)
           end
 
-          it 'has boot tags' do
+          it "has boot tags" do
             expect(response).to be_ok
             expect(spans).to have(1).items
-            expect(span).to have_tag('_dd.rc.boot.time')
-            expect(span.get_tag('_dd.rc.boot.time')).to be_a Float
-            expect(span).to_not have_tag('_dd.rc.boot.timeout')
-            expect(span).to have_tag('_dd.rc.boot.ready')
-            expect(span.get_tag('_dd.rc.boot.ready')).to eq 'false'
+            expect(span).to have_tag("_dd.rc.boot.time")
+            expect(span.get_tag("_dd.rc.boot.time")).to be_a Float
+            expect(span).to_not have_tag("_dd.rc.boot.timeout")
+            expect(span).to have_tag("_dd.rc.boot.ready")
+            expect(span.get_tag("_dd.rc.boot.ready")).to eq "false"
             expect(span).to be_root_span
           end
 
-          it 'has remote configuration tags' do
+          it "has remote configuration tags" do
             expect(response).to be_ok
             expect(spans).to have(1).items
-            expect(span).to have_tag('_dd.rc.client_id')
-            expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
-            expect(span).to have_tag('_dd.rc.status')
-            expect(span.get_tag('_dd.rc.status')).to eq 'disconnected'
+            expect(span).to have_tag("_dd.rc.client_id")
+            expect(span.get_tag("_dd.rc.client_id")).to eq remote_client_id
+            expect(span).to have_tag("_dd.rc.status")
+            expect(span.get_tag("_dd.rc.status")).to eq "disconnected"
           end
 
-          context 'on second request' do
+          context "on second request" do
             let(:remote_client_sync_delay) { remote_boot_timeout }
 
             let(:response) do
@@ -356,33 +356,33 @@ RSpec.describe 'Rack integration tests' do
 
             let(:last_span) { spans.last }
 
-            it 'does not have boot tags' do
+            it "does not have boot tags" do
               expect(response).to be_ok
               expect(spans).to have(2).items
-              expect(last_span).to_not have_tag('_dd.rc.boot.time')
-              expect(last_span).to_not have_tag('_dd.rc.boot.ready')
-              expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
+              expect(last_span).to_not have_tag("_dd.rc.boot.time")
+              expect(last_span).to_not have_tag("_dd.rc.boot.ready")
+              expect(last_span).to_not have_tag("_dd.rc.boot.timeout")
               expect(last_span).to be_root_span
             end
 
-            it 'has remote configuration tags' do
+            it "has remote configuration tags" do
               expect(response).to be_ok
               expect(spans).to have(2).items
-              expect(last_span).to have_tag('_dd.rc.client_id')
-              expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
-              expect(last_span).to have_tag('_dd.rc.status')
-              expect(last_span.get_tag('_dd.rc.status')).to eq 'disconnected'
+              expect(last_span).to have_tag("_dd.rc.client_id")
+              expect(last_span.get_tag("_dd.rc.client_id")).to eq remote_client_id
+              expect(last_span).to have_tag("_dd.rc.status")
+              expect(last_span.get_tag("_dd.rc.status")).to eq "disconnected"
             end
           end
         end
       end
     end
 
-    context 'with no routes' do
+    context "with no routes" do
       # NOTE: Have to give a Rack app at least one route.
       let(:routes) do
         proc do
-          map '/no/routes' do
+          map "/no/routes" do
             run(proc { |_env| })
           end
         end
@@ -393,41 +393,41 @@ RSpec.describe 'Rack integration tests' do
         expect(spans).to have(1).items
       end
 
-      describe 'GET request' do
-        subject(:response) { get '/not/exists/' }
+      describe "GET request" do
+        subject(:response) { get "/not/exists/" }
 
         it do
-          expect(span.name).to eq('rack.request')
-          expect(span.type).to eq('web')
+          expect(span.name).to eq("rack.request")
+          expect(span.type).to eq("web")
           expect(span.service).to eq(Datadog.configuration.service)
-          expect(span.resource).to eq('GET 404')
-          expect(span.get_tag('http.method')).to eq('GET')
-          expect(span.get_tag('http.status_code')).to eq('404')
-          expect(span.get_tag('http.url')).to eq('/not/exists/')
-          expect(span.get_tag('http.base_url')).to eq('http://example.org')
+          expect(span.resource).to eq("GET 404")
+          expect(span.get_tag("http.method")).to eq("GET")
+          expect(span.get_tag("http.status_code")).to eq("404")
+          expect(span.get_tag("http.url")).to eq("/not/exists/")
+          expect(span.get_tag("http.base_url")).to eq("http://example.org")
           expect(span.status).to eq(0)
           expect(span).to be_root_span
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-            .to eq('rack')
+            .to eq("rack")
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-            .to eq('request')
-          expect(span.get_tag('span.kind'))
-            .to eq('server')
+            .to eq("request")
+          expect(span.get_tag("span.kind"))
+            .to eq("server")
         end
       end
     end
 
-    context 'with a basic route' do
+    context "with a basic route" do
       let(:routes) do
         proc do
-          map '/success/' do
-            run(proc { |_env| [200, {'Content-Type' => 'text/html'}, ['OK']] })
+          map "/success/" do
+            run(proc { |_env| [200, {"Content-Type" => "text/html"}, ["OK"]] })
           end
 
-          map '/requestdownstream' do
+          map "/requestdownstream" do
             run(
               proc do |_env|
-                uri = URI('http://localhost:3000/returnheaders')
+                uri = URI("http://localhost:3000/returnheaders")
                 ext_request = nil
                 ext_response = nil
 
@@ -437,14 +437,14 @@ RSpec.describe 'Rack integration tests' do
                   ext_response = http.request(ext_request)
                 end
 
-                [200, {'Content-Type' => 'application/json'}, [ext_response.body]]
+                [200, {"Content-Type" => "application/json"}, [ext_response.body]]
               end
             )
           end
         end
       end
 
-      describe 'GET request' do
+      describe "GET request" do
         subject(:response) { get route }
 
         before do
@@ -452,174 +452,174 @@ RSpec.describe 'Rack integration tests' do
           expect(spans).to have(1).items
         end
 
-        context 'without parameters' do
-          let(:route) { '/success/' }
+        context "without parameters" do
+          let(:route) { "/success/" }
 
-          it_behaves_like 'a rack GET 200 span'
+          it_behaves_like "a rack GET 200 span"
 
-          context 'and default quantization' do
+          context "and default quantization" do
             let(:rack_options) { {quantize: {}} }
 
             it do
-              expect(span.get_tag('http.url')).to eq('/success/')
-              expect(span.get_tag('http.base_url')).to eq('http://example.org')
+              expect(span.get_tag("http.url")).to eq("/success/")
+              expect(span.get_tag("http.base_url")).to eq("http://example.org")
               expect(span).to be_root_span
             end
           end
 
-          context 'and quantization activated for URL base' do
+          context "and quantization activated for URL base" do
             let(:rack_options) { {quantize: {base: :show}} }
 
             it do
-              expect(span.get_tag('http.url')).to eq('http://example.org/success/')
-              expect(span.get_tag('http.base_url')).to be_nil
+              expect(span.get_tag("http.url")).to eq("http://example.org/success/")
+              expect(span.get_tag("http.base_url")).to be_nil
               expect(span).to be_root_span
             end
           end
 
-          it { expect(trace.resource).to eq('GET 200') }
+          it { expect(trace.resource).to eq("GET 200") }
         end
 
-        context 'with query string parameters' do
-          let(:route) { '/success?foo=bar' }
+        context "with query string parameters" do
+          let(:route) { "/success?foo=bar" }
 
-          context 'and default quantization' do
+          context "and default quantization" do
             let(:rack_options) { {quantize: {}} }
 
-            it_behaves_like 'a rack GET 200 span'
+            it_behaves_like "a rack GET 200 span"
 
             it do
-              expect(span.get_tag('http.url')).to eq('/success?foo')
-              expect(span.get_tag('http.base_url')).to eq('http://example.org')
+              expect(span.get_tag("http.url")).to eq("/success?foo")
+              expect(span.get_tag("http.base_url")).to eq("http://example.org")
               expect(span).to be_root_span
             end
           end
 
-          context 'and quantization activated for the query' do
-            let(:rack_options) { {quantize: {query: {show: ['foo']}}} }
+          context "and quantization activated for the query" do
+            let(:rack_options) { {quantize: {query: {show: ["foo"]}}} }
 
-            it_behaves_like 'a rack GET 200 span'
+            it_behaves_like "a rack GET 200 span"
 
             it do
-              expect(span.get_tag('http.url')).to eq('/success?foo=bar')
-              expect(span.get_tag('http.base_url')).to eq('http://example.org')
+              expect(span.get_tag("http.url")).to eq("/success?foo=bar")
+              expect(span.get_tag("http.base_url")).to eq("http://example.org")
               expect(span).to be_root_span
             end
           end
         end
 
-        context 'with REQUEST_URI being a path' do
-          subject(:response) { get '/success?foo=bar', {}, 'REQUEST_URI' => '/success?foo=bar' }
+        context "with REQUEST_URI being a path" do
+          subject(:response) { get "/success?foo=bar", {}, "REQUEST_URI" => "/success?foo=bar" }
 
-          context 'and default quantization' do
+          context "and default quantization" do
             let(:rack_options) { {quantize: {}} }
 
-            it_behaves_like 'a rack GET 200 span'
+            it_behaves_like "a rack GET 200 span"
 
             it do
               # Since REQUEST_URI is set (usually provided by WEBrick/Puma)
               # it uses REQUEST_URI, which has query string parameters.
               # However, that query string will be quantized.
-              expect(span.get_tag('http.url')).to eq('/success?foo')
-              expect(span.get_tag('http.base_url')).to eq('http://example.org')
+              expect(span.get_tag("http.url")).to eq("/success?foo")
+              expect(span.get_tag("http.base_url")).to eq("http://example.org")
               expect(span).to be_root_span
             end
           end
 
-          context 'and quantization activated for the query' do
-            let(:rack_options) { {quantize: {query: {show: ['foo']}}} }
+          context "and quantization activated for the query" do
+            let(:rack_options) { {quantize: {query: {show: ["foo"]}}} }
 
-            it_behaves_like 'a rack GET 200 span'
+            it_behaves_like "a rack GET 200 span"
 
             it do
               # Since REQUEST_URI is set (usually provided by WEBrick/Puma)
               # it uses REQUEST_URI, which has query string parameters.
               # The query string will not be quantized, per the option.
-              expect(span.get_tag('http.url')).to eq('/success?foo=bar')
-              expect(span.get_tag('http.base_url')).to eq('http://example.org')
+              expect(span.get_tag("http.url")).to eq("/success?foo=bar")
+              expect(span.get_tag("http.base_url")).to eq("http://example.org")
               expect(span).to be_root_span
             end
           end
 
-          context 'and quantization activated for base' do
+          context "and quantization activated for base" do
             let(:rack_options) { {quantize: {base: :show}} }
 
-            it_behaves_like 'a rack GET 200 span'
+            it_behaves_like "a rack GET 200 span"
 
             it do
               # Since REQUEST_URI is set (usually provided by WEBrick/Puma)
               # it uses REQUEST_URI, which has query string parameters.
               # The query string will not be quantized, per the option.
-              expect(span.get_tag('http.url')).to eq('http://example.org/success?foo')
-              expect(span.get_tag('http.base_url')).to be_nil
+              expect(span.get_tag("http.url")).to eq("http://example.org/success?foo")
+              expect(span.get_tag("http.base_url")).to be_nil
               expect(span).to be_root_span
             end
           end
         end
 
-        context 'with REQUEST_URI containing base URI' do
-          subject(:response) { get '/success?foo=bar', {}, 'REQUEST_URI' => 'http://example.org/success?foo=bar' }
+        context "with REQUEST_URI containing base URI" do
+          subject(:response) { get "/success?foo=bar", {}, "REQUEST_URI" => "http://example.org/success?foo=bar" }
 
-          context 'and default quantization' do
+          context "and default quantization" do
             let(:rack_options) { {quantize: {}} }
 
-            it_behaves_like 'a rack GET 200 span'
+            it_behaves_like "a rack GET 200 span"
 
             it do
               # Since REQUEST_URI is set (usually provided by WEBrick/Puma)
               # it uses REQUEST_URI, which has query string parameters.
               # However, that query string will be quantized.
-              expect(span.get_tag('http.url')).to eq('/success?foo')
-              expect(span.get_tag('http.base_url')).to eq('http://example.org')
+              expect(span.get_tag("http.url")).to eq("/success?foo")
+              expect(span.get_tag("http.base_url")).to eq("http://example.org")
               expect(span).to be_root_span
             end
           end
 
-          context 'and quantization activated for the query' do
-            let(:rack_options) { {quantize: {query: {show: ['foo']}}} }
+          context "and quantization activated for the query" do
+            let(:rack_options) { {quantize: {query: {show: ["foo"]}}} }
 
-            it_behaves_like 'a rack GET 200 span'
+            it_behaves_like "a rack GET 200 span"
 
             it do
               # Since REQUEST_URI is set (usually provided by WEBrick/Puma)
               # it uses REQUEST_URI, which has query string parameters.
               # The query string will not be quantized, per the option.
-              expect(span.get_tag('http.url')).to eq('/success?foo=bar')
-              expect(span.get_tag('http.base_url')).to eq('http://example.org')
+              expect(span.get_tag("http.url")).to eq("/success?foo=bar")
+              expect(span.get_tag("http.base_url")).to eq("http://example.org")
               expect(span).to be_root_span
             end
           end
 
-          context 'and quantization activated for base' do
+          context "and quantization activated for base" do
             let(:rack_options) { {quantize: {base: :show}} }
 
-            it_behaves_like 'a rack GET 200 span'
+            it_behaves_like "a rack GET 200 span"
 
             it do
               # Since REQUEST_URI is set (usually provided by WEBrick/Puma)
               # it uses REQUEST_URI, which has query string parameters.
               # The query string will not be quantized, per the option.
-              expect(span.get_tag('http.url')).to eq('http://example.org/success?foo')
-              expect(span.get_tag('http.base_url')).to be_nil
+              expect(span.get_tag("http.url")).to eq("http://example.org/success?foo")
+              expect(span.get_tag("http.base_url")).to be_nil
               expect(span).to be_root_span
             end
           end
         end
 
-        context 'with sub-route' do
-          let(:route) { '/success/100' }
+        context "with sub-route" do
+          let(:route) { "/success/100" }
 
-          it_behaves_like 'a rack GET 200 span'
+          it_behaves_like "a rack GET 200 span"
 
           it do
-            expect(span.get_tag('http.url')).to eq('/success/100')
-            expect(span.get_tag('http.base_url')).to eq('http://example.org')
+            expect(span.get_tag("http.url")).to eq("/success/100")
+            expect(span.get_tag("http.base_url")).to eq("http://example.org")
             expect(span).to be_root_span
           end
         end
       end
 
-      describe 'POST request' do
+      describe "POST request" do
         subject(:response) { post route }
 
         before do
@@ -627,71 +627,71 @@ RSpec.describe 'Rack integration tests' do
           expect(spans).to have(1).items
         end
 
-        context 'without parameters' do
-          let(:route) { '/success/' }
+        context "without parameters" do
+          let(:route) { "/success/" }
 
           it do
-            expect(span.name).to eq('rack.request')
-            expect(span.type).to eq('web')
+            expect(span.name).to eq("rack.request")
+            expect(span.type).to eq("web")
             expect(span.service).to eq(Datadog.configuration.service)
-            expect(span.resource).to eq('POST 200')
-            expect(span.get_tag('http.method')).to eq('POST')
-            expect(span.get_tag('http.status_code')).to eq('200')
-            expect(span.get_tag('http.url')).to eq('/success/')
-            expect(span.get_tag('http.base_url')).to eq('http://example.org')
+            expect(span.resource).to eq("POST 200")
+            expect(span.get_tag("http.method")).to eq("POST")
+            expect(span.get_tag("http.status_code")).to eq("200")
+            expect(span.get_tag("http.url")).to eq("/success/")
+            expect(span.get_tag("http.base_url")).to eq("http://example.org")
             expect(span.status).to eq(0)
             expect(span).to be_root_span
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-              .to eq('rack')
+              .to eq("rack")
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-              .to eq('request')
-            expect(span.get_tag('span.kind'))
-              .to eq('server')
+              .to eq("request")
+            expect(span.get_tag("span.kind"))
+              .to eq("server")
           end
         end
       end
 
-      describe 'APM disablement' do
+      describe "APM disablement" do
         before do
           is_expected.to be_ok
         end
 
-        let(:url) { '/requestdownstream' }
+        let(:url) { "/requestdownstream" }
         let(:params) { {} }
         let(:headers) do
           {
-            'HTTP_X_DATADOG_TRACE_ID' => headers_trace_id,
-            'HTTP_X_DATADOG_PARENT_ID' => headers_parent_id,
-            'HTTP_X_DATADOG_SAMPLING_PRIORITY' => headers_sampling_priority,
-            'HTTP_X_DATADOG_ORIGIN' => headers_origin,
-            'HTTP_X_DATADOG_TAGS' => headers_tags,
-            'HTTP_USER_AGENT' => user_agent
+            "HTTP_X_DATADOG_TRACE_ID" => headers_trace_id,
+            "HTTP_X_DATADOG_PARENT_ID" => headers_parent_id,
+            "HTTP_X_DATADOG_SAMPLING_PRIORITY" => headers_sampling_priority,
+            "HTTP_X_DATADOG_ORIGIN" => headers_origin,
+            "HTTP_X_DATADOG_TAGS" => headers_tags,
+            "HTTP_USER_AGENT" => user_agent
           }
         end
         let(:env) { headers }
 
         # Default values for headers
-        let(:headers_trace_id) { '1212121212121212121' }
-        let(:headers_parent_id) { '34343434' }
-        let(:headers_origin) { 'rum' }
-        let(:headers_sampling_priority) { '-1' }
-        let(:headers_tags) { '_dd.p.other=1' }
+        let(:headers_trace_id) { "1212121212121212121" }
+        let(:headers_parent_id) { "34343434" }
+        let(:headers_origin) { "rum" }
+        let(:headers_sampling_priority) { "-1" }
+        let(:headers_tags) { "_dd.p.other=1" }
         let(:user_agent) { nil }
 
         # Overwrite tracer_helpers span method as in our case we also instrument http
         let(:span) do
           Datadog::Tracing::Transport::TraceFormatter.format!(traces.last)
-          spans.find { |s| s.name == 'rack.request' && s.get_tag('http.url') == '/requestdownstream' }
+          spans.find { |s| s.name == "rack.request" && s.get_tag("http.url") == "/requestdownstream" }
         end
 
         let(:apm_tracing_enabled) { false }
         let(:instrument_http) { true }
 
-        context 'trace sent to agent with Datadog-Client-Computed-Stats header' do
+        context "trace sent to agent with Datadog-Client-Computed-Stats header" do
           # Agent mocked in top before block
           subject(:response) do
             clear_traces!
-            get '/success/'
+            get "/success/"
           end
 
           it do
@@ -699,7 +699,7 @@ RSpec.describe 'Rack integration tests' do
               adapter: nil,
               ssl: false,
               uds_path: nil,
-              hostname: 'localhost',
+              hostname: "localhost",
               port: 6218,
               timeout_seconds: 30
             )
@@ -712,68 +712,68 @@ RSpec.describe 'Rack integration tests' do
             end
             agent_return = agent_http_client.send_traces(traces)
 
-            expect(JSON.parse(agent_return.first.payload)['Datadog-Client-Computed-Stats']).to eq('yes')
+            expect(JSON.parse(agent_return.first.payload)["Datadog-Client-Computed-Stats"]).to eq("yes")
           end
         end
 
-        context 'request contains propagated tags, trace sent without sampling priority set to FORCE_KEEP' do
+        context "request contains propagated tags, trace sent without sampling priority set to FORCE_KEEP" do
           subject(:response) do
             clear_traces!
-            get '/success/'
+            get "/success/"
             get url, params, env
           end
 
-          context 'from -1 sampling priority' do
-            it_behaves_like 'a trace with APM disablement tags',
+          context "from -1 sampling priority" do
+            it_behaves_like "a trace with APM disablement tags",
               {
-                tag_other_propagation: '1',
+                tag_other_propagation: "1",
                 tag_sampling_priority_condition: ->(x) { x <= 0 }
               }
-            it_behaves_like 'a request sent without propagated headers'
+            it_behaves_like "a request sent without propagated headers"
           end
 
-          context 'from 0 sampling priority' do
-            let(:headers_sampling_priority) { '0' }
+          context "from 0 sampling priority" do
+            let(:headers_sampling_priority) { "0" }
 
-            it_behaves_like 'a trace with APM disablement tags',
+            it_behaves_like "a trace with APM disablement tags",
               {
-                tag_other_propagation: '1',
+                tag_other_propagation: "1",
                 tag_sampling_priority_condition: ->(x) { x <= 0 }
               }
-            it_behaves_like 'a request sent without propagated headers'
+            it_behaves_like "a request sent without propagated headers"
           end
 
-          context 'from 1 sampling priority' do
-            let(:headers_sampling_priority) { '1' }
+          context "from 1 sampling priority" do
+            let(:headers_sampling_priority) { "1" }
 
-            it_behaves_like 'a trace with APM disablement tags',
+            it_behaves_like "a trace with APM disablement tags",
               {
-                tag_other_propagation: '1',
+                tag_other_propagation: "1",
                 tag_sampling_priority_condition: ->(x) { x <= 0 }
               }
-            it_behaves_like 'a request sent without propagated headers'
+            it_behaves_like "a request sent without propagated headers"
           end
 
-          context 'from 2 sampling priority' do
-            let(:headers_sampling_priority) { '2' }
+          context "from 2 sampling priority" do
+            let(:headers_sampling_priority) { "2" }
 
-            it_behaves_like 'a trace with APM disablement tags',
+            it_behaves_like "a trace with APM disablement tags",
               {
-                tag_other_propagation: '1',
+                tag_other_propagation: "1",
                 tag_sampling_priority_condition: ->(x) { x <= 0 }
               }
-            it_behaves_like 'a request sent without propagated headers'
+            it_behaves_like "a request sent without propagated headers"
           end
         end
 
-        context '2 heartbeat traces and 1 dropped trace' do
+        context "2 heartbeat traces and 1 dropped trace" do
           subject(:response) do
             clear_traces!
-            get '/success/'
+            get "/success/"
             sleep(2)
-            get '/success/'
+            get "/success/"
             sleep(2)
-            get '/success/'
+            get "/success/"
           end
 
           let(:env) { {} }
@@ -787,24 +787,24 @@ RSpec.describe 'Rack integration tests' do
       end
     end
 
-    context 'when `request_queuing` enabled' do
+    context "when `request_queuing` enabled" do
       let(:routes) do
         proc do
-          map '/request_queuing_enabled' do
-            run(proc { |_env| [200, {'Content-Type' => 'text/html'}, ['OK']] })
+          map "/request_queuing_enabled" do
+            run(proc { |_env| [200, {"Content-Type" => "text/html"}, ["OK"]] })
           end
         end
       end
 
-      describe 'when request queueing enabled' do
+      describe "when request queueing enabled" do
         let(:rack_options) { {request_queuing: true} }
 
-        it 'creates web_server_span and rack span' do
-          get 'request_queuing_enabled',
+        it "creates web_server_span and rack span" do
+          get "request_queuing_enabled",
             nil,
             {Datadog::Tracing::Contrib::Rack::QueueTime::REQUEST_START => "t=#{Time.now.to_f}"}
 
-          expect(trace.resource).to eq('GET 200')
+          expect(trace.resource).to eq("GET 200")
 
           expect(spans).to have(3).items
 
@@ -814,43 +814,43 @@ RSpec.describe 'Rack integration tests' do
 
           expect(server_request_span).to be_root_span
           expect(server_request_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_REQUEST)
-          expect(server_request_span.type).to eq('proxy')
-          expect(server_request_span.service).to eq('web-server')
-          expect(server_request_span.resource).to eq('http.proxy.request')
-          expect(server_request_span.get_tag('component')).to eq('http_proxy')
-          expect(server_request_span.get_tag('operation')).to eq('request')
+          expect(server_request_span.type).to eq("proxy")
+          expect(server_request_span.service).to eq("web-server")
+          expect(server_request_span.resource).to eq("http.proxy.request")
+          expect(server_request_span.get_tag("component")).to eq("http_proxy")
+          expect(server_request_span.get_tag("operation")).to eq("request")
           expect(server_request_span.status).to eq(0)
-          expect(server_request_span.get_tag('span.kind')).to eq('proxy')
+          expect(server_request_span.get_tag("span.kind")).to eq("proxy")
 
           expect(server_queue_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_QUEUE)
-          expect(server_queue_span.type).to eq('proxy')
-          expect(server_queue_span.service).to eq('web-server')
-          expect(server_queue_span.resource).to eq('http.proxy.queue')
-          expect(server_queue_span.get_tag('component')).to eq('http_proxy')
-          expect(server_queue_span.get_tag('operation')).to eq('queue')
+          expect(server_queue_span.type).to eq("proxy")
+          expect(server_queue_span.service).to eq("web-server")
+          expect(server_queue_span.resource).to eq("http.proxy.queue")
+          expect(server_queue_span.get_tag("component")).to eq("http_proxy")
+          expect(server_queue_span.get_tag("operation")).to eq("queue")
           expect(server_queue_span.status).to eq(0)
-          expect(server_queue_span.get_tag('span.kind')).to eq('proxy')
+          expect(server_queue_span.get_tag("span.kind")).to eq("proxy")
           expect(server_queue_span).to be_measured
 
           expect(rack_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST)
-          expect(rack_span.type).to eq('web')
+          expect(rack_span.type).to eq("web")
           expect(rack_span.service).to eq(tracer.default_service)
-          expect(rack_span.resource).to eq('GET 200')
-          expect(rack_span.get_tag('http.method')).to eq('GET')
-          expect(rack_span.get_tag('http.status_code')).to eq('200')
+          expect(rack_span.resource).to eq("GET 200")
+          expect(rack_span.get_tag("http.method")).to eq("GET")
+          expect(rack_span.get_tag("http.status_code")).to eq("200")
           expect(rack_span.status).to eq(0)
-          expect(rack_span.get_tag('component')).to eq('rack')
-          expect(rack_span.get_tag('operation')).to eq('request')
-          expect(rack_span.get_tag('span.kind')).to eq('server')
+          expect(rack_span.get_tag("component")).to eq("rack")
+          expect(rack_span.get_tag("operation")).to eq("request")
+          expect(rack_span.get_tag("span.kind")).to eq("server")
         end
       end
     end
 
-    context 'with a route that has a client error' do
+    context "with a route that has a client error" do
       let(:routes) do
         proc do
-          map '/failure/' do
-            run(proc { |_env| [400, {'Content-Type' => 'text/html'}, ['KO']] })
+          map "/failure/" do
+            run(proc { |_env| [400, {"Content-Type" => "text/html"}, ["KO"]] })
           end
         end
       end
@@ -860,62 +860,62 @@ RSpec.describe 'Rack integration tests' do
         expect(spans).to have(1).items
       end
 
-      describe 'GET request' do
-        subject(:response) { get '/failure/' }
+      describe "GET request" do
+        subject(:response) { get "/failure/" }
 
         it do
-          expect(span.name).to eq('rack.request')
-          expect(span.type).to eq('web')
+          expect(span.name).to eq("rack.request")
+          expect(span.type).to eq("web")
           expect(span.service).to eq(Datadog.configuration.service)
-          expect(span.resource).to eq('GET 400')
-          expect(span.get_tag('http.method')).to eq('GET')
-          expect(span.get_tag('http.status_code')).to eq('400')
-          expect(span.get_tag('http.url')).to eq('/failure/')
-          expect(span.get_tag('http.base_url')).to eq('http://example.org')
+          expect(span.resource).to eq("GET 400")
+          expect(span.get_tag("http.method")).to eq("GET")
+          expect(span.get_tag("http.status_code")).to eq("400")
+          expect(span.get_tag("http.url")).to eq("/failure/")
+          expect(span.get_tag("http.base_url")).to eq("http://example.org")
           expect(span.status).to eq(0)
           expect(span).to be_root_span
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-            .to eq('rack')
+            .to eq("rack")
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-            .to eq('request')
-          expect(span.get_tag('span.kind'))
-            .to eq('server')
+            .to eq("request")
+          expect(span.get_tag("span.kind"))
+            .to eq("server")
         end
       end
 
-      context 'when the server error statuses are configured to include 400' do
+      context "when the server error statuses are configured to include 400" do
         let(:server_error_statuses) { 400..599 }
 
-        describe 'GET request' do
-          subject(:response) { get '/failure/' }
+        describe "GET request" do
+          subject(:response) { get "/failure/" }
 
           it do
-            expect(span.name).to eq('rack.request')
-            expect(span.type).to eq('web')
+            expect(span.name).to eq("rack.request")
+            expect(span.type).to eq("web")
             expect(span.service).to eq(Datadog.configuration.service)
-            expect(span.resource).to eq('GET 400')
-            expect(span.get_tag('http.method')).to eq('GET')
-            expect(span.get_tag('http.status_code')).to eq('400')
-            expect(span.get_tag('http.url')).to eq('/failure/')
-            expect(span.get_tag('http.base_url')).to eq('http://example.org')
+            expect(span.resource).to eq("GET 400")
+            expect(span.get_tag("http.method")).to eq("GET")
+            expect(span.get_tag("http.status_code")).to eq("400")
+            expect(span.get_tag("http.url")).to eq("/failure/")
+            expect(span.get_tag("http.base_url")).to eq("http://example.org")
             expect(span.status).to eq(1)
             expect(span).to be_root_span
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-              .to eq('rack')
+              .to eq("rack")
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-              .to eq('request')
-            expect(span.get_tag('span.kind'))
-              .to eq('server')
+              .to eq("request")
+            expect(span.get_tag("span.kind"))
+              .to eq("server")
           end
         end
       end
     end
 
-    context 'with a route that has a server error' do
+    context "with a route that has a server error" do
       let(:routes) do
         proc do
-          map '/server_error/' do
-            run(proc { |_env| [500, {'Content-Type' => 'text/html'}, ['KO']] })
+          map "/server_error/" do
+            run(proc { |_env| [500, {"Content-Type" => "text/html"}, ["KO"]] })
           end
         end
       end
@@ -925,37 +925,37 @@ RSpec.describe 'Rack integration tests' do
         expect(spans).to have(1).items
       end
 
-      describe 'GET request' do
-        subject(:response) { get '/server_error/' }
+      describe "GET request" do
+        subject(:response) { get "/server_error/" }
 
         it do
-          expect(span.name).to eq('rack.request')
-          expect(span.type).to eq('web')
+          expect(span.name).to eq("rack.request")
+          expect(span.type).to eq("web")
           expect(span.service).to eq(Datadog.configuration.service)
-          expect(span.resource).to eq('GET 500')
-          expect(span.get_tag('http.method')).to eq('GET')
-          expect(span.get_tag('http.status_code')).to eq('500')
-          expect(span.get_tag('http.url')).to eq('/server_error/')
-          expect(span.get_tag('http.base_url')).to eq('http://example.org')
-          expect(span.get_tag('error.stack')).to be nil
+          expect(span.resource).to eq("GET 500")
+          expect(span.get_tag("http.method")).to eq("GET")
+          expect(span.get_tag("http.status_code")).to eq("500")
+          expect(span.get_tag("http.url")).to eq("/server_error/")
+          expect(span.get_tag("http.base_url")).to eq("http://example.org")
+          expect(span.get_tag("error.stack")).to be nil
           expect(span.status).to eq(1)
           expect(span).to be_root_span
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-            .to eq('rack')
+            .to eq("rack")
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-            .to eq('request')
-          expect(span.get_tag('span.kind'))
-            .to eq('server')
+            .to eq("request")
+          expect(span.get_tag("span.kind"))
+            .to eq("server")
         end
       end
     end
 
-    context 'with a route that raises an exception' do
-      context 'that is well known' do
+    context "with a route that raises an exception" do
+      context "that is well known" do
         let(:routes) do
           proc do
-            map '/exception/' do
-              run(proc { |_env| raise StandardError, 'Unable to process the request' })
+            map "/exception/" do
+              run(proc { |_env| raise StandardError, "Unable to process the request" })
             end
           end
         end
@@ -965,38 +965,38 @@ RSpec.describe 'Rack integration tests' do
           expect(spans).to have(1).items
         end
 
-        describe 'GET request' do
-          subject(:response) { get '/exception/' }
+        describe "GET request" do
+          subject(:response) { get "/exception/" }
 
           it do
-            expect(span.name).to eq('rack.request')
-            expect(span.type).to eq('web')
+            expect(span.name).to eq("rack.request")
+            expect(span.type).to eq("web")
             expect(span.service).to eq(Datadog.configuration.service)
-            expect(span.resource).to eq('GET')
-            expect(span.get_tag('http.method')).to eq('GET')
-            expect(span.get_tag('http.status_code')).to be nil
-            expect(span.get_tag('http.url')).to eq('/exception/')
-            expect(span.get_tag('http.base_url')).to eq('http://example.org')
-            expect(span.get_tag('error.type')).to eq('StandardError')
-            expect(span.get_tag('error.message')).to eq('Unable to process the request')
-            expect(span.get_tag('error.stack')).to_not be nil
+            expect(span.resource).to eq("GET")
+            expect(span.get_tag("http.method")).to eq("GET")
+            expect(span.get_tag("http.status_code")).to be nil
+            expect(span.get_tag("http.url")).to eq("/exception/")
+            expect(span.get_tag("http.base_url")).to eq("http://example.org")
+            expect(span.get_tag("error.type")).to eq("StandardError")
+            expect(span.get_tag("error.message")).to eq("Unable to process the request")
+            expect(span.get_tag("error.stack")).to_not be nil
             expect(span.status).to eq(1)
             expect(span).to be_root_span
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-              .to eq('rack')
+              .to eq("rack")
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-              .to eq('request')
-            expect(span.get_tag('span.kind'))
-              .to eq('server')
+              .to eq("request")
+            expect(span.get_tag("span.kind"))
+              .to eq("server")
           end
         end
       end
 
-      context 'that is not a standard error' do
+      context "that is not a standard error" do
         let(:routes) do
           proc do
-            map '/exception/' do
-              run(proc { |_env| raise NoMemoryError, 'Non-standard error' })
+            map "/exception/" do
+              run(proc { |_env| raise NoMemoryError, "Non-standard error" })
             end
           end
         end
@@ -1006,50 +1006,50 @@ RSpec.describe 'Rack integration tests' do
           expect(spans).to have(1).items
         end
 
-        describe 'GET request' do
-          subject(:response) { get '/exception/' }
+        describe "GET request" do
+          subject(:response) { get "/exception/" }
 
           it do
-            expect(span.name).to eq('rack.request')
-            expect(span.type).to eq('web')
+            expect(span.name).to eq("rack.request")
+            expect(span.type).to eq("web")
             expect(span.service).to eq(Datadog.configuration.service)
-            expect(span.resource).to eq('GET')
-            expect(span.get_tag('http.method')).to eq('GET')
-            expect(span.get_tag('http.status_code')).to be nil
-            expect(span.get_tag('http.url')).to eq('/exception/')
-            expect(span.get_tag('http.base_url')).to eq('http://example.org')
-            expect(span.get_tag('error.type')).to eq('NoMemoryError')
-            expect(span.get_tag('error.message')).to eq('Non-standard error')
-            expect(span.get_tag('error.stack')).to_not be nil
+            expect(span.resource).to eq("GET")
+            expect(span.get_tag("http.method")).to eq("GET")
+            expect(span.get_tag("http.status_code")).to be nil
+            expect(span.get_tag("http.url")).to eq("/exception/")
+            expect(span.get_tag("http.base_url")).to eq("http://example.org")
+            expect(span.get_tag("error.type")).to eq("NoMemoryError")
+            expect(span.get_tag("error.message")).to eq("Non-standard error")
+            expect(span.get_tag("error.stack")).to_not be nil
             expect(span.status).to eq(1)
             expect(span).to be_root_span
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-              .to eq('rack')
+              .to eq("rack")
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-              .to eq('request')
-            expect(span.get_tag('span.kind'))
-              .to eq('server')
+              .to eq("request")
+            expect(span.get_tag("span.kind"))
+              .to eq("server")
           end
         end
       end
     end
 
-    context 'with a route with a nested application' do
-      context 'that is OK' do
+    context "with a route with a nested application" do
+      context "that is OK" do
         let(:routes) do
           proc do
-            map '/app/' do
+            map "/app/" do
               run(
                 proc do |env|
                   # This should be considered a web framework that can alter
                   # the request span after routing / controller processing
                   request_span = env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
-                  request_span.resource = 'GET /app/'
-                  request_span.set_tag('http.method', 'GET_V2')
-                  request_span.set_tag('http.status_code', 201)
-                  request_span.set_tag('http.url', '/app/static/')
+                  request_span.resource = "GET /app/"
+                  request_span.set_tag("http.method", "GET_V2")
+                  request_span.set_tag("http.status_code", 201)
+                  request_span.set_tag("http.url", "/app/static/")
 
-                  [200, {'Content-Type' => 'text/html'}, ['OK']]
+                  [200, {"Content-Type" => "text/html"}, ["OK"]]
                 end
               )
             end
@@ -1061,47 +1061,47 @@ RSpec.describe 'Rack integration tests' do
           expect(spans).to have(1).items
         end
 
-        describe 'GET request' do
+        describe "GET request" do
           subject(:response) { get route }
 
-          context 'without parameters' do
-            let(:route) { '/app/posts/100' }
+          context "without parameters" do
+            let(:route) { "/app/posts/100" }
 
             it do
-              expect(trace.resource).to eq('GET /app/')
+              expect(trace.resource).to eq("GET /app/")
 
-              expect(span.name).to eq('rack.request')
-              expect(span.type).to eq('web')
+              expect(span.name).to eq("rack.request")
+              expect(span.type).to eq("web")
               expect(span.service).to eq(Datadog.configuration.service)
-              expect(span.resource).to eq('GET /app/')
-              expect(span.get_tag('http.method')).to eq('GET_V2')
-              expect(span.get_tag('http.status_code')).to eq('201')
-              expect(span.get_tag('http.url')).to eq('/app/static/')
-              expect(span.get_tag('http.base_url')).to eq('http://example.org')
+              expect(span.resource).to eq("GET /app/")
+              expect(span.get_tag("http.method")).to eq("GET_V2")
+              expect(span.get_tag("http.status_code")).to eq("201")
+              expect(span.get_tag("http.url")).to eq("/app/static/")
+              expect(span.get_tag("http.base_url")).to eq("http://example.org")
               expect(span.status).to eq(0)
               expect(span).to be_root_span
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-                .to eq('rack')
+                .to eq("rack")
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-                .to eq('request')
-              expect(span.get_tag('span.kind'))
-                .to eq('server')
+                .to eq("request")
+              expect(span.get_tag("span.kind"))
+                .to eq("server")
             end
           end
         end
       end
 
-      context 'when `request_queuing` enabled and trace resource overwritten by nested app' do
+      context "when `request_queuing` enabled and trace resource overwritten by nested app" do
         let(:rack_options) { {request_queuing: true} }
         let(:routes) do
           proc do
-            map '/resource_override' do
+            map "/resource_override" do
               run(
                 proc do |_env|
-                  Datadog::Tracing.trace('nested_app', resource: 'UserController#show') do |span_op, trace_op|
+                  Datadog::Tracing.trace("nested_app", resource: "UserController#show") do |span_op, trace_op|
                     trace_op.resource = span_op.resource
 
-                    [200, {'Content-Type' => 'text/html'}, ['OK']]
+                    [200, {"Content-Type" => "text/html"}, ["OK"]]
                   end
                 end
               )
@@ -1109,12 +1109,12 @@ RSpec.describe 'Rack integration tests' do
           end
         end
 
-        it 'creates 2 web_server spans and rack span with resource overriden' do
-          get '/resource_override',
+        it "creates 2 web_server spans and rack span with resource overriden" do
+          get "/resource_override",
             nil,
             {Datadog::Tracing::Contrib::Rack::QueueTime::REQUEST_START => "t=#{Time.now.to_f}"}
 
-          expect(trace.resource).to eq('UserController#show')
+          expect(trace.resource).to eq("UserController#show")
 
           expect(spans).to have(4).items
 
@@ -1125,160 +1125,160 @@ RSpec.describe 'Rack integration tests' do
 
           expect(server_request_span).to be_root_span
           expect(server_request_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_REQUEST)
-          expect(server_request_span.type).to eq('proxy')
-          expect(server_request_span.service).to eq('web-server')
-          expect(server_request_span.resource).to eq('http.proxy.request')
-          expect(server_request_span.get_tag('component')).to eq('http_proxy')
-          expect(server_request_span.get_tag('operation')).to eq('request')
+          expect(server_request_span.type).to eq("proxy")
+          expect(server_request_span.service).to eq("web-server")
+          expect(server_request_span.resource).to eq("http.proxy.request")
+          expect(server_request_span.get_tag("component")).to eq("http_proxy")
+          expect(server_request_span.get_tag("operation")).to eq("request")
           expect(server_request_span.status).to eq(0)
-          expect(server_request_span.get_tag('span.kind')).to eq('proxy')
+          expect(server_request_span.get_tag("span.kind")).to eq("proxy")
 
           expect(server_queue_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_QUEUE)
-          expect(server_queue_span.type).to eq('proxy')
-          expect(server_queue_span.service).to eq('web-server')
-          expect(server_queue_span.resource).to eq('http.proxy.queue')
-          expect(server_queue_span.get_tag('component')).to eq('http_proxy')
-          expect(server_queue_span.get_tag('operation')).to eq('queue')
+          expect(server_queue_span.type).to eq("proxy")
+          expect(server_queue_span.service).to eq("web-server")
+          expect(server_queue_span.resource).to eq("http.proxy.queue")
+          expect(server_queue_span.get_tag("component")).to eq("http_proxy")
+          expect(server_queue_span.get_tag("operation")).to eq("queue")
           expect(server_queue_span.status).to eq(0)
-          expect(server_queue_span.get_tag('span.kind')).to eq('proxy')
+          expect(server_queue_span.get_tag("span.kind")).to eq("proxy")
           expect(server_queue_span).to be_measured
 
           expect(rack_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST)
-          expect(rack_span.type).to eq('web')
+          expect(rack_span.type).to eq("web")
           expect(rack_span.service).to eq(tracer.default_service)
-          expect(rack_span.resource).to eq('UserController#show')
-          expect(rack_span.get_tag('http.method')).to eq('GET')
-          expect(rack_span.get_tag('http.status_code')).to eq('200')
+          expect(rack_span.resource).to eq("UserController#show")
+          expect(rack_span.get_tag("http.method")).to eq("GET")
+          expect(rack_span.get_tag("http.status_code")).to eq("200")
           expect(rack_span.status).to eq(0)
-          expect(rack_span.get_tag('component')).to eq('rack')
-          expect(rack_span.get_tag('operation')).to eq('request')
-          expect(rack_span.get_tag('span.kind')).to eq('server')
+          expect(rack_span.get_tag("component")).to eq("rack")
+          expect(rack_span.get_tag("operation")).to eq("request")
+          expect(rack_span.get_tag("span.kind")).to eq("server")
 
-          expect(nested_app_span.name).to eq('nested_app')
-          expect(nested_app_span.resource).to eq('UserController#show')
+          expect(nested_app_span.name).to eq("nested_app")
+          expect(nested_app_span.resource).to eq("UserController#show")
         end
       end
 
-      context 'that raises a server error' do
+      context "that raises a server error" do
         before do
           is_expected.to be_server_error
           expect(spans).to have(1).items
         end
 
-        context 'while setting status' do
+        context "while setting status" do
           let(:routes) do
             proc do
-              map '/app/500/' do
+              map "/app/500/" do
                 run(
                   proc do |env|
                     # this should be considered a web framework that can alter
                     # the request span after routing / controller processing
                     request_span = env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
                     request_span.status = 1
-                    request_span.set_tag('error.stack', 'Handled exception')
+                    request_span.set_tag("error.stack", "Handled exception")
 
-                    [500, {'Content-Type' => 'text/html'}, ['OK']]
+                    [500, {"Content-Type" => "text/html"}, ["OK"]]
                   end
                 )
               end
             end
           end
 
-          describe 'GET request' do
-            subject(:response) { get '/app/500/' }
+          describe "GET request" do
+            subject(:response) { get "/app/500/" }
 
             it do
-              expect(span.name).to eq('rack.request')
-              expect(span.type).to eq('web')
+              expect(span.name).to eq("rack.request")
+              expect(span.type).to eq("web")
               expect(span.service).to eq(Datadog.configuration.service)
-              expect(span.resource).to eq('GET 500')
-              expect(span.get_tag('http.method')).to eq('GET')
-              expect(span.get_tag('http.status_code')).to eq('500')
-              expect(span.get_tag('http.url')).to eq('/app/500/')
-              expect(span.get_tag('http.base_url')).to eq('http://example.org')
-              expect(span.get_tag('error.stack')).to eq('Handled exception')
+              expect(span.resource).to eq("GET 500")
+              expect(span.get_tag("http.method")).to eq("GET")
+              expect(span.get_tag("http.status_code")).to eq("500")
+              expect(span.get_tag("http.url")).to eq("/app/500/")
+              expect(span.get_tag("http.base_url")).to eq("http://example.org")
+              expect(span.get_tag("error.stack")).to eq("Handled exception")
               expect(span.status).to eq(1)
               expect(span).to be_root_span
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-                .to eq('rack')
+                .to eq("rack")
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-                .to eq('request')
-              expect(span.get_tag('span.kind'))
-                .to eq('server')
+                .to eq("request")
+              expect(span.get_tag("span.kind"))
+                .to eq("server")
             end
           end
         end
 
-        context 'without setting status' do
+        context "without setting status" do
           let(:routes) do
             proc do
-              map '/app/500/' do
+              map "/app/500/" do
                 run(
                   proc do |env|
                     # this should be considered a web framework that can alter
                     # the request span after routing / controller processing
                     request_span = env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
-                    request_span.set_tag('error.stack', 'Handled exception')
+                    request_span.set_tag("error.stack", "Handled exception")
 
-                    [500, {'Content-Type' => 'text/html'}, ['OK']]
+                    [500, {"Content-Type" => "text/html"}, ["OK"]]
                   end
                 )
               end
             end
           end
 
-          describe 'GET request' do
-            subject(:response) { get '/app/500/' }
+          describe "GET request" do
+            subject(:response) { get "/app/500/" }
 
             it do
-              expect(span.name).to eq('rack.request')
-              expect(span.type).to eq('web')
+              expect(span.name).to eq("rack.request")
+              expect(span.type).to eq("web")
               expect(span.service).to eq(Datadog.configuration.service)
-              expect(span.resource).to eq('GET 500')
-              expect(span.get_tag('http.method')).to eq('GET')
-              expect(span.get_tag('http.status_code')).to eq('500')
-              expect(span.get_tag('http.url')).to eq('/app/500/')
-              expect(span.get_tag('http.base_url')).to eq('http://example.org')
-              expect(span.get_tag('error.stack')).to eq('Handled exception')
+              expect(span.resource).to eq("GET 500")
+              expect(span.get_tag("http.method")).to eq("GET")
+              expect(span.get_tag("http.status_code")).to eq("500")
+              expect(span.get_tag("http.url")).to eq("/app/500/")
+              expect(span.get_tag("http.base_url")).to eq("http://example.org")
+              expect(span.get_tag("error.stack")).to eq("Handled exception")
               expect(span.status).to eq(1)
               expect(span).to be_root_span
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-                .to eq('rack')
+                .to eq("rack")
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-                .to eq('request')
-              expect(span.get_tag('span.kind'))
-                .to eq('server')
+                .to eq("request")
+              expect(span.get_tag("span.kind"))
+                .to eq("server")
             end
           end
         end
       end
     end
 
-    context 'with a route that leaks span context' do
+    context "with a route that leaks span context" do
       let(:routes) do
         app_tracer = tracer
 
         proc do
-          map '/leak/' do
+          map "/leak/" do
             handler = proc do
-              app_tracer.trace('leaky-span-1')
-              app_tracer.trace('leaky-span-2')
-              app_tracer.trace('leaky-span-3')
+              app_tracer.trace("leaky-span-1")
+              app_tracer.trace("leaky-span-2")
+              app_tracer.trace("leaky-span-3")
 
-              [200, {'Content-Type' => 'text/html'}, ['OK']]
+              [200, {"Content-Type" => "text/html"}, ["OK"]]
             end
 
             run(handler)
           end
 
-          map '/success/' do
-            run(proc { |_env| [200, {'Content-Type' => 'text/html'}, ['OK']] })
+          map "/success/" do
+            run(proc { |_env| [200, {"Content-Type" => "text/html"}, ["OK"]] })
           end
         end
       end
 
-      describe 'subsequent GET requests' do
-        subject(:responses) { [(get '/leak'), (get '/success')] }
+      describe "subsequent GET requests" do
+        subject(:responses) { [(get "/leak"), (get "/success")] }
 
         before do
           responses.each { |response| expect(response).to be_ok }
@@ -1293,46 +1293,46 @@ RSpec.describe 'Rack integration tests' do
       end
     end
 
-    context 'with a route that sets some headers' do
+    context "with a route that sets some headers" do
       let(:routes) do
         proc do
-          map '/headers/' do
+          map "/headers/" do
             run(
               proc do |_env|
                 response_headers = {
-                  'Content-Type' => 'text/html',
-                  'Cache-Control' => 'max-age=3600',
-                  'ETag' => '"737060cd8c284d8af7ad3082f209582d"',
-                  'Expires' => 'Thu, 01 Dec 1994 16:00:00 GMT',
-                  'Last-Modified' => 'Tue, 15 Nov 1994 12:45:26 GMT',
-                  'X-Request-ID' => 'f058ebd6-02f7-4d3f-942e-904344e8cde5',
-                  'X-Fake-Response' => 'Don\'t tag me.'
+                  "Content-Type" => "text/html",
+                  "Cache-Control" => "max-age=3600",
+                  "ETag" => '"737060cd8c284d8af7ad3082f209582d"',
+                  "Expires" => "Thu, 01 Dec 1994 16:00:00 GMT",
+                  "Last-Modified" => "Tue, 15 Nov 1994 12:45:26 GMT",
+                  "X-Request-ID" => "f058ebd6-02f7-4d3f-942e-904344e8cde5",
+                  "X-Fake-Response" => "Don't tag me."
                 }
-                [200, response_headers, ['OK']]
+                [200, response_headers, ["OK"]]
               end
             )
           end
         end
       end
 
-      context 'when configured with integration-level tag headers' do
+      context "when configured with integration-level tag headers" do
         before do
           Datadog.configure do |c|
             c.tracing.instrument :rack,
               headers: {
                 request: [
-                  'Cache-Control'
+                  "Cache-Control"
                 ],
                 response: [
-                  'Content-Type',
-                  'Cache-Control',
-                  'Content-Type',
-                  'ETag',
-                  'Expires',
-                  'Last-Modified',
+                  "Content-Type",
+                  "Cache-Control",
+                  "Content-Type",
+                  "ETag",
+                  "Expires",
+                  "Last-Modified",
                   # This lowercase 'Id' header doesn't match.
                   # Ensure middleware allows for case-insensitive matching.
-                  'X-Request-Id'
+                  "X-Request-Id"
                 ]
               }
           end
@@ -1345,9 +1345,9 @@ RSpec.describe 'Rack integration tests' do
           end
         end
 
-        describe 'GET request' do
-          context 'that does not sent user agent' do
-            subject(:response) { get '/headers/', {}, headers }
+        describe "GET request" do
+          context "that does not sent user agent" do
+            subject(:response) { get "/headers/", {}, headers }
 
             let(:headers) do
               {}
@@ -1358,20 +1358,20 @@ RSpec.describe 'Rack integration tests' do
               expect(spans).to have(1).items
             end
 
-            it_behaves_like 'a rack GET 200 span'
+            it_behaves_like "a rack GET 200 span"
 
             it do
-              expect(span.get_tag('http.useragent')).to be nil
-              expect(span.get_tag('http.request.headers.user-agent')).to be nil
+              expect(span.get_tag("http.useragent")).to be nil
+              expect(span.get_tag("http.request.headers.user-agent")).to be nil
             end
           end
 
-          context 'that sends user agent' do
-            subject(:response) { get '/headers/', {}, headers }
+          context "that sends user agent" do
+            subject(:response) { get "/headers/", {}, headers }
 
             let(:headers) do
               {
-                'HTTP_USER_AGENT' => 'SuperUserAgent',
+                "HTTP_USER_AGENT" => "SuperUserAgent",
               }
             end
 
@@ -1380,22 +1380,22 @@ RSpec.describe 'Rack integration tests' do
               expect(spans).to have(1).items
             end
 
-            it_behaves_like 'a rack GET 200 span'
+            it_behaves_like "a rack GET 200 span"
 
             it do
-              expect(span.get_tag('http.useragent')).to eq('SuperUserAgent')
-              expect(span.get_tag('http.request.headers.user-agent')).to be nil
+              expect(span.get_tag("http.useragent")).to eq("SuperUserAgent")
+              expect(span.get_tag("http.request.headers.user-agent")).to be nil
             end
           end
 
-          context 'that sends headers' do
-            subject(:response) { get '/headers/', {}, headers }
+          context "that sends headers" do
+            subject(:response) { get "/headers/", {}, headers }
 
             let(:headers) do
               {
-                'HTTP_CACHE_CONTROL' => 'no-cache',
-                'HTTP_X_REQUEST_ID' => SecureRandom.uuid,
-                'HTTP_X_FAKE_REQUEST' => 'Don\'t tag me.'
+                "HTTP_CACHE_CONTROL" => "no-cache",
+                "HTTP_X_REQUEST_ID" => SecureRandom.uuid,
+                "HTTP_X_FAKE_REQUEST" => "Don't tag me."
               }
             end
 
@@ -1404,64 +1404,64 @@ RSpec.describe 'Rack integration tests' do
               expect(spans).to have(1).items
             end
 
-            it_behaves_like 'a rack GET 200 span'
+            it_behaves_like "a rack GET 200 span"
 
             it do
-              expect(span.get_tag('http.url')).to eq('/headers/')
-              expect(span.get_tag('http.base_url')).to eq('http://example.org')
+              expect(span.get_tag("http.url")).to eq("/headers/")
+              expect(span.get_tag("http.base_url")).to eq("http://example.org")
               expect(span).to be_root_span
 
               # Request headers
-              expect(span.get_tag('http.request.headers.cache-control')).to eq('no-cache')
+              expect(span.get_tag("http.request.headers.cache-control")).to eq("no-cache")
               # Make sure non-whitelisted headers don't become tags.
-              expect(span.get_tag('http.request.headers.x-request-id')).to be nil
-              expect(span.get_tag('http.request.headers.x-fake-request')).to be nil
+              expect(span.get_tag("http.request.headers.x-request-id")).to be nil
+              expect(span.get_tag("http.request.headers.x-fake-request")).to be nil
 
               # Response headers
-              expect(span.get_tag('http.response.headers.content-type')).to eq('text/html')
-              expect(span.get_tag('http.response.headers.cache-control')).to eq('max-age=3600')
-              expect(span.get_tag('http.response.headers.etag')).to eq('"737060cd8c284d8af7ad3082f209582d"')
-              expect(span.get_tag('http.response.headers.last-modified')).to eq('Tue, 15 Nov 1994 12:45:26 GMT')
-              expect(span.get_tag('http.response.headers.x-request-id')).to eq('f058ebd6-02f7-4d3f-942e-904344e8cde5')
+              expect(span.get_tag("http.response.headers.content-type")).to eq("text/html")
+              expect(span.get_tag("http.response.headers.cache-control")).to eq("max-age=3600")
+              expect(span.get_tag("http.response.headers.etag")).to eq('"737060cd8c284d8af7ad3082f209582d"')
+              expect(span.get_tag("http.response.headers.last-modified")).to eq("Tue, 15 Nov 1994 12:45:26 GMT")
+              expect(span.get_tag("http.response.headers.x-request-id")).to eq("f058ebd6-02f7-4d3f-942e-904344e8cde5")
               # Make sure non-whitelisted headers don't become tags.
-              expect(span.get_tag('http.request.headers.x-fake-response')).to be nil
+              expect(span.get_tag("http.request.headers.x-fake-response")).to be nil
             end
 
-            context 'and configured with global tag headers' do
-              include_context 'with trace header tags'
+            context "and configured with global tag headers" do
+              include_context "with trace header tags"
 
-              let(:trace_header_tags_config) { 'x_request_id:x_request_id' }
+              let(:trace_header_tags_config) { "x_request_id:x_request_id" }
 
-              it 'does not override integration-level configuration for request headers' do
+              it "does not override integration-level configuration for request headers" do
                 response
-                expect(span.get_tag('x_request_id')).to be_nil
-                expect(span.get_tag('http.request.headers.cache-control')).to eq('no-cache')
+                expect(span.get_tag("x_request_id")).to be_nil
+                expect(span.get_tag("http.request.headers.cache-control")).to eq("no-cache")
               end
 
-              it 'does not override integration-level configuration for response headers' do
+              it "does not override integration-level configuration for response headers" do
                 response
-                expect(span.get_tag('x_request_id')).to be_nil
-                expect(span.get_tag('http.response.headers.etag')).to eq('"737060cd8c284d8af7ad3082f209582d"')
+                expect(span.get_tag("x_request_id")).to be_nil
+                expect(span.get_tag("http.response.headers.etag")).to eq('"737060cd8c284d8af7ad3082f209582d"')
               end
             end
           end
         end
       end
 
-      context 'when configured with global tag headers' do
-        subject(:response) { get '/headers/', {}, headers }
+      context "when configured with global tag headers" do
+        subject(:response) { get "/headers/", {}, headers }
 
-        let(:headers) { {'HTTP_REQUEST_ID' => 'test-id'} }
+        let(:headers) { {"HTTP_REQUEST_ID" => "test-id"} }
 
-        include_examples 'with request tracer header tags' do
-          let(:request_header_tag) { 'request-id' }
-          let(:request_header_tag_value) { 'test-id' }
+        include_examples "with request tracer header tags" do
+          let(:request_header_tag) { "request-id" }
+          let(:request_header_tag_value) { "test-id" }
 
           before { response }
         end
 
-        include_examples 'with response tracer header tags' do
-          let(:response_header_tag) { 'etag' }
+        include_examples "with response tracer header tags" do
+          let(:response_header_tag) { "etag" }
           let(:response_header_tag_value) { '"737060cd8c284d8af7ad3082f209582d"' }
 
           before { response }
@@ -1469,14 +1469,14 @@ RSpec.describe 'Rack integration tests' do
       end
     end
 
-    context 'with a route that mutates request method' do
+    context "with a route that mutates request method" do
       let(:routes) do
         proc do
-          map '/change_request_method' do
+          map "/change_request_method" do
             run(
               proc do |env|
-                env['REQUEST_METHOD'] = 'GET'
-                [200, {'Content-Type' => 'text/html'}, ['OK']]
+                env["REQUEST_METHOD"] = "GET"
+                [200, {"Content-Type" => "text/html"}, ["OK"]]
               end
             )
           end
@@ -1484,30 +1484,30 @@ RSpec.describe 'Rack integration tests' do
       end
 
       it do
-        post '/change_request_method'
+        post "/change_request_method"
 
         expect(span).to be_root_span
-        expect(span.name).to eq('rack.request')
-        expect(span.type).to eq('web')
+        expect(span.name).to eq("rack.request")
+        expect(span.type).to eq("web")
         expect(span.service).to eq(tracer.default_service)
-        expect(span.resource).to eq('POST 200')
-        expect(span.get_tag('http.method')).to eq('POST')
-        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.resource).to eq("POST 200")
+        expect(span.get_tag("http.method")).to eq("POST")
+        expect(span.get_tag("http.status_code")).to eq("200")
         expect(span.status).to eq(0)
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rack')
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
-        expect(span.get_tag('span.kind')).to eq('server')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("rack")
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq("request")
+        expect(span.get_tag("span.kind")).to eq("server")
       end
     end
   end
 
-  context 'for a nested instrumentation' do
+  context "for a nested instrumentation" do
     let(:another) do
       Rack::Builder.new do
         use Datadog::Tracing::Contrib::Rack::TraceMiddleware
 
-        map '/success' do
-          run(proc { |_env| [200, {'Content-Type' => 'text/html'}, ['OK']] })
+        map "/success" do
+          run(proc { |_env| [200, {"Content-Type" => "text/html"}, ["OK"]] })
         end
       end.to_app
     end
@@ -1518,7 +1518,7 @@ RSpec.describe 'Rack integration tests' do
       Rack::Builder.new do
         use Datadog::Tracing::Contrib::Rack::TraceMiddleware
 
-        map '/nested' do
+        map "/nested" do
           use Datadog::Tracing::Contrib::Rack::TraceMiddleware
 
           run nested_app
@@ -1526,13 +1526,13 @@ RSpec.describe 'Rack integration tests' do
       end.to_app
     end
 
-    subject(:response) { get 'nested/success' }
+    subject(:response) { get "nested/success" }
 
     before do
       is_expected.to be_ok
       expect(spans).to have(1).items
     end
 
-    it_behaves_like 'a rack GET 200 span'
+    it_behaves_like "a rack GET 200 span"
   end
 end

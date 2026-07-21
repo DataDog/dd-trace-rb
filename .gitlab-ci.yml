@@ -1,7 +1,9 @@
 stages:
   - manual-images
   - package
-  - shared-pipeline
+  - shared-pipeline-build
+  - shared-pipeline-test
+  - shared-pipeline-publish
   - macrobenchmarks
   - microbenchmarks
   # These benchmarks should ultimately replace the old macrobenchmarks setup
