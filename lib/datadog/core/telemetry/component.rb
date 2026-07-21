@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require_relative 'emitter'
-require_relative 'event'
-require_relative 'metrics_manager'
-require_relative 'worker'
-require_relative 'logging'
-require_relative 'transport/http'
+require_relative "emitter"
+require_relative "event"
+require_relative "metrics_manager"
+require_relative "worker"
+require_relative "logging"
+require_relative "transport/http"
 
-require_relative '../configuration/ext'
-require_relative '../configuration/agentless_settings_resolver'
-require_relative '../utils/forking'
+require_relative "../configuration/ext"
+require_relative "../configuration/agentless_settings_resolver"
+require_relative "../utils/forking"
 
 module Datadog
   module Core
@@ -42,7 +42,7 @@ module Datadog
 
           if agentless_enabled && settings.api_key.nil?
             enabled = false
-            logger.debug { 'Telemetry disabled. Agentless telemetry requires a DD_API_KEY variable to be set.' }
+            logger.debug { "Telemetry disabled. Agentless telemetry requires a DD_API_KEY variable to be set." }
           end
 
           Telemetry::Component.new(
@@ -78,9 +78,9 @@ module Datadog
             # settings, even though the telemetry itself may be using a different path.
             telemetry_specific_agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
               settings,
-              host_prefix: 'instrumentation-telemetry-intake',
+              host_prefix: "instrumentation-telemetry-intake",
               url_override: settings.telemetry.agentless_url_override,
-              url_override_source: 'c.telemetry.agentless_url_override',
+              url_override_source: "c.telemetry.agentless_url_override",
               logger: logger,
             )
             Telemetry::Transport::HTTP.agentless_telemetry(
@@ -99,6 +99,7 @@ module Datadog
           @worker = Telemetry::Worker.new(
             enabled: @enabled,
             heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
+            extended_heartbeat_interval_seconds: settings.telemetry.extended_heartbeat_interval_seconds,
             metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
             emitter: Emitter.new(
               @transport,
@@ -108,6 +109,8 @@ module Datadog
             metrics_manager: @metrics_manager,
             dependency_collection: settings.telemetry.dependency_collection,
             logger: logger,
+            settings: settings,
+            agent_settings: agent_settings,
             shutdown_timeout: settings.telemetry.shutdown_timeout_seconds,
           )
 
@@ -178,7 +181,7 @@ module Datadog
         def client_configuration_change!(changes)
           return unless enabled?
 
-          @worker.enqueue(Event::AppClientConfigurationChange.new(changes, 'remote_config'))
+          @worker.enqueue(Event::AppClientConfigurationChange.new(changes, "remote_config"))
         end
 
         # Report application endpoints

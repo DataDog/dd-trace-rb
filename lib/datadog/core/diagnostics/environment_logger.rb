@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'json'
-require 'rbconfig'
-require 'time'
+require "json"
+require "rbconfig"
+require "time"
 
 module Datadog
   module Core
@@ -49,10 +49,12 @@ module Datadog
           if log?
             data = EnvironmentCollector.collect_config!
             data = data.merge(extra_fields) if extra_fields
-            log_configuration!('CORE', data.to_json)
+            log_configuration!("CORE", data.to_json)
           end
         rescue => e
-          logger.warn("Failed to collect core environment information: #{e} Location: #{Array(e.backtrace).first}")
+          logger.warn(
+            "Failed to collect core environment information: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+          )
         end
       end
 
@@ -85,7 +87,7 @@ module Datadog
           # Best portable guess of OS information.
           # @return [String] platform string
           def os_name
-            RbConfig::CONFIG['host']
+            RbConfig::CONFIG["host"]
           end
 
           # @return [String] datadog version
@@ -161,7 +163,7 @@ module Datadog
 
           # Outputs "k1:v1,k2:v2,..."
           def hash_serializer(h)
-            h.map { |k, v| "#{k}:#{v}" }.join(',')
+            h.map { |k, v| "#{k}:#{v}" }.join(",")
           end
         end
       end

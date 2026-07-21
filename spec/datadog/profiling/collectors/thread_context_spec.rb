@@ -4,15 +4,17 @@ require "datadog/profiling/collectors/thread_context"
 RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   before do
     @clean_threads_required = false
-    skip_if_profiling_not_supported(self)
+    skip_if_profiling_not_supported
 
     @clean_threads_required = true
     testing_threads.each { ready_queue.pop }
+    # Make sure all threads have reached the `sleep` before moving on
+    loop_until { testing_threads.all? { |t| t.status == "sleep" } }
     expect(Thread.list).to include(*testing_threads)
   end
 
   let(:recorder) do
-    Datadog::Profiling::StackRecorder.for_testing(alloc_samples_enabled: true, timeline_enabled: timeline_enabled)
+    Datadog::Profiling::StackRecorder.for_testing(alloc_samples_enabled: true)
   end
   let(:ready_queue) { Queue.new }
   let(:t1) do
@@ -35,17 +37,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       sleep
     end
   end
-  let(:profiler_overhead_thread_placeholder) do
-    Thread.new(ready_queue) do |ready_queue|
-      def self.overhead_placeholder(queue)
-        queue << true
-        sleep
-      end
-
-      overhead_placeholder(ready_queue)
-    end
-  end
-  let(:testing_threads) { [t1, t2, t3, profiler_overhead_thread_placeholder] }
+  let(:testing_threads) { [t1, t2, t3] }
+  let(:testing_threads_and_current) { [*testing_threads, Thread.current] }
   let(:max_frames) { 123 }
 
   let(:pprof_result) { recorder.serialize! }
@@ -53,25 +46,24 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:invalid_time) { -1 }
   let(:tracer) { nil }
   let(:endpoint_collection_enabled) { true }
-  let(:timeline_enabled) { false }
-  # This mirrors the use of RUBY_FIXNUM_MAX for GVL_WAITING_ENABLED_EMPTY in the native code; it may need adjusting if we
-  # ever want to support more platforms
-  let(:gvl_waiting_enabled_empty_magic_value) { 2**62 - 1 }
+
   let(:waiting_for_gvl_threshold_ns) { 222_333_444 }
   let(:otel_context_enabled) { false }
   let(:native_filenames_enabled) { false }
 
   subject(:thread_context_collector) do
-    described_class.new(
+    collector = described_class.new(
       recorder: recorder,
       max_frames: max_frames,
       tracer: tracer,
       endpoint_collection_enabled: endpoint_collection_enabled,
-      timeline_enabled: timeline_enabled,
       waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
       otel_context_enabled: otel_context_enabled,
       native_filenames_enabled: native_filenames_enabled,
     )
+    # This simulates how every profiling start/restart also resets the state.
+    described_class::Testing._native_global_reset_per_thread_context(collector)
+    collector
   end
 
   after do
@@ -83,8 +75,19 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
   end
 
-  def sample(profiler_overhead_stack_thread: profiler_overhead_thread_placeholder, allow_exception: false)
-    described_class::Testing._native_sample(thread_context_collector, profiler_overhead_stack_thread, allow_exception)
+  def sample(allow_exception: false)
+    described_class::Testing._native_sample(thread_context_collector, allow_exception)
+  end
+
+  def remove_per_thread_context_for(thread)
+    # We always touch the subject because initializing the collector will eagerly build/restore contexts (with reset)
+    # and we want to still simulate a missing context (e.g. pretend as if it's a new thread that showed after the reset)
+    thread_context_collector
+    described_class::Testing._native_remove_per_thread_context_for(thread)
+  end
+
+  def global_reset_per_thread_context
+    described_class::Testing._native_global_reset_per_thread_context(thread_context_collector)
   end
 
   def on_gc_start
@@ -116,7 +119,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   def on_gvl_running(thread)
-    described_class::Testing._native_on_gvl_running(thread)
+    described_class::Testing._native_on_gvl_running(thread_context_collector, thread)
+  end
+
+  def on_gvl_released(thread)
+    described_class::Testing._native_on_gvl_released(thread)
   end
 
   def sample_after_gvl_running(thread, allow_exception: false)
@@ -141,11 +148,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   def apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
     described_class::Testing
-      ._native_apply_delta_to_cpu_time_at_previous_sample_ns(thread_context_collector, thread, delta_ns)
+      ._native_apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
   end
 
   def prepare_sample_inside_signal_handler
-    described_class::Testing._native_prepare_sample_inside_signal_handler(thread_context_collector)
+    described_class::Testing._native_prepare_sample_inside_signal_handler
   end
 
   # What's the deal with the `profiler_system_epoch_time_now_ns`? Internally the profiler uses a monotonic clock
@@ -178,15 +185,18 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     yield
   end
 
-  # This method exists only so we can look for its name in the stack trace in a few tests
-  def another_way_of_calling_sample(profiler_overhead_stack_thread: Thread.current)
-    sample(profiler_overhead_stack_thread: profiler_overhead_stack_thread)
-  end
-
   describe ".new" do
     it "sets the waiting_for_gvl_threshold_ns to the provided value" do
       # This is a bit ugly but it saves us from having to introduce yet another way to poke at the native state
-      expect(thread_context_collector.inspect).to include("global_waiting_for_gvl_threshold_ns=222333444")
+      expect(thread_context_collector.inspect).to include("waiting_for_gvl_threshold_ns=222333444")
+    end
+
+    context "when otel_context_enabled has an invalid value" do
+      it "raises an ArgumentError with the value formatted via PRIsVALUE" do
+        expect {
+          described_class.for_testing(recorder: recorder, otel_context_enabled: :invalid)
+        }.to raise_error(ArgumentError, "Unexpected value for otel_context_enabled: :invalid")
+      end
     end
 
     context "when native filenames are enabled but feature is not available" do
@@ -198,7 +208,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
 
       it "disables native filenames" do
-        expect(described_class).to receive(:_native_initialize).with(hash_including(native_filenames_enabled: false))
+        expect(described_class)
+          .to receive(:_native_initialize).with(hash_including(native_filenames_enabled: false)).and_call_original
 
         thread_context_collector
       end
@@ -219,7 +230,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
       expect(Thread.list).to eq(all_threads), "Threads finished during this spec, causing flakiness!"
 
-      seen_threads = samples.map(&:labels).map { |it| it.fetch(:"thread id") }.uniq
+      seen_threads =
+        samples
+          .reject { |it| it.labels.key?(:"profiler overhead") }
+          .map(&:labels).map { |it| it.fetch(:"thread id") }.uniq
 
       expect(seen_threads.size).to be all_threads.size
     end
@@ -281,8 +295,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
       t1_samples = samples_for_thread(samples, t1)
 
-      wall_time = t1_samples.map(&:values).map { |it| it.fetch(:"wall-time") }.reduce(:+)
-      expect(wall_time).to be(wall_time_at_second_sample - wall_time_at_first_sample)
+      expect(t1_samples.last.values.fetch(:"wall-time")).to be(wall_time_at_second_sample - wall_time_at_first_sample)
     end
 
     it "tags samples with how many times they were seen" do
@@ -293,122 +306,29 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       expect(t1_samples.map(&:values).map { |it| it.fetch(:"cpu-samples") }.reduce(:+)).to eq 5
     end
 
-    context "when a thread is marked as being in garbage collection by on_gc_start" do
-      # @ivoanjo: This spec exists because for cpu-time the behavior is not this one (e.g. we don't keep recording
-      # cpu-time), and I wanted to validate that the different behavior does not get applied to wall-time.
-      it "keeps recording the wall-time after every sample" do
-        sample
-        wall_time_at_first_sample = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_previous_sample_ns)
-
+    context "when a thread is in the middle of garbage collection (on_gc_start called without on_gc_finish)" do
+      it do
         on_gc_start
 
-        5.times { sample }
-
-        time_after = Datadog::Core::Utils::Time.get_time(:nanosecond)
-
-        sample
-
-        wall_time_at_last_sample = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_previous_sample_ns)
-
-        expect(wall_time_at_last_sample).to be >= wall_time_at_first_sample
-        expect(wall_time_at_last_sample).to be >= time_after
+        expect { sample(allow_exception: true) }
+          .to raise_error(RuntimeError, /BUG: Unexpected sample during GC/)
       end
     end
 
     context "cpu-time behavior" do
-      context "when not on Linux" do
-        before do
-          skip "The fallback behavior only applies when not on Linux" if PlatformHelpers.linux?
-        end
+      it "includes the cpu-time for the samples" do
+        t0 = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
+        5.times { sample }
+        samples # to trigger serialization
+        t1 = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
+        rspec_thread_spent_cpu_time = t1 - t0
 
-        it "sets the cpu-time on every sample to zero" do
-          5.times { sample }
+        total_cpu_for_rspec_thread =
+          samples_for_thread(samples, Thread.current)
+            .map { |it| it.values.fetch(:"cpu-time") }
+            .reduce(:+)
 
-          expect(samples).to all have_attributes(values: include("cpu-time": 0))
-        end
-      end
-
-      context "on Linux" do
-        before do
-          skip "Test only runs on Linux" unless PlatformHelpers.linux?
-        end
-
-        it "includes the cpu-time for the samples" do
-          rspec_thread_spent_time = Datadog::Core::Utils::Time.measure(:nanosecond) do
-            5.times { sample }
-            samples # to trigger serialization
-          end
-
-          # The only thread we're guaranteed has spent some time on cpu is the rspec thread, so let's check we have
-          # some data for it
-          total_cpu_for_rspec_thread =
-            samples_for_thread(samples, Thread.current)
-              .map { |it| it.values.fetch(:"cpu-time") }
-              .reduce(:+)
-
-          # The **wall-clock time** spent by the rspec thread is going to be an upper bound for the cpu time spent,
-          # e.g. if it took 5 real world seconds to run the test, then at most the rspec thread spent those 5 seconds
-          # running on CPU, but possibly it spent slightly less.
-          expect(total_cpu_for_rspec_thread).to be_between(1, rspec_thread_spent_time)
-        end
-
-        context "when a thread is marked as being in garbage collection by on_gc_start" do
-          it "records the cpu-time between a previous sample and the start of garbage collection, and no further time" do
-            sample
-            cpu_time_at_first_sample = per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
-
-            on_gc_start
-
-            cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
-
-            # Even though we keep calling sample, the result only includes the time until we called on_gc_start
-            5.times { another_way_of_calling_sample }
-
-            total_cpu_for_rspec_thread =
-              samples_for_thread(samples, Thread.current)
-                .select { |it| it.locations.find { |frame| frame.base_label == "another_way_of_calling_sample" } }
-                .map { |it| it.values.fetch(:"cpu-time") }
-                .reduce(:+)
-
-            expect(total_cpu_for_rspec_thread).to be(cpu_time_at_gc_start - cpu_time_at_first_sample)
-          end
-
-          # When a thread is marked as being in GC the cpu_time_at_previous_sample_ns is not allowed to advance until
-          # the GC finishes.
-          it "does not advance cpu_time_at_previous_sample_ns for the thread beyond gc_tracking.cpu_time_at_start_ns" do
-            sample
-
-            on_gc_start
-
-            cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
-
-            5.times { sample }
-
-            cpu_time_at_previous_sample_ns =
-              per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
-
-            expect(cpu_time_at_previous_sample_ns).to be cpu_time_at_gc_start
-          end
-        end
-
-        context "when a thread is unmarked as being in garbage collection by on_gc_finish" do
-          it "lets cpu_time_at_previous_sample_ns advance again" do
-            sample
-
-            on_gc_start
-
-            cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
-
-            on_gc_finish
-
-            5.times { sample }
-
-            cpu_time_at_previous_sample_ns =
-              per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
-
-            expect(cpu_time_at_previous_sample_ns).to be > cpu_time_at_gc_start
-          end
-        end
+        expect(total_cpu_for_rspec_thread).to be_between(1, rspec_thread_spent_cpu_time)
       end
     end
 
@@ -686,7 +606,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               expect(t1_sample.labels).to_not include("trace endpoint": anything)
             end
 
-            describe 'accessing the current span' do
+            describe "accessing the current span" do
               before do
                 allow(Datadog.logger).to receive(:error)
 
@@ -696,7 +616,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 recorder.serialize!
               end
 
-              it 'does not try to hash the CURRENT_SPAN_KEY' do
+              it "does not try to hash the CURRENT_SPAN_KEY" do
                 inner_check_ran = false
 
                 otel_tracer.in_span("profiler.test") do |_span|
@@ -859,7 +779,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               expect(t1_sample.labels).to_not include("trace endpoint": anything)
             end
 
-            describe 'reading CURRENT_SPAN_KEY into otel_current_span_key' do
+            describe "reading CURRENT_SPAN_KEY into otel_current_span_key" do
               let!(:ran_log) { [] }
 
               let(:setup_failure) do
@@ -876,11 +796,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 )
               end
 
-              context 'when an exception is raised' do
+              context "when an exception is raised" do
                 before { setup_failure }
                 after { expect(ran_log).to eq [:ran_code] }
 
-                it 'does not leave the exception pending' do
+                it "does not leave the exception pending" do
                   sample(allow_exception: true)
 
                   expect($!).to be nil
@@ -893,8 +813,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 end
               end
 
-              context 'during allocation sampling' do
-                it 'does not try to read the CURRENT_SPAN_KEY' do
+              context "during allocation sampling" do
+                it "does not try to read the CURRENT_SPAN_KEY" do
                   allow(OpenTelemetry.logger).to receive(:error)
 
                   otel_tracer.in_span("profiler.test") do |_span|
@@ -908,7 +828,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               end
             end
 
-            describe 'accessing the current span' do
+            describe "accessing the current span" do
               before do
                 allow(OpenTelemetry.logger).to receive(:error)
 
@@ -918,7 +838,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 recorder.serialize!
               end
 
-              it 'does not try to hash the CURRENT_SPAN_KEY' do
+              it "does not try to hash the CURRENT_SPAN_KEY" do
                 inner_check_ran = false
 
                 otel_tracer.in_span("profiler.test") do |_span|
@@ -932,21 +852,21 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 expect(inner_check_ran).to be true
               end
 
-              context 'when there are more than MAX_SAFE_LOOKUP_SIZE entries in the otel context' do
+              context "when there are more than MAX_SAFE_LOOKUP_SIZE entries in the otel context" do
                 let(:max_safe_lookup_size) { 16 } # Value of MAX_SAFE_LOOKUP_SIZE in C code
 
-                it 'does not try to look up the context' do
+                it "does not try to look up the context" do
                   otel_tracer.in_span("profiler.test") do |_span|
                     current_size = OpenTelemetry::Context.current.instance_variable_get(:@entries).size
 
                     OpenTelemetry::Context.with_values(
-                      Array.new((max_safe_lookup_size + 1 - current_size)) { |it| ["key_#{it}", it] }.to_h
+                      Array.new(max_safe_lookup_size + 1 - current_size) { |it| ["key_#{it}", it] }.to_h
                     ) do
                       sample_allocation(weight: 12)
                     end
 
                     OpenTelemetry::Context.with_values(
-                      Array.new((max_safe_lookup_size - current_size)) { |it| ["key_#{it}", it] }.to_h
+                      Array.new(max_safe_lookup_size - current_size) { |it| ["key_#{it}", it] }.to_h
                     ) do
                       sample_allocation(weight: 34)
                     end
@@ -963,7 +883,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               end
             end
 
-            context 'when otel_context_enabled is false' do
+            context "when otel_context_enabled is false" do
               let(:otel_context_enabled) { false }
 
               it 'does not include "local root span id" or "span id" labels in the samples' do
@@ -1140,264 +1060,237 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
     end
 
-    # This is a bit weird, but what we're doing here is using the stack from a different thread to represent the
-    # profiler overhead. In practice, the "different thread" will be the Collectors::CpuAndWallTimeWorker thread.
-    #
-    # Thus, what happens is, when we sample _once_, two samples will show up for the thread **that calls sample**:
-    # * The regular stack
-    # * The stack from the other thread
-    #
-    # E.g. if 1s elapsed since the last sample, and sampling takes 500ms:
-    # * The regular stack will have 1s attributed to it
-    # * The stack from the other thread will have 500ms attributed to it.
-    #
-    # This way it's clear what overhead comes from profiling. Without this feature (aka if profiler_overhead_stack_thread
-    # is set to Thread.current), then all 1.5s get attributed to the current stack, and the profiler overhead would be
-    # invisible.
-    it "attributes the time sampling to the stack of the worker_thread_to_blame" do
+    it "records profiler overhead as a placeholder stack" do
       sample
-      wall_time_at_first_sample = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_previous_sample_ns)
 
-      another_way_of_calling_sample(profiler_overhead_stack_thread: t1)
-      wall_time_at_second_sample = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_previous_sample_ns)
+      profiler_overhead_samples = samples.select { |it| it.labels.key?(:"profiler overhead") }
 
-      second_sample_stack =
-        samples_for_thread(samples, Thread.current)
-          .select { |it| it.locations.find { |frame| frame.base_label == "another_way_of_calling_sample" } }
+      expect(profiler_overhead_samples.size).to be 1
 
-      # The stack from the profiler_overhead_stack_thread (t1) above has showed up attributed to Thread.current, as we
-      # are using it to represent the profiler overhead.
-      profiler_overhead_stack =
-        samples_for_thread(samples, Thread.current)
-          .select { |it| it.locations.find { |frame| frame.base_label == "inside_t1" } }
-
-      expect(second_sample_stack.size).to be 1
-      expect(profiler_overhead_stack.size).to be 1
-
-      expect(
-        second_sample_stack.first.values.fetch(:"wall-time") + profiler_overhead_stack.first.values.fetch(:"wall-time")
-      ).to be wall_time_at_second_sample - wall_time_at_first_sample
-
-      expect(second_sample_stack.first.labels).to_not include("profiler overhead": anything)
-      expect(profiler_overhead_stack.first.labels).to include("profiler overhead": 1)
+      overhead_sample = profiler_overhead_samples.first
+      expect(overhead_sample.locations.map(&:base_label)).to eq ["sampling"]
+      root = File.expand_path("../../../..", __dir__)
+      expect(overhead_sample.locations.map(&:path)).to eq ["#{root}/lib/datadog/profiling/collectors/thread_context.rb"]
+      expect(overhead_sample.labels).to include("profiler overhead": 1, "thread id": "0", "thread name": "Datadog::Profiling::Sampling")
+      expect(overhead_sample.values.fetch(:"wall-time")).to be >= 0
+      expect(overhead_sample.values.fetch(:"cpu-time")).to be >= 0
     end
 
     describe "timeline support" do
-      context "when timeline is disabled" do
-        let(:timeline_enabled) { false }
+      it "includes a end_timestamp_ns containing epoch time in every sample" do
+        time_before = profiler_system_epoch_time_now_ns
+        sample
+        time_after = profiler_system_epoch_time_now_ns
 
-        it "does not include end_timestamp_ns labels in samples" do
+        expect(samples.first.labels).to include(end_timestamp_ns: be_between(time_before, time_after))
+      end
+
+      context "when thread starts Waiting for GVL" do
+        before do
+          skip_if_gvl_profiling_not_supported(self)
+
+          sample # trigger context creation
+          recorder.serialize! # flush sample
+
+          @previous_sample_timestamp_ns = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
+
+          @time_before_gvl_waiting = profiler_system_epoch_time_now_ns
+          on_gvl_waiting(t1)
+          @time_after_gvl_waiting = profiler_system_epoch_time_now_ns
+
+          @gvl_waiting_at = gvl_waiting_at_for(t1)
+
+          expect(@gvl_waiting_at).to be >= @previous_sample_timestamp_ns
+        end
+
+        it "records a first sample to represent the time between the previous sample and the start of Waiting for GVL" do
           sample
 
-          expect(samples.map(&:labels).flat_map(&:keys).uniq).to_not include(:end_timestamp_ns)
+          first_sample = samples_for_thread(samples, t1, expected_size: 2).first
+
+          expect(first_sample.values.fetch(:"wall-time")).to be(@gvl_waiting_at - @previous_sample_timestamp_ns)
+          expect(first_sample.labels).to include(
+            state: "sleeping",
+            end_timestamp_ns: be_between(@time_before_gvl_waiting, @time_after_gvl_waiting),
+          )
+        end
+
+        it "records a second sample to represent the time spent Waiting for GVL" do
+          time_before_sample = profiler_system_epoch_time_now_ns
+          sample
+          time_after_sample = profiler_system_epoch_time_now_ns
+
+          second_sample = samples_for_thread(samples, t1, expected_size: 2).last
+
+          expect(second_sample.values.fetch(:"wall-time"))
+            .to be(per_thread_context.dig(t1, :wall_time_at_previous_sample_ns) - @gvl_waiting_at)
+          expect(second_sample.labels).to include(
+            state: "waiting for gvl",
+            end_timestamp_ns: be_between(time_before_sample, time_after_sample),
+          )
+        end
+
+        context "cpu-time behavior" do
+          before do
+            apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back cpu-clock since previous sample
+          end
+
+          it "assigns all the cpu-time to the sample before Waiting for GVL started" do
+            sample
+
+            first_sample, second_sample = samples_for_thread(samples, t1, expected_size: 2)
+
+            expect(first_sample.values.fetch(:"cpu-time")).to be >= 12345
+            expect(second_sample.values.fetch(:"cpu-time")).to be 0
+          end
         end
       end
 
-      context "when timeline is enabled" do
-        let(:timeline_enabled) { true }
+      context "when thread is Waiting for GVL" do
+        before do
+          skip_if_gvl_profiling_not_supported(self)
 
-        it "includes a end_timestamp_ns containing epoch time in every sample" do
-          time_before = profiler_system_epoch_time_now_ns
+          sample # trigger context creation
+          on_gvl_waiting(t1)
+          sample # trigger creation of sample representing the period before Waiting for GVL
+          recorder.serialize! # flush previous samples
+        end
+
+        def sample_and_check(expected_state:)
+          monotonic_time_before_sample = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
+          time_before_sample = profiler_system_epoch_time_now_ns
+          monotonic_time_sanity_check = Datadog::Core::Utils::Time.get_time(:nanosecond)
+
           sample
-          time_after = profiler_system_epoch_time_now_ns
 
-          expect(samples.first.labels).to include(end_timestamp_ns: be_between(time_before, time_after))
+          time_after_sample = profiler_system_epoch_time_now_ns
+          monotonic_time_after_sample = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
+
+          expect(monotonic_time_after_sample).to be >= monotonic_time_sanity_check
+
+          latest_sample = sample_for_thread(samples_from_pprof(recorder.serialize!), t1)
+
+          expect(latest_sample.values.fetch(:"wall-time"))
+            .to be(monotonic_time_after_sample - monotonic_time_before_sample)
+          expect(latest_sample.labels).to include(
+            state: expected_state,
+            end_timestamp_ns: be_between(time_before_sample, time_after_sample),
+          )
+
+          latest_sample
         end
 
-        context "when thread starts Waiting for GVL" do
+        it "records a new Waiting for GVL sample on every subsequent sample" do
+          3.times { sample_and_check(expected_state: "waiting for gvl") }
+        end
+
+        it "does not change the gvl_waiting_at" do
+          value_before = gvl_waiting_at_for(t1)
+
+          sample
+
+          expect(gvl_waiting_at_for(t1)).to be value_before
+          expect(gvl_waiting_at_for(t1)).to be > 0
+        end
+
+        context "cpu-time behavior" do
           before do
-            skip_if_gvl_profiling_not_supported(self)
-
-            sample # trigger context creation
-            recorder.serialize! # flush sample
-
-            @previous_sample_timestamp_ns = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
-
-            @time_before_gvl_waiting = profiler_system_epoch_time_now_ns
-            on_gvl_waiting(t1)
-            @time_after_gvl_waiting = profiler_system_epoch_time_now_ns
-
-            @gvl_waiting_at = gvl_waiting_at_for(t1)
-
-            expect(@gvl_waiting_at).to be >= @previous_sample_timestamp_ns
+            apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back cpu-clock since previous sample
           end
 
-          it "records a first sample to represent the time between the previous sample and the start of Waiting for GVL" do
-            sample
+          it "does not assign any cpu-time to the Waiting for GVL samples" do
+            3.times do
+              latest_sample = sample_and_check(expected_state: "waiting for gvl")
 
-            first_sample = samples_for_thread(samples, t1, expected_size: 2).first
-
-            expect(first_sample.values.fetch(:"wall-time")).to be(@gvl_waiting_at - @previous_sample_timestamp_ns)
-            expect(first_sample.labels).to include(
-              state: "sleeping",
-              end_timestamp_ns: be_between(@time_before_gvl_waiting, @time_after_gvl_waiting),
-            )
-          end
-
-          it "records a second sample to represent the time spent Waiting for GVL" do
-            time_before_sample = profiler_system_epoch_time_now_ns
-            sample
-            time_after_sample = profiler_system_epoch_time_now_ns
-
-            second_sample = samples_for_thread(samples, t1, expected_size: 2).last
-
-            expect(second_sample.values.fetch(:"wall-time"))
-              .to be(per_thread_context.dig(t1, :wall_time_at_previous_sample_ns) - @gvl_waiting_at)
-            expect(second_sample.labels).to include(
-              state: "waiting for gvl",
-              end_timestamp_ns: be_between(time_before_sample, time_after_sample),
-            )
-          end
-
-          context "cpu-time behavior on Linux" do
-            before do
-              skip "Test only runs on Linux" unless PlatformHelpers.linux?
-
-              apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back cpu-clock since previous sample
-            end
-
-            it "assigns all the cpu-time to the sample before Waiting for GVL started" do
-              sample
-
-              first_sample, second_sample = samples_for_thread(samples, t1, expected_size: 2)
-
-              expect(first_sample.values.fetch(:"cpu-time")).to be >= 12345
-              expect(second_sample.values.fetch(:"cpu-time")).to be 0
+              expect(latest_sample.values.fetch(:"cpu-time")).to be 0
             end
           end
         end
 
-        context "when thread is Waiting for GVL" do
-          before do
-            skip_if_gvl_profiling_not_supported(self)
+        context "when thread is ready to run again" do
+          before { on_gvl_running(t1) }
 
-            sample # trigger context creation
-            on_gvl_waiting(t1)
-            sample # trigger creation of sample representing the period before Waiting for GVL
-            recorder.serialize! # flush previous samples
-          end
+          context "when Waiting for GVL duration >= the threshold" do
+            let(:waiting_for_gvl_threshold_ns) { 0 }
 
-          def sample_and_check(expected_state:)
-            monotonic_time_before_sample = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
-            time_before_sample = profiler_system_epoch_time_now_ns
-            monotonic_time_sanity_check = Datadog::Core::Utils::Time.get_time(:nanosecond)
-
-            sample
-
-            time_after_sample = profiler_system_epoch_time_now_ns
-            monotonic_time_after_sample = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
-
-            expect(monotonic_time_after_sample).to be >= monotonic_time_sanity_check
-
-            latest_sample = sample_for_thread(samples_from_pprof(recorder.serialize!), t1)
-
-            expect(latest_sample.values.fetch(:"wall-time"))
-              .to be(monotonic_time_after_sample - monotonic_time_before_sample)
-            expect(latest_sample.labels).to include(
-              state: expected_state,
-              end_timestamp_ns: be_between(time_before_sample, time_after_sample),
-            )
-
-            latest_sample
-          end
-
-          it "records a new Waiting for GVL sample on every subsequent sample" do
-            3.times { sample_and_check(expected_state: "waiting for gvl") }
-          end
-
-          it "does not change the gvl_waiting_at" do
-            value_before = gvl_waiting_at_for(t1)
-
-            sample
-
-            expect(gvl_waiting_at_for(t1)).to be value_before
-            expect(gvl_waiting_at_for(t1)).to be > 0
-          end
-
-          context "cpu-time behavior on Linux" do
-            before do
-              skip "Test only runs on Linux" unless PlatformHelpers.linux?
-
-              apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back cpu-clock since previous sample
+            it "records a last Waiting for GVL sample" do
+              sample_and_check(expected_state: "waiting for gvl")
             end
 
-            it "does not assign any cpu-time to the Waiting for GVL samples" do
-              3.times do
-                latest_sample = sample_and_check(expected_state: "waiting for gvl")
+            it "resets the gvl_waiting_at to 0 (not waiting)" do
+              expect(gvl_waiting_at_for(t1)).to be < 0
 
-                expect(latest_sample.values.fetch(:"cpu-time")).to be 0
-              end
+              expect { sample }.to change { gvl_waiting_at_for(t1) }
+                .from(gvl_waiting_at_for(t1))
+                .to(0)
             end
-          end
 
-          context "when thread is ready to run again" do
-            before { on_gvl_running(t1) }
+            it "does not record a new Waiting for GVL sample afterwards" do
+              sample # last Waiting for GVL sample
+              recorder.serialize! # flush previous samples
 
-            context "when Waiting for GVL duration >= the threshold" do
-              let(:waiting_for_gvl_threshold_ns) { 0 }
+              3.times { sample_and_check(expected_state: "sleeping") }
+            end
 
-              it "records a last Waiting for GVL sample" do
-                sample_and_check(expected_state: "waiting for gvl")
-              end
+            context "cpu-time behavior" do
+              it "assigns all the cpu-time to samples only after Waiting for GVL ends" do
+                apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back cpu-clock since previous sample
 
-              it "resets the gvl_waiting_at to GVL_WAITING_ENABLED_EMPTY" do
-                expect(gvl_waiting_at_for(t1)).to be < 0
-
-                expect { sample }.to change { gvl_waiting_at_for(t1) }
-                  .from(gvl_waiting_at_for(t1))
-                  .to(gvl_waiting_enabled_empty_magic_value)
-              end
-
-              it "does not record a new Waiting for GVL sample afterwards" do
                 sample # last Waiting for GVL sample
-                recorder.serialize! # flush previous samples
 
-                3.times { sample_and_check(expected_state: "sleeping") }
-              end
+                latest_sample = sample_for_thread(samples_from_pprof(recorder.serialize!), t1)
+                expect(latest_sample.values.fetch(:"cpu-time")).to be 0
 
-              context "cpu-time behavior on Linux" do
-                before do
-                  skip "Test only runs on Linux" unless PlatformHelpers.linux?
-                end
-
-                it "assigns all the cpu-time to samples only after Waiting for GVL ends" do
-                  apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back cpu-clock since previous sample
-
-                  sample # last Waiting for GVL sample
-
-                  latest_sample = sample_for_thread(samples_from_pprof(recorder.serialize!), t1)
-                  expect(latest_sample.values.fetch(:"cpu-time")).to be 0
-
-                  latest_sample = sample_and_check(expected_state: "had cpu")
-                  expect(latest_sample.values.fetch(:"cpu-time")).to be 12345
-                end
-              end
-            end
-
-            context "when Waiting for GVL duration < the threshold" do
-              let(:waiting_for_gvl_threshold_ns) { 1_000_000_000 }
-
-              it "records a regular sample" do
-                expect(gvl_waiting_at_for(t1)).to eq gvl_waiting_enabled_empty_magic_value
-
-                # This is a rare situation (but can still happen) -- the thread was Waiting for GVL on the previous sample,
-                # but the overall duration of the Waiting for GVL was below the threshold. This means that on_gvl_running
-                # clears the Waiting for GVL state, and the next sample is immediately back to being a regular sample.
-                #
-                # Because the state has been cleared immediately, the next sample is a regular one. We effectively ignore
-                # a small time period that was still Waiting for GVL as a means to reduce overhead.
-
-                sample_and_check(expected_state: "sleeping")
+                latest_sample = sample_and_check(expected_state: "had cpu")
+                expect(latest_sample.values.fetch(:"cpu-time")).to be 12345
               end
             end
           end
+
+          context "when Waiting for GVL duration < the threshold" do
+            let(:waiting_for_gvl_threshold_ns) { 1_000_000_000 }
+
+            it "records a regular sample" do
+              expect(gvl_waiting_at_for(t1)).to eq 0
+
+              # This is a rare situation (but can still happen) -- the thread was Waiting for GVL on the previous sample,
+              # but the overall duration of the Waiting for GVL was below the threshold. This means that on_gvl_running
+              # clears the Waiting for GVL state, and the next sample is immediately back to being a regular sample.
+              #
+              # Because the state has been cleared immediately, the next sample is a regular one. We effectively ignore
+              # a small time period that was still Waiting for GVL as a means to reduce overhead.
+
+              sample_and_check(expected_state: "sleeping")
+            end
+          end
         end
+      end
+    end
+
+    context "when a thread is frozen" do
+      it "samples the frozen thread using the per-thread context created before freeze" do
+        t1.freeze
+
+        sample
+
+        expect(samples_for_thread(samples, t1)).to_not be_empty
+      end
+
+      it "raises FrozenError if the thread is frozen before the first ThreadContext.new or before the TracePoint runs" do
+        remove_per_thread_context_for(t1)
+        t1.freeze
+
+        expect {
+          sample(allow_exception: true)
+        }.to raise_error(FrozenError, "Cannot setup profiler state for Thread #{t1} because it is frozen. Please avoid freezing Thread instances and/or report the issue to dd-trace-rb")
       end
     end
   end
 
   describe "#on_gc_start" do
-    context "if a thread has not been sampled before" do
+    context "if a thread does not have per-thread context" do
+      before { remove_per_thread_context_for(Thread.current) }
+
       it "does not record anything in the caller thread's context" do
         on_gc_start
 
@@ -1422,41 +1315,23 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         )
       end
 
-      context "cpu-time behavior" do
-        context "when not on Linux" do
-          before do
-            skip "The fallback behavior only applies when not on Linux" if PlatformHelpers.linux?
-          end
+      it "records the cpu-time when garbage collection started in the caller thread's context" do
+        on_gc_start
 
-          it "records the cpu-time when garbage collection started in the caller thread's context as zero" do
-            on_gc_start
+        cpu_time_at_previous_sample_ns = per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
 
-            expect(per_thread_context.fetch(Thread.current)).to include("gc_tracking.cpu_time_at_start_ns": 0)
-          end
-        end
-
-        context "on Linux" do
-          before do
-            skip "Test only runs on Linux" unless PlatformHelpers.linux?
-          end
-
-          it "records the cpu-time when garbage collection started in the caller thread's context" do
-            on_gc_start
-
-            cpu_time_at_previous_sample_ns = per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
-
-            expect(per_thread_context.fetch(Thread.current))
-              .to include("gc_tracking.cpu_time_at_start_ns": (be > cpu_time_at_previous_sample_ns))
-          end
-        end
+        expect(per_thread_context.fetch(Thread.current))
+          .to include("gc_tracking.cpu_time_at_start_ns": (be > cpu_time_at_previous_sample_ns))
       end
     end
   end
 
   describe "#on_gc_finish" do
-    context "when thread has not been sampled before" do
+    context "when thread does not have per-thread context" do
+      before { remove_per_thread_context_for(Thread.current) }
+
       it "does not record anything in the caller thread's context" do
-        on_gc_start
+        on_gc_finish
 
         expect(per_thread_context.keys).to_not include(Thread.current)
       end
@@ -1507,39 +1382,21 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
 
         context "cpu-time behavior" do
-          context "when not on Linux" do
-            before do
-              skip "The fallback behavior only applies when not on Linux" if PlatformHelpers.linux?
-            end
+          it "records the cpu-time spent between calls to on_gc_start and on_gc_finish" do
+            on_gc_finish
 
-            it "records the accumulated_cpu_time_ns as zero" do
-              on_gc_finish
-
-              expect(gc_tracking.fetch(:accumulated_cpu_time_ns)).to be 0
-            end
+            expect(gc_tracking.fetch(:accumulated_cpu_time_ns)).to be > 0
           end
 
-          context "on Linux" do
-            before do
-              skip "Test only runs on Linux" unless PlatformHelpers.linux?
-            end
+          it "advances the cpu_time_at_previous_sample_ns for the sampled thread by the time spent in GC" do
+            cpu_time_at_previous_sample_ns_before =
+              per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
 
-            it "records the cpu-time spent between calls to on_gc_start and on_gc_finish" do
-              on_gc_finish
+            on_gc_finish
 
-              expect(gc_tracking.fetch(:accumulated_cpu_time_ns)).to be > 0
-            end
-
-            it "advances the cpu_time_at_previous_sample_ns for the sampled thread by the time spent in GC" do
-              cpu_time_at_previous_sample_ns_before =
-                per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
-
-              on_gc_finish
-
-              expect(per_thread_context.fetch(Thread.current)).to include(
-                cpu_time_at_previous_sample_ns: be > cpu_time_at_previous_sample_ns_before
-              )
-            end
+            expect(per_thread_context.fetch(Thread.current)).to include(
+              cpu_time_at_previous_sample_ns: be > cpu_time_at_previous_sample_ns_before
+            )
           end
         end
       end
@@ -1548,11 +1405,20 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         let(:context_tracking) { [] }
 
         before do
-          5.times do
+          trigger_gc = proc do
             on_gc_start
             on_gc_finish
-
             context_tracking << gc_tracking
+          end
+
+          # Loop until accumulated_cpu_time_ns strictly increases across snapshots.
+          # This handles platforms whose CPU clock has microsecond resolution (macOS
+          # Mach `thread_info`) where fast back-to-back cycles can land in the same
+          # microsecond bucket.
+          loop_until do
+            trigger_gc.call
+            context_tracking.first.fetch(:accumulated_cpu_time_ns) <
+              context_tracking.last.fetch(:accumulated_cpu_time_ns)
           end
         end
 
@@ -1650,36 +1516,25 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         )
       end
 
-      it "does not include the timeline timestamp" do
+      it "creates a Garbage Collection sample using the accumulated_wall_time_ns as the timeline duration" do
+        accumulated_wall_time_ns = gc_tracking.fetch(:accumulated_wall_time_ns)
+
         sample_after_gc
 
-        expect(gc_sample.labels.keys).to_not include(:end_timestamp_ns)
+        expect(gc_sample.values.fetch(:timeline)).to be accumulated_wall_time_ns
       end
 
-      context "when timeline is enabled" do
-        let(:timeline_enabled) { true }
+      it "creates a Garbage Collection sample using the timestamp set by on_gc_finish, converted to epoch ns" do
+        sample_after_gc
 
-        it "creates a Garbage Collection sample using the accumulated_wall_time_ns as the timeline duration" do
-          accumulated_wall_time_ns = gc_tracking.fetch(:accumulated_wall_time_ns)
-
-          sample_after_gc
-
-          expect(gc_sample.values.fetch(:timeline)).to be accumulated_wall_time_ns
-        end
-
-        it "creates a Garbage Collection sample using the timestamp set by on_gc_finish, converted to epoch ns" do
-          sample_after_gc
-
-          expect(gc_sample.labels.fetch(:end_timestamp_ns)).to be_between(@time_before, @time_after)
-        end
+        expect(gc_sample.labels.fetch(:end_timestamp_ns)).to be_between(@time_before, @time_after)
       end
     end
   end
 
   describe "#sample_allocation" do
     let(:single_sample) do
-      expect(samples.size).to be 1
-      samples.first
+      sample_for_thread(samples, Thread.current)
     end
 
     it "samples the caller thread" do
@@ -1738,7 +1593,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         after { Datadog::Tracing.shutdown! }
 
         it 'gathers the "local root span id", "span id" and "trace endpoint"' do
-          expect(single_sample.labels).to include(
+          expect(sample_for_thread(samples, t1).labels).to include(
             "local root span id": @t1_local_root_span_id.to_i,
             "span id": @t1_span_id.to_i,
             "trace endpoint": "trace_resource",
@@ -1747,14 +1602,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
     end
 
-    context "when timeline is enabled" do
-      let(:timeline_enabled) { true }
+    it "does not include end_timestamp_ns labels in GC samples" do
+      sample_allocation(weight: 123)
 
-      it "does not include end_timestamp_ns labels in GC samples" do
-        sample_allocation(weight: 123)
-
-        expect(single_sample.labels.keys).to_not include(:end_timestamp_ns)
-      end
+      expect(single_sample.labels.keys).to_not include(:end_timestamp_ns)
     end
 
     [
@@ -1836,8 +1687,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   describe "#sample_skipped_allocation_samples" do
     let(:single_sample) do
-      expect(samples.size).to be 1
-      samples.first
+      alloc_samples = samples.select { |s| s.values[:"alloc-samples"]&.positive? }
+      expect(alloc_samples.size).to be 1
+      alloc_samples.first
     end
     before { sample_skipped_allocation_samples(123) }
 
@@ -1862,11 +1714,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   describe "#on_gvl_waiting" do
     before { skip_if_gvl_profiling_not_supported(self) }
 
-    context "if thread has not been sampled before" do
-      it "does not record anything in the internal_thread_specific value" do
+    context "if thread does not have per-thread context" do
+      before { remove_per_thread_context_for(t1) }
+
+      it "does not trigger the creation of the thread context" do
         on_gvl_waiting(t1)
 
-        expect(gvl_waiting_at_for(t1)).to be 0
+        expect(gvl_waiting_at_for(t1)).to be_nil
       end
     end
 
@@ -1888,18 +1742,20 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   describe "#on_gvl_running" do
     before { skip_if_gvl_profiling_not_supported(self) }
 
-    context "if thread has not been sampled before" do
-      it "does not record anything in the internal_thread_specific value" do
+    context "if thread does not have per-thread context" do
+      before { remove_per_thread_context_for(t1) }
+
+      it "does not trigger the creation of the thread context" do
         on_gvl_running(t1)
 
-        expect(gvl_waiting_at_for(t1)).to be 0
+        expect(gvl_waiting_at_for(t1)).to be_nil
       end
     end
 
-    context "when the internal_thread_specific value is GVL_WAITING_ENABLED_EMPTY" do
+    context "when the internal_thread_specific value is 0 (not waiting)" do
       before do
         sample
-        expect(gvl_waiting_at_for(t1)).to eq gvl_waiting_enabled_empty_magic_value
+        expect(gvl_waiting_at_for(t1)).to eq 0
       end
 
       it do
@@ -1951,11 +1807,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       context "when Waiting for GVL duration < the threshold" do
         let(:waiting_for_gvl_threshold_ns) { 1_000_000_000 }
 
-        it "resets the value of gvl_waiting_at back to GVL_WAITING_ENABLED_EMPTY" do
+        it "resets the value of gvl_waiting_at back to 0 (not waiting)" do
           expect { on_gvl_running(t1) }
             .to change { gvl_waiting_at_for(t1) }
             .from(@gvl_waiting_at)
-            .to(gvl_waiting_enabled_empty_magic_value)
+            .to(0)
         end
 
         it "flags that a sample is not needed" do
@@ -1963,27 +1819,51 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
       end
     end
+
+    context "when thread had skipped samples (was_skipped_at_last_sample)" do
+      let(:waiting_for_gvl_threshold_ns) { 1_000_000_000 }
+
+      before do
+        sample
+        on_gvl_released(t1)
+        sample # first sample updates the snapshot to the suspended counter
+        sample # second sample sees unchanged counter, skips and sets was_skipped_at_last_sample
+        expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be true
+
+        on_gvl_waiting(t1)
+      end
+
+      it "flags that a sample is needed to cut the accumulated idle wall-time" do
+        expect(on_gvl_running(t1)).to be true
+      end
+
+      it "produces a sample via sample_after_gvl_running that consumes the accumulated idle wall-time" do
+        wall_time_before = per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
+
+        on_gvl_running(t1)
+        sample_after_gvl_running(t1)
+
+        wall_time_after = per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
+        expect(wall_time_after).to be > wall_time_before
+      end
+
+      it "produces a sample via sample_after_gvl_running that consumes the accumulated CPU time" do
+        apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back to ensure it's > 0
+
+        on_gvl_running(t1)
+        sample_after_gvl_running(t1)
+
+        latest_sample = samples_for_thread(samples_from_pprof(recorder.serialize!), t1).last
+        expect(latest_sample.values.fetch(:"cpu-time")).to be >= 12345
+      end
+    end
   end
 
   describe "#sample_after_gvl_running" do
     before { skip_if_gvl_profiling_not_supported(self) }
 
-    context "when timeline is disabled" do
-      let(:timeline_enabled) { false }
-      it "raises a telemetry-instrumented error" do
-        expect { sample_after_gvl_running(t1, allow_exception: true) }.to raise_error(
-          ::RuntimeError,
-          "GVL profiling requires timeline to be enabled"
-        )
-      end
-    end
-
-    let(:timeline_enabled) { true }
-
-    context "when thread is not at the end of a Waiting for GVL period" do
-      before do
-        expect(gvl_waiting_at_for(t1)).to be 0
-      end
+    context "if thread does not have per-thread context" do
+      before { remove_per_thread_context_for(t1) }
 
       it do
         expect(sample_after_gvl_running(t1)).to be false
@@ -1999,7 +1879,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     # @ivoanjo: The behavior here is expected to be (in terms of wall-time accounting and timestamps) exactly the same
     # as for #sample. That's because both call the same underlying `update_metrics_and_sample` method to do the work.
     #
-    # See the big comment next to the definition of `thread_context_collector_sample_after_gvl_running_with_thread`
+    # See the big comment next to the definition of `thread_context_collector_sample_after_gvl_running`
     # for why we need a separate `sample_after_gvl_running`.
     #
     # Thus, I chose to not repeat the extensive Waiting for GVL specs we already have in #sample, and do a smaller pass.
@@ -2053,12 +1933,130 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
   end
 
-  describe "#prepare_sample_inside_signal_handler" do
-    let(:timeline_enabled) { true } # Not strictly needed but disables aggregation which makes it easier to analyze results
-    let(:trigger_context_creation) { true }
+  describe "SUSPENDED-skip optimization" do
+    before { skip_if_gvl_profiling_not_supported(self) }
 
+    context "when a thread is suspended (does not hold the GVL)" do
+      before do
+        sample # create thread context
+        recorder.serialize! # flush the initial sample
+        on_gvl_released(t1)
+      end
+
+      it "skips per-tick samples for the suspended thread" do
+        ctx = per_thread_context.fetch(t1)
+        expect(ctx.fetch(:gvl_state_change_count_at_previous_sample)).to_not eq(ctx.fetch(:gvl_state_change_count))
+
+        # first sample updates the snapshot to the suspended counter
+        sample
+        ctx = per_thread_context.fetch(t1)
+        gvl_state_change_count = ctx.fetch(:gvl_state_change_count)
+        expect(ctx.fetch(:gvl_state_change_count_at_previous_sample)).to eq(gvl_state_change_count)
+        expect(ctx.fetch(:was_skipped_at_last_sample)).to be false
+
+        # second sample sees unchanged counter and skips
+        sample
+        ctx = per_thread_context.fetch(t1)
+        expect(ctx.fetch(:gvl_state_change_count)).to eq(gvl_state_change_count)
+        expect(ctx.fetch(:gvl_state_change_count_at_previous_sample)).to eq(gvl_state_change_count)
+        expect(ctx.fetch(:was_skipped_at_last_sample)).to be true
+      end
+
+      it "still records at least one sample per profile period via serialize" do
+        # We test that the optimization applies with consecutive samples, that serialize causes an extra sample,
+        # and also that the optimization applies again after serialize,
+        # causing only 1 sample per profile period if the thread does not acquire the GVL
+
+        sample # updates the snapshot
+        expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be false
+
+        sample # skips, sets was_skipped_at_last_sample
+        expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be true
+
+        # End of profile period 1: serialize flushes the skipped thread
+        result = recorder.serialize!
+        expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be false
+        t1_samples = samples_for_thread(samples_from_pprof(result), t1)
+        # 2 samples: the first sample (updates snapshot) + the on-serialize flush
+        expect(t1_samples.size).to eq(2)
+        expect(t1_samples.sum { |s| s.values.fetch(:"wall-time") }).to be > 0
+
+        # All of these are skipped
+        10.times {
+          sample
+          expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be true
+        }
+
+        # End of profile period 2: serialize again flushes the skipped thread
+        result = recorder.serialize!
+        expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be false
+        t1_samples = samples_for_thread(samples_from_pprof(result), t1)
+        # Exactly 1 sample from the on-serialize flush
+        expect(t1_samples.size).to eq(1)
+        expect(t1_samples.sum { |s| s.values.fetch(:"wall-time") }).to be > 0
+      end
+    end
+  end
+
+  describe "profiler-internal thread skipping" do
+    def mark_thread_as_profiler_internal(thread)
+      described_class::Testing._native_mark_thread_as_profiler_internal(thread)
+    end
+
+    before do
+      mark_thread_as_profiler_internal(t1)
+    end
+
+    it "skips per-tick samples for profiler-internal threads" do
+      expect { sample }.to change { stats.fetch(:profiler_thread_samples_skipped) }.by(1)
+      expect(per_thread_context.fetch(t1).fetch(:is_profiler_internal_thread)).to be true
+    end
+
+    it "does not go through the inactive-thread skip path" do
+      sample
+      expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be false
+    end
+
+    it "reports profiler-internal threads in the first reporting period" do
+      # Timestamps are seeded by initialize_context, so the first on_serialize flush
+      # produces a real wall-time delta even without any prior sample.
+      t2 = Thread.new { sleep }
+      mark_thread_as_profiler_internal(t2)
+
+      sample
+      result = recorder.serialize!
+      t2_samples = samples_for_thread(samples_from_pprof(result), t2)
+      expect(t2_samples.size).to eq(1)
+      expect(t2_samples.first.values.fetch(:"wall-time")).to be > 0
+    ensure
+      t2&.kill
+      t2&.join
+    end
+
+    it "still records one sample per profile period via serialize" do
+      cpu_before = per_thread_context.fetch(t1).fetch(:cpu_time_at_previous_sample_ns)
+      wall_before = per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
+
+      # Rewind cpu-clock by a known amount so we can verify the final sample covers it
+      apply_delta_to_cpu_time_at_previous_sample_ns(t1, -1_000_000)
+
+      10.times { sample }
+
+      # Timestamps are never updated by per-tick sampling since the thread is skipped
+      expect(per_thread_context.fetch(t1).fetch(:cpu_time_at_previous_sample_ns)).to eq(cpu_before - 1_000_000)
+      expect(per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)).to eq(wall_before)
+
+      result = recorder.serialize!
+      t1_samples = samples_for_thread(samples_from_pprof(result), t1)
+      expect(t1_samples.size).to eq(1)
+      expect(t1_samples.first.values.fetch(:"cpu-time")).to be >= 1_000_000
+      expect(t1_samples.first.values.fetch(:"wall-time")).to be > 0
+    end
+  end
+
+  describe "#prepare_sample_inside_signal_handler" do
     def prepare_and_sample
-      sample if trigger_context_creation
+      sample
 
       prepare_sample_inside_signal_handler
       recorder.serialize! # ensure there are no samples recorded
@@ -2069,7 +2067,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     it "samples the stack into the sampling_buffer" do
       prepare_and_sample
 
-      result = sample_for_thread(samples.reject { |it| it.labels.include?(:"profiler overhead") }, Thread.current)
+      result = sample_for_thread(samples, Thread.current)
 
       # Because the sample was prepared inside the `_native_prepare_sample_inside_signal_handler`, that should be
       # the method at the top of the stack, even though the sample was only recorded later, inside
@@ -2081,7 +2079,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       prepare_and_sample
       sample
 
-      results = samples_for_thread(samples.reject { |it| it.labels.include?(:"profiler overhead") }, Thread.current)
+      results = samples_for_thread(samples, Thread.current)
 
       expect(results).to contain_exactly(
         have_attributes(locations: include(have_attributes(base_label: "_native_prepare_sample_inside_signal_handler"))),
@@ -2089,13 +2087,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       )
     end
 
-    context "when context did not exist" do
-      let(:trigger_context_creation) { false }
-
+    context "when thread does not have per-thread context" do
       it "does not sample the stack" do
-        prepare_and_sample
+        remove_per_thread_context_for(Thread.current)
 
-        result = sample_for_thread(samples.reject { |it| it.labels.include?(:"profiler overhead") }, Thread.current)
+        prepare_sample_inside_signal_handler
+        recorder.serialize!
+
+        sample
+
+        result = sample_for_thread(samples, Thread.current)
 
         expect(result.locations.first).to have_attributes(base_label: "_native_sample")
       end
@@ -2109,12 +2110,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "#per_thread_context" do
-    context "before sampling" do
-      it do
-        expect(per_thread_context).to be_empty
-      end
-    end
-
     context "after sampling" do
       before do
         @wall_time_before_sample_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
@@ -2134,7 +2129,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
 
         context "on Ruby >= 3.1" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.1." }
+          before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 3.1") }
 
           # Thread#native_thread_id was added on 3.1
           it "contains the native thread ids of all sampled threads" do
@@ -2145,7 +2140,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
 
         context "on Ruby < 3.1" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.1." }
+          before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 3.1") }
 
           it "contains a fallback native thread id" do
             per_thread_context.each do |_thread, context|
@@ -2156,62 +2151,39 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
 
       it "sets the wall_time_at_previous_sample_ns to the current wall clock value" do
-        expect(per_thread_context.values).to all(
+        not_skipped = per_thread_context.values.reject { |ctx| ctx.fetch(:was_skipped_at_last_sample) }
+        expect(not_skipped).to all(
           include(wall_time_at_previous_sample_ns: be_between(@wall_time_before_sample_ns, @wall_time_after_sample_ns))
         )
       end
 
       context "cpu time behavior" do
-        context "when not on Linux" do
-          before do
-            skip "The fallback behavior only applies when not on Linux" if PlatformHelpers.linux?
-          end
-
-          it "sets the cpu_time_at_previous_sample_ns to zero" do
-            expect(per_thread_context.values).to all(
-              include(cpu_time_at_previous_sample_ns: 0)
-            )
-          end
-
-          it "marks the thread_cpu_time_ids as not valid" do
-            expect(per_thread_context.values).to all(
-              include(thread_cpu_time_id_valid?: false)
-            )
-          end
+        it "sets the cpu_time_at_previous_sample_ns to the current cpu clock value" do
+          # It's somewhat difficult to validate the actual value since this is an operating system-specific value
+          # which should only be assessed in relation to other values for the same thread, not in absolute
+          expect(per_thread_context.values).to all(
+            include(cpu_time_at_previous_sample_ns: not_be(0))
+          )
         end
 
-        context "on Linux" do
-          before do
-            skip "Test only runs on Linux" unless PlatformHelpers.linux?
+        it "returns a bigger value for each sample" do
+          sample_values = []
+
+          3.times do
+            sample
+
+            sample_values <<
+              per_thread_context[Thread.main].fetch(:cpu_time_at_previous_sample_ns)
           end
 
-          it "sets the cpu_time_at_previous_sample_ns to the current cpu clock value" do
-            # It's somewhat difficult to validate the actual value since this is an operating system-specific value
-            # which should only be assessed in relation to other values for the same thread, not in absolute
-            expect(per_thread_context.values).to all(
-              include(cpu_time_at_previous_sample_ns: not_be(0))
-            )
-          end
+          expect(sample_values.uniq.size).to be(3), "Every sample is expected to have a differ cpu time value"
+          expect(sample_values).to eq(sample_values.sort), "Samples are expected to be in ascending order"
+        end
 
-          it "returns a bigger value for each sample" do
-            sample_values = []
-
-            3.times do
-              sample
-
-              sample_values <<
-                per_thread_context[Thread.main].fetch(:cpu_time_at_previous_sample_ns)
-            end
-
-            expect(sample_values.uniq.size).to be(3), "Every sample is expected to have a differ cpu time value"
-            expect(sample_values).to eq(sample_values.sort), "Samples are expected to be in ascending order"
-          end
-
-          it "marks the thread_cpu_time_ids as valid" do
-            expect(per_thread_context.values).to all(
-              include(thread_cpu_time_id_valid?: true)
-            )
-          end
+        it "marks the thread_cpu_time_ids as valid" do
+          expect(per_thread_context.values).to all(
+            include(thread_cpu_time_id_valid?: true)
+          )
         end
       end
 
@@ -2237,11 +2209,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           sample
 
-          native_thread.kill
-          native_thread.join
-
           invoke_location = per_thread_context.fetch(native_thread).fetch(:thread_invoke_location)
           expect(invoke_location).to eq "(Unnamed thread from native code)"
+
+          native_thread.kill
+          native_thread.join
         end
 
         context "when the `logging` gem has monkey patched thread creation" do
@@ -2276,22 +2248,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
 
       describe ":gvl_waiting_at" do
-        context "on supported Rubies" do
-          before { skip_if_gvl_profiling_not_supported(self) }
-
-          it "is initialized to GVL_WAITING_ENABLED_EMPTY (INTPTR_MAX)" do
-            expect(per_thread_context.values).to all(
-              include(gvl_waiting_at: gvl_waiting_enabled_empty_magic_value)
-            )
-          end
-        end
-
-        context "on legacy Rubies" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.2." }
-
-          it "is not set" do
-            per_thread_context.each do |_thread, context|
-              expect(context.key?(:gvl_waiting_at)).to be false
+        it "is initialized to 0" do
+          per_thread_context.each do |thread, context|
+            if testing_threads_and_current.include?(thread)
+              expect(context[:gvl_waiting_at]).to eq 0
             end
           end
         end
@@ -2326,10 +2286,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       sample
     end
 
-    it "clears the per_thread_context" do
-      expect { reset_after_fork }.to change { per_thread_context.empty? }.from(false).to(true)
-    end
-
     it "clears the stats" do
       # Simulate a GC sample, so the gc_samples stat will go to 1
       on_gc_start
@@ -2343,6 +2299,81 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       expect(recorder).to receive(:reset_after_fork)
 
       reset_after_fork
+    end
+  end
+
+  describe "when a new collector is created with a smaller max_frames" do
+    let(:max_frames) { 5 }
+
+    it "caps the number of frames to the new max_frames" do
+      sample
+
+      main_sample = sample_for_thread(samples, Thread.current)
+      expect(main_sample.locations.size).to eq(max_frames)
+    end
+  end
+
+  describe "#thread_context_collector_reset_all_per_thread_contexts" do
+    before do
+      sample
+
+      [t1, Thread.current].each do |thread|
+        on_gvl_released(thread)
+        on_gvl_waiting(thread)
+
+        expect(per_thread_context.fetch(thread)).to include(
+          gvl_waiting_at: be > 0,
+          gvl_state_change_count: be > 0,
+        )
+      end
+    end
+
+    it "resets every existing per-thread context" do
+      global_reset_per_thread_context
+
+      [t1, Thread.current].each do |thread|
+        expect(per_thread_context.fetch(thread)).to include(
+          gvl_waiting_at: 0,
+          gvl_state_change_count: 0,
+        )
+      end
+    end
+
+    it "keeps the is_profiler_internal_thread flag value" do
+      expect(per_thread_context.fetch(t1)).to include(is_profiler_internal_thread: false)
+
+      described_class::Testing._native_mark_thread_as_profiler_internal(t1)
+
+      global_reset_per_thread_context
+
+      expect(per_thread_context.fetch(t1)).to include(
+        is_profiler_internal_thread: true,
+        gvl_waiting_at: 0,
+      )
+    end
+
+    # This asserts on everything by design -- this makes sure if we add or remove fields that we're happy with the
+    # reset semantics
+    it "resets the context to the starting state" do
+      before_reset = per_thread_context
+
+      global_reset_per_thread_context
+
+      expect(per_thread_context.fetch(t1)).to match(
+        cpu_time_at_previous_sample_ns: be > 0,
+        wall_time_at_previous_sample_ns: be > 0,
+        "gc_tracking.cpu_time_at_start_ns": invalid_time,
+        "gc_tracking.wall_time_at_start_ns": invalid_time,
+        gvl_waiting_at: 0,
+        is_profiler_internal_thread: false,
+        gvl_state_change_count: 0,
+        gvl_state_change_count_at_previous_sample: 0,
+        was_skipped_at_last_sample: false,
+        thread_id: include(t1.object_id.to_s),
+        thread_invoke_location: before_reset.fetch(t1).fetch(:thread_invoke_location),
+        thread_cpu_time_id_valid?: true,
+        thread_cpu_time_id: before_reset.fetch(t1).fetch(:thread_cpu_time_id),
+      )
     end
   end
 end

@@ -11,16 +11,21 @@
 // Used as scratch space during sampling
 typedef struct {
   uint16_t max_frames;
-  ddog_prof_Location *locations;
   frame_info *stack_buffer;
   bool pending_sample;
   bool is_marking; // Used to avoid recording a sample when marking
   int pending_sample_result;
 } sampling_buffer;
 
+typedef struct {
+  ddog_prof_Location *ptr;
+  uint16_t len;
+} sample_locations;
+
 void sample_thread(
   VALUE thread,
   sampling_buffer* buffer,
+  sample_locations locations,
   VALUE recorder_instance,
   sample_values values,
   sample_labels labels,
@@ -36,7 +41,7 @@ void record_placeholder_stack(
 bool prepare_sample_thread(VALUE thread, sampling_buffer *buffer);
 
 uint16_t sampling_buffer_check_max_frames(int max_frames);
-void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, ddog_prof_Location *locations);
+void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames);
 void sampling_buffer_free(sampling_buffer *buffer);
 void sampling_buffer_mark(sampling_buffer *buffer);
 static inline bool sampling_buffer_needs_marking(sampling_buffer *buffer) {

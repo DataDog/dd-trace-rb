@@ -1,20 +1,16 @@
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require_relative 'benchmarks_helper'
-require 'os'
+require_relative "benchmarks_helper"
+require "os"
 
 # This benchmark measures the performance of the main stack sampling loop of the profiler
 
 VARYING_DEPTH_DEFAULT = 2900
 
 class ProfilerSampleLoopBenchmark
-  # This is needed because we're directly invoking the collector through a testing interface; in normal
-  # use a profiler thread is automatically used.
-  PROFILER_OVERHEAD_STACK_THREAD = Thread.new { sleep }
-
   def create_profiler
     @recorder = Datadog::Profiling::StackRecorder.for_testing
   end
@@ -83,9 +79,9 @@ class ProfilerSampleLoopBenchmark
     if mode == :native
       unless Datadog::Profiling::Collectors::Stack._native_filenames_available?
         if OS.linux?
-          raise 'Native filenames are not available. This is not expected on Linux!'
+          raise "Native filenames are not available. This is not expected on Linux!"
         else
-          puts 'Skipping benchmarking native_frames, not supported outside of Linux'
+          puts "Skipping benchmarking native_frames, not supported outside of Linux"
           return
         end
       end
@@ -111,7 +107,7 @@ class ProfilerSampleLoopBenchmark
         end
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-#{mode}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-#{mode}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -134,7 +130,7 @@ class ProfilerSampleLoopBenchmark
         add_extra_frame_and_sample(collector) # This makes the stack change
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-varying-depth-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-varying-depth-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -144,7 +140,6 @@ class ProfilerSampleLoopBenchmark
   def sample(collector)
     Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(
       collector,
-      PROFILER_OVERHEAD_STACK_THREAD,
       false
     )
   end

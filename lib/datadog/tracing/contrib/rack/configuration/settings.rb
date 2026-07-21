@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/settings'
-require_relative '../ext'
+require_relative "../../configuration/settings"
+require_relative "../ext"
 
 module Datadog
   module Tracing
@@ -52,6 +52,12 @@ module Datadog
 
             option :service_name do |o|
               o.type :string, nilable: true
+            end
+
+            option :inferred_proxy_enabled do |o|
+              o.type :bool
+              o.env Ext::ENV_INFERRED_PROXY_ENABLED
+              o.default false
             end
 
             option :web_service_name, default: Ext::DEFAULT_PEER_WEBSERVER_SERVICE_NAME, type: :string

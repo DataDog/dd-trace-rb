@@ -19,10 +19,10 @@ jobs:
     outputs:
       changes: ${{ steps.changes.outputs.dependencies }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         id: changes
         with:
           filters: .github/dependency_filters.yml
@@ -54,72 +54,35 @@ jobs:
             version: "2.6"
           - name: ruby
             version: "2.5"
-          - name: jruby
-            version: "9.4"
-          - name: jruby
-            version: "9.3"
-          - name: jruby
-            version: "9.2"
     container:
       image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}-gnu-gcc
       env:
+        BUNDLE_GEMFILE: gemfiles/${{ matrix.engine.name }}-${{ matrix.engine.version }}.gemfile
         BUNDLE_WITHOUT: check
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - run: |
           ruby -v
           gem -v
           bundler -v
+      - run: bundle lock --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin
       - run: bundle install
-      - run: bundle exec rake dependency:generate
-      - run: bundle exec rake dependency:lock
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - run: bundle exec rake dependency:all
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: lock-dependency-${{ github.run_id }}-${{ matrix.engine.name }}-${{ matrix.engine.version }}
-          path: gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}*
+          path: |
+            gemfiles/${{ matrix.engine.name }}-${{ matrix.engine.version }}.gemfile.lock
+            gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}*
           retention-days: 1
-
-  commit:
-    name: Commit changes
-    needs: lock
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Generate GitHub App Token
-        id: generate-token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: true # required for `git` operations (commit & push) at later steps
-          token: ${{ steps.generate-token.outputs.token }}
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
-        with:
-          path: gemfiles
-          pattern: lock-dependency-${{ github.run_id }}-*
-          merge-multiple: true
-      # FIXME: The ghcommit-action does not pick up untracked/unstaged files
-      #        https://github.com/planetscale/ghcommit-action/issues/43
-      - name: Stage changes
-        run: git add gemfiles
-      - run: git diff --cached --color=always
-      - name: Commit changes
-        uses: planetscale/ghcommit-action@25309d8005ac7c3bcd61d3fe19b69e0fe47dbdde # v0.2.20
-        with:
-          repo: ${{ github.repository }}
-          branch: ${{ github.head_ref }}
-          file_pattern: "gemfiles/*"
-          commit_message: "[🤖] Lock Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-        env:
-          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
 
   complete:
     name: Lock Dependencies (complete)
     runs-on: ubuntu-24.04
     needs:
-      - commit
+      - lock
     steps:
       - run: echo "DONE!"

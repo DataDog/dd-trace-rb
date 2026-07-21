@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -12,11 +12,11 @@ module Datadog
 
           def format_command(operation, args)
             placeholder = "#{operation} BLOB (OMITTED)"
-            command = [operation, *args].join(' ').strip
+            command = [operation, *args].join(" ").strip
             command = Core::Utils.utf8_encode(command, binary: true, placeholder: placeholder)
             Core::Utils.truncate(command, Ext::QUANTIZE_MAX_CMD_LENGTH)
           rescue => e
-            Datadog.logger.debug("Error sanitizing Dalli operation: #{e}")
+            Datadog.logger.debug("Error sanitizing Dalli operation: #{e.class}: #{e.message}")
             placeholder
           end
         end

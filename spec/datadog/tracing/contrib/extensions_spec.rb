@@ -1,9 +1,9 @@
-require 'datadog/tracing/contrib/support/spec_helper'
+require "datadog/tracing/contrib/support/spec_helper"
 
-require 'datadog/tracing/contrib'
+require "datadog/tracing/contrib"
 
 RSpec.describe Datadog::Tracing::Contrib::Extensions do
-  shared_context 'registry with integration' do
+  shared_context "registry with integration" do
     let(:registry) { Datadog::Tracing::Contrib::Registry.new }
     let(:integration_name) { :example }
     let(:integration) { integration_class.new(integration_name) }
@@ -16,7 +16,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
 
     let(:configurable_module) do
       stub_const(
-        'Configurable',
+        "Configurable",
         Module.new do
           include Datadog::Tracing::Contrib::Configurable
         end
@@ -30,26 +30,26 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
     allow(Datadog.logger).to receive(:warn)
   end
 
-  context 'for' do
+  context "for" do
     describe Datadog do
-      describe '#configure' do
-        include_context 'registry with integration' do
-          before { stub_const('Datadog::Tracing::Contrib::REGISTRY', registry) }
+      describe "#configure" do
+        include_context "registry with integration" do
+          before { stub_const("Datadog::Tracing::Contrib::REGISTRY", registry) }
         end
 
-        context 'given a block' do
+        context "given a block" do
           subject(:configure) { described_class.configure(&block) }
 
-          context 'that calls #instrument for an integration' do
+          context "that calls #instrument for an integration" do
             let(:block) { proc { |c| c.tracing.instrument integration_name } }
 
-            it 'configures & patches the integration' do
+            it "configures & patches the integration" do
               expect(integration).to receive(:configure).with(:default, any_args)
               expect(integration).to receive(:patch).and_call_original
               configure
             end
 
-            it 'sends a telemetry integrations change event' do
+            it "sends a telemetry integrations change event" do
               expect_any_instance_of(Datadog::Core::Telemetry::Component).to receive(:integrations_change!)
               configure
             end
@@ -59,86 +59,86 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
     end
 
     describe Datadog::Core::Configuration::Settings do
-      include_context 'registry with integration'
+      include_context "registry with integration"
 
       subject(:settings) { described_class.new }
 
-      before { stub_const('Datadog::Tracing::Contrib::REGISTRY', registry) }
+      before { stub_const("Datadog::Tracing::Contrib::REGISTRY", registry) }
 
-      describe '.tracing' do
+      describe ".tracing" do
         subject(:settings) { described_class.new.tracing }
 
-        describe '#settings' do
-          describe '#peer_service_mapping' do
+        describe "#settings" do
+          describe "#peer_service_mapping" do
             subject { settings.contrib.peer_service_mapping }
 
-            context 'when given environment variable DD_TRACE_PEER_SERVICE_MAPPING' do
+            context "when given environment variable DD_TRACE_PEER_SERVICE_MAPPING" do
               around do |example|
                 ClimateControl.modify(
-                  'DD_TRACE_PEER_SERVICE_MAPPING' => env_var
+                  "DD_TRACE_PEER_SERVICE_MAPPING" => env_var
                 ) do
                   example.run
                 end
               end
 
-              context 'is not defined' do
+              context "is not defined" do
                 let(:env_var) { nil }
 
                 it { is_expected.to eq({}) }
               end
 
-              context 'is defined' do
-                let(:env_var) { 'key:value' }
+              context "is defined" do
+                let(:env_var) { "key:value" }
 
-                it { is_expected.to eq({'key' => 'value'}) }
+                it { is_expected.to eq({"key" => "value"}) }
               end
             end
           end
 
-          describe '#peer_service_defaults' do
+          describe "#peer_service_defaults" do
             subject { settings.contrib.peer_service_defaults }
 
-            context 'when given environment variable DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' do
+            context "when given environment variable DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED" do
               around do |example|
-                ClimateControl.modify('DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => env_var) do
+                ClimateControl.modify("DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED" => env_var) do
                   example.run
                 end
               end
 
-              context 'is not defined' do
+              context "is not defined" do
                 let(:env_var) { nil }
 
                 it { is_expected.to be false }
               end
 
-              context 'is defined' do
-                let(:env_var) { 'true' }
+              context "is defined" do
+                let(:env_var) { "true" }
 
                 it { is_expected.to be true }
               end
             end
           end
 
-          describe '#global_default_service_name_enabled' do
+          describe "#global_default_service_name_enabled" do
             subject { settings.contrib.global_default_service_name.enabled }
 
-            context 'when given environment variable DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED' do
+            context "when given environment variable DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED" do
               around do |example|
                 ClimateControl.modify(
-                  'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED' => env_var
+                  "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED" => env_var
                 ) do
                   example.run
                 end
               end
 
-              context 'is not defined' do
+              context "is not defined" do
                 let(:env_var) { nil }
 
                 it { is_expected.to be false }
               end
 
-              context 'is defined' do
-                let(:env_var) { 'true' }
+              context "is defined" do
+                let(:env_var) { "true" }
 
                 it { is_expected.to be true }
               end
@@ -146,11 +146,11 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
           end
         end
 
-        describe '#[]' do
+        describe "#[]" do
           subject(:get) { settings[integration_name] }
           let(:default_settings) { integration.default_configuration }
 
-          context 'when the integration doesn\'t exist' do
+          context "when the integration doesn't exist" do
             it do
               expect { settings[:foobar] }.to raise_error(
                 Datadog::Tracing::Contrib::Extensions::Configuration::Settings::InvalidIntegrationError
@@ -158,39 +158,39 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
             end
           end
 
-          context 'when integration exists' do
-            include_context 'registry with integration'
+          context "when integration exists" do
+            include_context "registry with integration"
 
-            context 'and is instrumented' do
+            context "and is instrumented" do
               let(:instrument_options) { {} }
 
               before { settings.send(:instrument, integration_name, instrument_options) }
 
-              context 'with a matching described configuration' do
-                let(:matcher) { double('matcher') }
+              context "with a matching described configuration" do
+                let(:matcher) { double("matcher") }
                 let(:instrument_options) { {describes: matcher} }
 
-                context 'using the same matcher' do
+                context "using the same matcher" do
                   subject(:get) { settings[integration_name, matcher] }
 
-                  it 'retrieves the described configuration' do
+                  it "retrieves the described configuration" do
                     is_expected.to_not be(default_settings)
                     is_expected.to be_a(Datadog::Tracing::Contrib::Configuration::Settings)
                   end
                 end
 
-                context 'using a different matcher' do
+                context "using a different matcher" do
                   subject(:get) { settings[integration_name, other_matcher] }
-                  let(:other_matcher) { double('other matcher') }
+                  let(:other_matcher) { double("other matcher") }
 
-                  it 'retrieves the default configuration' do
+                  it "retrieves the default configuration" do
                     is_expected.to be(default_settings)
                   end
                 end
               end
 
-              context 'with no matching described configuration' do
-                it 'retrieves the default configuration' do
+              context "with no matching described configuration" do
+                it "retrieves the default configuration" do
                   is_expected.to be(default_settings)
                 end
               end
@@ -198,13 +198,13 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
           end
         end
 
-        describe '#instrument' do
+        describe "#instrument" do
           subject(:result) { settings.send(:instrument, integration_name, options) }
 
           let(:options) { {} }
 
-          context 'for a generic integration' do
-            include_context 'registry with integration'
+          context "for a generic integration" do
+            include_context "registry with integration"
 
             before do
               expect(integration).to receive(:configure).with(:default, options).and_return([])
@@ -218,8 +218,8 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
             end
           end
 
-          context 'for an integration that includes Datadog::Tracing::Contrib::Integration' do
-            include_context 'registry with integration' do
+          context "for an integration that includes Datadog::Tracing::Contrib::Integration" do
+            include_context "registry with integration" do
               let(:integration) do
                 integration_class.new(integration_name)
               end
@@ -232,7 +232,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
                   include Datadog::Tracing::Contrib::Configurable
 
                   def self.version
-                    Gem::Version.new('0.1')
+                    Gem::Version.new("0.1")
                   end
 
                   def patcher
@@ -243,7 +243,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
 
               let(:patcher_module) do
                 stub_const(
-                  'Patcher',
+                  "Patcher",
                   Module.new do
                     include Datadog::Tracing::Contrib::Patcher
 
@@ -255,14 +255,14 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
               end
             end
 
-            context 'which is provided only a name' do
+            context "which is provided only a name" do
               it do
                 expect(integration).to receive(:configure).with(:default, {})
                 settings.send(:instrument, integration_name)
               end
             end
 
-            context 'which is provided a block' do
+            context "which is provided a block" do
               it do
                 expect(integration).to receive(:configure).with(:default, {}).and_call_original
                 expect { |b| settings.send(:instrument, integration_name, options, &b) }.to yield_with_args(
@@ -273,10 +273,35 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
           end
         end
 
-        describe '#instrumented_integrations' do
+        describe "#instrumented_integrations" do
           subject(:instrumented_integrations) { settings.instrumented_integrations }
 
           it { is_expected.to be_frozen }
+        end
+
+        describe "#instrumented_built_in_integrations" do
+          subject(:instrumented_built_in_integrations) { settings.instrumented_built_in_integrations }
+
+          include_context "registry with integration"
+
+          let(:alias_name) { :example_alias }
+          let(:custom_integration_name) { :custom }
+          let(:custom_integration) { integration_class.new(custom_integration_name) }
+
+          before do
+            stub_const("Datadog::Tracing::Contrib::BUILT_IN_INTEGRATIONS", [integration])
+            registry.add(alias_name, integration)
+            registry.add(custom_integration_name, custom_integration)
+
+            settings.send(:instrument, integration_name)
+            settings.send(:instrument, alias_name)
+            settings.send(:instrument, custom_integration_name)
+          end
+
+          it "returns instrumented built-in integrations only once" do
+            expect(instrumented_built_in_integrations).to contain_exactly(integration)
+            expect(instrumented_built_in_integrations).to be_frozen
+          end
         end
       end
     end

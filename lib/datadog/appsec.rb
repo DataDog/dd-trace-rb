@@ -1,35 +1,31 @@
 # frozen_string_literal: true
 
-require_relative 'appsec/configuration'
-require_relative 'appsec/extensions'
-require_relative 'appsec/context'
-require_relative 'appsec/ext'
-require_relative 'appsec/utils'
+require_relative "appsec/configuration"
+require_relative "appsec/extensions"
+require_relative "appsec/context"
+require_relative "appsec/ext"
+require_relative "appsec/utils"
 
 module Datadog
   # Namespace for Datadog AppSec instrumentation
   module AppSec
     class << self
       def enabled?
-        Datadog.configuration.appsec.enabled
+        !!components.appsec
       end
 
       def rasp_enabled?
-        Datadog.configuration.appsec.rasp_enabled
+        # TODO this should take rasp_enabled flag from the settings in
+        # the appsec component rather than reading global configuration.
+        enabled? && Datadog.configuration.appsec.rasp_enabled
       end
 
       def active_context
         Datadog::AppSec::Context.active
       end
 
-      # NOTE:  This is a temporary workaround for type checking.
-      #
-      #        We want to move from possible nil-component to the disabled-component
-      #        on an initialization error. Technically, telemetry will be never
-      #        used if AppSec was not able to initialize, so it's safe to assume
-      #        that telemetry will never be used and will be nil at the same time.
       def telemetry
-        components.appsec&.telemetry || components.telemetry
+        components.telemetry
       end
 
       def security_engine
@@ -58,14 +54,15 @@ module Datadog
 end
 
 # Integrations
-require_relative 'appsec/contrib/rack/integration'
-require_relative 'appsec/contrib/sinatra/integration'
-require_relative 'appsec/contrib/rails/integration'
-require_relative 'appsec/contrib/active_record/integration'
-require_relative 'appsec/contrib/devise/integration'
-require_relative 'appsec/contrib/graphql/integration'
-require_relative 'appsec/contrib/faraday/integration'
-require_relative 'appsec/contrib/excon/integration'
-require_relative 'appsec/contrib/rest_client/integration'
+require_relative "appsec/contrib/rack/integration"
+require_relative "appsec/contrib/sinatra/integration"
+require_relative "appsec/contrib/rails/integration"
+require_relative "appsec/contrib/active_record/integration"
+require_relative "appsec/contrib/devise/integration"
+require_relative "appsec/contrib/graphql/integration"
+require_relative "appsec/contrib/faraday/integration"
+require_relative "appsec/contrib/excon/integration"
+require_relative "appsec/contrib/rest_client/integration"
+require_relative "appsec/contrib/aws_lambda/integration"
 
-require_relative 'appsec/autoload'
+require_relative "appsec/autoload"

@@ -3,20 +3,30 @@ module Datadog
     module Remote
       PRODUCT: "LIVE_DEBUGGING"
 
-      def self.products: () -> ::Array[untyped]
+      CAPABILITIES: ::Array[Integer]
 
-      def self.capabilities: () -> ::Array[untyped]
+      def self.products: () -> ::Array[String]
 
-      def self.receivers: (untyped telemetry) -> untyped
+      def self.capabilities: () -> ::Array[Integer]
 
-      def self.receiver: (?::Array[untyped] products) { (?) -> untyped } -> ::Array[untyped]
+      def self.handle_rc_enablement: (bool enabled, ?Core::Remote::Configuration::Repository? repository) -> void
+
+      def self.explicitly_disabled?: (?Datadog::Core::Configuration::Settings settings) -> bool
+
+      def self.receivers: (Core::Telemetry::Component? telemetry) -> ::Array[Core::Remote::Dispatcher::Receiver]
+
+      def self.receiver: (?::Array[String] products) { (Core::Remote::Configuration::Repository, ::Array[Core::Remote::Configuration::Repository::change]) -> void } -> ::Array[Core::Remote::Dispatcher::Receiver]
 
       private
 
-      def self.parse_content: (untyped content) -> untyped
-      
-      def self.add_probe: (untyped content, untyped component) -> void
-      def self.remove_probe: (untyped previous_content, untyped component) -> void
+      def self.parse_content: (untyped content) -> Hash[String, untyped]
+
+      def self.replay_current_probes: (Core::Remote::Configuration::Repository repository, Component component) -> void
+      def self.probe_known?: (untyped probe_id, Component component) -> bool
+      def self.probe_in_content_known?: (untyped content, Component component) -> bool
+
+      def self.add_probe: (untyped content, Component component) -> void
+      def self.remove_probe: (untyped previous_content, Component component) -> void
     end
   end
 end

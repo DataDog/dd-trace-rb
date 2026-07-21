@@ -1,0 +1,25 @@
+module Datadog
+  module AIGuard
+    module Contrib
+      module Rails
+        module Patcher
+          BEFORE_INITIALIZE_ONLY_ONCE_PER_APP: untyped
+
+          def self?.patched?: () -> bool
+
+          def self?.target_version: () -> ::Gem::Version?
+
+          def self?.patch: () -> void
+
+          def self?.patch_before_initialize: () -> untyped
+
+          def self?.before_initialize: (untyped app) -> void
+
+          def self?.add_middleware: (untyped app) -> untyped
+
+          def self?.include_middleware?: (untyped middleware, untyped app) -> bool
+        end
+      end
+    end
+  end
+end

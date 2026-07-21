@@ -69,20 +69,32 @@ $stderr.puts(
 # NOTE: we MUST NOT require 'mkmf' before we check the #skip_building_extension? because the require triggers checks
 # that may fail on an environment not properly setup for building Ruby extensions.
 require "mkmf"
+Datadog::LibdatadogExtconfHelpers.dump_mkmf_log_on_failure!
 
 Logging.message("[datadog] Using compiler:\n")
 xsystem("#{CONFIG["CC"]} -v")
 Logging.message("[datadog] End of compiler information\n")
 
+# We must *never* `append_cflags "-Wall"` or `append_cflags "-Wextra"`, because those add the flag at the end,
+# which then overrides earlier -Wno-* flags from RbConfig::CONFIG["warnflags"], and causes errors if -Werror is added.
+# There is no need to add them anyway, Ruby since 1.9 has RbConfig::CONFIG["warnflags"] starting with "-Wall -Wextra ".
+
 # Because we can't control what compiler versions our customers use, shipping with -Werror by default is a no-go.
 # But we can enable it in CI, so that we quickly spot any new warnings that just got introduced.
 append_cflags "-Werror" if ENV["DATADOG_GEM_CI"] == "true"
+
+# TEMPORARY STOPGAP: libdatadog v36's vendored `common.h` ships duplicate typedefs
+# (a header-dedup regression), which `-Werror` turns into fatal
+# `-Wtypedef-redefinition` errors under C11/gnu11. Keep it a warning until a fixed
+# header lands upstream in libdatadog/libdatadog-rb. Remove this once that ships.
+append_cflags "-Wno-error=typedef-redefinition" if ENV["DATADOG_GEM_CI"] == "true"
 
 # Older gcc releases may not default to C99 and we need to ask for this. This is also used:
 # * by upstream Ruby -- search for gnu99 in the codebase
 # * by msgpack, another datadog gem dependency
 #   (https://github.com/msgpack/msgpack-ruby/blob/18ce08f6d612fe973843c366ac9a0b74c4e50599/ext/msgpack/extconf.rb#L8)
-append_cflags "-std=gnu99"
+# @ivoanjo: We could probably start using C11/gnu11 for non macOS-too but it's somewhat hard to validate so I chickened out for now
+append_cflags RUBY_PLATFORM.include?("darwin") ? "-std=gnu11" : "-std=gnu99"
 
 # Gets really noisy when we include the MJIT header, let's omit it (TODO: Use #pragma GCC diagnostic instead?)
 append_cflags "-Wno-unused-function"
@@ -105,10 +117,6 @@ append_cflags "-fvisibility=hidden"
 # Avoid legacy C definitions
 append_cflags "-Wold-style-definition"
 
-# Enable all other compiler warnings
-append_cflags "-Wall"
-append_cflags "-Wextra"
-
 if ENV["DDTRACE_DEBUG"] == "true"
   $defs << "-DDD_DEBUG"
   CONFIG["optflags"] = "-O0"
@@ -124,9 +132,9 @@ if RUBY_PLATFORM.include?("linux")
   # but it's slower to build
   # so instead we just assume that we have the function we need on Linux, and nowhere else
   $defs << "-DHAVE_PTHREAD_GETCPUCLOCKID"
-
-  # Not available on macOS
-  $defs << "-DHAVE_CLOCK_MONOTONIC_COARSE"
+elsif RUBY_PLATFORM.include?("darwin")
+  # On macOS, we use Mach thread APIs to get per-thread CPU time
+  $defs << "-DHAVE_MACH_THREAD_INFO"
 end
 
 have_func "malloc_stats"
@@ -149,6 +157,11 @@ $defs << "-DNO_IMEMO_OBJECT_ID" unless RUBY_VERSION < "4"
 # (see https://bugs.ruby-lang.org/issues/21710)
 $defs << "-DUSE_DEFERRED_HEAP_ALLOCATION_RECORDING" unless RUBY_VERSION < "4"
 
+# On Ruby 4.0, we've seen crashes when computing the memsize of a class/module/iclass:
+# rb_obj_memsize_of walks the per-namespace class extensions (classext_memsize), which seem to sometimes be in an inconsistent state
+# (see https://github.com/DataDog/dd-trace-rb/issues/5936)
+$defs << "-DNO_SAFE_CLASS_MEMSIZE" unless RUBY_VERSION < "4"
+
 # This symbol is exclusively visible on certain Ruby versions: 2.6 to 3.2, as well as 3.4 (but not 4.0+)
 # It's only used to get extra information about an object when a failure happens, so it's a "very nice to have" but not
 # actually required for correct behavior of the profiler.
@@ -169,8 +182,8 @@ $defs << "-DUSE_RACTOR_INTERNAL_APIS_DIRECTLY" if RUBY_VERSION < "3.3"
 # On older Rubies, there was no GVL instrumentation API and APIs created to support it
 $defs << "-DNO_GVL_INSTRUMENTATION" if RUBY_VERSION < "3.2"
 
-# Supporting GVL instrumentation on 3.2 needs some workarounds
-$defs << "-DUSE_GVL_PROFILING_3_2_WORKAROUNDS" if RUBY_VERSION.start_with?("3.2")
+# rb_internal_thread_specific_*()
+$defs << "-DHAVE_RUBY_THREAD_STORAGE_API" if RUBY_VERSION >= "3.3"
 
 # On older Rubies, there was no struct rb_native_thread. See private_vm_api_acccess.c for details.
 $defs << "-DNO_RB_NATIVE_THREAD" if RUBY_VERSION < "3.2"
@@ -210,36 +223,17 @@ $defs << "-DNO_GVL_OWNER" if RUBY_VERSION < "2.6"
 $defs << "-DNO_THREAD_INVOKE_ARG" if RUBY_VERSION < "2.6"
 
 # If we got here, libdatadog is available and loaded
-ENV["PKG_CONFIG_PATH"] = "#{ENV["PKG_CONFIG_PATH"]}:#{Libdatadog.pkgconfig_folder}"
-Logging.message("[datadog] PKG_CONFIG_PATH set to #{ENV["PKG_CONFIG_PATH"].inspect}\n")
 $stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
 
-unless pkg_config("datadog_profiling_with_rpath")
-  Logging.message("[datadog] Ruby detected the pkg-config command is #{$PKGCONFIG.inspect}\n")
-
-  skip_building_extension!(
-    if Datadog::LibdatadogExtconfHelpers.pkg_config_missing?
-      Datadog::Profiling::NativeExtensionHelpers::Supported::PKG_CONFIG_IS_MISSING
-    else
-      # Less specific error message
-      Datadog::Profiling::NativeExtensionHelpers::Supported::FAILED_TO_CONFIGURE_LIBDATADOG
-    end
-  )
+unless Datadog::LibdatadogExtconfHelpers.configure_libdatadog(extconf_folder: __dir__)
+  skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::FAILED_TO_CONFIGURE_LIBDATADOG)
 end
+
+Datadog::LibdatadogExtconfHelpers.add_libdatadog_version_define
 
 unless have_type("atomic_int", ["stdatomic.h"])
   skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::COMPILER_ATOMIC_MISSING)
 end
-
-# See comments on the helper methods being used for why we need to additionally set this.
-# The extremely excessive escaping around ORIGIN below seems to be correct and was determined after a lot of
-# experimentation. We need to get these special characters across a lot of tools untouched...
-extra_relative_rpaths = [
-  Datadog::LibdatadogExtconfHelpers.libdatadog_folder_relative_to_native_lib_folder(current_folder: __dir__),
-  *Datadog::LibdatadogExtconfHelpers.libdatadog_folder_relative_to_ruby_extensions_folders,
-]
-extra_relative_rpaths.each { |folder| $LDFLAGS += " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder.to_str}" }
-Logging.message("[datadog] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that

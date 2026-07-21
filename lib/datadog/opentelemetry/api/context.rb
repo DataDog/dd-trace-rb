@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'trace/span'
-require_relative '../../tracing/trace_operation'
-require_relative '../trace'
+require_relative "trace/span"
+require_relative "../../tracing/trace_operation"
+require_relative "../trace"
 
 module Datadog
   module OpenTelemetry
@@ -143,7 +143,7 @@ module Datadog
             unless calls_matched
               ::OpenTelemetry.handle_error(
                 exception: ::OpenTelemetry::Context::DetachError.new(
-                  'calls to detach should match corresponding calls to attach.'
+                  "calls to detach should match corresponding calls to attach."
                 )
               )
             end

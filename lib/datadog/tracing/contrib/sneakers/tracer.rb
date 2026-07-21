@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
 
 module Datadog
   module Tracing
@@ -22,6 +22,7 @@ module Datadog
             }
 
             Tracing.trace(Ext::SPAN_JOB, **trace_options) do |request_span|
+              request_span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               request_span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_MESSAGING_SYSTEM)
 
               request_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -35,7 +36,7 @@ module Datadog
               # Measure service stats
               Contrib::Analytics.set_measured(request_span)
 
-              request_span.resource = @app.to_proc.binding.eval('self.class').to_s
+              request_span.resource = @app.to_proc.binding.eval("self.class").to_s
               request_span.set_tag(Ext::TAG_JOB_ROUTING_KEY, delivery_info.routing_key)
               request_span.set_tag(Ext::TAG_RABBITMQ_ROUTING_KEY, delivery_info.routing_key)
               request_span.set_tag(Ext::TAG_JOB_QUEUE, delivery_info.consumer.queue.name)

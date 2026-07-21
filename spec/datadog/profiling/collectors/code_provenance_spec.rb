@@ -5,7 +5,7 @@ require "yaml"
 require "datadog/profiling/spec_helper"
 
 RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
   subject(:code_provenance) { described_class.new(ruby_native_filename: ruby_native_filename) }
 
@@ -131,24 +131,24 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
     context "#bundler_bin_path" do
       let(:bundler_bin_path) { code_provenance.send(:bundler_bin_path) }
 
-      it 'matches Bundler.bin_path' do
+      it "matches Bundler.bin_path" do
         expect(bundler_bin_path).to eq(Bundler.bin_path.to_s)
       end
 
-      context 'when an exception gets raised' do
+      context "when an exception gets raised" do
         before do
           code_provenance # Trigger initialization
 
           allow(Bundler).to receive(:root).and_raise(Exception.new("test exception"))
         end
 
-        it 'logs a debug message' do
+        it "logs a debug message" do
           expect(Datadog.logger).to receive(:debug).with(/CodeProvenance#bundler_bin_path failed/)
 
           bundler_bin_path
         end
 
-        it 'returns nil' do
+        it "returns nil" do
           allow(Datadog.logger).to receive(:debug)
 
           expect(bundler_bin_path).to be_nil

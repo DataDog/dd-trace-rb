@@ -1,11 +1,15 @@
 # frozen_string_literal: true
 
-require_relative '../core/feature_flags'
+require_relative "../core/feature_flags"
+require_relative "ext"
+require_relative "resolution_details"
 
 module Datadog
   module OpenFeature
     # This class is an interface of evaluation logic using native extension
     class NativeEvaluator
+      INVALID_FLAG_CONFIGURATION_ERROR_MESSAGE = "flag configuration is invalid or unsupported"
+
       # NOTE: In a currect implementation configuration is expected to be a raw
       #       JSON string containing feature flags (straight from the remote config)
       #       in the format expected by `libdatadog` without any modifications
@@ -27,11 +31,29 @@ module Datadog
       def get_assignment(flag_key, default_value:, expected_type:, context:)
         result = @configuration.get_assignment(flag_key, expected_type, context)
 
+        return invalid_flag_configuration_error(default_value) if invalid_flag_configuration?(result)
+
         # NOTE: This is a special case when we need to fallback to the default
         #       value, even tho the evaluation itself doesn't produce an error
         #       resolution details
         result.value = default_value if result.variant.nil?
         result
+      end
+
+      private
+
+      def invalid_flag_configuration?(result)
+        result.reason == Ext::DEFAULT &&
+          result.error_code.nil? &&
+          result.error_message == INVALID_FLAG_CONFIGURATION_ERROR_MESSAGE
+      end
+
+      def invalid_flag_configuration_error(default_value)
+        ResolutionDetails.build_error(
+          value: default_value,
+          error_code: Ext::PARSE_ERROR,
+          error_message: INVALID_FLAG_CONFIGURATION_ERROR_MESSAGE
+        )
       end
     end
   end

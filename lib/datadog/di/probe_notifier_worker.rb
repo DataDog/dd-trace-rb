@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../core/semaphore'
+require_relative "../core/semaphore"
+require_relative "fatal_exceptions"
 
 module Datadog
   module DI
@@ -23,7 +24,12 @@ module Datadog
     #
     # @api private
     class ProbeNotifierWorker
-      def initialize(settings, logger, agent_settings:, telemetry: nil)
+      # @param probe_repository [ProbeRepository] Repository for looking up probes.
+      #   Used for handling serialization errors (disabling affected probes).
+      # @param probe_notification_builder [ProbeNotificationBuilder] Builder for
+      #   creating status notifications. Used for reporting ERROR status.
+      def initialize(settings, logger, agent_settings:,
+        probe_repository:, probe_notification_builder:, telemetry: nil)
         @settings = settings
         @telemetry = telemetry
         @status_queue = []
@@ -38,15 +44,26 @@ module Datadog
         @thread = nil
         @pid = nil
         @flush = 0
+        @probe_repository = probe_repository
+        @probe_notification_builder = probe_notification_builder
       end
 
       attr_reader :settings
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :agent_settings
+      attr_reader :probe_repository
+      attr_reader :probe_notification_builder
 
+      # Starts the background worker thread.
+      #
+      # The thread batches and sends probe statuses and snapshots to the agent.
+      # If the process forks, the thread is automatically restarted in the child.
+      #
+      # @return [void]
       def start
         return if @thread && @pid == Process.pid
+        @stop_requested = false
         logger.trace { "di: starting probe notifier: pid #{$$}" }
         @thread = Thread.new do
           loop do
@@ -77,10 +94,11 @@ module Datadog
 
             begin
               more = maybe_send
-            rescue => exc
+            rescue Exception => exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(exc)
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-              logger.debug { "di: error in probe notifier worker: #{exc.class}: #{exc} (at #{exc.backtrace.first})" }
+              logger.debug { "di: error in probe notifier worker: #{exc.class}: #{exc.message} (at #{exc.backtrace&.first})" }
               telemetry&.report(exc, description: "Error in probe notifier worker")
             end
             @lock.synchronize do
@@ -182,21 +200,54 @@ module Datadog
         @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger, telemetry: telemetry)
       end
 
+      # Sends a batch of snapshot payloads to the agent.
+      #
+      # The transport serializes each snapshot individually and reports
+      # serialization failures via callback. This allows healthy probes
+      # to continue working even when one probe produces un-serializable data.
+      #
+      # @param batch [Array<Hash>] Array of snapshot payload hashes
       def do_send_snapshot(batch)
-        snapshot_transport.send_input(batch, tags)
+        snapshot_transport.send_input(batch, tags, on_serialization_error: method(:handle_serialization_error))
+      end
+
+      # Handles serialization errors reported by the transport.
+      #
+      # Disables the affected probe and sends ERROR status to the backend.
+      # Called by transport when a snapshot fails to serialize.
+      #
+      # @param probe_id [String] ID of the probe that produced bad data
+      # @param exception [Exception] The serialization exception
+      def handle_serialization_error(probe_id, exception)
+        # Only installed probes produce snapshots, so a serialization
+        # error can only come from an installed probe.
+        probe = probe_repository.find_installed(probe_id)
+        return unless probe
+
+        logger.debug { "di: disabling probe #{probe_id} due to serialization error: #{exception.class}: #{exception}" }
+
+        probe.disable!
+
+        payload = probe_notification_builder.build_status(
+          probe,
+          message: "Probe #{probe.id} disabled: snapshot JSON encoding failed (#{exception.class}: #{exception})",
+          status: "ERROR",
+          exception: exception,
+        )
+        add_status(payload, probe: probe)
       end
 
       def tags
         # DEV: The tags could be cached but they need to be recreated
         # when process forks (since the child receives new runtime IDs).
         Core::TagBuilder.tags(settings).merge(
-          'debugger_version' => Core::Environment::Identity.gem_datadog_version,
+          "debugger_version" => Core::Environment::Identity.gem_datadog_version,
         )
       end
 
       [
-        [:status, 'probe status'],
-        [:snapshot, 'snapshot'],
+        [:status, "probe status"],
+        [:snapshot, "snapshot"],
       ].each do |(event_type, event_name)|
         attr_reader "#{event_type}_queue"
 
@@ -209,40 +260,56 @@ module Datadog
         # if it has been more than 1 second since the last send of the same
         # event type.
         define_method("add_#{event_type}") do |event, probe: nil|
-          @lock.synchronize do
-            queue = send("#{event_type}_queue")
-            if queue.length > settings.dynamic_instrumentation.internal.snapshot_queue_capacity
-              if event_type == :status && probe
-                status = event.dig(:debugger, :diagnostics, :status)
-                logger.debug { "di: dropping status for #{probe.type} probe at #{probe.location} (#{probe.id}): #{status} because queue is full" }
+          # Enqueueing reads DI configuration and writes debug/trace logs, both
+          # of which can call stdlib methods (e.g. Set#include? via the
+          # configuration layer's supported-configuration lookup). If a customer
+          # has a method probe on such a method, firing it here would re-enter
+          # the worker through probe_executed_callback and deadlock on @lock
+          # (recursive locking). Hold the re-entrancy guard for the duration so
+          # those DI-internal calls reach the original method without firing the
+          # probe. Restore the prior state afterwards so a caller that already
+          # holds the guard (e.g. run_method_probe post-processing calling
+          # add_snapshot) is not cleared early.
+          was_in_probe = Datadog::DI.in_probe?
+          Datadog::DI.enter_probe unless was_in_probe
+          begin
+            @lock.synchronize do
+              queue = send("#{event_type}_queue")
+              if queue.length > settings.dynamic_instrumentation.internal.snapshot_queue_capacity
+                if event_type == :status && probe
+                  status = event.dig(:debugger, :diagnostics, :status)
+                  logger.debug { "di: dropping status for #{probe.type} probe at #{probe.location} (#{probe.id}): #{status} because queue is full" }
+                else
+                  logger.debug { "di: #{self.class.name}: dropping #{event_type} event because queue is full" }
+                end
               else
-                logger.debug { "di: #{self.class.name}: dropping #{event_type} event because queue is full" }
+                if event_type == :status && probe
+                  status = event.dig(:debugger, :diagnostics, :status)
+                  logger.trace { "di: queueing status for #{probe.type} probe at #{probe.location} (#{probe.id}): #{status}" }
+                else
+                  logger.trace { "di: #{self.class.name}: queueing #{event_type} event" }
+                end
+                queue << event
               end
-            else
-              if event_type == :status && probe
-                status = event.dig(:debugger, :diagnostics, :status)
-                logger.trace { "di: queueing status for #{probe.type} probe at #{probe.location} (#{probe.id}): #{status}" }
-              else
-                logger.trace { "di: #{self.class.name}: queueing #{event_type} event" }
+            end
+
+            # Figure out whether to wake up the worker thread.
+            # If minimum send interval has elapsed since the last send,
+            # wake up immediately.
+            @lock.synchronize do
+              unless @wake_scheduled
+                @wake_scheduled = true
+                set_sleep_remaining
+                wake.signal
               end
-              queue << event
             end
-          end
 
-          # Figure out whether to wake up the worker thread.
-          # If minimum send interval has elapsed since the last send,
-          # wake up immediately.
-          @lock.synchronize do
-            unless @wake_scheduled
-              @wake_scheduled = true
-              set_sleep_remaining
-              wake.signal
-            end
+            # Worker could be not running if the process forked - check and
+            # start it again in this case.
+            start
+          ensure
+            Datadog::DI.leave_probe unless was_in_probe
           end
-
-          # Worker could be not running if the process forked - check and
-          # start it again in this case.
-          start
         end
 
         public "add_#{event_type}"
@@ -270,9 +337,10 @@ module Datadog
               @lock.synchronize do
                 @last_sent = time
               end
-            rescue => exc
+            rescue Exception => exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(exc)
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-              logger.debug { "di: failed to send #{event_name}: #{exc.class}: #{exc} (at #{exc.backtrace.first})" }
+              logger.debug { "di: failed to send #{event_name}: #{exc.class}: #{exc.message} (at #{exc.backtrace&.first})" }
               telemetry&.report(exc, description: "Error sending #{event_type}")
             end
           end

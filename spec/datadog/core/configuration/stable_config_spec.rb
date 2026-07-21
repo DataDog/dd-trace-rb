@@ -5,30 +5,32 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
     Datadog::Core::Configuration::StableConfig.instance_variable_set(:@configuration, nil)
   end
 
-  describe '#extract_configuration' do
-    context 'when libdatadog API is not available' do
-      it 'returns an empty hash' do
-        stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', 'test')
-        expect(Datadog.config_init_logger).to receive(:debug).with('Cannot enable stable config: test')
+  describe "#extract_configuration" do
+    context "when libdatadog API is not available" do
+      it "returns an empty hash" do
+        stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", "test")
+        expect(Datadog.config_init_logger).to receive(:debug).with("Cannot enable stable config: test")
         expect(described_class.extract_configuration).to eq({})
       end
     end
   end
 
-  describe '#configuration', skip: !LibdatadogHelpers.supported? do
+  describe "#configuration" do
     let(:tmpdir) { Dir.mktmpdir }
     before do
+      skip_if_libdatadog_not_supported
+
       Datadog::Core::Configuration::StableConfig.instance_variable_set(:@configuration, nil)
 
       if defined?(local_config_content)
         File.write(
-          File.join(tmpdir, 'local_config.yaml'),
+          File.join(tmpdir, "local_config.yaml"),
           local_config_content
         )
       end
       if defined?(fleet_config_content)
         File.write(
-          File.join(tmpdir, 'fleet_config.yaml'),
+          File.join(tmpdir, "fleet_config.yaml"),
           fleet_config_content
         )
       end
@@ -37,13 +39,13 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
       if defined?(local_config_content)
         Datadog::Core::Configuration::StableConfig::Testing.with_local_path(
           test_configurator,
-          File.join(tmpdir, 'local_config.yaml')
+          File.join(tmpdir, "local_config.yaml")
         )
       end
       if defined?(fleet_config_content)
         Datadog::Core::Configuration::StableConfig::Testing.with_fleet_path(
           test_configurator,
-          File.join(tmpdir, 'fleet_config.yaml')
+          File.join(tmpdir, "fleet_config.yaml")
         )
       end
 
@@ -58,8 +60,8 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
       Datadog::Core::Configuration::StableConfig.instance_variable_set(:@configuration, nil)
     end
 
-    context 'when libdatadog API is available' do
-      context 'with config_id' do
+    context "when libdatadog API is available" do
+      context "with config_id" do
         let(:local_config_content) do
           <<~YAML
             config_id: 12345
@@ -76,7 +78,7 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
           YAML
         end
 
-        it 'returns the configuration' do
+        it "returns the configuration" do
           expect(described_class.configuration).to include(
             {
               local: {id: "12345", config: {"DD_LOGS_INJECTION" => "false"}},
@@ -86,7 +88,7 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
           )
         end
 
-        it 'sets Datadog.configuration accordingly' do
+        it "sets Datadog.configuration accordingly" do
           expect(Datadog.configuration.tracing.log_injection).to be false
           expect(Datadog.configuration.tracing.send(:resolve_option, :log_injection).precedence_set).to eq(Datadog::Core::Configuration::Option::Precedence::LOCAL_STABLE)
           expect(Datadog.configuration.appsec.enabled).to be true
@@ -94,7 +96,7 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
         end
       end
 
-      context 'without config_id' do
+      context "without config_id" do
         let(:local_config_content) do
           <<~YAML
             apm_configuration_default:
@@ -109,7 +111,7 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
           YAML
         end
 
-        it 'returns the configuration' do
+        it "returns the configuration" do
           expect(described_class.configuration).to include(
             {
               local: {config: {"DD_LOGS_INJECTION" => "false"}},
@@ -119,7 +121,7 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
           )
         end
 
-        it 'sets Datadog.configuration accordingly' do
+        it "sets Datadog.configuration accordingly" do
           expect(Datadog.configuration.tracing.log_injection).to be false
           expect(Datadog.configuration.tracing.send(:resolve_option, :log_injection).precedence_set).to eq(Datadog::Core::Configuration::Option::Precedence::LOCAL_STABLE)
           expect(Datadog.configuration.appsec.enabled).to be true
@@ -127,7 +129,7 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
         end
       end
 
-      context 'with local and fleet config setting the same option' do
+      context "with local and fleet config setting the same option" do
         let(:local_config_content) do
           <<~YAML
             apm_configuration_default:
@@ -142,7 +144,7 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
           YAML
         end
 
-        it 'sets Datadog.configuration accordingly' do
+        it "sets Datadog.configuration accordingly" do
           expect(Datadog.configuration.tracing.sampling.rate_limit).to eq(20)
           expect(Datadog.configuration.tracing.sampling.send(:resolve_option, :rate_limit).precedence_set).to eq(Datadog::Core::Configuration::Option::Precedence::FLEET_STABLE)
           # Currently, libdatadog only returns the fleet config value if both are set. This will change in the future, and it will returns both values.
@@ -155,13 +157,13 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
     end
   end
 
-  describe '#log_result' do
+  describe "#log_result" do
     before do
       described_class.const_get(:LOG_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
     end
 
-    it 'calls logger.debug' do
-      logger = double('test logger')
+    it "calls logger.debug" do
+      logger = double("test logger")
       expect(logger).to receive(:debug).with(/Reading stable configuration from files/)
 
       described_class.log_result(logger)

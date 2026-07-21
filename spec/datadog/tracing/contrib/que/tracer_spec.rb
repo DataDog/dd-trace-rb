@@ -1,12 +1,13 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/analytics_examples'
-require 'datadog'
-require 'que'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/tracing/contrib/analytics_examples"
+require "datadog/tracing/contrib/svc_src_examples"
+require "datadog"
+require "que"
 
 RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
   let(:job_options) do
     {
-      queue: 'low',
+      queue: "low",
       priority: 10,
       tags: {a: 1, b: 2}
     }
@@ -14,7 +15,7 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
   let(:job_args) { {field_one: 1} }
   let(:job_class) do
     stub_const(
-      'TestJobClass',
+      "TestJobClass",
       Class.new(::Que::Job) do
         def run(*args)
         end
@@ -23,10 +24,10 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
   end
   let(:error_job_class) do
     stub_const(
-      'ErrorJobClass',
+      "ErrorJobClass",
       Class.new(::Que::Job) do
         def run(*_args)
-          raise StandardError, 'with some error'
+          raise StandardError, "with some error"
         end
       end
     )
@@ -46,67 +47,74 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
     Datadog.registry[:que].reset_configuration!
   end
 
-  describe '#call' do
+  describe "#call" do
     subject(:enqueue) { job_class.enqueue(job_args, job_options: job_options) }
 
-    context 'with default options' do
+    context "when service_name is overridden" do
+      let(:configuration_options) { {service_name: "custom-que"} }
+      it_behaves_like "tags _dd.svc_src", "que" do
+        before { enqueue }
+      end
+    end
+
+    context "with default options" do
       let(:configuration_options) { {} }
 
-      it 'captures all generic span information' do
+      it "captures all generic span information" do
         enqueue
 
         expect(span.service).to eq(tracer.default_service)
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('que')
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("que")
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq("job")
         expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_QUEUE)).to eq(job_options[:queue])
         expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_PRIORITY)).to eq(job_options[:priority])
         expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_ERROR_COUNT)).to eq(0)
-        expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_EXPIRED_AT)).to eq('')
-        expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_FINISHED_AT)).to eq('')
-        expect(span.get_tag('messaging.system')).to eq('que')
+        expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_EXPIRED_AT)).to eq("")
+        expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_FINISHED_AT)).to eq("")
+        expect(span.get_tag("messaging.system")).to eq("que")
       end
 
-      it 'does not capture info for disabled tags' do
+      it "does not capture info for disabled tags" do
         enqueue
 
         expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_ARGS)).to eq(nil)
         expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_DATA)).to eq(nil)
       end
 
-      it 'continues to capture spans gracefully under unexpected conditions' do
+      it "continues to capture spans gracefully under unexpected conditions" do
         expect { error_job_class.enqueue(**job_args) }.to raise_error(StandardError)
 
         expect(span.start_time).not_to be_nil
         expect(span.end_time).not_to be_nil
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_TYPE)).to eq('StandardError')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_TYPE)).to eq("StandardError")
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_STACK)).not_to be_nil
-        expect(span.get_tag('messaging.system')).to eq('que')
+        expect(span.get_tag("messaging.system")).to eq("que")
       end
 
-      it 'has span.kind tag with value consumer' do
+      it "has span.kind tag with value consumer" do
         enqueue
 
-        expect(span.get_tag('span.kind')).to eq('consumer')
+        expect(span.get_tag("span.kind")).to eq("consumer")
       end
     end
 
-    context 'with error handler' do
+    context "with error handler" do
       let(:configuration_options) { {on_error: proc { @error_handler = true }} }
 
-      it 'continues to capture spans gracefully under unexpected conditions' do
+      it "continues to capture spans gracefully under unexpected conditions" do
         expect { error_job_class.enqueue(**job_args) }.to raise_error(StandardError)
         expect(span).not_to have_error
         expect(@error_handler).to be_truthy
         expect(span.start_time).not_to be_nil
         expect(span.end_time).not_to be_nil
-        expect(span.get_tag('messaging.system')).to eq('que')
+        expect(span.get_tag("messaging.system")).to eq("que")
       end
     end
 
-    context 'with tag_args enabled' do
+    context "with tag_args enabled" do
       let(:configuration_options) { {tag_args: true} }
 
-      it 'captures span info for args tag' do
+      it "captures span info for args tag" do
         enqueue
 
         actual_span_value = span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_ARGS)
@@ -116,10 +124,10 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
       end
     end
 
-    context 'with tag_data enabled' do
+    context "with tag_data enabled" do
       let(:configuration_options) { {tag_data: true} }
 
-      it 'captures spans info for data tag' do
+      it "captures spans info for data tag" do
         enqueue
 
         actual_span_value = span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_DATA)

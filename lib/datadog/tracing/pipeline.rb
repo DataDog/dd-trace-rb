@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'pipeline/span_filter'
-require_relative 'pipeline/span_processor'
+require_relative "pipeline/span_filter"
+require_relative "pipeline/span_processor"
 
 module Datadog
   module Tracing
@@ -51,7 +51,7 @@ module Datadog
         end
       rescue => e
         Datadog.logger.debug(
-          "trace dropped entirely due to `Pipeline.before_flush` error: #{e}"
+          "trace dropped entirely due to `Pipeline.before_flush` error: #{e.class}: #{e.message}"
         )
 
         nil

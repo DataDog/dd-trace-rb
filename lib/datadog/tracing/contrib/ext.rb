@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../metadata/ext"
+
 module Datadog
   module Tracing
     module Contrib
@@ -20,12 +22,12 @@ module Datadog
           #
           # This is the equivalent of OTel’s `db.namespace`
           # @see https://opentelemetry.io/docs/specs/semconv/database/database-spans/#common-attributes
-          TAG_INSTANCE = 'db.instance'
+          TAG_INSTANCE = "db.instance"
 
-          TAG_USER = 'db.user'
-          TAG_SYSTEM = 'db.system'
-          TAG_STATEMENT = 'db.statement'
-          TAG_ROW_COUNT = 'db.row_count'
+          TAG_USER = "db.user"
+          TAG_SYSTEM = "db.system"
+          TAG_STATEMENT = "db.statement"
+          TAG_ROW_COUNT = "db.row_count"
           PEER_SERVICE_SOURCES = [TAG_INSTANCE,
             Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
             Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
@@ -33,22 +35,22 @@ module Datadog
         end
 
         module RPC
-          TAG_SYSTEM = 'rpc.system'
-          TAG_SERVICE = 'rpc.service'
-          TAG_METHOD = 'rpc.method'
+          TAG_SYSTEM = "rpc.system"
+          TAG_SERVICE = "rpc.service"
+          TAG_METHOD = "rpc.method"
           PEER_SERVICE_SOURCES = [TAG_SERVICE,
             Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
             Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
             Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
           module GRPC
-            TAG_STATUS_CODE = 'rpc.grpc.status_code'
-            TAG_FULL_METHOD = 'rpc.grpc.full_method'
+            TAG_STATUS_CODE = "rpc.grpc.status_code"
+            TAG_FULL_METHOD = "rpc.grpc.full_method"
           end
         end
 
         module Messaging
-          TAG_SYSTEM = 'messaging.system'
-          TAG_DESTINATION = 'messaging.destination'
+          TAG_SYSTEM = "messaging.system"
+          TAG_DESTINATION = "messaging.destination"
           PEER_SERVICE_SOURCES = [Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
             Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
             Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
@@ -56,13 +58,13 @@ module Datadog
 
         module Metadata
           # Name of tag from which where peer.service information was extracted from
-          TAG_PEER_SERVICE_SOURCE = '_dd.peer.service.source'
+          TAG_PEER_SERVICE_SOURCE = "_dd.peer.service.source"
 
           # Value of tag from which peer.service value was remapped from
-          TAG_PEER_SERVICE_REMAP = '_dd.peer.service.remapped_from'
+          TAG_PEER_SERVICE_REMAP = "_dd.peer.service.remapped_from"
 
           # Set equal to the global service when contrib span.service is overriden
-          TAG_BASE_SERVICE = '_dd.base_service'
+          TAG_BASE_SERVICE = Tracing::Metadata::Ext::TAG_BASE_SERVICE
         end
       end
     end

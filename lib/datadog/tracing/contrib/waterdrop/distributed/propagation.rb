@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require_relative '../../../distributed/fetcher'
-require_relative '../../../distributed/propagation'
-require_relative '../../../distributed/b3_multi'
-require_relative '../../../distributed/b3_single'
-require_relative '../../../distributed/datadog'
-require_relative '../../../distributed/none'
-require_relative '../../../distributed/trace_context'
-require_relative '../../../configuration/ext'
+require_relative "../../../distributed/fetcher"
+require_relative "../../../distributed/propagation"
+require_relative "../../../distributed/b3_multi"
+require_relative "../../../distributed/b3_single"
+require_relative "../../../distributed/datadog"
+require_relative "../../../distributed/none"
+require_relative "../../../distributed/trace_context"
+require_relative "../../../configuration/ext"
 
 module Datadog
   module Tracing
@@ -19,6 +19,7 @@ module Datadog
             def initialize(
               propagation_style_inject:,
               propagation_style_extract:,
+              propagation_behavior_extract:,
               propagation_extract_first:
             )
               super(
@@ -37,6 +38,7 @@ module Datadog
                 },
                 propagation_style_inject: propagation_style_inject,
                 propagation_style_extract: propagation_style_extract,
+                propagation_behavior_extract: propagation_behavior_extract,
                 propagation_extract_first: propagation_extract_first
               )
             end

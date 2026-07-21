@@ -1,6 +1,8 @@
 module Datadog
   module OpenFeature
     class NativeEvaluator
+      INVALID_FLAG_CONFIGURATION_ERROR_MESSAGE: ::String
+
       @configuration: Core::FeatureFlags::Configuration
 
       def initialize: (::String configuration) -> void
@@ -10,7 +12,13 @@ module Datadog
         default_value: untyped,
         context: ::OpenFeature::SDK::EvaluationContext::fields_t,
         expected_type: ::Symbol
-      ) -> Core::FeatureFlags::ResolutionDetails
+      ) -> (Core::FeatureFlags::ResolutionDetails | ResolutionDetails)
+
+      private
+
+      def invalid_flag_configuration?: (Core::FeatureFlags::ResolutionDetails result) -> bool
+
+      def invalid_flag_configuration_error: (untyped default_value) -> ResolutionDetails
     end
   end
 end

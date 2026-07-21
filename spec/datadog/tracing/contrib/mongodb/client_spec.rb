@@ -1,26 +1,36 @@
-require 'datadog/tracing/contrib/integration_examples'
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/analytics_examples'
-require 'datadog/tracing/contrib/environment_service_name_examples'
-require 'datadog/tracing/contrib/span_attribute_schema_examples'
-require 'datadog/tracing/contrib/peer_service_configuration_examples'
+require "datadog/tracing/contrib/integration_examples"
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/tracing/contrib/analytics_examples"
+require "datadog/tracing/contrib/environment_service_name_examples"
+require "datadog/tracing/contrib/span_attribute_schema_examples"
+require "datadog/tracing/contrib/peer_service_configuration_examples"
+require "datadog/tracing/contrib/svc_src_examples"
 
-require 'datadog'
-require 'mongo'
+require "datadog"
+require "mongo"
 
-RSpec.describe 'Mongo::Client instrumentation' do
+RSpec.describe "Mongo::Client instrumentation" do
+  # Skip reason: On JRuby 9.2, tests are failing with the following exception:
+  #   Mongo::Error::NoServerAvailable: No primary_preferred server is available in cluster:
+  #   #<Cluster topology=Unknown[mongodb:27017] servers=[#<Server address=mongodb:27017 UNKNOWN NO-MONITORING>]>
+  #   with timeout=30, LT=0.015. The following servers have dead monitor threads:
+  #   #<Server address=mongodb:27017 UNKNOWN NO-MONITORING>
+  # This is most likely a JRuby bug or issue because JRuby does not implement fork and should therefore
+  # never have dead monitor threads. MongoDB Ruby driver 2.21.0 deprecated JRuby 9.2 support.
+  before { skip if PlatformHelpers.jruby? && !PlatformHelpers.ruby_version_matches?(">= 2.6") }
+
   let(:configuration_options) { {} }
   # Clear data between tests
   let(:drop_database?) { true }
 
   let(:client) { Mongo::Client.new(["#{host}:#{port}"], client_options) }
   let(:client_options) { {database: database} }
-  let(:host) { ENV.fetch('TEST_MONGODB_HOST', '127.0.0.1') }
-  let(:port) { ENV.fetch('TEST_MONGODB_PORT', 27017).to_i }
-  let(:database) { 'test' }
+  let(:host) { ENV.fetch("TEST_MONGODB_HOST", "127.0.0.1") }
+  let(:port) { ENV.fetch("TEST_MONGODB_PORT", 27017).to_i }
+  let(:database) { "test" }
   let(:collection) { :artists }
 
-  let(:mongo_gem_version) { Gem.loaded_specs['mongo'].version }
+  let(:mongo_gem_version) { Gem.loaded_specs["mongo"].version }
 
   before do
     # Disable Mongo logging
@@ -40,7 +50,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       client.database.drop if drop_database?
       client.close
 
-      if Datadog::Tracing::Contrib::MongoDB::Integration.version >= Gem::Version.new('2.19.0')
+      if Datadog::Tracing::Contrib::MongoDB::Integration.version >= Gem::Version.new("2.19.0")
         client.cluster.close
       else
         client.cluster.disconnect!
@@ -48,47 +58,47 @@ RSpec.describe 'Mongo::Client instrumentation' do
     end
   end
 
-  context 'when the client is configured with a block' do
+  context "when the client is configured with a block" do
     after do
       @client.close
 
-      if Datadog::Tracing::Contrib::MongoDB::Integration.version >= Gem::Version.new('2.19.0')
+      if Datadog::Tracing::Contrib::MongoDB::Integration.version >= Gem::Version.new("2.19.0")
         @client.cluster.close
       else
         @client.cluster.disconnect!
       end
     end
 
-    it 'evaluates the block given to the constructor' do
+    it "evaluates the block given to the constructor" do
       expect { |b| @client = Mongo::Client.new(["#{host}:#{port}"], client_options, &b) }.to yield_control
     end
   end
 
-  context 'when the client is configured' do
-    context 'with a different service name' do
-      let(:service) { 'mongodb-primary' }
+  context "when the client is configured" do
+    context "with a different service name" do
+      let(:service) { "mongodb-primary" }
 
       before { Datadog.configure_onto(client, service_name: service) }
 
-      subject { client[collection].insert_one(name: 'FKA Twigs') }
+      subject { client[collection].insert_one(name: "FKA Twigs") }
 
-      it 'produces spans with the correct service' do
+      it "produces spans with the correct service" do
         subject
         expect(spans).to have(1).items
         expect(spans.first.service).to eq(service)
       end
 
-      it_behaves_like 'a peer service span' do
+      it_behaves_like "a peer service span" do
         let(:peer_service_val) { database }
-        let(:peer_service_source) { 'mongodb.db' }
+        let(:peer_service_source) { "mongodb.db" }
       end
     end
 
-    context 'with a different service name using describes option' do
-      let(:primary_service) { 'mongodb-primary' }
-      let(:secondary_service) { 'mongodb-secondary' }
+    context "with a different service name using describes option" do
+      let(:primary_service) { "mongodb-primary" }
+      let(:secondary_service) { "mongodb-secondary" }
       let(:secondary_client) { Mongo::Client.new(["#{secondary_host}:#{port}"], client_options) }
-      let(:secondary_host) { ENV.fetch('TEST_MONGODB_SECONDARY_HOST', '127.0.0.1') }
+      let(:secondary_host) { ENV.fetch("TEST_MONGODB_SECONDARY_HOST", "127.0.0.1") }
 
       before do
         Datadog.configure do |c|
@@ -102,22 +112,22 @@ RSpec.describe 'Mongo::Client instrumentation' do
         end
       end
 
-      context 'primary client' do
-        subject { client[collection].insert_one(name: 'FKA Twigs') }
+      context "primary client" do
+        subject { client[collection].insert_one(name: "FKA Twigs") }
 
-        it 'produces spans with the correct service' do
+        it "produces spans with the correct service" do
           subject
           expect(spans).to have(1).items
           expect(spans.first.service).to eq(primary_service)
         end
 
-        it_behaves_like 'a peer service span' do
+        it_behaves_like "a peer service span" do
           let(:peer_service_val) { database }
-          let(:peer_service_source) { 'mongodb.db' }
+          let(:peer_service_source) { "mongodb.db" }
         end
       end
 
-      context 'secondary client' do
+      context "secondary client" do
         around do |example|
           without_warnings do
             # Reset before and after each example; don't allow global state to linger.
@@ -129,26 +139,26 @@ RSpec.describe 'Mongo::Client instrumentation' do
           end
         end
 
-        subject { secondary_client[collection].insert_one(name: 'FKA Twigs') }
+        subject { secondary_client[collection].insert_one(name: "FKA Twigs") }
 
-        it 'produces spans with the correct service' do
+        it "produces spans with the correct service" do
           subject
           expect(spans).to have(1).items
           expect(spans.first.service).to eq(secondary_service)
         end
 
-        it_behaves_like 'a peer service span' do
+        it_behaves_like "a peer service span" do
           let(:peer_service_val) { database }
-          let(:peer_service_source) { 'mongodb.db' }
+          let(:peer_service_source) { "mongodb.db" }
         end
       end
     end
 
-    context 'to disable the tracer' do
+    context "to disable the tracer" do
       before { tracer.enabled = false }
 
-      it 'produces spans with the correct service' do
-        client[collection].insert_one(name: 'FKA Twigs')
+      it "produces spans with the correct service" do
+        client[collection].insert_one(name: "FKA Twigs")
         expect(spans).to be_empty
       end
     end
@@ -156,40 +166,41 @@ RSpec.describe 'Mongo::Client instrumentation' do
 
   # rubocop:disable Layout/LineLength
 
-  shared_examples_for 'a MongoDB trace' do
-    it 'has basic properties' do
+  shared_examples_for "a MongoDB trace" do
+    it "has basic properties" do
       expect(spans).to have(1).items
-      expect(span.service).to eq('mongodb')
-      expect(span.type).to eq('mongodb')
-      expect(span.get_tag('db.system')).to eq('mongodb')
-      expect(span.get_tag('mongodb.db')).to eq(database)
+      expect(span.service).to eq("mongodb")
+      expect(span.type).to eq("mongodb")
+      expect(span.get_tag("db.system")).to eq("mongodb")
+      expect(span.get_tag("mongodb.db")).to eq(database)
       collection_value = collection.is_a?(Numeric) ? collection : collection.to_s
-      expect(span.get_tag('mongodb.collection')).to eq(collection_value)
-      expect(span.get_tag('db.mongodb.collection')).to eq(collection_value)
-      expect(span.get_tag('out.host')).to eq(host)
-      expect(span.get_tag('out.port')).to eq(port)
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('mongodb')
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('command')
-      expect(span.get_tag('span.kind')).to eq('client')
+      expect(span.get_tag("mongodb.collection")).to eq(collection_value)
+      expect(span.get_tag("db.mongodb.collection")).to eq(collection_value)
+      expect(span.get_tag("out.host")).to eq(host)
+      expect(span.get_tag("out.port")).to eq(port)
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("mongodb")
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq("command")
+      expect(span.get_tag("span.kind")).to eq("client")
     end
 
-    it_behaves_like 'analytics for integration' do
+    it_behaves_like "analytics for integration" do
       let(:analytics_enabled_var) { Datadog::Tracing::Contrib::MongoDB::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::MongoDB::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
-    it_behaves_like 'a peer service span' do
+    it_behaves_like "a peer service span" do
       let(:peer_service_val) { database }
-      let(:peer_service_source) { 'mongodb.db' }
+      let(:peer_service_source) { "mongodb.db" }
     end
 
-    it_behaves_like 'measured span for integration', false
-    it_behaves_like 'environment service name', 'DD_TRACE_MONGO_SERVICE_NAME'
-    it_behaves_like 'configured peer service span', 'DD_TRACE_MONGO_PEER_SERVICE'
-    it_behaves_like 'schema version span'
+    it_behaves_like "measured span for integration", false
+    it_behaves_like "environment service name", "DD_TRACE_MONGO_SERVICE_NAME"
+    it_behaves_like "tags _dd.svc_src", "mongodb"
+    it_behaves_like "configured peer service span", "DD_TRACE_MONGO_PEER_SERVICE"
+    it_behaves_like "schema version span"
   end
 
-  shared_context 'with json_command configured to' do |json_command|
+  shared_context "with json_command configured to" do |json_command|
     let(:configuration_options) { {json_command: json_command} }
 
     # Expects every value (except for keys) to be quantized.
@@ -203,7 +214,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         unless json_cmd
           # Convert Ruby Hash#to_s to a JSON string
           # DEV-3.0: Remove conversion when the json_command option is removed, since only JSON should be supported.
-          actual = actual.gsub(/:(\w+)/, '"\1"').gsub(/(\w+):/, '"\1":').gsub("=>", ':')
+          actual = actual.gsub(/:(\w+)/, '"\1"').gsub(/(\w+):/, '"\1":').gsub("=>", ":")
         end
 
         actual_obj = actual.is_a?(String) ? JSON.parse(actual) : actual
@@ -217,7 +228,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       end
 
       def quantized?(object, options = {})
-        with = options[:with] || '?'
+        with = options[:with] || "?"
         except = options[:except] || {}
 
         case object
@@ -238,73 +249,73 @@ RSpec.describe 'Mongo::Client instrumentation' do
       chain :except, :exceptions
     end
 
-    describe '#insert_one operation' do
+    describe "#insert_one operation" do
       before { client[collection].insert_one(params) }
 
-      context 'for a basic document' do
-        let(:params) { {name: 'FKA Twigs'} }
+      context "for a basic document" do
+        let(:params) { {name: "FKA Twigs"} }
 
-        it_behaves_like 'a MongoDB trace'
+        it_behaves_like "a MongoDB trace"
 
-        it 'has operation-specific properties' do
-          expect(span.resource).to be_quantized(json_command).except('operation' => 'insert', 'database' => database, 'collection' => collection.to_s)
-          expect(span.get_tag('mongodb.rows')).to eq(1)
+        it "has operation-specific properties" do
+          expect(span.resource).to be_quantized(json_command).except("operation" => "insert", "database" => database, "collection" => collection.to_s)
+          expect(span.get_tag("mongodb.rows")).to eq(1)
         end
 
-        context 'with a deprecated json_command value', if: !json_command do
-          it 'logs a deprecation message' do
+        context "with a deprecated json_command value", if: !json_command do
+          it "logs a deprecation message" do
             expect { client[collection].insert_one(params) }.to log_deprecation(/MongoDB integration: `json_command/).at_least(1).time
           end
         end
 
-        context 'with a recommended json_command value', if: json_command do
-          it 'does not log a deprecation message' do
+        context "with a recommended json_command value", if: json_command do
+          it "does not log a deprecation message" do
             expect { client[collection].insert_one(params) }.to_not log_deprecation
           end
         end
       end
 
-      context 'for a document with an array' do
-        let(:params) { {name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing']} }
+      context "for a document with an array" do
+        let(:params) { {name: "Steve", hobbies: ["hiking", "tennis", "fly fishing"]} }
         let(:collection) { :people }
 
-        it_behaves_like 'a MongoDB trace'
+        it_behaves_like "a MongoDB trace"
 
-        it 'has operation-specific properties' do
-          expect(span.resource).to be_quantized(json_command).except('operation' => 'insert', 'database' => database, 'collection' => collection.to_s)
-          expect(span.get_tag('mongodb.rows')).to eq(1)
+        it "has operation-specific properties" do
+          expect(span.resource).to be_quantized(json_command).except("operation" => "insert", "database" => database, "collection" => collection.to_s)
+          expect(span.get_tag("mongodb.rows")).to eq(1)
         end
       end
     end
 
-    describe '#insert_many operation' do
+    describe "#insert_many operation" do
       before { client[collection].insert_many(params) }
 
-      context 'for documents with arrays' do
+      context "for documents with arrays" do
         let(:params) do
           [
-            {name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing']},
-            {name: 'Sally', hobbies: ['skiing', 'stamp collecting']}
+            {name: "Steve", hobbies: ["hiking", "tennis", "fly fishing"]},
+            {name: "Sally", hobbies: ["skiing", "stamp collecting"]}
           ]
         end
 
         let(:collection) { :people }
 
-        it_behaves_like 'a MongoDB trace'
+        it_behaves_like "a MongoDB trace"
 
-        it 'has operation-specific properties' do
-          expect(span.resource).to be_quantized(json_command).except('operation' => 'insert', 'database' => database, 'collection' => collection.to_s)
-          expect(span.get_tag('mongodb.rows')).to eq(2)
+        it "has operation-specific properties" do
+          expect(span.resource).to be_quantized(json_command).except("operation" => "insert", "database" => database, "collection" => collection.to_s)
+          expect(span.get_tag("mongodb.rows")).to eq(2)
         end
       end
     end
 
-    describe '#find_all operation' do
+    describe "#find_all operation" do
       let(:collection) { :people }
 
       before do
         # Insert a document
-        client[collection].insert_one(name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing'])
+        client[collection].insert_one(name: "Steve", hobbies: ["hiking", "tennis", "fly fishing"])
         clear_traces!
 
         # Do #find_all operation
@@ -313,66 +324,66 @@ RSpec.describe 'Mongo::Client instrumentation' do
         end
       end
 
-      it_behaves_like 'a MongoDB trace'
+      it_behaves_like "a MongoDB trace"
 
-      it 'has operation-specific properties' do
-        expect(span.resource).to be_quantized(json_command).except('operation' => 'find', 'database' => database, 'collection' => collection.to_s)
-        expect(span.get_tag('mongodb.rows')).to be nil
+      it "has operation-specific properties" do
+        expect(span.resource).to be_quantized(json_command).except("operation" => "find", "database" => database, "collection" => collection.to_s)
+        expect(span.get_tag("mongodb.rows")).to be nil
       end
     end
 
-    describe '#find operation' do
+    describe "#find operation" do
       let(:collection) { :people }
 
       before do
         # Insert a document
-        client[collection].insert_one(name: 'Steve', hobbies: ['hiking'])
+        client[collection].insert_one(name: "Steve", hobbies: ["hiking"])
         clear_traces!
 
         # Do #find operation
-        result = client[collection].find(name: 'Steve').first[:hobbies]
-        expect(result).to eq(['hiking'])
+        result = client[collection].find(name: "Steve").first[:hobbies]
+        expect(result).to eq(["hiking"])
       end
 
-      it_behaves_like 'a MongoDB trace'
+      it_behaves_like "a MongoDB trace"
 
-      it 'has operation-specific properties' do
-        expect(span.resource).to be_quantized(json_command).except('operation' => 'find', 'database' => database, 'collection' => collection.to_s)
-        expect(span.get_tag('mongodb.rows')).to be nil
+      it "has operation-specific properties" do
+        expect(span.resource).to be_quantized(json_command).except("operation" => "find", "database" => database, "collection" => collection.to_s)
+        expect(span.get_tag("mongodb.rows")).to be nil
       end
     end
 
-    describe '#update_one operation' do
+    describe "#update_one operation" do
       let(:collection) { :people }
 
       before do
         # Insert a document
-        client[collection].insert_one(name: 'Sally', hobbies: ['skiing', 'stamp collecting'])
+        client[collection].insert_one(name: "Sally", hobbies: ["skiing", "stamp collecting"])
         clear_traces!
 
         # Do #update_one operation
-        client[collection].update_one({name: 'Sally'}, '$set' => {'phone_number' => '555-555-5555'})
+        client[collection].update_one({name: "Sally"}, "$set" => {"phone_number" => "555-555-5555"})
       end
 
       after do
         # Verify correctness of the operation
-        expect(client[collection].find(name: 'Sally').first[:phone_number]).to eq('555-555-5555')
+        expect(client[collection].find(name: "Sally").first[:phone_number]).to eq("555-555-5555")
       end
 
-      it_behaves_like 'a MongoDB trace'
+      it_behaves_like "a MongoDB trace"
 
-      it 'has operation-specific properties' do
-        expect(span.resource).to be_quantized(json_command).except('operation' => 'update', 'database' => database, 'collection' => collection.to_s)
-        expect(span.get_tag('mongodb.rows')).to eq(1)
+      it "has operation-specific properties" do
+        expect(span.resource).to be_quantized(json_command).except("operation" => "update", "database" => database, "collection" => collection.to_s)
+        expect(span.get_tag("mongodb.rows")).to eq(1)
       end
     end
 
-    describe '#update_many operation' do
+    describe "#update_many operation" do
       let(:collection) { :people }
       let(:documents) do
         [
-          {name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing']},
-          {name: 'Sally', hobbies: ['skiing', 'stamp collecting']}
+          {name: "Steve", hobbies: ["hiking", "tennis", "fly fishing"]},
+          {name: "Sally", hobbies: ["skiing", "stamp collecting"]}
         ]
       end
 
@@ -382,55 +393,55 @@ RSpec.describe 'Mongo::Client instrumentation' do
         clear_traces!
 
         # Do #update_many operation
-        client[collection].update_many({}, '$set' => {'phone_number' => '555-555-5555'})
+        client[collection].update_many({}, "$set" => {"phone_number" => "555-555-5555"})
       end
 
       after do
         # Verify correctness of the operation
         documents.each do |d|
-          expect(client[collection].find(name: d[:name]).first[:phone_number]).to eq('555-555-5555')
+          expect(client[collection].find(name: d[:name]).first[:phone_number]).to eq("555-555-5555")
         end
       end
 
-      it_behaves_like 'a MongoDB trace'
+      it_behaves_like "a MongoDB trace"
 
-      it 'has operation-specific properties' do
-        expect(span.resource).to be_quantized(json_command).except('operation' => 'update', 'database' => database, 'collection' => collection.to_s)
-        expect(span.get_tag('mongodb.rows')).to eq(2)
+      it "has operation-specific properties" do
+        expect(span.resource).to be_quantized(json_command).except("operation" => "update", "database" => database, "collection" => collection.to_s)
+        expect(span.get_tag("mongodb.rows")).to eq(2)
       end
     end
 
-    describe '#delete_one operation' do
+    describe "#delete_one operation" do
       let(:collection) { :people }
 
       before do
         # Insert a document
-        client[collection].insert_one(name: 'Sally', hobbies: ['skiing', 'stamp collecting'])
+        client[collection].insert_one(name: "Sally", hobbies: ["skiing", "stamp collecting"])
         clear_traces!
 
         # Do #delete_one operation
-        client[collection].delete_one(name: 'Sally')
+        client[collection].delete_one(name: "Sally")
       end
 
       after do
         # Verify correctness of the operation
-        expect(client[collection].find(name: 'Sally').count).to eq(0)
+        expect(client[collection].find(name: "Sally").count).to eq(0)
       end
 
-      it_behaves_like 'a MongoDB trace'
+      it_behaves_like "a MongoDB trace"
 
-      it 'has operation-specific properties' do
-        expect(span.resource).to be_quantized(json_command).except('operation' => 'delete', 'database' => database, 'collection' => collection.to_s)
-        expect(span.get_tag('mongodb.rows')).to eq(1)
+      it "has operation-specific properties" do
+        expect(span.resource).to be_quantized(json_command).except("operation" => "delete", "database" => database, "collection" => collection.to_s)
+        expect(span.get_tag("mongodb.rows")).to eq(1)
       end
     end
 
-    describe '#delete_many operation' do
+    describe "#delete_many operation" do
       let(:collection) { :people }
       let(:documents) do
         [
-          {name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing']},
-          {name: 'Sally', hobbies: ['skiing', 'stamp collecting']}
+          {name: "Steve", hobbies: ["hiking", "tennis", "fly fishing"]},
+          {name: "Sally", hobbies: ["skiing", "stamp collecting"]}
         ]
       end
 
@@ -450,45 +461,45 @@ RSpec.describe 'Mongo::Client instrumentation' do
         end
       end
 
-      it_behaves_like 'a MongoDB trace'
+      it_behaves_like "a MongoDB trace"
 
-      it 'has operation-specific properties' do
-        expect(span.resource).to be_quantized(json_command).except('operation' => 'delete', 'database' => database, 'collection' => collection.to_s)
-        expect(span.get_tag('mongodb.rows')).to eq(2)
+      it "has operation-specific properties" do
+        expect(span.resource).to be_quantized(json_command).except("operation" => "delete", "database" => database, "collection" => collection.to_s)
+        expect(span.get_tag("mongodb.rows")).to eq(2)
       end
     end
 
-    describe '#drop operation' do
+    describe "#drop operation" do
       let(:collection) { 1 } # Because drop operation doesn't have a collection
 
       before { client.database.drop }
 
-      it_behaves_like 'a MongoDB trace'
+      it_behaves_like "a MongoDB trace"
 
-      it 'has operation-specific properties' do
-        expect(span.resource).to be_quantized(json_command).except('operation' => 'dropDatabase', 'database' => database, 'collection' => 1)
-        expect(span.get_tag('mongodb.rows')).to be nil
+      it "has operation-specific properties" do
+        expect(span.resource).to be_quantized(json_command).except("operation" => "dropDatabase", "database" => database, "collection" => 1)
+        expect(span.get_tag("mongodb.rows")).to be nil
       end
     end
 
-    describe 'a failed query' do
+    describe "a failed query" do
       let(:collection) { :not_created }
 
       before { client[collection].drop }
 
-      it_behaves_like 'a MongoDB trace'
+      it_behaves_like "a MongoDB trace"
 
-      it 'has operation-specific properties' do
-        expect(span.resource).to be_quantized(json_command).except('operation' => 'drop', 'database' => database, 'collection' => collection.to_s)
-        expect(span.get_tag('mongodb.rows')).to be nil
+      it "has operation-specific properties" do
+        expect(span.resource).to be_quantized(json_command).except("operation" => "drop", "database" => database, "collection" => collection.to_s)
+        expect(span.get_tag("mongodb.rows")).to be nil
         expect(span.status).to eq(1)
-        expect(span.get_tag('error.message')).to include('ns not found')
+        expect(span.get_tag("error.message")).to include("ns not found")
       end
 
-      context 'that triggers #failed before #started' do
+      context "that triggers #failed before #started" do
         subject(:failed_event) { subscriber.failed(event) }
 
-        let(:event) { instance_double(Mongo::Monitoring::Event::CommandFailed, request_id: double('request_id')) }
+        let(:event) { instance_double(Mongo::Monitoring::Event::CommandFailed, request_id: double("request_id")) }
         let(:subscriber) { Datadog::Tracing::Contrib::MongoDB::MongoCommandSubscriber.new }
 
         # Clear the thread variable out, as if #started has never run.
@@ -498,59 +509,59 @@ RSpec.describe 'Mongo::Client instrumentation' do
       end
     end
 
-    describe 'with LDAP/SASL authentication' do
+    describe "with LDAP/SASL authentication" do
       let(:client_options) do
-        super().merge(auth_mech: :plain, user: 'plain_user', password: 'plain_pass', auth_source: '$external')
+        super().merge(auth_mech: :plain, user: "plain_user", password: "plain_pass", auth_source: "$external")
       end
 
-      context 'which fails' do
+      context "which fails" do
         let(:insert_span) { spans.first }
         let(:auth_span) { spans.last }
         let(:drop_database?) { false }
 
         before do
           # Insert a document
-          client[collection].insert_one(name: 'Steve', hobbies: ['hiking'])
+          client[collection].insert_one(name: "Steve", hobbies: ["hiking"])
         rescue Mongo::Auth::Unauthorized
           # Expect this to create an unauthorized error
           nil
         end
 
-        it 'produces spans for command and authentication' do
+        it "produces spans for command and authentication" do
           # In versions of Mongo < 2.5...
           # With LDAP/SASL, Mongo will run a "saslStart" command
           # after the original command starts but before it finishes.
           # Thus, we should expect it to create an authentication span
           # that is a child of the original command span.
-          if mongo_gem_version < Gem::Version.new('2.5')
+          if mongo_gem_version < Gem::Version.new("2.5")
             expect(spans).to have(2).items
           else
             expect(spans).to have(1).items
           end
 
-          if mongo_gem_version < Gem::Version.new('2.5')
-            expect(insert_span.name).to eq('mongo.cmd')
+          if mongo_gem_version < Gem::Version.new("2.5")
+            expect(insert_span.name).to eq("mongo.cmd")
             expect(insert_span.resource).to match(/{"operation"(:"| ?=> ?(:|"))insert/)
             expect(insert_span).to_not have_error
           end
 
-          expect(auth_span.name).to eq('mongo.cmd')
+          expect(auth_span.name).to eq("mongo.cmd")
           expect(auth_span.resource).to match(/{"operation"(:"| ?=> ?(:|"))saslStart/)
-          expect(auth_span.get_tag('db.system')).to eq('mongodb')
+          expect(auth_span.get_tag("db.system")).to eq("mongodb")
 
           expect(auth_span).to have_error
-          expect(auth_span).to have_error_type('Mongo::Monitoring::Event::CommandFailed')
-          expect(auth_span).to have_error_message(/Unsupported mechanism PLAIN/)
+          expect(auth_span).to have_error_type("Mongo::Monitoring::Event::CommandFailed")
+          expect(auth_span).to have_error_message(/Unsupported mechanism 'PLAIN'/)
         end
       end
     end
   end
 
-  context 'with json_command configured to true' do
-    it_behaves_like 'with json_command configured to', true
+  context "with json_command configured to true" do
+    it_behaves_like "with json_command configured to", true
   end
 
-  context 'with json_command configured to false' do
-    it_behaves_like 'with json_command configured to', false
+  context "with json_command configured to false" do
+    it_behaves_like "with json_command configured to", false
   end
 end

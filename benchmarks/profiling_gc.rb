@@ -1,20 +1,20 @@
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require_relative 'benchmarks_helper'
+require_relative "benchmarks_helper"
 
 # This benchmark measures the performance of GC profiling
 
 class ProfilerGcBenchmark
   def create_profiler
-    @recorder = Datadog::Profiling::StackRecorder.for_testing(timeline_enabled: true)
-    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder, timeline_enabled: true)
+    @recorder = Datadog::Profiling::StackRecorder.for_testing
+    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder)
 
     # We take a dummy sample so that the context for the main thread is created, as otherwise the GC profiling methods do
     # not create it (because we don't want to do memory allocations in the middle of GC)
-    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, Thread.current, false)
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, false)
   end
 
   def run_benchmark
@@ -26,13 +26,13 @@ class ProfilerGcBenchmark
 
       # The idea of this benchmark is to test the overall cost of the Ruby VM calling these methods on every GC.
       # We're going as fast as possible (not realistic), but this should give us an upper bound for expected performance.
-      x.report('profiler gc') do
+      x.report("profiler gc") do
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_start(@collector)
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_finish(@collector)
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector, false)
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -58,7 +58,7 @@ class ProfilerGcBenchmark
         @recorder.serialize
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -68,9 +68,9 @@ class ProfilerGcBenchmark
         **benchmark_time,
       )
 
-      x.report('Major GC runs (profiling disabled)', 'GC.start')
+      x.report("Major GC runs (profiling disabled)", "GC.start")
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -87,9 +87,9 @@ class ProfilerGcBenchmark
         **benchmark_time,
       )
 
-      x.report('Major GC runs (profiling enabled)', 'GC.start')
+      x.report("Major GC runs (profiling enabled)", "GC.start")
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -101,9 +101,9 @@ class ProfilerGcBenchmark
         **benchmark_time,
       )
 
-      x.report('Allocations (profiling disabled)', 'Object.new')
+      x.report("Allocations (profiling disabled)", "Object.new")
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -120,9 +120,9 @@ class ProfilerGcBenchmark
         **benchmark_time,
       )
 
-      x.report('Allocations (profiling enabled)', 'Object.new')
+      x.report("Allocations (profiling enabled)", "Object.new")
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 

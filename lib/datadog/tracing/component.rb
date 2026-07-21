@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require_relative 'tracer'
-require_relative 'flush'
-require_relative 'sync_writer'
-require_relative 'sampling/span/rule_parser'
-require_relative 'sampling/span/sampler'
-require_relative 'diagnostics/environment_logger'
-require_relative 'contrib/component'
+require_relative "tracer"
+require_relative "flush"
+require_relative "sync_writer"
+require_relative "sampling/span/rule_parser"
+require_relative "sampling/span/sampler"
+require_relative "diagnostics/environment_logger"
+require_relative "contrib/component"
 
 module Datadog
   module Tracing
@@ -159,6 +159,17 @@ module Datadog
 
         def sample!(trace)
           @sampler.sample!(trace)
+        end
+
+        def reconsider_sample_resource!(trace)
+          return unless @sampler.respond_to?(:reconsider_sample_resource!)
+
+          @sampler.reconsider_sample_resource!(trace)
+        end
+
+        def resource_sampling?
+          @sampler.respond_to?(:resource_sampling?) &&
+            @sampler.resource_sampling?
         end
 
         def update(*args, **kwargs)

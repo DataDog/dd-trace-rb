@@ -24,12 +24,12 @@ module Datadog
 
         # Steep: https://github.com/soutaro/steep/issues/363
         OPERATORS = { # steep:ignore IncompatibleAssignment
-          'eq' => '==',
-          'ne' => '!=',
-          'ge' => '>=',
-          'gt' => '>',
-          'le' => '<=',
-          'lt' => '<',
+          "eq" => "==",
+          "ne" => "!=",
+          "ge" => ">=",
+          "gt" => ">",
+          "le" => "<=",
+          "lt" => "<",
         }.freeze
 
         # Steep: https://github.com/soutaro/steep/issues/363
@@ -45,8 +45,8 @@ module Datadog
 
         # Steep: https://github.com/soutaro/steep/issues/363
         MULTI_ARG_METHODS = { # steep:ignore IncompatibleAssignment
-          'and' => '&&',
-          'or' => '||',
+          "and" => "&&",
+          "or" => "||",
         }.freeze
 
         def compile_partial(ast)
@@ -57,29 +57,29 @@ module Datadog
             end
             op, target = ast.first
             case op
-            when 'ref'
+            when "ref"
               unless String === target
                 raise DI::Error::InvalidExpression, "Bad ref value type: #{target.class}: #{target}"
               end
               case target
-              when '@it'
-                'current_item'
-              when '@key'
-                'current_key'
-              when '@value'
-                'current_value'
-              when '@return'
+              when "@it"
+                "current_item"
+              when "@key"
+                "current_key"
+              when "@value"
+                "current_value"
+              when "@return"
                 # For @return, @duration and @exception we shadow
                 # instance variables.
                 "context.return_value"
-              when '@duration'
+              when "@duration"
                 # There is no way to explicitly format the duration.
                 # TODO come up with better formatting?
                 # We could format to a string here but what if customer
                 # has @duration as part of an expression and wants
                 # to retain it as a number?
-                "(context.duration * 1000)"
-              when '@exception'
+                "(context.duration && context.duration * 1000)"
+              when "@exception"
                 "context.exception"
               else
                 # Ruby technically allows all kinds of symbols in variable
@@ -89,7 +89,7 @@ module Datadog
                 unless target =~ %r{\A(@?)([a-zA-Z0-9_]+)\z}
                   raise DI::Error::BadVariableName, "Bad variable name: #{target}"
                 end
-                method_name = (($1 == '@') ? 'iref' : 'ref')
+                method_name = (($1 == "@") ? "iref" : "ref")
                 "#{method_name}('#{target}')"
               end
             when *SINGLE_ARG_METHODS
@@ -111,12 +111,12 @@ module Datadog
               end
               compiled_op = MULTI_ARG_METHODS[op]
               "(#{compiled_targets.join(" #{compiled_op} ")})"
-            when 'substring'
+            when "substring"
               unless Array === target && target.length == 3
                 raise DI::Error::InvalidExpression, "Improper #{op} syntax"
               end
               "#{op}(#{target.map { |arg| "(#{compile_partial(arg)})" }.join(", ")})"
-            when 'not'
+            when "not"
               "!(#{compile_partial(target)})"
             when *OPERATORS.keys
               unless Array === target && target.length == 2
@@ -125,7 +125,7 @@ module Datadog
               first, second = target
               operator = OPERATORS.fetch(op)
               "(#{compile_partial(first)}) #{operator} (#{compile_partial(second)})"
-            when 'any', 'all', 'filter'
+            when "any", "all", "filter"
               "#{op}(#{compile_partial(target.first)}) { |current_item, current_key, current_value| #{compile_partial(target.last)} }"
             else
               raise DI::Error::InvalidExpression, "Unknown operation: #{op}"
@@ -151,16 +151,16 @@ module Datadog
         # WARNING: the result of this method is included in eval'd code,
         # it must be sanitized to avoid injection.
         def var_name_maybe(target)
-          if Hash === target && target.length == 1 && target.keys.first == 'ref' &&
+          if Hash === target && target.length == 1 && target.keys.first == "ref" &&
               String === (value = target.values.first)
             escape(value)
           else
-            '(expression)'
+            "(expression)"
           end
         end
 
         def escape(needle)
-          needle.gsub("\\") { "\\\\" }.gsub('"') { "\\\"" }.gsub('#') { "\\#" }
+          needle.gsub("\\") { "\\\\" }.gsub('"') { "\\\"" }.gsub("#") { "\\#" }
         end
       end
     end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative '../../metadata/ext'
+require_relative "ext"
+require_relative "../../metadata/ext"
 
 module Datadog
   module Tracing
@@ -17,6 +17,7 @@ module Datadog
               service: configuration[:service_name],
               type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
             ) do |span_op, trace_op|
+              span_op.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               span_op.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span_op.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ROUTING)
 
@@ -27,7 +28,7 @@ module Datadog
               span_op.resource ||= if trace_op.resource_override?
                 trace_op.resource
               else
-                env['REQUEST_METHOD']
+                env["REQUEST_METHOD"]
               end
             end
           end

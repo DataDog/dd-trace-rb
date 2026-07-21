@@ -1,0 +1,23 @@
+module Datadog
+  module AIGuard
+    module Evaluation
+      module ContentPart
+        class Text
+          attr_reader text: ::String
+
+          def initialize: (::String text) -> void
+
+          def type: () -> ::Symbol
+        end
+
+        class ImageURL
+          attr_reader url: ::String
+
+          def initialize: (::String url) -> void
+
+          def type: () -> ::Symbol
+        end
+      end
+    end
+  end
+end

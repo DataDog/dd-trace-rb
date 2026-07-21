@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative '../ext'
-require_relative 'ext'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "../ext"
+require_relative "ext"
 
-require_relative '../propagation/sql_comment'
-require_relative '../propagation/sql_comment/mode'
+require_relative "../propagation/sql_comment"
+require_relative "../propagation/sql_comment/mode"
 
 module Datadog
   module Tracing
@@ -28,19 +28,19 @@ module Datadog
               end
             end
 
-            def exec_params(sql, params, *args, &block)
+            def exec_params(sql, *args, &block)
               return super unless enabled?
 
               trace(Ext::SPAN_EXEC_PARAMS, sql: sql, block: block) do |sql_statement, wrapped_block|
-                super(sql_statement, params, *args, &wrapped_block)
+                super(sql_statement, *args, &wrapped_block)
               end
             end
 
-            def exec_prepared(statement_name, params, *args, &block)
+            def exec_prepared(statement_name, *args, &block)
               return super unless enabled?
 
               trace(Ext::SPAN_EXEC_PREPARED, statement_name: statement_name, block: block) do |_, wrapped_block|
-                super(statement_name, params, *args, &wrapped_block)
+                super(statement_name, *args, &wrapped_block)
               end
             end
 
@@ -54,20 +54,20 @@ module Datadog
             end
 
             # async_exec_params is an alias to exec_params
-            def async_exec_params(sql, params, *args, &block)
+            def async_exec_params(sql, *args, &block)
               return super unless enabled?
 
               trace(Ext::SPAN_ASYNC_EXEC_PARAMS, sql: sql, block: block) do |sql_statement, wrapped_block|
-                super(sql_statement, params, *args, &wrapped_block)
+                super(sql_statement, *args, &wrapped_block)
               end
             end
 
             # async_exec_prepared is an alias to exec_prepared
-            def async_exec_prepared(statement_name, params, *args, &block)
+            def async_exec_prepared(statement_name, *args, &block)
               return super unless enabled?
 
               trace(Ext::SPAN_ASYNC_EXEC_PREPARED, statement_name: statement_name, block: block) do |_, wrapped_block|
-                super(statement_name, params, *args, &wrapped_block)
+                super(statement_name, *args, &wrapped_block)
               end
             end
 
@@ -79,19 +79,19 @@ module Datadog
               end
             end
 
-            def sync_exec_params(sql, params, *args, &block)
+            def sync_exec_params(sql, *args, &block)
               return super unless enabled?
 
               trace(Ext::SPAN_SYNC_EXEC_PARAMS, sql: sql, block: block) do |sql_statement, wrapped_block|
-                super(sql_statement, params, *args, &wrapped_block)
+                super(sql_statement, *args, &wrapped_block)
               end
             end
 
-            def sync_exec_prepared(statement_name, params, *args, &block)
+            def sync_exec_prepared(statement_name, *args, &block)
               return super unless enabled?
 
               trace(Ext::SPAN_SYNC_EXEC_PREPARED, statement_name: statement_name, block: block) do |_, wrapped_block|
-                super(statement_name, params, *args, &wrapped_block)
+                super(statement_name, *args, &wrapped_block)
               end
             end
 
@@ -109,6 +109,7 @@ module Datadog
                 resource: resource,
                 type: Tracing::Metadata::Ext::SQL::TYPE
               ) do |span, trace_op|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 annotate_span_with_query!(span, service)
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
@@ -158,11 +159,6 @@ module Datadog
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                   datadog_configuration[:peer_service]
                 )
-              end
-
-              # Tag original global service name if not used
-              if span.service != Datadog.configuration.service
-                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
               end
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)

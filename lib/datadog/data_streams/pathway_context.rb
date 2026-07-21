@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'stringio'
-require_relative '../core/utils/base64'
+require "stringio"
+require_relative "../core/utils/base64_codec"
 
 module Datadog
   module DataStreams
@@ -34,7 +34,7 @@ module Datadog
       end
 
       def encode_b64
-        Core::Utils::Base64.strict_encode64(encode)
+        Core::Utils::Base64Codec.strict_encode64(encode)
       end
 
       # Decode pathway context from base64 encoded string
@@ -42,11 +42,11 @@ module Datadog
         return nil unless encoded_ctx && !encoded_ctx.empty?
 
         begin
-          binary_data = Core::Utils::Base64.strict_decode64(encoded_ctx)
+          binary_data = Core::Utils::Base64Codec.strict_decode64(encoded_ctx)
           decode(binary_data)
         rescue ArgumentError => e
           # Invalid base64 encoding - may indicate version mismatch or corruption
-          Datadog.logger.debug("Failed to decode DSM pathway context: #{e.message}")
+          Datadog.logger.debug { "Failed to decode DSM pathway context: #{e.class}: #{e.message}" }
           nil
         end
       end
@@ -58,7 +58,7 @@ module Datadog
         # - 8 bytes: hash value (little-endian)
         # - VarInt: pathway start time (milliseconds)
         # - VarInt: current edge start time (milliseconds)
-        [@hash].pack('Q') <<
+        [@hash].pack("Q") <<
           encode_var_int_64(time_to_ms(@pathway_start)) <<
           encode_var_int_64(time_to_ms(@current_edge_start))
       end
@@ -73,7 +73,7 @@ module Datadog
         hash_bytes = reader.read(8)
         return nil unless hash_bytes
 
-        hash_value = hash_bytes.unpack1('Q') # : Integer
+        hash_value = hash_bytes.unpack1("Q") # : Integer
 
         # Extract pathway start time (VarInt milliseconds)
         pathway_start_ms = decode_varint(reader)
@@ -116,7 +116,7 @@ module Datadog
           value >>= 7
         end
         bytes << value
-        bytes.pack('C*')
+        bytes.pack("C*")
       end
 
       # Decode an unsigned LEB128 variable-length integer from IO stream.

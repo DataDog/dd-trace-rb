@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../utils/quantization/hash'
+require_relative "../utils/quantization/hash_formatter"
 
 module Datadog
   module Tracing
@@ -8,7 +8,7 @@ module Datadog
       module Elasticsearch
         # Quantize contains ES-specific resource quantization tools.
         module Quantize
-          PLACEHOLDER = '?'
+          PLACEHOLDER = "?"
           ID_PLACEHOLDER = '\1?'
           EXCLUDE_KEYS = [].freeze
           SHOW_KEYS = [:_index, :_type, :_id].freeze
@@ -40,7 +40,7 @@ module Datadog
             # Parse each statement and quantize them.
             statements.collect do |string|
               reserialize_json(string, options[:placeholder]) do |obj|
-                Contrib::Utils::Quantization::Hash.format(obj, options)
+                Contrib::Utils::Quantization::HashFormatter.format(obj, options)
               end
             end.join("\n")
           end

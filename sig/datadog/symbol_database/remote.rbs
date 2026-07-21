@@ -1,0 +1,27 @@
+module Datadog
+  module SymbolDatabase
+    module Remote
+      PRODUCT: ::String
+
+      def self.products: () -> ::Array[::String]
+
+      def self.capabilities: () -> ::Array[::Integer]
+
+      def self.deferred_products: (Datadog::Core::Configuration::Settings settings) -> ::Array[::String]
+
+      def self.receivers: (Datadog::Core::Telemetry::Component telemetry) -> ::Array[Datadog::Core::Remote::Dispatcher::Receiver]
+
+      def self.receiver: (?::Array[::String] products) { (Datadog::Core::Remote::Configuration::Repository repository, ::Array[Datadog::Core::Remote::Configuration::Repository::change] changes) -> void } -> ::Array[Datadog::Core::Remote::Dispatcher::Receiver]
+
+      def self.lookup_telemetry: () -> Datadog::Core::Telemetry::Component?
+
+      def self.process_change: (Component component, Datadog::Core::Remote::Configuration::Repository::change change, Datadog::Core::Telemetry::Component? telemetry) -> void
+
+      def self.enable_upload: (Component component, Datadog::Core::Remote::Configuration::Content content) -> void
+
+      def self.disable_upload: (Component component) -> void
+
+      def self.parse_config: (Datadog::Core::Remote::Configuration::Content content, SymbolDatabase::Logger logger) -> ::Hash[::String, untyped]?
+    end
+  end
+end
