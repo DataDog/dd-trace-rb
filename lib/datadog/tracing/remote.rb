@@ -48,19 +48,26 @@ module Datadog
             # (see Datadog::DI::Remote.handle_rc_enablement).
             Datadog::DI::Remote.handle_rc_enablement(di_enabled, repository)
 
+            components = Datadog.send(:components, allow_initialization: false)
+            di_products = Datadog::DI::Remote.products +
+              Datadog::SymbolDatabase::Remote.deferred_products(Datadog.configuration)
+
             if di_enabled
-              # DI was just (implicitly) enabled. A Symbol Database upload signal
-              # received in an earlier poll while DI was inactive was deferred by
-              # the component's DI-active gate; re-attempt it now. Mirrors the DI
-              # probe replay in handle_rc_enablement above. allow_initialization:
-              # false because this runs on the remote-config worker thread.
-              Datadog.send(:components, allow_initialization: false)&.symbol_database&.resume_pending_upload
+              components&.symbol_database&.resume_pending_upload
+              # Advertise the DI products only if the component actually started.
+              # handle_rc_enablement above no-ops when DI cannot run — the
+              # component is nil on an unsupported runtime, or the enable signal
+              # is blocked by DD_DYNAMIC_INSTRUMENTATION_ENABLED=false. Advertising
+              # then would report DI as in use when it is not and invite probe
+              # configs the tracer must refuse; withdraw the products otherwise.
+              if components&.dynamic_instrumentation&.started?
+                components&.remote&.add_products(*di_products)
+              else
+                components&.remote&.remove_products(*di_products)
+              end
             else
-              # DI was disabled via remote configuration. In the nil-default
-              # (follows-DI) case, stop Symbol Database too so its TracePoint and
-              # scheduler don't keep uploading while DI is off. An explicit
-              # symbol_database.enabled = true is independent and keeps running.
-              Datadog.send(:components, allow_initialization: false)&.symbol_database&.stop_for_di_disable
+              components&.symbol_database&.stop_for_di_disable
+              components&.remote&.remove_products(*di_products)
             end
           end
 
