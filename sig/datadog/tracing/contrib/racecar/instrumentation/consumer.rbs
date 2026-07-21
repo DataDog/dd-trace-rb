@@ -1,0 +1,34 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Racecar
+        module Instrumentation
+          module Consumer
+            # The subset of a consumed Kafka message the instrumentation reads.
+            interface _Message
+              def topic: () -> ::String
+
+              def partition: () -> ::Integer
+
+              def offset: () -> ::Integer
+
+              def headers: () -> ::Hash[(::String | ::Symbol), ::String]?
+            end
+
+            def self.set_consume_checkpoint: (_Message message) -> void
+
+            def self.header_value: (::Hash[(::String | ::Symbol), ::String]? headers, ::String key) -> ::String?
+
+            def self.prepended: (Module base) -> void
+
+            module InstanceMethods
+              def process: (_Message message) -> void
+
+              def process_batch: (::Array[_Message] messages) -> void
+            end
+          end
+        end
+      end
+    end
+  end
+end

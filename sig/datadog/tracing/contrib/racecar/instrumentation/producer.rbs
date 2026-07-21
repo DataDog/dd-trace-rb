@@ -1,0 +1,33 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Racecar
+        module Instrumentation
+          module Producer
+            type headers = ::Hash[::String, ::String]
+
+            def self.inject_pathway_context: (::String topic, headers? headers) -> headers?
+
+            module Consumer
+              def self.prepended: (Module base) -> void
+
+              module InstanceMethods
+                def produce: (untyped payload, topic: ::String, ?headers: Producer::headers?, **untyped kwargs) -> untyped
+              end
+            end
+
+            module Standalone
+              def self.prepended: (Module base) -> void
+
+              module InstanceMethods
+                def produce_async: (value: untyped, topic: ::String, **untyped options) -> untyped
+
+                def produce_sync: (value: untyped, topic: ::String, **untyped options) -> untyped
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end
