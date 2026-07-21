@@ -39,6 +39,7 @@ gem 'warning', '~> 1' # NOTE: Used in spec_helper.rb
 gem 'webmock', '>= 3.10.0'
 gem 'webrick', '>= 1.8.2'
 group :check do
+  gem 'steep', '~> 2.0', require: false
   gem 'ruby_memcheck', '>= 3'
 end
 group :dev do
