@@ -16,7 +16,7 @@ module Datadog
           end
 
           JDBC_URI_PATTERN: Regexp
-          DATABASE_QUERY_PATTERN: Regexp
+          DATABASE_PROPERTY_PATTERN: Regexp
 
           def self.adapter_name: (untyped database) -> untyped
           def self.database_type: (untyped database) -> untyped
@@ -33,7 +33,7 @@ module Datadog
 
           def self.database_from_path: (String? path) -> String?
 
-          def self.database_from_query: (String? query) -> String?
+          def self.database_from_properties: (String? properties) -> String?
 
           def self.datadog_configuration: () -> untyped
 

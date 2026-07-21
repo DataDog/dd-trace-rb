@@ -53,19 +53,35 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
       end
     end
 
-    context 'with unsupported SQL Server property syntax' do
-      let(:uri) { 'jdbc:sqlserver://sql-host:1433;databaseName=sales;user=sa' }
+    context 'sqlserver with a semicolon databaseName property' do
+      let(:uri) { 'jdbc:sqlserver://sql-host:1433;user=sa;password=secret;databaseName=sales' }
 
-      it 'returns all-nil' do
-        expect(parsed).to eq(host: nil, port: nil, database: nil)
+      it 'extracts metadata without exposing credentials' do
+        expect(parsed).to eq(host: 'sql-host', port: '1433', database: 'sales')
       end
     end
 
-    context 'with unsupported semicolon properties in the path' do
+    context 'as400 with a default schema in the path and libraries property' do
       let(:uri) { 'jdbc:as400://as400-host/MYSCHEMA;libraries=L1,L2' }
 
-      it 'returns all-nil' do
-        expect(parsed).to eq(host: nil, port: nil, database: nil)
+      it 'prefers the path schema' do
+        expect(parsed).to eq(host: 'as400-host', port: nil, database: 'MYSCHEMA')
+      end
+    end
+
+    context 'as400 with only a libraries property' do
+      let(:uri) { 'jdbc:as400://as400-host;libraries=MYLIB,OTHER' }
+
+      it 'uses the first library as the database' do
+        expect(parsed).to eq(host: 'as400-host', port: nil, database: 'MYLIB')
+      end
+    end
+
+    context 'another vendor with a semicolon database property' do
+      let(:uri) { 'jdbc:acme://db-host:1234;database=warehouse' }
+
+      it 'extracts host, port, and database' do
+        expect(parsed).to eq(host: 'db-host', port: '1234', database: 'warehouse')
       end
     end
 

@@ -15,8 +15,9 @@ module Datadog
         # General purpose functions for Sequel
         module Utils
           JDBC_URI_PATTERN = %r{\Ajdbc:(?<vendor>[a-z][a-z0-9+.-]*):(?<location>//[^\r\n]*)\z}i
-          DATABASE_QUERY_PATTERN = /(?:\A|[&;])database=(?<value>[^&;]+)/i
-          private_constant :JDBC_URI_PATTERN, :DATABASE_QUERY_PATTERN
+          DATABASE_PROPERTY_PATTERN =
+            /(?:\A|[&;])(?<key>databaseName|database|libraries)=(?<value>[^&;]+)/i
+          private_constant :JDBC_URI_PATTERN, :DATABASE_PROPERTY_PATTERN
 
           class << self
             # Ruby database connector library
@@ -51,16 +52,18 @@ module Datadog
               match = JDBC_URI_PATTERN.match(uri)
               return result unless match
 
-              parsed = URI.parse("#{match[:vendor].downcase}:#{match[:location]}")
+              vendor = match[:vendor].downcase
+              location, properties = match[:location].split(';', 2)
 
-              # Semicolons introduce vendor-specific JDBC path properties. URI treats them
-              # as part of the path, which could make us report properties as the database.
-              return result if parsed.path&.include?(';')
+              # Several JDBC vendors append properties with semicolons, outside the URI
+              # grammar. Parse the URI-compatible location separately from those properties.
+              parsed = URI.parse("#{vendor}:#{location}")
 
               host = parsed.hostname
               port = parsed.port
 
-              database = database_from_path(parsed.path) || database_from_query(parsed.query)
+              database = database_from_path(parsed.path) ||
+                database_from_properties(properties) || database_from_properties(parsed.query)
 
               {host: host, port: port&.to_s, database: database}
             rescue URI::InvalidURIError, Encoding::CompatibilityError, ArgumentError
@@ -157,11 +160,15 @@ module Datadog
               database
             end
 
-            def database_from_query(query)
-              return unless query
+            def database_from_properties(properties)
+              return unless properties
 
-              match = DATABASE_QUERY_PATTERN.match(query)
-              match[:value] if match
+              match = DATABASE_PROPERTY_PATTERN.match(properties)
+              return unless match
+
+              database = match[:value]
+              database = database.split(',', 2).first if match[:key].casecmp('libraries').zero?
+              database
             end
 
             def datadog_configuration
