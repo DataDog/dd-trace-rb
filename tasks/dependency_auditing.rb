@@ -29,13 +29,18 @@ module DependencyAuditing
         next unless result.respond_to?(:advisory)
 
         advisory = result.advisory
-        next unless severities.include?(advisory.criticality)
+        criticality = advisory.criticality
+        # Advisories scored only via CVSS v4 have no v2/v3 score for the
+        # pinned bundler-audit version to derive criticality from, so
+        # `criticality` comes back nil. Surface those rather than silently
+        # dropping a potentially high/critical advisory.
+        next unless criticality.nil? || severities.include?(criticality)
 
         findings << Finding.new(
           lockfile_path,
           result.gem.name,
           result.gem.version.to_s,
-          advisory.criticality,
+          criticality,
           advisory.cve_id || advisory.ghsa_id || advisory.identifiers.first,
         )
       end

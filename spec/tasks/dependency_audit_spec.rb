@@ -31,6 +31,17 @@ if Gem.loaded_specs.key?('bundler-audit')
         expect(findings).to be_empty
       end
 
+      it 'includes advisories with unknown (e.g. CVSS v4-only) criticality' do
+        findings = described_class.findings(
+          ["#{fixtures}/unscored.gemfile.lock"],
+          database: database,
+          ignore: [],
+        )
+
+        expect(findings.map(&:gem)).to include('unscored_gem')
+        expect(findings.find { |f| f.gem == 'unscored_gem' }.criticality).to be_nil
+      end
+
       it 'excludes advisories listed in ignore' do
         all = described_class.findings(
           ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: [],
