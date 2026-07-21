@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'di/configuration'
-require_relative 'di/extensions'
-require_relative 'di/remote'
+require_relative "di/configuration"
+require_relative "di/extensions"
+require_relative "di/remote"
 
 module Datadog
   # Namespace for Datadog dynamic instrumentation.
@@ -127,9 +127,9 @@ module Datadog
       #
       # @return [String, nil]
       private def unsupported_platform_reason
-        if RUBY_ENGINE != 'ruby'
+        if RUBY_ENGINE != "ruby"
           "MRI is required, but running on #{RUBY_ENGINE}"
-        elsif Datadog::RubyVersion.is?('< 2.6')
+        elsif Datadog::RubyVersion.is?("< 2.6")
           "Ruby 2.6+ is required, but running on #{RUBY_VERSION}"
         end
       end

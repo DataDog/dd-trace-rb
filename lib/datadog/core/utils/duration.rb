@@ -6,7 +6,7 @@ module Datadog
       # Helper methods for parsing string values into Numeric
       module Duration
         def self.call(value, base: :s)
-          cast = if value.include?('.')
+          cast = if value.include?(".")
             method(:Float)
           else
             method(:Integer)

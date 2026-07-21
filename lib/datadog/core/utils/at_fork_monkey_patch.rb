@@ -22,7 +22,7 @@ module Datadog
         def self.apply!
           return false unless supported?
 
-          if RubyVersion.is?('< 3.1')
+          if RubyVersion.is?("< 3.1")
             [
               ::Process.singleton_class, # Process.fork
               ::Kernel.singleton_class,  # Kernel.fork
@@ -47,7 +47,7 @@ module Datadog
         # Returns the registered block so callers can keep a handle to it and
         # later deregister it via {.remove_at_fork}.
         def self.at_fork(stage, &block)
-          raise(ArgumentError, 'Missing block argument') unless block
+          raise(ArgumentError, "Missing block argument") unless block
 
           blocks_for(stage) << block
 

@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative 'pipeline'
-require_relative 'runtime/metrics'
-require_relative 'writer'
+require_relative "pipeline"
+require_relative "runtime/metrics"
+require_relative "writer"
 
-require_relative 'transport/http'
+require_relative "transport/http"
 
 module Datadog
   module Tracing

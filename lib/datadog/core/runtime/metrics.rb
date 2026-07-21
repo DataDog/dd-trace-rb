@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
+require_relative "ext"
 
-require_relative '../metrics/client'
-require_relative '../environment/class_count'
-require_relative '../environment/gc'
-require_relative '../environment/thread_count'
-require_relative '../environment/vm_cache'
-require_relative '../environment/yjit'
-require_relative '../environment/process'
+require_relative "../metrics/client"
+require_relative "../environment/class_count"
+require_relative "../environment/gc"
+require_relative "../environment/thread_count"
+require_relative "../environment/vm_cache"
+require_relative "../environment/yjit"
+require_relative "../environment/process"
 
 module Datadog
   module Core
@@ -149,7 +149,7 @@ module Datadog
         end
 
         def to_metric_name(str)
-          str.downcase.gsub(/[-\s]/, '_')
+          str.downcase.gsub(/[-\s]/, "_")
         end
 
         def gauge_if_not_nil(metric_name, metric_value)

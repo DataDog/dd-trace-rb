@@ -1,11 +1,11 @@
-require 'datadog/tracing/contrib/support/spec_helper'
+require "datadog/tracing/contrib/support/spec_helper"
 
-require 'dalli'
-require 'datadog'
-require 'datadog/tracing/contrib/dalli/patcher'
+require "dalli"
+require "datadog"
+require "datadog/tracing/contrib/dalli/patcher"
 
-RSpec.describe 'Dalli instrumentation' do
-  include_context 'tracer logging'
+RSpec.describe "Dalli instrumentation" do
+  include_context "tracer logging"
 
   let(:configuration_options) { {} }
 

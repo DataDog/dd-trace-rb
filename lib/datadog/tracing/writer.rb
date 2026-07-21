@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative 'event'
-require_relative 'runtime/metrics'
-require_relative 'workers'
+require_relative "event"
+require_relative "runtime/metrics"
+require_relative "workers"
 
-require_relative 'transport/http'
+require_relative "transport/http"
 
 module Datadog
   module Tracing
@@ -122,7 +122,7 @@ module Datadog
         if worker_local
           worker_local.enqueue_trace(trace)
         elsif !@stopped
-          logger.debug('Writer either failed to start or was stopped before #write could complete')
+          logger.debug("Writer either failed to start or was stopped before #write could complete")
         end
       end
 

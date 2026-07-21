@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'set'
+require "set"
 
 # This file is auto-generated from `supported-configurations.json` by `rake local_config_map:generate`.
 # Do not change manually! Please refer to `docs/AccessEnvironmentVariables.md` for more information.

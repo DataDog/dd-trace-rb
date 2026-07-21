@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../../tracing/configuration/ext'
-require_relative '../../core/environment/variable_helpers'
-require_relative '../contrib/status_range_matcher'
-require_relative '../contrib/status_range_env_parser'
-require_relative 'http'
+require_relative "../../tracing/configuration/ext"
+require_relative "../../core/environment/variable_helpers"
+require_relative "../contrib/status_range_matcher"
+require_relative "../contrib/status_range_env_parser"
+require_relative "http"
 
 module Datadog
   module Tracing
@@ -163,10 +163,10 @@ module Datadog
                   # DD_TRACE_ENABLED is 0 or false.
                   # DEV: The current implementation accepts all of the mentioned values
                   # for both environment variables, which is incorrect.
-                  if ['none', 'false', '0'].include?(value)
+                  if ["none", "false", "0"].include?(value)
                     false
                   # Tracing is enabled when DD_TRACE_ENABLED is true or 1
-                  elsif ['true', '1'].include?(value)
+                  elsif ["true", "1"].include?(value)
                     true
                   else
                     Datadog.logger.warn("Unsupported value for exporting datadog traces: #{value}. Traces will be sent to Datadog.")
@@ -207,7 +207,7 @@ module Datadog
               option :baggage_tag_keys do |o|
                 o.env Configuration::Ext::ENV_BAGGAGE_TAG_KEYS
                 o.type :array
-                o.default ['user.id', 'session.id', 'account.id']
+                o.default ["user.id", "session.id", "account.id"]
               end
 
               # Enable 128 bit trace id generation.
@@ -364,7 +364,7 @@ module Datadog
                     next if value.nil?
 
                     value = value&.downcase
-                    if ['always_on', 'always_off', 'traceidratio'].include?(value)
+                    if ["always_on", "always_off", "traceidratio"].include?(value)
                       Datadog.logger.warn("The value '#{value}' is not yet supported. 'parentbased_#{value}' will be used instead.")
                       value = "parentbased_#{value}"
                     end
@@ -372,11 +372,11 @@ module Datadog
                     # These values are mapped to a sample rate.
                     # DD_TRACE_SAMPLE_RATE sets the sample rate to float.
                     case value
-                    when 'parentbased_always_on'
+                    when "parentbased_always_on"
                       1.0
-                    when 'parentbased_always_off'
+                    when "parentbased_always_off"
                       0.0
-                    when 'parentbased_traceidratio'
+                    when "parentbased_traceidratio"
                       DATADOG_ENV.fetch(Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG, 1.0).to_f
                     else
                       value.to_f
@@ -434,9 +434,9 @@ module Datadog
                     if rules
                       if rules_file
                         Datadog.logger.warn(
-                          'Both DD_SPAN_SAMPLING_RULES and DD_SPAN_SAMPLING_RULES_FILE were provided: only ' \
-                            'DD_SPAN_SAMPLING_RULES will be used. Please do not provide DD_SPAN_SAMPLING_RULES_FILE when ' \
-                            'also providing DD_SPAN_SAMPLING_RULES as their configuration conflicts. ' \
+                          "Both DD_SPAN_SAMPLING_RULES and DD_SPAN_SAMPLING_RULES_FILE were provided: only " \
+                            "DD_SPAN_SAMPLING_RULES will be used. Please do not provide DD_SPAN_SAMPLING_RULES_FILE when " \
+                            "also providing DD_SPAN_SAMPLING_RULES as their configuration conflicts. " \
                             "DD_SPAN_SAMPLING_RULES_FILE=#{rules_file} DD_SPAN_SAMPLING_RULES=#{rules}"
                         )
                       end
@@ -448,7 +448,7 @@ module Datadog
                         # `File#read` errors have clear and actionable messages, no need to add extra exception info.
                         Datadog.logger.warn(
                           "Cannot read span sampling rules file `#{rules_file}`: #{e.class}: #{e.message}." \
-                          'No span sampling rules will be applied.'
+                          "No span sampling rules will be applied."
                         )
                         nil
                       end

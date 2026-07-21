@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../analytics'
+require_relative "../analytics"
 
 module Datadog
   module Tracing
@@ -22,7 +22,7 @@ module Datadog
             sections_view = name.split(base_path)
 
             if sections_view.length == 1
-              name.split('/')[-1]
+              name.split("/")[-1]
             else
               sections_view[-1]
             end

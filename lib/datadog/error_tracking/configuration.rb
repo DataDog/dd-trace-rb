@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
+require_relative "ext"
 
 module Datadog
   module ErrorTracking
@@ -35,7 +35,7 @@ module Datadog
                     Datadog.logger.warn(
                       "Invalid handled errors scope: #{value}. " \
                       "Supported values are: #{Ext::VALID_HANDLED_ERRORS.join(" | ")}. " \
-                      'Deactivating the feature.'
+                      "Deactivating the feature."
                     )
                   end
 

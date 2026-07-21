@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'stringio'
-require_relative '../core/utils/base64_codec'
+require "stringio"
+require_relative "../core/utils/base64_codec"
 
 module Datadog
   module DataStreams
@@ -58,7 +58,7 @@ module Datadog
         # - 8 bytes: hash value (little-endian)
         # - VarInt: pathway start time (milliseconds)
         # - VarInt: current edge start time (milliseconds)
-        [@hash].pack('Q') <<
+        [@hash].pack("Q") <<
           encode_var_int_64(time_to_ms(@pathway_start)) <<
           encode_var_int_64(time_to_ms(@current_edge_start))
       end
@@ -73,7 +73,7 @@ module Datadog
         hash_bytes = reader.read(8)
         return nil unless hash_bytes
 
-        hash_value = hash_bytes.unpack1('Q') # : Integer
+        hash_value = hash_bytes.unpack1("Q") # : Integer
 
         # Extract pathway start time (VarInt milliseconds)
         pathway_start_ms = decode_varint(reader)
@@ -116,7 +116,7 @@ module Datadog
           value >>= 7
         end
         bytes << value
-        bytes.pack('C*')
+        bytes.pack("C*")
       end
 
       # Decode an unsigned LEB128 variable-length integer from IO stream.

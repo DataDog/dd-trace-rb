@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../ext'
+require_relative "../ext"
 
 module Datadog
   module OpenFeature
@@ -15,7 +15,7 @@ module Datadog
       # stay on the OTel path. This hook is registered as a provider hook so it receives
       # the SDK-final EvaluationDetails after hook failures and type validation.
       class FlagEvalEVPHook
-        TYPE_MISMATCH_ERROR_CODE = 'TYPE_MISMATCH'
+        TYPE_MISMATCH_ERROR_CODE = "TYPE_MISMATCH"
 
         # Include the Hook module if available (SDK >= 0.5.0) for interface documentation
         # and default implementations of other hook methods (before, after, error)
@@ -39,7 +39,7 @@ module Datadog
           # Eval-time stamped by the provider at eval-entry time; fall back to hook-fire time.
           # Metadata key: 'dd.eval.timestamp_ms' (int, ms since epoch) — stamped at eval entry.
           metadata = evaluation_details.flag_metadata
-          eval_time_ms = metadata.is_a?(Hash) ? metadata['dd.eval.timestamp_ms'] : nil
+          eval_time_ms = metadata.is_a?(Hash) ? metadata["dd.eval.timestamp_ms"] : nil
           eval_time_ms ||= (Core::Utils::Time.now.to_f * 1000).to_i
 
           writer.enqueue(
