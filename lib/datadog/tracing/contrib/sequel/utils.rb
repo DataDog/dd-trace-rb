@@ -93,18 +93,24 @@ module Datadog
 
               metadata = connection_metadata(db)
 
+              peer_metadata = false
+
               # Embedded/hostless databases (e.g. SQLite) have no network peer; skip peer-identifying tags.
               if metadata[:host] && !metadata[:host].empty?
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME, metadata[:host])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, metadata[:host])
                 span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, metadata[:host])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, metadata[:port]) if metadata[:port]
+                peer_metadata = true
+              end
 
-                if metadata[:database] && !metadata[:database].empty?
-                  span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, metadata[:database])
-                  span.set_tag(Ext::TAG_DB_NAME, metadata[:database])
-                end
+              if metadata[:database] && !metadata[:database].empty?
+                span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, metadata[:database])
+                span.set_tag(Ext::TAG_DB_NAME, metadata[:database])
+                peer_metadata = true
+              end
 
+              if peer_metadata
                 Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
               end
 
@@ -124,10 +130,16 @@ module Datadog
               # A JDBC URL (in :uri, :url, or :database) can carry credentials, so always parse
               # it and emit only the parsed database name -- never the raw connection string.
               conn = opts[:uri] || opts[:url] || opts[:database]
-              if conn.is_a?(String) && /\Ajdbc:/i.match?(conn)
+              is_jdbc = conn.is_a?(String) && conn.byteslice(0, 5)&.casecmp('jdbc:') == 0
+              if is_jdbc
                 parsed = parse_jdbc_uri(conn)
-                host = parsed[:host] if host.nil? || host.empty?
-                port ||= parsed[:port]
+
+                # Sequel's JDBC adapter connects with the URL and ignores separate
+                # :host/:port options, unlike native adapters where those options take precedence.
+                if !parsed[:host].nil? || !parsed[:port].nil? || !parsed[:database].nil?
+                  host = parsed[:host]
+                  port = parsed[:port]
+                end
                 database = parsed[:database]
               end
 

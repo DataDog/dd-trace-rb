@@ -141,12 +141,17 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
       allow(Datadog::Tracing::Contrib::SpanAttributeSchema).to receive(:set_peer_service!)
     end
 
-    it 'does not add an empty host to the span' do
+    it 'tags the database and infers peer.service without adding an empty host' do
       set_common_tags
 
       expect(span).not_to have_received(:set_tag)
         .with(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, '')
-      expect(Datadog::Tracing::Contrib::SpanAttributeSchema).not_to have_received(:set_peer_service!)
+      expect(span).to have_received(:set_tag)
+        .with(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE, 'orders')
+      expect(span).to have_received(:set_tag)
+        .with(Datadog::Tracing::Contrib::Sequel::Ext::TAG_DB_NAME, 'orders')
+      expect(Datadog::Tracing::Contrib::SpanAttributeSchema).to have_received(:set_peer_service!)
+        .with(span, Datadog::Tracing::Contrib::Sequel::Ext::PEER_SERVICE_SOURCES)
     end
   end
 
@@ -159,7 +164,7 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
       let(:opts) { {host: 'db-host', port: 3306, database: 'orders'} }
 
       it 'uses the opts values directly' do
-        expect(metadata).to eq(host: 'db-host', port: 3306, database: 'orders')
+        expect(metadata).to eq(host: 'db-host', port: '3306', database: 'orders')
       end
     end
 
@@ -171,6 +176,21 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
       end
     end
 
+    context 'with stale host and port options alongside a JDBC URI' do
+      let(:opts) do
+        {
+          uri: 'jdbc:mysql://jdbc-host:3306/catalog',
+          host: 'stale-host',
+          port: 1234,
+          database: 'stale-database'
+        }
+      end
+
+      it 'uses the endpoint from the JDBC URI' do
+        expect(metadata).to eq(host: 'jdbc-host', port: '3306', database: 'catalog')
+      end
+    end
+
     context 'with a host set and a credential-bearing JDBC URL in opts[:database]' do
       let(:opts) { {host: 'db-host', database: 'jdbc:mysql://db-host/orders?user=u&password=secret'} }
 
@@ -178,6 +198,16 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
         expect(metadata[:database]).to eq('orders')
         expect(metadata[:database]).not_to include('password')
         expect(metadata[:host]).to eq('db-host')
+      end
+    end
+
+    context 'with an invalidly encoded JDBC URL' do
+      let(:uri) { "jdbc:mysql://h\xFF\xFEst/db".b.force_encoding('UTF-8') }
+      let(:opts) { {host: 'db-host', port: 3306, database: uri} }
+
+      it 'does not raise or emit the raw URL as the database name' do
+        expect { metadata }.not_to raise_error
+        expect(metadata).to eq(host: 'db-host', port: '3306', database: nil)
       end
     end
   end
