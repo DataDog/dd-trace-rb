@@ -4,7 +4,7 @@ require 'bundler/audit/database'
 # Pure audit logic, extracted so it can be unit-tested without rake or a live
 # network update. The rake task in dependency_audit.rake wires it to the real
 # eligible lockfile set and the managed ignore list.
-module DependencyAudit
+module DependencyAuditing
   module_function
 
   SEVERITIES = [:high, :critical].freeze

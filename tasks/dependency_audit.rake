@@ -17,10 +17,10 @@ if Gem.loaded_specs.key?('bundler-audit')
       database = Bundler::Audit::Database.new
 
       lockfiles = SecurityCapabilities.audit_eligible_lockfiles
-      ignore = DependencyAudit.load_ignore_list
+      ignore = DependencyAuditing.load_ignore_list
 
       puts "Auditing #{lockfiles.size} lockfiles (high/critical only)..."
-      findings = DependencyAudit.findings(lockfiles, database: database, ignore: ignore)
+      findings = DependencyAuditing.findings(lockfiles, database: database, ignore: ignore)
 
       if findings.empty?
         puts 'No high or critical advisories found.'

@@ -3,7 +3,7 @@ require 'spec_helper'
 if Gem.loaded_specs.key?('bundler-audit')
   require_relative '../../tasks/dependency_auditing'
 
-  RSpec.describe DependencyAudit do
+  RSpec.describe DependencyAuditing do
     let(:fixtures) { 'spec/fixtures/bundler_audit' }
     let(:database) { Bundler::Audit::Database.new("#{fixtures}/advisory_db") }
 
