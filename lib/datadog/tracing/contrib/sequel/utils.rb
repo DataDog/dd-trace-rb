@@ -131,7 +131,7 @@ module Datadog
                 database = parsed[:database]
               end
 
-              {host: host, port: port, database: database}
+              {host: host, port: port&.to_s, database: database}
             end
 
             private
