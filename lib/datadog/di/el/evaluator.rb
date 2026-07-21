@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../ruby_version'
+require_relative "../../ruby_version"
 
-require 'timeout' if Datadog::RubyVersion.is?('< 3.2')
+require "timeout" if Datadog::RubyVersion.is?("< 3.2")
 
 module Datadog
   module DI
@@ -76,7 +76,7 @@ module Datadog
         #
         # @param needle [String] regexp source.
         # @return [Regexp] compiled regexp, with baked-in timeout on Ruby 3.2+.
-        if Datadog::RubyVersion.is?('>= 3.2')
+        if Datadog::RubyVersion.is?(">= 3.2")
           def self.compile_regexp(needle)
             Regexp.new(needle, timeout: MATCHES_TIMEOUT_SECONDS)
           end
@@ -117,7 +117,7 @@ module Datadog
         # @param re [Regexp] regexp to match against.
         # @param haystack [String] string to match against.
         # @return [Boolean] whether the haystack matches the regexp.
-        if Datadog::RubyVersion.is?('>= 3.2')
+        if Datadog::RubyVersion.is?(">= 3.2")
           def bounded_match?(re, haystack)
             # Uses Regexp#match? rather than =~ so that the
             # thread-local match data ($~, $1, ...) is not mutated as a side

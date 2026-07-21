@@ -114,7 +114,7 @@ module Datadog
             when *SINGLE_ARG_METHODS
               method_name = op.gsub(/[A-Z]/) { |m| "_#{m.downcase}" }
               "#{method_name}(#{compile_partial(target, regexps)}, '#{var_name_maybe(target)}')"
-            when 'matches'
+            when "matches"
               unless Array === target && target.length == 2
                 raise DI::Error::InvalidExpression, "Improper matches syntax"
               end

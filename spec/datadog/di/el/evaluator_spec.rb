@@ -1,6 +1,6 @@
-require 'spec_helper'
-require_relative '../spec_helper'
-require 'datadog/di/el'
+require "spec_helper"
+require_relative "../spec_helper"
+require "datadog/di/el"
 
 RSpec.describe Datadog::DI::EL::Evaluator do
   di_test
@@ -18,13 +18,13 @@ RSpec.describe Datadog::DI::EL::Evaluator do
   # optimisation introduced in Ruby 3.2.
   let(:pattern) { '^([a-z]+)*\1$' }
   let(:haystack_length) { 30 }
-  let(:haystack) { ('a' * haystack_length) + '1' }
+  let(:haystack) { ("a" * haystack_length) + "1" }
 
   # Regexp::TimeoutError was introduced in Ruby 3.2 and inherits from
   # RegexpError. Timeout::Error (used on older Rubies) inherits from
   # RuntimeError. The expected class is selected by Ruby version.
   let(:expected_timeout_error) do
-    if Datadog::RubyVersion.is?('>= 3.2')
+    if Datadog::RubyVersion.is?(">= 3.2")
       Regexp::TimeoutError
     else
       Timeout::Error
@@ -50,10 +50,10 @@ RSpec.describe Datadog::DI::EL::Evaluator do
   #
   # +do_match+ is defined by the including context to invoke the operator
   # under test (runtime or precompiled) against +haystack+ and +pattern+.
-  shared_examples 'aborts after approximately the configured timeout' do |timeout_seconds|
+  shared_examples "aborts after approximately the configured timeout" do |timeout_seconds|
     before do
       stub_const(
-        'Datadog::DI::EL::Evaluator::MATCHES_TIMEOUT_SECONDS',
+        "Datadog::DI::EL::Evaluator::MATCHES_TIMEOUT_SECONDS",
         timeout_seconds
       )
     end
@@ -77,39 +77,39 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     end
   end
 
-  shared_examples 'a timeout-bounded matcher' do
-    context 'with a short timeout' do
-      include_examples 'aborts after approximately the configured timeout', 0.2
+  shared_examples "a timeout-bounded matcher" do
+    context "with a short timeout" do
+      include_examples "aborts after approximately the configured timeout", 0.2
     end
 
-    context 'with a longer timeout' do
-      include_examples 'aborts after approximately the configured timeout', 1.0
+    context "with a longer timeout" do
+      include_examples "aborts after approximately the configured timeout", 1.0
     end
   end
 
-  describe '#matches' do
-    context 'with a well-formed pattern' do
-      it 'returns true when the haystack matches' do
-        expect(evaluator.matches('hello world', 'hello[a-z ]+')).to be(true)
+  describe "#matches" do
+    context "with a well-formed pattern" do
+      it "returns true when the haystack matches" do
+        expect(evaluator.matches("hello world", "hello[a-z ]+")).to be(true)
       end
 
-      it 'returns false when the haystack does not match' do
-        expect(evaluator.matches('xyz', 'hello[a-z]')).to be(false)
+      it "returns false when the haystack does not match" do
+        expect(evaluator.matches("xyz", "hello[a-z]")).to be(false)
       end
     end
 
-    context 'with a pathological pattern that would otherwise run for many seconds' do
+    context "with a pathological pattern that would otherwise run for many seconds" do
       # Needle computed at evaluation time, so the regexp is compiled on
       # each call.
       def do_match
         evaluator.matches(haystack, pattern)
       end
 
-      include_examples 'a timeout-bounded matcher'
+      include_examples "a timeout-bounded matcher"
     end
   end
 
-  describe '#matches_compiled' do
+  describe "#matches_compiled" do
     # The regexp is built once, with the per-call timeout baked in on Ruby
     # 3.2+, and stored in +regexps+ -- mirroring how the Compiler
     # precompiles literal needles at expression-compile time.
@@ -117,56 +117,56 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       described_class.new([described_class.compile_regexp(compiled_pattern)])
     end
 
-    context 'with a well-formed pattern' do
-      context 'when the haystack matches' do
-        let(:compiled_pattern) { 'hello[a-z ]+' }
+    context "with a well-formed pattern" do
+      context "when the haystack matches" do
+        let(:compiled_pattern) { "hello[a-z ]+" }
 
-        it 'returns true' do
-          expect(evaluator.matches_compiled('hello world', 0)).to be(true)
+        it "returns true" do
+          expect(evaluator.matches_compiled("hello world", 0)).to be(true)
         end
       end
 
-      context 'when the haystack does not match' do
-        let(:compiled_pattern) { 'hello[a-z]' }
+      context "when the haystack does not match" do
+        let(:compiled_pattern) { "hello[a-z]" }
 
-        it 'returns false' do
-          expect(evaluator.matches_compiled('xyz', 0)).to be(false)
+        it "returns false" do
+          expect(evaluator.matches_compiled("xyz", 0)).to be(false)
         end
       end
     end
 
-    context 'with a pathological pattern that would otherwise run for many seconds' do
+    context "with a pathological pattern that would otherwise run for many seconds" do
       let(:compiled_pattern) { pattern }
 
       def do_match
         evaluator.matches_compiled(haystack, 0)
       end
 
-      include_examples 'a timeout-bounded matcher'
+      include_examples "a timeout-bounded matcher"
     end
   end
 
   describe Datadog::DI::EL::Compiler do
     let(:compiler) { described_class.new }
 
-    it 'precompiles a literal matches needle at compile time' do
-      code, regexps = compiler.compile({'matches' => [{'ref' => 'var'}, 'hello[a-z]']})
+    it "precompiles a literal matches needle at compile time" do
+      code, regexps = compiler.compile({"matches" => [{"ref" => "var"}, "hello[a-z]"]})
 
       expect(code).to eq("matches_compiled(ref('var'), 0)")
       expect(regexps.length).to eq(1)
       expect(regexps.first).to be_a(Regexp)
     end
 
-    it 'compiles a dynamically-computed matches needle at evaluation time' do
-      code, regexps = compiler.compile({'matches' => [{'ref' => 'var'}, {'ref' => 'pat'}]})
+    it "compiles a dynamically-computed matches needle at evaluation time" do
+      code, regexps = compiler.compile({"matches" => [{"ref" => "var"}, {"ref" => "pat"}]})
 
       expect(code).to eq("matches(ref('var'), (ref('pat')))")
       expect(regexps).to be_empty
     end
 
-    it 'rejects an invalid literal matches needle at compile time' do
+    it "rejects an invalid literal matches needle at compile time" do
       expect {
-        compiler.compile({'matches' => [{'ref' => 'var'}, '[invalid']})
+        compiler.compile({"matches" => [{"ref" => "var"}, "[invalid"]})
       }.to raise_error(Datadog::DI::Error::InvalidExpression, /Invalid regular expression in matches/)
     end
   end
