@@ -22,6 +22,10 @@ module Datadog
       def self.set(trace_id:, span_id:, local_root_span_id:)
         _native_set(trace_id, span_id, local_root_span_id)
       end
+
+      def self.debug_read
+        _native_debug_read
+      end
     end
   end
 end
