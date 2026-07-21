@@ -1,12 +1,12 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/data_streams/transport/stats'
-require 'datadog/core/transport/http/client'
+require "datadog/data_streams/transport/stats"
+require "datadog/core/transport/http/client"
 
 RSpec.describe Datadog::DataStreams::Transport::Stats do
   let(:logger) { logger_allowing_debug }
 
-  describe '::Transport' do
+  describe "::Transport" do
     subject(:transport) { described_class::Transport.new(apis, default_api, logger: logger) }
 
     let(:default_api) { :v01 }
@@ -20,20 +20,20 @@ RSpec.describe Datadog::DataStreams::Transport::Stats do
         .and_return(client)
     end
 
-    describe '#send_stats' do
+    describe "#send_stats" do
       subject(:send_stats) { transport.send_stats(payload) }
 
       let(:payload) do
         {
-          'Service' => 'test-service',
-          'TracerVersion' => '1.0.0',
-          'Lang' => 'ruby',
-          'Stats' => [
+          "Service" => "test-service",
+          "TracerVersion" => "1.0.0",
+          "Lang" => "ruby",
+          "Stats" => [
             {
-              'Start' => 1000000000,
-              'Duration' => 10000000000,
-              'Stats' => [],
-              'Backlogs' => []
+              "Start" => 1000000000,
+              "Duration" => 10000000000,
+              "Stats" => [],
+              "Backlogs" => []
             }
           ]
         }
@@ -45,7 +45,7 @@ RSpec.describe Datadog::DataStreams::Transport::Stats do
         allow(client).to receive(:send_request).and_return(response)
       end
 
-      it 'sends the compressed data via client' do
+      it "sends the compressed data via client" do
         expect(client).to receive(:send_request) do |action, request|
           expect(action).to eq(:stats)
           expect(request).to be_a(Datadog::DataStreams::Transport::Stats::Request)
@@ -63,7 +63,7 @@ RSpec.describe Datadog::DataStreams::Transport::Stats do
         send_stats
       end
 
-      it 'returns the response' do
+      it "returns the response" do
         expect(send_stats).to eq(response)
       end
     end

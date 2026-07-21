@@ -3,13 +3,15 @@ module Datadog
     module Telemetry
       module Event
         class AppDependenciesLoaded < Base
+          type dependency = Hash[Symbol, String]
+
           def type: () -> "app-dependencies-loaded"
 
-          def payload: () -> { dependencies: untyped }
+          def payload: () -> { dependencies: Array[dependency] }
 
           private
 
-          def dependencies: -> Array[Hash[Symbol, String]]
+          def dependencies: -> Array[dependency]
         end
       end
     end

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../ext'
-require_relative '../event'
-require_relative '../../../../../core/telemetry/logger'
+require_relative "../../ext"
+require_relative "../event"
+require_relative "../../../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -38,11 +38,11 @@ module Datadog
 
               # DEV: Look for other uses of `ActiveSupport::Cache::Store#instrument`, to find other useful event keys.
               MAPPING = {
-                'cache_delete.active_support' => {resource: Ext::RESOURCE_CACHE_DELETE},
-                'cache_read.active_support' => {resource: Ext::RESOURCE_CACHE_GET},
-                'cache_read_multi.active_support' => {resource: Ext::RESOURCE_CACHE_MGET, multi_key: true},
-                'cache_write.active_support' => {resource: Ext::RESOURCE_CACHE_SET},
-                'cache_write_multi.active_support' => {resource: Ext::RESOURCE_CACHE_MSET, multi_key: true}
+                "cache_delete.active_support" => {resource: Ext::RESOURCE_CACHE_DELETE},
+                "cache_read.active_support" => {resource: Ext::RESOURCE_CACHE_GET},
+                "cache_read_multi.active_support" => {resource: Ext::RESOURCE_CACHE_MGET, multi_key: true},
+                "cache_write.active_support" => {resource: Ext::RESOURCE_CACHE_SET},
+                "cache_write_multi.active_support" => {resource: Ext::RESOURCE_CACHE_MSET, multi_key: true}
               }.freeze
 
               def trace?(event, payload)
@@ -58,9 +58,9 @@ module Datadog
                 # DEV-3.0: See documentation at {Datadog::Tracing::Contrib::ActiveSupport::Cache::Instrumentation}
                 # DEV-3.0: for the complete information about this backwards compatibility code.
                 case event
-                when 'cache_read.active_support'
+                when "cache_read.active_support"
                   !ActiveSupport::Cache::Instrumentation.nested_read?
-                when 'cache_read_multi.active_support'
+                when "cache_read_multi.active_support"
                   !ActiveSupport::Cache::Instrumentation.nested_multiread?
                 else
                   true
@@ -85,7 +85,7 @@ module Datadog
 
                 span.set_tag(Ext::TAG_CACHE_BACKEND, cache_backend(store))
 
-                span.set_tag('EVENT', event)
+                span.set_tag("EVENT", event)
 
                 if Datadog.configuration.tracing[:active_support][:cache_key].enabled
                   set_cache_key(span, key, mapping[:multi_key])

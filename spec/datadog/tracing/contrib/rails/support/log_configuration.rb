@@ -1,7 +1,7 @@
-require 'ostruct'
-require_relative 'backport'
+require "ostruct"
+require_relative "backport"
 
-RSpec.shared_context 'Rails log configuration' do
+RSpec.shared_context "Rails log configuration" do
   around do |example|
     reset_lograge_configuration! if defined?(::Lograge)
     example.run
@@ -99,7 +99,7 @@ module RailsSemanticLoggerSubscription
     else
       ::Datadog::Tracing::Contrib::Rails::Test::Backport.unsubscribe(
         ::ActiveSupport::LogSubscriber.log_subscribers.select do |s|
-          s.class.name.start_with? 'RailsSemanticLogger::'
+          s.class.name.start_with? "RailsSemanticLogger::"
         end
       )
     end
@@ -132,7 +132,7 @@ module Datadog
               # Semantic Logger settings should be exclusive to `ActiveSupport::TaggedLogging` and `Lograge`
               if config.respond_to?(:rails_semantic_logger)
                 config.rails_semantic_logger.add_file_appender = false
-                ThreadHelpers.with_leaky_thread_creation('semantic_logger log') do
+                ThreadHelpers.with_leaky_thread_creation("semantic_logger log") do
                   config.semantic_logger.add_appender(logger: config.logger)
                 end
               end

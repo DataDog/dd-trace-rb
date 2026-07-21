@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'datadog/symbol_database/transport/http'
-require 'datadog/core/vendor/multipart-post/multipart/post/composite_read_io'
+require "datadog/symbol_database/transport/http"
+require "datadog/core/vendor/multipart-post/multipart/post/composite_read_io"
 
 # Exercises the real symbol database transport stack against a stubbed agent.
 # Verifies that Transport::HTTP.symbols, Transport::Symbols::Request,
@@ -22,7 +22,7 @@ RSpec.describe Datadog::SymbolDatabase::Transport::HTTP do
 
   let(:settings) do
     Datadog::Core::Configuration::Settings.new.tap do |s|
-      s.agent.host = '127.0.0.1'
+      s.agent.host = "127.0.0.1"
       s.agent.port = 8126
     end
   end
@@ -34,63 +34,63 @@ RSpec.describe Datadog::SymbolDatabase::Transport::HTTP do
   let(:event_part) do
     Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
       StringIO.new('{"ddsource":"ruby","service":"x","type":"symdb"}'),
-      'application/json',
-      'event.json',
+      "application/json",
+      "event.json",
     )
   end
 
   let(:file_part) do
     Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
       StringIO.new(Zlib.gzip('{"scopes":[]}')),
-      'application/gzip',
-      'symbols.json.gz',
+      "application/gzip",
+      "symbols.json.gz",
     )
   end
 
-  let(:form) { {'event' => event_part, 'file' => file_part} }
+  let(:form) { {"event" => event_part, "file" => file_part} }
 
-  describe '.symbols' do
+  describe ".symbols" do
     subject(:transport) do
       described_class.symbols(agent_settings: agent_settings, logger: logger)
     end
 
-    it 'returns a Transport::Symbols::Transport instance' do
+    it "returns a Transport::Symbols::Transport instance" do
       expect(transport).to be_a(Datadog::SymbolDatabase::Transport::Symbols::Transport)
     end
 
-    it 'wires the multipart Client subclass' do
+    it "wires the multipart Client subclass" do
       expect(transport.client).to be_a(Datadog::SymbolDatabase::Transport::Symbols::Client)
     end
 
-    context 'request dispatch', webmock: true do
-      let(:agent_url) { 'http://127.0.0.1:8126/symdb/v1/input' }
+    context "request dispatch", webmock: true do
+      let(:agent_url) { "http://127.0.0.1:8126/symdb/v1/input" }
 
-      context 'on a 200 response' do
+      context "on a 200 response" do
         before do
-          stub_request(:post, agent_url).to_return(status: 200, body: '')
+          stub_request(:post, agent_url).to_return(status: 200, body: "")
         end
 
-        it 'sends a POST to /symdb/v1/input via the real transport stack' do
+        it "sends a POST to /symdb/v1/input via the real transport stack" do
           response = transport.send_symbols(form)
 
           expect(response.code).to eq(200)
           expect(WebMock).to have_requested(:post, agent_url).once
         end
 
-        it 'sends multipart/form-data (Content-Type set by the multipart library)' do
+        it "sends multipart/form-data (Content-Type set by the multipart library)" do
           transport.send_symbols(form)
 
           expect(WebMock).to have_requested(:post, agent_url)
-            .with { |req| req.headers['Content-Type'].to_s.start_with?('multipart/form-data') }
+            .with { |req| req.headers["Content-Type"].to_s.start_with?("multipart/form-data") }
         end
       end
 
-      context 'on a 4xx response' do
+      context "on a 4xx response" do
         before do
-          stub_request(:post, agent_url).to_return(status: 400, body: 'bad request')
+          stub_request(:post, agent_url).to_return(status: 400, body: "bad request")
         end
 
-        it 'returns a non-error response with the agent status code' do
+        it "returns a non-error response with the agent status code" do
           response = transport.send_symbols(form)
 
           expect(response.internal_error?).to be_falsey
@@ -98,12 +98,12 @@ RSpec.describe Datadog::SymbolDatabase::Transport::HTTP do
         end
       end
 
-      context 'when the agent is unreachable' do
+      context "when the agent is unreachable" do
         before do
           stub_request(:post, agent_url).to_raise(Errno::ECONNREFUSED)
         end
 
-        it 'returns an internal error response without raising' do
+        it "returns an internal error response without raising" do
           response = nil
           expect { response = transport.send_symbols(form) }.not_to raise_error
 

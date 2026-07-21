@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/settings'
-require_relative '../ext'
+require_relative "../../configuration/settings"
+require_relative "../ext"
 
-require_relative '../../propagation/sql_comment'
+require_relative "../../propagation/sql_comment"
 
 module Datadog
   module Tracing

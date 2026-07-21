@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative 'scope'
-require_relative 'symbol'
-require_relative 'file_hash'
-require_relative '../core/utils/enumerable_compat'
-require_relative '../di/fatal_exceptions'
+require_relative "scope"
+require_relative "symbol"
+require_relative "file_hash"
+require_relative "../core/utils/enumerable_compat"
+require_relative "../di/fatal_exceptions"
 
 module Datadog
   module SymbolDatabase
@@ -68,7 +68,7 @@ module Datadog
       # PostgreSQL signed INT_MAX (2^31 - 1). Means "entire file" or "unknown end."
       UNKNOWN_MAX_LINE = 2147483647
 
-      EXCLUDED_COMMON_MODULES = ['Kernel', 'PP::', 'JSON::', 'Enumerable', 'Comparable'].freeze
+      EXCLUDED_COMMON_MODULES = ["Kernel", "PP::", "JSON::", "Enumerable", "Comparable"].freeze
 
       # RubyVM::InstructionSequence#trace_points event types included when
       # computing targetable lines on METHOD scopes.
@@ -148,7 +148,7 @@ module Datadog
         wrap_in_file_scope(source_file, [inner_scope])
       rescue Exception => e # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)
-        @logger.debug { "symdb: failed to extract #{mod_name || '<unknown>'}: #{e.class}: #{e.message}" }
+        @logger.debug { "symdb: failed to extract #{mod_name || "<unknown>"}: #{e.class}: #{e.message}" }
         nil
       end
 
@@ -261,7 +261,7 @@ module Datadog
       # @return [Boolean]
       def resolves_to_same_module?(mod_name, mod)
         current = Object
-        mod_name.split('::').each do |seg|
+        mod_name.split("::").each do |seg|
           sym = seg.to_sym
           return false if MODULE_AUTOLOAD_P.bind(current).call(sym, false)
           return false unless MODULE_CONST_DEFINED.bind(current).call(sym, false)
@@ -287,7 +287,7 @@ module Datadog
         # Matches Python: packages.is_user_code() excludes ddtrace.*
         # Note: bare 'Datadog' must be checked separately — start_with?('Datadog::')
         # doesn't match the root module itself.
-        return false if mod_name == 'Datadog' || mod_name.start_with?('Datadog::')
+        return false if mod_name == "Datadog" || mod_name.start_with?("Datadog::")
 
         # Exclude Ruby root classes. These are never user code, but
         # find_source_file can return a user-code path for them via
@@ -309,24 +309,24 @@ module Datadog
       def user_code_path?(path)
         # Only absolute paths are real source files. Pseudo-paths like '<main>',
         # '<internal:...>', '(eval)' are not user code.
-        return false unless path.start_with?('/')
+        return false unless path.start_with?("/")
         # Only .rb files are Ruby source. Excludes the Ruby binary
         # (/usr/local/bin/ruby), C extensions (.so/.bundle), and other
         # non-source files that appear in method source_location.
-        return false unless path.end_with?('.rb')
+        return false unless path.end_with?(".rb")
         # Exclude gem paths
-        return false if path.include?('/gems/')
+        return false if path.include?("/gems/")
         # Exclude Ruby stdlib
-        return false if path.include?('/ruby/')
-        return false if path.start_with?('<internal:')
-        return false if path.include?('(eval)')
+        return false if path.include?("/ruby/")
+        return false if path.start_with?("<internal:")
+        return false if path.include?("(eval)")
         # Exclude test code (not application code)
-        return false if path.include?('/spec/')
-        return false if path.include?('/test/')
+        return false if path.include?("/spec/")
+        return false if path.include?("/test/")
         # Exclude Datadog's own library code (e.g., monkey-patched methods from tracing contrib).
         # Without this, stdlib classes like Net::HTTP appear as user code when dd-trace-rb
         # instruments them, because the patched method source points to lib/datadog/tracing/contrib/.
-        return false if path.include?('/lib/datadog/')
+        return false if path.include?("/lib/datadog/")
 
         true
       end
@@ -379,11 +379,11 @@ module Datadog
         mod_name = safe_mod_name(mod)
         if mod_name
           # Look up the class/module by its last name component in its enclosing namespace.
-          parts = mod_name.split('::')
+          parts = mod_name.split("::")
           const_name = parts.last
           namespace = if parts.length > 1
             begin
-              MODULE_CONST_GET.bind(Object).call(parts[0..-2].join('::')) # steep:ignore
+              MODULE_CONST_GET.bind(Object).call(parts[0..-2].join("::")) # steep:ignore
             rescue NameError
               nil
             end
@@ -430,7 +430,7 @@ module Datadog
         fallback
       rescue Exception => e # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)
-        @logger.debug { "symdb: error finding source file for #{safe_mod_name(mod) || '<unknown>'}: #{e.class}: #{e.message}" }
+        @logger.debug { "symdb: error finding source file for #{safe_mod_name(mod) || "<unknown>"}: #{e.class}: #{e.message}" }
         nil
       end
 
@@ -447,7 +447,7 @@ module Datadog
         lang[:file_hash] = file_hash if file_hash
 
         Scope.new(
-          scope_type: 'FILE',
+          scope_type: "FILE",
           name: file_path,
           source_file: file_path,
           start_line: UNKNOWN_MIN_LINE,
@@ -465,7 +465,7 @@ module Datadog
         source_file = find_source_file(mod)
 
         Scope.new(
-          scope_type: 'MODULE',
+          scope_type: "MODULE",
           name: safe_mod_name(mod),
           source_file: source_file,
           start_line: UNKNOWN_MIN_LINE,
@@ -483,7 +483,7 @@ module Datadog
         source_file = find_source_file(klass)
 
         Scope.new(
-          scope_type: 'CLASS',
+          scope_type: "CLASS",
           name: safe_mod_name(klass),
           source_file: source_file,
           start_line: start_line,
@@ -607,7 +607,7 @@ module Datadog
         targetable_lines, end_line = extract_targetable_lines(method, line)
 
         Scope.new(
-          scope_type: 'METHOD',
+          scope_type: "METHOD",
           name: method_name.to_s,
           source_file: source_file,
           start_line: line,
@@ -632,11 +632,11 @@ module Datadog
       # @return [String] 'public', 'private', or 'protected'
       def method_visibility(klass, method_name)
         if klass.private_instance_methods(false).include?(method_name)
-          'private'
+          "private"
         elsif klass.protected_instance_methods(false).include?(method_name)
-          'protected'
+          "protected"
         else
-          'public'
+          "public"
         end
       end
 
@@ -662,7 +662,7 @@ module Datadog
         end_line = lines.max || start_line
         ranges = build_targetable_ranges(lines)
         result = ranges.empty? ? nil : ranges
-        @logger.debug { "symdb: #{method.name} targetable lines: #{result ? "#{ranges.size} range(s), lines #{lines.first}..#{lines.last}" : 'none (no matching events)'}" }
+        @logger.debug { "symdb: #{method.name} targetable lines: #{result ? "#{ranges.size} range(s), lines #{lines.first}..#{lines.last}" : "none (no matching events)"}" }
         [result, end_line]
       end
 
@@ -702,7 +702,7 @@ module Datadog
         rescue Exception => e # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(e)
           @logger.debug { "symdb: method.name failed: #{e.class}: #{e.message}" }
-          'unknown'
+          "unknown"
         end
         params = method.parameters
 
@@ -717,7 +717,7 @@ module Datadog
           next if param_name.nil?
 
           Symbol.new(
-            symbol_type: 'ARG',
+            symbol_type: "ARG",
             name: param_name.to_s,
             line: UNKNOWN_MIN_LINE,  # Parameters available in entire method
           )
@@ -790,7 +790,7 @@ module Datadog
           end
         rescue Exception => e # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(e)
-          @logger.debug { "symdb: error indexing #{mod_name || '<unknown>'}: #{e.class}: #{e.message}" }
+          @logger.debug { "symdb: error indexing #{mod_name || "<unknown>"}: #{e.class}: #{e.message}" }
         end
 
         index
@@ -840,12 +840,12 @@ module Datadog
         return nil if entries.empty?
 
         root = {
-          name: file_path, type: 'FILE', children: {},
+          name: file_path, type: "FILE", children: {},
           methods: [], mod: nil, source_file: file_path, fqn: nil,
         }
 
         # Sort by FQN depth so parent namespaces are placed before children.
-        sorted = entries.sort_by { |(mod_name, _, _)| mod_name.count(':') }
+        sorted = entries.sort_by { |(mod_name, _, _)| mod_name.count(":") }
 
         sorted.each do |mod_name, mod, method_names|
           # Resolve UnboundMethods for this (mod, file) just-in-time. These objects
@@ -875,7 +875,7 @@ module Datadog
           # the module no longer lives in.
           next if method_names.any? && method_infos.empty?
 
-          parts = mod_name.split('::')
+          parts = mod_name.split("::")
           place_in_tree(root, parts, mod, mod_name, method_infos, file_path)
         rescue Exception => e # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(e)
@@ -901,7 +901,7 @@ module Datadog
 
         # Create/find intermediate nodes for each namespace segment except the last
         name_parts[0..-2].each_with_index do |part, idx| # steep:ignore
-          fqn = name_parts[0..idx].join('::') # steep:ignore
+          fqn = name_parts[0..idx].join("::") # steep:ignore
           current[:children][part] ||= {
             name: fqn, type: resolve_scope_type(fqn),
             children: {}, methods: [], mod: nil,
@@ -916,12 +916,12 @@ module Datadog
         if leaf
           # Node exists (was created as intermediate or from another entry).
           # Update type and mod — the actual module object is authoritative.
-          leaf[:type] = (Class === mod) ? 'CLASS' : 'MODULE'
+          leaf[:type] = (Class === mod) ? "CLASS" : "MODULE"
           leaf[:mod] = mod
         else
           leaf = {
             name: mod_name,
-            type: (Class === mod) ? 'CLASS' : 'MODULE',
+            type: (Class === mod) ? "CLASS" : "MODULE",
             children: {}, methods: [],
             mod: mod, source_file: file_path,
             fqn: mod_name
@@ -939,22 +939,22 @@ module Datadog
       # @return [String] 'CLASS' or 'MODULE'
       def resolve_scope_type(fqn)
         current = Object
-        fqn.split('::').each do |seg|
+        fqn.split("::").each do |seg|
           sym = seg.to_sym
-          pending_autoload = if RubyVersion.is?('>= 2.7')
+          pending_autoload = if RubyVersion.is?(">= 2.7")
             MODULE_AUTOLOAD_P.bind(current).call(sym, false)
           else
             MODULE_AUTOLOAD_P.bind(current).call(sym)
           end
-          return 'MODULE' if pending_autoload
-          return 'MODULE' unless MODULE_CONST_DEFINED.bind(current).call(sym, false)
+          return "MODULE" if pending_autoload
+          return "MODULE" unless MODULE_CONST_DEFINED.bind(current).call(sym, false)
           current = MODULE_CONST_GET.bind(current).call(sym, false)
         end
-        (Class === current) ? 'CLASS' : 'MODULE'
+        (Class === current) ? "CLASS" : "MODULE"
       rescue Exception => e # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: resolve_scope_type(#{fqn}) failed: #{e.class}: #{e.message}, defaulting to MODULE" }
-        'MODULE'
+        "MODULE"
       end
 
       # Convert a single file tree (built by build_file_scope) to a FILE Scope.
@@ -967,7 +967,7 @@ module Datadog
         lang[:file_hash] = file_hash if file_hash
 
         Scope.new(
-          scope_type: 'FILE',
+          scope_type: "FILE",
           name: file_path,
           source_file: file_path,
           start_line: UNKNOWN_MIN_LINE,
@@ -1001,7 +1001,7 @@ module Datadog
         symbols = node[:mod] ? extract_scope_symbols(node[:mod]) : []
 
         # Build language specifics
-        lang = if node[:type] == 'CLASS' && node[:mod]
+        lang = if node[:type] == "CLASS" && node[:mod]
           build_class_language_specifics(node[:mod])
         else
           {}
@@ -1034,22 +1034,22 @@ module Datadog
         targetable_lines, end_line = extract_targetable_lines(method, line)
 
         Scope.new(
-          scope_type: 'METHOD',
+          scope_type: "METHOD",
           name: method_name.to_s,
           source_file: source_file,
           start_line: line,
           end_line: end_line,
           targetable_lines: targetable_lines,
           language_specifics: {
-            visibility: klass ? method_visibility(klass, method_name) : 'public', # steep:ignore
-            method_type: 'instance',
+            visibility: klass ? method_visibility(klass, method_name) : "public", # steep:ignore
+            method_type: "instance",
             arity: method.arity
           },
           symbols: extract_method_parameters(method)
         )
       rescue Exception => e # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)
-        klass_name = klass ? (safe_mod_name(klass) || '<unknown>') : '<unknown>'
+        klass_name = klass ? (safe_mod_name(klass) || "<unknown>") : "<unknown>"
         @logger.debug { "symdb: failed to build method scope #{klass_name}##{method_name}: #{e.class}: #{e.message}" }
         nil
       end
@@ -1065,7 +1065,7 @@ module Datadog
         if Class === mod
           MODULE_CLASS_VARIABLES.bind(mod).call(false).each do |var_name|
             symbols << Symbol.new(
-              symbol_type: 'STATIC_FIELD',
+              symbol_type: "STATIC_FIELD",
               name: var_name.to_s,
               line: UNKNOWN_MIN_LINE
             )
@@ -1080,7 +1080,7 @@ module Datadog
           next if Module === const_value
 
           symbols << Symbol.new(
-            symbol_type: 'STATIC_FIELD',
+            symbol_type: "STATIC_FIELD",
             name: const_name.to_s,
             line: UNKNOWN_MIN_LINE,
             type: safe_mod_name(KERNEL_CLASS.bind(const_value).call)
@@ -1101,7 +1101,7 @@ module Datadog
         symbols
       rescue Exception => e # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)
-        mod_name = safe_mod_name(mod) || '<unknown>'
+        mod_name = safe_mod_name(mod) || "<unknown>"
         @logger.debug { "symdb: failed to extract symbols from #{mod_name}: #{e.class}: #{e.message}" }
         []
       end

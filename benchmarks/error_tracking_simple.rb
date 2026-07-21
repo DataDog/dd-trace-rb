@@ -1,13 +1,13 @@
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require_relative 'benchmarks_helper'
-require 'datadog'
-require 'benchmark'
-require 'net/http'
-require 'webrick'
+require_relative "benchmarks_helper"
+require "datadog"
+require "benchmark"
+require "net/http"
+require "webrick"
 
 class ErrorTrackingSimpleBenchmark
   module NoopWriter
@@ -33,77 +33,77 @@ class ErrorTrackingSimpleBenchmark
       x.config(**benchmark_time)
 
       x.report("without error tracking, with_error=#{with_error}") do
-        Datadog::Tracing.trace('test.operation') do
-          raise 'Test error' if with_error
+        Datadog::Tracing.trace("test.operation") do
+          raise "Test error" if with_error
         rescue
           # do nothing
         end
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
 
   def benchmark_simple_all(with_error: false)
     Datadog.configure do |c|
-      c.error_tracking.handled_errors = 'all'
+      c.error_tracking.handled_errors = "all"
     end
 
     Benchmark.ips do |x|
       x.config(**benchmark_time)
 
       x.report("error tracking, with_error=#{with_error} - all") do
-        Datadog::Tracing.trace('test.operation') do
-          raise 'Test error' if with_error
+        Datadog::Tracing.trace("test.operation") do
+          raise "Test error" if with_error
         rescue
           # do nothing
         end
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
 
   def benchmark_simple_user(with_error: false)
     Datadog.configure do |c|
-      c.error_tracking.handled_errors = 'user'
+      c.error_tracking.handled_errors = "user"
     end
 
     Benchmark.ips do |x|
       x.config(**benchmark_time)
 
       x.report("error tracking, with_error=#{with_error} - user code only") do
-        Datadog::Tracing.trace('test.operation') do
-          raise 'Test error' if with_error
+        Datadog::Tracing.trace("test.operation") do
+          raise "Test error" if with_error
         rescue
           # do nothing
         end
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
 
   def benchmark_simple_third_party(with_error: false)
     Datadog.configure do |c|
-      c.error_tracking.handled_errors = 'third_party'
+      c.error_tracking.handled_errors = "third_party"
     end
 
     Benchmark.ips do |x|
       x.config(**benchmark_time)
 
       x.report("error tracking, with_error=#{with_error} - third_party only") do
-        Datadog::Tracing.trace('test.operation') do
-          raise 'Test error' if with_error
+        Datadog::Tracing.trace("test.operation") do
+          raise "Test error" if with_error
         rescue
           # do nothing
         end
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end

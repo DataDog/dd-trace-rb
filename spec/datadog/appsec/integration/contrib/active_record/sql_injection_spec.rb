@@ -1,22 +1,22 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/appsec/spec_helper'
-require 'rack/test'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/appsec/spec_helper"
+require "rack/test"
 
-require 'sqlite3'
-require 'active_record'
-require 'datadog/tracing'
-require 'datadog/appsec'
+require "sqlite3"
+require "active_record"
+require "datadog/tracing"
+require "datadog/appsec"
 
-RSpec.describe 'ActiveRecord SQL Injection' do
+RSpec.describe "ActiveRecord SQL Injection" do
   include Rack::Test::Methods
 
   before do
-    stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-      klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
+    stub_const("User", Class.new(ActiveRecord::Base)).tap do |klass|
+      klass.establish_connection({adapter: "sqlite3", database: ":memory:"})
 
-      klass.connection.create_table 'users', force: :cascade do |t|
+      klass.connection.create_table "users", force: :cascade do |t|
         t.string :name, null: false
       end
 
@@ -36,24 +36,24 @@ RSpec.describe 'ActiveRecord SQL Injection' do
       c.appsec.ruleset = {
         rules: [
           {
-            id: 'rasp-003-001',
-            name: 'SQL Injection',
+            id: "rasp-003-001",
+            name: "SQL Injection",
             tags: {
-              type: 'sql_injection',
-              category: 'exploit',
-              module: 'rasp'
+              type: "sql_injection",
+              category: "exploit",
+              module: "rasp"
             },
             conditions: [
               {
-                operator: 'sqli_detector',
+                operator: "sqli_detector",
                 parameters: {
-                  resource: [{address: 'server.db.statement'}],
-                  params: [{address: 'server.request.query'}],
-                  db_type: [{address: 'server.db.system'}]
+                  resource: [{address: "server.db.statement"}],
+                  params: [{address: "server.request.query"}],
+                  db_type: [{address: "server.db.system"}]
                 }
               }
             ],
-            on_match: ['block']
+            on_match: ["block"]
           }
         ]
       }
@@ -74,7 +74,7 @@ RSpec.describe 'ActiveRecord SQL Injection' do
       use Datadog::Tracing::Contrib::Rack::TraceMiddleware
       use Datadog::AppSec::Contrib::Rack::RequestMiddleware
 
-      map '/rasp' do
+      map "/rasp" do
         run(
           lambda do |env|
             request = Rack::Request.new(env)
@@ -82,7 +82,7 @@ RSpec.describe 'ActiveRecord SQL Injection' do
               "SELECT * FROM users WHERE name = '#{request.params["name"]}'"
             )
 
-            [200, {'Content-Type' => 'application/json'}, [users.to_json]]
+            [200, {"Content-Type" => "application/json"}, [users.to_json]]
           end
         )
       end
@@ -93,12 +93,12 @@ RSpec.describe 'ActiveRecord SQL Injection' do
 
   let(:http_service_entry_span) do
     Datadog::Tracing::Transport::TraceFormatter.format!(trace)
-    spans.find { |s| s.name == 'rack.request' }
+    spans.find { |s| s.name == "rack.request" }
   end
 
-  context 'when RASP check triggered for database query' do
+  context "when RASP check triggered for database query" do
     before do
-      get('/rasp', {'name' => "Bob'; OR 1=1"}, {'REMOTE_ADDR' => '127.0.0.1'})
+      get("/rasp", {"name" => "Bob'; OR 1=1"}, {"REMOTE_ADDR" => "127.0.0.1"})
     end
 
     it { expect(last_response).to be_forbidden }

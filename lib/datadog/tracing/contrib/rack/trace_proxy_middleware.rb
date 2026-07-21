@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative 'ext'
-require_relative 'request_queue'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "ext"
+require_relative "request_queue"
 
 module Datadog
   module Tracing
@@ -87,7 +87,7 @@ module Datadog
             inferred_span.resource = resource if resource
             inferred_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, proxy_type)
             inferred_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
-            inferred_span.set_tag('stage', stage) if stage
+            inferred_span.set_tag("stage", stage) if stage
             inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, http_method) if http_method
             inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, "https://#{domain}#{path}") if domain && path
             inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, resource_path) if resource_path
@@ -125,21 +125,21 @@ module Datadog
             # API Gateway v1 sends region as a single-quoted string
             region = region.delete("'") if region
 
-            span.set_tag('apiid', api_id) if api_id
-            span.set_tag('region', region) if region
+            span.set_tag("apiid", api_id) if api_id
+            span.set_tag("region", region) if region
 
             if (account_id = env[Ext::HEADER_X_DD_PROXY_ACCOUNT_ID])
-              span.set_tag('account_id', account_id)
+              span.set_tag("account_id", account_id)
             end
 
             if (user = env[Ext::HEADER_X_DD_PROXY_USER])
-              span.set_tag('aws_user', user)
+              span.set_tag("aws_user", user)
             end
 
             if api_id && region
               # NOTE: Update this when adding non-AWS proxy types.
-              restapi_prefix = (proxy_type == Ext::PROXY_AWS_APIGATEWAY) ? 'restapis' : 'apis'
-              span.set_tag('dd_resource_key', "arn:aws:apigateway:#{region}::/#{restapi_prefix}/#{api_id}")
+              restapi_prefix = (proxy_type == Ext::PROXY_AWS_APIGATEWAY) ? "restapis" : "apis"
+              span.set_tag("dd_resource_key", "arn:aws:apigateway:#{region}::/#{restapi_prefix}/#{api_id}")
             end
           end
           # rubocop:enable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
@@ -160,13 +160,13 @@ module Datadog
             end
 
             # NOTE: Tracing shouldn't know about AppSec tags.
-            if (appsec_enabled = rack_span.get_metric('_dd.appsec.enabled'))
-              span.set_metric('_dd.appsec.enabled', appsec_enabled)
+            if (appsec_enabled = rack_span.get_metric("_dd.appsec.enabled"))
+              span.set_metric("_dd.appsec.enabled", appsec_enabled)
             end
 
             # NOTE: Tracing shouldn't know about AppSec tags.
-            if (appsec_json = rack_span.get_tag('_dd.appsec.json'))
-              span.set_tag('_dd.appsec.json', appsec_json)
+            if (appsec_json = rack_span.get_tag("_dd.appsec.json"))
+              span.set_tag("_dd.appsec.json", appsec_json)
             end
           end
         end

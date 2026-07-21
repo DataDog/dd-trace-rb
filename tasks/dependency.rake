@@ -1,4 +1,4 @@
-require_relative 'appraisal_conversion'
+require_relative "appraisal_conversion"
 
 namespace :dependency do
   desc "Regenerate, lock, and propagate dependencies for #{AppraisalConversion.runtime_identifier}"
@@ -24,18 +24,18 @@ namespace :dependency do
   # Replacement for `bundle exec appraisal generate`
   desc "Generate dependencies for #{AppraisalConversion.runtime_identifier}"
   task :generate do |_, _|
-    sh 'bundle exec ruby appraisal/generate.rb'
+    sh "bundle exec ruby appraisal/generate.rb"
   end
 
   desc "Run an arbitrary command across every appraisal gemfile for #{AppraisalConversion.runtime_identifier}"
   task :exec do |_t, args|
-    command = args.extras.any? ? args.extras.first : 'bundle version'
+    command = args.extras.any? ? args.extras.first : "bundle version"
 
     gemfiles = Dir.glob(AppraisalConversion.gemfile_pattern)
 
     gemfiles.each do |gemfile|
       Bundler.with_unbundled_env do
-        sh({'BUNDLE_GEMFILE' => gemfile.to_s}, command)
+        sh({"BUNDLE_GEMFILE" => gemfile.to_s}, command)
       end
     end
   end
@@ -49,9 +49,9 @@ namespace :dependency do
 
     gemfiles.each do |gemfile|
       Bundler.with_unbundled_env do
-        command = +'bundle lock'
-        command << ' --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin'
-        sh({'BUNDLE_GEMFILE' => gemfile.to_s}, command)
+        command = +"bundle lock"
+        command << " --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin"
+        sh({"BUNDLE_GEMFILE" => gemfile.to_s}, command)
       end
     end
   end
@@ -78,7 +78,7 @@ namespace :dependency do
       next if drifted.empty?
 
       Bundler.with_unbundled_env do
-        sh({'BUNDLE_GEMFILE' => gemfile.to_s}, "bundle lock --update #{drifted.join(' ')}")
+        sh({"BUNDLE_GEMFILE" => gemfile.to_s}, "bundle lock --update #{drifted.join(" ")}")
       end
     end
   end
@@ -92,7 +92,7 @@ namespace :dependency do
 
     gemfiles.each do |gemfile|
       Bundler.with_unbundled_env do
-        sh({'BUNDLE_GEMFILE' => gemfile.to_s}, 'bundle check || bundle install')
+        sh({"BUNDLE_GEMFILE" => gemfile.to_s}, "bundle check || bundle install")
       end
     end
   end

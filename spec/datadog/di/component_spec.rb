@@ -1,10 +1,10 @@
 require "datadog/di/spec_helper"
-require 'datadog/di/component'
+require "datadog/di/component"
 
 RSpec.describe Datadog::DI::Component do
   di_test
 
-  describe '.build' do
+  describe ".build" do
     let(:settings) do
       settings = Datadog::Core::Configuration::Settings.new
       settings.dynamic_instrumentation.internal.development = true
@@ -19,12 +19,12 @@ RSpec.describe Datadog::DI::Component do
       instance_double(Logger)
     end
 
-    context 'when remote config is enabled' do
+    context "when remote config is enabled" do
       before do
         settings.remote.enabled = true
       end
 
-      it 'returns a Component in stopped state' do
+      it "returns a Component in stopped state" do
         component = described_class.build(settings, agent_settings, logger)
         expect(component).to be_a(described_class)
         expect(component.started?).to be false
@@ -37,15 +37,15 @@ RSpec.describe Datadog::DI::Component do
     # set, otherwise debug. Implicit-enabled customers receive their warn
     # from Remote.handle_rc_enablement when the RC signal lands on a nil
     # component.
-    context 'when remote config is disabled' do
+    context "when remote config is disabled" do
       before do
         settings.remote.enabled = false
       end
 
-      context 'with DD_DYNAMIC_INSTRUMENTATION_ENABLED explicitly true' do
+      context "with DD_DYNAMIC_INSTRUMENTATION_ENABLED explicitly true" do
         before { settings.dynamic_instrumentation.enabled = true }
 
-        it 'returns nil and warns with the docs URL' do
+        it "returns nil and warns with the docs URL" do
           expect(logger).to receive(:warn).with(
             a_string_matching(%r{Remote Configuration is not enabled.*docs\.datadoghq\.com/agent/remote_config})
           )
@@ -53,8 +53,8 @@ RSpec.describe Datadog::DI::Component do
         end
       end
 
-      context 'without DD_DYNAMIC_INSTRUMENTATION_ENABLED set' do
-        it 'returns nil and logs the RC-disabled reason at debug' do
+      context "without DD_DYNAMIC_INSTRUMENTATION_ENABLED set" do
+        it "returns nil and logs the RC-disabled reason at debug" do
           expect(logger).to receive(:debug).with(
             a_string_matching(%r{Remote Configuration is not enabled.*docs\.datadoghq\.com/agent/remote_config})
           )
@@ -64,23 +64,23 @@ RSpec.describe Datadog::DI::Component do
       end
     end
 
-    context 'when the runtime is unsupported (MRI required, mocked)' do
+    context "when the runtime is unsupported (MRI required, mocked)" do
       before do
         settings.remote.enabled = true
-        stub_const('RUBY_ENGINE', 'jruby')
+        stub_const("RUBY_ENGINE", "jruby")
       end
 
-      context 'with DD_DYNAMIC_INSTRUMENTATION_ENABLED explicitly true' do
+      context "with DD_DYNAMIC_INSTRUMENTATION_ENABLED explicitly true" do
         before { settings.dynamic_instrumentation.enabled = true }
 
-        it 'returns nil and warns naming the engine' do
+        it "returns nil and warns naming the engine" do
           expect(logger).to receive(:warn).with(a_string_matching(/MRI is required.*jruby/))
           expect(described_class.build(settings, agent_settings, logger)).to be nil
         end
       end
 
-      context 'without DD_DYNAMIC_INSTRUMENTATION_ENABLED set' do
-        it 'returns nil and logs the MRI-required reason at debug' do
+      context "without DD_DYNAMIC_INSTRUMENTATION_ENABLED set" do
+        it "returns nil and logs the MRI-required reason at debug" do
           expect(logger).to receive(:debug).with(a_string_matching(/MRI is required.*jruby/))
           expect(logger).not_to receive(:warn)
           expect(described_class.build(settings, agent_settings, logger)).to be nil
@@ -88,27 +88,27 @@ RSpec.describe Datadog::DI::Component do
       end
     end
 
-    context 'when the runtime is unsupported (Ruby 2.6+ required, mocked)' do
+    context "when the runtime is unsupported (Ruby 2.6+ required, mocked)" do
       # Stub both RUBY_VERSION (used in the error message interpolation)
       # and Datadog::RubyVersion::CURRENT_RUBY_VERSION (the cached value
       # RubyVersion.is? compares against, captured at module load time).
       before do
         settings.remote.enabled = true
-        stub_const('RUBY_VERSION', '2.5.0')
-        stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new('2.5.0'))
+        stub_const("RUBY_VERSION", "2.5.0")
+        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("2.5.0"))
       end
 
-      context 'with DD_DYNAMIC_INSTRUMENTATION_ENABLED explicitly true' do
+      context "with DD_DYNAMIC_INSTRUMENTATION_ENABLED explicitly true" do
         before { settings.dynamic_instrumentation.enabled = true }
 
-        it 'returns nil and warns naming the version' do
+        it "returns nil and warns naming the version" do
           expect(logger).to receive(:warn).with(a_string_matching(/Ruby 2\.6\+ is required.*2\.5\.0/))
           expect(described_class.build(settings, agent_settings, logger)).to be nil
         end
       end
 
-      context 'without DD_DYNAMIC_INSTRUMENTATION_ENABLED set' do
-        it 'returns nil and logs the Ruby-version reason at debug' do
+      context "without DD_DYNAMIC_INSTRUMENTATION_ENABLED set" do
+        it "returns nil and logs the Ruby-version reason at debug" do
           expect(logger).to receive(:debug).with(a_string_matching(/Ruby 2\.6\+ is required.*2\.5\.0/))
           expect(logger).not_to receive(:warn)
           expect(described_class.build(settings, agent_settings, logger)).to be nil
@@ -116,24 +116,24 @@ RSpec.describe Datadog::DI::Component do
       end
     end
 
-    context 'when C extension is not available' do
+    context "when C extension is not available" do
       before do
         settings.remote.enabled = true
         allow(Datadog::DI).to receive(:respond_to?).and_call_original
         allow(Datadog::DI).to receive(:respond_to?).with(:exception_message).and_return(false)
       end
 
-      context 'with DD_DYNAMIC_INSTRUMENTATION_ENABLED explicitly true' do
+      context "with DD_DYNAMIC_INSTRUMENTATION_ENABLED explicitly true" do
         before { settings.dynamic_instrumentation.enabled = true }
 
-        it 'returns nil and warns' do
+        it "returns nil and warns" do
           expect(logger).to receive(:warn).with(/C extension is not available/)
           expect(described_class.build(settings, agent_settings, logger)).to be nil
         end
       end
 
-      context 'without DD_DYNAMIC_INSTRUMENTATION_ENABLED set' do
-        it 'returns nil and logs the C-extension-absent reason at debug' do
+      context "without DD_DYNAMIC_INSTRUMENTATION_ENABLED set" do
+        it "returns nil and logs the C-extension-absent reason at debug" do
           expect(logger).to receive(:debug).with(a_string_matching(/C extension is not available/))
           expect(logger).not_to receive(:warn)
           expect(described_class.build(settings, agent_settings, logger)).to be nil
@@ -141,13 +141,13 @@ RSpec.describe Datadog::DI::Component do
       end
     end
 
-    context 'when DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly false' do
+    context "when DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly false" do
       before do
         settings.remote.enabled = true
         settings.dynamic_instrumentation.enabled = false
       end
 
-      it 'returns nil and logs at debug without building a component' do
+      it "returns nil and logs at debug without building a component" do
         expect(logger).to receive(:debug).with(
           a_string_matching(/explicitly disabled.*DD_DYNAMIC_INSTRUMENTATION_ENABLED=false/)
         )
@@ -157,36 +157,36 @@ RSpec.describe Datadog::DI::Component do
     end
   end
 
-  describe '.explicitly_enabled?' do
+  describe ".explicitly_enabled?" do
     let(:settings) { Datadog::Core::Configuration::Settings.new }
     let(:di_settings) { settings.dynamic_instrumentation }
 
-    context 'when DD_DYNAMIC_INSTRUMENTATION_ENABLED is unset (default precedence)' do
+    context "when DD_DYNAMIC_INSTRUMENTATION_ENABLED is unset (default precedence)" do
       before { di_settings.enabled }
 
-      it 'returns false' do
+      it "returns false" do
         expect(described_class.explicitly_enabled?(settings)).to be false
       end
     end
 
-    context 'when DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly set to true' do
+    context "when DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly set to true" do
       before { di_settings.enabled = true }
 
-      it 'returns true' do
+      it "returns true" do
         expect(described_class.explicitly_enabled?(settings)).to be true
       end
     end
 
-    context 'when DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly set to false' do
+    context "when DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly set to false" do
       before { di_settings.enabled = false }
 
-      it 'returns false' do
+      it "returns false" do
         expect(described_class.explicitly_enabled?(settings)).to be false
       end
     end
   end
 
-  describe 'DI.add_current_component invariant from build' do
+  describe "DI.add_current_component invariant from build" do
     # Guards the "two storage places" decision: built components are
     # tracked in BOTH Components#@dynamic_instrumentation
     # AND DI.@current_components, so the code-tracker callback (which has
@@ -204,21 +204,21 @@ RSpec.describe Datadog::DI::Component do
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
     let(:logger) { instance_double(Logger) }
 
-    it 'registers the built component in DI.current_component' do
+    it "registers the built component in DI.current_component" do
       component = described_class.build(settings, agent_settings, logger)
       expect(component).not_to be_nil
       expect(Datadog::DI.current_component).to be component
       component.shutdown!
     end
 
-    it 'removes the component from DI.current_component on shutdown!' do
+    it "removes the component from DI.current_component on shutdown!" do
       component = described_class.build(settings, agent_settings, logger)
       component.shutdown!
       expect(Datadog::DI.current_component).not_to be component
     end
   end
 
-  describe 'build does not block' do
+  describe "build does not block" do
     # Companion to the handle_rc_enablement non-blocking guarantee.
     # DI startup must not block requests:
     # Component.build is called during Components#initialize — any blocking
@@ -241,7 +241,7 @@ RSpec.describe Datadog::DI::Component do
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
     let(:logger) { instance_double(Logger) }
 
-    it 'completes synchronously without I/O' do
+    it "completes synchronously without I/O" do
       baseline = Thread.list.size
       started = Datadog::Core::Utils::Time.get_time
       component = described_class.build(settings, agent_settings, logger)
@@ -255,7 +255,7 @@ RSpec.describe Datadog::DI::Component do
     end
   end
 
-  describe '#start! and #stop!' do
+  describe "#start! and #stop!" do
     let(:settings) do
       settings = Datadog::Core::Configuration::Settings.new
       settings.dynamic_instrumentation.internal.development = true
@@ -279,7 +279,7 @@ RSpec.describe Datadog::DI::Component do
       component&.shutdown!
     end
 
-    it 'starts and stops the component' do
+    it "starts and stops the component" do
       expect(component.started?).to be false
       component.start!
       expect(component.started?).to be true
@@ -287,19 +287,19 @@ RSpec.describe Datadog::DI::Component do
       expect(component.started?).to be false
     end
 
-    it 'start! is idempotent' do
+    it "start! is idempotent" do
       component.start!
       component.start!
       expect(component.started?).to be true
     end
 
-    it 'stop! is idempotent' do
+    it "stop! is idempotent" do
       component.stop!
       component.stop!
       expect(component.started?).to be false
     end
 
-    it 'supports restart after stop' do
+    it "supports restart after stop" do
       component.start!
       expect(component.started?).to be true
       component.stop!
@@ -308,7 +308,32 @@ RSpec.describe Datadog::DI::Component do
       expect(component.started?).to be true
     end
 
-    it 'spawns a background thread on start! and reaps it on stop!' do
+    context "when code tracking is activated after the component is built (in-product enablement)" do
+      before do
+        # Simulate DI disabled at boot: no global code tracker exists when the
+        # component (and its instrumenter) are built.
+        Datadog::DI.instance_variable_set(:@code_tracker, nil)
+      end
+
+      after do
+        Datadog::DI.deactivate_tracking!
+        Datadog::DI.instance_variable_set(:@code_tracker, nil)
+      end
+
+      it "adopts the global code tracker on start!" do
+        expect(component.instrumenter.code_tracker).to be_nil
+
+        Datadog::DI.activate_tracking!
+        expect(Datadog::DI.code_tracker).not_to be_nil
+
+        component.start!
+
+        expect(component.instrumenter.code_tracker).to be(Datadog::DI.code_tracker)
+        expect(component.code_tracker).to be(Datadog::DI.code_tracker)
+      end
+    end
+
+    it "spawns a background thread on start! and reaps it on stop!" do
       baseline = Thread.list.size
       expect(component.started?).to be false
       # Component built but not yet started — no new threads beyond baseline.
@@ -323,22 +348,22 @@ RSpec.describe Datadog::DI::Component do
       expect(Thread.list.size).to eq(baseline)
     end
 
-    it 'definition trace point is disabled when stopped' do
+    it "definition trace point is disabled when stopped" do
       expect(component.probe_manager.send(:definition_trace_point).enabled?).to be false
     end
 
-    it 'definition trace point is enabled after start' do
+    it "definition trace point is enabled after start" do
       component.start!
       expect(component.probe_manager.send(:definition_trace_point).enabled?).to be true
     end
 
-    it 'definition trace point is disabled after stop' do
+    it "definition trace point is disabled after stop" do
       component.start!
       component.stop!
       expect(component.probe_manager.send(:definition_trace_point).enabled?).to be false
     end
 
-    it 'definition trace point is re-enabled after restart' do
+    it "definition trace point is re-enabled after restart" do
       component.start!
       component.stop!
       component.start!
@@ -346,7 +371,7 @@ RSpec.describe Datadog::DI::Component do
     end
   end
 
-  describe '@lifecycle_mutex serialization' do
+  describe "@lifecycle_mutex serialization" do
     # The mutex serializes start!, stop!, and shutdown! so concurrent RC
     # callbacks (which run on the remote-config worker thread) cannot race
     # a foreground operation.
@@ -394,24 +419,24 @@ RSpec.describe Datadog::DI::Component do
     # Component.build added to DI.current_components via add_current_component.
     after { Datadog::DI.remove_current_component(component) if component }
 
-    it 'start! acquires @lifecycle_mutex' do
+    it "start! acquires @lifecycle_mutex" do
       expect(mutex).to receive(:synchronize).and_call_original
       component.start!
     end
 
-    it 'stop! acquires @lifecycle_mutex' do
+    it "stop! acquires @lifecycle_mutex" do
       component.start!
       expect(mutex).to receive(:synchronize).and_call_original
       component.stop!
     end
 
-    it 'shutdown! acquires @lifecycle_mutex' do
+    it "shutdown! acquires @lifecycle_mutex" do
       expect(mutex).to receive(:synchronize).and_call_original
       component.shutdown!
     end
   end
 
-  describe '#parse_probe_spec_and_notify' do
+  describe "#parse_probe_spec_and_notify" do
     let(:settings) do
       settings = Datadog::Core::Configuration::Settings.new
       settings.dynamic_instrumentation.enabled = true
@@ -438,8 +463,8 @@ RSpec.describe Datadog::DI::Component do
 
     let(:probe_spec) do
       {
-        'id' => 'test-probe-id',
-        'type' => 'LOG_PROBE',
+        "id" => "test-probe-id",
+        "type" => "LOG_PROBE",
       }
     end
 
@@ -447,8 +472,8 @@ RSpec.describe Datadog::DI::Component do
       component&.shutdown!
     end
 
-    context 'when building error notification fails' do
-      it 'reports exception to telemetry' do
+    context "when building error notification fails" do
+      it "reports exception to telemetry" do
         allow(logger).to receive(:debug)
 
         # Make ProbeBuilder raise an error

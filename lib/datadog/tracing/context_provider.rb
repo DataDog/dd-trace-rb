@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../core/utils/sequence'
-require_relative 'context'
+require_relative "../core/utils/sequence"
+require_relative "context"
 
 module Datadog
   module Tracing

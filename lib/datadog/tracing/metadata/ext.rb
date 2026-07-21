@@ -10,54 +10,54 @@ module Datadog
       # @public_api
       module Ext
         # Name of package that was instrumented
-        TAG_COMPONENT = 'component'
+        TAG_COMPONENT = "component"
         # Type of operation being performed (e.g. )
-        TAG_OPERATION = 'operation'
+        TAG_OPERATION = "operation"
         # Hostname of external service interacted with
         #
         # This tag also doesn't strictly need to be a “hostname”. It can be a raw IP address and in some cases it
         # can even be a unix domain socket (i.e. postgres client setting host=/var/run/postgres).
         # It should be whatever the client uses to point at the server it’s trying to talk to.
-        TAG_PEER_HOSTNAME = 'peer.hostname'
+        TAG_PEER_HOSTNAME = "peer.hostname"
         # Name of external service that performed the work
-        TAG_PEER_SERVICE = 'peer.service'
+        TAG_PEER_SERVICE = "peer.service"
 
-        TAG_KIND = 'span.kind'
+        TAG_KIND = "span.kind"
 
         # Set this tag to `1.0` if the span is a Service Entry span.
-        TAG_TOP_LEVEL = '_dd.top_level'
+        TAG_TOP_LEVEL = "_dd.top_level"
 
         # Set to `1.0` if profiling is enabled together with tracing, and `0.0` otherwise
         # See Datadog-internal "RFC: Identifying which spans have profiling enabled " for details
-        TAG_PROFILING_ENABLED = '_dd.profiling.enabled'
+        TAG_PROFILING_ENABLED = "_dd.profiling.enabled"
 
-        TAG_APM_ENABLED = '_dd.apm.enabled'
+        TAG_APM_ENABLED = "_dd.apm.enabled"
 
         # Set to the global service name when a span's service is overridden
-        TAG_BASE_SERVICE = '_dd.base_service'
+        TAG_BASE_SERVICE = "_dd.base_service"
 
         # Set to the source of a span's service override: the component name for Datadog-instrumented spans
         # (e.g. 'redis', 'pg'), or {SVC_SRC_MANUAL} for manually-instrumented spans
-        TAG_SVC_SRC = '_dd.svc_src'
+        TAG_SVC_SRC = "_dd.svc_src"
 
         # Value for {TAG_SVC_SRC} indicating that a span was manually instrumented via the Tracing API
-        SVC_SRC_MANUAL = 'm'
+        SVC_SRC_MANUAL = "m"
 
         # Defines constants for trace analytics
         # @public_api
         module Analytics
           DEFAULT_SAMPLE_RATE = 1.0
-          TAG_ENABLED = 'analytics.enabled'
-          TAG_MEASURED = '_dd.measured'
-          TAG_SAMPLE_RATE = '_dd1.sr.eausr'
+          TAG_ENABLED = "analytics.enabled"
+          TAG_MEASURED = "_dd.measured"
+          TAG_SAMPLE_RATE = "_dd1.sr.eausr"
         end
 
         module AppTypes
-          TYPE_WEB = 'web'
-          TYPE_DB = 'db'
-          TYPE_CACHE = 'cache'
-          TYPE_WORKER = 'worker'
-          TYPE_CUSTOM = 'custom'
+          TYPE_WEB = "web"
+          TYPE_DB = "db"
+          TYPE_CACHE = "cache"
+          TYPE_WORKER = "worker"
+          TYPE_CUSTOM = "custom"
         end
 
         # @public_api
@@ -65,63 +65,63 @@ module Datadog
         module Distributed
           # What mechanism was used to make this trace's sampling decision.
           # @see Datadog::Tracing::Sampling::Ext::Mechanism
-          TAG_DECISION_MAKER = '_dd.p.dm'
+          TAG_DECISION_MAKER = "_dd.p.dm"
 
           # Bitmask for which product generated an event. E.g.: 2 for an AppSec event.
-          TAG_TRACE_SOURCE = '_dd.p.ts'
+          TAG_TRACE_SOURCE = "_dd.p.ts"
 
-          TAG_ORIGIN = '_dd.origin'
-          TAG_SAMPLING_PRIORITY = '_sampling_priority_v1'
+          TAG_ORIGIN = "_dd.origin"
+          TAG_SAMPLING_PRIORITY = "_sampling_priority_v1"
 
-          TAG_DD_PARENT_ID = '_dd.parent_id'
-          DD_PARENT_ID_DEFAULT = '0000000000000000'
+          TAG_DD_PARENT_ID = "_dd.parent_id"
+          DD_PARENT_ID_DEFAULT = "0000000000000000"
 
           # Knuth Sampling Rate: the sampling rate applied by agent-based or rule-based sampling.
           # This is a propagated tag (prefixed with `_dd.p.`) that is included in `x-datadog-tags`.
-          TAG_KNUTH_SAMPLING_RATE = '_dd.p.ksr'
+          TAG_KNUTH_SAMPLING_RATE = "_dd.p.ksr"
 
           # Trace tags with this prefix will propagate from a trace through distributed tracing.
           # Distributed headers tags with this prefix will be injected into the active trace.
-          TAGS_PREFIX = '_dd.p.'
+          TAGS_PREFIX = "_dd.p."
 
           # The distributed tag to carry hex encoded high order 64 bits of 127 bits trace id during
           # the context restricted with 64 bits. Such as, Datadog propagation and messagepack encoding
-          TID = 'tid'
+          TID = "tid"
           TAG_TID = TAGS_PREFIX + TID
         end
 
         # @public_api
         module Errors
           STATUS = 1
-          TAG_MSG = 'error.message'
-          TAG_STACK = 'error.stack'
-          TAG_TYPE = 'error.type'
+          TAG_MSG = "error.message"
+          TAG_STACK = "error.stack"
+          TAG_TYPE = "error.type"
 
           # From https://opentelemetry.io/docs/specs/semconv/registry/attributes/exception/#exception-stacktrace
-          ATTRIBUTE_MESSAGE = 'exception.message'
-          ATTRIBUTE_STACKTRACE = 'exception.stacktrace'
-          ATTRIBUTE_TYPE = 'exception.type'
+          ATTRIBUTE_MESSAGE = "exception.message"
+          ATTRIBUTE_STACKTRACE = "exception.stacktrace"
+          ATTRIBUTE_TYPE = "exception.type"
 
           # From https://opentelemetry.io/docs/specs/semconv/exceptions/exceptions-spans/#exception-event
-          EVENT_NAME = 'exception'
+          EVENT_NAME = "exception"
         end
 
         # @public_api
         module HTTP
-          TAG_BASE_URL = 'http.base_url'
-          TAG_ENDPOINT = 'http.endpoint'
-          TAG_METHOD = 'http.method'
-          TAG_STATUS_CODE = 'http.status_code'
-          TAG_USER_AGENT = 'http.useragent'
-          TAG_URL = 'http.url'
-          TAG_ROUTE = 'http.route'
-          TAG_ROUTE_PATH = 'http.route.path'
+          TAG_BASE_URL = "http.base_url"
+          TAG_ENDPOINT = "http.endpoint"
+          TAG_METHOD = "http.method"
+          TAG_STATUS_CODE = "http.status_code"
+          TAG_USER_AGENT = "http.useragent"
+          TAG_URL = "http.url"
+          TAG_ROUTE = "http.route"
+          TAG_ROUTE_PATH = "http.route.path"
           TYPE_INBOUND = AppTypes::TYPE_WEB.freeze
-          TYPE_OUTBOUND = 'http'
-          TYPE_PROXY = 'proxy'
-          TYPE_TEMPLATE = 'template'
-          TAG_CLIENT_IP = 'http.client_ip'
-          HEADER_USER_AGENT = 'User-Agent'
+          TYPE_OUTBOUND = "http"
+          TYPE_PROXY = "proxy"
+          TYPE_TEMPLATE = "template"
+          TAG_CLIENT_IP = "http.client_ip"
+          HEADER_USER_AGENT = "User-Agent"
 
           # General header functionality
           module Headers
@@ -147,19 +147,19 @@ module Datadog
               # All other characters are replaced with an underscore.
               tag = name.to_s.strip
               tag.downcase!
-              tag.gsub!(INVALID_TAG_CHARACTERS, '_')
+              tag.gsub!(INVALID_TAG_CHARACTERS, "_")
 
               # Additional HTTP header normalization.
               #
               # Periods are replaced with an underscore.
-              tag.tr!('.', '_') unless allow_nested
+              tag.tr!(".", "_") unless allow_nested
               tag
             end
           end
 
           # Request headers
           module RequestHeaders
-            PREFIX = 'http.request.headers'
+            PREFIX = "http.request.headers"
 
             module_function
 
@@ -170,7 +170,7 @@ module Datadog
 
           # Response headers
           module ResponseHeaders
-            PREFIX = 'http.response.headers'
+            PREFIX = "http.response.headers"
 
             module_function
 
@@ -182,42 +182,42 @@ module Datadog
 
         # @public_api
         module NET
-          TAG_HOSTNAME = '_dd.hostname'
-          TAG_TARGET_HOST = 'out.host'
-          TAG_TARGET_PORT = 'out.port'
-          TAG_DESTINATION_NAME = 'network.destination.name'
-          TAG_DESTINATION_PORT = 'network.destination.port'
+          TAG_HOSTNAME = "_dd.hostname"
+          TAG_TARGET_HOST = "out.host"
+          TAG_TARGET_PORT = "out.port"
+          TAG_DESTINATION_NAME = "network.destination.name"
+          TAG_DESTINATION_PORT = "network.destination.port"
         end
 
         # @public_api
         module Sampling
-          TAG_AGENT_RATE = '_dd.agent_psr'
+          TAG_AGENT_RATE = "_dd.agent_psr"
 
           # If rule sampling is applied to a span, set this metric the sample rate configured for that rule.
           # This should be done regardless of sampling outcome.
-          TAG_RULE_SAMPLE_RATE = '_dd.rule_psr'
+          TAG_RULE_SAMPLE_RATE = "_dd.rule_psr"
 
           # If rate limiting is checked on a span, set this metric the effective rate limiting rate applied.
           # This should be done regardless of rate limiting outcome.
-          TAG_RATE_LIMITER_RATE = '_dd.limit_psr'
+          TAG_RATE_LIMITER_RATE = "_dd.limit_psr"
 
-          TAG_SAMPLE_RATE = '_sample_rate'
+          TAG_SAMPLE_RATE = "_sample_rate"
         end
 
         # @public_api
         module SQL
-          TYPE = 'sql'
-          TAG_QUERY = 'sql.query'
+          TYPE = "sql"
+          TAG_QUERY = "sql.query"
         end
 
         # @public_api
         module SpanKind
-          TAG_PROXY = 'proxy'
-          TAG_SERVER = 'server'
-          TAG_CLIENT = 'client'
-          TAG_PRODUCER = 'producer'
-          TAG_CONSUMER = 'consumer'
-          TAG_INTERNAL = 'internal'
+          TAG_PROXY = "proxy"
+          TAG_SERVER = "server"
+          TAG_CLIENT = "client"
+          TAG_PRODUCER = "producer"
+          TAG_CONSUMER = "consumer"
+          TAG_INTERNAL = "internal"
         end
 
         # @public_api
