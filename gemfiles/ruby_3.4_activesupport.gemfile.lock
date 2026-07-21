@@ -172,7 +172,7 @@ GEM
     racecar (2.11.0)
       king_konf (~> 1.0.0)
       rdkafka (~> 0.15.0)
-    rack (3.1.4)
+    rack (3.2.6)
     rack-session (2.0.0)
       rack (>= 3.0.0)
     rack-test (2.1.0)

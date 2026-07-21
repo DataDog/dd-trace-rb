@@ -12,3 +12,69 @@
 #
 # Reviewed on a regular cadence; remove entries once the gem can be upgraded.
 ignore: []
+
+# Gem+version-scoped ignore list, checked in addition to `ignore` above.
+#
+# Unlike `ignore` (which suppresses an advisory id everywhere it appears,
+# regardless of gem or version), each entry here only suppresses findings
+# for that exact gem+version pair. If `bundle lock --update <gem>` is ever
+# re-run and moves the gem to a different version -- fixed or not -- the
+# finding stops matching and reappears in the audit instead of staying
+# silently hidden. Prefer this over `ignore` whenever the unresolvable
+# advisory is tied to a specific pinned version rather than the gem in
+# general.
+#
+# Each entry MUST be documented with:
+#   - the gem and the exact pinned version
+#   - why it cannot be upgraded (what pins it, and whether a fix exists upstream)
+#   - the date added and who reviewed it
+#
+# Reviewed on a regular cadence; remove entries once the gem can be upgraded.
+ignore_gem_versions:
+  # rack 1.6.13 -- gemfiles/ruby_{3.1,3.2,3.3,3.4,4.0}_devise_min.gemfile.lock
+  # and gemfiles/ruby_{3.1,3.2}_rack_1.gemfile.lock. Pinned by these Gemfiles'
+  # own old Rails/Devise/rack-1.x compatibility constraints; `bundle lock
+  # --update rack` cannot move it without editing the Gemfile itself.
+  # Added 2026-07-20, reviewed by Tony Hsu.
+  - gem: rack
+    version: 1.6.13
+    reason: "Pinned by devise_min/rack_1 Gemfiles' old Rails/Devise/rack-1.x compatibility constraints"
+
+  # actionpack 4.2.11.3 -- gemfiles/ruby_{3.1,3.2,3.3,3.4,4.0}_devise_min.gemfile.lock.
+  # Same old Rails floor as the rack entry above.
+  # Added 2026-07-20, reviewed by Tony Hsu.
+  - gem: actionpack
+    version: 4.2.11.3
+    reason: "Pinned by devise_min Gemfiles' old Rails version floor"
+
+  # activesupport 4.2.11.3 -- gemfiles/ruby_{3.1,3.2,3.3,3.4,4.0}_devise_min.gemfile.lock.
+  # Same old Rails floor as the rack entry above.
+  # Added 2026-07-20, reviewed by Tony Hsu.
+  - gem: activesupport
+    version: 4.2.11.3
+    reason: "Pinned by devise_min Gemfiles' old Rails version floor"
+
+  # devise 3.2.1 -- gemfiles/ruby_{3.1,3.2,3.3,3.4,4.0}_devise_min.gemfile.lock.
+  # This is the Gemfile's minimum-supported devise version by design (the
+  # gemfile exists to test against the oldest supported devise); there is no
+  # fixed 3.2.x release.
+  # Added 2026-07-20, reviewed by Tony Hsu.
+  - gem: devise
+    version: 3.2.1
+    reason: "devise_min Gemfiles intentionally pin the minimum supported devise version; no fixed 3.2.x release exists"
+
+  # faraday 0.17.6 -- gemfiles/ruby_{3.1,3.2,3.3,3.4,4.0}_contrib_old.gemfile.lock.
+  # Pinned below 1.0 by presto-client's own dependency on
+  # `faraday_middleware ~> 0.12.2`; even the latest presto-client (0.6.6)
+  # carries this constraint, so there is no upstream fix to relock into.
+  # Added 2026-07-20, reviewed by Tony Hsu.
+  - gem: faraday
+    version: 0.17.6
+    reason: "Pinned below 1.0 by presto-client's dependency on faraday_middleware ~> 0.12.2; no newer presto-client release relaxes this"
+
+  # sprockets 1.0.2 -- gemfiles/ruby_{3.4,4.0}_rails8_trilogy.gemfile.lock.
+  # Pinned `< 4` by the Gemfile itself.
+  # Added 2026-07-20, reviewed by Tony Hsu.
+  - gem: sprockets
+    version: 1.0.2
+    reason: "Pinned < 4 by the rails8_trilogy Gemfile itself"
