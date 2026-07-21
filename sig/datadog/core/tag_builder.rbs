@@ -1,7 +1,7 @@
 module Datadog
   module Core
     module TagBuilder
-      type tags_hash = ::Hash[::String, ::String]
+      type tags = ::Hash[::String, ::String]
 
       self.@fixed_environment_tags: tags_hash
 
