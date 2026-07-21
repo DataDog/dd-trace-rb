@@ -25,10 +25,14 @@ if Gem.loaded_specs.key?('bundler-audit')
       if findings.empty?
         puts 'No high or critical advisories found.'
       else
-        puts "Found #{findings.size} high/critical advisory match(es):"
-        findings.each do |f|
-          puts "  [#{f.criticality.to_s.upcase}] #{f.gem} #{f.version} #{f.id} (#{f.lockfile})"
-        end
+        require 'json'
+        require 'fileutils'
+
+        output_path = 'tmp/dependency_audit_findings.json'
+        FileUtils.mkdir_p(File.dirname(output_path))
+        File.write(output_path, JSON.pretty_generate(findings.map(&:to_h)))
+
+        puts "Found #{findings.size} high/critical advisory match(es); details written to #{output_path}"
         abort('Dependency audit failed: high/critical advisories present.')
       end
     end
