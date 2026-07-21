@@ -199,7 +199,9 @@ jobs:
       - 'zizmor'
       - 'actionlint'
       - 'yaml-lint'
-      - 'bundler-audit'
+      # TODO: add 'bundler-audit' back to this list once the job is no
+      # longer disabled (see the `if: false` above) — a skipped dependency
+      # would otherwise make this aggregate job skip too.
     runs-on: ubuntu-24.04
     steps:
       - run: echo "Done"
