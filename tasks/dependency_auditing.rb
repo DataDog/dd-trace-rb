@@ -24,6 +24,8 @@ module DependencyAuditing
       scanner = Bundler::Audit::Scanner.new(root, name, database)
 
       scanner.scan(ignore: ignore) do |result|
+        # scan also yields Results::InsecureSource (insecure gem source URLs),
+        # which has no #advisory; only Results::UnpatchedGem is a CVE finding.
         next unless result.respond_to?(:advisory)
 
         advisory = result.advisory
