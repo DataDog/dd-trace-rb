@@ -10,7 +10,7 @@ module Datadog
 
         def initialize: (::Integer max_size) -> void
 
-        def []: (any key) -> any
+        def []: (any key) -> any?
 
         def []=: [T < Object] (any key, T value) -> T
 
