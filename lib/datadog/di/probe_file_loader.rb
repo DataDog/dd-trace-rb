@@ -1,14 +1,16 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
+
+require_relative "fatal_exceptions"
 
 module Datadog
   module DI
     module ProbeFileLoader
       module_function def load_now_or_later
         if Datadog::Core::Contrib::Rails::Utils.railtie_supported?
-          Datadog.logger.debug('di: loading probe_file_loader/railtie')
-          require_relative 'probe_file_loader/railtie'
+          Datadog.logger.debug("di: loading probe_file_loader/railtie")
+          require_relative "probe_file_loader/railtie"
         else
           load_now
         end
@@ -20,7 +22,7 @@ module Datadog
       module_function def load_now
         should_propagate = false
 
-        probe_file_path = DATADOG_ENV['DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE']
+        probe_file_path = DATADOG_ENV["DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE"]
         if probe_file_path.nil? || probe_file_path.empty?
           return
         end
@@ -47,10 +49,11 @@ module Datadog
 
               payload = component.probe_notification_builder.build_errored(probe, exc)
               component.probe_notifier_worker.add_status(payload, probe: probe)
-            rescue => exc
+            rescue Exception => exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(exc)
               raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-              component.logger.debug { "di: unhandled exception adding #{probe.type} probe at #{probe.location} (#{probe.id}) in DI probe file loader: #{exc.class}: #{exc}" }
+              component.logger.debug { "di: unhandled exception adding #{probe.type} probe at #{probe.location} (#{probe.id}) in DI probe file loader: #{exc.class}: #{exc.message}" }
               component.telemetry&.report(exc, description: "Unhandled exception adding probe in DI probe file loader")
 
               # TODO test this path
@@ -58,16 +61,18 @@ module Datadog
               component.probe_notifier_worker.add_status(payload, probe: probe)
             end
           end
-        rescue => exc
+        rescue Exception => exc # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(exc)
           if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
             should_propagate = true
             raise
           end
 
-          component.logger.debug { "di: unhandled exception handling a probe in DI probe file loader: #{exc.class}: #{exc}" }
+          component.logger.debug { "di: unhandled exception handling a probe in DI probe file loader: #{exc.class}: #{exc.message}" }
           component.telemetry&.report(exc, description: "Unhandled exception handling probe in DI probe file loader")
         end
-      rescue
+      rescue Exception => exc # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(exc)
         # We should generally never get here, but if component tree
         # initialization fails for some unexpected reason, don't nuke
         # the customer application.

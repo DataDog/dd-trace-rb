@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   all-jobs-are-green:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - name: Run Ensure CI Success
@@ -38,8 +38,5 @@ jobs:
           # Sleep time between each check (default: 60 seconds)
           # polling-interval-seconds: "60"
 
-          # Excluded jobs names, each line is a regular expression that must fullm atch the job name
-          # it's currently empty, but here is an example:
-          # ignored-name-patterns: |
-          #   .*-test-flaky
-          #   useless-job
+          # Excluded check names/status contexts; each pattern is a regular expression that must fully match.
+          ignored-name-patterns: devflow/mergegate # Reports merge readiness for conditions outside automated CI, such as code review.

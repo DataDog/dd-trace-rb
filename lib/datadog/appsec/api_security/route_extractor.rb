@@ -1,20 +1,21 @@
 # frozen_string_literal: true
 
-require_relative '../../tracing/contrib/rack/route_inference'
+require_relative "../../tracing/contrib/rack/route_inference"
 
 module Datadog
   module AppSec
     module APISecurity
       # This is a helper module to extract the route pattern from the Rack::Request.
       module RouteExtractor
-        SINATRA_ROUTE_KEY = 'sinatra.route'
-        SINATRA_ROUTE_SEPARATOR = ' '
-        GRAPE_ROUTE_KEY = 'grape.routing_args'
-        RAILS_ROUTE_URI_PATTERN_KEY = 'action_dispatch.route_uri_pattern'
-        RAILS_ROUTE_KEY = 'action_dispatch.route' # Rails 8.1.1+
-        RAILS_ROUTES_KEY = 'action_dispatch.routes'
-        RAILS_PATH_PARAMS_KEY = 'action_dispatch.request.path_parameters'
-        RAILS_FORMAT_SUFFIX = '(.:format)'
+        SINATRA_ROUTE_KEY = "sinatra.route"
+        SINATRA_ROUTE_SEPARATOR = " "
+        GRAPE_ROUTE_KEY = "grape.routing_args"
+        RAILS_ROUTE_URI_PATTERN_KEY = "action_dispatch.route_uri_pattern"
+        RAILS_ROUTE_KEY = "action_dispatch.route" # Rails 8.1.1+
+        RAILS_ROUTES_KEY = "action_dispatch.routes"
+        RAILS_PATH_PARAMS_KEY = "action_dispatch.request.path_parameters"
+        RAILS_FORMAT_SUFFIX = "(.:format)"
+        DATADOG_RAILS_ROUTE_KEY = "datadog.action_dispatch.route"
 
         # HACK: We rely on the fact that each contrib will modify `request.env`
         #       and store information sufficient to compute the canonical
@@ -30,16 +31,19 @@ module Datadog
         #         uses `sinatra.route` with a string like "GET /users/:id"
         #       Grape
         #         uses `grape.routing_args` with a hash with a `:route_info` key
-        #         that contains a `Grape::Router::Route` object that contains
-        #         `Grape::Router::Pattern` object with an `origin` method
+        #         that contains a {Grape::Router::Route} object that contains
+        #         {Grape::Router::Pattern} object with an `origin` method
+        #       Rails with `action_pack` tracing contrib (fast path)
+        #         `datadog.action_dispatch.route` stores the {Journey::Route}
+        #         object set by the tracer at routing time
         #       Rails < 7.1 (slow path)
-        #         uses `action_dispatch.routes` to store `ActionDispatch::Routing::RouteSet`
+        #         uses `action_dispatch.routes` to store {ActionDispatch::Routing::RouteSet}
         #         which can recognize requests
         #       Rails > 7.1 (fast path)
         #         uses `action_dispatch.route_uri_pattern` with a string like
         #         "/users/:id(.:format)"
         #       Rails > 8.1.1 (fast path)
-        #         uses `action_dispatch.route` to store the ActionDispatch::Journey::Route
+        #         uses `action_dispatch.route` to store the {ActionDispatch::Journey::Route}
         #         that matched when the request was routed
         #
         # WARNING: This method works only *after* the request has been routed.
@@ -49,12 +53,20 @@ module Datadog
         #          In Rails < 7.1 it also will not be set even if a route was found,
         #          but in this case `action_dispatch.request.path_parameters` won't be empty.
         def self.route_pattern(request)
+          # NOTE: Requests from contribs like AWS Lambda don't provide a usable
+          #       `::Rack::Request#env`, so infer the route from the path instead
+          unless request.respond_to?(:env)
+            return Tracing::Contrib::Rack::RouteInference.infer(request.path.to_s)
+          end
+
           if request.env.key?(GRAPE_ROUTE_KEY)
             pattern = request.env[GRAPE_ROUTE_KEY][:route_info]&.pattern&.origin
             "#{request.script_name}#{pattern}"
           elsif request.env.key?(SINATRA_ROUTE_KEY)
             pattern = request.env[SINATRA_ROUTE_KEY].split(SINATRA_ROUTE_SEPARATOR, 2)[1]
             "#{request.script_name}#{pattern}"
+          elsif request.env.key?(DATADOG_RAILS_ROUTE_KEY)
+            request.env[DATADOG_RAILS_ROUTE_KEY].path.spec.to_s.delete_suffix(RAILS_FORMAT_SUFFIX)
           elsif request.env.key?(RAILS_ROUTE_KEY)
             request.env[RAILS_ROUTE_KEY].path.spec.to_s.delete_suffix(RAILS_FORMAT_SUFFIX)
           elsif request.env.key?(RAILS_ROUTE_URI_PATTERN_KEY)
@@ -82,7 +94,7 @@ module Datadog
             Tracing::Contrib::Rack::RouteInference.read_or_infer(request.env)
           end
         rescue => e
-          AppSec.telemetry&.report(e, description: 'AppSec: Could not extract route pattern')
+          AppSec.telemetry&.report(e, description: "AppSec: Could not extract route pattern")
 
           nil
         end

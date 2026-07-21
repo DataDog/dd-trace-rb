@@ -2,6 +2,7 @@ module Datadog
   module Tracing
     module Contrib
       REGISTRY: untyped
+      BUILT_IN_INTEGRATIONS: ::Array[Integration]
     end
   end
 end

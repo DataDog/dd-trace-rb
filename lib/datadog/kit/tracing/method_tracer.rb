@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# Needed since this file can be loaded without core
+require_relative "../../ruby_version"
+
 module Datadog
   module Kit
     module Tracing
@@ -53,8 +56,8 @@ module Datadog
           # @param dynamic [Boolean] if true, skip method existence check (for method_missing-handled methods)
           # @return [void]
           def trace_method(mod, method_name, span_name: nil, dynamic: false)
-            raise ArgumentError, 'mod is not a module' unless mod.is_a?(Module)
-            raise ArgumentError, 'ambiguous span name: provide one or define mod.name' if mod.name.nil? && span_name.nil?
+            raise ArgumentError, "mod is not a module" unless mod.is_a?(Module)
+            raise ArgumentError, "ambiguous span name: provide one or define mod.name" if mod.name.nil? && span_name.nil?
 
             is_private = mod.private_method_defined?(method_name)
             is_protected = mod.protected_method_defined?(method_name)
@@ -69,19 +72,19 @@ module Datadog
             span_name ||= hook_point
 
             unless span_name.is_a?(String)
-              raise ArgumentError, 'span name is not a String'
+              raise ArgumentError, "span name is not a String"
             end
 
-            args = (RUBY_VERSION >= '2.7.') ? '...' : '*args, &block'
+            args = RubyVersion.is?(">= 2.7") ? "..." : "*args, &block"
 
             hook_module = Module.new do
               define_singleton_method(:inspect) do
-                suffix = custom_span_name ? ", #{custom_span_name.inspect}" : ''
+                suffix = custom_span_name ? ", #{custom_span_name.inspect}" : ""
                 name || "#<Datadog::Tracing::Kit::MethodTracer(#{method_name.inspect}#{suffix})>"
               end
 
               define_singleton_method(:to_s) do
-                suffix = custom_span_name ? ", #{custom_span_name.inspect}" : ''
+                suffix = custom_span_name ? ", #{custom_span_name.inspect}" : ""
                 name || "#<Datadog::Tracing::Kit::MethodTracer(#{method_name.inspect}#{suffix})>"
               end
 

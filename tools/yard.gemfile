@@ -1,7 +1,14 @@
-source 'https://rubygems.org'
+source "https://rubygems.org"
 
-gemspec path: '..'
+# This gemfile's lockfile is not maintained by the lock-dependency workflow.
+# Regenerate manually after changing dependencies:
+#
+#   docker run --rm -v "$(pwd):/app" -w /app -e BUNDLE_GEMFILE=tools/yard.gemfile \
+#     ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc \
+#     bundle lock --add-platform x86_64-linux aarch64-linux
 
-gem 'rake'
-gem 'yard'
-gem 'redcarpet'
+gemspec path: ".."
+
+gem "rake"
+gem "redcarpet"
+gem "yard"

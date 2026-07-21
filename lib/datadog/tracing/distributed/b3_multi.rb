@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'helpers'
-require_relative '../trace_digest'
-require_relative '../utils'
+require_relative "helpers"
+require_relative "../trace_digest"
+require_relative "../utils"
 
 module Datadog
   module Tracing
@@ -10,9 +10,9 @@ module Datadog
       # B3 multi header-style trace propagation.
       # @see https://github.com/openzipkin/b3-propagation#multiple-headers
       class B3Multi
-        B3_TRACE_ID_KEY = 'x-b3-traceid'
-        B3_SPAN_ID_KEY = 'x-b3-spanid'
-        B3_SAMPLED_KEY = 'x-b3-sampled'
+        B3_TRACE_ID_KEY = "x-b3-traceid"
+        B3_SPAN_ID_KEY = "x-b3-spanid"
+        B3_SAMPLED_KEY = "x-b3-sampled"
 
         def initialize(
           fetcher:,
@@ -30,8 +30,8 @@ module Datadog
           return if digest.nil?
 
           # DEV: We need these to be hex encoded
-          data[@trace_id_key] = format('%032x', digest.trace_id)
-          data[@span_id_key] = format('%016x', digest.span_id || 0) # # Fall back to zero (invalid) if not present
+          data[@trace_id_key] = format("%032x", digest.trace_id)
+          data[@span_id_key] = format("%016x", digest.span_id || 0) # # Fall back to zero (invalid) if not present
 
           if digest.trace_sampling_priority
             sampling_priority = Helpers.clamp_sampling_priority(

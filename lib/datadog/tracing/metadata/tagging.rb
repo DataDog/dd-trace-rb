@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../core/environment/ext'
+require_relative "../../core/environment/ext"
 
-require_relative 'ext'
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -52,7 +52,7 @@ module Datadog
             meta[Core::Utils.utf8_encode(key)] = Core::Utils.utf8_encode(value)
           end
         rescue => e
-          Datadog.logger.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
+          Datadog.logger.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e.class}: #{e.message}")
         end
 
         # Sets tags from given hash, for each key in hash it sets the tag with that key
@@ -102,7 +102,7 @@ module Datadog
           # Encode strings in UTF-8 to facilitate downstream serialization
           metrics[Core::Utils.utf8_encode(key)] = value
         rescue => e
-          Datadog.logger.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
+          Datadog.logger.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e.class}: #{e.message}")
         end
 
         # This method removes a metric for the given key. It acts like {#clear_tag}.

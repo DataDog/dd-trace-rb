@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/appsec/spec_helper'
-require 'rack/test'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/appsec/spec_helper"
+require "rack/test"
 
-require 'datadog/kit/appsec/events'
-require 'action_controller/railtie'
-require 'active_record'
-require 'sqlite3'
-require 'devise'
+require "datadog/kit/appsec/events"
+require "action_controller/railtie"
+require "active_record"
+require "sqlite3"
+require "devise"
 
-RSpec.describe 'Devise auto login and signup events tracking' do
+RSpec.describe "Devise auto login and signup events tracking" do
   include Rack::Test::Methods
   include Warden::Test::Helpers
 
@@ -19,18 +19,18 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     #       engine for every test case. It will install the required middleware.
     #       WARNING: This is a hack!
     Devise.send(:remove_const, :Engine)
-    load File.join(Gem.loaded_specs['devise'].full_gem_path, 'lib/devise/rails.rb')
+    load File.join(Gem.loaded_specs["devise"].full_gem_path, "lib/devise/rails.rb")
 
     Devise.setup do |config|
-      config.secret_key = 'test-secret-key'
+      config.secret_key = "test-secret-key"
 
-      require 'devise/orm/active_record'
+      require "devise/orm/active_record"
 
       config.sign_out_via = :delete
       config.responder.error_status = :unprocessable_entity
       config.responder.redirect_status = :see_other
       config.sign_out_all_scopes = false
-      config.parent_controller = 'TestApplicationController'
+      config.parent_controller = "TestApplicationController"
       config.paranoid = true
       config.stretches = 1
       config.password_length = 6..8
@@ -40,7 +40,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     # app/models
     user_model
 
-    stub_const('TestApplicationController', Class.new(ActionController::Base)).class_eval do
+    stub_const("TestApplicationController", Class.new(ActionController::Base)).class_eval do
       before_action :configure_permitted_parameters, if: :devise_controller?
 
       def configure_permitted_parameters
@@ -59,7 +59,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     # NOTE: https://github.com/heartcombo/devise/blob/fec67f98f26fcd9a79072e4581b1bd40d0c7fa1d/guides/bug_report_templates/integration_test.rb#L43-L57
     app = Class.new(Rails::Application) do
       config.root = __dir__
-      config.secret_key_base = 'test-secret-key-base'
+      config.secret_key_base = "test-secret-key-base"
       config.action_dispatch.show_exceptions = :rescuable
       config.hosts.clear
       config.eager_load = false
@@ -69,14 +69,14 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
       config.file_watcher = Class.new(ActiveSupport::FileUpdateChecker) do
         def initialize(files, dirs = {}, &block)
-          dirs = dirs.delete('') if dirs.include?('')
+          dirs = dirs.delete("") if dirs.include?("")
 
           super
         end
       end
     end
 
-    stub_const('TestRails::Application', app)
+    stub_const("TestRails::Application", app)
 
     Datadog.configure do |config|
       config.tracing.enabled = true
@@ -86,15 +86,15 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       config.appsec.enabled = true
       config.appsec.instrument :rails
       config.appsec.instrument :devise
-      config.appsec.auto_user_instrumentation.mode = 'identification'
+      config.appsec.auto_user_instrumentation.mode = "identification"
 
       config.remote.enabled = false
     end
 
     app.initialize!
     app.routes.draw do
-      devise_for :users, controllers: {sessions: 'test_sessions'}
-      get '/private' => 'private#index'
+      devise_for :users, controllers: {sessions: "test_sessions"}
+      get "/private" => "private#index"
     end
 
     # NOTE: Unfortunately, can't figure out why devise receives 3 times `finalize!`
@@ -105,12 +105,12 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
     # app/controllers
     sessions_controller
-    stub_const('PrivateController', Class.new(ActionController::Base)).class_eval do
+    stub_const("PrivateController", Class.new(ActionController::Base)).class_eval do
       before_action :authenticate_user!
 
       def index
         respond_to do |format|
-          format.html { render plain: 'This is private page' }
+          format.html { render plain: "This is private page" }
         end
       end
     end
@@ -153,20 +153,20 @@ RSpec.describe 'Devise auto login and signup events tracking' do
   end
 
   let(:sessions_controller) do
-    stub_const('TestSessionsController', Class.new(Devise::SessionsController)).class_eval do
+    stub_const("TestSessionsController", Class.new(Devise::SessionsController)).class_eval do
       def new
-        render plain: '<login-form>'
+        render plain: "<login-form>"
       end
     end
   end
 
   let(:user_model) do
-    stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-      klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
-      klass.connection.create_table 'users', force: :cascade do |t|
+    stub_const("User", Class.new(ActiveRecord::Base)).tap do |klass|
+      klass.establish_connection({adapter: "sqlite3", database: ":memory:"})
+      klass.connection.create_table "users", force: :cascade do |t|
         t.string :username, null: false
-        t.string :email, default: '', null: false
-        t.string :encrypted_password, default: '', null: false
+        t.string :email, default: "", null: false
+        t.string :encrypted_password, default: "", null: false
       end
 
       klass.class_eval do
@@ -179,121 +179,115 @@ RSpec.describe 'Devise auto login and signup events tracking' do
   end
 
   let(:gateway) { Datadog::AppSec::Instrumentation::Gateway.new }
-  let(:http_service_entry_span) { spans.find { |s| s.name == 'rack.request' } }
+  let(:http_service_entry_span) { spans.find { |s| s.name == "rack.request" } }
   let(:http_service_entry_trace) { traces.find { |t| t.id == http_service_entry_span.trace_id } }
 
   let(:response) { last_response }
   let(:app) { Rails.application }
 
-  context 'when user successfully logging in' do
+  context "when user successfully logging in" do
     before do
-      User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
+      User.create!(username: "JohnDoe", email: "john.doe@example.com", password: "123456")
 
-      post('/users/sign_in', {user: {email: 'john.doe@example.com', password: '123456'}})
+      post("/users/sign_in", {user: {email: "john.doe@example.com", password: "123456"}})
     end
 
-    it 'tracks successful login event' do
+    it "tracks successful login event" do
       expect(response).to be_redirect
-      expect(response.location).to eq('http://example.org/')
+      expect(response.location).to eq("http://example.org/")
 
       expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
       expect(http_service_entry_span.tags).to include(
-        'usr.id' => '1',
-        'appsec.events.users.login.success.track' => 'true',
-        'appsec.events.users.login.success.usr.login' => 'john.doe@example.com',
-        '_dd.appsec.events.users.login.success.auto.mode' => 'identification',
-        '_dd.appsec.usr.login' => 'john.doe@example.com',
-        '_dd.appsec.usr.id' => '1'
+        "usr.id" => "1",
+        "appsec.events.users.login.success.track" => "true",
+        "appsec.events.users.login.success.usr.login" => "john.doe@example.com",
+        "_dd.appsec.events.users.login.success.auto.mode" => "identification",
+        "_dd.appsec.usr.login" => "john.doe@example.com",
+        "_dd.appsec.usr.id" => "1"
       )
-
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
   end
 
-  context 'when user successfully logging in and ID is unavailable' do
+  context "when user successfully logging in and ID is unavailable" do
     before do
-      User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
+      User.create!(username: "JohnDoe", email: "john.doe@example.com", password: "123456")
 
       allow(User).to receive(:find_for_database_authentication)
-        .and_return(User.build(email: 'john.doe@example.com', password: '123456'))
+        .and_return(User.build(email: "john.doe@example.com", password: "123456"))
 
-      post('/users/sign_in', {user: {email: 'john.doe@example.com', password: '123456'}})
+      post("/users/sign_in", {user: {email: "john.doe@example.com", password: "123456"}})
     end
 
-    it 'tracks successful login event' do
+    it "tracks successful login event" do
       expect(response).to be_redirect
-      expect(response.location).to eq('http://example.org/')
+      expect(response.location).to eq("http://example.org/")
 
       expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
       expect(http_service_entry_span.tags).to include(
-        'appsec.events.users.login.success.track' => 'true',
-        'appsec.events.users.login.success.usr.login' => 'john.doe@example.com',
-        '_dd.appsec.events.users.login.success.auto.mode' => 'identification',
-        '_dd.appsec.usr.login' => 'john.doe@example.com'
+        "appsec.events.users.login.success.track" => "true",
+        "appsec.events.users.login.success.usr.login" => "john.doe@example.com",
+        "_dd.appsec.events.users.login.success.auto.mode" => "identification",
+        "_dd.appsec.usr.login" => "john.doe@example.com"
       )
 
-      expect(http_service_entry_span.tags).not_to have_key('usr.id')
-      expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.usr.id')
-
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+      expect(http_service_entry_span.tags).not_to have_key("usr.id")
+      expect(http_service_entry_span.tags).not_to have_key("_dd.appsec.usr.id")
     end
   end
 
-  context 'when user request page via HTTP-based authentication' do
+  context "when user request page via HTTP-based authentication" do
     before do
-      User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
+      User.create!(username: "JohnDoe", email: "john.doe@example.com", password: "123456")
 
-      basic_authorize('john.doe@example.com', '123456')
-      get('/private')
+      basic_authorize("john.doe@example.com", "123456")
+      get("/private")
     end
 
-    it 'tracks successful login event' do
+    it "tracks successful login event" do
       expect(response).to be_ok
-      expect(response.body).to eq('This is private page')
+      expect(response.body).to eq("This is private page")
 
       expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
       expect(http_service_entry_span.tags).to include(
-        'usr.id' => '1',
-        'appsec.events.users.login.success.track' => 'true',
-        'appsec.events.users.login.success.usr.login' => 'john.doe@example.com',
-        '_dd.appsec.events.users.login.success.auto.mode' => 'identification',
-        '_dd.appsec.usr.login' => 'john.doe@example.com',
-        '_dd.appsec.usr.id' => '1'
+        "usr.id" => "1",
+        "appsec.events.users.login.success.track" => "true",
+        "appsec.events.users.login.success.usr.login" => "john.doe@example.com",
+        "_dd.appsec.events.users.login.success.auto.mode" => "identification",
+        "_dd.appsec.usr.login" => "john.doe@example.com",
+        "_dd.appsec.usr.id" => "1"
       )
-
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
   end
 
-  context 'when user successfully logging in via remember me functionality' do
+  context "when user successfully logging in via remember me functionality" do
     before do
       user = User.create!(
-        username: 'JohnDoe',
-        email: 'john.doe@example.com',
-        password: '123456',
+        username: "JohnDoe",
+        email: "john.doe@example.com",
+        password: "123456",
         remembered_at: Time.now,
         remember_created_at: Time.now - 60
       )
 
       signed_cookies = ActionDispatch::Request.new(Rails.application.env_config.deep_dup).cookie_jar
-      signed_cookies['remember_user_token'] = User.serialize_into_cookie(user)
+      signed_cookies["remember_user_token"] = User.serialize_into_cookie(user)
 
       allow_any_instance_of(ActionDispatch::Cookies::CookieJar).to receive(:signed)
         .and_return(signed_cookies)
 
-      get('/private')
+      get("/private")
     end
 
     let(:user_model) do
-      stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-        klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
-        klass.connection.create_table 'users', force: :cascade do |t|
+      stub_const("User", Class.new(ActiveRecord::Base)).tap do |klass|
+        klass.establish_connection({adapter: "sqlite3", database: ":memory:"})
+        klass.connection.create_table "users", force: :cascade do |t|
           t.string :username, null: false
-          t.string :email, default: '', null: false
-          t.string :encrypted_password, default: '', null: false
+          t.string :email, default: "", null: false
+          t.string :encrypted_password, default: "", null: false
           t.datetime :remembered_at
           t.datetime :remember_created_at
         end
@@ -307,36 +301,34 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       end
     end
 
-    it 'does not track successful login event' do
+    it "does not track successful login event" do
       expect(response).to be_ok
-      expect(response.body).to eq('This is private page')
+      expect(response.body).to eq("This is private page")
 
-      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.success.track')
-      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.failure.track')
-
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be false
+      expect(http_service_entry_span.tags).not_to have_key("appsec.events.users.login.success.track")
+      expect(http_service_entry_span.tags).not_to have_key("appsec.events.users.login.failure.track")
     end
   end
 
-  context 'when user successfully logging in and customer uses SDK to track successful login' do
+  context "when user successfully logging in and customer uses SDK to track successful login" do
     before do
-      User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
+      User.create!(username: "JohnDoe", email: "john.doe@example.com", password: "123456")
 
-      post('/users/sign_in', {user: {email: 'john.doe@example.com', password: '123456'}})
+      post("/users/sign_in", {user: {email: "john.doe@example.com", password: "123456"}})
     end
 
     let(:sessions_controller) do
-      stub_const('TestSessionsController', Class.new(Devise::SessionsController)).class_eval do
+      stub_const("TestSessionsController", Class.new(Devise::SessionsController)).class_eval do
         def new
-          render plain: '<login-form>'
+          render plain: "<login-form>"
         end
 
         def create
           Datadog::Kit::AppSec::Events.track_login_success(
             Datadog::Tracing.active_trace,
             Datadog::Tracing.active_span,
-            user: {id: '42'},
-            "usr.login": 'hello@gmail.com'
+            user: {id: "42"},
+            "usr.login": "hello@gmail.com"
           )
 
           super
@@ -344,61 +336,57 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       end
     end
 
-    it 'tracks successful login event with SDK overrides' do
+    it "tracks successful login event with SDK overrides" do
       expect(response).to be_redirect
-      expect(response.location).to eq('http://example.org/')
+      expect(response.location).to eq("http://example.org/")
 
       expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
       expect(http_service_entry_span.tags).to include(
-        'usr.id' => '42',
-        'appsec.events.users.login.success.track' => 'true',
-        'appsec.events.users.login.success.usr.login' => 'hello@gmail.com',
-        '_dd.appsec.events.users.login.success.sdk' => 'true',
-        '_dd.appsec.events.users.login.success.auto.mode' => 'identification',
-        '_dd.appsec.usr.login' => 'john.doe@example.com',
-        '_dd.appsec.usr.id' => '1'
+        "usr.id" => "42",
+        "appsec.events.users.login.success.track" => "true",
+        "appsec.events.users.login.success.usr.login" => "hello@gmail.com",
+        "_dd.appsec.events.users.login.success.sdk" => "true",
+        "_dd.appsec.events.users.login.success.auto.mode" => "identification",
+        "_dd.appsec.usr.login" => "john.doe@example.com",
+        "_dd.appsec.usr.id" => "1"
       )
-
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
   end
 
-  context 'when user unsuccessfully logging because such user does not exist' do
-    before { post('/users/sign_in', {user: {email: 'john.doe@example.com', password: '123456'}}) }
+  context "when user unsuccessfully logging because such user does not exist" do
+    before { post("/users/sign_in", {user: {email: "john.doe@example.com", password: "123456"}}) }
 
-    it 'tracks login failure event' do
+    it "tracks login failure event" do
       expect(response).to be_unprocessable
       expect(response.body).to match(%r{<login-form>})
 
       expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
       expect(http_service_entry_span.tags).to include(
-        'appsec.events.users.login.failure.track' => 'true',
-        'appsec.events.users.login.failure.usr.exists' => 'false',
-        'appsec.events.users.login.failure.usr.login' => 'john.doe@example.com',
-        '_dd.appsec.usr.login' => 'john.doe@example.com',
-        '_dd.appsec.events.users.login.failure.auto.mode' => 'identification'
+        "appsec.events.users.login.failure.track" => "true",
+        "appsec.events.users.login.failure.usr.exists" => "false",
+        "appsec.events.users.login.failure.usr.login" => "john.doe@example.com",
+        "_dd.appsec.usr.login" => "john.doe@example.com",
+        "_dd.appsec.events.users.login.failure.auto.mode" => "identification"
       )
-
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
   end
 
-  context 'when user unsuccessfully logging because it is not permitted by custom logic' do
+  context "when user unsuccessfully logging because it is not permitted by custom logic" do
     before do
-      User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456', is_admin: false)
+      User.create!(username: "JohnDoe", email: "john.doe@example.com", password: "123456", is_admin: false)
 
-      post('/users/sign_in', {user: {email: 'john.doe@example.com', password: '123456'}})
+      post("/users/sign_in", {user: {email: "john.doe@example.com", password: "123456"}})
     end
 
     let(:user_model) do
-      stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-        klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
-        klass.connection.create_table 'users', force: :cascade do |t|
+      stub_const("User", Class.new(ActiveRecord::Base)).tap do |klass|
+        klass.establish_connection({adapter: "sqlite3", database: ":memory:"})
+        klass.connection.create_table "users", force: :cascade do |t|
           t.string :username, null: false
-          t.string :email, default: '', null: false
-          t.string :encrypted_password, default: '', null: false
+          t.string :email, default: "", null: false
+          t.string :encrypted_password, default: "", null: false
           t.boolean :is_admin, default: false, null: false
         end
 
@@ -415,40 +403,38 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       end
     end
 
-    it 'tracks login failure event' do
+    it "tracks login failure event" do
       expect(response).to be_unprocessable
       expect(response.body).to match(%r{<login-form>})
 
       expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
       expect(http_service_entry_span.tags).to include(
-        'appsec.events.users.login.failure.track' => 'true',
-        'appsec.events.users.login.failure.usr.exists' => 'true',
-        'appsec.events.users.login.failure.usr.login' => 'john.doe@example.com',
-        'appsec.events.users.login.failure.usr.id' => '1',
-        '_dd.appsec.usr.id' => '1',
-        '_dd.appsec.usr.login' => 'john.doe@example.com',
-        '_dd.appsec.events.users.login.failure.auto.mode' => 'identification'
+        "appsec.events.users.login.failure.track" => "true",
+        "appsec.events.users.login.failure.usr.exists" => "true",
+        "appsec.events.users.login.failure.usr.login" => "john.doe@example.com",
+        "appsec.events.users.login.failure.usr.id" => "1",
+        "_dd.appsec.usr.id" => "1",
+        "_dd.appsec.usr.login" => "john.doe@example.com",
+        "_dd.appsec.events.users.login.failure.auto.mode" => "identification"
       )
-
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
   end
 
-  context 'when user unsuccessfully logging because it is not permitted and customer uses SDK to track successful login' do
+  context "when user unsuccessfully logging because it is not permitted and customer uses SDK to track successful login" do
     before do
-      User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456', is_admin: false)
+      User.create!(username: "JohnDoe", email: "john.doe@example.com", password: "123456", is_admin: false)
 
-      post('/users/sign_in', {user: {email: 'john.doe@example.com', password: '123456'}})
+      post("/users/sign_in", {user: {email: "john.doe@example.com", password: "123456"}})
     end
 
     let(:user_model) do
-      stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-        klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
-        klass.connection.create_table 'users', force: :cascade do |t|
+      stub_const("User", Class.new(ActiveRecord::Base)).tap do |klass|
+        klass.establish_connection({adapter: "sqlite3", database: ":memory:"})
+        klass.connection.create_table "users", force: :cascade do |t|
           t.string :username, null: false
-          t.string :email, default: '', null: false
-          t.string :encrypted_password, default: '', null: false
+          t.string :email, default: "", null: false
+          t.string :encrypted_password, default: "", null: false
           t.boolean :is_admin, default: false, null: false
         end
 
@@ -466,9 +452,9 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     end
 
     let(:sessions_controller) do
-      stub_const('TestSessionsController', Class.new(Devise::SessionsController)).class_eval do
+      stub_const("TestSessionsController", Class.new(Devise::SessionsController)).class_eval do
         def new
-          render plain: '<login-form>'
+          render plain: "<login-form>"
         end
 
         def create
@@ -476,8 +462,8 @@ RSpec.describe 'Devise auto login and signup events tracking' do
             Datadog::Tracing.active_trace,
             Datadog::Tracing.active_span,
             user_exists: true,
-            user_id: '42',
-            "usr.login": 'hello@gmail.com'
+            user_id: "42",
+            "usr.login": "hello@gmail.com"
           )
 
           super
@@ -485,24 +471,22 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       end
     end
 
-    it 'tracks login failure event with SDK overrides' do
+    it "tracks login failure event with SDK overrides" do
       expect(response).to be_unprocessable
       expect(response.body).to match(%r{<login-form>})
 
       expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
       expect(http_service_entry_span.tags).to include(
-        'appsec.events.users.login.failure.track' => 'true',
-        'appsec.events.users.login.failure.usr.exists' => 'true',
-        'appsec.events.users.login.failure.usr.login' => 'hello@gmail.com',
-        'appsec.events.users.login.failure.usr.id' => '42',
-        '_dd.appsec.usr.id' => '1',
-        '_dd.appsec.usr.login' => 'john.doe@example.com',
-        '_dd.appsec.events.users.login.failure.sdk' => 'true',
-        '_dd.appsec.events.users.login.failure.auto.mode' => 'identification'
+        "appsec.events.users.login.failure.track" => "true",
+        "appsec.events.users.login.failure.usr.exists" => "true",
+        "appsec.events.users.login.failure.usr.login" => "hello@gmail.com",
+        "appsec.events.users.login.failure.usr.id" => "42",
+        "_dd.appsec.usr.id" => "1",
+        "_dd.appsec.usr.login" => "john.doe@example.com",
+        "_dd.appsec.events.users.login.failure.sdk" => "true",
+        "_dd.appsec.events.users.login.failure.auto.mode" => "identification"
       )
-
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
   end
 end

@@ -47,11 +47,6 @@ NORETURN(
   __attribute__ ((format (printf, 2, 3)));
 );
 
-// Internal helper for raising pre-formatted exceptions
-NORETURN(
-  void private_raise_error_formatted(VALUE exception_class, const char *detailed_message, const char *static_message)
-);
-
 // Raises an exception with separate telemetry-safe and detailed messages.
 // NOTE: Raising an exception always invokes Ruby code so it requires the GVL and is not compatible with "debug_enter_unsafe_context".
 // @see debug_enter_unsafe_context
@@ -60,13 +55,6 @@ NORETURN(
 );
 
 #define MAX_RAISE_MESSAGE_SIZE 256
-
-#define FORMAT_VA_ERROR_MESSAGE(buf, fmt) \
-  char buf[MAX_RAISE_MESSAGE_SIZE]; \
-  va_list buf##_args; \
-  va_start(buf##_args, fmt); \
-  vsnprintf(buf, MAX_RAISE_MESSAGE_SIZE, fmt, buf##_args); \
-  va_end(buf##_args);
 
 // Helper to retrieve Datadog::VERSION::STRING
 VALUE datadog_gem_version(void);
@@ -102,3 +90,13 @@ static inline VALUE get_error_details_and_drop(ddog_Error *error) {
 // Returns the amount of characters written to string (which are necessarily
 // bounded by capacity - 1 since the string will be null-terminated).
 size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capacity);
+
+#define IMEMO_MASK 0x0f
+
+// Returns the imemo type of an imemo object.
+// This mask is the same between Ruby 2.5 and 3.3-preview3. Furthermore, the intention of this method is to be used
+// to call `rb_imemo_name` which correctly handles invalid numbers so even if the mask changes in the future, at most
+// we'll get incorrect results (and never a VM crash)
+static inline int ddtrace_imemo_type(VALUE imemo) {
+  return (RBASIC(imemo)->flags >> FL_USHIFT) & IMEMO_MASK;
+}

@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require 'delayed/plugin'
+require "delayed/plugin"
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative 'ext'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -21,6 +21,7 @@ module Datadog
               resource: job_name(job),
               on_error: configuration[:on_error]
             ) do |span|
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               set_sample_rate(span)
 
               # Measure service stats
@@ -51,6 +52,7 @@ module Datadog
               service: configuration[:client_service_name],
               resource: job_name(job)
             ) do |span|
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               set_sample_rate(span)
 
               # Measure service stats
@@ -84,7 +86,7 @@ module Datadog
           def self.job_name(job)
             # When DelayedJob is used through ActiveJob, we need to parse the payload differentely
             # to get the actual job name
-            return job.payload_object.job_data['job_class'] if job.payload_object.respond_to?(:job_data)
+            return job.payload_object.job_data["job_class"] if job.payload_object.respond_to?(:job_data)
 
             job.name
           end

@@ -51,7 +51,7 @@ module LogHelpers
     end
   end
 
-  shared_context 'tracer logging' do
+  shared_context "tracer logging" do
     let(:log_buffer) { StringIO.new }
 
     before do
@@ -128,7 +128,7 @@ module LogHelpers
   end
 
   def expect_lazy_log_many(logger, meth, *expectations)
-    raise ArgumentError, 'Must have at least one expectation' if expectations.empty?
+    raise ArgumentError, "Must have at least one expectation" if expectations.empty?
 
     expect(logger).to receive(meth).exactly(expectations.length).times do |&block|
       expected_msg = expectations.shift
@@ -145,7 +145,7 @@ module LogHelpers
   end
 
   def expect_lazy_log_at_least(logger, meth, *expectations)
-    raise ArgumentError, 'Must have at least one expectation' if expectations.empty?
+    raise ArgumentError, "Must have at least one expectation" if expectations.empty?
 
     invocations = []
     expect(logger).to receive(meth).at_least(expectations.length).times do |*args, &block|

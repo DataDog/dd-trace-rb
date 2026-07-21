@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'stable_config'
-require_relative '../utils/safe_dup'
+require_relative "stable_config"
+require_relative "../utils/safe_dup"
 
 module Datadog
   module Core
@@ -42,22 +42,22 @@ module Datadog
           end
 
           # Remote configuration provided through the Datadog app.
-          REMOTE_CONFIGURATION = Value.new(5, :remote_configuration, 'remote_config').freeze
+          REMOTE_CONFIGURATION = Value.new(5, :remote_configuration, "remote_config").freeze
 
           # Configuration provided in Ruby code, in this same process
-          PROGRAMMATIC = Value.new(4, :programmatic, 'code').freeze
+          PROGRAMMATIC = Value.new(4, :programmatic, "code").freeze
 
           # Configuration provided by fleet managed stable config
-          FLEET_STABLE = Value.new(3, :fleet_stable, 'fleet_stable_config').freeze
+          FLEET_STABLE = Value.new(3, :fleet_stable, "fleet_stable_config").freeze
 
           # Configuration provided via environment variable
-          ENVIRONMENT = Value.new(2, :environment, 'env_var').freeze
+          ENVIRONMENT = Value.new(2, :environment, "env_var").freeze
 
           # Configuration provided by local stable config file
-          LOCAL_STABLE = Value.new(1, :local_stable, 'local_stable_config').freeze
+          LOCAL_STABLE = Value.new(1, :local_stable, "local_stable_config").freeze
 
           # Configuration that comes from default values
-          DEFAULT = Value.new(0, :default, 'default').freeze
+          DEFAULT = Value.new(0, :default, "default").freeze
 
           # All precedences, sorted from highest to lowest
           LIST = [REMOTE_CONFIGURATION, PROGRAMMATIC, FLEET_STABLE, ENVIRONMENT, LOCAL_STABLE, DEFAULT].sort.reverse.freeze
@@ -77,6 +77,16 @@ module Datadog
           @precedence_set = Precedence::DEFAULT
         end
 
+        # Computes the name of the option with the settings path.
+        # E.g. "tracing.rails.middleware_names" for the "middleware_names" option in the "tracing.rails" settings.
+        # @return [String] the name of the option with the settings path
+        def name_with_settings_path
+          @name_with_settings_path ||= begin
+            settings_path = @context.class.settings_path
+            settings_path.nil? ? definition.name.to_s : "#{settings_path}.#{definition.name}"
+          end
+        end
+
         # Overrides the current value for this option if the `precedence` is equal or higher than
         # the previously set value.
         # The first call to `#set` will always store the value regardless of precedence.
@@ -89,7 +99,7 @@ module Datadog
             # This should be uncommon, as higher precedence values tend to
             # happen later in the application lifecycle.
             Datadog.logger.info do
-              "Option '#{definition.name}' not changed to '#{value}' (precedence: #{precedence.name}) because the higher " \
+              "Option '#{name_with_settings_path}' not changed to '#{value}' (precedence: #{precedence.name}) because the higher " \
                 "precedence value '#{@value}' (precedence: #{@precedence_set.name}) was already set."
             end
 
@@ -167,7 +177,8 @@ module Datadog
 
         def default_value
           if definition.default.instance_of?(Proc)
-            context_eval(&definition.default)
+            # Steep: https://github.com/soutaro/steep/issues/335
+            context_eval(&definition.default) # steep:ignore BlockTypeMismatch
           else
             definition.default_proc || Core::Utils::SafeDup.frozen_or_dup(definition.default)
           end
@@ -175,6 +186,21 @@ module Datadog
 
         def default_precedence?
           precedence_set == Precedence::DEFAULT
+        end
+
+        def settings?
+          @definition.is_settings
+        end
+
+        def values_per_precedence
+          # value_per_precedence is only filled after we call `get` once.
+          get unless @is_set
+
+          @value_per_precedence.each_with_object({}) do |(precedence, value), result|
+            next if value.equal?(UNSET)
+
+            result[precedence] = value
+          end
         end
 
         private
@@ -185,13 +211,13 @@ module Datadog
 
           case @definition.type
           when :hash
-            values = value.split(',') # By default we only want to support comma separated strings
+            values = value.split(",") # By default we only want to support comma separated strings
 
             values.each_with_object({}) do |v, hash| # $ Hash[String, String]
-              v.gsub!(/\A[\s,]*+|[\s,]*+\Z/, '')
+              v.gsub!(/\A[\s,]*+|[\s,]*+\Z/, "")
               next if v.empty?
 
-              pair = v.split(':', 2)
+              pair = v.split(":", 2)
               hash[pair[0]] = pair[1]
             end
           when :int
@@ -199,10 +225,10 @@ module Datadog
           when :float
             Float(value)
           when :array
-            values = value.split(',')
+            values = value.split(",")
 
             values.each_with_object([]) do |v, arr| # $ Array[String]
-              v.gsub!(/\A[\s,]*+|[\s,]*+\Z/, '')
+              v.gsub!(/\A[\s,]*+|[\s,]*+\Z/, "")
               next if v.empty?
 
               arr << v
@@ -210,12 +236,12 @@ module Datadog
           when :bool
             string_value = value.strip
             string_value = string_value.downcase
-            string_value == 'true' || string_value == '1'
+            string_value == "true" || string_value == "1"
           when :string, NilClass
             value
           else
             raise InvalidDefinitionError,
-              "The option #{@definition.name} is using an unsupported type option for env coercion `#{@definition.type}`"
+              "The option #{name_with_settings_path} is using an unsupported type option for env coercion `#{@definition.type}`"
           end
         end
 
@@ -238,10 +264,10 @@ module Datadog
 
           if raise_error
             error_msg = if @definition.type_options[:nilable]
-              "The setting `#{@definition.name}` inside your app's `Datadog.configure` block expects a " \
+              "The setting `#{name_with_settings_path}` inside your app's `Datadog.configure` block expects a " \
               "#{@definition.type} or `nil`, but a `#{value.class}` was provided (#{value.inspect})." \
             else
-              "The setting `#{@definition.name}` inside your app's `Datadog.configure` block expects a " \
+              "The setting `#{name_with_settings_path}` inside your app's `Datadog.configure` block expects a " \
               "#{@definition.type}, but a `#{value.class}` was provided (#{value.inspect})." \
             end
 
@@ -275,7 +301,7 @@ module Datadog
             true # No validation is performed when option is typeless
           else
             raise InvalidDefinitionError,
-              "The option #{@definition.name} is using an unsupported type option `#{@definition.type}`"
+              "The option #{name_with_settings_path} is using an unsupported type option `#{@definition.type}`"
           end
         end
 
@@ -314,7 +340,7 @@ module Datadog
           customer_config = StableConfig.configuration.dig(:local, :config)
           return if customer_config.nil?
 
-          value = get_value_from(customer_config, 'local')
+          value = get_value_from(customer_config, "local")
           set(value, precedence: Precedence::LOCAL_STABLE) unless value.nil?
         end
 
@@ -322,7 +348,7 @@ module Datadog
           fleet_config = StableConfig.configuration.dig(:fleet, :config)
           return if fleet_config.nil?
 
-          value = get_value_from(fleet_config, 'fleet')
+          value = get_value_from(fleet_config, "fleet")
           set(value, precedence: Precedence::FLEET_STABLE) unless value.nil?
         end
 

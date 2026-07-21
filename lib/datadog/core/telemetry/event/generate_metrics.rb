@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'base'
+require_relative "base"
 
 module Datadog
   module Core
@@ -11,7 +11,7 @@ module Datadog
           attr_reader :namespace, :metric_series
 
           def type
-            'generate-metrics'
+            "generate-metrics"
           end
 
           def initialize(namespace, metric_series)

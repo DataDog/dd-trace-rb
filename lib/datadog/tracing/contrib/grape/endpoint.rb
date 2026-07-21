@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../../../core'
-require_relative '../../../core/telemetry/logger'
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative '../rack/ext'
+require_relative "../../../core"
+require_relative "../../../core/telemetry/logger"
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "../rack/ext"
 
 module Datadog
   module Tracing
@@ -13,25 +13,25 @@ module Datadog
         # Endpoint module includes a list of subscribers to create
         # traces when a Grape endpoint is hit
         module Endpoint
-          KEY_RUN = 'datadog_grape_endpoint_run'
-          KEY_RENDER = 'datadog_grape_endpoint_render'
+          KEY_RUN = "datadog_grape_endpoint_run"
+          KEY_RENDER = "datadog_grape_endpoint_render"
 
           class << self
             def subscribe
               # subscribe when a Grape endpoint is hit
-              ::ActiveSupport::Notifications.subscribe('endpoint_run.grape.start_process') do |*args|
+              ::ActiveSupport::Notifications.subscribe("endpoint_run.grape.start_process") do |*args|
                 endpoint_start_process(*args)
               end
-              ::ActiveSupport::Notifications.subscribe('endpoint_run.grape') do |*args|
+              ::ActiveSupport::Notifications.subscribe("endpoint_run.grape") do |*args|
                 endpoint_run(*args)
               end
-              ::ActiveSupport::Notifications.subscribe('endpoint_render.grape.start_render') do |*args|
+              ::ActiveSupport::Notifications.subscribe("endpoint_render.grape.start_render") do |*args|
                 endpoint_start_render(*args)
               end
-              ::ActiveSupport::Notifications.subscribe('endpoint_render.grape') do |*args|
+              ::ActiveSupport::Notifications.subscribe("endpoint_render.grape") do |*args|
                 endpoint_render(*args)
               end
-              ::ActiveSupport::Notifications.subscribe('endpoint_run_filters.grape') do |*args|
+              ::ActiveSupport::Notifications.subscribe("endpoint_run_filters.grape") do |*args|
                 endpoint_run_filters(*args)
               end
             end
@@ -62,22 +62,23 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RUN)
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
 
-              if (grape_route = env['grape.routing_args']) && grape_route[:route_info]
+              if (grape_route = env["grape.routing_args"]) && grape_route[:route_info]
                 trace.set_tag(
                   Tracing::Metadata::Ext::HTTP::TAG_ROUTE,
                   # here we are removing the format from the path:
                   # e.g. /path/to/resource(.json) => /path/to/resource
                   # e.g. /path/to/resource(.:format) => /path/to/resource
-                  grape_route[:route_info].path&.gsub(/\(\.:?\w+\)\z/, '')
+                  grape_route[:route_info].path&.gsub(/\(\.:?\w+\)\z/, "")
                 )
 
-                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env['SCRIPT_NAME'])
+                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env["SCRIPT_NAME"])
               end
 
               Thread.current[KEY_RUN] = true
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -121,7 +122,7 @@ module Datadog
                 span.finish(finish)
               end
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -162,10 +163,11 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RENDER)
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
 
               Thread.current[KEY_RENDER] = true
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -190,7 +192,7 @@ module Datadog
                 span.finish(finish)
               end
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -213,6 +215,7 @@ module Datadog
               begin
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RUN_FILTERS)
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
 
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
@@ -229,7 +232,7 @@ module Datadog
                 span.finish(finish)
               end
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -265,12 +268,12 @@ module Datadog
 
             def endpoint_expand_path(endpoint)
               route_path = endpoint.options[:path]
-              namespace = endpoint.routes.first&.namespace || ''
+              namespace = endpoint.routes.first&.namespace || ""
 
-              path = (namespace.split('/') + route_path)
-                .reject { |p| p.blank? || p.eql?('/') }
-                .join('/')
-              path.prepend('/') if path[0] != '/'
+              path = (namespace.split("/") + route_path)
+                .reject { |p| p.blank? || p.eql?("/") }
+                .join("/")
+              path.prepend("/") if path[0] != "/"
               path
             end
 

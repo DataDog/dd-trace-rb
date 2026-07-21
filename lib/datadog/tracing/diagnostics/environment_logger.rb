@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'date'
-require 'json'
-require 'rbconfig'
-require_relative '../../core/diagnostics/environment_logger'
+require "date"
+require "json"
+require "rbconfig"
+require_relative "../../core/diagnostics/environment_logger"
 
 module Datadog
   module Tracing
@@ -14,17 +14,19 @@ module Datadog
 
         def self.collect_and_log!(responses: nil)
           if log?
-            log_configuration!('TRACING', EnvironmentCollector.collect_config!.to_json)
-            log_debug!('TRACING INTEGRATIONS', EnvironmentCollector.collect_integrations_settings!.to_json)
+            log_configuration!("TRACING", EnvironmentCollector.collect_config!.to_json)
+            log_debug!("TRACING INTEGRATIONS", EnvironmentCollector.collect_integrations_settings!.to_json)
 
             if responses
               err_data = EnvironmentCollector.collect_errors!(responses)
               err_data.reject! { |_, v| v.nil? } # Remove empty values from hash output
-              log_error!('TRACING', 'Agent Error', err_data.to_json) unless err_data.empty?
+              log_error!("TRACING", "Agent Error", err_data.to_json) unless err_data.empty?
             end
           end
         rescue => e
-          logger.warn("Failed to collect tracing environment information: #{e} Location: #{Array(e.backtrace).first}")
+          logger.warn(
+            "Failed to collect tracing environment information: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+          )
         end
       end
 
@@ -73,7 +75,7 @@ module Datadog
 
             return nil if error_responses.empty?
 
-            error_responses.map(&:inspect).join(',')
+            error_responses.map(&:inspect).join(",")
           end
 
           # @return [Boolean, nil] analytics enabled in configuration
@@ -125,7 +127,7 @@ module Datadog
             integrations = instrumented_integrations
             return if integrations.empty?
 
-            integrations.map { |name, integration| "#{name}@#{integration.class.version}" }.join(',')
+            integrations.map { |name, integration| "#{name}@#{integration.class.version}" }.join(",")
           end
 
           # @return [Boolean, nil] partial flushing enabled in configuration

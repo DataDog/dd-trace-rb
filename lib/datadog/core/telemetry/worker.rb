@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative 'event'
+require_relative "event"
 
-require_relative '../utils/only_once_successful'
-require_relative '../workers/polling'
-require_relative '../workers/queue'
+require_relative "../utils/only_once_successful"
+require_relative "../workers/polling"
+require_relative "../workers/queue"
 
 module Datadog
   module Core
@@ -27,6 +27,9 @@ module Datadog
           metrics_manager:,
           dependency_collection:,
           logger:,
+          settings:,
+          agent_settings:,
+          extended_heartbeat_interval_seconds:,
           enabled: true,
           shutdown_timeout: Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT,
           buffer_size: DEFAULT_BUFFER_MAX_SIZE
@@ -35,8 +38,11 @@ module Datadog
           @metrics_manager = metrics_manager
           @dependency_collection = dependency_collection
           @logger = logger
+          @settings = settings
+          @agent_settings = agent_settings
 
           @ticks_per_heartbeat = (heartbeat_interval_seconds / metrics_aggregation_interval_seconds).to_i
+          @ticks_per_extended_heartbeat = (extended_heartbeat_interval_seconds / metrics_aggregation_interval_seconds).to_i
           @current_ticks = 0
 
           # Workers::Polling settings
@@ -63,6 +69,7 @@ module Datadog
           self.buffer = buffer_klass.new(@buffer_size)
 
           @initial_event_once = Utils::OnlyOnceSuccessful.new(APP_STARTED_EVENT_RETRIES)
+          @extended_heartbeat_ticks = 0
         end
 
         attr_reader :logger
@@ -151,6 +158,13 @@ module Datadog
           end
 
           @current_ticks += 1
+          @extended_heartbeat_ticks += 1
+
+          if @extended_heartbeat_ticks >= @ticks_per_extended_heartbeat
+            @extended_heartbeat_ticks = 0
+            extended_heartbeat!
+          end
+
           return if @current_ticks < @ticks_per_heartbeat
 
           @current_ticks = 0
@@ -168,6 +182,12 @@ module Datadog
           return if !enabled? || !sent_initial_event?
 
           send_event(Event::AppHeartbeat.new)
+        end
+
+        def extended_heartbeat!
+          return if !enabled? || !sent_initial_event?
+
+          send_event(Event::AppExtendedHeartbeat.new(settings: @settings, agent_settings: @agent_settings))
         end
 
         def started!
@@ -219,7 +239,7 @@ module Datadog
         end
 
         def buffer_klass
-          if Core::Environment::Ext::RUBY_ENGINE == 'ruby'
+          if Core::Environment::Ext::RUBY_ENGINE == "ruby"
             Core::Buffer::CRuby
           else
             Core::Buffer::ThreadSafe
@@ -234,7 +254,7 @@ module Datadog
         def disable_on_not_found!(response)
           return unless response.not_found?
 
-          logger.debug('Agent does not support telemetry; disabling future telemetry events.')
+          logger.debug("Agent does not support telemetry; disabling future telemetry events.")
           disable!
         end
 

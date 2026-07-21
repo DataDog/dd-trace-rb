@@ -1,14 +1,14 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/transport/http/adapters/test'
+require "datadog/core/transport/http/adapters/test"
 
 RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Test do
   subject(:adapter) { described_class.new(buffer) }
 
   let(:buffer) { nil }
 
-  describe '#initialize' do
-    context 'given no options' do
+  describe "#initialize" do
+    context "given no options" do
       subject(:adapter) { described_class.new }
 
       let(:options) { {} }
@@ -21,35 +21,35 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Test do
       end
     end
 
-    context 'given a buffer' do
+    context "given a buffer" do
       subject(:adapter) { described_class.new(buffer) }
 
-      let(:buffer) { double('buffer') }
+      let(:buffer) { double("buffer") }
 
       it { is_expected.to have_attributes(buffer: buffer) }
     end
   end
 
-  describe '#call' do
+  describe "#call" do
     subject(:call) { adapter.call(env) }
 
     let(:env) { instance_double(Datadog::Core::Transport::HTTP::Env) }
 
-    it 'returns a response with correct attributes' do
+    it "returns a response with correct attributes" do
       is_expected.to be_a_kind_of(described_class::Response)
       expect(call.body).to be nil
       expect(call.code).to eq(adapter.status)
     end
 
-    context 'when buffer' do
-      context 'is not active' do
+    context "when buffer" do
+      context "is not active" do
         it do
           is_expected.to be_a_kind_of(described_class::Response)
           expect(adapter.buffer).to be nil
         end
       end
 
-      context 'is active' do
+      context "is active" do
         let(:buffer) { [] }
 
         it do
@@ -60,11 +60,11 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Test do
     end
   end
 
-  describe '#buffer?' do
+  describe "#buffer?" do
     subject(:buffer?) { adapter.buffer? }
 
-    context 'when buffer' do
-      context 'is not active' do
+    context "when buffer" do
+      context "is not active" do
         let(:buffer) { nil }
 
         it do
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Test do
         end
       end
 
-      context 'is active' do
+      context "is active" do
         let(:buffer) { [] }
 
         it do
@@ -82,20 +82,20 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Test do
     end
   end
 
-  describe '#add_request' do
+  describe "#add_request" do
     subject(:call) { adapter.add_request(env) }
 
     let(:env) { instance_double(Datadog::Core::Transport::HTTP::Env) }
 
-    context 'when buffer' do
-      context 'is not active' do
+    context "when buffer" do
+      context "is not active" do
         it do
           is_expected.to be nil
           expect(adapter.buffer).to be nil
         end
       end
 
-      context 'is active' do
+      context "is active" do
         let(:buffer) { [] }
 
         it do
@@ -106,10 +106,10 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Test do
     end
   end
 
-  describe '#set_status!' do
+  describe "#set_status!" do
     subject(:set_status!) { adapter.set_status!(status) }
 
-    let(:status) { double('status') }
+    let(:status) { double("status") }
 
     it do
       is_expected.to be status
@@ -117,7 +117,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Test do
     end
   end
 
-  describe '#url' do
+  describe "#url" do
     subject(:url) { adapter.url }
 
     it do
@@ -129,129 +129,129 @@ end
 RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Test::Response do
   subject(:response) { described_class.new(code, body) }
 
-  let(:code) { double('code') }
-  let(:body) { double('body') }
+  let(:code) { double("code") }
+  let(:body) { double("body") }
 
-  describe '#initialize' do
+  describe "#initialize" do
     it { is_expected.to have_attributes(code: code, body: body) }
   end
 
-  describe '#payload' do
+  describe "#payload" do
     subject(:payload) { response.payload }
 
     it { is_expected.to be(body) }
   end
 
-  describe '#ok?' do
+  describe "#ok?" do
     subject(:ok?) { response.ok? }
 
-    context 'when code is 199' do
+    context "when code is 199" do
       let(:code) { 199 }
 
       it { is_expected.to be false }
     end
 
-    context 'when code is 200' do
+    context "when code is 200" do
       let(:code) { 200 }
 
       it { is_expected.to be true }
     end
 
-    context 'when code is 299' do
+    context "when code is 299" do
       let(:code) { 299 }
 
       it { is_expected.to be true }
     end
 
-    context 'when code is 300' do
+    context "when code is 300" do
       let(:code) { 300 }
 
       it { is_expected.to be false }
     end
   end
 
-  describe '#unsupported?' do
+  describe "#unsupported?" do
     subject(:unsupported?) { response.unsupported? }
 
-    context 'when code is 400' do
+    context "when code is 400" do
       let(:code) { 400 }
 
       it { is_expected.to be false }
     end
 
-    context 'when code is 415' do
+    context "when code is 415" do
       let(:code) { 415 }
 
       it { is_expected.to be true }
     end
   end
 
-  describe '#not_found?' do
+  describe "#not_found?" do
     subject(:not_found?) { response.not_found? }
 
-    context 'when code is 400' do
+    context "when code is 400" do
       let(:code) { 400 }
 
       it { is_expected.to be false }
     end
 
-    context 'when code is 404' do
+    context "when code is 404" do
       let(:code) { 404 }
 
       it { is_expected.to be true }
     end
   end
 
-  describe '#client_error?' do
+  describe "#client_error?" do
     subject(:client_error?) { response.client_error? }
 
-    context 'when code is 399' do
+    context "when code is 399" do
       let(:code) { 399 }
 
       it { is_expected.to be false }
     end
 
-    context 'when code is 400' do
+    context "when code is 400" do
       let(:code) { 400 }
 
       it { is_expected.to be true }
     end
 
-    context 'when code is 499' do
+    context "when code is 499" do
       let(:code) { 499 }
 
       it { is_expected.to be true }
     end
 
-    context 'when code is 500' do
+    context "when code is 500" do
       let(:code) { 500 }
 
       it { is_expected.to be false }
     end
   end
 
-  describe '#server_error?' do
+  describe "#server_error?" do
     subject(:server_error?) { response.server_error? }
 
-    context 'when code is 499' do
+    context "when code is 499" do
       let(:code) { 499 }
 
       it { is_expected.to be false }
     end
 
-    context 'when code is 500' do
+    context "when code is 500" do
       let(:code) { 500 }
 
       it { is_expected.to be true }
     end
 
-    context 'when code is 599' do
+    context "when code is 599" do
       let(:code) { 599 }
 
       it { is_expected.to be true }
     end
 
-    context 'when code is 600' do
+    context "when code is 600" do
       let(:code) { 600 }
 
       it { is_expected.to be false }

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative 'all_sampler'
-require_relative 'rate_sampler'
-require_relative 'rate_by_service_sampler'
+require_relative "ext"
+require_relative "all_sampler"
+require_relative "rate_sampler"
+require_relative "rate_by_service_sampler"
 
 module Datadog
   module Tracing
@@ -75,6 +75,19 @@ module Datadog
             # The sampler decided to not keep this span, removing sampling decision.
             trace.clear_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
           end
+        end
+
+        def reconsider_sample_resource!(trace)
+          return unless @priority_sampler.respond_to?(:reconsider_sample_resource!)
+
+          preserving_sampling(trace) do
+            @priority_sampler.reconsider_sample_resource!(trace)
+          end
+        end
+
+        def resource_sampling?
+          @priority_sampler.respond_to?(:resource_sampling?) &&
+            @priority_sampler.resource_sampling?
         end
 
         # (see Datadog::Tracing::Sampling::RateByServiceSampler#update)

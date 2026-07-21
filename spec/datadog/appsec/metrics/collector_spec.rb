@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require 'datadog/appsec/spec_helper'
+require "datadog/appsec/spec_helper"
 
 RSpec.describe Datadog::AppSec::Metrics::Collector do
   subject(:collector) { described_class.new }
 
-  describe '#record_waf' do
-    context 'when no results were recorded' do
-      it 'contains all metrics in initial state' do
+  describe "#record_waf" do
+    context "when no results were recorded" do
+      it "contains all metrics in initial state" do
         expect(collector.waf.evals).to eq(0)
         expect(collector.waf.matches).to eq(0)
         expect(collector.waf.errors).to eq(0)
@@ -18,7 +18,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       end
     end
 
-    context 'when a single result was recorded' do
+    context "when a single result was recorded" do
       before { collector.record_waf(result) }
 
       let(:result) do
@@ -28,7 +28,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         )
       end
 
-      it 'contains metrics of a single result' do
+      it "contains metrics of a single result" do
         expect(collector.waf.evals).to eq(1)
         expect(collector.waf.matches).to eq(0)
         expect(collector.waf.errors).to eq(0)
@@ -39,7 +39,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       end
     end
 
-    context 'when multiple results were recorded' do
+    context "when multiple results were recorded" do
       before do
         collector.record_waf(result_1)
         collector.record_waf(result_2)
@@ -59,7 +59,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         )
       end
 
-      it 'contains cumulative metrics of both results' do
+      it "contains cumulative metrics of both results" do
         expect(collector.waf.timeouts).to eq(0)
         expect(collector.waf.matches).to eq(1)
         expect(collector.waf.errors).to eq(0)
@@ -69,7 +69,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       end
     end
 
-    context 'when multiple recorded results contain timeout' do
+    context "when multiple recorded results contain timeout" do
       before do
         collector.record_waf(result_1)
         collector.record_waf(result_2)
@@ -94,7 +94,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 300, input_truncated: false)
       end
 
-      it 'accumulates timeouts in addition to other metics' do
+      it "accumulates timeouts in addition to other metics" do
         expect(collector.waf.evals).to eq(3)
         expect(collector.waf.matches).to eq(1)
         expect(collector.waf.errors).to eq(1)
@@ -106,9 +106,9 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
     end
   end
 
-  describe '#record_rasp' do
-    context 'when no results were recorded' do
-      it 'contains all metrics in initial state' do
+  describe "#record_rasp" do
+    context "when no results were recorded" do
+      it "contains all metrics in initial state" do
         expect(collector.rasp.evals).to eq(0)
         expect(collector.waf.matches).to eq(0)
         expect(collector.waf.errors).to eq(0)
@@ -120,8 +120,8 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       end
     end
 
-    context 'when a single result was recorded' do
-      before { collector.record_rasp(result, type: 'sql_injection') }
+    context "when a single result was recorded" do
+      before { collector.record_rasp(result, type: "sql_injection") }
 
       let(:result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
@@ -130,7 +130,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         )
       end
 
-      it 'contains metrics of a single result' do
+      it "contains metrics of a single result" do
         expect(collector.rasp.evals).to eq(1)
         expect(collector.waf.matches).to eq(0)
         expect(collector.waf.errors).to eq(0)
@@ -142,10 +142,10 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       end
     end
 
-    context 'when multiple calls were made' do
+    context "when multiple calls were made" do
       before do
-        collector.record_rasp(result_1, type: 'sql_injection')
-        collector.record_rasp(result_2, type: 'sql_injection')
+        collector.record_rasp(result_1, type: "sql_injection")
+        collector.record_rasp(result_2, type: "sql_injection")
       end
 
       let(:result_1) do
@@ -162,7 +162,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         )
       end
 
-      it 'contains cumulative metrics of both results' do
+      it "contains cumulative metrics of both results" do
         expect(collector.rasp.evals).to eq(2)
         expect(collector.waf.matches).to eq(1)
         expect(collector.waf.errors).to eq(0)
@@ -174,11 +174,11 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       end
     end
 
-    context 'when multiple calls contain timeout' do
+    context "when multiple calls contain timeout" do
       before do
-        collector.record_rasp(result_1, type: 'sql_injection')
-        collector.record_rasp(result_2, type: 'sql_injection')
-        collector.record_rasp(result_3, type: 'sql_injection')
+        collector.record_rasp(result_1, type: "sql_injection")
+        collector.record_rasp(result_2, type: "sql_injection")
+        collector.record_rasp(result_3, type: "sql_injection")
       end
 
       let(:result_1) do
@@ -199,7 +199,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 300, input_truncated: false)
       end
 
-      it 'accumulates timeouts in addition to other metics' do
+      it "accumulates timeouts in addition to other metics" do
         expect(collector.rasp.evals).to eq(3)
         expect(collector.waf.matches).to eq(1)
         expect(collector.waf.errors).to eq(1)
@@ -211,10 +211,10 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       end
     end
 
-    context 'when ssrf was recorded for request and response phases' do
+    context "when ssrf was recorded for request and response phases" do
       before do
-        collector.record_rasp(result_1, type: 'ssrf', phase: 'request')
-        collector.record_rasp(result_2, type: 'ssrf', phase: 'response')
+        collector.record_rasp(result_1, type: "ssrf", phase: "request")
+        collector.record_rasp(result_2, type: "ssrf", phase: "response")
       end
 
       let(:result_1) do
@@ -234,10 +234,10 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       it { expect(collector.rasp.downstream_requests).to eq(1) }
     end
 
-    context 'when ssrf was recorded for two request phases' do
+    context "when ssrf was recorded for two request phases" do
       before do
-        collector.record_rasp(result_1, type: 'ssrf', phase: 'request')
-        collector.record_rasp(result_2, type: 'ssrf', phase: 'request')
+        collector.record_rasp(result_1, type: "ssrf", phase: "request")
+        collector.record_rasp(result_2, type: "ssrf", phase: "request")
       end
 
       let(:result_1) do
@@ -255,6 +255,39 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       end
 
       it { expect(collector.rasp.downstream_requests).to eq(2) }
+    end
+  end
+
+  describe "#record_ignored_downstream_response_body" do
+    context "when no ignored response bodies were recorded" do
+      it "contains all metrics in initial state" do
+        expect(collector.downstream_responses.content_type_invalid).to eq(0)
+        expect(collector.downstream_responses.content_length_missing).to eq(0)
+        expect(collector.downstream_responses.content_length_too_big).to eq(0)
+        expect(collector.downstream_responses.content_exceed_content_length).to eq(0)
+      end
+    end
+
+    context "when ignored response bodies were recorded" do
+      before do
+        collector.record_ignored_downstream_response_body(:content_type_invalid)
+        collector.record_ignored_downstream_response_body(:content_length_too_big)
+        collector.record_ignored_downstream_response_body(:content_length_too_big)
+        collector.record_ignored_downstream_response_body(:content_exceed_content_length)
+      end
+
+      it "contains cumulative response body metrics" do
+        expect(collector.downstream_responses.content_type_invalid).to eq(1)
+        expect(collector.downstream_responses.content_length_missing).to eq(0)
+        expect(collector.downstream_responses.content_length_too_big).to eq(2)
+        expect(collector.downstream_responses.content_exceed_content_length).to eq(1)
+      end
+    end
+
+    context "when reason is unknown" do
+      it do
+        expect { collector.record_ignored_downstream_response_body(:unknown_reason) }.to raise_error(NameError)
+      end
     end
   end
 end

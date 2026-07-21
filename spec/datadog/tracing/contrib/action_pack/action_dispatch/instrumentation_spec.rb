@@ -1,55 +1,55 @@
-require 'datadog/tracing/contrib/support/spec_helper'
+require "datadog/tracing/contrib/support/spec_helper"
 
-require 'datadog'
-require 'datadog/tracing/contrib/action_pack/action_dispatch/instrumentation'
+require "datadog"
+require "datadog/tracing/contrib/action_pack/action_dispatch/instrumentation"
 
 RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Instrumentation do
-  describe '.set_http_route_tags' do
-    context 'when tracing is disabled' do
+  describe ".set_http_route_tags" do
+    context "when tracing is disabled" do
       before { expect(Datadog::Tracing).to receive(:enabled?).and_return(false) }
 
-      it 'sets no tags' do
-        Datadog::Tracing.trace('rack.request') do |_span, trace|
-          described_class.set_http_route_tags('/users/:id', '/auth')
+      it "sets no tags" do
+        Datadog::Tracing.trace("rack.request") do |_span, trace|
+          described_class.set_http_route_tags("/users/:id", "/auth")
 
-          expect(trace.send(:meta)).not_to have_key('http.route')
-          expect(trace.send(:meta)).not_to have_key('http.route.path')
+          expect(trace.send(:meta)).not_to have_key("http.route")
+          expect(trace.send(:meta)).not_to have_key("http.route.path")
         end
       end
     end
 
-    context 'when tracing is enabled' do
+    context "when tracing is enabled" do
       before { expect(Datadog::Tracing).to receive(:enabled?).and_return(true) }
 
-      it 'sets http.route and http.route.path tags on existing trace' do
-        Datadog::Tracing.trace('rack.request') do |_span, trace|
-          described_class.set_http_route_tags('/users/:id', '/auth')
+      it "sets http.route and http.route.path tags on existing trace" do
+        Datadog::Tracing.trace("rack.request") do |_span, trace|
+          described_class.set_http_route_tags("/users/:id", "/auth")
 
-          expect(trace.send(:meta).fetch('http.route')).to eq('/users/:id')
-          expect(trace.send(:meta).fetch('http.route.path')).to eq('/auth')
+          expect(trace.send(:meta).fetch("http.route")).to eq("/users/:id")
+          expect(trace.send(:meta).fetch("http.route.path")).to eq("/auth")
         end
       end
 
-      it 'sets no http.route.path when script name is nil' do
-        Datadog::Tracing.trace('rack.request') do |_span, trace|
-          described_class.set_http_route_tags('/users/:id', nil)
+      it "sets no http.route.path when script name is nil" do
+        Datadog::Tracing.trace("rack.request") do |_span, trace|
+          described_class.set_http_route_tags("/users/:id", nil)
 
-          expect(trace.send(:meta).fetch('http.route')).to eq('/users/:id')
-          expect(trace.send(:meta)).not_to have_key('http.route.path')
+          expect(trace.send(:meta).fetch("http.route")).to eq("/users/:id")
+          expect(trace.send(:meta)).not_to have_key("http.route.path")
         end
       end
 
-      it 'sets no tags when route spec is nil' do
-        Datadog::Tracing.trace('rack.request') do |_span, trace|
-          described_class.set_http_route_tags(nil, '/auth')
+      it "sets no tags when route spec is nil" do
+        Datadog::Tracing.trace("rack.request") do |_span, trace|
+          described_class.set_http_route_tags(nil, "/auth")
 
-          expect(trace.send(:meta)).not_to have_key('http.route')
-          expect(trace.send(:meta)).not_to have_key('http.route.path')
+          expect(trace.send(:meta)).not_to have_key("http.route")
+          expect(trace.send(:meta)).not_to have_key("http.route.path")
         end
       end
 
-      it 'does not create new traces when no active trace is present' do
-        described_class.set_http_route_tags('/users/:id', '/auth')
+      it "does not create new traces when no active trace is present" do
+        described_class.set_http_route_tags("/users/:id", "/auth")
 
         expect(traces).to be_empty
       end

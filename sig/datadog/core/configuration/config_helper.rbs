@@ -24,6 +24,8 @@ module Datadog
 
         def key?: (String name) -> bool
 
+        def to_h: () -> Hash[::String, ::String]
+
         alias has_key? key?
         alias include? key?
         alias member? key?

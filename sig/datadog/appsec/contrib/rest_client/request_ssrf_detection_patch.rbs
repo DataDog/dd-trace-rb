@@ -3,9 +3,9 @@ module Datadog
     module Contrib
       module RestClient
         module RequestSSRFDetectionPatch : ::RestClient::Request
-          REDIRECT_STATUS_CODES: ::Range[::Integer]
+          REDIRECT_STATUS_CODES: Range[Integer]
 
-          type headers = ::Hash[::String, ::String]
+          type headers = ::Hash[String, String]
 
           def execute: () ?{ (*untyped) -> untyped } -> ::RestClient::Response
 
@@ -15,7 +15,14 @@ module Datadog
 
           def mark_body_sampling!: (Context context) -> bool
 
-          def parse_body: (::String body, content_type: ::String?) -> ::Helpers::json?
+          def parse_request_body: (::RestClient::Payload::Base? body, content_type: String?) -> Datadog::Helpers::json?
+
+          def parse_response_body: (Utils::HTTP::Body::body body, headers: headers, context: Context) -> Datadog::Helpers::json?
+
+          def readable_body?: (Utils::HTTP::Body::body body) -> bool
+
+          def read_body: (::RestClient::Payload::Base? body, limit: Integer) -> String?
+                       | (Utils::HTTP::Body::body body, limit: Integer) -> String?
 
           def normalize_request_headers: () -> headers
 

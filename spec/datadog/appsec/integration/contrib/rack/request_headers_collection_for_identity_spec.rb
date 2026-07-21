@@ -1,13 +1,14 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/appsec/spec_helper'
-require 'rack/test'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/appsec/spec_helper"
+require "rack/test"
 
-require 'datadog/tracing'
-require 'datadog/appsec'
+require "datadog/tracing"
+require "datadog/appsec"
+require "datadog/kit/appsec/events"
 
-RSpec.describe 'Rack-request headers collection for identity.set_user' do
+RSpec.describe "Rack-request headers collection for identity.set_user" do
   include Rack::Test::Methods
 
   before do
@@ -35,6 +36,7 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
     allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
       .and_return(true)
 
+    Datadog::AppSec::Monitor::Gateway::Watcher.watch_user_id
     Datadog::AppSec::Contrib::Rack::Gateway::Watcher.watch_request_finish
   end
 
@@ -47,7 +49,7 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
 
   let(:http_service_entry_span) do
     Datadog::Tracing::Transport::TraceFormatter.format!(trace)
-    spans.find { |s| s.name == 'rack.request' }
+    spans.find { |s| s.name == "rack.request" }
   end
 
   let(:app) do
@@ -55,20 +57,20 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
       use Datadog::Tracing::Contrib::Rack::TraceMiddleware
       use Datadog::AppSec::Contrib::Rack::RequestMiddleware
 
-      map '/with-identity-set-user' do
+      map "/with-identity-set-user" do
         run(
           lambda do |_env|
             Datadog::Kit::AppSec::Events.track_login_success(
-              Datadog::Tracing.active_trace, Datadog::Tracing.active_span, user: {id: '42'}
+              Datadog::Tracing.active_trace, Datadog::Tracing.active_span, user: {id: "42"}
             )
 
-            [200, {'Content-Type' => 'text/html'}, ['OK']]
+            [200, {"Content-Type" => "text/html"}, ["OK"]]
           end
         )
       end
 
-      map '/without-identity-set-user' do
-        run ->(_env) { [200, {'Content-Type' => 'text/html'}, ['OK']] }
+      map "/without-identity-set-user" do
+        run ->(_env) { [200, {"Content-Type" => "text/html"}, ["OK"]] }
       end
     end
 
@@ -77,39 +79,73 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
 
   subject(:response) { last_response }
 
-  context 'when identity.set_user event was pushed' do
+  context "when identity.set_user event was pushed" do
     before do
       headers = {
-        'HTTP_UNKNOWNHEADER' => 'something',
-        'HTTP_CF_CONNECTING_IPV6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'
+        "HTTP_UNKNOWNHEADER" => "something",
+        "HTTP_CF_CONNECTING_IPV6" => "2001:db8:3333:4444:5555:6666:1.2.3.4"
       }
-      get('/with-identity-set-user', {}, headers)
+      get("/with-identity-set-user", {}, headers)
     end
 
-    it 'collects identity related request headers' do
+    it "collects identity related request headers" do
       expect(response).to be_ok
 
-      expect(http_service_entry_span.tags).not_to have_key('http.request.headers.unknownheader')
+      expect(http_service_entry_span.tags).not_to have_key("http.request.headers.unknownheader")
       expect(http_service_entry_span.tags).to include(
-        'http.request.headers.cf-connecting-ipv6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'
+        "http.request.headers.cf-connecting-ipv6" => "2001:db8:3333:4444:5555:6666:1.2.3.4"
       )
     end
   end
 
-  context 'when identity.set_user event was not pushed' do
+  context "when identity.set_user event was not pushed" do
     before do
       headers = {
-        'HTTP_UNKNOWNHEADER' => 'something',
-        'HTTP_CF_CONNECTING_IPV6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'
+        "HTTP_UNKNOWNHEADER" => "something",
+        "CONTENT_TYPE" => "text/html",
+        "HTTP_CF_CONNECTING_IPV6" => "2001:db8:3333:4444:5555:6666:1.2.3.4"
       }
-      get('/without-identity-set-user', {}, headers)
+      get("/without-identity-set-user", {}, headers)
     end
 
-    it 'does not collect identity related request headers' do
+    it "does not collect identity related request headers" do
       expect(response).to be_ok
 
-      expect(http_service_entry_span.tags).not_to have_key('http.request.headers.unknownheader')
-      expect(http_service_entry_span.tags).not_to have_key('http.request.headers.cf-connecting-ipv6')
+      expect(http_service_entry_span.tags).not_to have_key("http.request.headers.unknownheader")
+      expect(http_service_entry_span.tags).not_to have_key("http.request.headers.cf-connecting-ipv6")
+    end
+
+    it "still collects standard collectable request headers" do
+      expect(response).to be_ok
+
+      expect(http_service_entry_span.tags).to include(
+        "http.request.headers.content-type" => "text/html"
+      )
+    end
+  end
+
+  context "when identity event was pushed in a previous request but not in the current one" do
+    let(:headers) do
+      {"HTTP_CF_CONNECTING_IPV6" => "2001:db8:3333:4444:5555:6666:1.2.3.4"}
+    end
+
+    it "does not leak identity headers into the second request" do
+      get("/with-identity-set-user", {}, headers)
+
+      expect(last_response).to be_ok
+      expect(http_service_entry_span.tags).to include(
+        "http.request.headers.cf-connecting-ipv6" => "2001:db8:3333:4444:5555:6666:1.2.3.4"
+      )
+
+      clear_traces!
+      get("/without-identity-set-user", {}, headers)
+      expect(last_response).to be_ok
+
+      # NOTE: Cannot reuse `http_service_entry_span` let here because RSpec
+      #       memoizes it and would return the first request's span.
+      Datadog::Tracing::Transport::TraceFormatter.format!(trace)
+      second_request_span = spans.find { |s| s.name == "rack.request" }
+      expect(second_request_span.tags).not_to have_key("http.request.headers.cf-connecting-ipv6")
     end
   end
 end

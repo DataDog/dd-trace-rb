@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../active_support/notifications/event'
-require_relative '../analytics'
-require_relative 'ext'
+require_relative "../../metadata/ext"
+require_relative "../active_support/notifications/event"
+require_relative "../analytics"
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -35,6 +35,7 @@ module Datadog
 
             def on_start(span, event, _id, payload)
               span.service = configuration[:service_name]
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               span.resource = payload[:consumer_class]
 
               span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_MESSAGING_SYSTEM)
@@ -47,11 +48,6 @@ module Datadog
 
               # Measure service stats
               Contrib::Analytics.set_measured(span)
-
-              # Tag original global service name if not used
-              if span.service != Datadog.configuration.service
-                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
-              end
 
               span.set_tag(Ext::TAG_TOPIC, payload[:topic])
               span.set_tag(Ext::TAG_CONSUMER, payload[:consumer_class])

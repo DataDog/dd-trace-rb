@@ -1,23 +1,24 @@
-require 'spec_helper'
-require 'support/object_helpers'
+require "spec_helper"
+require "support/object_helpers"
 
-require 'time'
+require "time"
 
-require 'datadog/core'
-require 'datadog/core/utils/time'
-require 'datadog/core/environment/identity'
+require "datadog/core"
+require "datadog/core/utils/time"
+require "datadog/core/environment/identity"
 
-require 'datadog/tracing/sampling/ext'
-require 'datadog/tracing/span_operation'
-require 'datadog/tracing/trace_operation'
-require 'datadog/tracing/trace_segment'
-require 'datadog/tracing/utils'
+require "datadog/tracing/sampling/ext"
+require "datadog/tracing/span_operation"
+require "datadog/tracing/trace_operation"
+require "datadog/tracing/trace_segment"
+require "datadog/tracing/tracer"
+require "datadog/tracing/utils"
 
 RSpec.describe Datadog::Tracing::TraceOperation do
   subject(:trace_op) { described_class.new(**options) }
   let(:options) { {} }
 
-  shared_context 'trace attributes' do
+  shared_context "trace attributes" do
     let(:options) do
       {
         agent_sample_rate: agent_sample_rate,
@@ -42,36 +43,37 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
 
     let(:agent_sample_rate) { rand }
-    let(:hostname) { 'worker.host' }
+    let(:hostname) { "worker.host" }
     let(:max_length) { 100 }
-    let(:name) { 'web.request' }
-    let(:origin) { 'synthetics' }
+    let(:name) { "web.request" }
+    let(:origin) { "synthetics" }
     let(:rate_limiter_rate) { rand }
-    let(:resource) { 'reports#show' }
+    let(:resource) { "reports#show" }
     let(:rule_sample_rate) { rand }
     let(:sample_rate) { rand }
     let(:sampled) { true }
     let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
-    let(:service) { 'billing-api' }
-    let(:profiling_enabled) { 'profiling_enabled' }
-    let(:tags) { {'foo' => 'bar'}.merge(distributed_tags) }
-    let(:metrics) { {'baz' => 42.0} }
-    let(:trace_state) { 'my-trace-state' }
-    let(:trace_state_unknown_fields) { 'any;field;really' }
+    let(:service) { "billing-api" }
+    let(:profiling_enabled) { "profiling_enabled" }
+    let(:tags) { {"foo" => "bar"}.merge(distributed_tags) }
+    let(:metrics) { {"baz" => 42.0} }
+    let(:trace_state) { "my-trace-state" }
+    let(:trace_state_unknown_fields) { "any;field;really" }
 
-    let(:distributed_tags) { {'_dd.p.test' => 'value'} }
+    let(:distributed_tags) { {"_dd.p.test" => "value"} }
     let(:remote_parent) { true }
   end
 
-  shared_examples 'a span with default events' do
+  shared_examples "a span with default events" do
     subject(:span_events) { span.send(:events) }
     it { expect(span_events.before_start.subscriptions).to contain_exactly(kind_of(Proc)) }
+    it { expect(span_events.before_finish.subscriptions).to contain_exactly(kind_of(Proc)) }
     it { expect(span_events.after_finish.subscriptions).to contain_exactly(kind_of(Proc)) }
   end
 
-  describe '::new' do
-    context 'with no arguments' do
-      it 'has default attributes' do
+  describe "::new" do
+    context "with no arguments" do
+      it "has default attributes" do
         is_expected.to have_attributes(
           agent_sample_rate: nil,
           hostname: nil,
@@ -100,12 +102,12 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         expect(trace_op.send(:metrics)).to eq({})
       end
 
-      context 'when 128 bit trace id generation enabled' do
+      context "when 128 bit trace id generation enabled" do
         before do
           allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_generation_enabled).and_return(true)
         end
 
-        it '64 bits trace_id' do
+        it "64 bits trace_id" do
           expect(trace_op.id.bit_length).to be <= 128
         end
 
@@ -117,12 +119,12 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
-      context 'when 128 bit trace id generation disabled' do
+      context "when 128 bit trace id generation disabled" do
         before do
           allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_generation_enabled).and_return(false)
         end
 
-        it '64 bits trace_id' do
+        it "64 bits trace_id" do
           expect(trace_op.id.bit_length).to be <= 64
         end
 
@@ -130,154 +132,154 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           allow(Datadog::Tracing::Utils).to receive(:next_id).and_return(0xffffffffffffffff)
 
           expect(trace_op.id).to eq(0xffffffffffffffff)
-          expect(trace_op).not_to have_tag('_dd.p.tid')
+          expect(trace_op).not_to have_tag("_dd.p.tid")
         end
       end
     end
 
-    context 'given' do
-      context ':agent_sample_rate' do
+    context "given" do
+      context ":agent_sample_rate" do
         subject(:options) { {agent_sample_rate: agent_sample_rate} }
         let(:agent_sample_rate) { 0.5 }
 
         it { expect(trace_op.agent_sample_rate).to eq(agent_sample_rate) }
       end
 
-      context ':hostname' do
+      context ":hostname" do
         subject(:options) { {hostname: hostname} }
-        let(:hostname) { 'worker.host' }
+        let(:hostname) { "worker.host" }
 
         it { expect(trace_op.hostname).to eq(hostname) }
       end
 
-      context ':id' do
+      context ":id" do
         subject(:options) { {id: id} }
         let(:id) { Datadog::Tracing::Utils.next_id }
 
         it { expect(trace_op.id).to eq(id) }
       end
 
-      context ':max_length' do
+      context ":max_length" do
         subject(:options) { {max_length: max_length} }
         let(:max_length) { 100 }
 
         it { expect(trace_op.max_length).to eq(max_length) }
       end
 
-      context ':name' do
+      context ":name" do
         subject(:options) { {name: name} }
-        let(:name) { 'sidekiq.job' }
+        let(:name) { "sidekiq.job" }
 
         it { expect(trace_op.name).to eq(name) }
       end
 
-      context ':origin' do
+      context ":origin" do
         subject(:options) { {origin: origin} }
-        let(:origin) { 'synthetics' }
+        let(:origin) { "synthetics" }
 
         it { expect(trace_op.origin).to eq(origin) }
       end
 
-      context ':parent_span_id' do
+      context ":parent_span_id" do
         subject(:options) { {parent_span_id: parent_span_id} }
         let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
 
         it { expect(trace_op.parent_span_id).to eq(parent_span_id) }
       end
 
-      context ':remote_parent' do
+      context ":remote_parent" do
         subject(:options) { {remote_parent: true} }
         let(:remote_parent) { true }
 
         it { expect(trace_op.remote_parent).to eq(remote_parent) }
       end
 
-      context ':rate_limiter_rate' do
+      context ":rate_limiter_rate" do
         subject(:options) { {rate_limiter_rate: rate_limiter_rate} }
         let(:rate_limiter_rate) { 10.0 }
 
         it { expect(trace_op.rate_limiter_rate).to eq(rate_limiter_rate) }
       end
 
-      context ':resource' do
+      context ":resource" do
         subject(:options) { {resource: resource} }
-        let(:resource) { 'generate-billing-reports' }
+        let(:resource) { "generate-billing-reports" }
 
         it { expect(trace_op.resource).to eq(resource) }
       end
 
-      context ':rule_sample_rate' do
+      context ":rule_sample_rate" do
         subject(:options) { {rule_sample_rate: rule_sample_rate} }
         let(:rule_sample_rate) { rand }
 
         it { expect(trace_op.rule_sample_rate).to eq(rule_sample_rate) }
       end
 
-      context ':sample_rate' do
+      context ":sample_rate" do
         subject(:options) { {sample_rate: sample_rate} }
         let(:sample_rate) { rand }
 
         it { expect(trace_op.sample_rate).to eq(sample_rate) }
       end
 
-      context ':sampled' do
+      context ":sampled" do
         subject(:options) { {sampled: sampled} }
         let(:sampled) { true }
 
         it { expect(trace_op.sampled?).to eq(sampled) }
       end
 
-      context ':sampling_priority' do
+      context ":sampling_priority" do
         subject(:options) { {sampling_priority: sampling_priority} }
         let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
 
         it { expect(trace_op.sampling_priority).to eq(sampling_priority) }
       end
 
-      context ':service' do
+      context ":service" do
         subject(:options) { {service: service} }
-        let(:service) { 'billing-worker' }
+        let(:service) { "billing-worker" }
 
         it { expect(trace_op.service).to eq(service) }
       end
 
-      context ':tags' do
+      context ":tags" do
         subject(:options) { {tags: tags} }
-        let(:tags) { {'foo' => 'bar'} }
+        let(:tags) { {"foo" => "bar"} }
 
-        it { expect(trace_op.send(:meta)).to eq({'foo' => 'bar'}) }
+        it { expect(trace_op.send(:meta)).to eq({"foo" => "bar"}) }
       end
 
-      context ':metrics' do
+      context ":metrics" do
         subject(:options) { {metrics: metrics} }
-        let(:metrics) { {'baz' => 42.0} }
+        let(:metrics) { {"baz" => 42.0} }
 
-        it { expect(trace_op.send(:metrics)).to eq({'baz' => 42.0}) }
+        it { expect(trace_op.send(:metrics)).to eq({"baz" => 42.0}) }
       end
 
-      context ':auto_finish' do
+      context ":auto_finish" do
         subject(:options) { {auto_finish: auto_finish} }
 
-        context 'when true' do
+        context "when true" do
           let(:auto_finish) { true }
 
-          it 'sets auto_finish to true' do
+          it "sets auto_finish to true" do
             expect(trace_op.instance_variable_get(:@auto_finish)).to be true
           end
         end
 
-        context 'when false' do
+        context "when false" do
           let(:auto_finish) { false }
 
-          it 'sets auto_finish to false' do
+          it "sets auto_finish to false" do
             expect(trace_op.instance_variable_get(:@auto_finish)).to be false
           end
         end
 
-        context 'when not provided' do
+        context "when not provided" do
           subject(:options) { {} }
 
-          it 'defaults to true' do
+          it "defaults to true" do
             expect(trace_op.instance_variable_get(:@auto_finish)).to be true
           end
         end
@@ -285,17 +287,17 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#full?' do
+  describe "#full?" do
     subject(:full?) { trace_op.full? }
 
     it { is_expected.to be false }
 
-    context 'when :max_length is 0' do
+    context "when :max_length is 0" do
       let(:options) { {max_length: 0} }
 
-      context 'when a trace measures and flushes' do
+      context "when a trace measures and flushes" do
         it do
-          trace_op.measure('parent') do
+          trace_op.measure("parent") do
             expect(trace_op.full?).to be false
           end
 
@@ -308,10 +310,10 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
-      context 'when a trace builds a span' do
+      context "when a trace builds a span" do
         it do
           # When built
-          span = trace_op.build_span('test')
+          span = trace_op.build_span("test")
           expect(trace_op.full?).to be false
 
           # When started
@@ -329,50 +331,50 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
     end
 
-    context 'when trace operation returns root span values as well' do
-      let(:options) { {tags: {ok: 'test'}} }
-      context 'for tags' do
+    context "when trace operation returns root span values as well" do
+      let(:options) { {tags: {ok: "test"}} }
+      context "for tags" do
         it do
           # When tags are added to the root span they should be accessible through the trace operation
-          span = trace_op.build_span('test', tags: {'foo' => 'bar'})
+          span = trace_op.build_span("test", tags: {"foo" => "bar"})
           span.start
-          expect(trace_op.get_tag('foo')).to eq('bar')
-          expect(trace_op.get_tag('ok')).to eq('test')
-          expect(trace_op.tags).to eq('foo' => 'bar', 'ok' => 'test')
+          expect(trace_op.get_tag("foo")).to eq("bar")
+          expect(trace_op.get_tag("ok")).to eq("test")
+          expect(trace_op.tags).to eq("foo" => "bar", "ok" => "test")
           span.finish
         end
 
-        context 'trace operation tags take precedent over root span tags' do
+        context "trace operation tags take precedent over root span tags" do
           it do
             # When tags are added to the root span they should be accessible through the trace operation
-            span = trace_op.build_span('test', tags: {'ok' => 'should_not_be'})
+            span = trace_op.build_span("test", tags: {"ok" => "should_not_be"})
             span.start
-            expect(trace_op.tags).to eq('ok' => 'test')
+            expect(trace_op.tags).to eq("ok" => "test")
             span.finish
           end
 
-          context 'for metrics' do
+          context "for metrics" do
             let(:options) { {metrics: {metric1: 123}} }
             it do
               # When tags are added to the root span they should be accessible through the trace operation
-              span = trace_op.build_span('test', tags: {'metric2' => 456})
+              span = trace_op.build_span("test", tags: {"metric2" => 456})
               span.start
-              expect(trace_op.get_metric('metric1')).to eq(123)
-              expect(trace_op.get_metric('metric2')).to eq(456)
+              expect(trace_op.get_metric("metric1")).to eq(123)
+              expect(trace_op.get_metric("metric2")).to eq(456)
 
               span.finish
             end
           end
 
-          context 'for metrics override' do
+          context "for metrics override" do
             let(:options) { {metrics: {metric1: 123}} }
 
             it do
               # When tags are added to the root span they should be accessible through the trace operation
-              span = trace_op.build_span('test', tags: {'metric1' => 456})
+              span = trace_op.build_span("test", tags: {"metric1" => 456})
               span.start
-              expect(trace_op.get_metric('metric1')).to eq(123)
-              expect(trace_op.tags).to eq({'metric1' => 123})
+              expect(trace_op.get_metric("metric1")).to eq(123)
+              expect(trace_op.tags).to eq({"metric1" => 123})
               span.finish
             end
           end
@@ -380,15 +382,15 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
     end
 
-    context 'when :max_length is non-zero' do
+    context "when :max_length is non-zero" do
       let(:options) { {max_length: 3} }
 
-      context 'and number of measured spans' do
-        context 'are under :max_length' do
-          context 'and a trace measures and flushes' do
+      context "and number of measured spans" do
+        context "are under :max_length" do
+          context "and a trace measures and flushes" do
             it do
-              trace_op.measure('test') do
-                trace_op.measure('test') do
+              trace_op.measure("test") do
+                trace_op.measure("test") do
                   # When active
                   expect(trace_op.full?).to be false
                 end
@@ -403,10 +405,10 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             end
           end
 
-          context 'and a trace builds a span' do
+          context "and a trace builds a span" do
             it do
               # When built
-              span = trace_op.build_span('test')
+              span = trace_op.build_span("test")
               expect(trace_op.full?).to be false
 
               # When started
@@ -424,12 +426,12 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
         end
 
-        context 'are at :max_length' do
-          context 'and a trace measures and flushes' do
+        context "are at :max_length" do
+          context "and a trace measures and flushes" do
             it do
-              trace_op.measure('test') do
-                trace_op.measure('test') do
-                  trace_op.measure('test') do
+              trace_op.measure("test") do
+                trace_op.measure("test") do
+                  trace_op.measure("test") do
                     # When active
                     expect(trace_op.full?).to be true
                   end
@@ -445,13 +447,13 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             end
           end
 
-          context 'and a trace builds spans' do
+          context "and a trace builds spans" do
             it do
               # When built
-              grandparent_span = trace_op.build_span('grandparent')
-              parent_span = trace_op.build_span('parent')
-              child_span = trace_op.build_span('child')
-              grandchild_span = trace_op.build_span('grandchild')
+              grandparent_span = trace_op.build_span("grandparent")
+              parent_span = trace_op.build_span("parent")
+              child_span = trace_op.build_span("child")
+              grandchild_span = trace_op.build_span("grandchild")
               expect(trace_op.full?).to be false
 
               # When started
@@ -484,15 +486,15 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#active_span_count' do
+  describe "#active_span_count" do
     subject(:active_span_count) { trace_op.active_span_count }
 
     it { is_expected.to eq 0 }
 
-    context 'when a trace builds a span' do
+    context "when a trace builds a span" do
       it do
         # When built: span is not active
-        span = trace_op.build_span('test')
+        span = trace_op.build_span("test")
         expect(trace_op.active_span_count).to eq 0
 
         # When started
@@ -509,9 +511,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
     end
 
-    context 'when a trace measures and flushes' do
+    context "when a trace measures and flushes" do
       it do
-        trace_op.measure('test') do
+        trace_op.measure("test") do
           # When active
           expect(trace_op.active_span_count).to eq 1
         end
@@ -525,12 +527,12 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
     end
 
-    context 'when spans finish out of order' do
+    context "when spans finish out of order" do
       it do
         # When built
-        grandparent_span = trace_op.build_span('grandparent')
-        parent_span = trace_op.build_span('parent')
-        child_span = trace_op.build_span('child')
+        grandparent_span = trace_op.build_span("grandparent")
+        parent_span = trace_op.build_span("parent")
+        child_span = trace_op.build_span("child")
         expect(trace_op.active_span_count).to eq(0)
 
         # When started
@@ -556,14 +558,14 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#finished_span_count' do
+  describe "#finished_span_count" do
     subject(:finished_span_count) { trace_op.finished_span_count }
 
     it { is_expected.to eq 0 }
 
-    context 'when a trace builds a span' do
+    context "when a trace builds a span" do
       it do
-        span = trace_op.build_span('test')
+        span = trace_op.build_span("test")
         expect(trace_op.finished_span_count).to eq 0
 
         # When started
@@ -580,9 +582,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
     end
 
-    context 'when a trace measures and flushes' do
+    context "when a trace measures and flushes" do
       it do
-        trace_op.measure('test') do
+        trace_op.measure("test") do
           # When active
           expect(trace_op.finished_span_count).to eq 0
         end
@@ -596,12 +598,12 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
     end
 
-    context 'when spans finish out of order' do
+    context "when spans finish out of order" do
       it do
         # When built
-        grandparent_span = trace_op.build_span('grandparent')
-        parent_span = trace_op.build_span('parent')
-        child_span = trace_op.build_span('child')
+        grandparent_span = trace_op.build_span("grandparent")
+        parent_span = trace_op.build_span("parent")
+        child_span = trace_op.build_span("child")
         expect(trace_op.finished_span_count).to eq(0)
 
         # When started
@@ -627,15 +629,15 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#active_span' do
+  describe "#active_span" do
     subject(:active_span) { trace_op.active_span }
 
     it { is_expected.to be nil }
 
-    context 'when a trace builds a span' do
+    context "when a trace builds a span" do
       it do
         # When built: span is not active
-        span = trace_op.build_span('test')
+        span = trace_op.build_span("test")
         expect(trace_op.active_span).to be nil
 
         # When started
@@ -652,12 +654,12 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
     end
 
-    context 'when a trace measures and flushes' do
+    context "when a trace measures and flushes" do
       it do
-        trace_op.measure('parent') do |parent_span|
+        trace_op.measure("parent") do |parent_span|
           expect(trace_op.active_span).to be parent_span
 
-          trace_op.measure('child') do |child_span|
+          trace_op.measure("child") do |child_span|
             expect(trace_op.active_span).to be child_span
           end
 
@@ -673,12 +675,12 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
     end
 
-    context 'when spans finish out of order' do
+    context "when spans finish out of order" do
       it do
         # When built: span is not active
-        grandparent_span = trace_op.build_span('grandparent')
-        parent_span = trace_op.build_span('parent')
-        child_span = trace_op.build_span('child')
+        grandparent_span = trace_op.build_span("grandparent")
+        parent_span = trace_op.build_span("parent")
+        child_span = trace_op.build_span("child")
         expect(trace_op.active_span).to be nil
 
         # When started
@@ -704,15 +706,15 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#finished?' do
+  describe "#finished?" do
     subject(:finished?) { trace_op.finished? }
 
     it { is_expected.to be false }
 
-    context 'when a trace builds a span' do
+    context "when a trace builds a span" do
       it do
         # When built: span is not active
-        span = trace_op.build_span('test')
+        span = trace_op.build_span("test")
         expect(trace_op.finished?).to be false
 
         # When started
@@ -729,12 +731,12 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
     end
 
-    context 'when a trace measures and flushes' do
+    context "when a trace measures and flushes" do
       it do
-        trace_op.measure('parent') do
+        trace_op.measure("parent") do
           expect(trace_op.finished?).to be false
 
-          trace_op.measure('child') do
+          trace_op.measure("child") do
             expect(trace_op.finished?).to be false
           end
 
@@ -750,12 +752,12 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
     end
 
-    context 'when spans finish out of order' do
+    context "when spans finish out of order" do
       it do
         # When built
-        grandparent_span = trace_op.build_span('grandparent')
-        parent_span = trace_op.build_span('parent')
-        child_span = trace_op.build_span('child')
+        grandparent_span = trace_op.build_span("grandparent")
+        parent_span = trace_op.build_span("parent")
+        child_span = trace_op.build_span("child")
         expect(trace_op.finished?).to be false
 
         # When started
@@ -781,27 +783,27 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#finish!' do
+  describe "#finish!" do
     subject(:finish!) { trace_op.finish! }
     let(:options) { {auto_finish: false} }
 
     let!(:span) do
-      trace_op.build_span('test').start
+      trace_op.build_span("test").start
     end
 
-    it 'marks the trace as finished' do
+    it "marks the trace as finished" do
       expect { finish! }.to change { trace_op.finished? }.from(false).to(true)
     end
 
-    it 'sets active_span to nil' do
+    it "sets active_span to nil" do
       expect { finish! }.to change { trace_op.active_span }.from(span).to(nil)
     end
 
-    it 'sets active_span_count to 0' do
+    it "sets active_span_count to 0" do
       expect { finish! }.to change { trace_op.active_span_count }.from(1).to(0)
     end
 
-    it 'publishes trace_finished event idempotently' do
+    it "publishes trace_finished event idempotently" do
       published_traces = []
       trace_op.send(:events).trace_finished.subscribe { |trace| published_traces << trace }
 
@@ -811,35 +813,35 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       expect(published_traces).to contain_exactly(trace_op)
     end
 
-    context 'with unfinished spans' do
-      it 'loses only unfinished spans' do
-        trace_op.build_span('finished').start.finish
-        trace_op.build_span('unfinished').start
+    context "with unfinished spans" do
+      it "loses only unfinished spans" do
+        trace_op.build_span("finished").start.finish
+        trace_op.build_span("unfinished").start
 
         finish!
 
         flushed_trace = trace_op.flush!
         expect(flushed_trace.spans).to have(1).item
-        expect(flushed_trace.spans[0].name).to eq('finished')
+        expect(flushed_trace.spans[0].name).to eq("finished")
       end
     end
 
-    context 'when auto_finish is true (#finish! is a no-op)' do
+    context "when auto_finish is true (#finish! is a no-op)" do
       let(:options) { {auto_finish: true} }
 
-      it 'does not mark the trace as finished' do
+      it "does not mark the trace as finished" do
         expect { finish! }.not_to change { trace_op.finished? }.from(false)
       end
 
-      it 'does not change active_span' do
+      it "does not change active_span" do
         expect { finish! }.not_to change { trace_op.active_span }.from(span)
       end
 
-      it 'does not change active_span_count' do
+      it "does not change active_span_count" do
         expect { finish! }.not_to change { trace_op.active_span_count }.from(1)
       end
 
-      it 'does not publish trace_finished event' do
+      it "does not publish trace_finished event" do
         published_traces = []
         trace_op.send(:events).trace_finished.subscribe { |trace| published_traces << trace }
 
@@ -850,14 +852,157 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#sampled?' do
+  describe "#resource=" do
+    subject(:set_resource) { trace_op.resource = resource }
+
+    let(:resource) { "Rails::HealthController#show" }
+    let(:initial_resource) { nil }
+    let(:options) { {resource: initial_resource} }
+
+    it "updates the resource" do
+      expect { set_resource }.to change { trace_op.resource }.from(nil).to(resource)
+    end
+
+    it "notifies the tracer when the resource is first resolved" do
+      trace_resource_change_calls = 0
+      trace_op.send(:events).trace_resource_change.subscribe { trace_resource_change_calls += 1 }
+
+      set_resource
+
+      expect(trace_resource_change_calls).to eq(1)
+    end
+
+    context "when the trace already has a resource" do
+      let(:initial_resource) { "GET 200" }
+
+      it "does not notify the tracer again" do
+        trace_resource_change_calls = 0
+        trace_op.send(:events).trace_resource_change.subscribe { trace_resource_change_calls += 1 }
+
+        set_resource
+
+        expect(trace_resource_change_calls).to eq(0)
+      end
+    end
+  end
+
+  describe "sampling after resource resolution" do
+    let(:tracer) do
+      Datadog::Tracing::Tracer.new(
+        sampler: Datadog::Tracing::Sampling::PrioritySampler.new(
+          base_sampler: Datadog::Tracing::Sampling::AllSampler.new,
+          post_sampler: Datadog::Tracing::Sampling::RuleSampler.new(
+            [
+              Datadog::Tracing::Sampling::SimpleRule.new(
+                resource: "Rails::HealthController#show",
+                sample_rate: 0.0
+              )
+            ],
+            rate_limit: nil
+          )
+        ),
+        writer: nil
+      )
+    end
+
+    after { tracer.shutdown! }
+
+    it "resamples a trace that was already sampled before the resource was resolved" do
+      trace = tracer.send(:start_trace)
+      request_span = trace.build_span("rack.request").start
+      request_span.resource = nil
+
+      db_span = trace.build_span("sqlite.query").start
+      db_span.finish
+
+      expect(trace.resource).to be_nil
+      expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP)
+      expect(trace.get_tag(Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER))
+        .to eq(Datadog::Tracing::Sampling::Ext::Decision::DEFAULT)
+
+      trace.resource = "Rails::HealthController#show"
+
+      expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT)
+      expect(trace.get_tag(Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)).to be_nil
+    ensure
+      request_span.finish unless request_span.nil? || request_span.finished?
+    end
+  end
+
+  describe "#reconsider_resource_sample?" do
+    subject(:reconsider_resource_sample?) { trace_op.reconsider_resource_sample? }
+
+    let(:options) do
+      {
+        resource: "Rails::HealthController#show",
+        sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP
+      }
+    end
+
+    before do
+      trace_op.set_tag(
+        Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+        Datadog::Tracing::Sampling::Ext::Decision::DEFAULT
+      )
+    end
+
+    it { is_expected.to be true }
+
+    context "when the trace came from a remote parent" do
+      let(:options) do
+        {
+          resource: "Rails::HealthController#show",
+          sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP,
+          remote_parent: true
+        }
+      end
+
+      it { is_expected.to be false }
+    end
+
+    context "when the trace has already been propagated" do
+      before { trace_op.to_digest }
+
+      it { is_expected.to be false }
+    end
+
+    context "when the trace has already been flushed" do
+      before { trace_op.flush! }
+
+      it { is_expected.to be false }
+    end
+
+    context "when the current decision is not default or agent based" do
+      before do
+        trace_op.set_tag(
+          Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+          Datadog::Tracing::Sampling::Ext::Decision::MANUAL
+        )
+      end
+
+      it { is_expected.to be false }
+    end
+
+    context "when the priority is already a user decision" do
+      let(:options) do
+        {
+          resource: "Rails::HealthController#show",
+          sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+        }
+      end
+
+      it { is_expected.to be false }
+    end
+  end
+
+  describe "#sampled?" do
     subject(:sampled?) { trace_op.sampled? }
 
-    it 'traces are sampled by default' do
+    it "traces are sampled by default" do
       is_expected.to be true
     end
 
-    context 'when :sampled is set in initializer' do
+    context "when :sampled is set in initializer" do
       let(:options) { {sampled: false} }
       it { is_expected.to be false }
     end
@@ -866,25 +1011,25 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       context "when :sampled is set to #{sampled}" do
         let(:options) { {sampled: sampled} }
 
-        context 'when :sampling_priority is set to' do
+        context "when :sampling_priority is set to" do
           let(:options) { super().merge(sampling_priority: sampling_priority) }
 
-          context 'AUTO_KEEP' do
+          context "AUTO_KEEP" do
             let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP }
             it { is_expected.to be true }
           end
 
-          context 'AUTO_REJECT' do
+          context "AUTO_REJECT" do
             let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::AUTO_REJECT }
             it { is_expected.to be sampled }
           end
 
-          context 'USER_KEEP' do
+          context "USER_KEEP" do
             let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
             it { is_expected.to be true }
           end
 
-          context 'USER_REJECT' do
+          context "USER_REJECT" do
             let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT }
             it { is_expected.to be sampled }
           end
@@ -892,9 +1037,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
     end
 
-    context 'when #sampled and #sampling priority' do
-      context 'are both set to matching values' do
-        context 'with sampled: true and priority: keep' do
+    context "when #sampled and #sampling priority" do
+      context "are both set to matching values" do
+        context "with sampled: true and priority: keep" do
           before do
             trace_op.sampled = true
             trace_op.sampling_priority = Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
@@ -903,7 +1048,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           it { is_expected.to be true }
         end
 
-        context 'with sampled: false and priority: reject' do
+        context "with sampled: false and priority: reject" do
           before do
             trace_op.sampled = false
             trace_op.sampling_priority = Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT
@@ -913,8 +1058,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
-      context 'are both set to conflicting values' do
-        context 'with sampled: false and priority: keep' do
+      context "are both set to conflicting values" do
+        context "with sampled: false and priority: keep" do
           before do
             trace_op.sampled = false
             trace_op.sampling_priority = Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
@@ -923,7 +1068,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           it { is_expected.to be true }
         end
 
-        context 'with sampled: true and priority: reject' do
+        context "with sampled: true and priority: reject" do
           before do
             trace_op.sampled = true
             trace_op.sampling_priority = Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT
@@ -935,70 +1080,70 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#priority_sampled?' do
+  describe "#priority_sampled?" do
     subject(:priority_sampled?) { trace_op.priority_sampled? }
 
     it { is_expected.to be false }
 
-    context 'when :sampling_priority is set to' do
+    context "when :sampling_priority is set to" do
       let(:options) { {sampling_priority: sampling_priority} }
 
-      context 'AUTO_KEEP' do
+      context "AUTO_KEEP" do
         let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP }
         it { is_expected.to be true }
       end
 
-      context 'AUTO_REJECT' do
+      context "AUTO_REJECT" do
         let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::AUTO_REJECT }
         it { is_expected.to be false }
       end
 
-      context 'USER_KEEP' do
+      context "USER_KEEP" do
         let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
         it { is_expected.to be true }
       end
 
-      context 'USER_REJECT' do
+      context "USER_REJECT" do
         let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT }
         it { is_expected.to be false }
       end
     end
   end
 
-  describe '#keep!' do
+  describe "#keep!" do
     subject(:keep!) { trace_op.keep! }
 
-    it 'sets sampling mechanism to MANUAL' do
+    it "sets sampling mechanism to MANUAL" do
       expect { keep! }
-        .to change { trace_op.get_tag('_dd.p.dm') }
+        .to change { trace_op.get_tag("_dd.p.dm") }
         .from(nil)
-        .to('-4')
+        .to("-4")
     end
 
-    it 'sets priority sampling to USER_KEEP' do
+    it "sets priority sampling to USER_KEEP" do
       expect { keep! }
         .to change { trace_op.sampling_priority }
         .from(nil)
         .to(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
     end
 
-    it 'sets sampled? to true' do
+    it "sets sampled? to true" do
       expect { keep! }
         .to_not change { trace_op.sampled? }
         .from(true)
     end
 
-    context 'when #sampled was true' do
+    context "when #sampled was true" do
       before { trace_op.sampled = true }
 
-      it 'does not modify sampled?' do
+      it "does not modify sampled?" do
         expect { keep! }
           .to_not change { trace_op.sampled? }
           .from(true)
       end
     end
 
-    context 'when #sampled was false' do
+    context "when #sampled was false" do
       before { trace_op.sampled = false }
 
       it do
@@ -1010,43 +1155,43 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#reject!' do
+  describe "#reject!" do
     subject(:reject!) { trace_op.reject! }
 
-    it 'sets sampling mechanism to MANUAL' do
+    it "sets sampling mechanism to MANUAL" do
       expect { reject! }
-        .to change { trace_op.get_tag('_dd.p.dm') }
+        .to change { trace_op.get_tag("_dd.p.dm") }
         .from(nil)
-        .to('-4')
+        .to("-4")
     end
 
-    it 'sets priority sampling to USER_REJECT' do
+    it "sets priority sampling to USER_REJECT" do
       expect { reject! }
         .to change { trace_op.sampling_priority }
         .from(nil)
         .to(Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT)
     end
 
-    it 'does not modify sampled?' do
+    it "does not modify sampled?" do
       expect { reject! }
         .to_not change { trace_op.sampled? }
         .from(true)
     end
 
-    context 'when #sampled was true' do
+    context "when #sampled was true" do
       before { trace_op.sampled = true }
 
-      it 'does not change sampled?' do
+      it "does not change sampled?" do
         expect { reject! }
           .to_not change { trace_op.sampled? }
           .from(true)
       end
     end
 
-    context 'when #sampled was false' do
+    context "when #sampled was false" do
       before { trace_op.sampled = false }
 
-      it 'does not modify sampled?' do
+      it "does not modify sampled?" do
         expect { reject! }
           .to_not change { trace_op.sampled? }
           .from(false)
@@ -1054,10 +1199,10 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  shared_examples 'root span derived attribute' do |attribute_name|
+  shared_examples "root span derived attribute" do |attribute_name|
     subject(:attribute) { trace_op.send(attribute_name) }
 
-    context 'when nothing is set' do
+    context "when nothing is set" do
       it { is_expected.to be nil }
     end
 
@@ -1065,7 +1210,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       let(:root_span_value) { "root_span.#{attribute_name}" }
 
       before do
-        trace_op.measure('web.request') do |span|
+        trace_op.measure("web.request") do |span|
           span.send("#{attribute_name}=", root_span_value)
         end
       end
@@ -1087,7 +1232,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
       before do
         trace_op.send("#{attribute_name}=", trace_value)
-        trace_op.measure('web.request') do |span|
+        trace_op.measure("web.request") do |span|
           span.send("#{attribute_name}=", root_span_value)
         end
       end
@@ -1096,80 +1241,80 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#name' do
-    it_behaves_like 'root span derived attribute', :name
+  describe "#name" do
+    it_behaves_like "root span derived attribute", :name
   end
 
-  describe '#resource' do
-    it_behaves_like 'root span derived attribute', :resource
+  describe "#resource" do
+    it_behaves_like "root span derived attribute", :resource
   end
 
-  describe '#set_distributed_source' do
-    context 'when the trace source is not set' do
-      context 'with trace source set to 2' do
+  describe "#set_distributed_source" do
+    context "when the trace source is not set" do
+      context "with trace source set to 2" do
         before do
           trace_op.set_distributed_source(2)
         end
 
-        it 'sets the trace source to 02' do
-          expect(trace_op.get_tag('_dd.p.ts')).to eq('02')
+        it "sets the trace source to 02" do
+          expect(trace_op.get_tag("_dd.p.ts")).to eq("02")
         end
       end
 
-      context 'with trace source set to 16' do
+      context "with trace source set to 16" do
         before do
           trace_op.set_distributed_source(16)
         end
 
-        it 'sets the trace source to 10' do
-          expect(trace_op.get_tag('_dd.p.ts')).to eq('10')
+        it "sets the trace source to 10" do
+          expect(trace_op.get_tag("_dd.p.ts")).to eq("10")
         end
       end
 
-      context 'with trace source higher than 8 bit' do
+      context "with trace source higher than 8 bit" do
         before do
           trace_op.set_distributed_source(1 << 31)
         end
 
         # We must support at least 32 bits for future usage.
-        it 'sets the trace source to 80000000' do
-          expect(trace_op.get_tag('_dd.p.ts')).to eq('80000000')
+        it "sets the trace source to 80000000" do
+          expect(trace_op.get_tag("_dd.p.ts")).to eq("80000000")
         end
       end
     end
 
-    context 'when the trace source is set' do
-      context 'with trace source set to 2' do
+    context "when the trace source is set" do
+      context "with trace source set to 2" do
         before do
-          trace_op.set_tag('_dd.p.ts', '08')
+          trace_op.set_tag("_dd.p.ts", "08")
           trace_op.set_distributed_source(2)
         end
 
-        it 'sets the trace source to 0A' do
-          expect(trace_op.get_tag('_dd.p.ts')).to eq('0A')
+        it "sets the trace source to 0A" do
+          expect(trace_op.get_tag("_dd.p.ts")).to eq("0A")
         end
       end
     end
   end
 
-  describe '#resource_override?' do
+  describe "#resource_override?" do
     subject { trace_op.resource_override? }
 
-    context 'when initialized without `resource`' do
+    context "when initialized without `resource`" do
       it { is_expected.to eq(false) }
     end
 
-    context 'when initialized with `resource` as `nil`' do
+    context "when initialized with `resource` as `nil`" do
       let(:options) { {resource: nil} }
       it { is_expected.to eq(false) }
     end
 
-    context 'when initialized with `resource` as `GET 200`' do
-      let(:options) { {resource: 'GET 200'} }
+    context "when initialized with `resource` as `GET 200`" do
+      let(:options) { {resource: "GET 200"} }
       it { is_expected.to eq(true) }
     end
 
-    context 'when set `resource` as `nil`' do
+    context "when set `resource` as `nil`" do
       it do
         trace_op.resource = nil
 
@@ -1177,163 +1322,163 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
     end
 
-    context 'when set `resource` as `UsersController#show`' do
+    context "when set `resource` as `UsersController#show`" do
       it do
-        trace_op.resource = 'UsersController#show'
+        trace_op.resource = "UsersController#show"
 
         is_expected.to eq(true)
       end
     end
   end
 
-  describe '#service' do
-    it_behaves_like 'root span derived attribute', :service
+  describe "#service" do
+    it_behaves_like "root span derived attribute", :service
   end
 
-  describe '#get_tag' do
+  describe "#get_tag" do
     before do
-      trace_op.set_tag('foo', 'bar')
+      trace_op.set_tag("foo", "bar")
     end
 
-    it 'gets tag set on trace' do
-      expect(trace_op.get_tag('foo')).to eq('bar')
+    it "gets tag set on trace" do
+      expect(trace_op.get_tag("foo")).to eq("bar")
     end
 
-    it 'gets unset tag as nil' do
-      expect(trace_op.get_tag('unset')).to be_nil
-    end
-  end
-
-  describe '#set_metric' do
-    it 'sets metrics' do
-      trace_op.set_metric('foo', 42)
-      trace_op.measure('top') {}
-
-      trace = trace_op.flush!
-
-      expect(trace.send(:metrics)['foo']).to eq(42)
+    it "gets unset tag as nil" do
+      expect(trace_op.get_tag("unset")).to be_nil
     end
   end
 
-  describe '#set_tag' do
-    it 'sets tag on trace before a measurement' do
-      trace_op.set_tag('foo', 'bar')
-      trace_op.measure('top') {}
+  describe "#set_metric" do
+    it "sets metrics" do
+      trace_op.set_metric("foo", 42)
+      trace_op.measure("top") {}
 
       trace = trace_op.flush!
 
-      expect(trace.send(:meta)['foo']).to eq('bar')
+      expect(trace.send(:metrics)["foo"]).to eq(42)
     end
+  end
 
-    it 'sets tag on trace after a measurement' do
-      trace_op.measure('top') {}
-      trace_op.set_tag('foo', 'bar')
+  describe "#set_tag" do
+    it "sets tag on trace before a measurement" do
+      trace_op.set_tag("foo", "bar")
+      trace_op.measure("top") {}
 
       trace = trace_op.flush!
 
-      expect(trace.send(:meta)['foo']).to eq('bar')
+      expect(trace.send(:meta)["foo"]).to eq("bar")
     end
 
-    it 'sets tag on trace from a measurement' do
-      trace_op.measure('top') do
-        trace_op.set_tag('foo', 'bar')
+    it "sets tag on trace after a measurement" do
+      trace_op.measure("top") {}
+      trace_op.set_tag("foo", "bar")
+
+      trace = trace_op.flush!
+
+      expect(trace.send(:meta)["foo"]).to eq("bar")
+    end
+
+    it "sets tag on trace from a measurement" do
+      trace_op.measure("top") do
+        trace_op.set_tag("foo", "bar")
       end
 
       trace = trace_op.flush!
 
-      expect(trace.send(:meta)['foo']).to eq('bar')
+      expect(trace.send(:meta)["foo"]).to eq("bar")
     end
 
-    it 'sets tag on trace from a nested measurement' do
-      trace_op.measure('grandparent') do
-        trace_op.measure('parent') do
-          trace_op.set_tag('foo', 'bar')
+    it "sets tag on trace from a nested measurement" do
+      trace_op.measure("grandparent") do
+        trace_op.measure("parent") do
+          trace_op.set_tag("foo", "bar")
         end
       end
 
       trace = trace_op.flush!
 
       expect(trace.spans).to have(2).items
-      expect(trace.spans.map(&:name)).to include('parent')
-      expect(trace.send(:meta)['foo']).to eq('bar')
+      expect(trace.spans.map(&:name)).to include("parent")
+      expect(trace.send(:meta)["foo"]).to eq("bar")
     end
 
-    it 'sets metrics' do
-      trace_op.set_tag('foo', 42)
-      trace_op.measure('top') {}
+    it "sets metrics" do
+      trace_op.set_tag("foo", 42)
+      trace_op.measure("top") {}
 
       trace = trace_op.flush!
 
-      expect(trace.send(:metrics)['foo']).to eq(42)
+      expect(trace.send(:metrics)["foo"]).to eq(42)
     end
 
-    context 'with partial flushing' do
+    context "with partial flushing" do
       subject(:flush!) { trace_op.flush! }
       let(:trace) { flush! }
 
-      it 'sets tag on trace from a nested measurement' do
-        trace_op.measure('grandparent') do
-          trace_op.measure('parent') do
-            trace_op.set_tag('foo', 'bar')
+      it "sets tag on trace from a nested measurement" do
+        trace_op.measure("grandparent") do
+          trace_op.measure("parent") do
+            trace_op.set_tag("foo", "bar")
           end
           flush!
         end
 
         expect(trace.spans).to have(1).items
-        expect(trace.spans.map(&:name)).to include('parent')
-        expect(trace.send(:meta)['foo']).to eq('bar')
+        expect(trace.spans.map(&:name)).to include("parent")
+        expect(trace.send(:meta)["foo"]).to eq("bar")
 
         final_flush = trace_op.flush!
         expect(final_flush.spans).to have(1).items
-        expect(final_flush.spans.map(&:name)).to include('grandparent')
-        expect(final_flush.send(:meta)['foo']).to eq('bar')
+        expect(final_flush.spans.map(&:name)).to include("grandparent")
+        expect(final_flush.send(:meta)["foo"]).to eq("bar")
       end
     end
   end
 
-  describe '#build_span' do
+  describe "#build_span" do
     subject(:build_span) { trace_op.build_span(span_name, **span_options) }
-    let(:span_name) { 'web.request' }
+    let(:span_name) { "web.request" }
     let(:span_options) { {} }
 
     let(:span) { build_span }
 
     it { is_expected.to be_a_kind_of(Datadog::Tracing::SpanOperation) }
 
-    context 'given' do
-      context ':events' do
+    context "given" do
+      context ":events" do
         let(:span_options) { {events: events} }
 
-        context 'as nil' do
+        context "as nil" do
           let(:events) { nil }
 
-          it_behaves_like 'a span with default events'
+          it_behaves_like "a span with default events"
         end
 
-        context 'as Datadog::Tracing::SpanOperation::Events' do
+        context "as Datadog::Tracing::SpanOperation::Events" do
           let(:events) { Datadog::Tracing::SpanOperation::Events.new }
 
-          it_behaves_like 'a span with default events' do
+          it_behaves_like "a span with default events" do
             it { expect(span_events).to be(events) }
           end
         end
       end
 
-      context ':on_error' do
+      context ":on_error" do
         let(:span_options) { {on_error: on_error} }
 
-        context 'as nil' do
+        context "as nil" do
           let(:on_error) { nil }
 
-          it_behaves_like 'a span with default events'
+          it_behaves_like "a span with default events"
         end
 
-        context 'as Datadog::Tracing::SpanOperation::Events' do
-          it_behaves_like 'a span with default events' do
+        context "as Datadog::Tracing::SpanOperation::Events" do
+          it_behaves_like "a span with default events" do
             let(:on_error) { proc { |*args| callback_spy.call(*args) } }
-            let(:callback_spy) { spy('callback spy') }
+            let(:callback_spy) { spy("callback spy") }
 
-            context 'when #on_error is published' do
+            context "when #on_error is published" do
               let(:event_args) do
                 [
                   instance_double(Datadog::Tracing::SpanOperation),
@@ -1350,32 +1495,32 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
-      context ':resource' do
+      context ":resource" do
         let(:span_options) { {resource: resource} }
 
-        context 'as nil' do
+        context "as nil" do
           let(:resource) { nil }
           it { expect(span.resource).to eq(span_name) }
         end
 
-        context 'as String' do
-          let(:resource) { 'reports#show' }
+        context "as String" do
+          let(:resource) { "reports#show" }
           it { expect(span.resource).to eq(resource) }
         end
       end
 
-      context ':service' do
+      context ":service" do
         let(:span_options) { {service: service} }
 
-        context 'as nil' do
+        context "as nil" do
           let(:service) { nil }
           it { expect(span.service).to be nil }
 
-          context 'but the trace has an active span with service' do
-            let(:active_service) { 'web-worker' }
+          context "but the trace has an active span with service" do
+            let(:active_service) { "web-worker" }
 
             before do
-              trace_op.measure('parent', service: active_service) { build_span }
+              trace_op.measure("parent", service: active_service) { build_span }
             end
 
             # It should never inherit from a parent span
@@ -1383,44 +1528,44 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
         end
 
-        context 'as String' do
-          let(:service) { 'billing-api' }
+        context "as String" do
+          let(:service) { "billing-api" }
           it { expect(span.service).to eq(service) }
         end
       end
 
-      context ':start_time' do
+      context ":start_time" do
         let(:span_options) { {start_time: start_time} }
 
-        context 'as nil' do
+        context "as nil" do
           let(:start_time) { nil }
           it { expect(span.start_time).to be nil }
         end
 
-        context 'as DateTime' do
+        context "as DateTime" do
           let(:start_time) { Time.now }
           it { expect(span.start_time).to eq(start_time) }
           it { expect(span.started?).to be true }
         end
       end
 
-      context ':tags' do
+      context ":tags" do
         let(:span_options) { {tags: tags} }
 
-        context 'as nil' do
+        context "as nil" do
           let(:tags) { nil }
           it { expect(span.send(:meta)).to eq({}) }
         end
 
-        context 'as Hash' do
-          let(:tags) { {foo: 'bar'} }
-          it { expect(span.send(:meta)).to include('foo' => 'bar') }
+        context "as Hash" do
+          let(:tags) { {foo: "bar"} }
+          it { expect(span.send(:meta)).to include("foo" => "bar") }
         end
       end
     end
 
-    context 'when the trace' do
-      context 'is empty' do
+    context "when the trace" do
+      context "is empty" do
         it do
           is_expected.to have_attributes(
             id: a_kind_of(Integer),
@@ -1434,9 +1579,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
-      context 'has already built a span' do
-        context 'that has not been started' do
-          let(:parent_span) { trace_op.build_span('parent') }
+      context "has already built a span" do
+        context "that has not been started" do
+          let(:parent_span) { trace_op.build_span("parent") }
 
           before { parent_span }
 
@@ -1453,8 +1598,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
         end
 
-        context 'that has been started' do
-          let(:parent_span) { trace_op.build_span('parent').start }
+        context "that has been started" do
+          let(:parent_span) { trace_op.build_span("parent").start }
 
           before { parent_span }
 
@@ -1471,8 +1616,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
         end
 
-        context 'that has been finished' do
-          let(:parent_span) { trace_op.build_span('parent').start.finish }
+        context "that has been finished" do
+          let(:parent_span) { trace_op.build_span("parent").start.finish }
 
           before { parent_span }
 
@@ -1490,9 +1635,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
-      context 'is measuring another span' do
+      context "is measuring another span" do
         before do
-          trace_op.measure('parent') do |parent|
+          trace_op.measure("parent") do |parent|
             @parent = parent
             build_span
           end
@@ -1512,9 +1657,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
     end
 
-    context 'when building the span fails' do
-      let(:span_options) { {resource: 'my-span'} }
-      let(:error) { error_class.new('error message') }
+    context "when building the span fails" do
+      let(:span_options) { {resource: "my-span"} }
+      let(:error) { error_class.new("error message") }
 
       before do
         allow(Datadog::Tracing::SpanOperation).to receive(:new) do
@@ -1528,8 +1673,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         allow(Datadog.logger).to receive(:debug)
       end
 
-      context 'with a StandardError' do
-        let(:error_class) { stub_const('TestError', Class.new(StandardError)) }
+      context "with a StandardError" do
+        let(:error_class) { stub_const("TestError", Class.new(StandardError)) }
 
         it do
           expect { build_span }.to_not raise_error
@@ -1539,9 +1684,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
-      context 'with a Exception' do
+      context "with a Exception" do
         # rubocop:disable Lint/InheritException
-        let(:error_class) { stub_const('TestError', Class.new(Exception)) }
+        let(:error_class) { stub_const("TestError", Class.new(Exception)) }
         # rubocop:enable Lint/InheritException
 
         it do
@@ -1552,9 +1697,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#measure' do
+  describe "#measure" do
     subject(:measure) { trace_op.measure(span_name, **span_options, &block) }
-    let(:span_name) { 'web.request' }
+    let(:span_name) { "web.request" }
     let(:span_options) { {} }
     let(:block) { proc { |span| @span = span } }
 
@@ -1564,23 +1709,23 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       @span
     end
 
-    context 'given a block' do
-      it 'yields the new span and trace to the block' do
+    context "given a block" do
+      it "yields the new span and trace to the block" do
         expect { |b| trace_op.measure(span_name, &b) }.to yield_with_args(
           kind_of(Datadog::Tracing::SpanOperation),
           trace_op
         )
       end
 
-      it 'returns the value of the block' do
+      it "returns the value of the block" do
         expect(
           trace_op.measure(span_name) { :return_value }
         ).to be(:return_value)
       end
     end
 
-    context 'when the trace' do
-      context 'is empty' do
+    context "when the trace" do
+      context "is empty" do
         it do
           expect(span).to have_attributes(
             end_time: kind_of(Time),
@@ -1596,22 +1741,22 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
-      context 'is full' do
+      context "is full" do
         let(:options) { {max_length: 2} }
         let(:block) { proc { |*args| block_spy.call(*args) } }
-        let(:block_spy) { spy('block spy') }
+        let(:block_spy) { spy("block spy") }
 
         before do
           allow(block_spy).to receive(:call)
 
-          trace_op.measure('grandparent') do
-            trace_op.measure('parent') do
+          trace_op.measure("grandparent") do
+            trace_op.measure("parent") do
               measure
             end
           end
         end
 
-        it 'yields a dummy trace and span' do
+        it "yields a dummy trace and span" do
           expect(block_spy).to have_received(:call) do |span, trace|
             expect(span).to be_a_kind_of(Datadog::Tracing::SpanOperation)
             expect(span.trace_id).to_not eq(trace_op.id)
@@ -1621,28 +1766,28 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
         end
 
-        it 'ignores the span' do
+        it "ignores the span" do
           expect(trace_op.finished?).to be true
           expect(trace_op.finished_span_count).to eq(2)
         end
       end
 
-      context 'is finished' do
+      context "is finished" do
         let(:options) { {max_length: 2} }
         let(:block) { proc { |*args| block_spy.call(*args) } }
-        let(:block_spy) { spy('block spy') }
+        let(:block_spy) { spy("block spy") }
 
         before do
           allow(block_spy).to receive(:call)
 
-          trace_op.measure('grandparent') do
+          trace_op.measure("grandparent") do
             # Do something
           end
 
           measure
         end
 
-        it 'yields a dummy trace and span' do
+        it "yields a dummy trace and span" do
           expect(block_spy).to have_received(:call) do |span, trace|
             expect(span).to be_a_kind_of(Datadog::Tracing::SpanOperation)
             expect(span.trace_id).to_not eq(trace_op.id)
@@ -1652,15 +1797,15 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
         end
 
-        it 'ignores the span' do
+        it "ignores the span" do
           expect(trace_op.finished?).to be true
           expect(trace_op.finished_span_count).to eq(1)
         end
       end
 
-      context 'has already built a span' do
-        context 'that has not been started' do
-          let(:parent_span) { trace_op.build_span('parent') }
+      context "has already built a span" do
+        context "that has not been started" do
+          let(:parent_span) { trace_op.build_span("parent") }
 
           before { parent_span }
 
@@ -1679,8 +1824,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
         end
 
-        context 'that has been started' do
-          let(:parent_span) { trace_op.build_span('parent').start }
+        context "that has been started" do
+          let(:parent_span) { trace_op.build_span("parent").start }
 
           before { parent_span }
 
@@ -1699,11 +1844,11 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
         end
 
-        context 'that has been finished' do
-          let(:parent_span) { trace_op.build_span('parent').start.finish }
+        context "that has been finished" do
+          let(:parent_span) { trace_op.build_span("parent").start.finish }
 
           let(:block) { proc { |*args| block_spy.call(*args) } }
-          let(:block_spy) { spy('block spy') }
+          let(:block_spy) { spy("block spy") }
 
           before do
             allow(block_spy).to receive(:call)
@@ -1711,7 +1856,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             measure
           end
 
-          it 'yields a dummy trace and span' do
+          it "yields a dummy trace and span" do
             expect(block_spy).to have_received(:call) do |span, trace|
               expect(span).to be_a_kind_of(Datadog::Tracing::SpanOperation)
               expect(span.trace_id).to_not eq(trace_op.id)
@@ -1721,16 +1866,16 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             end
           end
 
-          it 'ignores the span' do
+          it "ignores the span" do
             expect(trace_op.finished?).to be true
             expect(trace_op.finished_span_count).to eq(1)
           end
         end
       end
 
-      context 'is measuring another span' do
+      context "is measuring another span" do
         before do
-          trace_op.measure('parent') do |parent|
+          trace_op.measure("parent") do |parent|
             @parent = parent
             measure
           end
@@ -1751,88 +1896,88 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
-      context 'resource' do
+      context "resource" do
         let(:trace_steps) { {} }
 
-        context 'is inherited from the root span' do
-          it 'is visible at any point in the trace' do
+        context "is inherited from the root span" do
+          it "is visible at any point in the trace" do
             expect(trace_op.resource).to be nil
 
-            trace_op.measure('web.request') do |root_span|
-              expect(trace_op.resource).to eq('web.request')
-              expect(root_span.resource).to eq('web.request')
+            trace_op.measure("web.request") do |root_span|
+              expect(trace_op.resource).to eq("web.request")
+              expect(root_span.resource).to eq("web.request")
 
-              root_span.resource = '/articles/?'
+              root_span.resource = "/articles/?"
 
-              expect(trace_op.resource).to eq('/articles/?')
-              expect(root_span.resource).to eq('/articles/?')
+              expect(trace_op.resource).to eq("/articles/?")
+              expect(root_span.resource).to eq("/articles/?")
 
-              trace_op.measure('controller.action') do |child_span|
-                expect(trace_op.resource).to eq('/articles/?')
-                expect(child_span.resource).to eq('controller.action')
+              trace_op.measure("controller.action") do |child_span|
+                expect(trace_op.resource).to eq("/articles/?")
+                expect(child_span.resource).to eq("controller.action")
 
-                child_span.resource = 'Articles#show'
+                child_span.resource = "Articles#show"
 
-                expect(trace_op.resource).to eq('/articles/?')
-                expect(child_span.resource).to eq('Articles#show')
+                expect(trace_op.resource).to eq("/articles/?")
+                expect(child_span.resource).to eq("Articles#show")
               end
 
-              expect(trace_op.resource).to eq('/articles/?')
-              expect(root_span.resource).to eq('/articles/?')
+              expect(trace_op.resource).to eq("/articles/?")
+              expect(root_span.resource).to eq("/articles/?")
             end
 
-            expect(trace_op.resource).to eq('/articles/?')
+            expect(trace_op.resource).to eq("/articles/?")
           end
         end
 
-        context 'is overridden by the child span' do
-          it 'child span resource is persisted on the trace' do
+        context "is overridden by the child span" do
+          it "child span resource is persisted on the trace" do
             expect(trace_op.resource).to be nil
 
-            trace_op.measure('web.request') do |root_span|
-              expect(trace_op.resource).to eq('web.request')
-              expect(root_span.resource).to eq('web.request')
+            trace_op.measure("web.request") do |root_span|
+              expect(trace_op.resource).to eq("web.request")
+              expect(root_span.resource).to eq("web.request")
 
-              root_span.resource = '/articles/?'
+              root_span.resource = "/articles/?"
 
-              expect(trace_op.resource).to eq('/articles/?')
-              expect(root_span.resource).to eq('/articles/?')
+              expect(trace_op.resource).to eq("/articles/?")
+              expect(root_span.resource).to eq("/articles/?")
 
-              trace_op.measure('controller.action') do |child_span|
-                expect(trace_op.resource).to eq('/articles/?')
-                expect(child_span.resource).to eq('controller.action')
+              trace_op.measure("controller.action") do |child_span|
+                expect(trace_op.resource).to eq("/articles/?")
+                expect(child_span.resource).to eq("controller.action")
 
-                child_span.resource = 'Articles#show'
+                child_span.resource = "Articles#show"
 
-                expect(trace_op.resource).to eq('/articles/?')
-                expect(child_span.resource).to eq('Articles#show')
+                expect(trace_op.resource).to eq("/articles/?")
+                expect(child_span.resource).to eq("Articles#show")
 
                 # Override the trace resource
                 trace_op.resource = child_span.resource
 
-                expect(trace_op.resource).to eq('Articles#show')
-                expect(child_span.resource).to eq('Articles#show')
+                expect(trace_op.resource).to eq("Articles#show")
+                expect(child_span.resource).to eq("Articles#show")
               end
 
-              expect(trace_op.resource).to eq('Articles#show')
-              expect(root_span.resource).to eq('/articles/?')
+              expect(trace_op.resource).to eq("Articles#show")
+              expect(root_span.resource).to eq("/articles/?")
             end
 
-            expect(trace_op.resource).to eq('Articles#show')
+            expect(trace_op.resource).to eq("Articles#show")
           end
         end
       end
     end
   end
 
-  describe '#flush!' do
+  describe "#flush!" do
     subject(:flush!) { trace_op.flush! }
     let(:trace) { flush! }
 
-    context 'when the trace' do
-      include_context 'trace attributes'
+    context "when the trace" do
+      include_context "trace attributes"
 
-      context 'is empty' do
+      context "is empty" do
         it { is_expected.to be_a_kind_of(Datadog::Tracing::TraceSegment) }
         it { expect(trace.spans).to have(0).items }
 
@@ -1857,31 +2002,31 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
-      context 'is finished' do
+      context "is finished" do
         before do
           trace_op.measure(
-            'grandparent',
-            service: 'boo',
-            resource: 'far',
-            type: 'faz'
+            "grandparent",
+            service: "boo",
+            resource: "far",
+            type: "faz"
           ) do
             trace_op.measure(
-              'parent',
-              service: 'foo',
-              resource: 'bar',
-              type: 'baz'
+              "parent",
+              service: "foo",
+              resource: "bar",
+              type: "baz"
             ) do
               # Do something
             end
           end
         end
 
-        it 'flushes a trace with all spans' do
+        it "flushes a trace with all spans" do
           expect(trace_op.finished?).to be true
 
           is_expected.to be_a_kind_of(Datadog::Tracing::TraceSegment)
           expect(trace.spans).to have(2).items
-          expect(trace.spans.map(&:name)).to include('parent', 'grandparent')
+          expect(trace.spans.map(&:name)).to include("parent", "grandparent")
           expect(trace.send(:root_span_id)).to be_a_kind_of(Integer)
 
           expect(trace).to have_attributes(
@@ -1903,34 +2048,34 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           )
         end
 
-        it 'does not yield duplicate spans' do
+        it "does not yield duplicate spans" do
           expect(trace_op.flush!.spans).to have(2).items
           expect(trace_op.flush!.spans).to have(0).items
         end
 
-        context 'with a block' do
+        context "with a block" do
           subject(:flush!) { trace_op.flush! { |spans| spans } }
 
-          it 'yields spans' do
+          it "yields spans" do
             expect { |b| trace_op.flush!(&b) }.to yield_with_args(
               [
-                have_attributes(name: 'parent'),
-                have_attributes(name: 'grandparent')
+                have_attributes(name: "parent"),
+                have_attributes(name: "grandparent")
               ]
             )
           end
 
-          it 'uses block return as new span list' do
-            new_list = [double('span')]
+          it "uses block return as new span list" do
+            new_list = [double("span")]
             expect(trace_op.flush! { new_list }).to have_attributes(spans: new_list)
           end
         end
       end
 
-      context 'is partially finished' do
-        it 'flushes spans as they finish' do
-          trace_op.measure('grandparent') do
-            trace_op.measure('parent') do
+      context "is partially finished" do
+        it "flushes spans as they finish" do
+          trace_op.measure("grandparent") do
+            trace_op.measure("parent") do
               # Do something
             end
 
@@ -1941,7 +2086,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           # Verify partial flush
           is_expected.to be_a_kind_of(Datadog::Tracing::TraceSegment)
           expect(trace.spans).to have(1).items
-          expect(trace.spans.map(&:name)).to include('parent')
+          expect(trace.spans.map(&:name)).to include("parent")
           expect(trace.send(:root_span_id)).to be nil
 
           expect(trace).to have_attributes(
@@ -1969,7 +2114,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           # Verify final flush
           final_flush = trace_op.flush!
           expect(final_flush.spans).to have(1).items
-          expect(final_flush.spans.map(&:name)).to include('grandparent')
+          expect(final_flush.spans.map(&:name)).to include("grandparent")
           expect(final_flush.send(:root_span_id)).to be_a_kind_of(Integer)
 
           expect(final_flush).to have_attributes(
@@ -1997,15 +2142,15 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#to_digest' do
+  describe "#to_digest" do
     subject(:to_digest) { trace_op.to_digest }
     let(:digest) { to_digest }
 
-    context 'when the trace' do
-      context 'is empty' do
+    context "when the trace" do
+      context "is empty" do
         it { is_expected.to be_a_kind_of(Datadog::Tracing::TraceDigest) }
 
-        context 'and the trace was not initialized with any attributes' do
+        context "and the trace was not initialized with any attributes" do
           it do
             is_expected.to have_attributes(
               span_id: nil,
@@ -2028,8 +2173,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
         end
 
-        context 'and the trace was initialized with attributes' do
-          include_context 'trace attributes'
+        context "and the trace was initialized with attributes" do
+          include_context "trace attributes"
 
           it do
             is_expected.to have_attributes(
@@ -2053,14 +2198,14 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
         end
 
-        context 'and :remote_parent is set to false' do
+        context "and :remote_parent is set to false" do
           let(:options) { {remote_parent: remote_parent} }
           let(:remote_parent) { false }
 
           it { expect(digest.span_remote).to eq(false) }
         end
 
-        context 'but :parent_span_id has been defined' do
+        context "but :parent_span_id has been defined" do
           let(:options) { {parent_span_id: parent_span_id} }
           let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
 
@@ -2068,22 +2213,22 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
-      context 'is measuring an operation' do
+      context "is measuring an operation" do
         before do
           trace_op.measure(
-            'grandparent',
-            service: 'boo',
-            resource: 'far',
-            type: 'faz'
+            "grandparent",
+            service: "boo",
+            resource: "far",
+            type: "faz"
           ) do
             trace_op.measure(
-              'parent',
-              service: 'foo',
-              resource: 'bar',
-              type: 'baz'
+              "parent",
+              service: "foo",
+              resource: "bar",
+              type: "baz"
             ) do |parent, trace|
               @parent = parent
-              trace.set_tag('_dd.p.test', 'value')
+              trace.set_tag("_dd.p.test", "value")
               to_digest
             end
           end
@@ -2092,25 +2237,25 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         it do
           is_expected.to have_attributes(
             span_id: @parent.id,
-            span_name: 'parent',
-            span_resource: 'bar',
-            span_service: 'foo',
-            span_type: 'baz',
-            trace_distributed_tags: {'_dd.p.test' => 'value'},
+            span_name: "parent",
+            span_resource: "bar",
+            span_service: "foo",
+            span_type: "baz",
+            trace_distributed_tags: {"_dd.p.test" => "value"},
             trace_hostname: nil,
             trace_id: trace_op.id,
-            trace_name: 'grandparent',
+            trace_name: "grandparent",
             trace_origin: nil,
             trace_process_id: Datadog::Core::Environment::Identity.pid,
-            trace_resource: 'far',
+            trace_resource: "far",
             trace_runtime_id: Datadog::Core::Environment::Identity.id,
 
             trace_sampling_priority: nil,
-            trace_service: 'boo'
+            trace_service: "boo"
           )
         end
 
-        context 'and :parent_span_id has been defined' do
+        context "and :parent_span_id has been defined" do
           let(:options) { {parent_span_id: parent_span_id} }
           let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
 
@@ -2118,14 +2263,14 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
-      context 'has built a span' do
-        context 'that has not started' do
+      context "has built a span" do
+        context "that has not started" do
           let(:parent_span) do
             trace_op.build_span(
-              'parent',
-              service: 'foo',
-              resource: 'bar',
-              type: 'baz'
+              "parent",
+              service: "foo",
+              resource: "bar",
+              type: "baz"
             )
           end
 
@@ -2154,13 +2299,13 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
         end
 
-        context 'that has started' do
+        context "that has started" do
           let(:parent_span) do
             trace_op.build_span(
-              'parent',
-              service: 'foo',
-              resource: 'bar',
-              type: 'baz'
+              "parent",
+              service: "foo",
+              resource: "bar",
+              type: "baz"
             ).start
           end
 
@@ -2169,33 +2314,33 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           it do
             is_expected.to have_attributes(
               span_id: parent_span.id,
-              span_name: 'parent',
-              span_resource: 'bar',
-              span_service: 'foo',
-              span_type: 'baz',
+              span_name: "parent",
+              span_resource: "bar",
+              span_service: "foo",
+              span_type: "baz",
               trace_distributed_tags: {},
               trace_hostname: nil,
               trace_id: trace_op.id,
-              trace_name: 'parent',
+              trace_name: "parent",
               trace_origin: nil,
               trace_process_id: Datadog::Core::Environment::Identity.pid,
-              trace_resource: 'bar',
+              trace_resource: "bar",
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
 
               trace_sampling_priority: nil,
-              trace_service: 'foo',
+              trace_service: "foo",
               span_remote: false
             )
           end
         end
 
-        context 'that has finished' do
+        context "that has finished" do
           let(:parent_span) do
             trace_op.build_span(
-              'parent',
-              service: 'foo',
-              resource: 'bar',
-              type: 'baz'
+              "parent",
+              service: "foo",
+              resource: "bar",
+              type: "baz"
             ).start.finish
           end
 
@@ -2211,33 +2356,33 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_distributed_tags: {},
               trace_hostname: nil,
               trace_id: trace_op.id,
-              trace_name: 'parent',
+              trace_name: "parent",
               trace_origin: nil,
               trace_process_id: Datadog::Core::Environment::Identity.pid,
-              trace_resource: 'bar',
+              trace_resource: "bar",
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
 
               trace_sampling_priority: nil,
-              trace_service: 'foo',
+              trace_service: "foo",
               span_remote: false
             )
           end
         end
       end
 
-      context 'is finished' do
+      context "is finished" do
         before do
           trace_op.measure(
-            'grandparent',
-            service: 'boo',
-            resource: 'far',
-            type: 'faz'
+            "grandparent",
+            service: "boo",
+            resource: "far",
+            type: "faz"
           ) do
             trace_op.measure(
-              'parent',
-              service: 'foo',
-              resource: 'bar',
-              type: 'baz'
+              "parent",
+              service: "foo",
+              resource: "bar",
+              type: "baz"
             ) do |parent|
               # Do something
             end
@@ -2254,19 +2399,19 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             trace_distributed_tags: {},
             trace_hostname: nil,
             trace_id: trace_op.id,
-            trace_name: 'grandparent',
+            trace_name: "grandparent",
             trace_origin: nil,
             trace_process_id: Datadog::Core::Environment::Identity.pid,
-            trace_resource: 'far',
+            trace_resource: "far",
             trace_runtime_id: Datadog::Core::Environment::Identity.id,
 
             trace_sampling_priority: nil,
-            trace_service: 'boo',
+            trace_service: "boo",
             span_remote: false,
           )
         end
 
-        context 'and :parent_span_id has been defined' do
+        context "and :parent_span_id has been defined" do
           let(:options) { {parent_span_id: parent_span_id} }
           let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
 
@@ -2276,21 +2421,21 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#to_correlation' do
-    context 'is empty' do
+  describe "#to_correlation" do
+    context "is empty" do
       it { expect(trace_op.to_correlation).to be_a_kind_of(Datadog::Tracing::Correlation::Identifier) }
 
-      context 'and the trace was not initialized with any attributes' do
+      context "and the trace was not initialized with any attributes" do
         it do
           expect(trace_op.to_correlation).to have_attributes(
-            span_id: '0',
+            span_id: "0",
             trace_id: format_for_correlation(trace_op.id),
           )
         end
       end
     end
 
-    context 'when :parent_span_id has been defined' do
+    context "when :parent_span_id has been defined" do
       let(:options) { {parent_span_id: parent_span_id} }
       let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
 
@@ -2302,13 +2447,13 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
     end
 
-    context 'is measuring an operation' do
+    context "is measuring an operation" do
       it do
         correlation = nil
         parent_id = nil
 
-        trace_op.measure('grandparent') do
-          trace_op.measure('parent') do |parent, _|
+        trace_op.measure("grandparent") do
+          trace_op.measure("parent") do |parent, _|
             parent_id = parent.id
             correlation = trace_op.to_correlation
           end
@@ -2320,7 +2465,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         )
       end
 
-      context 'and :parent_span_id has been defined' do
+      context "and :parent_span_id has been defined" do
         let(:options) { {parent_span_id: parent_span_id} }
         let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
 
@@ -2328,8 +2473,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           correlation = nil
           parent_id = nil
 
-          trace_op.measure('grandparent') do
-            trace_op.measure('parent') do |parent, _|
+          trace_op.measure("grandparent") do
+            trace_op.measure("parent") do |parent, _|
               parent_id = parent.id
               correlation = trace_op.to_correlation
             end
@@ -2343,21 +2488,21 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
     end
 
-    context 'has built a span' do
-      context 'that has not started' do
+    context "has built a span" do
+      context "that has not started" do
         it do
-          trace_op.build_span('parent')
+          trace_op.build_span("parent")
 
           expect(trace_op.to_correlation).to have_attributes(
-            span_id: '0',
+            span_id: "0",
             trace_id: format_for_correlation(trace_op.id),
           )
         end
       end
 
-      context 'that has started' do
+      context "that has started" do
         it do
-          span = trace_op.build_span('parent').start
+          span = trace_op.build_span("parent").start
 
           expect(trace_op.to_correlation).to have_attributes(
             span_id: span.id.to_s,
@@ -2366,43 +2511,43 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
-      context 'that has finished' do
+      context "that has finished" do
         it do
-          trace_op.build_span('parent').start.finish
+          trace_op.build_span("parent").start.finish
 
           expect(trace_op.to_correlation).to have_attributes(
-            span_id: '0',
+            span_id: "0",
             trace_id: format_for_correlation(trace_op.id),
           )
         end
       end
     end
 
-    context 'when trace has finished' do
+    context "when trace has finished" do
       it do
-        trace_op.measure('grandparent') do
-          trace_op.measure('parent') do |_parent, _|
+        trace_op.measure("grandparent") do
+          trace_op.measure("parent") do |_parent, _|
           end
         end
 
         expect(trace_op.to_correlation).to have_attributes(
-          span_id: '0',
+          span_id: "0",
           trace_id: format_for_correlation(trace_op.id)
         )
       end
 
-      context 'and :parent_span_id has been defined' do
+      context "and :parent_span_id has been defined" do
         let(:options) { {parent_span_id: parent_span_id} }
         let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
 
         it do
-          trace_op.measure('grandparent') do
-            trace_op.measure('parent') do |parent, _|
+          trace_op.measure("grandparent") do
+            trace_op.measure("parent") do |parent, _|
             end
           end
 
           expect(trace_op.to_correlation).to have_attributes(
-            span_id: '0',
+            span_id: "0",
             trace_id: format_for_correlation(trace_op.id)
           )
         end
@@ -2410,16 +2555,16 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#fork_clone' do
+  describe "#fork_clone" do
     subject(:fork_clone) { trace_op.fork_clone }
     let(:new_trace_op) { fork_clone }
 
-    context 'when the trace' do
-      context 'is empty' do
+    context "when the trace" do
+      context "is empty" do
         it { is_expected.to be_a_kind_of(described_class) }
 
-        context 'and trace attributes are defined' do
-          include_context 'trace attributes'
+        context "and trace attributes are defined" do
+          include_context "trace attributes"
 
           it do
             is_expected.to have_attributes(
@@ -2440,30 +2585,32 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             )
           end
 
-          it 'maintains the same tags' do
+          it "maintains the same tags" do
             expect(new_trace_op.send(:meta)).to eq(tags)
           end
 
-          it 'maintains the same metrics' do
-            expect(new_trace_op.send(:metrics)).to eq({'baz' => 42.0})
+          it "maintains the same metrics" do
+            expect(new_trace_op.send(:metrics)).to eq({"baz" => 42.0})
           end
 
-          it 'maintains the same events' do
+          it "maintains the same events" do
             old_events = trace_op.send(:events)
             new_events = new_trace_op.send(:events)
 
             [
+              :span_before_finish,
               :span_before_start,
               :span_finished,
               :trace_finished,
               :trace_propagated,
+              :trace_resource_change,
             ].each do |event|
               expect(new_events.send(event).subscriptions).to eq(old_events.send(event).subscriptions)
             end
           end
         end
 
-        context 'but :parent_span_id has been defined' do
+        context "but :parent_span_id has been defined" do
           let(:options) { {parent_span_id: parent_span_id} }
           let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
 
@@ -2471,21 +2618,21 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
-      context 'is measuring an operation' do
-        include_context 'trace attributes'
+      context "is measuring an operation" do
+        include_context "trace attributes"
 
         before do
           trace_op.measure(
-            'grandparent',
-            service: 'boo',
-            resource: 'far',
-            type: 'faz'
+            "grandparent",
+            service: "boo",
+            resource: "far",
+            type: "faz"
           ) do
             trace_op.measure(
-              'parent',
-              service: 'foo',
-              resource: 'bar',
-              type: 'baz'
+              "parent",
+              service: "foo",
+              resource: "bar",
+              type: "baz"
             ) do |parent|
               @parent = parent
               fork_clone
@@ -2511,15 +2658,15 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           )
         end
 
-        it 'maintains the same tags' do
+        it "maintains the same tags" do
           expect(new_trace_op.send(:meta)).to eq(tags)
         end
 
-        it 'maintains the same metrics' do
-          expect(new_trace_op.send(:metrics)).to eq({'baz' => 42.0})
+        it "maintains the same metrics" do
+          expect(new_trace_op.send(:metrics)).to eq({"baz" => 42.0})
         end
 
-        context 'and :parent_span_id has been defined' do
+        context "and :parent_span_id has been defined" do
           let(:options) { {parent_span_id: parent_span_id} }
           let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
 
@@ -2527,16 +2674,16 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
-      context 'has built a span' do
-        include_context 'trace attributes'
+      context "has built a span" do
+        include_context "trace attributes"
 
-        context 'that has not started' do
+        context "that has not started" do
           let(:parent_span) do
             trace_op.build_span(
-              'parent',
-              service: 'foo',
-              resource: 'bar',
-              type: 'baz'
+              "parent",
+              service: "foo",
+              resource: "bar",
+              type: "baz"
             )
           end
 
@@ -2561,22 +2708,22 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             )
           end
 
-          it 'maintains the same tags' do
+          it "maintains the same tags" do
             expect(new_trace_op.send(:meta)).to eq(tags)
           end
 
-          it 'maintains the same metrics' do
-            expect(new_trace_op.send(:metrics)).to eq({'baz' => 42.0})
+          it "maintains the same metrics" do
+            expect(new_trace_op.send(:metrics)).to eq({"baz" => 42.0})
           end
         end
 
-        context 'that has started' do
+        context "that has started" do
           let(:parent_span) do
             trace_op.build_span(
-              'parent',
-              service: 'foo',
-              resource: 'bar',
-              type: 'baz'
+              "parent",
+              service: "foo",
+              resource: "bar",
+              type: "baz"
             ).start
           end
 
@@ -2601,22 +2748,22 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             )
           end
 
-          it 'maintains the same tags' do
+          it "maintains the same tags" do
             expect(new_trace_op.send(:meta)).to eq(tags)
           end
 
-          it 'maintains the same metrics' do
-            expect(new_trace_op.send(:metrics)).to eq({'baz' => 42.0})
+          it "maintains the same metrics" do
+            expect(new_trace_op.send(:metrics)).to eq({"baz" => 42.0})
           end
         end
 
-        context 'that has finished' do
+        context "that has finished" do
           let(:parent_span) do
             trace_op.build_span(
-              'parent',
-              service: 'foo',
-              resource: 'bar',
-              type: 'baz'
+              "parent",
+              service: "foo",
+              resource: "bar",
+              type: "baz"
             ).start.finish
           end
 
@@ -2641,31 +2788,31 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             )
           end
 
-          it 'maintains the same tags' do
+          it "maintains the same tags" do
             expect(new_trace_op.send(:meta)).to eq(tags)
           end
 
-          it 'maintains the same metrics' do
-            expect(new_trace_op.send(:metrics)).to eq({'baz' => 42.0})
+          it "maintains the same metrics" do
+            expect(new_trace_op.send(:metrics)).to eq({"baz" => 42.0})
           end
         end
       end
 
-      context 'is finished' do
-        include_context 'trace attributes'
+      context "is finished" do
+        include_context "trace attributes"
 
         before do
           trace_op.measure(
-            'grandparent',
-            service: 'boo',
-            resource: 'far',
-            type: 'faz'
+            "grandparent",
+            service: "boo",
+            resource: "far",
+            type: "faz"
           ) do
             trace_op.measure(
-              'parent',
-              service: 'foo',
-              resource: 'bar',
-              type: 'baz'
+              "parent",
+              service: "foo",
+              resource: "bar",
+              type: "baz"
             ) do |parent|
               # Do something
             end
@@ -2691,15 +2838,15 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           )
         end
 
-        it 'maintains the same tags' do
+        it "maintains the same tags" do
           expect(new_trace_op.send(:meta)).to eq(tags)
         end
 
-        it 'maintains the same metrics' do
-          expect(new_trace_op.send(:metrics)).to eq({'baz' => 42.0})
+        it "maintains the same metrics" do
+          expect(new_trace_op.send(:metrics)).to eq({"baz" => 42.0})
         end
 
-        context 'and :parent_span_id has been defined' do
+        context "and :parent_span_id has been defined" do
           let(:options) { {parent_span_id: parent_span_id} }
           let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
 
@@ -2709,16 +2856,16 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe 'integration tests' do
-    context 'service_entry attributes' do
-      context 'when service not given' do
+  describe "integration tests" do
+    context "service_entry attributes" do
+      context "when service not given" do
         it do
-          trace_op.measure('root') do |_, trace|
-            trace.measure('children_1') do
+          trace_op.measure("root") do |_, trace|
+            trace.measure("children_1") do
               # sleep(0.01)
             end
 
-            trace.measure('children_2') do
+            trace.measure("children_2") do
               # sleep(0.01)
             end
           end
@@ -2726,21 +2873,21 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           trace_segment = trace_op.flush!
 
           expect(trace_segment.spans).to include(
-            a_span_with(name: 'root', service_entry?: true),
-            a_span_with(name: 'children_1', service_entry?: false),
-            a_span_with(name: 'children_2', service_entry?: false)
+            a_span_with(name: "root", service_entry?: true),
+            a_span_with(name: "children_1", service_entry?: false),
+            a_span_with(name: "children_2", service_entry?: false)
           )
         end
       end
 
-      context 'when service provided at root' do
+      context "when service provided at root" do
         it do
-          trace_op.measure('root', service: 'service_1') do |_, trace|
-            trace.measure('children_1') do
+          trace_op.measure("root", service: "service_1") do |_, trace|
+            trace.measure("children_1") do
               # sleep(0.01)
             end
 
-            trace.measure('children_2') do
+            trace.measure("children_2") do
               # sleep(0.01)
             end
           end
@@ -2748,21 +2895,21 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           trace_segment = trace_op.flush!
 
           expect(trace_segment.spans).to include(
-            a_span_with(name: 'root', service_entry?: true),
-            a_span_with(name: 'children_1', service_entry?: false),
-            a_span_with(name: 'children_2', service_entry?: false)
+            a_span_with(name: "root", service_entry?: true),
+            a_span_with(name: "children_1", service_entry?: false),
+            a_span_with(name: "children_2", service_entry?: false)
           )
         end
       end
 
-      context 'when service changed' do
+      context "when service changed" do
         it do
-          trace_op.measure('root', service: 'service_1') do |_, trace|
-            trace.measure('children_1', service: 'service_2') do
+          trace_op.measure("root", service: "service_1") do |_, trace|
+            trace.measure("children_1", service: "service_2") do
               # sleep(0.01)
             end
 
-            trace.measure('children_2') do
+            trace.measure("children_2") do
               # sleep(0.01)
             end
           end
@@ -2770,22 +2917,22 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           trace_segment = trace_op.flush!
 
           expect(trace_segment.spans).to include(
-            a_span_with(name: 'root', service_entry?: true),
-            a_span_with(name: 'children_1', service_entry?: true),
-            a_span_with(name: 'children_2', service_entry?: false)
+            a_span_with(name: "root", service_entry?: true),
+            a_span_with(name: "children_1", service_entry?: true),
+            a_span_with(name: "children_2", service_entry?: false)
           )
         end
       end
 
-      context 'when service changed within the block' do
+      context "when service changed within the block" do
         it do
-          trace_op.measure('root', service: 'service_1') do |_, trace|
-            trace.measure('children_1') do |span|
-              span.service = 'service_2'
+          trace_op.measure("root", service: "service_1") do |_, trace|
+            trace.measure("children_1") do |span|
+              span.service = "service_2"
               # sleep(0.01)
             end
 
-            trace.measure('children_2') do
+            trace.measure("children_2") do
               # sleep(0.01)
             end
           end
@@ -2793,31 +2940,31 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           trace_segment = trace_op.flush!
 
           expect(trace_segment.spans).to include(
-            a_span_with(name: 'root', service_entry?: true),
-            a_span_with(name: 'children_1', service_entry?: true),
-            a_span_with(name: 'children_2', service_entry?: false)
+            a_span_with(name: "root", service_entry?: true),
+            a_span_with(name: "children_1", service_entry?: true),
+            a_span_with(name: "children_2", service_entry?: false)
           )
         end
       end
     end
 
-    context 'for a mock job with fan-out/fan-in behavior' do
+    context "for a mock job with fan-out/fan-in behavior" do
       subject(:trace) do
         @thread_traces = Queue.new
 
-        trace_op.measure('job', resource: 'import_job', service: 'job-worker') do |_span, trace|
-          trace.measure('load_data', resource: 'imports.csv', service: 'job-worker') do
-            trace.measure('read_file', resource: 'imports.csv', service: 'job-worker') do
+        trace_op.measure("job", resource: "import_job", service: "job-worker") do |_span, trace|
+          trace.measure("load_data", resource: "imports.csv", service: "job-worker") do
+            trace.measure("read_file", resource: "imports.csv", service: "job-worker") do
               sleep(0.01)
             end
 
-            trace.measure('deserialize', resource: 'inventory', service: 'job-worker') do
+            trace.measure("deserialize", resource: "inventory", service: "job-worker") do
               sleep(0.01)
             end
           end
 
           workers = nil
-          trace.measure('start_inserts', resource: 'inventory', service: 'job-worker') do
+          trace.measure("start_inserts", resource: "inventory", service: "job-worker") do
             trace_digest = trace.to_digest
 
             workers = Array.new(5) do |index|
@@ -2835,8 +2982,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
                 @thread_traces.push(thread_trace)
 
                 thread_trace.measure(
-                  'db.query',
-                  service: 'database',
+                  "db.query",
+                  service: "database",
                   resource: "worker #{index}"
                 ) do
                   sleep(0.01)
@@ -2845,12 +2992,12 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             end
           end
 
-          trace.measure('wait_inserts', resource: 'inventory', service: 'job-worker') do |wait_span|
-            wait_span.set_tag('worker.count', workers.length)
+          trace.measure("wait_inserts", resource: "inventory", service: "job-worker") do |wait_span|
+            wait_span.set_tag("worker.count", workers.length)
             workers&.each { |w| w.alive? && w.join }
           end
 
-          trace.measure('update_log', resource: 'inventory', service: 'job-worker') do
+          trace.measure("update_log", resource: "inventory", service: "job-worker") do
             sleep(0.01)
           end
         end
@@ -2858,7 +3005,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         trace_op.flush!
       end
 
-      it 'is a well-formed trace' do
+      it "is a well-formed trace" do
         expect { trace }.to_not raise_error
 
         # Collect traces from threads
@@ -2869,14 +3016,14 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         all_spans = (trace.spans + all_thread_traces.collect { |t| t.flush!.spans }).flatten
         expect(all_spans).to have(12).items
 
-        job_span = all_spans.find { |s| s.name == 'job' }
-        load_data_span = all_spans.find { |s| s.name == 'load_data' }
-        read_file_span = all_spans.find { |s| s.name == 'read_file' }
-        deserialize_span = all_spans.find { |s| s.name == 'deserialize' }
-        start_inserts_span = all_spans.find { |s| s.name == 'start_inserts' }
-        db_query_spans = all_spans.select { |s| s.name == 'db.query' }
-        wait_insert_span = all_spans.find { |s| s.name == 'wait_inserts' }
-        update_log_span = all_spans.find { |s| s.name == 'update_log' }
+        job_span = all_spans.find { |s| s.name == "job" }
+        load_data_span = all_spans.find { |s| s.name == "load_data" }
+        read_file_span = all_spans.find { |s| s.name == "read_file" }
+        deserialize_span = all_spans.find { |s| s.name == "deserialize" }
+        start_inserts_span = all_spans.find { |s| s.name == "start_inserts" }
+        db_query_spans = all_spans.select { |s| s.name == "db.query" }
+        wait_insert_span = all_spans.find { |s| s.name == "wait_inserts" }
+        update_log_span = all_spans.find { |s| s.name == "update_log" }
 
         trace_id = job_span.trace_id
 
@@ -2884,9 +3031,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           trace_id: (a_value > 0),
           id: (a_value > 0),
           parent_id: 0,
-          name: 'job',
-          resource: 'import_job',
-          service: 'job-worker'
+          name: "job",
+          resource: "import_job",
+          service: "job-worker"
         )
         expect(job_span.__send__(:service_entry?)).to be true
 
@@ -2894,9 +3041,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           trace_id: trace_id,
           id: (a_value > 0),
           parent_id: job_span.id,
-          name: 'load_data',
-          resource: 'imports.csv',
-          service: 'job-worker'
+          name: "load_data",
+          resource: "imports.csv",
+          service: "job-worker"
         )
         expect(load_data_span.__send__(:service_entry?)).to be false
 
@@ -2904,9 +3051,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           trace_id: trace_id,
           id: (a_value > 0),
           parent_id: load_data_span.id,
-          name: 'read_file',
-          resource: 'imports.csv',
-          service: 'job-worker'
+          name: "read_file",
+          resource: "imports.csv",
+          service: "job-worker"
         )
         expect(read_file_span.__send__(:service_entry?)).to be false
 
@@ -2914,9 +3061,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           trace_id: trace_id,
           id: (a_value > 0),
           parent_id: load_data_span.id,
-          name: 'deserialize',
-          resource: 'inventory',
-          service: 'job-worker'
+          name: "deserialize",
+          resource: "inventory",
+          service: "job-worker"
         )
         expect(deserialize_span.__send__(:service_entry?)).to be false
 
@@ -2924,9 +3071,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           trace_id: trace_id,
           id: (a_value > 0),
           parent_id: job_span.id,
-          name: 'start_inserts',
-          resource: 'inventory',
-          service: 'job-worker'
+          name: "start_inserts",
+          resource: "inventory",
+          service: "job-worker"
         )
         expect(start_inserts_span.__send__(:service_entry?)).to be false
 
@@ -2935,9 +3082,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             trace_id: trace_id,
             id: (a_value > 0),
             parent_id: start_inserts_span.id,
-            name: 'db.query',
+            name: "db.query",
             resource: /worker \d+/,
-            service: 'database'
+            service: "database"
           )
         )
         expect(db_query_spans.map { |s| s.__send__(:service_entry?) }).to all(be true)
@@ -2946,20 +3093,20 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           trace_id: trace_id,
           id: (a_value > 0),
           parent_id: job_span.id,
-          name: 'wait_inserts',
-          resource: 'inventory',
-          service: 'job-worker'
+          name: "wait_inserts",
+          resource: "inventory",
+          service: "job-worker"
         )
-        expect(wait_insert_span.get_tag('worker.count')).to eq(5.0)
+        expect(wait_insert_span.get_tag("worker.count")).to eq(5.0)
         expect(wait_insert_span.__send__(:service_entry?)).to be false
 
         expect(update_log_span).to have_attributes(
           trace_id: trace_id,
           id: (a_value > 0),
           parent_id: job_span.id,
-          name: 'update_log',
-          resource: 'inventory',
-          service: 'job-worker'
+          name: "update_log",
+          resource: "inventory",
+          service: "job-worker"
         )
         expect(update_log_span.__send__(:service_entry?)).to be false
       end

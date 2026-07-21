@@ -1,25 +1,25 @@
-require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/remote'
-require 'datadog/core/remote/configuration/repository'
+require "datadog/appsec/spec_helper"
+require "datadog/appsec/remote"
+require "datadog/core/remote/configuration/repository"
 
 RSpec.describe Datadog::AppSec::Remote do
-  describe '.capabilities' do
-    context 'remote configuration disabled' do
+  describe ".capabilities" do
+    context "remote configuration disabled" do
       before do
         expect(described_class).to receive(:remote_features_enabled?).and_return(false)
       end
 
-      it 'returns empty array' do
+      it "returns empty array" do
         expect(described_class.capabilities).to eq([])
       end
     end
 
-    context 'remote configuration enabled' do
+    context "remote configuration enabled" do
       before do
         expect(described_class).to receive(:remote_features_enabled?).and_return(true)
       end
 
-      it 'returns capabilities' do
+      it "returns capabilities" do
         expect(described_class.capabilities).to eq([
           4, 128, 16, 32, 64, 8, 256, 512, 1024, 65_536, 131_072, 8_388_608, 2_097_152, 2_147_483_648,
           4_294_967_296, 8_589_934_592, 17_179_869_184, 34_359_738_368, 8_796_093_022_208
@@ -28,86 +28,86 @@ RSpec.describe Datadog::AppSec::Remote do
     end
   end
 
-  describe '.products' do
-    context 'remote configuration disabled' do
+  describe ".products" do
+    context "remote configuration disabled" do
       before do
         expect(described_class).to receive(:remote_features_enabled?).and_return(false)
       end
 
-      it 'returns empty array' do
+      it "returns empty array" do
         expect(described_class.products).to eq([])
       end
     end
 
-    context 'remote configuration enabled' do
+    context "remote configuration enabled" do
       before do
         expect(described_class).to receive(:remote_features_enabled?).and_return(true)
       end
 
-      it 'returns products' do
-        expect(described_class.products).to eq(['ASM_DD', 'ASM', 'ASM_FEATURES', 'ASM_DATA'])
+      it "returns products" do
+        expect(described_class.products).to eq(["ASM_DD", "ASM", "ASM_FEATURES", "ASM_DATA"])
       end
     end
   end
 
-  describe '.receivers' do
+  describe ".receivers" do
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
     let(:security_engine) { instance_double(Datadog::AppSec::SecurityEngine) }
 
-    context 'remote configuration disabled' do
+    context "remote configuration disabled" do
       before do
         allow(Datadog::AppSec).to receive(:security_engine).and_return(security_engine)
         allow(described_class).to receive(:remote_features_enabled?).and_return(false)
       end
 
-      it 'returns empty array' do
+      it "returns empty array" do
         expect(described_class.receivers(telemetry)).to eq([])
       end
     end
 
-    context 'remote configuration enabled' do
+    context "remote configuration enabled" do
       before do
         allow(Datadog::AppSec).to receive(:security_engine).and_return(security_engine)
         allow(described_class).to receive(:remote_features_enabled?).and_return(true)
       end
 
-      it 'returns receivers' do
+      it "returns receivers" do
         receivers = described_class.receivers(telemetry)
         expect(receivers.size).to eq(1)
         expect(receivers.first).to be_a(Datadog::Core::Remote::Dispatcher::Receiver)
       end
 
-      context 'receiver logic' do
+      context "receiver logic" do
         let(:rules) do
           {
-            version: '2.2',
+            version: "2.2",
             metadata: {
-              rules_version: '1.5.2'
+              rules_version: "1.5.2"
             },
             rules: [
               {
-                id: 'blk-001-001',
-                name: 'Block IP Addresses',
+                id: "blk-001-001",
+                name: "Block IP Addresses",
                 tags: {
-                  type: 'block_ip',
-                  category: 'security_response'
+                  type: "block_ip",
+                  category: "security_response"
                 },
                 conditions: [
                   {
                     parameters: {
                       inputs: [
                         {
-                          address: 'http.client_ip'
+                          address: "http.client_ip"
                         }
                       ],
-                      data: 'blocked_ips'
+                      data: "blocked_ips"
                     },
-                    operator: 'ip_match'
+                    operator: "ip_match"
                   }
                 ],
                 transformers: [],
                 on_match: [
-                  'block'
+                  "block"
                 ]
               }
             ]
@@ -119,11 +119,11 @@ RSpec.describe Datadog::AppSec::Remote do
         let(:target) do
           Datadog::Core::Remote::Configuration::Target.parse(
             {
-              'custom' => {
-                'v' => 1,
+              "custom" => {
+                "v" => 1,
               },
-              'hashes' => {'sha256' => Digest::SHA256.hexdigest(rules.to_json)},
-              'length' => rules.to_s.length
+              "hashes" => {"sha256" => Digest::SHA256.hexdigest(rules.to_json)},
+              "length" => rules.to_s.length
             }
           )
         end
@@ -131,7 +131,7 @@ RSpec.describe Datadog::AppSec::Remote do
         let(:content) do
           Datadog::Core::Remote::Configuration::Content.parse(
             {
-              path: 'datadog/603646/ASM_DD/latest/config',
+              path: "datadog/603646/ASM_DD/latest/config",
               content: rules,
             }
           )
@@ -162,7 +162,7 @@ RSpec.describe Datadog::AppSec::Remote do
           allow(Datadog::AppSec).to receive(:security_engine).and_return(appsec_component.security_engine)
         end
 
-        it 'propagates changes to AppSec' do
+        it "propagates changes to AppSec" do
           expect(Datadog::AppSec.security_engine).to receive(:add_or_update_config).with(
             JSON.parse(rules), path: content.path.to_s
           )
@@ -172,10 +172,119 @@ RSpec.describe Datadog::AppSec::Remote do
           receiver.call(repository, transaction)
         end
 
-        it 'sets apply_state to ACKNOWLEDGED on content' do
+        it "sets apply_state to ACKNOWLEDGED on content" do
           receiver.call(repository, transaction)
 
           expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
+        end
+
+        context "when the ASM_DD ruleset path changes" do
+          let(:rules_v2) do
+            {
+              version: "2.2",
+              metadata: {
+                rules_version: "2.0.0"
+              },
+              rules: [
+                {
+                  id: "rasp-003-001",
+                  name: "SQL Injection",
+                  tags: {
+                    type: "sql_injection",
+                    category: "exploit",
+                    module: "rasp"
+                  },
+                  conditions: [
+                    {
+                      operator: "sqli_detector",
+                      parameters: {
+                        resource: [{address: "server.db.statement"}],
+                        params: [{address: "server.request.query"}],
+                        db_type: [{address: "server.db.system"}]
+                      }
+                    }
+                  ],
+                  on_match: ["block-sqli"]
+                }
+              ],
+              actions: [
+                {
+                  id: "block-sqli",
+                  type: "block",
+                  parameters: {
+                    status_code: "418",
+                    grpc_status_code: "42",
+                    type: "auto"
+                  }
+                }
+              ]
+            }.to_json
+          end
+
+          let(:content_v1) do
+            Datadog::Core::Remote::Configuration::Content.parse(
+              {
+                path: "datadog/603646/ASM_DD/v1/config",
+                content: rules,
+              }
+            )
+          end
+
+          let(:content_v2) do
+            Datadog::Core::Remote::Configuration::Content.parse(
+              {
+                path: "datadog/603646/ASM_DD/v2/config",
+                content: rules_v2,
+              }
+            )
+          end
+
+          let(:target_v2) do
+            Datadog::Core::Remote::Configuration::Target.parse(
+              {
+                "custom" => {
+                  "v" => 1,
+                },
+                "hashes" => {"sha256" => Digest::SHA256.hexdigest(rules_v2)},
+                "length" => rules_v2.length
+              }
+            )
+          end
+
+          before do
+            repository.transaction do |_, txn|
+              txn.insert(content_v1.path, target, content_v1)
+            end
+          end
+
+          it "processes deletes before inserts regardless of changeset order" do
+            changeset = repository.transaction do |_, txn|
+              txn.insert(content_v2.path, target_v2, content_v2)
+              txn.delete(content_v1.path)
+            end
+
+            engine = Datadog::AppSec.security_engine
+            call_order = []
+
+            allow(engine).to receive(:remove_config_at_path).and_wrap_original do |original, path|
+              call_order << [:remove, path]
+              original.call(path)
+            end
+            allow(engine).to receive(:add_or_update_config).and_wrap_original do |original, config, **kwargs|
+              call_order << [:add, kwargs.fetch(:path)]
+              original.call(config, **kwargs)
+            end
+
+            receiver.call(repository, changeset)
+
+            engine.reconfigure!
+
+            expect(call_order).to eq([
+              [:remove, "datadog/603646/ASM_DD/v1/config"],
+              [:add, "datadog/603646/ASM_DD/v2/config"],
+              [:remove, "ASM_DD/default"]
+            ])
+          end
         end
       end
     end

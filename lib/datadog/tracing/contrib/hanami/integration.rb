@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../integration'
-require_relative 'configuration/settings'
-require_relative 'patcher'
+require_relative "../integration"
+require_relative "configuration/settings"
+require_relative "patcher"
 
 module Datadog
   module Tracing
@@ -12,13 +12,13 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new('1.0.0')
-          MAXIMUM_VERSION = Gem::Version.new('2.0.0')
+          MINIMUM_VERSION = Gem::Version.new("1.0.0")
+          MAXIMUM_VERSION = Gem::Version.new("2.0.0")
 
           register_as :hanami
 
           def self.version
-            Gem.loaded_specs['hanami']&.version
+            Gem.loaded_specs["hanami"]&.version
           end
 
           def self.loaded?

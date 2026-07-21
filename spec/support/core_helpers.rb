@@ -1,7 +1,7 @@
 module CoreHelpers
   LOWERCASE_UUID_REGEXP = /\A[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}\z/
 
-  RSpec.shared_context 'non-development execution environment' do
+  RSpec.shared_context "non-development execution environment" do
     before { allow(Datadog::Core::Environment::Execution).to receive(:development?).and_return(false) }
   end
 
@@ -74,11 +74,21 @@ module CoreHelpers
     end
   end
 
+  def skip_if_libdatadog_not_supported
+    skip("Testcase requires libdatadog and it is not supported on JRuby") if PlatformHelpers.jruby?
+    skip("Testcase requires libdatadog and it is not supported on TruffleRuby") if PlatformHelpers.truffleruby?
+
+    return if Datadog::Core::LIBDATADOG_API_FAILURE.nil?
+
+    raise "Libdatadog does not seem to be available: #{Datadog::Core::LIBDATADOG_API_FAILURE}. " \
+      "Try running `bundle exec rake clean compile` before running this test."
+  end
+
   module ClassMethods
     def skip_unless_integration_testing_enabled
-      unless ENV['TEST_DATADOG_INTEGRATION']
+      unless ENV["TEST_DATADOG_INTEGRATION"]
         before(:all) do
-          skip 'Set TEST_DATADOG_INTEGRATION=1 in environment to run this test'
+          skip "Set TEST_DATADOG_INTEGRATION=1 in environment to run this test"
         end
       end
     end
@@ -86,7 +96,7 @@ module CoreHelpers
     def skip_unless_fork_supported
       unless Process.respond_to?(:fork)
         before(:all) do
-          skip 'Fork is not supported on current platform'
+          skip "Fork is not supported on current platform"
         end
       end
     end
@@ -96,7 +106,7 @@ module CoreHelpers
     # should be used in any given call.
     def with_env(*args, **opts)
       if args.any? && opts.any? # rubocop:disable Style/IfUnlessModifier
-        raise ArgumentError, 'Do not pass both args and opts'
+        raise ArgumentError, "Do not pass both args and opts"
       end
 
       around do |example|
@@ -135,7 +145,7 @@ module CoreHelpers
         # because normally it would be added during library initialization
         # and after the fork monkey patch test runs, the handler would get
         # cleared out.
-        Datadog::Core::Configuration::Components.const_get(:AT_FORK_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
+        Datadog::Core::Configuration::Components.const_get(:PATCH_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
 
         # We also need to clear out the handlers because we could have
         # the handlers registered from the library initialization time,

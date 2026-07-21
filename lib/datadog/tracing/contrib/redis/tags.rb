@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative 'ext'
-require_relative '../ext'
-require_relative '../../../core/telemetry/logger'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "ext"
+require_relative "../ext"
+require_relative "../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -19,11 +19,6 @@ module Datadog
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                   datadog_configuration[:peer_service]
                 )
-              end
-
-              # Tag original global service name if not used
-              if span.service != Datadog.configuration.service
-                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
               end
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -47,7 +42,7 @@ module Datadog
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 

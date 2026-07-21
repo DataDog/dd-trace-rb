@@ -1,11 +1,18 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require 'open_feature/sdk'
+require_relative "ext"
+require_relative "../core/utils/time"
+require "open_feature/sdk"
 
 module Datadog
   module OpenFeature
     # OpenFeature feature flagging provider backed by Datadog Remote Configuration.
+    #
+    # Requires openfeature-sdk >= 0.5.1 for flag evaluation metrics and EVP hook support.
+    #
+    # Hook lifecycle note: FlagEvalEVPHook is returned from #hooks so EVP uses the SDK-final
+    # EvaluationDetails. This matches FlagEvalMetricsHook and records defaults/errors produced
+    # by OpenFeature hook failures or post-provider type validation.
     #
     # Implementation follows the OpenFeature contract of Provider SDK.
     # For details see:
@@ -51,7 +58,7 @@ module Datadog
     #   # => 'Welcome back!'
     #   ```
     class Provider
-      NAME = 'Datadog Feature Flagging Provider'
+      NAME = "Datadog Feature Flagging Provider"
 
       attr_reader :metadata
 
@@ -65,6 +72,14 @@ module Datadog
 
       def shutdown
         # no-op
+      end
+
+      def hooks
+        component = Datadog.send(:components).open_feature
+        [
+          component&.flag_eval_metrics_hook,
+          component&.flag_eval_evp_hook,
+        ].compact
       end
 
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
@@ -94,46 +109,116 @@ module Datadog
       private
 
       def evaluate(flag_key, default_value:, expected_type:, evaluation_context:)
-        engine = OpenFeature.engine
-        return component_not_configured_default(default_value) if engine.nil?
+        # Stamp evaluation entry time once, here on the eval thread. The EVP path uses this for
+        # accurate first/last_evaluation bounds instead of a later hook-fire clock read.
+        eval_time_ms = (Core::Utils::Time.now.to_f * 1000).to_i
 
-        result = engine.fetch_value(
+        engine = OpenFeature.engine
+        return component_not_configured_default(default_value, eval_time_ms) if engine.nil?
+
+        result = fetch_engine_value(engine, flag_key, default_value, expected_type, evaluation_context)
+
+        # Build metadata before branching so provider-returned details carry eval-entry time.
+        flag_meta = build_flag_metadata(result, eval_time_ms)
+
+        if result.error?
+          return sdk_error_details(default_value, result.error_code, result.error_message, result.reason, flag_meta)
+        end
+
+        # Drive APM span enrichment directly from the evaluation path. This is the only reliable
+        # way to attach `ffe_*` tags across all supported OpenFeature SDK versions, since older
+        # SDKs do not dispatch provider hooks. Guarded so enrichment can never break evaluation.
+        enrich_span(flag_key, result, evaluation_context)
+
+        sdk_success_details(result, flag_meta)
+      rescue => e
+        error_message = "#{e.class}: #{e.message}"
+        error_result = Datadog::OpenFeature::ResolutionDetails.build_error(
+          value: default_value,
+          error_code: Ext::GENERAL,
+          error_message: error_message
+        )
+        error_flag_meta = build_flag_metadata(error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i)
+
+        sdk_error_details(default_value, Ext::GENERAL, error_message, Ext::ERROR, error_flag_meta)
+      end
+
+      def fetch_engine_value(engine, flag_key, default_value, expected_type, evaluation_context)
+        engine.fetch_value(
           flag_key,
           default_value: default_value,
           expected_type: expected_type,
           evaluation_context: evaluation_context
         )
+      end
 
-        if result.error?
-          return ::OpenFeature::SDK::Provider::ResolutionDetails.new(
-            value: default_value,
-            error_code: result.error_code,
-            error_message: result.error_message,
-            reason: result.reason
-          )
-        end
-
+      def sdk_success_details(result, flag_meta)
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(
           value: result.value,
           variant: result.variant,
           reason: result.reason,
-          flag_metadata: result.flag_metadata
-        )
-      rescue => e
-        ::OpenFeature::SDK::Provider::ResolutionDetails.new(
-          value: default_value,
-          error_code: Ext::GENERAL,
-          error_message: "#{e.class}: #{e.message}",
-          reason: Ext::ERROR
+          flag_metadata: flag_meta,
         )
       end
 
-      def component_not_configured_default(value)
+      def sdk_error_details(default_value, error_code, error_message, reason, flag_meta = {})
+        ::OpenFeature::SDK::Provider::ResolutionDetails.new(
+          value: default_value,
+          error_code: error_code,
+          error_message: error_message,
+          reason: reason,
+          flag_metadata: flag_meta
+        )
+      end
+
+      def build_flag_metadata(result, eval_time_ms)
+        metadata = result.flag_metadata&.dup || {}
+        allocation_key = result.allocation_key
+        metadata[Ext::METADATA_ALLOCATION_KEY] = allocation_key if allocation_key && !allocation_key.empty?
+
+        # Eval-time stamped at provider entry; the EVP hook reads 'dd.eval.timestamp_ms' for
+        # accurate first/last_evaluation bounds (it falls back to hook-fire time when absent).
+        metadata["dd.eval.timestamp_ms"] = eval_time_ms
+
+        metadata
+      end
+
+      # Dispatch span enrichment from the evaluation path in a never-throw
+      # wrapper. Reads the split serial id / do-log flag directly off the Datadog
+      # `ResolutionDetails` struct and the targeting key off the built evaluation
+      # context. A nil hook (gate off or component absent) is a no-op.
+      def enrich_span(flag_key, result, evaluation_context)
+        hook = span_enrichment_hook
+        return unless hook
+
+        # Hook resolved first so the common gate-off path short-circuits without
+        # resolving the tracer. With the gate on but no active trace there is
+        # nowhere to attach tags, so skip before building the capture call.
+        return unless Datadog::Tracing.active_trace
+
+        hook.capture(
+          flag_key: flag_key,
+          variant: result.variant,
+          value: result.value,
+          serial_id: result.serial_id,
+          do_log: result.log? || false,
+          targeting_key: evaluation_context&.targeting_key,
+        )
+      rescue => e
+        Datadog.logger.debug { "OpenFeature: span enrichment dispatch failed: #{e.class}: #{e.message}" }
+      end
+
+      def span_enrichment_hook
+        Datadog.send(:components).open_feature&.span_enrichment_hook
+      end
+
+      def component_not_configured_default(value, eval_time_ms)
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(
           value: value,
           error_code: Ext::PROVIDER_FATAL,
           error_message: "Datadog's OpenFeature component must be configured",
-          reason: Ext::ERROR
+          reason: Ext::ERROR,
+          flag_metadata: {"dd.eval.timestamp_ms" => eval_time_ms}
         )
       end
     end

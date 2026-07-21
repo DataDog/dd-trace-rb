@@ -1,19 +1,19 @@
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require_relative 'benchmarks_helper'
+require_relative "benchmarks_helper"
 
-require 'libdatadog'
+require "libdatadog"
 
 puts "Libdatadog from: #{Libdatadog.pkgconfig_folder}"
 
 # This benchmark measures the performance of sampling + serializing memory profiles. It enables us to evaluate changes to
 # the profiler and/or libdatadog that may impact both individual samples, as well as samples over time.
 #
-METRIC_VALUES = {'cpu-time' => 0, 'cpu-samples' => 0, 'wall-time' => 0, 'alloc-samples' => 1, 'timeline' => 0, 'heap_sample' => true}.freeze
-OBJECT_CLASS = 'object'.freeze
+METRIC_VALUES = {"cpu-time" => 0, "cpu-samples" => 0, "wall-time" => 0, "alloc-samples" => 1, "timeline" => 0, "heap_sample" => true}.freeze
+OBJECT_CLASS = "object".freeze
 
 def sample_object(recorder, depth = 0)
   if depth <= 0
@@ -39,19 +39,17 @@ end
 
 class ProfilerMemorySampleSerializeBenchmark
   def setup
-    @heap_samples_enabled = ENV['HEAP_SAMPLES'] == 'true'
-    @heap_size_enabled = ENV['HEAP_SIZE'] == 'true'
-    @heap_sample_every = (ENV['HEAP_SAMPLE_EVERY'] || '1').to_i
-    @retain_every = (ENV['RETAIN_EVERY'] || '10').to_i
-    @skip_end_gc = ENV['SKIP_END_GC'] == 'true'
+    @heap_samples_enabled = ENV["HEAP_SAMPLES"] == "true"
+    @heap_size_enabled = ENV["HEAP_SIZE"] == "true"
+    @heap_sample_every = (ENV["HEAP_SAMPLE_EVERY"] || "1").to_i
+    @retain_every = (ENV["RETAIN_EVERY"] || "10").to_i
+    @skip_end_gc = ENV["SKIP_END_GC"] == "true"
     @recorder_factory = proc {
       Datadog::Profiling::StackRecorder.for_testing(
-        cpu_time_enabled: false,
         alloc_samples_enabled: true,
         heap_samples_enabled: @heap_samples_enabled,
         heap_size_enabled: @heap_size_enabled,
-        heap_sample_every: @heap_sample_every,
-        timeline_enabled: false,
+        heap_sample_every: @heap_sample_every
       )
     }
   end
@@ -87,7 +85,7 @@ class ProfilerMemorySampleSerializeBenchmark
         retained_objs.size # Dummy action to make sure this is still alive
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end

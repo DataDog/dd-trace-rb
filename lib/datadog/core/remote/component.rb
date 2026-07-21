@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative 'worker'
-require_relative 'client/capabilities'
-require_relative 'client'
-require_relative 'transport/http'
-require_relative '../remote'
-require_relative 'negotiation'
+require_relative "worker"
+require_relative "client/capabilities"
+require_relative "client"
+require_relative "transport/http"
+require_relative "../remote"
+require_relative "negotiation"
 
 module Datadog
   module Core
@@ -30,10 +30,10 @@ module Datadog
 
           @client = Client.new(@transport, @capabilities, settings: settings, logger: logger)
           @healthy = false
-          logger.debug { "new remote configuration client: #{@client.id} products: #{@capabilities.products.sort.join(', ')}" }
+          logger.debug { "new remote configuration client: #{@client.id} products: #{@capabilities.products.sort.join(", ")}" }
 
           @worker = Worker.new(interval: settings.remote.poll_interval_seconds, logger: logger) do
-            unless @healthy || negotiation.endpoint?('/v0.7/config')
+            unless @healthy || negotiation.endpoint?("/v0.7/config")
               @barrier.lift
 
               next
@@ -45,7 +45,7 @@ module Datadog
             rescue Client::SyncError => e
               # Transient errors due to network or agent. Logged the error but not via telemetry
               logger.error do
-                "remote worker client sync error: #{e.message} location: #{Array(e.backtrace).first}. skipping sync"
+                "remote worker client sync error: #{e.class}: #{e.message} location: #{Array(e.backtrace).first}. skipping sync"
               end
             rescue => e
               # In case of unexpected errors, reset the negotiation object
@@ -55,14 +55,14 @@ module Datadog
 
               # Transient errors due to network or agent. Logged the error but not via telemetry
               logger.error do
-                "remote worker error: #{e.class.name} #{e.message} location: #{Array(e.backtrace).first}. " \
-                'resetting client state'
+                "remote worker error: #{e.class}: #{e.message} location: #{Array(e.backtrace).first}. " \
+                "resetting client state"
               end
 
               # client state is unknown, state might be corrupted
               @client = Client.new(@transport, @capabilities, settings: settings, logger: logger)
               @healthy = false
-              logger.debug { "new remote configuration client: #{@client.id} products: #{@capabilities.products.sort.join(', ')}" }
+              logger.debug { "new remote configuration client: #{@client.id} products: #{@capabilities.products.sort.join(", ")}" }
 
               # TODO: bail out if too many errors?
             end
@@ -98,13 +98,22 @@ module Datadog
         def after_fork
           @client = Client.new(@transport, @capabilities, settings: @settings, logger: @logger)
           @healthy = false
-          logger.debug { "remote configuration client recreated after fork: #{@client.id} products: #{@capabilities.products.sort.join(', ')}" }
+          logger.debug { "remote configuration client recreated after fork: #{@client.id} products: #{@capabilities.products.sort.join(", ")}" }
+        end
+
+        def add_products(*products)
+          @capabilities.add_products(*products)
+        end
+
+        def remove_products(*products)
+          @capabilities.remove_products(*products)
         end
 
         # Barrier provides a mechanism to fence execution until a condition happens
         class Barrier
           def initialize(timeout = nil)
             @once = false
+            @waited = false
             @timeout = timeout
 
             @mutex = Mutex.new
@@ -112,28 +121,46 @@ module Datadog
           end
 
           # Wait for first lift to happen, otherwise don't wait
+          #
+          # Returns:
+          # - :lift if the barrier was lifted (worker completed a cycle)
+          # - :timeout if the wait timed out before the barrier was lifted
+          # - :pass if wait_once was already called previously
+          #
+          # Uses a separate @waited flag to distinguish "already waited" (:pass)
+          # from "worker lifted before we could wait" (:lift). Without this,
+          # a race between Worker#start and wait_once can cause the first call
+          # to return :pass if the worker completes before wait_once runs.
           def wait_once(timeout = nil)
-            # TTAS (Test and Test-And-Set) optimisation
-            # Since @once only ever goes from false to true, this is semantically valid
-            return :pass if @once
+            # TTAS (Test and Test-And-Set) optimisation for subsequent calls.
+            # @waited is only set inside the mutex and only transitions false -> true,
+            # so an unsynchronized read is safe: a stale `false` just falls through
+            # to the synchronized path which re-checks.
+            return :pass if @waited
 
-            begin
-              @mutex.lock
+            @mutex.synchronize do
+              return :pass if @waited
 
-              return :pass if @once
-
-              timeout ||= @timeout
-
-              # - starting with Ruby 3.2, ConditionVariable#wait returns nil on
-              #   timeout and an integer otherwise
-              # - before Ruby 3.2, ConditionVariable returns itself
-              # so we have to rely on @once having been set
-              if RUBY_VERSION >= '3.2'
-                lifted = @condition.wait(@mutex, timeout)
+              if @once
+                # Worker lifted the barrier before we could wait.
+                # This is still the first call, so return :lift not :pass.
+                lifted = true
               else
-                @condition.wait(@mutex, timeout)
-                lifted = @once
+                timeout ||= @timeout
+
+                # - starting with Ruby 3.2, ConditionVariable#wait returns nil on
+                #   timeout and an integer otherwise
+                # - before Ruby 3.2, ConditionVariable returns itself
+                # so we have to rely on @once having been set
+                if RubyVersion.is?(">= 3.2")
+                  lifted = @condition.wait(@mutex, timeout)
+                else
+                  @condition.wait(@mutex, timeout)
+                  lifted = @once
+                end
               end
+
+              @waited = true
 
               if lifted
                 :lift
@@ -141,8 +168,6 @@ module Datadog
                 @once = true
                 :timeout
               end
-            ensure
-              @mutex.unlock
             end
           end
 

@@ -3,8 +3,13 @@ module Datadog
     module Contrib
       module Rack
         module HeaderTagging
-          def self.tag_request_headers: (SpanOperation span, Hash[String,String] env, Configuration configuration) -> untyped
-          def self.tag_response_headers: (SpanOperation span, Hash[String,String] headers, Configuration configuration) -> untyped
+          DATADOG_REQUEST_ATTRIBUTION_HEADERS: ::Array[::String]
+
+          def self.tag_request_headers: (SpanOperation span, ::Rack::env | Header::RequestHeaderCollection env, Configuration::Settings configuration) -> void
+
+          def self.tag_response_headers: (SpanOperation span, ::Rack::headers headers, Configuration::Settings configuration) -> void
+
+          def self.tag_datadog_request_attribution_headers: (SpanOperation span, Core::HeaderCollection headers) -> void
         end
       end
     end

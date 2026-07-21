@@ -21,6 +21,8 @@ module Datadog
             def parsed_body: () -> ::Hash[::String, untyped]?
 
             def route_params: () -> ::Hash[::Symbol, untyped]
+
+            def body_bytesize: (Integer limit) -> Integer?
           end
         end
       end

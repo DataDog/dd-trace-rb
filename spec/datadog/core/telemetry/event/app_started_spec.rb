@@ -1,48 +1,53 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/telemetry/event/app_started'
+require "datadog/core/telemetry/event/app_started"
+require "datadog/core/telemetry/event/app_extended_heartbeat"
 
 RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
-  let(:id) { double('seq_id') }
+  let(:id) { double("seq_id") }
   subject(:event) { described_class.new(components: Datadog.send(:components)) }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(Datadog.configuration) }
 
   let(:logger) do
-    stub_const('MyLogger', Class.new(::Logger)).new(nil)
+    stub_const("MyLogger", Class.new(::Logger)).new(nil)
   end
   let(:default_configuration) do
     [
-      # ['DD_AGENT_HOST', '1.2.3.4'], # not reported by default
-      # ['DD_TRACE_SAMPLE_RATE', '0.5'], # not reported by default
-      ['DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED', false],
-      ['DD_TRACE_DEBUG', false],
-      ['DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED', false],
-      ['DD_TRACE_PEER_SERVICE_MAPPING', ''],
-      ['dynamic_instrumentation.enabled', false],
-      ['logger.level', 1],
-      ['profiling.advanced.code_provenance_enabled', true],
-      ['profiling.advanced.endpoint.collection.enabled', true],
-      ['profiling.enabled', false],
-      ['runtime_metrics.enabled', false],
-      # ['tracing.analytics.enabled', true], # not reported by default
-      ['tracing.propagation_style_extract', '["datadog", "tracecontext", "baggage"]'],
-      ['tracing.propagation_style_inject', '["datadog", "tracecontext", "baggage"]'],
-      ['tracing.enabled', true],
-      ['tracing.log_injection', true],
-      ['tracing.partial_flush.enabled', false],
-      ['tracing.partial_flush.min_spans_threshold', 500],
-      ['tracing.report_hostname', false],
-      ['tracing.sampling.rate_limit', 100],
+      ["agent.host", nil],
+      ["DD_ENV", nil],
+      ["DD_TRACE_SAMPLE_RATE", nil],
+      ["DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED", false],
+      ["DD_TRACE_DEBUG", false],
+      ["DD_TRACE_STARTUP_LOGS", nil],
+      ["DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED", false],
+      ["DD_TRACE_PEER_SERVICE_MAPPING", ""],
+      ["DD_DYNAMIC_INSTRUMENTATION_ENABLED", false],
+      ["logger.level", 1],
+      ["profiling.advanced.code_provenance_enabled", true],
+      ["DD_PROFILING_ENDPOINT_COLLECTION_ENABLED", true],
+      ["DD_PROFILING_ENABLED", false],
+      ["DD_RUNTIME_METRICS_ENABLED", false],
+      ["DD_TRACE_ANALYTICS_ENABLED", nil],
+      ["DD_TRACE_PROPAGATION_STYLE_EXTRACT", "datadog,tracecontext,baggage"],
+      ["DD_TRACE_PROPAGATION_STYLE_INJECT", "datadog,tracecontext,baggage"],
+      ["DD_TRACE_ENABLED", true],
+      ["DD_LOGS_INJECTION", true],
+      ["DD_TRACE_HTTP_SERVER_ERROR_STATUSES", "500..599"],
+      ["DD_TRACE_HTTP_CLIENT_ERROR_STATUSES", "400..499"],
+      ["tracing.partial_flush.enabled", false],
+      ["tracing.partial_flush.min_spans_threshold", 500],
+      ["DD_TRACE_REPORT_HOSTNAME", false],
+      ["DD_TRACE_RATE_LIMIT", 100],
       # ['tracing.writer_options.buffer_size', 123], # not reported by default
       # ['tracing.writer_options.flush_interval', 456], # not reported by default
       # ['logger.instance', 'MyLogger'], # not reported by default
-      ['appsec.enabled', false],
-      # ['appsec.sca_enabled', false], # not reported by default
-      ['apm.tracing.enabled', true]
+      ["DD_APPSEC_ENABLED", false],
+      # ['DD_APPSEC_SCA_ENABLED', false], # not reported by default
+      ["DD_APM_TRACING_ENABLED", true]
     ].freeze
   end
   let(:expected_install_signature) do
-    {install_id: 'id', install_time: 'time', install_type: 'type'}
+    {install_id: "id", install_time: "time", install_type: "type"}
   end
   let(:expected_products) do
     {
@@ -62,17 +67,17 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
     Datadog::Core::Environment::Git.reset_for_tests
   end
 
-  describe '.payload' do
-    it 'contains expected products' do
+  describe ".payload" do
+    it "contains expected products" do
       expect(event.payload[:products]).to match(expected_products)
     end
 
-    context 'with install signature configured' do
+    context "with install signature configured" do
       before do
         Datadog.configure do |c|
-          c.telemetry.install_id = 'id'
-          c.telemetry.install_type = 'type'
-          c.telemetry.install_time = 'time'
+          c.telemetry.install_id = "id"
+          c.telemetry.install_type = "type"
+          c.telemetry.install_time = "time"
         end
       end
 
@@ -80,14 +85,14 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
         Datadog.configuration.reset!
       end
 
-      it 'contains expected install signature' do
+      it "contains expected install signature" do
         expect(event.payload[:install_signature]).to eq(expected_install_signature)
       end
     end
 
-    context 'with git/SCI environment variables set' do
-      with_env 'DD_GIT_REPOSITORY_URL' => 'https://github.com/datadog/hello',
-        'DD_GIT_COMMIT_SHA' => '1234hash'
+    context "with git/SCI environment variables set" do
+      with_env "DD_GIT_REPOSITORY_URL" => "https://github.com/datadog/hello",
+        "DD_GIT_COMMIT_SHA" => "1234hash"
 
       before do
         # Reset global cache so that we get our values back
@@ -99,97 +104,187 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
         Datadog::Core::Environment::Git.reset_for_tests
       end
 
-      it 'reports git/SCI values to telemetry' do
+      it "reports git/SCI values to telemetry" do
         expect(event.payload[:configuration]).to include(
           {
-            name: 'DD_GIT_REPOSITORY_URL',
-            origin: 'env_var',
-            seq_id: id,
-            value: 'https://github.com/datadog/hello'
+            name: "DD_GIT_REPOSITORY_URL",
+            origin: "env_var",
+            seq_id: 3,
+            value: "https://github.com/datadog/hello"
           },
-          {name: 'DD_GIT_COMMIT_SHA', origin: 'env_var', seq_id: id, value: '1234hash'},
+          {name: "DD_GIT_COMMIT_SHA", origin: "env_var", seq_id: 3, value: "1234hash"},
         )
       end
     end
 
-    context 'with values set by the customer application' do
+    context "with values set by the customer application" do
       before do
-        stub_const('Datadog::AutoInstrument::LOADED', true)
-        stub_const('Datadog::OpenTelemetry::LOADED', true)
+        stub_const("Datadog::AutoInstrument::LOADED", true)
+        stub_const("Datadog::OpenTelemetry::LOADED", true)
       end
 
-      it 'reports values set by the customer application' do
+      it "reports values set by the customer application" do
         expect(event.payload[:configuration]).to include(
-          {name: 'tracing.auto_instrument.enabled', origin: 'code', seq_id: id, value: true},
-          {name: 'tracing.opentelemetry.enabled', origin: 'code', seq_id: id, value: true},
+          {name: "tracing.auto_instrument.enabled", origin: "code", seq_id: 5, value: true},
+          {name: "tracing.opentelemetry.enabled", origin: "code", seq_id: 5, value: true},
         )
       end
     end
 
-    context 'with DD_AGENT_TRANSPORT complex origin' do
-      it 'reports unknown origin' do
+    context "with DD_AGENT_TRANSPORT complex origin" do
+      it "reports unknown origin" do
         expect(event.payload[:configuration]).to include(
-          {name: 'DD_AGENT_TRANSPORT', origin: 'unknown', seq_id: id, value: 'TCP'},
+          {name: "DD_AGENT_TRANSPORT", origin: "unknown", seq_id: 7, value: "TCP"},
         )
       end
     end
 
-    context 'with OpenTelemetry environment variables' do
-      with_env 'OTEL_EXPORTER_OTLP_ENDPOINT' => 'http://otel:4317',
-        'OTEL_EXPORTER_OTLP_HEADERS' => 'key1=value1,key2=value2',
-        'OTEL_EXPORTER_OTLP_PROTOCOL' => 'http/protobuf',
-        'OTEL_EXPORTER_OTLP_TIMEOUT' => '5000',
-        'DD_METRICS_OTEL_ENABLED' => 'true',
-        'OTEL_METRICS_EXPORTER' => 'otlp',
-        'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT' => 'http://metrics:4318',
-        'OTEL_EXPORTER_OTLP_METRICS_HEADERS' => 'metrics_key=metrics_value',
-        'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL' => 'http/protobuf',
-        'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT' => '3000',
-        'OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE' => 'cumulative',
-        'OTEL_METRIC_EXPORT_INTERVAL' => '4000',
-        'OTEL_METRIC_EXPORT_TIMEOUT' => '2000'
+    context "with OpenTelemetry environment variables" do
+      with_env "OTEL_EXPORTER_OTLP_ENDPOINT" => "http://otel:4317",
+        "OTEL_EXPORTER_OTLP_HEADERS" => "key1=value1,key2=value2",
+        "OTEL_EXPORTER_OTLP_PROTOCOL" => "http/protobuf",
+        "OTEL_EXPORTER_OTLP_TIMEOUT" => "5000",
+        "DD_METRICS_OTEL_ENABLED" => "true",
+        "OTEL_METRICS_EXPORTER" => "otlp",
+        "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT" => "http://metrics:4318",
+        "OTEL_EXPORTER_OTLP_METRICS_HEADERS" => "metrics_key=metrics_value",
+        "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL" => "http/protobuf",
+        "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT" => "3000",
+        "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE" => "cumulative",
+        "OTEL_METRIC_EXPORT_INTERVAL" => "4000",
+        "OTEL_METRIC_EXPORT_TIMEOUT" => "2000"
 
-      it 'reports OpenTelemetry configurations with environment variable names' do
+      it "reports OpenTelemetry configurations with environment variable names" do
         expect(event.payload[:configuration]).to include(
-          {name: 'OTEL_EXPORTER_OTLP_ENDPOINT', origin: 'env_var', seq_id: id, value: 'http://otel:4317'},
-          {name: 'OTEL_EXPORTER_OTLP_HEADERS', origin: 'env_var', seq_id: id, value: 'key1=value1,key2=value2'},
-          {name: 'OTEL_EXPORTER_OTLP_PROTOCOL', origin: 'env_var', seq_id: id, value: 'http/protobuf'},
-          {name: 'OTEL_EXPORTER_OTLP_TIMEOUT', origin: 'env_var', seq_id: id, value: 5000},
-          {name: 'DD_METRICS_OTEL_ENABLED', origin: 'env_var', seq_id: id, value: true},
-          {name: 'OTEL_METRICS_EXPORTER', origin: 'env_var', seq_id: id, value: 'otlp'},
-          {name: 'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT', origin: 'env_var', seq_id: id, value: 'http://metrics:4318'},
-          {name: 'OTEL_EXPORTER_OTLP_METRICS_HEADERS', origin: 'env_var', seq_id: id, value: 'metrics_key=metrics_value'},
-          {name: 'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL', origin: 'env_var', seq_id: id, value: 'http/protobuf'},
-          {name: 'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT', origin: 'env_var', seq_id: id, value: 3000},
-          {name: 'OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE', origin: 'env_var', seq_id: id, value: 'cumulative'},
-          {name: 'OTEL_METRIC_EXPORT_INTERVAL', origin: 'env_var', seq_id: id, value: 4000},
-          {name: 'OTEL_METRIC_EXPORT_TIMEOUT', origin: 'env_var', seq_id: id, value: 2000},
+          # Environment variables values
+          {name: "OTEL_EXPORTER_OTLP_ENDPOINT", origin: "env_var", seq_id: 3, value: "http://otel:4317"},
+          {name: "OTEL_EXPORTER_OTLP_PROTOCOL", origin: "env_var", seq_id: 3, value: "http/protobuf"},
+          {name: "OTEL_EXPORTER_OTLP_TIMEOUT", origin: "env_var", seq_id: 3, value: 5000},
+          {name: "DD_METRICS_OTEL_ENABLED", origin: "env_var", seq_id: 3, value: true},
+          {name: "OTEL_METRICS_EXPORTER", origin: "env_var", seq_id: 3, value: "otlp"},
+          {name: "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT", origin: "env_var", seq_id: 3, value: "http://metrics:4318"},
+          {name: "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL", origin: "env_var", seq_id: 3, value: "http/protobuf"},
+          {name: "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT", origin: "env_var", seq_id: 3, value: 3000},
+          {name: "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE", origin: "env_var", seq_id: 3, value: "cumulative"},
+          {name: "OTEL_METRIC_EXPORT_INTERVAL", origin: "env_var", seq_id: 3, value: 4000},
+          {name: "OTEL_METRIC_EXPORT_TIMEOUT", origin: "env_var", seq_id: 3, value: 2000},
+        )
+        expect(event.payload[:configuration]).to include(
+          # Default values
+          {name: "OTEL_EXPORTER_OTLP_ENDPOINT", origin: "default", seq_id: 1, value: nil},
+          {name: "OTEL_EXPORTER_OTLP_PROTOCOL", origin: "default", seq_id: 1, value: "http/protobuf"},
+          {name: "OTEL_EXPORTER_OTLP_TIMEOUT", origin: "default", seq_id: 1, value: 10000},
+          {name: "DD_METRICS_OTEL_ENABLED", origin: "default", seq_id: 1, value: false},
+          {name: "OTEL_METRICS_EXPORTER", origin: "default", seq_id: 1, value: "otlp"},
+          {name: "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT", origin: "default", seq_id: 1, value: nil},
+          {name: "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL", origin: "default", seq_id: 1, value: "http/protobuf"},
+          {name: "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT", origin: "default", seq_id: 1, value: 10000},
+          {name: "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE", origin: "default", seq_id: 1, value: "delta"},
+          {name: "OTEL_METRIC_EXPORT_INTERVAL", origin: "default", seq_id: 1, value: 10000},
+          {name: "OTEL_METRIC_EXPORT_TIMEOUT", origin: "default", seq_id: 1, value: 7500}
         )
       end
     end
 
-    context 'with default configuration' do
-      it 'reports default configuration' do
-        expect(event.payload[:configuration]).to include(*default_configuration.map { |name, value| {name: name, origin: 'default', seq_id: id, value: value} })
+    # Assign a unique sentinel to every skip_telemetry option and assert no sentinel
+    # reaches a reported configuration value. Covers new sensitive options automatically.
+    context "with sentinel values assigned to every skip_telemetry option" do
+      # Every leaf option that opts out of telemetry.
+      let(:skip_telemetry_options) do
+        [].tap do |options|
+          each_leaf_option(Datadog.configuration) do |option|
+            options << option if option.definition.skip_telemetry
+          end
+        end
+      end
+
+      # Drive each env-configurable option to a string sentinel (strings directly, hashes
+      # as `header=SENTINEL`). Options that aren't string-settable or have no env var are
+      # skipped here and covered by the name-absence assertion below.
+      let(:string_settable_sentinels) do
+        sentinels = {}
+        skip_telemetry_options.each_with_index do |option, index|
+          next unless option.definition.env
+
+          sentinel = "SENTINEL_SKIP_TELEMETRY_#{index}"
+          case option.definition.type
+          when :string
+            option.set(sentinel, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+            sentinels[option] = sentinel
+          when :hash
+            option.set({"sentinel-header" => sentinel}, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+            sentinels[option] = sentinel
+          end
+        end
+        sentinels
+      end
+
+      after do
+        Datadog.configuration.reset!
+      end
+
+      it "assigns a sentinel to at least one option (sanity check the sweep is live)" do
+        # Guards against the sweep silently covering nothing if the discovery logic breaks.
+        expect(skip_telemetry_options).to_not be_empty
+        expect(string_settable_sentinels).to_not be_empty
+      end
+
+      it "never reports a sentinel value for any skip_telemetry option" do
+        # Assign sentinels before building the event.
+        sentinels = string_settable_sentinels.values
+        expect(sentinels).to_not be_empty
+
+        reported_values = event.payload[:configuration].map { |entry| entry[:value]&.to_s }.compact
+
+        sentinels.each do |sentinel|
+          expect(reported_values).to_not include(a_string_including(sentinel)),
+            "expected sentinel #{sentinel.inspect} to be absent from reported configuration values"
+        end
+      end
+
+      it "does not report the name of any skip_telemetry option" do
+        # Covers options that aren't string-settable, and reinforces the value check.
+        string_settable_sentinels # ensure values are set for the run
+
+        reported_names = event.payload[:configuration].map { |entry| entry[:name] }
+
+        skip_telemetry_options.each do |option|
+          telemetry_name = option.definition.env || option.name_with_settings_path
+          # logger.instance is re-added manually under its own name (the class name, never
+          # its value), so skip the name-absence check for it.
+          next if telemetry_name == "logger.instance"
+
+          expect(reported_names).to_not include(telemetry_name),
+            "expected skip_telemetry option #{telemetry_name.inspect} to be absent from reported configuration"
+        end
+      end
+    end
+
+    context "with OpenTelemetry logs headers configured" do
+      with_env "OTEL_EXPORTER_OTLP_LOGS_HEADERS" => "authorization=Bearer secret"
+
+      it "does not report logs headers to telemetry" do
         expect(event.payload[:configuration]).to_not include(
-          hash_including(name: 'DD_AGENT_HOST'),
-          hash_including(name: 'DD_TRACE_SAMPLE_RATE'),
-          hash_including(name: 'tracing.analytics.enabled'),
-          hash_including(name: 'tracing.writer_options.buffer_size'),
-          hash_including(name: 'tracing.writer_options.flush_interval'),
-          hash_including(name: 'logger.instance'),
-          hash_including(name: 'appsec.sca_enabled'),
+          include(name: "OTEL_EXPORTER_OTLP_LOGS_HEADERS")
         )
       end
     end
 
-    context 'with set configuration' do
+    context "with default configuration" do
+      it "reports default configuration" do
+        expect(event.payload[:configuration]).to include(*default_configuration.map { |name, value| {name: name, origin: "default", seq_id: 1, value: value} })
+        expect(event.payload[:configuration]).to_not include(*default_configuration.map { |name, value| {name: name, origin: /^((?!default).)*$/, seq_id: anything, value: anything} })
+      end
+    end
+
+    context "with set configuration" do
       before do
         Datadog.configure do |c|
-          c.agent.host = '1.2.3.4'
+          c.agent.host = "1.2.3.4"
+          c.env = "telemetry-env"
           c.tracing.sampling.default_rate = 0.5
           c.tracing.contrib.global_default_service_name.enabled = true
-          c.tracing.contrib.peer_service_mapping = {foo: 'bar'}
+          c.tracing.contrib.peer_service_mapping = {foo: "bar"}
           c.tracing.writer_options = {buffer_size: 123, flush_interval: 456}
           c.logger.instance = logger
           c.tracing.analytics.enabled = true
@@ -201,77 +296,170 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
         Datadog.configuration.reset!
       end
 
-      it 'reports set configuration' do
+      it "reports set configuration" do
         expect(event.payload[:configuration]).to include(
-          {name: 'DD_AGENT_HOST', origin: 'code', seq_id: id, value: '1.2.3.4'},
-          {name: 'DD_TRACE_SAMPLE_RATE', origin: 'code', seq_id: id, value: '0.5'},
-          {name: 'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED', origin: 'code', seq_id: id, value: true},
-          {name: 'DD_TRACE_PEER_SERVICE_MAPPING', origin: 'code', seq_id: id, value: 'foo:bar'},
-          {name: 'tracing.analytics.enabled', origin: 'code', seq_id: id, value: true},
-          {name: 'tracing.writer_options.buffer_size', origin: 'code', seq_id: id, value: 123},
-          {name: 'tracing.writer_options.flush_interval', origin: 'code', seq_id: id, value: 456},
-          {name: 'logger.instance', origin: 'code', seq_id: id, value: 'MyLogger'},
-          {name: 'logger.level', origin: 'code', seq_id: id, value: 0},
-          {name: 'appsec.sca_enabled', origin: 'code', seq_id: id, value: false},
-          {name: 'instrumentation_source', origin: 'code', seq_id: id, value: 'manual'},
-          {name: 'DD_INJECT_FORCE', origin: 'env_var', seq_id: id, value: false},
-          {name: 'DD_INJECTION_ENABLED', origin: 'env_var', seq_id: id, value: ''},
+          {name: "agent.host", origin: "code", seq_id: 5, value: "1.2.3.4"},
+          {name: "DD_ENV", origin: "code", seq_id: 5, value: "telemetry-env"},
+          {name: "DD_TRACE_SAMPLE_RATE", origin: "code", seq_id: 5, value: "0.5"},
+          {name: "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED", origin: "code", seq_id: 5, value: true},
+          {name: "DD_TRACE_PEER_SERVICE_MAPPING", origin: "code", seq_id: 5, value: "foo:bar"},
+          {name: "DD_TRACE_ANALYTICS_ENABLED", origin: "code", seq_id: 5, value: true},
+          {name: "tracing.writer_options.buffer_size", origin: "code", seq_id: 5, value: 123},
+          {name: "tracing.writer_options.flush_interval", origin: "code", seq_id: 5, value: 456},
+          {name: "logger.instance", origin: "default", seq_id: 1, value: nil},
+          {name: "logger.instance", origin: "code", seq_id: 5, value: "MyLogger"},
+          {name: "logger.level", origin: "code", seq_id: 5, value: 0},
+          {name: "DD_APPSEC_SCA_ENABLED", origin: "code", seq_id: 5, value: false},
+          {name: "instrumentation_source", origin: "default", seq_id: 1, value: "manual"},
+          {name: "DD_INJECT_FORCE", origin: "default", seq_id: 1, value: false},
+          {name: "DD_INJECTION_ENABLED", origin: "default", seq_id: 1, value: ""},
         )
+        expect(event.payload[:configuration]).to_not include(include(name: "tracing.writer_options"))
+        expect(event.payload[:configuration].count { |entry| entry[:name] == "logger.instance" && entry[:origin] == "default" }).to eq(1)
+        expect(event.payload[:configuration].count { |entry| entry[:name] == "logger.instance" && entry[:origin] == "code" }).to eq(1)
       end
     end
 
-    context 'with stable config' do
-      context 'with config id' do
+    context "with stable config" do
+      context "with config id" do
         before do
           allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
             {
-              fleet: {id: '12345', config: {'DD_APPSEC_ENABLED' => 'true'}},
-              local: {id: '56789', config: {'DD_LOGS_INJECTION' => 'false'}},
+              fleet: {id: "12345", config: {"DD_APPSEC_ENABLED" => "true"}},
+              local: {id: "56789", config: {"DD_LOGS_INJECTION" => "false"}},
             }
           )
         end
 
-        it 'reports config id' do
+        it "reports config id" do
           expect(event.payload[:configuration]).to include(
-            {name: 'appsec.enabled', origin: 'fleet_stable_config', seq_id: id, value: true, config_id: '12345'},
-            {name: 'tracing.log_injection', origin: 'local_stable_config', seq_id: id, value: false, config_id: '56789'},
+            {name: "DD_APPSEC_ENABLED", origin: "fleet_stable_config", seq_id: 4, value: true, config_id: "12345"},
+            {name: "DD_LOGS_INJECTION", origin: "local_stable_config", seq_id: 2, value: false, config_id: "56789"},
           )
         end
 
-        context 'without config id' do
+        context "without config id" do
           before do
             allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
               {
-                fleet: {config: {'DD_APPSEC_ENABLED' => 'true'}},
-                local: {config: {'DD_LOGS_INJECTION' => 'false'}}
+                fleet: {config: {"DD_APPSEC_ENABLED" => "true"}},
+                local: {config: {"DD_LOGS_INJECTION" => "false"}}
               }
             )
           end
 
-          it 'does not report config id' do
+          it "does not report config id" do
             expect(event.payload[:configuration]).to include(
-              {name: 'appsec.enabled', origin: 'fleet_stable_config', seq_id: id, value: true},
-              {name: 'tracing.log_injection', origin: 'local_stable_config', seq_id: id, value: false},
+              {name: "DD_APPSEC_ENABLED", origin: "fleet_stable_config", seq_id: 4, value: true},
+              {name: "DD_LOGS_INJECTION", origin: "local_stable_config", seq_id: 2, value: false},
             )
           end
         end
       end
     end
 
-    context 'with nil configurations' do
+    context "with nil configurations" do
       before do
         Datadog.configure do |c|
           c.logger.instance = nil
         end
       end
 
-      it 'removes empty configurations from payload' do
+      it "removes empty configurations from payload" do
         is_expected.to_not match(
           configuration: include(
-            {name: 'logger.instance', origin: anything, seq_id: anything, value: anything}
+            {name: "logger.instance", origin: anything, seq_id: anything, value: anything}
           )
         )
       end
+    end
+
+    context "with a custom integration configured through the config DSL" do
+      let(:custom_integration_name) { :httpx }
+      let(:custom_registry) { Datadog::Tracing::Contrib::Registry.new }
+      let(:custom_integration) { custom_integration_class.new(custom_integration_name) }
+      let(:custom_integration_class) do
+        custom_settings_class = Class.new(Datadog::Tracing::Contrib::Configuration::Settings) do
+          option :split_by_domain, default: false
+        end
+        custom_patcher = Module.new do
+          def self.patch
+            true
+          end
+        end
+
+        Class.new do
+          include Datadog::Tracing::Contrib::Integration
+
+          def self.version
+            Gem::Version.new("1.0.0")
+          end
+
+          define_method(:new_configuration) do
+            custom_settings_class.new
+          end
+
+          define_method(:patcher) do
+            custom_patcher
+          end
+        end
+      end
+
+      before do
+        Datadog.registry.each do |entry|
+          custom_registry.add(entry.name, entry.klass, entry.auto_patch)
+        end
+        custom_registry.add(custom_integration_name, custom_integration)
+        stub_const("Datadog::Tracing::Contrib::REGISTRY", custom_registry)
+
+        Datadog.configure do |c|
+          c.tracing.instrument custom_integration_name, split_by_domain: true
+        end
+      end
+
+      after do
+        Datadog.shutdown!
+        Datadog.configuration.reset!
+      end
+
+      it "does not report custom integration configuration" do
+        custom_configuration = event.payload[:configuration].select do |entry|
+          entry[:name].start_with?("tracing.httpx.")
+        end
+
+        expect(custom_configuration).to be_empty
+      end
+    end
+  end
+
+  # AppExtendedHeartbeat inherits AppStarted's configuration builder, so the redaction
+  # must hold on that path too.
+  describe "app-extended-heartbeat configuration (inherited emitting path)" do
+    subject(:extended_event) do
+      Datadog::Core::Telemetry::Event::AppExtendedHeartbeat.new(
+        settings: Datadog.configuration,
+        agent_settings: agent_settings,
+      )
+    end
+
+    before do
+      Datadog.configure do |c|
+        c.api_key = "SENTINEL_HEARTBEAT_API_KEY"
+        c.ai_guard.app_key = "SENTINEL_HEARTBEAT_APP_KEY"
+        c.opentelemetry.exporter.headers = {"dd-api-key" => "SENTINEL_HEARTBEAT_OTLP"}
+      end
+    end
+
+    after do
+      Datadog.configuration.reset!
+    end
+
+    it "does not report sensitive values through the extended-heartbeat event" do
+      reported_values = extended_event.payload[:configuration].map { |entry| entry[:value]&.to_s }.compact
+
+      expect(reported_values).to_not include(a_string_including("SENTINEL_HEARTBEAT_API_KEY"))
+      expect(reported_values).to_not include(a_string_including("SENTINEL_HEARTBEAT_APP_KEY"))
+      expect(reported_values).to_not include(a_string_including("SENTINEL_HEARTBEAT_OTLP"))
     end
   end
 end

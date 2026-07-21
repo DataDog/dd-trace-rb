@@ -42,6 +42,14 @@ module Datadog
     #
     # @api private
     class Serializer
+      # Exception classes that should never be caught during serialization.
+      # These represent fatal conditions (signals, interrupts, system exit)
+      # that must propagate to the caller. NoMemoryError is deliberately
+      # excluded (unlike DI::FATAL_EXCEPTION_CLASSES): serialization of large
+      # or deeply recursive objects can exhaust memory, and the serializer must
+      # return a safe stub rather than tear the process down.
+      SERIALIZABLE_FATAL_EXCEPTION_CLASSES = [SystemExit, SignalException].freeze
+
       # Third-party library integration / custom serializers.
       #
       # Dynamic instrumentation has limited payload sizes, and for efficiency
@@ -73,6 +81,16 @@ module Datadog
       # exception will be logged at WARN level, then the serializer will be
       # skipped and the next serializer will be tried. This prevents custom
       # serializers from breaking the entire serialization process.
+      #
+      # IMPORTANT: Custom serializers MUST produce data that can be JSON-encoded.
+      # Specifically, custom serializers MUST NOT produce strings with binary
+      # encoding (ASCII-8BIT) containing non-ASCII code points (bytes >= 0x80)
+      # that cannot be automatically transcoded to UTF-8. Such strings will
+      # cause JSON encoding to fail, which will result in the probe being
+      # disabled and an ERROR status being reported. If your data contains
+      # binary content, encode it to a text representation (e.g., Base64,
+      # hex string, or UTF-8 with replacement characters) before returning
+      # it from the custom serializer.
       @@flat_registry = []
       def self.register(condition: nil, &block)
         @@flat_registry << {condition: condition, proc: block}
@@ -113,9 +131,12 @@ module Datadog
       # in upstream code.
       def serialize_args(args, kwargs, target_self,
         depth: settings.dynamic_instrumentation.max_capture_depth,
-        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count)
+        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
+        length: nil,
+        collection_size: nil)
         combined = combine_args(args, kwargs, target_self)
-        serialize_vars(combined, depth: depth, attribute_count: attribute_count)
+        serialize_vars(combined, depth: depth, attribute_count: attribute_count,
+          length: length, collection_size: collection_size)
       end
 
       # Serializes variables captured by a line probe.
@@ -124,9 +145,12 @@ module Datadog
       # of executed code.
       def serialize_vars(vars,
         depth: settings.dynamic_instrumentation.max_capture_depth,
-        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count)
+        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
+        length: nil,
+        collection_size: nil)
         vars.each_with_object({}) do |(k, v), agg|
-          agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count)
+          agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count,
+            length: length, collection_size: collection_size)
         end
       end
 
@@ -145,6 +169,8 @@ module Datadog
       def serialize_value(value, name: nil,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: nil,
+        length: nil,
+        collection_size: nil,
         type: nil)
         attribute_count ||= settings.dynamic_instrumentation.max_capture_attribute_count
         cls = type || value.class
@@ -162,7 +188,9 @@ module Datadog
             if condition
               begin
                 condition_result = condition.call(value)
-              rescue => e
+              rescue Exception => e # standard:disable Lint/RescueException
+                raise if SERIALIZABLE_FATAL_EXCEPTION_CLASSES.any? { |klass| e.is_a?(klass) }
+
                 # If a custom serializer condition raises an exception (e.g., regex match
                 # against invalid UTF-8), skip it and continue with the next serializer.
                 # We don't want custom serializer conditions to break the entire serialization.
@@ -215,7 +243,8 @@ module Datadog
             #
             # Truncate binary data BEFORE escaping to avoid cutting mid-escape-sequence.
             # For regular strings, the limit is applied to string length in characters.
-            max = settings.dynamic_instrumentation.max_capture_string_length
+            length ||= settings.dynamic_instrumentation.max_capture_string_length
+            max = length
 
             if value.encoding == Encoding::BINARY || !value.valid_encoding?
               # Truncate binary data BEFORE escaping to avoid cutting mid-escape-sequence
@@ -240,10 +269,11 @@ module Datadog
 
             serialized.update(value: value)
           when Array
-            if depth < 0
+            if depth <= 0
               serialized.update(notCapturedReason: "depth")
             else
-              max = settings.dynamic_instrumentation.max_capture_collection_size
+              collection_size ||= settings.dynamic_instrumentation.max_capture_collection_size
+              max = collection_size
               if max != 0 && value.length > max
                 serialized.update(notCapturedReason: "collectionSize", size: value.length)
                 # same steep failure with array slices.
@@ -251,15 +281,16 @@ module Datadog
                 value = value[0...max] || []
               end
               entries = value.map do |elt|
-                serialize_value(elt, depth: depth - 1)
+                serialize_value(elt, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count)
               end
               serialized.update(elements: entries)
             end
           when Hash
-            if depth < 0
+            if depth <= 0
               serialized.update(notCapturedReason: "depth")
             else
-              max = settings.dynamic_instrumentation.max_capture_collection_size
+              collection_size ||= settings.dynamic_instrumentation.max_capture_collection_size
+              max = collection_size
               cur = 0
               entries = []
               value.each do |k, v|
@@ -268,12 +299,13 @@ module Datadog
                   break
                 end
                 cur += 1
-                entries << [serialize_value(k, depth: depth - 1), serialize_value(v, name: k, depth: depth - 1)]
+                entries << [serialize_value(k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count),
+                  serialize_value(v, name: k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count)]
               end
               serialized.update(entries: entries)
             end
           else
-            if depth < 0
+            if depth <= 0
               serialized.update(notCapturedReason: "depth")
             else
               fields = {}
@@ -307,13 +339,22 @@ module Datadog
                   break
                 end
                 cur += 1
-                fields[ivar] = serialize_value(value.instance_variable_get(ivar), name: ivar, depth: depth - 1)
+                fields[ivar] = serialize_value(value.instance_variable_get(ivar), name: ivar, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count)
               end
               serialized.update(fields: fields)
             end
           end
           serialized
-        rescue => exc
+        rescue Exception => exc # standard:disable Lint/RescueException
+          # Re-raise fatal exceptions that should not be caught
+          # (signals, interrupts, system exit)
+          raise if SERIALIZABLE_FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
+
+          # Catch all other exceptions including SystemStackError and NoMemoryError.
+          # These inherit from Exception (not StandardError) but can occur during
+          # serialization (e.g., infinite recursion in custom serializers, memory
+          # exhaustion from large objects) and should return a safe structure
+          # rather than propagating to the transport layer.
           telemetry&.report(exc, description: "Error serializing")
           {type: class_name(cls), notSerializedReason: exc.to_s}
         end
@@ -339,28 +380,28 @@ module Datadog
         # array allocations.
         case value
         when NilClass
-          'nil'
+          "nil"
         when Integer, Float, TrueClass, FalseClass, Time, Date
           value.to_s
         when String
           serialize_string_or_symbol_for_message(value)
         when Symbol
-          ':' + serialize_string_or_symbol_for_message(value)
+          ":" + serialize_string_or_symbol_for_message(value) # steep:ignore ArgumentTypeMismatch
         when Array
-          return '...' if depth <= 0
+          return "..." if depth <= 0
 
           max = max_capture_collection_size_for_message
           if value.length > max
             value_ = value[0...max - 1] || []
-            value_ << '...'
+            value_ << "..."
             value_ << value[-1]
             value = value_
           end
-          '[' + value.map do |item|
+          "[" + value.map do |item|
             serialize_value_for_message(item, depth - 1)
-          end.join(', ') + ']'
+          end.join(", ") + "]"
         when Hash
-          return '...' if depth <= 0
+          return "..." if depth <= 0
 
           max = max_capture_collection_size_for_message
           keys = value.keys
@@ -376,11 +417,11 @@ module Datadog
           end
           if truncated
             serialized[serialized.length] = serialized[serialized.length - 1]
-            serialized[serialized.length - 2] = '...'
+            serialized[serialized.length - 2] = "..."
           end
           "{#{serialized.join(", ")}}"
         else
-          return '...' if depth <= 0
+          return "..." if depth <= 0
 
           vars = value.instance_variables
           truncated = false
@@ -398,14 +439,16 @@ module Datadog
           end
           if truncated
             serialized << serialized.last
-            serialized[-2] = '...'
+            serialized[-2] = "..."
           end
           serialized = if serialized.any?
-            ' ' + serialized.join(' ')
+            " " + serialized.join(" ")
           end
           "#<#{class_name(value.class)}#{serialized}>"
         end
-      rescue => exc
+      rescue Exception => exc # standard:disable Lint/RescueException
+        raise if SERIALIZABLE_FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
+
         telemetry&.report(exc, description: "Error serializing for message")
         # TODO class_name(foo) can also fail, which we don't handle here.
         # Telemetry reporting could potentially also fail?
@@ -458,7 +501,7 @@ module Datadog
             if max % 2 == 0
               upper += 1
             end
-            value[0...max / 2 - 1] + '...' + value[upper...length]
+            value[0...max / 2 - 1] + "..." + value[upper...length] # steep:ignore NoMethod
           end
         else
           value
@@ -500,7 +543,7 @@ module Datadog
           when 0x27 # '
             "\\'"
           when 0x5C # \
-            '\\\\'
+            "\\\\"
           when 0x20..0x7E # Printable ASCII (space through ~)
             byte.chr
           else

@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../../core/utils/time'
-require_relative '../../core/workers/queue'
-require_relative '../../core/workers/polling'
+require_relative "../../core/utils/time"
+require_relative "../../core/workers/queue"
+require_relative "../../core/workers/polling"
 
-require_relative 'buffer'
-require_relative 'batch_builder'
+require_relative "buffer"
+require_relative "batch_builder"
 
 module Datadog
   module OpenFeature
@@ -106,7 +106,7 @@ module Datadog
           response
         rescue => e
           @logger.debug { "OpenFeature: Failed to flush resolution details events: #{e.class}: #{e.message}" }
-          @telemetry.report(e, description: 'OpenFeature: Failed to flush resolution details events')
+          @telemetry.report(e, description: "OpenFeature: Failed to flush resolution details events")
 
           nil
         end

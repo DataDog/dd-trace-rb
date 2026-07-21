@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
-require_relative '../../../transport/http/api/endpoint'
-require_relative '../../../transport/http/response'
-require_relative '../../../utils/base64'
-require_relative '../../../utils/truncation'
+require_relative "../../../transport/http/api/endpoint"
+require_relative "../../../transport/http/response"
+require_relative "../../../utils/base64_codec"
+require_relative "../../../utils/truncation"
 
 module Datadog
   module Core
@@ -35,7 +35,7 @@ module Datadog
 
                 # TODO: these fallbacks should be improved
                 roots = payload[:roots] || []
-                targets = payload[:targets] || Datadog::Core::Utils::Base64.strict_encode64('{}')
+                targets = payload[:targets] || Datadog::Core::Utils::Base64Codec.strict_encode64("{}")
                 target_files = payload[:target_files] || []
                 client_configs = payload[:client_configs] || []
 
@@ -45,7 +45,7 @@ module Datadog
                   raise TypeError.new(String, root) unless root.is_a?(String)
 
                   decoded = begin
-                    Datadog::Core::Utils::Base64.strict_decode64(root) # TODO: unprocessed, don't symbolize_names
+                    Datadog::Core::Utils::Base64Codec.strict_decode64(root) # TODO: unprocessed, don't symbolize_names
                   rescue ArgumentError
                     raise DecodeError.new(:roots, root)
                   end
@@ -65,7 +65,7 @@ module Datadog
 
                 @targets = begin
                   decoded = begin
-                    Datadog::Core::Utils::Base64.strict_decode64(targets)
+                    Datadog::Core::Utils::Base64Codec.strict_decode64(targets)
                   rescue ArgumentError
                     raise DecodeError.new(:targets, targets)
                   end
@@ -93,7 +93,7 @@ module Datadog
                   raise TypeError.new(String, raw) unless raw.is_a?(String)
 
                   content = begin
-                    Datadog::Core::Utils::Base64.strict_decode64(raw)
+                    Datadog::Core::Utils::Base64Codec.strict_decode64(raw)
                   rescue ArgumentError
                     raise DecodeError.new(:target_files, raw)
                   end
@@ -180,7 +180,7 @@ module Datadog
             module API
               # Endpoint for remote configuration
               class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
-                HEADER_CONTENT_TYPE = 'Content-Type'
+                HEADER_CONTENT_TYPE = "Content-Type"
 
                 attr_reader :encoder
 
