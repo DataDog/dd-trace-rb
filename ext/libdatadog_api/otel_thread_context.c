@@ -6,7 +6,6 @@
 
 #ifdef HAVE_DATADOG_OTEL_THREAD_CTX_H
 #include <datadog/otel-thread-ctx.h>
-#endif
 
 typedef struct {
   uint8_t trace_id[16];
@@ -146,3 +145,20 @@ static VALUE native_debug_read(VALUE _self) {
 
   return result;
 }
+#else
+static VALUE native_set(DDTRACE_UNUSED VALUE _self, DDTRACE_UNUSED VALUE trace_id, DDTRACE_UNUSED VALUE span_id, DDTRACE_UNUSED VALUE local_root_span_id) {
+  return Qfalse;
+}
+
+static VALUE native_supported_p(VALUE _self) {
+  return Qfalse;
+}
+
+static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
+  return Qfalse;
+}
+
+static VALUE native_debug_read(VALUE _self) {
+  return Qnil;
+}
+#end
