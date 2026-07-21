@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require 'sinatra/base'
+require "sinatra/base"
 
-require_relative '../../../core/utils/only_once'
-require_relative '../../metadata/ext'
-require_relative '../http'
-require_relative '../analytics'
-require_relative 'env'
-require_relative 'ext'
-require_relative 'tracer_middleware'
+require_relative "../../../core/utils/only_once"
+require_relative "../../metadata/ext"
+require_relative "../http"
+require_relative "../analytics"
+require_relative "env"
+require_relative "ext"
+require_relative "tracer_middleware"
 
 module Datadog
   module Tracing
@@ -70,9 +70,9 @@ module Datadog
 
                 trace.resource = span.resource
 
-                _, path = env['sinatra.route'].split(' ', 2)
+                _, path = env["sinatra.route"].split(" ", 2)
                 trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, path)
-                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env['SCRIPT_NAME'])
+                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env["SCRIPT_NAME"])
 
                 sinatra_request_span = Sinatra::Env.datadog_span(env)
 

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative '../../core/rate_limiter'
-require_relative 'rule'
-require_relative '../../core/telemetry/logger'
+require_relative "ext"
+require_relative "../../core/rate_limiter"
+require_relative "rule"
+require_relative "../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -48,14 +48,14 @@ module Datadog
             nil
           else
             # TODO: Simplify .tags access, as `Tracer#tags` can't be arbitrarily changed anymore
-            RateByServiceSampler.new(1.0, env: -> { Tracing.send(:tracer).tags['env'] })
+            RateByServiceSampler.new(1.0, env: -> { Tracing.send(:tracer).tags["env"] })
           end
           @reconsider_sample_resource_enabled = @rules.any? { |rule| resource_rule?(rule) }
         end
 
         def self.parse(rules, rate_limit, default_sample_rate)
           parsed_rules = JSON.parse(rules).map do |rule|
-            sample_rate = rule['sample_rate']
+            sample_rate = rule["sample_rate"]
 
             begin
               sample_rate = Float(sample_rate)
@@ -64,12 +64,12 @@ module Datadog
             end
 
             kwargs = {
-              name: rule['name'],
-              service: rule['service'],
-              resource: rule['resource'],
-              tags: rule['tags'],
+              name: rule["name"],
+              service: rule["service"],
+              resource: rule["resource"],
+              tags: rule["tags"],
               sample_rate: sample_rate,
-              provenance: if (provenance = rule['provenance'])
+              provenance: if (provenance = rule["provenance"])
                             # `Rule::PROVENANCE_*` values are symbols, so convert strings to match
                             provenance.to_sym
                           else
@@ -135,7 +135,7 @@ module Datadog
           Datadog.logger.error(
             "Rule sampling failed. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
           )
-          Datadog::Core::Telemetry::Logger.report(e, description: 'Rule sampling failed')
+          Datadog::Core::Telemetry::Logger.report(e, description: "Rule sampling failed")
 
           yield(trace)
         end

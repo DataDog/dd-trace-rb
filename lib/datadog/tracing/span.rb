@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../core/utils/safe_dup'
-require_relative 'utils'
+require_relative "../core/utils/safe_dup"
+require_relative "utils"
 
-require_relative 'metadata/ext'
-require_relative 'metadata'
+require_relative "metadata/ext"
+require_relative "metadata"
 
 module Datadog
   module Tracing
@@ -143,7 +143,7 @@ module Datadog
       # TODO: Change this to reflect attributes when serialization
       # isn't handled by this method.
       def to_hash
-        @meta['events'] = @events.map(&:to_hash).to_json unless @events.empty?
+        @meta["events"] = @events.map(&:to_hash).to_json unless @events.empty?
 
         h = {
           error: @status,
@@ -185,19 +185,19 @@ module Datadog
           q.text "Start: #{start_time}\n"
           q.text "End: #{end_time}\n"
           q.text "Duration: #{duration.to_f}\n"
-          q.group(2, 'Tags: [', "]\n") do
+          q.group(2, "Tags: [", "]\n") do
             q.breakable
             q.seplist @meta.each do |key, value|
               q.text "#{key} => #{value}"
             end
           end
-          q.group(2, 'Metrics: [', "]\n") do
+          q.group(2, "Metrics: [", "]\n") do
             q.breakable
             q.seplist @metrics.each do |key, value|
               q.text "#{key} => #{value}"
             end
           end
-          q.group(2, 'Metastruct: [', ']') do
+          q.group(2, "Metastruct: [", "]") do
             metastruct.pretty_print(q)
           end
         end

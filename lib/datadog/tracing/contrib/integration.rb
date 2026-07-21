@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'configurable'
-require_relative 'patchable'
-require_relative 'registerable'
+require_relative "configurable"
+require_relative "patchable"
+require_relative "registerable"
 
 module Datadog
   module Tracing

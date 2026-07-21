@@ -1,5 +1,5 @@
-require 'datadog/tracing/contrib/propagation/sql_comment'
-require 'datadog/tracing/contrib/propagation/sql_comment/mode'
+require "datadog/tracing/contrib/propagation/sql_comment"
+require "datadog/tracing/contrib/propagation/sql_comment/mode"
 
 RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
   let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode, append, inject_sql_basehash) }
@@ -12,57 +12,57 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
     allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info, tracer: tracer))
   end
 
-  describe '.annotate!' do
-    let(:span_op) { Datadog::Tracing::SpanOperation.new('sql_comment_propagation_span', service: 'db_service') }
+  describe ".annotate!" do
+    let(:span_op) { Datadog::Tracing::SpanOperation.new("sql_comment_propagation_span", service: "db_service") }
 
-    context 'when `disabled` mode' do
-      let(:mode) { 'disabled' }
-
-      it do
-        described_class.annotate!(span_op, propagation_mode)
-
-        expect(span_op.get_tag('_dd.dbm_trace_injected')).to be_nil
-      end
-    end
-
-    context 'when `service` mode' do
-      let(:mode) { 'service' }
+    context "when `disabled` mode" do
+      let(:mode) { "disabled" }
 
       it do
         described_class.annotate!(span_op, propagation_mode)
 
-        expect(span_op.get_tag('_dd.dbm_trace_injected')).to be_nil
+        expect(span_op.get_tag("_dd.dbm_trace_injected")).to be_nil
       end
     end
 
-    context 'when `dynamic_service` mode' do
-      let(:mode) { 'dynamic_service' }
+    context "when `service` mode" do
+      let(:mode) { "service" }
+
+      it do
+        described_class.annotate!(span_op, propagation_mode)
+
+        expect(span_op.get_tag("_dd.dbm_trace_injected")).to be_nil
+      end
+    end
+
+    context "when `dynamic_service` mode" do
+      let(:mode) { "dynamic_service" }
 
       before do
         allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
         allow(agent_info).to receive(:propagation_checksum).and_return(1234567890)
       end
 
-      it 'sets the propagated hash and does not mark full trace injection' do
+      it "sets the propagated hash and does not mark full trace injection" do
         described_class.annotate!(span_op, propagation_mode)
 
-        expect(span_op.get_tag('_dd.propagated_hash')).to eq('1234567890')
-        expect(span_op.get_tag('_dd.dbm_trace_injected')).to be_nil
+        expect(span_op.get_tag("_dd.propagated_hash")).to eq("1234567890")
+        expect(span_op.get_tag("_dd.dbm_trace_injected")).to be_nil
       end
     end
 
-    context 'when `full` mode' do
-      let(:mode) { 'full' }
+    context "when `full` mode" do
+      let(:mode) { "full" }
 
       it do
         described_class.annotate!(span_op, propagation_mode)
 
-        expect(span_op.get_tag('_dd.dbm_trace_injected')).to eq('true')
+        expect(span_op.get_tag("_dd.dbm_trace_injected")).to eq("true")
       end
     end
 
-    context 'when DD_DBM_INJECT_SQL_BASEHASH=true' do
-      let(:mode) { 'service' }
+    context "when DD_DBM_INJECT_SQL_BASEHASH=true" do
+      let(:mode) { "service" }
       let(:inject_sql_basehash) { true }
 
       before do
@@ -70,31 +70,31 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         allow(agent_info).to receive(:propagation_checksum).and_return(1234567890)
       end
 
-      context 'and DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED=true' do
+      context "and DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED=true" do
         before do
           allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
         end
 
-        it 'sets the propagated hash (_dd.propagated_hash) on the span tag' do
+        it "sets the propagated hash (_dd.propagated_hash) on the span tag" do
           described_class.annotate!(span_op, propagation_mode)
-          expect(span_op.get_tag('_dd.propagated_hash')).to eq('1234567890')
+          expect(span_op.get_tag("_dd.propagated_hash")).to eq("1234567890")
         end
       end
 
-      context 'and DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED=false' do
+      context "and DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED=false" do
         before do
           allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
         end
 
-        it 'does not set the propagated hash (_dd.propagated_hash) span tag' do
+        it "does not set the propagated hash (_dd.propagated_hash) span tag" do
           described_class.annotate!(span_op, propagation_mode)
-          expect(span_op.get_tag('_dd.propagated_hash')).to be_nil
+          expect(span_op.get_tag("_dd.propagated_hash")).to be_nil
         end
       end
     end
 
-    context 'when DD_DBM_INJECT_SQL_BASEHASH=false but DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED=true' do
-      let(:mode) { 'service' }
+    context "when DD_DBM_INJECT_SQL_BASEHASH=false but DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED=true" do
+      let(:mode) { "service" }
       let(:inject_sql_basehash) { false }
 
       before do
@@ -110,36 +110,36 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         without_warnings { Datadog.configuration.reset! }
       end
 
-      it 'does not set the propagated hash (_dd.propagated_hash) span tag' do
+      it "does not set the propagated hash (_dd.propagated_hash) span tag" do
         described_class.annotate!(span_op, propagation_mode)
-        expect(span_op.get_tag('_dd.propagated_hash')).to be_nil
+        expect(span_op.get_tag("_dd.propagated_hash")).to be_nil
       end
     end
   end
 
-  describe '.prepend_comment' do
+  describe ".prepend_comment" do
     around do |example|
       without_warnings { Datadog.configuration.reset! }
       example.run
       without_warnings { Datadog.configuration.reset! }
     end
 
-    let(:sql_statement) { 'SELECT 1' }
+    let(:sql_statement) { "SELECT 1" }
     let(:append) { false }
 
-    context 'when tracing is enabled' do
+    context "when tracing is enabled" do
       before do
         Datadog.configure do |c|
-          c.env = 'dev'
-          c.service = 'api'
-          c.version = '1.2'
+          c.env = "dev"
+          c.service = "api"
+          c.version = "1.2"
         end
       end
 
       let(:span_op) do
         Datadog::Tracing::SpanOperation.new(
-          'sample_span',
-          service: 'db_service'
+          "sample_span",
+          service: "db_service"
         )
       end
       let(:trace_op) do
@@ -154,14 +154,14 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
 
       subject { described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode) }
 
-      context 'when `disabled` mode' do
-        let(:mode) { 'disabled' }
+      context "when `disabled` mode" do
+        let(:mode) { "disabled" }
 
         it { is_expected.to eq(sql_statement) }
       end
 
-      context 'when `service` mode' do
-        let(:mode) { 'service' }
+      context "when `service` mode" do
+        let(:mode) { "service" }
 
         it do
           is_expected.to eq(
@@ -169,12 +169,12 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
           )
         end
 
-        context 'when given a span operation tagged with peer.service' do
+        context "when given a span operation tagged with peer.service" do
           let(:span_op) do
             Datadog::Tracing::SpanOperation.new(
-              'sample_span',
-              service: 'db_service',
-              tags: {'peer.service' => 'db_peer_service'}
+              "sample_span",
+              service: "db_service",
+              tags: {"peer.service" => "db_peer_service"}
             )
           end
 
@@ -184,7 +184,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
             )
           end
 
-          context 'when DD_DBM_INJECT_SQL_BASEHASH=true and DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED=true' do
+          context "when DD_DBM_INJECT_SQL_BASEHASH=true and DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED=true" do
             let(:inject_sql_basehash) { true }
 
             before do
@@ -192,12 +192,12 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
               allow(agent_info).to receive(:propagation_checksum).and_return(1234567890)
             end
 
-            it 'includes the propagation hash (ddsh) in the SQL comment' do
+            it "includes the propagation hash (ddsh) in the SQL comment" do
               is_expected.to include("ddsh='1234567890'")
             end
           end
 
-          context 'when DD_DBM_INJECT_SQL_BASEHASH=false but DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED=true' do
+          context "when DD_DBM_INJECT_SQL_BASEHASH=false but DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED=true" do
             let(:inject_sql_basehash) { false }
 
             before do
@@ -205,12 +205,12 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
               allow(agent_info).to receive(:propagation_checksum).and_return(1234567890)
             end
 
-            it 'does not include the propagation hash (ddsh) in the SQL comment' do
-              is_expected.not_to include('ddsh')
+            it "does not include the propagation hash (ddsh) in the SQL comment" do
+              is_expected.not_to include("ddsh")
             end
           end
 
-          context 'when DD_DBM_INJECT_SQL_BASEHASH=true but DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED=false' do
+          context "when DD_DBM_INJECT_SQL_BASEHASH=true but DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED=false" do
             let(:inject_sql_basehash) { true }
 
             before do
@@ -218,21 +218,21 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
               allow(agent_info).to receive(:propagation_checksum).and_return(1234567890)
             end
 
-            it 'does not include the propagation hash (ddsh) in the SQL comment' do
-              is_expected.not_to include('ddsh')
+            it "does not include the propagation hash (ddsh) in the SQL comment" do
+              is_expected.not_to include("ddsh")
             end
           end
 
-          context 'matching the global service' do
+          context "matching the global service" do
             let(:span_op) do
               Datadog::Tracing::SpanOperation.new(
-                'sample_span',
-                service: 'db_service',
-                tags: {'peer.service' => 'api'}
+                "sample_span",
+                service: "db_service",
+                tags: {"peer.service" => "api"}
               )
             end
 
-            it 'omits the redundant dddbs' do
+            it "omits the redundant dddbs" do
               is_expected.to eq(
                 "/*dde='dev',ddps='api',ddpv='1.2',ddprs='api'*/ #{sql_statement}"
               )
@@ -240,12 +240,12 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
           end
         end
 
-        context 'when given a span operation tagged with db.instance' do
+        context "when given a span operation tagged with db.instance" do
           let(:span_op) do
             Datadog::Tracing::SpanOperation.new(
-              'sample_span',
-              service: 'db_service',
-              tags: {'db.instance' => 'db_name'}
+              "sample_span",
+              service: "db_service",
+              tags: {"db.instance" => "db_name"}
             )
           end
 
@@ -256,12 +256,12 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
           end
         end
 
-        context 'when given a span operation tagged with peer.hostname' do
+        context "when given a span operation tagged with peer.hostname" do
           let(:span_op) do
             Datadog::Tracing::SpanOperation.new(
-              'sample_span',
-              service: 'db_service',
-              tags: {'peer.hostname' => 'db_host'}
+              "sample_span",
+              service: "db_service",
+              tags: {"peer.hostname" => "db_host"}
             )
           end
 
@@ -272,37 +272,37 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
           end
         end
 
-        context 'when append is true' do
+        context "when append is true" do
           let(:append) { true }
 
-          it 'appends the comment after the sql statement' do
+          it "appends the comment after the sql statement" do
             is_expected.to eq("#{sql_statement} /*dde='dev',ddps='api',ddpv='1.2',dddbs='db_service'*/")
           end
         end
       end
 
-      context 'when `dynamic_service` mode' do
-        let(:mode) { 'dynamic_service' }
+      context "when `dynamic_service` mode" do
+        let(:mode) { "dynamic_service" }
 
         before do
           Datadog.configuration.experimental_propagate_process_tags_enabled = true
           allow(agent_info).to receive(:propagation_checksum).and_return(1234567890)
         end
 
-        it 'includes service metadata and the propagation hash in the SQL comment' do
+        it "includes service metadata and the propagation hash in the SQL comment" do
           is_expected.to eq(
             "/*dde='dev',ddps='api',ddpv='1.2',ddsh='1234567890',dddbs='db_service'*/ #{sql_statement}"
           )
         end
       end
 
-      context 'when `full` mode' do
-        let(:mode) { 'full' }
-        let(:traceparent) { '00-00000000000000000000000000c0ffee-0000000000000bee-fe' }
+      context "when `full` mode" do
+        let(:mode) { "full" }
+        let(:traceparent) { "00-00000000000000000000000000c0ffee-0000000000000bee-fe" }
 
         it {
           is_expected.to eq(
-            '/*' \
+            "/*" \
             "dde='dev'," \
             "ddps='api'," \
             "ddpv='1.2'," \
@@ -312,18 +312,18 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
           )
         }
 
-        context 'when given a span operation tagged with peer.service' do
+        context "when given a span operation tagged with peer.service" do
           let(:span_op) do
             Datadog::Tracing::SpanOperation.new(
-              'sample_span',
-              service: 'db_service',
-              tags: {'peer.service' => 'db_peer_service'}
+              "sample_span",
+              service: "db_service",
+              tags: {"peer.service" => "db_peer_service"}
             )
           end
 
           it {
             is_expected.to eq(
-              '/*' \
+              "/*" \
               "dde='dev'," \
               "ddps='api'," \
               "ddpv='1.2'," \
@@ -337,18 +337,18 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
       end
     end
 
-    describe 'when propagates with `full` mode but tracing is disabled ' do
+    describe "when propagates with `full` mode but tracing is disabled " do
       before do
         Datadog.configure do |c|
-          c.env = 'dev'
-          c.service = 'api'
-          c.version = '1.2'
+          c.env = "dev"
+          c.service = "api"
+          c.version = "1.2"
           c.tracing.enabled = false
         end
 
         tracer = instance_double(Datadog::Tracing::Tracer)
         allow(tracer).to receive(:trace) do |_name, &block|
-          span_op = Datadog::Tracing::SpanOperation.new('dummy.sql')
+          span_op = Datadog::Tracing::SpanOperation.new("dummy.sql")
           trace_op = Datadog::Tracing::TraceOperation.new
           block&.call(span_op, trace_op)
         end
@@ -358,13 +358,13 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         )
       end
 
-      let(:mode) { 'full' }
+      let(:mode) { "full" }
 
       subject(:dummy_propagation) do
         result = nil
 
-        Datadog::Tracing.trace('dummy.sql') do |span_op, trace_op|
-          span_op.service = 'db_service'
+        Datadog::Tracing.trace("dummy.sql") do |span_op, trace_op|
+          span_op.service = "db_service"
 
           result = described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode)
         end

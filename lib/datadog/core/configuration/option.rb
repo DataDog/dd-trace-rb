@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'stable_config'
-require_relative '../utils/safe_dup'
+require_relative "stable_config"
+require_relative "../utils/safe_dup"
 
 module Datadog
   module Core
@@ -42,22 +42,22 @@ module Datadog
           end
 
           # Remote configuration provided through the Datadog app.
-          REMOTE_CONFIGURATION = Value.new(5, :remote_configuration, 'remote_config').freeze
+          REMOTE_CONFIGURATION = Value.new(5, :remote_configuration, "remote_config").freeze
 
           # Configuration provided in Ruby code, in this same process
-          PROGRAMMATIC = Value.new(4, :programmatic, 'code').freeze
+          PROGRAMMATIC = Value.new(4, :programmatic, "code").freeze
 
           # Configuration provided by fleet managed stable config
-          FLEET_STABLE = Value.new(3, :fleet_stable, 'fleet_stable_config').freeze
+          FLEET_STABLE = Value.new(3, :fleet_stable, "fleet_stable_config").freeze
 
           # Configuration provided via environment variable
-          ENVIRONMENT = Value.new(2, :environment, 'env_var').freeze
+          ENVIRONMENT = Value.new(2, :environment, "env_var").freeze
 
           # Configuration provided by local stable config file
-          LOCAL_STABLE = Value.new(1, :local_stable, 'local_stable_config').freeze
+          LOCAL_STABLE = Value.new(1, :local_stable, "local_stable_config").freeze
 
           # Configuration that comes from default values
-          DEFAULT = Value.new(0, :default, 'default').freeze
+          DEFAULT = Value.new(0, :default, "default").freeze
 
           # All precedences, sorted from highest to lowest
           LIST = [REMOTE_CONFIGURATION, PROGRAMMATIC, FLEET_STABLE, ENVIRONMENT, LOCAL_STABLE, DEFAULT].sort.reverse.freeze
@@ -211,13 +211,13 @@ module Datadog
 
           case @definition.type
           when :hash
-            values = value.split(',') # By default we only want to support comma separated strings
+            values = value.split(",") # By default we only want to support comma separated strings
 
             values.each_with_object({}) do |v, hash| # $ Hash[String, String]
-              v.gsub!(/\A[\s,]*+|[\s,]*+\Z/, '')
+              v.gsub!(/\A[\s,]*+|[\s,]*+\Z/, "")
               next if v.empty?
 
-              pair = v.split(':', 2)
+              pair = v.split(":", 2)
               hash[pair[0]] = pair[1]
             end
           when :int
@@ -225,10 +225,10 @@ module Datadog
           when :float
             Float(value)
           when :array
-            values = value.split(',')
+            values = value.split(",")
 
             values.each_with_object([]) do |v, arr| # $ Array[String]
-              v.gsub!(/\A[\s,]*+|[\s,]*+\Z/, '')
+              v.gsub!(/\A[\s,]*+|[\s,]*+\Z/, "")
               next if v.empty?
 
               arr << v
@@ -236,7 +236,7 @@ module Datadog
           when :bool
             string_value = value.strip
             string_value = string_value.downcase
-            string_value == 'true' || string_value == '1'
+            string_value == "true" || string_value == "1"
           when :string, NilClass
             value
           else
@@ -340,7 +340,7 @@ module Datadog
           customer_config = StableConfig.configuration.dig(:local, :config)
           return if customer_config.nil?
 
-          value = get_value_from(customer_config, 'local')
+          value = get_value_from(customer_config, "local")
           set(value, precedence: Precedence::LOCAL_STABLE) unless value.nil?
         end
 
@@ -348,7 +348,7 @@ module Datadog
           fleet_config = StableConfig.configuration.dig(:fleet, :config)
           return if fleet_config.nil?
 
-          value = get_value_from(fleet_config, 'fleet')
+          value = get_value_from(fleet_config, "fleet")
           set(value, precedence: Precedence::FLEET_STABLE) unless value.nil?
         end
 

@@ -1,36 +1,36 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/pin'
+require "datadog/core/pin"
 
 RSpec.describe Datadog::Core::Pin do
   subject(:pin) { described_class.new(**options) }
   let(:options) { {} }
   let(:target) { Object.new }
 
-  describe '.get_from' do
+  describe ".get_from" do
     subject(:returned_pin) { described_class.get_from(target) }
 
-    context 'called against' do
-      context '0' do
+    context "called against" do
+      context "0" do
         let(:target) { 0 }
 
         it { is_expected.to be nil }
       end
 
-      context 'nil' do
+      context "nil" do
         let(:target) { nil }
 
         it { is_expected.to be nil }
       end
 
-      context 'self' do
+      context "self" do
         let(:target) { self }
 
         it { is_expected.to be nil }
       end
     end
 
-    context 'when a custom pin has already been defined' do
+    context "when a custom pin has already been defined" do
       let(:target_class) do
         Class.new do
           def datadog_pin
@@ -38,7 +38,7 @@ RSpec.describe Datadog::Core::Pin do
           end
 
           def datadog_pin=(_pin)
-            @custom_attribute = 'The PIN is set!'
+            @custom_attribute = "The PIN is set!"
           end
         end
       end
@@ -47,23 +47,23 @@ RSpec.describe Datadog::Core::Pin do
 
       before { pin.onto(target) }
 
-      it 'returns the custom pin' do
-        is_expected.to eq('The PIN is set!')
+      it "returns the custom pin" do
+        is_expected.to eq("The PIN is set!")
       end
     end
   end
 
-  describe '.set_on' do
+  describe ".set_on" do
     subject(:set_on) { described_class.set_on(target, **options) }
     let(:options) { {a_setting: :a_value} }
 
-    context 'given an object without a Pin' do
+    context "given an object without a Pin" do
       it { is_expected.to be_a_kind_of(described_class) }
       it { expect(set_on[:a_setting]).to be(:a_value) }
     end
 
-    context 'given an object with a Pin' do
-      context 'and a setting that does not conflict' do
+    context "given an object with a Pin" do
+      context "and a setting that does not conflict" do
         let(:original_options) { {original_setting: :original_value} }
 
         before { described_class.set_on(target, **original_options) }
@@ -73,7 +73,7 @@ RSpec.describe Datadog::Core::Pin do
         it { expect(set_on[:a_setting]).to be(:a_value) }
       end
 
-      context 'and a setting that conflicts' do
+      context "and a setting that conflicts" do
         let(:original_options) { {a_setting: :original_value} }
 
         before { described_class.set_on(target, **original_options) }
@@ -82,7 +82,7 @@ RSpec.describe Datadog::Core::Pin do
         it { expect(set_on[:a_setting]).to be(:a_value) }
       end
 
-      context 'which has a custom pin has already defined' do
+      context "which has a custom pin has already defined" do
         let(:target_class) do
           Class.new do
             def datadog_pin
@@ -99,22 +99,22 @@ RSpec.describe Datadog::Core::Pin do
 
         before { pin.onto(target) }
 
-        it 'returns the custom pin' do
+        it "returns the custom pin" do
           is_expected.to eq({custom_pin: true}.merge(options))
         end
       end
     end
   end
 
-  describe '#initialize' do
+  describe "#initialize" do
     before { pin }
 
-    context 'when given some options' do
+    context "when given some options" do
       let(:options) do
         {
-          app: double('app'),
-          app_type: double('app_type'),
-          tags: double('tags')
+          app: double("app"),
+          app_type: double("app_type"),
+          tags: double("tags")
         }
       end
 
@@ -126,15 +126,15 @@ RSpec.describe Datadog::Core::Pin do
     end
   end
 
-  describe '#[]' do
+  describe "#[]" do
     subject(:get) { pin[key] }
     let(:key) { :a_setting }
 
-    context 'when setting is not set' do
+    context "when setting is not set" do
       it { is_expected.to be nil }
     end
 
-    context 'when setting is set' do
+    context "when setting is set" do
       let(:value) { :a_value }
 
       before { pin[key] = value }
@@ -143,19 +143,19 @@ RSpec.describe Datadog::Core::Pin do
     end
   end
 
-  describe '#[]=' do
+  describe "#[]=" do
     subject(:set) { pin[key] = value }
     let(:key) { :a_setting }
     let(:value) { :a_value }
 
-    context 'when setting is not set' do
+    context "when setting is not set" do
       it do
         set
         expect(pin[key]).to be value
       end
     end
 
-    context 'when setting is set' do
+    context "when setting is set" do
       before { pin[key] = :old_value }
 
       it do
@@ -165,41 +165,41 @@ RSpec.describe Datadog::Core::Pin do
     end
   end
 
-  describe '#key?' do
+  describe "#key?" do
     subject(:key?) { pin.key?(key) }
     let(:key) { :a_setting }
 
-    context 'when setting is not set' do
+    context "when setting is not set" do
       it { is_expected.to be false }
     end
 
-    context 'when setting is set' do
+    context "when setting is set" do
       before { pin[key] = :a_value }
 
       it { is_expected.to be true }
     end
   end
 
-  describe '#onto' do
+  describe "#onto" do
     subject(:onto) { pin.onto(target) }
     let(:returned_pin) { described_class.get_from(target) }
 
     before { onto }
 
-    it 'attaches the pin to the target' do
+    it "attaches the pin to the target" do
       expect(returned_pin).to be(pin)
     end
   end
 
-  describe '#to_s' do
+  describe "#to_s" do
     subject(:string) { pin.to_s }
 
-    let(:options) { {app: 'anapp', app_type: 'db'} }
+    let(:options) { {app: "anapp", app_type: "db"} }
 
-    it { is_expected.to eq('Pin(app:anapp, app_type:db)') }
+    it { is_expected.to eq("Pin(app:anapp, app_type:db)") }
   end
 
-  describe '#datadog_pin' do
+  describe "#datadog_pin" do
     let(:returned_pin) { target.datadog_pin }
 
     before { pin.onto(target) }

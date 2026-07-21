@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/resolver'
-require_relative 'makara_resolver'
-require_relative '../../../../core/telemetry/logger'
+require_relative "../../configuration/resolver"
+require_relative "makara_resolver"
+require_relative "../../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -75,10 +75,10 @@ module Datadog
               # hence provide a succinct summary for the error logging.
               #
               Datadog.logger.error(
-                'Failed to resolve ActiveRecord database configuration. ' \
+                "Failed to resolve ActiveRecord database configuration. " \
                 "Cause: #{e.class} Source: #{Array(e.backtrace).first}"
               )
-              Core::Telemetry::Logger.report(e, description: 'Failed to resolve ActiveRecord database configuration')
+              Core::Telemetry::Logger.report(e, description: "Failed to resolve ActiveRecord database configuration")
 
               nil
             end
@@ -98,7 +98,7 @@ module Datadog
                 "Failed to resolve key #{matcher.inspect}. " \
                 "Cause: #{e.class} Source: #{Array(e.backtrace).first}"
               )
-              Core::Telemetry::Logger.report(e, description: 'Failed to resolve key')
+              Core::Telemetry::Logger.report(e, description: "Failed to resolve key")
 
               nil
             end

@@ -1,6 +1,6 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/telemetry/component'
+require "datadog/core/telemetry/component"
 
 RSpec.describe Datadog::Core::Telemetry::Component do
   subject(:telemetry) do
@@ -62,31 +62,31 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     allow(worker).to receive(:"enabled=")
   end
 
-  describe '.build' do
+  describe ".build" do
     subject(:telemetry) { described_class.build(settings, agent_settings, logger) }
 
-    context 'when agentless' do
+    context "when agentless" do
       before do
         expect(settings.telemetry).to receive(:agentless_enabled).at_least(:once).and_return(true)
       end
 
-      context 'with api_key specified' do
+      context "with api_key specified" do
         before do
-          expect(settings).to receive(:api_key).at_least(:once).and_return('1234')
+          expect(settings).to receive(:api_key).at_least(:once).and_return("1234")
         end
 
-        it 'enables telemetry' do
+        it "enables telemetry" do
           expect(telemetry.enabled).to be true
           expect(telemetry.worker).to be worker
         end
       end
 
-      context 'with api_key not specified' do
+      context "with api_key not specified" do
         before do
           expect(settings).to receive(:api_key).and_return(nil)
         end
 
-        it 'disables telemetry' do
+        it "disables telemetry" do
           expect_lazy_log(
             logger,
             :debug,
@@ -99,12 +99,12 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
-  describe '#initialize' do
+  describe "#initialize" do
     after do
       telemetry.shutdown!
     end
 
-    context 'with default parameters' do
+    context "with default parameters" do
       subject(:telemetry) do
         described_class.new(
           enabled: enabled,
@@ -118,13 +118,13 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       it { expect(telemetry.enabled).to be(true) }
     end
 
-    context 'when :enabled is false' do
+    context "when :enabled is false" do
       let(:enabled) { false }
       it { is_expected.to be_a_kind_of(described_class) }
       it { expect(telemetry.enabled).to be(false) }
     end
 
-    context 'when enabled' do
+    context "when enabled" do
       let(:enabled) { true }
 
       it { is_expected.to be_a_kind_of(described_class) }
@@ -132,28 +132,28 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
-  describe '#disable!' do
+  describe "#disable!" do
     after do
       telemetry.shutdown!
     end
 
     it { expect { telemetry.disable! }.to change { telemetry.enabled }.from(true).to(false) }
 
-    it 'disables worker' do
+    it "disables worker" do
       telemetry.disable!
 
       expect(worker).to have_received(:"enabled=").with(false)
     end
   end
 
-  describe '#emit_closing!' do
+  describe "#emit_closing!" do
     subject(:emit_closing!) { telemetry.emit_closing! }
 
     after do
       telemetry.shutdown!
     end
 
-    context 'when disabled' do
+    context "when disabled" do
       let(:enabled) { false }
       it do
         emit_closing!
@@ -162,7 +162,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    context 'when enabled' do
+    context "when enabled" do
       let(:enabled) { true }
       it do
         emit_closing!
@@ -173,8 +173,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    context 'when in fork', skip: ENV['BATCHED_TASKS'] do
-      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
+    context "when in fork", skip: ENV["BATCHED_TASKS"] do
+      before { skip "Fork not supported on current platform" unless Process.respond_to?(:fork) }
 
       it do
         telemetry
@@ -185,10 +185,10 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
-  describe '#shutdown!' do
+  describe "#shutdown!" do
     subject(:shutdown!) { telemetry.shutdown! }
 
-    it 'stops worker once' do
+    it "stops worker once" do
       shutdown!
       shutdown!
 
@@ -196,14 +196,14 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
-  describe '#integrations_change!' do
+  describe "#integrations_change!" do
     subject(:integrations_change!) { telemetry.integrations_change! }
 
     after do
       telemetry.shutdown!
     end
 
-    context 'when disabled' do
+    context "when disabled" do
       let(:enabled) { false }
       it do
         integrations_change!
@@ -212,7 +212,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    context 'when enabled' do
+    context "when enabled" do
       let(:enabled) { true }
       it do
         integrations_change!
@@ -223,8 +223,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    context 'when in fork', skip: ENV['BATCHED_TASKS'] do
-      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
+    context "when in fork", skip: ENV["BATCHED_TASKS"] do
+      before { skip "Fork not supported on current platform" unless Process.respond_to?(:fork) }
 
       it do
         telemetry
@@ -235,15 +235,15 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
-  describe '#client_configuration_change!' do
+  describe "#client_configuration_change!" do
     subject(:client_configuration_change!) { telemetry.client_configuration_change!(changes) }
-    let(:changes) { double('changes') }
+    let(:changes) { double("changes") }
 
     after do
       telemetry.shutdown!
     end
 
-    context 'when disabled' do
+    context "when disabled" do
       let(:enabled) { false }
       it do
         client_configuration_change!
@@ -252,7 +252,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    context 'when enabled' do
+    context "when enabled" do
       let(:enabled) { true }
       it do
         client_configuration_change!
@@ -263,8 +263,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    context 'when in fork', skip: ENV['BATCHED_TASKS'] do
-      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
+    context "when in fork", skip: ENV["BATCHED_TASKS"] do
+      before { skip "Fork not supported on current platform" unless Process.respond_to?(:fork) }
 
       it do
         telemetry
@@ -275,22 +275,22 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
-  describe '#app_endpoints_loaded' do
+  describe "#app_endpoints_loaded" do
     let(:endpoints) do
       [
         {
-          type: 'REST',
-          resource_name: 'GET /events',
-          operation_name: 'http.request',
-          method: 'GET',
-          path: '/events'
+          type: "REST",
+          resource_name: "GET /events",
+          operation_name: "http.request",
+          method: "GET",
+          path: "/events"
         },
         {
-          type: 'REST',
-          resource_name: 'GET /events/:id',
-          operation_name: 'http.request',
-          method: 'GET',
-          path: '/event/:id'
+          type: "REST",
+          resource_name: "GET /events/:id",
+          operation_name: "http.request",
+          method: "GET",
+          path: "/event/:id"
         }
       ]
     end
@@ -299,7 +299,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       telemetry.shutdown!
     end
 
-    context 'when disabled' do
+    context "when disabled" do
       let(:enabled) { false }
 
       it do
@@ -309,10 +309,10 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    context 'when enabled' do
+    context "when enabled" do
       let(:enabled) { true }
 
-      it 'enqueues event with all endpoints when they are within page size limit' do
+      it "enqueues event with all endpoints when they are within page size limit" do
         expect(Datadog::Core::Telemetry::Event::AppEndpointsLoaded).to receive(:new)
           .with(endpoints, is_first: true).and_call_original
 
@@ -322,7 +322,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
           .with(an_instance_of(Datadog::Core::Telemetry::Event::AppEndpointsLoaded)).once
       end
 
-      it 'enqueues event with paginated endpoints when they are not within page size limit' do
+      it "enqueues event with paginated endpoints when they are not within page size limit" do
         expect(Datadog::Core::Telemetry::Event::AppEndpointsLoaded).to receive(:new)
           .with(endpoints[0, 1], is_first: true).and_call_original
 
@@ -337,7 +337,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
-  describe 'includes Datadog::Core::Telemetry::Logging' do
+  describe "includes Datadog::Core::Telemetry::Logging" do
     after do
       telemetry.shutdown!
     end
@@ -345,12 +345,12 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     it { is_expected.to a_kind_of(Datadog::Core::Telemetry::Logging) }
   end
 
-  describe '#log!' do
+  describe "#log!" do
     after do
       telemetry.shutdown!
     end
 
-    describe 'when enabled and log_collection_enabled is enabled' do
+    describe "when enabled and log_collection_enabled is enabled" do
       let(:enabled) { true }
       let(:log_collection_enabled) { true }
 
@@ -361,7 +361,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         expect(worker).to have_received(:enqueue).with(event)
       end
 
-      context 'when in fork', skip: !Process.respond_to?(:fork) || ENV['BATCHED_TASKS'] do
+      context "when in fork", skip: !Process.respond_to?(:fork) || ENV["BATCHED_TASKS"] do
         it do
           telemetry
           expect_in_fork do
@@ -374,7 +374,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    describe 'when disabled' do
+    describe "when disabled" do
       let(:enabled) { false }
 
       it do
@@ -385,7 +385,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    describe 'when log_collection_enabled is disabled' do
+    describe "when log_collection_enabled is disabled" do
       let(:log_collection_enabled) { false }
 
       it do
@@ -397,13 +397,13 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
-  context 'metrics support' do
+  context "metrics support" do
     let(:metrics_manager) { spy(:metrics_manager) }
-    let(:namespace) { double('namespace') }
-    let(:metric_name) { double('metric_name') }
-    let(:value) { double('value') }
-    let(:tags) { double('tags') }
-    let(:common) { double('common') }
+    let(:namespace) { double("namespace") }
+    let(:metric_name) { double("metric_name") }
+    let(:value) { double("value") }
+    let(:tags) { double("tags") }
+    let(:common) { double("common") }
 
     before do
       expect(Datadog::Core::Telemetry::MetricsManager).to receive(:new).with(
@@ -412,7 +412,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       ).and_return(metrics_manager)
     end
 
-    describe '#inc' do
+    describe "#inc" do
       subject(:inc) { telemetry.inc(namespace, metric_name, value, tags: tags, common: common) }
 
       it do
@@ -424,7 +424,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    describe '#dec' do
+    describe "#dec" do
       subject(:dec) { telemetry.dec(namespace, metric_name, value, tags: tags, common: common) }
 
       it do
@@ -436,7 +436,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    describe '#gauge' do
+    describe "#gauge" do
       subject(:gauge) { telemetry.gauge(namespace, metric_name, value, tags: tags, common: common) }
 
       it do
@@ -448,7 +448,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    describe '#rate' do
+    describe "#rate" do
       subject(:rate) { telemetry.rate(namespace, metric_name, value, tags: tags, common: common) }
 
       it do
@@ -460,7 +460,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    describe '#distribution' do
+    describe "#distribution" do
       subject(:distribution) { telemetry.distribution(namespace, metric_name, value, tags: tags, common: common) }
 
       it do

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'event'
-require_relative 'metric'
+require_relative "event"
+require_relative "metric"
 
 module Datadog
   module Core

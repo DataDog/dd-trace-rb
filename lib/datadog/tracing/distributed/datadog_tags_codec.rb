@@ -26,7 +26,7 @@ module Datadog
             raise EncodingError, "Invalid value `#{value}` for key `#{key}`" unless VALID_VALUE_CHARS.match?(value)
 
             "#{key}=#{value.strip}"
-          end.join(',')
+          end.join(",")
         rescue => e
           raise EncodingError, "Error encoding tags `#{tags}`: `#{e.class}: #{e.message}`"
         end
@@ -37,8 +37,8 @@ module Datadog
         # @return [Hash<String,String>] decoded input as a hash of strings
         # @raise [DecodingError] if string does not conform to the `x-datadog-tags` format
         def self.decode(string)
-          result = (string.split(',').map do |raw_tag|
-            raw_tag.split('=', 2).tap do |raw_key, raw_value|
+          result = (string.split(",").map do |raw_tag|
+            raw_tag.split("=", 2).tap do |raw_key, raw_value|
               key = raw_key.to_s
               value = raw_value.to_s
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'base'
+require_relative "base"
 
 module Datadog
   module Core
@@ -14,7 +14,7 @@ module Datadog
           end
 
           def type
-            'app-endpoints'
+            "app-endpoints"
           end
 
           def payload

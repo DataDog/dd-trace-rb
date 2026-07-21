@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'cgi'
+require "cgi"
 
 module Datadog
   module AppSec
@@ -28,7 +28,7 @@ module Datadog
           # read at that point is discarded. This returns the pairs decoded so
           # far rather than raising or discarding the whole payload.
           def parse(payload, limit: DEFAULT_BYTESIZE_LIMIT)
-            raise ArgumentError, 'limit must not be negative' if limit < 0
+            raise ArgumentError, "limit must not be negative" if limit < 0
 
             return {} if payload.nil? || payload.empty? || limit.zero?
 

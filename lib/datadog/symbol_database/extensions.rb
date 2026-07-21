@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../core/configuration'
-require_relative 'configuration'
+require_relative "../core/configuration"
+require_relative "configuration"
 
 module Datadog
   module SymbolDatabase

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../core/utils/time'
-require_relative '../ruby_version'
-require_relative 'fatal_exceptions'
-require_relative 'capture_expression_evaluator'
+require_relative "../core/utils/time"
+require_relative "../ruby_version"
+require_relative "fatal_exceptions"
+require_relative "capture_expression_evaluator"
 
 # rubocop:disable Lint/AssignmentInCondition
 # rubocop:disable Style/AndOr
@@ -192,7 +192,7 @@ module Datadog
           # invokes it with yield, which does not dispatch Proc#call, so a
           # user probe on Proc#call cannot intercept the trampoline, and no
           # Proc is allocated for the block.
-          if RubyVersion.is?('>= 3')
+          if RubyVersion.is?(">= 3")
             define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
               # steep:ignore FallbackAny below: Steep cannot narrow the
               # **kwargs parameter inside this define_method block, so it
@@ -700,7 +700,7 @@ module Datadog
       #
       # Defined only on Ruby < 3; the Ruby 3+ wrapper captures keyword
       # arguments directly and never calls this.
-      if RubyVersion.is?('< 3')
+      if RubyVersion.is?("< 3")
         def kwargs_from_splat(args)
           last = args.last
           if DI.hash?(last)
@@ -866,8 +866,8 @@ module Datadog
                 Utils.path_matches_suffix?(path, working_suffix, case_insensitive: case_insensitive)
               end
               break if found
-              break unless working_suffix.include?('/')
-              working_suffix.sub!(%r{.*/+}, '')
+              break unless working_suffix.include?("/")
+              working_suffix.sub!(%r{.*/+}, "")
             end
             break if found
           end

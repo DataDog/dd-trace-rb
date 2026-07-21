@@ -1,16 +1,16 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/tracing/writer'
-require 'datadog/tracing/transport/http'
-require 'datadog/tracing/transport/http/traces'
-require 'datadog/tracing/transport/traces'
+require "datadog/tracing/writer"
+require "datadog/tracing/transport/http"
+require "datadog/tracing/transport/http/traces"
+require "datadog/tracing/transport/traces"
 
-RSpec.describe 'Datadog::Tracing::Transport::HTTP integration tests' do
+RSpec.describe "Datadog::Tracing::Transport::HTTP integration tests" do
   skip_unless_integration_testing_enabled
 
   let(:logger) { logger_allowing_debug }
 
-  describe 'HTTP#default' do
+  describe "HTTP#default" do
     subject(:transport) do
       Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger, &client_options)
     end
@@ -19,7 +19,7 @@ RSpec.describe 'Datadog::Tracing::Transport::HTTP integration tests' do
 
     it { is_expected.to be_a(Datadog::Tracing::Transport::Traces::Transport) }
 
-    describe '#send_traces' do
+    describe "#send_traces" do
       subject(:responses) { transport.send_traces(traces) }
 
       let(:traces) { get_test_traces(2) }
@@ -44,7 +44,7 @@ RSpec.describe 'Datadog::Tracing::Transport::HTTP integration tests' do
     end
     let(:client_options) { proc { |_client| } }
 
-    describe '#send_spans' do
+    describe "#send_spans" do
       subject(:send_spans) { writer.send_spans(traces, writer.transport) }
 
       let(:traces) { get_test_traces(1) }
