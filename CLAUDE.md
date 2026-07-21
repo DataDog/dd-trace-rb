@@ -172,7 +172,10 @@ Enforced by StandardRB: `bundle exec rake standard:fix`
 Additional team preferences:
 - Trailing commas in multi-line arrays, hashes, and arguments
 - RBS type definitions in `sig/` mirror `lib/` structure
-- Avoid `untyped`; use `Type?` not `(nil | Type)`
+- Use `Type?` over `(nil | Type)`
+- Type a value with its specific concrete type when it has one, rather than `untyped`/`any`.
+- Use a generic type parameter to preserve an input/output relationship (e.g. `[T < Object] (T item) -> T`) rather than `untyped`/`any`; `any` is the fallback for genuinely unconstrained values, not a substitute for a generic.
+- Use `any` only when every possible type is intentionally valid and the code does not depend on the value's concrete type. Do not use `any` merely because the type is unknown or has not yet been modeled; use `untyped` in those cases.
 
 Ruby idioms:
 - Prefer `x.to_s` over `x || ''` for nil-safe string conversion
