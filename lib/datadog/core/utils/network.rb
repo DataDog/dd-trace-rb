@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ipaddr'
+require "ipaddr"
 
 module Datadog
   module Core
@@ -21,7 +21,7 @@ module Datadog
           cf-connecting-ipv6
         ].freeze
 
-        CGNAT_IP_RANGE = IPAddr.new('100.64.0.0/10')
+        CGNAT_IP_RANGE = IPAddr.new("100.64.0.0/10")
 
         class << self
           # Returns a client IP associated with the request if it was
@@ -75,8 +75,8 @@ module Datadog
 
               next unless value
 
-              ips = value.split(',')
-              ips = process_forwarded_header_values(ips) if name == 'forwarded'
+              ips = value.split(",")
+              ips = process_forwarded_header_values(ips) if name == "forwarded"
 
               ips.each do |ip|
                 parsed_ip = ip_to_ipaddr(ip.strip)
@@ -92,11 +92,11 @@ module Datadog
             values.each_with_object([]) do |value, acc|
               value.downcase!
 
-              value.split(';').each do |tuple_str|
+              value.split(";").each do |tuple_str|
                 tuple_str.strip!
-                next unless tuple_str.start_with?('for=')
+                next unless tuple_str.start_with?("for=")
 
-                tuple_str.delete_prefix!('for=')
+                tuple_str.delete_prefix!("for=")
                 tuple_str.delete!('"')
 
                 acc << tuple_str
@@ -110,14 +110,14 @@ module Datadog
           # The rationale is that in valid IPv6 addresses, colons will always preced dots,
           #   and in valid IPv4 addresses dots will always preced colons.
           def likely_ipv4?(value)
-            dot_index = value.index('.') || value.size
-            colon_index = value.index(':') || value.size
+            dot_index = value.index(".") || value.size
+            colon_index = value.index(":") || value.size
 
             dot_index < colon_index
           end
 
           def strip_zone_specifier(ipv6)
-            ipv6.gsub(/%.*/, '')
+            ipv6.gsub(/%.*/, "")
           end
 
           def strip_ipv6_port(ip)
@@ -129,7 +129,7 @@ module Datadog
           end
 
           def strip_ipv4_port(ip)
-            ip.gsub(/:\d+\z/, '')
+            ip.gsub(/:\d+\z/, "")
           end
 
           def global_ip?(parsed_ip)

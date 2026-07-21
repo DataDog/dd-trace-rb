@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'base'
-require_relative '../ext'
+require_relative "base"
+require_relative "../ext"
 
 module Datadog
   module Tracing
@@ -16,8 +16,8 @@ module Datadog
 
               if stream_arn
                 # example stream_arn: arn:aws:kinesis:us-east-1:123456789012:stream/my-stream
-                parts = stream_arn.split(':')
-                stream_name = parts[-1].split('/')[-1]
+                parts = stream_arn.split(":")
+                stream_name = parts[-1].split("/")[-1]
                 aws_account = parts[-2]
                 span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, aws_account)
               end

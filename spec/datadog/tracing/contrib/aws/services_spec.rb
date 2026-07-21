@@ -1,7 +1,7 @@
-require 'datadog/tracing/contrib/aws/services'
+require "datadog/tracing/contrib/aws/services"
 
 RSpec.describe Datadog::Tracing::Contrib::Aws do
-  describe 'constant `SERVICES`' do
+  describe "constant `SERVICES`" do
     subject(:services) { Datadog::Tracing::Contrib::Aws::SERVICES }
 
     it do
@@ -12,16 +12,16 @@ RSpec.describe Datadog::Tracing::Contrib::Aws do
       expect(services.length).to eq(109)
     end
 
-    it 'contains strings' do
+    it "contains strings" do
       expect(services).to all(be_a String)
     end
 
-    it 'contains frozen strings' do
+    it "contains frozen strings" do
       expect(services).to all(be_frozen)
     end
   end
 
-  describe 'constant `SERVICE_HANDLERS`' do
+  describe "constant `SERVICE_HANDLERS`" do
     subject(:handlers) { Datadog::Tracing::Contrib::Aws::SERVICE_HANDLERS }
 
     it do
@@ -30,13 +30,13 @@ RSpec.describe Datadog::Tracing::Contrib::Aws do
 
     it do
       expect(handlers.keys).to contain_exactly(
-        'sqs',
-        'sns',
-        'dynamodb',
-        'kinesis',
-        'eventbridge',
-        'states',
-        's3'
+        "sqs",
+        "sns",
+        "dynamodb",
+        "kinesis",
+        "eventbridge",
+        "states",
+        "s3"
       )
     end
 

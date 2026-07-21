@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'base'
+require_relative "base"
 
 module Datadog
   module Core
@@ -10,8 +10,8 @@ module Datadog
         # Logs with the same content are deduplicated at flush time.
         class Log < Base
           LEVELS = {
-            error: 'ERROR',
-            warn: 'WARN',
+            error: "ERROR",
+            warn: "WARN",
           }.freeze
 
           LEVELS_STRING = LEVELS.values.freeze
@@ -19,7 +19,7 @@ module Datadog
           attr_reader :message, :level, :stack_trace, :count
 
           def type
-            'logs'
+            "logs"
           end
 
           # @param message [String] the log message

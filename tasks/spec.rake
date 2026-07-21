@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require 'pathname'
+require "pathname"
 
 namespace :spec do
   # Task for discoverability of our RSpec conventions and tools.
   # DEV: We should really document our custom matchers.
   # DEV: Today, you have to figure out what they do by their name or inspecting their code.
   # DEV: A formal description would be nice.
-  desc 'List custom RSpec matchers available in this codebase'
+  desc "List custom RSpec matchers available in this codebase"
   task :custom_matchers do
     preload = "RUBYOPT='-r #{File.join(__dir__, "support", "custom_matchers_preload.rb")}'"
 

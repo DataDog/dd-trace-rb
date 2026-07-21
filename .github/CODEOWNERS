@@ -21,6 +21,10 @@ lib/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
 lib/datadog/data_streams.rb @DataDog/data-streams-monitoring @DataDog/ruby-guild
 lib/datadog/open_feature/ @DataDog/feature-flagging-and-experimentation-sdk
 lib/datadog/open_feature.rb @DataDog/feature-flagging-and-experimentation-sdk
+lib/datadog/di/ @DataDog/debugger-ruby @DataDog/ruby-guild
+lib/datadog/di.rb @DataDog/debugger-ruby @DataDog/ruby-guild
+lib/datadog/symbol_database/ @DataDog/debugger-ruby @DataDog/ruby-guild
+lib/datadog/symbol_database.rb @DataDog/debugger-ruby @DataDog/ruby-guild
 ext/ @DataDog/profiling-rb @DataDog/ruby-guild
 
 # RBS signatures
@@ -39,6 +43,10 @@ sig/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
 sig/datadog/data_streams.rbs @DataDog/data-streams-monitoring @DataDog/ruby-guild
 sig/datadog/open_feature/ @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 sig/datadog/open_feature.rbs @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
+sig/datadog/di/ @DataDog/debugger-ruby @DataDog/ruby-guild
+sig/datadog/di.rbs @DataDog/debugger-ruby @DataDog/ruby-guild
+sig/datadog/symbol_database/ @DataDog/debugger-ruby @DataDog/ruby-guild
+sig/datadog/symbol_database.rbs @DataDog/debugger-ruby @DataDog/ruby-guild
 
 # Specs
 spec/datadog/ai_guard/ @DataDog/asm-ruby
@@ -54,6 +62,10 @@ spec/datadog/profiling_spec.rb @DataDog/profiling-rb @DataDog/ruby-guild
 spec/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
 spec/datadog/open_feature/ @DataDog/feature-flagging-and-experimentation-sdk
 spec/datadog/open_feature_spec.rb @DataDog/feature-flagging-and-experimentation-sdk
+spec/datadog/di/ @DataDog/debugger-ruby @DataDog/ruby-guild
+spec/datadog/di_spec.rb @DataDog/debugger-ruby @DataDog/ruby-guild
+spec/datadog/symbol_database/ @DataDog/debugger-ruby @DataDog/ruby-guild
+spec/datadog/symbol_database_spec.rb @DataDog/debugger-ruby @DataDog/ruby-guild
 
 # Nix
 *.nix @DataDog/nix-guild @DataDog/ruby-guild

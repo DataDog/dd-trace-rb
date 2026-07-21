@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../core/knuth_sampler'
+require_relative "../core/knuth_sampler"
 
 module Datadog
   module AppSec

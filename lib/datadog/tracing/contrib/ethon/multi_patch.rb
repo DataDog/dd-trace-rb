@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../http'
-require_relative 'ext'
+require_relative "../../metadata/ext"
+require_relative "../http"
+require_relative "ext"
 
 module Datadog
   module Tracing

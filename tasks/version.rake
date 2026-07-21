@@ -1,4 +1,4 @@
-require 'open3'
+require "open3"
 
 namespace :version do
   def next_version(current_version)
@@ -21,7 +21,7 @@ namespace :version do
   end
 
   task :bump do |_t, args|
-    input = args.extras.first || raise(ArgumentError, 'Please provide a version to bump to')
+    input = args.extras.first || raise(ArgumentError, "Please provide a version to bump to")
     next_version = Gem::Version.new(input)
 
     major, minor, patch, pre = next_version.to_s.split(".")
@@ -51,18 +51,18 @@ namespace :version do
   # - it populates @loaded_cache with the path of the loaded gemspec
   #
   # Causing stale constants or objects being retained in memory
-  def load_gemspec_name(path = 'datadog.gemspec')
+  def load_gemspec_name(path = "datadog.gemspec")
     stdout, _stderr, _status = Open3.capture3("ruby -e 'print Gem::Specification.load(\"#{path}\").name'")
     stdout
   end
 
-  def load_gemspec_version(path = 'datadog.gemspec')
+  def load_gemspec_version(path = "datadog.gemspec")
     stdout, _stderr, _status = Open3.capture3("ruby -e 'print Gem::Specification.load(\"#{path}\").version'")
     Gem::Version.new(stdout)
   end
 
   def replace_version(find_pattern, replace_str)
-    version_file = 'lib/datadog/version.rb'
+    version_file = "lib/datadog/version.rb"
     content = File.read(version_file)
     content.sub!(find_pattern, replace_str)
     File.write(version_file, content)

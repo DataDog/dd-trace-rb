@@ -1,8 +1,8 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require_relative 'support/helper'
+require "datadog/tracing/contrib/support/spec_helper"
+require_relative "support/helper"
 
-RSpec.describe 'Disabled tracer' do
-  include_context 'Sidekiq testing'
+RSpec.describe "Disabled tracer" do
+  include_context "Sidekiq testing"
 
   subject(:perform_async) { job_class.perform_async }
 
@@ -19,7 +19,7 @@ RSpec.describe 'Disabled tracer' do
     end
   end
 
-  it 'does not trace' do
+  it "does not trace" do
     perform_async
 
     expect(spans).to be_empty

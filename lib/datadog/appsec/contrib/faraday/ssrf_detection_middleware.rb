@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../../event'
-require_relative '../../trace_keeper'
-require_relative '../../security_event'
-require_relative '../../utils/http/body'
-require_relative '../../utils/http/body_reader'
-require_relative '../../utils/http/media_type'
+require_relative "../../event"
+require_relative "../../trace_keeper"
+require_relative "../../security_event"
+require_relative "../../utils/http/body"
+require_relative "../../utils/http/body_reader"
+require_relative "../../utils/http/media_type"
 
 module Datadog
   module AppSec
@@ -24,9 +24,9 @@ module Datadog
             headers = normalize_headers(env.request_headers)
             # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
             ephemeral_data = {
-              'server.io.net.url' => url,
-              'server.io.net.request.method' => env.method.to_s.upcase,
-              'server.io.net.request.headers' => headers
+              "server.io.net.url" => url,
+              "server.io.net.request.method" => env.method.to_s.upcase,
+              "server.io.net.request.headers" => headers
             }
 
             is_redirect = context.state[:downstream_redirect_url] == url
@@ -38,8 +38,8 @@ module Datadog
             end
 
             if !is_redirect && env[SAMPLE_BODY_KEY]
-              body = parse_request_body(env.body, content_type: headers['content-type'])
-              ephemeral_data['server.io.net.request.body'] = body if body
+              body = parse_request_body(env.body, content_type: headers["content-type"])
+              ephemeral_data["server.io.net.request.body"] = body if body
             end
 
             timeout = Datadog.configuration.appsec.waf_timeout
@@ -55,18 +55,18 @@ module Datadog
             headers = normalize_headers(env.response_headers)
             # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
             ephemeral_data = {
-              'server.io.net.response.status' => env.status.to_s,
-              'server.io.net.response.headers' => headers
+              "server.io.net.response.status" => env.status.to_s,
+              "server.io.net.response.headers" => headers
             }
 
-            is_redirect = REDIRECT_STATUS_CODES.cover?(env.status) && headers.key?('location')
+            is_redirect = REDIRECT_STATUS_CODES.cover?(env.status) && headers.key?("location")
             if is_redirect && env[SAMPLE_BODY_KEY]
-              context.state[:downstream_redirect_url] = URI.join(env.url.to_s, headers['location']).to_s
+              context.state[:downstream_redirect_url] = URI.join(env.url.to_s, headers["location"]).to_s
             end
 
             if !is_redirect && env[SAMPLE_BODY_KEY]
               body = parse_response_body(env.body, headers: headers, context: context)
-              ephemeral_data['server.io.net.response.body'] = body if body
+              ephemeral_data["server.io.net.response.body"] = body if body
             end
 
             timeout = Datadog.configuration.appsec.waf_timeout
@@ -91,25 +91,25 @@ module Datadog
             content = read_body(body, limit: limit)
             return if content.nil? || content.bytesize > limit
 
-            Utils::HTTP::Body.parse(content, media_type: media_type)
+            Utils::HTTP::Body.parse(content, media_type: media_type, limit: limit)
           end
 
           def parse_response_body(body, headers:, context:)
             return unless readable_body?(body)
 
-            media_type = Utils::HTTP::MediaType.parse(headers['content-type'])
-            if !media_type || media_type.type != 'application'
+            media_type = Utils::HTTP::MediaType.parse(headers["content-type"])
+            if !media_type || media_type.type != "application"
               context.metrics.record_ignored_downstream_response_body(:content_type_invalid)
               return
             end
 
             subtype = media_type.subtype
-            if subtype != 'json' && !subtype.end_with?('+json') && subtype != 'x-www-form-urlencoded'
+            if subtype != "json" && !subtype.end_with?("+json") && subtype != "x-www-form-urlencoded"
               context.metrics.record_ignored_downstream_response_body(:content_type_invalid)
               return
             end
 
-            content_length_value = headers['content-length']
+            content_length_value = headers["content-length"]
             if !content_length_value.is_a?(String) || !content_length_value.match?(/\A[1-9][0-9]*\z/)
               context.metrics.record_ignored_downstream_response_body(:content_length_missing)
               return
@@ -130,7 +130,7 @@ module Datadog
               return
             end
 
-            Utils::HTTP::Body.parse(content, media_type: media_type)
+            Utils::HTTP::Body.parse(content, media_type: media_type, limit: content_length)
           end
 
           def readable_body?(body)

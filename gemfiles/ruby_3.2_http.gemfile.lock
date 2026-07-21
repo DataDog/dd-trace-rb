@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.38.0.dev)
+    datadog (2.39.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.3)
       libdatadog (~> 36.0.0.1.0)
@@ -36,7 +36,7 @@ GEM
     dogstatsd-ruby (5.7.1)
     domain_name (0.5.20190701)
       unf (>= 0.0.5, < 1.0.0)
-    erb (6.0.4)
+    erb (6.0.5)
     ethon (0.16.0)
       ffi (>= 1.15.0)
     ffi (1.17.4-aarch64-linux-gnu)

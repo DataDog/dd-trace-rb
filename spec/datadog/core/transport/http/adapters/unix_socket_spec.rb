@@ -1,15 +1,15 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/transport/http/adapters/unix_socket'
+require "datadog/core/transport/http/adapters/unix_socket"
 
 RSpec.describe Datadog::Core::Transport::HTTP::Adapters::UnixSocket do
   subject(:adapter) { described_class.new(uds_path, **options) }
 
-  let(:uds_path) { double('uds_path') }
-  let(:timeout) { double('timeout') }
+  let(:uds_path) { double("uds_path") }
+  let(:timeout) { double("timeout") }
   let(:options) { {timeout: timeout} }
 
-  shared_context 'HTTP connection stub' do
+  shared_context "HTTP connection stub" do
     let(:http_connection) { instance_double(described_class::HTTP) }
 
     before do
@@ -25,8 +25,8 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::UnixSocket do
     end
   end
 
-  describe '#initialize' do
-    context 'given no options' do
+  describe "#initialize" do
+    context "given no options" do
       let(:options) { {} }
 
       it do
@@ -37,40 +37,40 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::UnixSocket do
       end
     end
 
-    context 'given a timeout option' do
+    context "given a timeout option" do
       let(:options) { {timeout: timeout} }
-      let(:timeout) { double('timeout') }
+      let(:timeout) { double("timeout") }
 
       it { is_expected.to have_attributes(timeout: timeout) }
     end
   end
 
-  describe '#open' do
-    include_context 'HTTP connection stub'
+  describe "#open" do
+    include_context "HTTP connection stub"
 
-    it 'opens and yields a Net::HTTP connection' do
+    it "opens and yields a Net::HTTP connection" do
       expect { |b| adapter.open(&b) }.to yield_with_args(http_connection)
     end
   end
 
-  describe '#url' do
+  describe "#url" do
     subject(:url) { adapter.url }
 
-    let(:uds_path) { '/tmp/trace.sock' }
+    let(:uds_path) { "/tmp/trace.sock" }
     let(:timeout) { 7 }
 
-    it { is_expected.to eq('http+unix:///tmp/trace.sock?timeout=7') }
+    it { is_expected.to eq("http+unix:///tmp/trace.sock?timeout=7") }
   end
 end
 
 RSpec.describe Datadog::Core::Transport::HTTP::Adapters::UnixSocket::HTTP do
   subject(:unix_http) { described_class.new(uds_path, options) }
 
-  let(:uds_path) { double('uds_path') }
+  let(:uds_path) { double("uds_path") }
   let(:options) { {} }
 
-  describe '#initialize' do
-    context 'given no options' do
+  describe "#initialize" do
+    context "given no options" do
       let(:options) { {} }
 
       it do
@@ -82,22 +82,22 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::UnixSocket::HTTP do
       end
     end
 
-    context 'given a read timeout option' do
+    context "given a read timeout option" do
       let(:options) { {read_timeout: read_timeout} }
-      let(:read_timeout) { double('read_timeout') }
+      let(:read_timeout) { double("read_timeout") }
 
       it { is_expected.to have_attributes(read_timeout: read_timeout) }
     end
 
-    context 'given a continue timeout option' do
+    context "given a continue timeout option" do
       let(:options) { {continue_timeout: continue_timeout} }
-      let(:continue_timeout) { double('continue_timeout') }
+      let(:continue_timeout) { double("continue_timeout") }
 
       it { is_expected.to have_attributes(continue_timeout: continue_timeout) }
     end
   end
 
-  describe '#connect' do
+  describe "#connect" do
     subject(:connect) { unix_http.connect }
 
     let(:unix_socket) { instance_double(::UNIXSocket) }
@@ -117,7 +117,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::UnixSocket::HTTP do
       allow(net_io).to receive(:debug_output=)
     end
 
-    it 'opens a Unix socket' do
+    it "opens a Unix socket" do
       expect { connect }.to change { unix_http.unix_socket }.from(nil).to(unix_socket)
       expect(net_io).to have_received(:read_timeout=).with(unix_http.read_timeout)
       expect(net_io).to have_received(:continue_timeout=).with(unix_http.continue_timeout)

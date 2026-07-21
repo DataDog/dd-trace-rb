@@ -5,7 +5,7 @@
 require_relative "probe"
 require_relative "capture_expression"
 require_relative "capture_limits"
-require_relative 'el'
+require_relative "el"
 
 module Datadog
   module DI
@@ -24,7 +24,7 @@ module Datadog
     module ProbeBuilder
       # Steep: https://github.com/soutaro/steep/issues/363
       PROBE_TYPES = { # steep:ignore IncompatibleAssignment
-        'LOG_PROBE' => :log,
+        "LOG_PROBE" => :log,
       }.freeze
 
       module_function
@@ -39,16 +39,16 @@ module Datadog
 
       def build_from_remote_config(config, logger:)
         # The validations here are not yet comprehensive.
-        type = config.fetch('type')
+        type = config.fetch("type")
         type_symbol = PROBE_TYPES[type] or raise ArgumentError, "Unrecognized probe type: #{type}"
-        cond = if cond_spec = config['when']
-          unless cond_spec['dsl'] && cond_spec['json']
+        cond = if cond_spec = config["when"]
+          unless cond_spec["dsl"] && cond_spec["json"]
             raise ArgumentError, "Malformed condition specification for probe: #{config}"
           end
-          compiled, regexps = EL::Compiler.new.compile(cond_spec['json'])
-          EL::Expression.new(cond_spec['dsl'], compiled, regexps)
+          compiled, regexps = EL::Compiler.new.compile(cond_spec["json"])
+          EL::Expression.new(cond_spec["dsl"], compiled, regexps)
         end
-        capture_expressions = build_capture_expressions(config['captureExpressions'])
+        capture_expressions = build_capture_expressions(config["captureExpressions"])
         capture_expressions = dedup_capture_expressions(capture_expressions, config["id"], logger)
         if !!config["captureSnapshot"] && !capture_expressions.empty?
           logger.debug do
@@ -67,7 +67,7 @@ module Datadog
           # We should not be using the template for anything - we instead
           # use +segments+ - but keep the template for debugging.
           template: config["template"],
-          template_segments: build_template_segments(config['segments']),
+          template_segments: build_template_segments(config["segments"]),
           capture_snapshot: !!config["captureSnapshot"],
           max_capture_depth: config["capture"]&.[]("maxReferenceDepth"),
           max_capture_attribute_count: config["capture"]&.[]("maxFieldCount"),
@@ -92,17 +92,17 @@ module Datadog
           unless Hash === entry
             raise ArgumentError, "captureExpressions entry must be a hash, got: #{entry.class}"
           end
-          name = entry['name']
+          name = entry["name"]
           unless String === name && CAPTURE_EXPRESSION_NAME_PATTERN.match?(name)
             raise ArgumentError, "captureExpressions entry name missing or invalid (must match #{CAPTURE_EXPRESSION_NAME_PATTERN.inspect}): #{name.inspect}"
           end
-          expr_spec = entry['expr']
-          unless Hash === expr_spec && expr_spec['dsl'] && expr_spec['json']
+          expr_spec = entry["expr"]
+          unless Hash === expr_spec && expr_spec["dsl"] && expr_spec["json"]
             raise ArgumentError, "captureExpressions entry #{name}: missing or malformed expr"
           end
-          compiled, regexps = EL::Compiler.new.compile(expr_spec['json'])
-          expr = EL::Expression.new(expr_spec['dsl'], compiled, regexps)
-          limits = build_capture_limits(entry['capture'])
+          compiled, regexps = EL::Compiler.new.compile(expr_spec["json"])
+          expr = EL::Expression.new(expr_spec["dsl"], compiled, regexps)
+          limits = build_capture_limits(entry["capture"])
           CaptureExpression.new(name: name, expr: expr, limits: limits)
         end
       end
@@ -126,10 +126,10 @@ module Datadog
           raise ArgumentError, "capture-expression entry capture must be a hash, got: #{raw.class}"
         end
         CaptureLimits.new(
-          max_reference_depth: raw['maxReferenceDepth'],
-          max_collection_size: raw['maxCollectionSize'],
-          max_length: raw['maxLength'],
-          max_field_count: raw['maxFieldCount'],
+          max_reference_depth: raw["maxReferenceDepth"],
+          max_collection_size: raw["maxCollectionSize"],
+          max_length: raw["maxLength"],
+          max_field_count: raw["maxFieldCount"],
         )
       end
 
@@ -146,10 +146,10 @@ module Datadog
       def build_template_segments(segments)
         segments&.map do |segment|
           if Hash === segment
-            if str = segment['str']
+            if str = segment["str"]
               str
-            elsif ast = segment['json']
-              unless dsl = segment['dsl']
+            elsif ast = segment["json"]
+              unless dsl = segment["dsl"]
                 raise ArgumentError, "Missing dsl for json in segment: #{segment}"
               end
               compiled, regexps = EL::Compiler.new.compile(ast)

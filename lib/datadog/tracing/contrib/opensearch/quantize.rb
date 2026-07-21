@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../utils/quantization/hash_formatter'
+require_relative "../utils/quantization/hash_formatter"
 
 module Datadog
   module Tracing
@@ -8,8 +8,8 @@ module Datadog
       module OpenSearch
         # Removes sensitive data from OpenSearch strings (i.e. url and body).
         module Quantize
-          PLACEHOLDER = '/?'
-          DEFAULT_PLACEHOLDER = '?'
+          PLACEHOLDER = "/?"
+          DEFAULT_PLACEHOLDER = "?"
           EXCLUDE_KEYS = [].freeze
           SHOW_KEYS = [:_index, :_type, :_id].freeze
           DEFAULT_OPTIONS = {

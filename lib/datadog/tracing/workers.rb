@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'buffer'
-require_relative 'pipeline'
+require_relative "buffer"
+require_relative "pipeline"
 
 module Datadog
   module Tracing

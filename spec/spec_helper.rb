@@ -1,59 +1,59 @@
-$LOAD_PATH.unshift File.expand_path('..', __dir__)
-$LOAD_PATH.unshift File.expand_path('../lib', __dir__)
+$LOAD_PATH.unshift File.expand_path("..", __dir__)
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 
-Thread.main.name = 'Thread.main'
+Thread.main.name = "Thread.main"
 
-require 'pry'
-require 'rspec/collection_matchers'
-require 'rspec/wait'
-require 'webmock/rspec'
-require 'climate_control'
+require "pry"
+require "rspec/collection_matchers"
+require "rspec/wait"
+require "webmock/rspec"
+require "climate_control"
 
 # Needed for calling JRuby.reference below
-require 'jruby' if RUBY_ENGINE == 'jruby'
+require "jruby" if RUBY_ENGINE == "jruby"
 
-if (ENV['SKIP_SIMPLECOV'] != '1') && !RSpec.configuration.files_to_run.all? { |path| path.include?('/benchmark/') }
+if (ENV["SKIP_SIMPLECOV"] != "1") && !RSpec.configuration.files_to_run.all? { |path| path.include?("/benchmark/") }
   # +SimpleCov.start+ must be invoked before any application code is loaded
-  require 'simplecov'
-  require 'support/simplecov_fix'
+  require "simplecov"
+  require "support/simplecov_fix"
   SimpleCov.start do
     formatter SimpleCov::Formatter::SimpleFormatter
   end
 end
 
-require 'datadog/core/encoding'
-require 'datadog/tracing/tracer'
-require 'datadog/tracing/span'
+require "datadog/core/encoding"
+require "datadog/tracing/tracer"
+require "datadog/tracing/span"
 
 # Expose the version helper to specs as a bare `RubyVersion` (alias for Datadog::RubyVersion).
-require 'datadog/ruby_version'
+require "datadog/ruby_version"
 RubyVersion = Datadog::RubyVersion
 
-require 'support/core_helpers'
-require 'support/environment_helpers'
-require 'support/forkable_example'
-require 'support/faux_transport'
-require 'support/faux_writer'
-require 'support/loaded_gem'
-require 'support/health_metric_helpers'
-require 'support/log_helpers'
-require 'support/network_helpers'
-require 'support/object_space_helper'
-require 'support/platform_helpers'
-require 'support/process_helpers'
-require 'support/span_helpers'
-require 'support/spy_transport'
-require 'support/synchronization_helpers'
-require 'support/tag_builder_helpers'
-require 'support/test_helpers'
-require 'support/telemetry_helpers'
-require 'support/tracer_helpers'
-require 'support/http_server_helpers'
-require 'support/webmock_helper'
+require "support/core_helpers"
+require "support/environment_helpers"
+require "support/forkable_example"
+require "support/faux_transport"
+require "support/faux_writer"
+require "support/loaded_gem"
+require "support/health_metric_helpers"
+require "support/log_helpers"
+require "support/network_helpers"
+require "support/object_space_helper"
+require "support/platform_helpers"
+require "support/process_helpers"
+require "support/span_helpers"
+require "support/spy_transport"
+require "support/synchronization_helpers"
+require "support/tag_builder_helpers"
+require "support/test_helpers"
+require "support/telemetry_helpers"
+require "support/tracer_helpers"
+require "support/http_server_helpers"
+require "support/webmock_helper"
 
 begin
   # Ignore interpreter warnings from external libraries
-  require 'warning'
+  require "warning"
 
   # Ignore warnings in Gem dependencies
   Gem.path.each do |path|
@@ -61,7 +61,7 @@ begin
     Warning.ignore(/circular require considered harmful/, path)
   end
 rescue LoadError
-  puts 'warning suppressing gem not available, external library warnings will be displayed'
+  puts "warning suppressing gem not available, external library warnings will be displayed"
 end
 
 WebMock.allow_net_connect!
@@ -97,7 +97,7 @@ RSpec.configure do |config|
   config.order = :random
   config.filter_run focus: true
   config.run_all_when_everything_filtered = true
-  config.example_status_persistence_file_path = 'tmp/example_status_persistence'
+  config.example_status_persistence_file_path = "tmp/example_status_persistence"
   config.backtrace_exclusion_patterns << /spec\/support\/forkable_example\.rb/
 
   # rspec-wait configuration
@@ -111,7 +111,7 @@ RSpec.configure do |config|
     # Use the documentation formatter for detailed output,
     # unless a formatter has already been configured
     # (e.g. via a command-line flag).
-    config.default_formatter = 'doc'
+    config.default_formatter = "doc"
 
     # List skipped/pending specs
     config.pending_failure_output = :full
@@ -158,29 +158,29 @@ RSpec.configure do |config|
   #    end
   if PlatformHelpers.jruby?
     config.before(:each) do |example|
-      if example.file_path.include?('/symbol_database/') && !example.metadata[:symdb_supported_platforms]
-        skip 'Symbol database not supported on JRuby'
+      if example.file_path.include?("/symbol_database/") && !example.metadata[:symdb_supported_platforms]
+        skip "Symbol database not supported on JRuby"
       end
     end
   end
 
-  if RubyVersion.is?('< 2.7')
+  if RubyVersion.is?("< 2.7")
     config.before(:each) do |example|
-      if example.file_path.include?('/symbol_database/') && !example.metadata[:symdb_supported_platforms]
-        skip 'Symbol database requires Ruby 2.7+'
+      if example.file_path.include?("/symbol_database/") && !example.metadata[:symdb_supported_platforms]
+        skip "Symbol database requires Ruby 2.7+"
       end
     end
   end
 
   config.before(:example, ractors: true) do
     unless config.filter_manager.inclusions[:ractors]
-      skip 'Skipping ractor tests. Use rake spec:profiling:ractors or pass -t ractors to rspec to run.'
+      skip "Skipping ractor tests. Use rake spec:profiling:ractors or pass -t ractors to rspec to run."
     end
   end
 
   # Repeat each example N times to flush out transient failures.
   # Usage: RSPEC_REPEAT=100 bundle exec rspec spec/path/to_spec.rb:123
-  if (repeat_count = Integer(ENV['RSPEC_REPEAT'] || 1)) > 1
+  if (repeat_count = Integer(ENV["RSPEC_REPEAT"] || 1)) > 1
     config.around do |example|
       repeat_count.times do |i|
         example.run
@@ -214,7 +214,7 @@ RSpec.configure do |config|
         unless $background_thread_leak_warned ||= false
           warn RSpec::Core::Formatters::ConsoleCodes.wrap(
             "Too many leaky thread reports! Suppressing further reports.\n" \
-            'Consider addressing the previously reported leaks before proceeding.',
+            "Consider addressing the previously reported leaks before proceeding.",
             :red
           )
 
@@ -235,15 +235,15 @@ RSpec.configure do |config|
           # Thread has shut down, but we caught it right as it was still alive
           !t.alive? ||
           # Long-lived Timeout thread created by `Timeout.create_timeout_thread`.
-          t.name == 'Timeout stdlib thread' ||
+          t.name == "Timeout stdlib thread" ||
           # FFI threads: https://github.com/ffi/ffi/pull/883
-          t.name == 'FFI Callback Dispatcher' ||
+          t.name == "FFI Callback Dispatcher" ||
           # JRuby: Long-lived Timeout thread created by `Timeout.create_timeout_thread`.
           t == Timeout.instance_exec { @timeout_thread if defined?(@timeout_thread) } ||
           # Internal JRuby thread
-          defined?(JRuby) && JRuby.reference(t).native_thread.name == 'Finalizer' ||
+          defined?(JRuby) && JRuby.reference(t).native_thread.name == "Finalizer" ||
           # WEBrick singleton thread for handling timeouts
-          backtrace.find { |b| b.include?('/webrick/utils.rb') } ||
+          backtrace.find { |b| b.include?("/webrick/utils.rb") } ||
           # WEBrick server thread
           t[:WEBrickSocket] ||
           # Rails connection reaper
@@ -251,12 +251,12 @@ RSpec.configure do |config|
           # Rails connection reaper in newer Rails are native (no backtrace), but have a consistent call site
           caller.find { |b| b =~ %r{lib/active_record/connection_adapters/abstract/connection_pool(/reaper)?.rb} } ||
           # Ruby JetBrains debugger
-          t.class.name&.include?('DebugThread') ||
+          t.class.name&.include?("DebugThread") ||
           # Categorized as a known leaky thread
           !group_name.nil? ||
           # Internal TruffleRuby thread, defined in
           # https://github.com/oracle/truffleruby/blob/02f568556ca4dd9056b0114b750ab848ac52943b/src/main/java/org/truffleruby/core/ReferenceProcessingService.java#L221
-          RUBY_ENGINE == 'truffleruby' && t.to_s.include?('Ruby-reference-processor')
+          RUBY_ENGINE == "truffleruby" && t.to_s.include?("Ruby-reference-processor")
       end
 
       unless background_threads.empty?
@@ -269,18 +269,18 @@ RSpec.configure do |config|
           if backtrace.nil? || backtrace.empty?
             backtrace =
               if t.alive?
-                ['(Not available. Possibly a native thread.)']
+                ["(Not available. Possibly a native thread.)"]
               else
-                ['(Thread finished before we could collect a backtrace)']
+                ["(Thread finished before we could collect a backtrace)"]
               end
           end
 
-          caller = t.instance_variable_get(:@caller) || ['(Not available. Possibly a native thread.)']
+          caller = t.instance_variable_get(:@caller) || ["(Not available. Possibly a native thread.)"]
           [
             "#{idx + 1}: #{t} (#{t.class.name})",
-            'Thread Creation Site:',
+            "Thread Creation Site:",
             caller.map { |l| "\t#{l}" }.join("\n"),
-            'Thread Backtrace:',
+            "Thread Backtrace:",
             backtrace.map { |l| "\t#{l}" }.join("\n"),
             "\n"
           ]
@@ -339,25 +339,25 @@ end
 
 Thread.prepend(DatadogThreadDebugger)
 
-require 'spec/support/thread_helpers'
+require "spec/support/thread_helpers"
 # Enforce test time limit, to allow us to debug why some test runs get stuck in CI
-if ENV.key?('CI')
-  ThreadHelpers.with_leaky_thread_creation('Deadline thread') do
+if ENV.key?("CI")
+  ThreadHelpers.with_leaky_thread_creation("Deadline thread") do
     Thread.new do
-      Thread.current.name = 'spec_helper.rb CI debugging Deadline thread'
+      Thread.current.name = "spec_helper.rb CI debugging Deadline thread"
 
       sleep_time = 30 * 60 # 30 minutes
       sleep(sleep_time)
 
       warn "Test too longer than #{sleep_time}s to finish, aborting test run."
-      warn 'Stack trace of all running threads:'
+      warn "Stack trace of all running threads:"
 
       Thread.list.select { |t| t.alive? && t != Thread.current }.each_with_index.map do |t, idx|
         backtrace = t.backtrace
-        backtrace = ['(Not available)'] if backtrace.nil? || backtrace.empty?
+        backtrace = ["(Not available)"] if backtrace.nil? || backtrace.empty?
 
         msg = "#{idx}: #{t} (#{t.class.name})",
-          'Thread Backtrace:',
+          "Thread Backtrace:",
           backtrace.map { |l| "\t#{l}" }.join("\n"),
           "\n"
 

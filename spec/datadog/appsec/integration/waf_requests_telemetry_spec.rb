@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/appsec/spec_helper'
-require 'rack/test'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/appsec/spec_helper"
+require "rack/test"
 
-require 'datadog/tracing'
-require 'datadog/appsec'
+require "datadog/tracing"
+require "datadog/appsec"
 
-RSpec.describe 'WAF requests telemetry' do
+RSpec.describe "WAF requests telemetry" do
   include Rack::Test::Methods
 
   before do
@@ -75,47 +75,47 @@ RSpec.describe 'WAF requests telemetry' do
       use Datadog::Tracing::Contrib::Rack::TraceMiddleware
       use Datadog::AppSec::Contrib::Rack::RequestMiddleware
 
-      map '/waf' do
-        run ->(_env) { [200, {'Content-Type' => 'text/html'}, ['OK']] }
+      map "/waf" do
+        run ->(_env) { [200, {"Content-Type" => "text/html"}, ["OK"]] }
       end
     end
 
     stack.to_app
   end
 
-  describe 'appsec.waf.requests telemetry' do
+  describe "appsec.waf.requests telemetry" do
     before do
       allow(Datadog::AppSec.telemetry).to receive(:inc)
     end
 
-    context 'when WAF check triggered for HTTP request' do
-      it 'exports correct tags' do
-        get('/waf', {}, {'REMOTE_ADDR' => '127.0.0.1', 'HTTP_USER_AGENT' => 'Nessus SOAP'})
+    context "when WAF check triggered for HTTP request" do
+      it "exports correct tags" do
+        get("/waf", {}, {"REMOTE_ADDR" => "127.0.0.1", "HTTP_USER_AGENT" => "Nessus SOAP"})
 
         expect(Datadog::AppSec.telemetry).to have_received(:inc).with(
-          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.requests', 1,
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.requests", 1,
           tags: hash_including(
-            rule_triggered: 'true',
-            waf_error: 'false',
-            waf_timeout: 'false',
-            request_blocked: 'false',
-            rate_limited: 'false'
+            rule_triggered: "true",
+            waf_error: "false",
+            waf_timeout: "false",
+            request_blocked: "false",
+            rate_limited: "false"
           )
         )
       end
     end
 
-    context 'when WAF check did not trigger for HTTP request' do
-      it 'exports correct tags' do
-        get('/waf', {}, {})
+    context "when WAF check did not trigger for HTTP request" do
+      it "exports correct tags" do
+        get("/waf", {}, {})
 
         expect(Datadog::AppSec.telemetry).to have_received(:inc).with(
-          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.requests', 1,
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.requests", 1,
           tags: hash_including(
-            rule_triggered: 'false',
-            waf_error: 'false',
-            waf_timeout: 'false',
-            request_blocked: 'false'
+            rule_triggered: "false",
+            waf_error: "false",
+            waf_timeout: "false",
+            request_blocked: "false"
           )
         )
       end

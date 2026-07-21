@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'set'
-require_relative '../di/fatal_exceptions'
+require "set"
+require_relative "../di/fatal_exceptions"
 
 module Datadog
   module SymbolDatabase

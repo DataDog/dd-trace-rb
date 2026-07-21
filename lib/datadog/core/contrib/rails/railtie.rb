@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'utils'
-require_relative '../../environment/process'
-require_relative '../../process_discovery'
+require_relative "utils"
+require_relative "../../environment/process"
+require_relative "../../process_discovery"
 
 module Datadog
   module Core
