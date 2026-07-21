@@ -7,9 +7,9 @@ if Gem.loaded_specs.key?('bundler-audit')
     let(:fixtures) { 'spec/fixtures/bundler_audit' }
     let(:database) { Bundler::Audit::Database.new("#{fixtures}/advisory_db") }
 
-    describe '.high_critical_findings' do
+    describe '.findings' do
       it 'returns high/critical findings for a vulnerable lockfile' do
-        findings = described_class.high_critical_findings(
+        findings = described_class.findings(
           ["#{fixtures}/vulnerable.gemfile.lock"],
           database: database,
           ignore: [],
@@ -22,7 +22,7 @@ if Gem.loaded_specs.key?('bundler-audit')
       end
 
       it 'returns nothing for a clean lockfile' do
-        findings = described_class.high_critical_findings(
+        findings = described_class.findings(
           ["#{fixtures}/clean.gemfile.lock"],
           database: database,
           ignore: [],
@@ -32,12 +32,12 @@ if Gem.loaded_specs.key?('bundler-audit')
       end
 
       it 'excludes advisories listed in ignore' do
-        all = described_class.high_critical_findings(
+        all = described_class.findings(
           ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: [],
         )
         ignored_id = all.first[:id]
 
-        remaining = described_class.high_critical_findings(
+        remaining = described_class.findings(
           ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: [ignored_id],
         )
 

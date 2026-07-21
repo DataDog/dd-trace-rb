@@ -10,10 +10,10 @@ module DependencyAudit
   SEVERITIES = [:high, :critical].freeze
 
   # Scan each lockfile with a single shared Database and return only the
-  # high/critical findings not present in `ignore`.
+  # findings whose criticality is in `severities`, excluding `ignore`.
   #
   # Returns an Array of Hash: { lockfile:, gem:, version:, criticality:, id: }.
-  def high_critical_findings(lockfile_paths, database:, ignore:)
+  def findings(lockfile_paths, database:, ignore:, severities: SEVERITIES)
     findings = []
 
     lockfile_paths.each do |lockfile_path|
@@ -25,7 +25,7 @@ module DependencyAudit
         next unless result.respond_to?(:advisory)
 
         advisory = result.advisory
-        next unless SEVERITIES.include?(advisory.criticality)
+        next unless severities.include?(advisory.criticality)
 
         findings << {
           lockfile: lockfile_path,
