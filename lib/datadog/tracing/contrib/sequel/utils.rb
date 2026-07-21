@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'uri'
+
 require_relative '../../metadata/ext'
 require_relative '../utils/database'
 require_relative 'ext'
@@ -12,6 +14,10 @@ module Datadog
       module Sequel
         # General purpose functions for Sequel
         module Utils
+          JDBC_URI_PATTERN = %r{\Ajdbc:(?<vendor>[a-z][a-z0-9+.-]*):(?<location>//[^\r\n]*)\z}i
+          DATABASE_QUERY_PATTERN = /(?:\A|[&;])database=(?<value>[^&;]+)/i
+          private_constant :JDBC_URI_PATTERN, :DATABASE_QUERY_PATTERN
+
           class << self
             # Ruby database connector library
             #
@@ -35,36 +41,29 @@ module Datadog
               Contrib::Utils::Database.normalize_vendor(database.database_type.to_s)
             end
 
-            # Parses a JDBC connection string of the form
-            #   jdbc:<vendor>://<host>[:<port>][/<database>][?<params> | ;<params>]
-            # extracting host, port, and (best-effort) database name.
+            # Parses URI-style JDBC connection strings, extracting host, port, and
+            # (best-effort) database name. Unsupported or ambiguous forms return empty
+            # metadata rather than potentially incorrect tags.
             def parse_jdbc_uri(uri)
               result = {host: nil, port: nil, database: nil}
               return result unless uri.is_a?(String) && uri.valid_encoding?
 
-              match = %r{\Ajdbc:[^:/]+://(?<authority>[^/;?]*)(?<path>/[^;?]*)?(?<params>[;?].*)?\z}i.match(uri)
+              match = JDBC_URI_PATTERN.match(uri)
               return result unless match
 
-              host, port = match[:authority].split(':', 2)
-              result[:host] = host unless host.nil? || host.empty?
-              result[:port] = port if port && /\A\d+\z/.match?(port)
+              parsed = URI.parse("#{match[:vendor].downcase}:#{match[:location]}")
 
-              if match[:path]
-                database = match[:path].sub(%r{\A/}, '').split('/').first
-                result[:database] = database unless database.nil? || database.empty?
-              end
+              # Semicolons introduce vendor-specific JDBC path properties. URI treats them
+              # as part of the path, which could make us report properties as the database.
+              return result if parsed.path&.include?(';')
 
-              if result[:database].nil? && match[:params]
-                params = {}
-                match[:params].sub(/\A[;?]/, '').split(/[;&]/).each do |pair|
-                  key, value = pair.split('=', 2)
-                  params[key.downcase] = value if key && value
-                end
-                db = params['databasename'] || params['database'] || params['libraries']
-                db = db.split(',').first if db
-                result[:database] = db unless db.nil? || db.empty?
-              end
+              host = parsed.hostname
+              port = parsed.port
 
+              database = database_from_path(parsed.path) || database_from_query(parsed.query)
+
+              {host: host, port: port&.to_s, database: database}
+            rescue URI::InvalidURIError, Encoding::CompatibilityError, ArgumentError
               result
             end
 
@@ -136,6 +135,22 @@ module Datadog
             end
 
             private
+
+            def database_from_path(path)
+              return unless path&.start_with?('/')
+
+              database = path[1..-1]
+              return if database.empty? || database.include?('/')
+
+              database
+            end
+
+            def database_from_query(query)
+              return unless query
+
+              match = DATABASE_QUERY_PATTERN.match(query)
+              match[:value] if match
+            end
 
             def datadog_configuration
               Datadog.configuration.tracing[:sequel]

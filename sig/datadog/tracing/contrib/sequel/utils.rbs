@@ -3,6 +3,9 @@ module Datadog
     module Contrib
       module Sequel
         module Utils
+          JDBC_URI_PATTERN: Regexp
+          DATABASE_QUERY_PATTERN: Regexp
+
           def self.adapter_name: (untyped database) -> untyped
           def self.database_type: (untyped database) -> untyped
 
@@ -15,6 +18,10 @@ module Datadog
           def self.set_common_tags: (untyped span, untyped db) -> untyped
 
           private
+
+          def self.database_from_path: (String? path) -> String?
+
+          def self.database_from_query: (String? query) -> String?
 
           def self.datadog_configuration: () -> untyped
 

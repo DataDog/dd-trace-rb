@@ -29,27 +29,43 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
       end
     end
 
-    context 'sqlserver with semicolon databaseName property' do
+    context 'postgresql with a bracketed IPv6 host' do
+      let(:uri) { 'jdbc:postgresql://[2001:db8::1]:5432/analytics' }
+
+      it 'extracts the host without brackets' do
+        expect(parsed).to eq(host: '2001:db8::1', port: '5432', database: 'analytics')
+      end
+    end
+
+    context 'another vendor using the same URI form' do
+      let(:uri) { 'jdbc:db2://db-host:50000/warehouse' }
+
+      it 'extracts host, port, and database' do
+        expect(parsed).to eq(host: 'db-host', port: '50000', database: 'warehouse')
+      end
+    end
+
+    context 'mysql with the database in the query' do
+      let(:uri) { 'jdbc:mysql://db-host:3306?database=&user=u&password=p&database=orders' }
+
+      it 'extracts the first non-empty allowlisted value' do
+        expect(parsed).to eq(host: 'db-host', port: '3306', database: 'orders')
+      end
+    end
+
+    context 'with unsupported SQL Server property syntax' do
       let(:uri) { 'jdbc:sqlserver://sql-host:1433;databaseName=sales;user=sa' }
 
-      it 'recovers the database from the property' do
-        expect(parsed).to eq(host: 'sql-host', port: '1433', database: 'sales')
+      it 'returns all-nil' do
+        expect(parsed).to eq(host: nil, port: nil, database: nil)
       end
     end
 
-    context 'as400/jt400 with default schema in the path and libraries property' do
+    context 'with unsupported semicolon properties in the path' do
       let(:uri) { 'jdbc:as400://as400-host/MYSCHEMA;libraries=L1,L2' }
 
-      it 'prefers the path segment for the database' do
-        expect(parsed).to eq(host: 'as400-host', port: nil, database: 'MYSCHEMA')
-      end
-    end
-
-    context 'as400/jt400 with only a libraries property' do
-      let(:uri) { 'jdbc:as400://as400-host;libraries=MYLIB,OTHER' }
-
-      it 'recovers the first library as the database' do
-        expect(parsed).to eq(host: 'as400-host', port: nil, database: 'MYLIB')
+      it 'returns all-nil' do
+        expect(parsed).to eq(host: nil, port: nil, database: nil)
       end
     end
 
@@ -77,6 +93,30 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
       end
     end
 
+    context 'authority containing user-info' do
+      let(:uri) { 'jdbc:mysql://user:password@db-host:3306/orders' }
+
+      it 'extracts metadata without exposing credentials' do
+        expect(parsed).to eq(host: 'db-host', port: '3306', database: 'orders')
+      end
+    end
+
+    context 'URI containing a fragment' do
+      let(:uri) { 'jdbc:mysql://db-host:3306/orders#section' }
+
+      it 'ignores the fragment' do
+        expect(parsed).to eq(host: 'db-host', port: '3306', database: 'orders')
+      end
+    end
+
+    context 'multi-host authority' do
+      let(:uri) { 'jdbc:postgresql://host1:5432,host2:5432/analytics' }
+
+      it 'returns all-nil rather than selecting incorrect metadata' do
+        expect(parsed).to eq(host: nil, port: nil, database: nil)
+      end
+    end
+
     context 'invalid encoding' do
       let(:uri) { "jdbc:mysql://h\xFF\xFEst/db".b.force_encoding('UTF-8') }
 
@@ -88,6 +128,25 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
         expect { parsed }.not_to raise_error
         expect(parsed).to eq(host: nil, port: nil, database: nil)
       end
+    end
+  end
+
+  describe '.set_common_tags' do
+    subject(:set_common_tags) { described_class.set_common_tags(span, db) }
+
+    let(:span) { spy('span') }
+    let(:db) { double('Sequel::Database', database_type: :mysql, opts: {host: '', database: 'orders'}) }
+
+    before do
+      allow(Datadog::Tracing::Contrib::SpanAttributeSchema).to receive(:set_peer_service!)
+    end
+
+    it 'does not add an empty host to the span' do
+      set_common_tags
+
+      expect(span).not_to have_received(:set_tag)
+        .with(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, '')
+      expect(Datadog::Tracing::Contrib::SpanAttributeSchema).not_to have_received(:set_peer_service!)
     end
   end
 
