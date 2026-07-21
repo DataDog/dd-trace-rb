@@ -1,14 +1,14 @@
-require_relative 'security_capabilities'
+require_relative "security_capabilities"
 
-if Gem.loaded_specs.key?('bundler-audit')
-  require_relative 'dependency_auditing'
+if Gem.loaded_specs.key?("bundler-audit")
+  require_relative "dependency_auditing"
 
   namespace :dependency do
-    desc 'Audit eligible lockfiles for high/critical CVE advisories'
+    desc "Audit eligible lockfiles for high/critical CVE advisories"
     task :audit do
-      require 'bundler/audit/database'
+      require "bundler/audit/database"
 
-      puts 'Updating advisory database...'
+      puts "Updating advisory database..."
       begin
         updated = Bundler::Audit::Database.update!(quiet: true)
       rescue => e
@@ -18,7 +18,7 @@ if Gem.loaded_specs.key?('bundler-audit')
       # actually failed; it returns `nil` when the existing database isn't a
       # git checkout (nothing to pull, but the database is still usable), so
       # only `false` should be treated as a fatal error here.
-      abort('Could not refresh the ruby-advisory-db (needs git + network)') if updated == false
+      abort("Could not refresh the ruby-advisory-db (needs git + network)") if updated == false
       database = Bundler::Audit::Database.new
 
       lockfiles = SecurityCapabilities.audit_eligible_lockfiles
@@ -28,17 +28,17 @@ if Gem.loaded_specs.key?('bundler-audit')
       findings = DependencyAuditing.findings(lockfiles, database: database, ignore: ignore)
 
       if findings.empty?
-        puts 'No high or critical advisories found.'
+        puts "No high or critical advisories found."
       else
-        require 'json'
-        require 'fileutils'
+        require "json"
+        require "fileutils"
 
-        output_path = 'tmp/dependency_audit_findings.json'
+        output_path = "tmp/dependency_audit_findings.json"
         FileUtils.mkdir_p(File.dirname(output_path))
         File.write(output_path, JSON.pretty_generate(findings.map(&:to_h)))
 
         puts "Found #{findings.size} high/critical advisory match(es); details written to #{output_path}"
-        abort('Dependency audit failed: high/critical advisories present.')
+        abort("Dependency audit failed: high/critical advisories present.")
       end
     end
   end

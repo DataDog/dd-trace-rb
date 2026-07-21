@@ -1,5 +1,5 @@
-require 'bundler/audit/scanner'
-require 'bundler/audit/database'
+require "bundler/audit/scanner"
+require "bundler/audit/database"
 
 # Pure audit logic, extracted so it can be unit-tested without rake or a live
 # network update. The rake task in dependency_audit.rake wires it to the real
@@ -51,11 +51,11 @@ module DependencyAuditing
 
   # Load the managed ignore list from `.bundler-audit.yml` if present.
   # Format mirrors bundler-audit's own config: a top-level `ignore:` array.
-  def load_ignore_list(config_path = '.bundler-audit.yml')
+  def load_ignore_list(config_path = ".bundler-audit.yml")
     return [] unless File.exist?(config_path)
 
-    require 'yaml'
+    require "yaml"
     config = YAML.safe_load(File.read(config_path)) || {}
-    config['ignore'] || []
+    config["ignore"] || []
   end
 end
