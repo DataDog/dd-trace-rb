@@ -9,10 +9,12 @@ module DependencyAudit
 
   SEVERITIES = [:high, :critical].freeze
 
+  Finding = Struct.new(:lockfile, :gem, :version, :criticality, :id)
+
   # Scan each lockfile with a single shared Database and return only the
   # findings whose criticality is in `severities`, excluding `ignore`.
   #
-  # Returns an Array of Hash: { lockfile:, gem:, version:, criticality:, id: }.
+  # Returns an Array of Finding.
   def findings(lockfile_paths, database:, ignore:, severities: SEVERITIES)
     findings = []
 
@@ -27,13 +29,13 @@ module DependencyAudit
         advisory = result.advisory
         next unless severities.include?(advisory.criticality)
 
-        findings << {
-          lockfile: lockfile_path,
-          gem: result.gem.name,
-          version: result.gem.version.to_s,
-          criticality: advisory.criticality,
-          id: advisory.cve_id || advisory.ghsa_id || advisory.identifiers.first,
-        }
+        findings << Finding.new(
+          lockfile_path,
+          result.gem.name,
+          result.gem.version.to_s,
+          advisory.criticality,
+          advisory.cve_id || advisory.ghsa_id || advisory.identifiers.first,
+        )
       end
     end
 

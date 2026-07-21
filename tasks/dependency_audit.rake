@@ -31,7 +31,7 @@ if Gem.loaded_specs.key?('bundler-audit')
       else
         puts "Found #{findings.size} high/critical advisory match(es):"
         findings.each do |f|
-          puts "  [#{f[:criticality].to_s.upcase}] #{f[:gem]} #{f[:version]} #{f[:id]} (#{f[:lockfile]})"
+          puts "  [#{f.criticality.to_s.upcase}] #{f.gem} #{f.version} #{f.id} (#{f.lockfile})"
         end
         abort('Dependency audit failed: high/critical advisories present.')
       end

@@ -16,9 +16,9 @@ if Gem.loaded_specs.key?('bundler-audit')
         )
 
         expect(findings).not_to be_empty
-        expect(findings.map { |f| f[:criticality] }.uniq).to all(satisfy { |c| [:high, :critical].include?(c) })
-        expect(findings.map { |f| f[:gem] }).to include('rack')
-        expect(findings.first).to include(:lockfile, :gem, :version, :criticality, :id)
+        expect(findings.map(&:criticality).uniq).to all(satisfy { |c| [:high, :critical].include?(c) })
+        expect(findings.map(&:gem)).to include('rack')
+        expect(findings.first).to have_attributes(lockfile: a_kind_of(String), gem: a_kind_of(String), version: a_kind_of(String), criticality: a_kind_of(Symbol), id: a_kind_of(String))
       end
 
       it 'returns nothing for a clean lockfile' do
@@ -35,13 +35,13 @@ if Gem.loaded_specs.key?('bundler-audit')
         all = described_class.findings(
           ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: [],
         )
-        ignored_id = all.first[:id]
+        ignored_id = all.first.id
 
         remaining = described_class.findings(
           ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: [ignored_id],
         )
 
-        expect(remaining.map { |f| f[:id] }).not_to include(ignored_id)
+        expect(remaining.map(&:id)).not_to include(ignored_id)
       end
     end
   end
