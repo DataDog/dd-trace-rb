@@ -1,69 +1,69 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'msgpack'
+require "msgpack"
 
-require 'datadog/tracing/distributed/trace_context'
-require 'datadog/tracing/span_link'
-require 'datadog/tracing/trace_digest'
+require "datadog/tracing/distributed/trace_context"
+require "datadog/tracing/span_link"
+require "datadog/tracing/trace_digest"
 
-RSpec.shared_examples 'Trace Context distributed format' do
-  let(:propagation_style_inject) { ['tracecontext'] }
-  let(:propagation_style_extract) { ['tracecontext'] }
+RSpec.shared_examples "Trace Context distributed format" do
+  let(:propagation_style_inject) { ["tracecontext"] }
+  let(:propagation_style_extract) { ["tracecontext"] }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
-  describe '#inject!' do
+  describe "#inject!" do
     subject!(:inject!) { propagation.inject!(digest, data) }
     let(:data) { {} }
 
-    let(:traceparent) { data['traceparent'] }
-    let(:tracestate) { data['tracestate'] }
+    let(:traceparent) { data["traceparent"] }
+    let(:tracestate) { data["tracestate"] }
     let(:trace_flags) { traceparent[53..54] }
 
-    context 'with a nil digest' do
+    context "with a nil digest" do
       let(:digest) { nil }
       it { is_expected.to be nil }
     end
 
-    context 'a digest' do
+    context "a digest" do
       let(:span_links) { [] }
       let(:digest) { Datadog::Tracing::TraceDigest.new(trace_id: 0xC0FFEE, span_id: 0xBEE, span_links: span_links, **options) }
       let(:options) { {} }
 
-      it { expect(traceparent).to eq('00-00000000000000000000000000c0ffee-0000000000000bee-00') }
+      it { expect(traceparent).to eq("00-00000000000000000000000000c0ffee-0000000000000bee-00") }
 
-      context 'with trace_flags' do
-        context 'with a dropped trace' do
+      context "with trace_flags" do
+        context "with a dropped trace" do
           let(:options) { {trace_flags: 0xFF, trace_sampling_priority: -1} }
 
-          it 'changes last bit to 0' do
-            expect(trace_flags).to eq('fe')
+          it "changes last bit to 0" do
+            expect(trace_flags).to eq("fe")
           end
         end
 
-        context 'with a kept trace' do
+        context "with a kept trace" do
           let(:options) { {trace_flags: 0xFE, trace_sampling_priority: 1} }
 
-          it 'changes last bit to 1' do
-            expect(trace_flags).to eq('ff')
+          it "changes last bit to 1" do
+            expect(trace_flags).to eq("ff")
           end
         end
 
-        context 'with no priority sampling' do
+        context "with no priority sampling" do
           let(:options) { {trace_flags: 0xFF, trace_sampling_priority: nil} }
 
-          it 'does not change the last bit' do
-            expect(trace_flags).to eq('ff')
+          it "does not change the last bit" do
+            expect(trace_flags).to eq("ff")
           end
         end
       end
 
-      context 'with sampling priority' do
+      context "with sampling priority" do
         {
-          -1 => '00',
-          0 => '00',
-          1 => '01',
-          2 => '01',
+          -1 => "00",
+          0 => "00",
+          1 => "01",
+          2 => "01",
         }.each do |sampling_priority, expected_trace_flags|
           context "with sampling_priority #{sampling_priority}" do
             let(:digest) do
@@ -84,21 +84,21 @@ RSpec.shared_examples 'Trace Context distributed format' do
           end
         end
 
-        context 'with origin' do
+        context "with origin" do
           let(:digest) do
             Datadog::Tracing::TraceDigest.new(
               trace_id: 0xC0FFEE,
               span_id: 0xBEE,
               trace_sampling_priority: 1,
-              trace_origin: 'synthetics'
+              trace_origin: "synthetics"
             )
           end
 
-          it { expect(tracestate).to eq('dd=s:1;o:synthetics') }
+          it { expect(tracestate).to eq("dd=s:1;o:synthetics") }
         end
       end
 
-      context 'with origin' do
+      context "with origin" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xC0FFEE,
@@ -107,42 +107,42 @@ RSpec.shared_examples 'Trace Context distributed format' do
           )
         end
 
-        let(:origin) { 'synthetics' }
+        let(:origin) { "synthetics" }
 
-        it { expect(tracestate).to eq('dd=o:synthetics') }
+        it { expect(tracestate).to eq("dd=o:synthetics") }
 
-        context 'with invalid characters except =' do
+        context "with invalid characters except =" do
           [
             "\u0000", # First unicode character
             "\u0019", # Last lower invalid character
-            ',',
-            ';',
-            '~',
+            ",",
+            ";",
+            "~",
             "\u007F", # First upper invalid character
             "\u{10FFFF}" # Last unicode character
           ].each do |character|
             context character.inspect do
               let(:origin) { character }
 
-              it { expect(tracestate).to eq('dd=o:_') }
+              it { expect(tracestate).to eq("dd=o:_") }
             end
           end
         end
 
-        context 'with = character' do
+        context "with = character" do
           [
-            '=',
+            "=",
           ].each do |character|
             context character.inspect do
               let(:origin) { character }
 
-              it { expect(tracestate).to eq('dd=o:~') }
+              it { expect(tracestate).to eq("dd=o:~") }
             end
           end
         end
       end
 
-      context 'with 128 bit trace id' do
+      context "with 128 bit trace id" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
@@ -153,11 +153,11 @@ RSpec.shared_examples 'Trace Context distributed format' do
         it do
           inject!
 
-          expect(traceparent).to eq('00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00')
+          expect(traceparent).to eq("00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00")
         end
       end
 
-      context 'with trace_distributed_tags' do
+      context "with trace_distributed_tags" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xC0FFEE,
@@ -166,89 +166,89 @@ RSpec.shared_examples 'Trace Context distributed format' do
           )
         end
 
-        context 'nil' do
+        context "nil" do
           let(:tags) { nil }
           it { expect(digest.span_remote).to eq(true) }
           it { expect(tracestate).to be_nil }
         end
 
-        context '{}' do
+        context "{}" do
           let(:tags) { {} }
           it { expect(digest.span_remote).to eq(true) }
           it { expect(tracestate).to be_nil }
         end
 
         context "{ 'key' => 'value' }" do
-          let(:tags) { {'key' => 'value'} }
-          it { expect(tracestate).to eq('dd=t.key:value') }
+          let(:tags) { {"key" => "value"} }
+          it { expect(tracestate).to eq("dd=t.key:value") }
         end
 
         context "{ '_dd.p.dm' => '-1' }" do
-          let(:tags) { {'_dd.p.dm' => '-1'} }
-          it { expect(tracestate).to eq('dd=t.dm:-1') }
+          let(:tags) { {"_dd.p.dm" => "-1"} }
+          it { expect(tracestate).to eq("dd=t.dm:-1") }
         end
 
         context "{ 'key' => 'value=with=equals' }" do
-          let(:tags) { {'key' => 'value=with=equals'} }
-          it { expect(tracestate).to eq('dd=t.key:value~with~equals') }
+          let(:tags) { {"key" => "value=with=equals"} }
+          it { expect(tracestate).to eq("dd=t.key:value~with~equals") }
 
-          it 'does not modify the original TraceDigest' do
-            expect(digest.trace_distributed_tags['key']).to eq('value=with=equals')
+          it "does not modify the original TraceDigest" do
+            expect(digest.trace_distributed_tags["key"]).to eq("value=with=equals")
           end
         end
 
-        context 'too large' do
-          let(:tags) { {'k' => 'v' * 250} } # 257 chars after it's formatted as "dd=t.#{key}:#{value}"
+        context "too large" do
+          let(:tags) { {"k" => "v" * 250} } # 257 chars after it's formatted as "dd=t.#{key}:#{value}"
 
           it { expect(tracestate).to be_nil }
         end
 
-        context 'with the maximum size' do
-          let(:tags) { {'k' => 'v' * 249} } # 256 chars after it's formatted as "dd=t.#{key}:#{value}"
+        context "with the maximum size" do
+          let(:tags) { {"k" => "v" * 249} } # 256 chars after it's formatted as "dd=t.#{key}:#{value}"
 
           it { expect(tracestate.size).to eq(256) }
         end
 
-        context 'invalid key characters' do
+        context "invalid key characters" do
           [
             "\u0000", # First unicode character
-            ' ', # Last lower invalid character
-            ',',
-            '=',
+            " ", # Last lower invalid character
+            ",",
+            "=",
             "\u007F", # First upper invalid character
             "\u{10FFFF}" # Last unicode character
           ].each do |character|
             context character.inspect do
-              let(:tags) { {character => 'value'} }
+              let(:tags) { {character => "value"} }
 
-              it { expect(tracestate).to eq('dd=t._:value') }
+              it { expect(tracestate).to eq("dd=t._:value") }
             end
           end
         end
 
-        context 'invalid value characters' do
+        context "invalid value characters" do
           [
             "\u0000", # First unicode character
             "\u001F", # Last lower invalid character
-            ',',
-            ';',
-            '~', # First upper invalid character (\u007E)
+            ",",
+            ";",
+            "~", # First upper invalid character (\u007E)
             "\u{10FFFF}" # Last unicode character
           ].each do |character|
             context character.inspect do
-              let(:tags) { {'key' => character.dup} }
+              let(:tags) { {"key" => character.dup} }
 
-              it { expect(tracestate).to eq('dd=t.key:_') }
+              it { expect(tracestate).to eq("dd=t.key:_") }
 
-              it 'does not modify the original TraceDigest' do
-                expect(digest.trace_distributed_tags['key']).to eq(character)
+              it "does not modify the original TraceDigest" do
+                expect(digest.trace_distributed_tags["key"]).to eq(character)
               end
             end
           end
         end
       end
 
-      context 'with span_remote' do
+      context "with span_remote" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xC0FFEE,
@@ -258,88 +258,88 @@ RSpec.shared_examples 'Trace Context distributed format' do
           )
         end
 
-        context 'and with local span' do
+        context "and with local span" do
           let(:remote) { false }
-          it { expect(tracestate).to eq('dd=p:0000000000000bee') }
+          it { expect(tracestate).to eq("dd=p:0000000000000bee") }
         end
 
-        context 'and with remote span' do
+        context "and with remote span" do
           let(:remote) { true }
           it { expect(tracestate).to be_nil }
         end
       end
 
-      context 'with a upstream tracestate' do
+      context "with a upstream tracestate" do
         let(:options) { {trace_state: upstream_tracestate} }
-        let(:upstream_tracestate) { 'other=vendor' }
+        let(:upstream_tracestate) { "other=vendor" }
 
-        context 'without local Datadog-specific values' do
-          it 'propagates unmodified tracestate' do
+        context "without local Datadog-specific values" do
+          it "propagates unmodified tracestate" do
             expect(tracestate).to eq(upstream_tracestate)
           end
 
-          context 'with upstream `dd=` values' do
-            let(:upstream_tracestate) { 'dd=old_value,other=vendor,dd=oops_forgot_to_remove_this' }
+          context "with upstream `dd=` values" do
+            let(:upstream_tracestate) { "dd=old_value,other=vendor,dd=oops_forgot_to_remove_this" }
 
-            it 'propagates unmodified tracestate' do
+            it "propagates unmodified tracestate" do
               expect(tracestate).to eq(upstream_tracestate)
             end
           end
         end
 
-        context 'with local Datadog-specific values' do
-          let(:options) { super().merge(trace_origin: 'origin') }
+        context "with local Datadog-specific values" do
+          let(:options) { super().merge(trace_origin: "origin") }
 
-          context 'and existing `dd=` tracestate values' do
-            let(:upstream_tracestate) { 'dd=old_value,other=vendor,dd=oops_forgot_to_remove_this' }
+          context "and existing `dd=` tracestate values" do
+            let(:upstream_tracestate) { "dd=old_value,other=vendor,dd=oops_forgot_to_remove_this" }
 
-            it 'removes existing `dd=` values, prepending new `dd=` value' do
-              expect(tracestate).to eq('dd=o:origin,other=vendor')
+            it "removes existing `dd=` values, prepending new `dd=` value" do
+              expect(tracestate).to eq("dd=o:origin,other=vendor")
             end
           end
 
-          context 'and 32 upstream tracestate entries' do
-            let(:upstream_tracestate) { Array.new(32) { |i| "other=vendor#{i}" }.join(',') }
+          context "and 32 upstream tracestate entries" do
+            let(:upstream_tracestate) { Array.new(32) { |i| "other=vendor#{i}" }.join(",") }
 
-            it 'removes 1 trailing value, prepending new `dd=` value' do
-              expect(tracestate).to eq('dd=o:origin,' + Array.new(31) { |i| "other=vendor#{i}" }.join(','))
+            it "removes 1 trailing value, prepending new `dd=` value" do
+              expect(tracestate).to eq("dd=o:origin," + Array.new(31) { |i| "other=vendor#{i}" }.join(","))
             end
           end
 
-          context 'and an oversized upstream tracestate' do
-            let(:upstream_tracestate) { Array.new(100) { |i| "other#{i}=vendor#{i}" }.join(',') }
+          context "and an oversized upstream tracestate" do
+            let(:upstream_tracestate) { Array.new(100) { |i| "other#{i}=vendor#{i}" }.join(",") }
 
-            it 'truncates whole values to the tracestate limit' do
-              expect(tracestate).to start_with('dd=o:origin,')
+            it "truncates whole values to the tracestate limit" do
+              expect(tracestate).to start_with("dd=o:origin,")
               expect(tracestate.bytesize).to be <= 512
-              expect(tracestate.split(',').all? { |member| member.include?('=') }).to be true
+              expect(tracestate.split(",").all? { |member| member.include?("=") }).to be true
             end
           end
 
-          context 'and unknown `dd=` tracestate values' do
-            let(:options) { super().merge(trace_origin: 'origin', trace_state_unknown_fields: 'future=field;') }
+          context "and unknown `dd=` tracestate values" do
+            let(:options) { super().merge(trace_origin: "origin", trace_state_unknown_fields: "future=field;") }
 
-            it 'joins known and unknown `dd=` fields' do
-              expect(tracestate).to eq('dd=o:origin;future=field,other=vendor')
+            it "joins known and unknown `dd=` fields" do
+              expect(tracestate).to eq("dd=o:origin;future=field,other=vendor")
             end
           end
 
-          context 'and oversized unknown `dd=` tracestate values' do
+          context "and oversized unknown `dd=` tracestate values" do
             let(:options) do
               super().merge(
-                trace_origin: 'origin',
-                trace_state_unknown_fields: "future=field;large:#{'x' * 300};small:ok;"
+                trace_origin: "origin",
+                trace_state_unknown_fields: "future=field;large:#{"x" * 300};small:ok;"
               )
             end
 
-            it 'drops unknown fields when they exceed the Datadog value limit' do
-              expect(tracestate).to eq('dd=o:origin,other=vendor')
+            it "drops unknown fields when they exceed the Datadog value limit" do
+              expect(tracestate).to eq("dd=o:origin,other=vendor")
             end
           end
         end
       end
 
-      context 'with span_id nil' do
+      context "with span_id nil" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xC0FFEE,
@@ -347,117 +347,117 @@ RSpec.shared_examples 'Trace Context distributed format' do
           )
         end
 
-        it 'sets span component to all zeros' do
-          expect(traceparent).to eq('00-00000000000000000000000000c0ffee-0000000000000000-00')
+        it "sets span component to all zeros" do
+          expect(traceparent).to eq("00-00000000000000000000000000c0ffee-0000000000000000-00")
         end
       end
     end
   end
 
-  describe '#extract' do
+  describe "#extract" do
     subject(:extract) { propagation.extract(data) }
     let(:data) do
-      {prepare_key['traceparent'] => traceparent,
-       prepare_key['tracestate'] => tracestate}
+      {prepare_key["traceparent"] => traceparent,
+       prepare_key["tracestate"] => tracestate}
     end
     let(:traceparent) { "#{version}-#{trace_id}-#{parent_id}-#{trace_flags}" }
-    let(:version) { '01' }
-    let(:trace_id) { '00000000000000000000000000c0ffee' }
-    let(:parent_id) { '0000000000000bee' }
-    let(:trace_flags) { '00' }
-    let(:tracestate) { '' }
+    let(:version) { "01" }
+    let(:trace_id) { "00000000000000000000000000c0ffee" }
+    let(:parent_id) { "0000000000000bee" }
+    let(:trace_flags) { "00" }
+    let(:tracestate) { "" }
 
     let(:digest) { extract }
 
-    context 'with traceparent fields with incorrect sizes' do
-      context 'version with incorrect size' do
-        let(:version) { '0' }
+    context "with traceparent fields with incorrect sizes" do
+      context "version with incorrect size" do
+        let(:version) { "0" }
         it { is_expected.to be_nil }
       end
 
-      context 'trace_id with incorrect size' do
-        let(:trace_id) { 'c0ffee' }
+      context "trace_id with incorrect size" do
+        let(:trace_id) { "c0ffee" }
         it { is_expected.to be_nil }
       end
 
-      context 'parent_id with incorrect size' do
-        let(:parent_id) { 'fee' }
+      context "parent_id with incorrect size" do
+        let(:parent_id) { "fee" }
         it { is_expected.to be_nil }
       end
 
-      context 'trace flags with incorrect size' do
-        let(:trace_flags) { '0' }
+      context "trace flags with incorrect size" do
+        let(:trace_flags) { "0" }
         it { is_expected.to be_nil }
       end
 
-      context 'more fields than expected' do
-        let(:traceparent) { '00-00000000000000000000000000c0ffee-0000000000000bee-01-FFFFF' }
+      context "more fields than expected" do
+        let(:traceparent) { "00-00000000000000000000000000c0ffee-0000000000000bee-01-FFFFF" }
         it { is_expected.to be_nil }
       end
 
-      context 'prohibitively large future version' do
-        let(:traceparent) { '01-00000000000000000000000000c0ffee-0000000000000bee-01-' + ('x' * 512) }
+      context "prohibitively large future version" do
+        let(:traceparent) { "01-00000000000000000000000000c0ffee-0000000000000bee-01-" + ("x" * 512) }
         it { is_expected.to be_nil }
       end
     end
 
-    context 'without data' do
+    context "without data" do
       let(:data) { {} }
       it { is_expected.to be nil }
     end
 
-    context 'with traceparent and distributed_tag `t.tid` in tracestate' do
+    context "with traceparent and distributed_tag `t.tid` in tracestate" do
       let(:data) do
         {
-          prepare_key['traceparent'] => '00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00',
-          prepare_key['tracestate'] => 'dd=t.tid:cccccccccccccccc'
+          prepare_key["traceparent"] => "00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00",
+          prepare_key["tracestate"] => "dd=t.tid:cccccccccccccccc"
         }
       end
 
       it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-      it { expect(digest.trace_distributed_tags).to eq({'_dd.parent_id' => '0000000000000000'}) }
+      it { expect(digest.trace_distributed_tags).to eq({"_dd.parent_id" => "0000000000000000"}) }
     end
 
-    context 'with traceparent without tracestate' do
+    context "with traceparent without tracestate" do
       let(:data) do
         {
-          prepare_key['traceparent'] => '00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00',
+          prepare_key["traceparent"] => "00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00",
         }
       end
 
       it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-      it { expect(digest.trace_distributed_tags).to eq({'_dd.parent_id' => '0000000000000000'}) }
+      it { expect(digest.trace_distributed_tags).to eq({"_dd.parent_id" => "0000000000000000"}) }
     end
 
-    context 'with traceparent and with empty tracestate' do
+    context "with traceparent and with empty tracestate" do
       let(:data) do
         {
-          prepare_key['traceparent'] => '00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00',
-          prepare_key['tracestate'] => ''
+          prepare_key["traceparent"] => "00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00",
+          prepare_key["tracestate"] => ""
         }
       end
 
       it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-      it { expect(digest.trace_distributed_tags).to eq({'_dd.parent_id' => '0000000000000000'}) }
+      it { expect(digest.trace_distributed_tags).to eq({"_dd.parent_id" => "0000000000000000"}) }
     end
 
-    context 'with valid trace_id and parent_id' do
+    context "with valid trace_id and parent_id" do
       it { expect(digest.trace_id).to eq(0xC0FFEE) }
       it { expect(digest.span_id).to eq(0xBEE) }
       it { expect(digest.trace_origin).to be nil }
       it { expect(digest.trace_sampling_priority).to eq(0) }
       it { expect(digest.span_remote).to be true }
 
-      context 'and trace_id larger than 64 bits' do
-        let(:trace_id) { 'ace00000000000000000000000c0ffee' }
+      context "and trace_id larger than 64 bits" do
+        let(:trace_id) { "ace00000000000000000000000c0ffee" }
 
         it { expect(digest.trace_id).to eq(0xACE00000000000000000000000C0FFEE) }
       end
 
-      context 'with sampling priority' do
+      context "with sampling priority" do
         [
           {sampled_flag: 0, priority: -1, expected_priority: -1},
           {sampled_flag: 0, priority: 0, expected_priority: 0},
@@ -485,100 +485,100 @@ RSpec.shared_examples 'Trace Context distributed format' do
         end
       end
 
-      context 'with origin' do
-        let(:tracestate) { 'dd=o:synthetics' }
+      context "with origin" do
+        let(:tracestate) { "dd=o:synthetics" }
 
-        it { expect(digest.trace_origin).to eq('synthetics') }
+        it { expect(digest.trace_origin).to eq("synthetics") }
       end
 
-      context 'with trace_distributed_tags' do
+      context "with trace_distributed_tags" do
         subject(:trace_distributed_tags) { extract.trace_distributed_tags }
         let(:tracestate) { "dd=#{tags};s:1" }
 
-        context 'nil' do
+        context "nil" do
           let(:tags) { nil }
-          it { is_expected.to eq({'_dd.parent_id' => '0000000000000000'}) }
+          it { is_expected.to eq({"_dd.parent_id" => "0000000000000000"}) }
         end
 
-        context 'an empty value' do
-          let(:tags) { '' }
-          it { is_expected.to eq({'_dd.parent_id' => '0000000000000000'}) }
+        context "an empty value" do
+          let(:tags) { "" }
+          it { is_expected.to eq({"_dd.parent_id" => "0000000000000000"}) }
         end
 
         context "{ '_dd.p.key' => 'value' }" do
-          let(:tags) { 't.key:value' }
-          it { is_expected.to eq('_dd.p.key' => 'value', '_dd.parent_id' => '0000000000000000') }
+          let(:tags) { "t.key:value" }
+          it { is_expected.to eq("_dd.p.key" => "value", "_dd.parent_id" => "0000000000000000") }
         end
 
-        context 'last datadog parent id in tracestate' do
-          let(:tracestate) { 'dd=p:cc00000000000aaa' }
-          it { is_expected.to eq({'_dd.parent_id' => 'cc00000000000aaa'}) }
+        context "last datadog parent id in tracestate" do
+          let(:tracestate) { "dd=p:cc00000000000aaa" }
+          it { is_expected.to eq({"_dd.parent_id" => "cc00000000000aaa"}) }
         end
 
         context "{ '_dd.p.dm' => '-1' }" do
-          let(:tags) { 't.dm:-1' }
+          let(:tags) { "t.dm:-1" }
 
-          context 'with a dropped trace' do
-            let(:trace_flags) { '00' }
-            it { is_expected.to_not include('_dd.p.dm') }
+          context "with a dropped trace" do
+            let(:trace_flags) { "00" }
+            it { is_expected.to_not include("_dd.p.dm") }
           end
 
-          context 'with a kept trace' do
-            let(:trace_flags) { '01' }
-            it { is_expected.to eq({'_dd.p.dm' => '-1', '_dd.parent_id' => '0000000000000000'}) }
+          context "with a kept trace" do
+            let(:trace_flags) { "01" }
+            it { is_expected.to eq({"_dd.p.dm" => "-1", "_dd.parent_id" => "0000000000000000"}) }
           end
         end
 
         context "{ 'key' => 'value~with~tilde' }" do
-          let(:tags) { 't.key:value~with~tilde' }
-          it { is_expected.to eq({'_dd.p.key' => 'value=with=tilde', '_dd.parent_id' => '0000000000000000'}) }
+          let(:tags) { "t.key:value~with~tilde" }
+          it { is_expected.to eq({"_dd.p.key" => "value=with=tilde", "_dd.parent_id" => "0000000000000000"}) }
         end
       end
 
-      context 'with unknown tracestate fields' do
+      context "with unknown tracestate fields" do
         let(:tracestate) { "dd=i_don't_know_this:field;o:origin" }
 
         it { expect(digest.trace_state_unknown_fields).to eq("i_don't_know_this:field;") }
 
         it { expect(digest.trace_id).to eq(0xC0FFEE) }
         it { expect(digest.span_id).to eq(0xBEE) }
-        it { expect(digest.trace_origin).to eq('origin') }
+        it { expect(digest.trace_origin).to eq("origin") }
       end
 
-      context 'with multiple tracestate vendors' do
-        let(:tracestate) { 'dd=o:origin,v1=1,v2=2' }
+      context "with multiple tracestate vendors" do
+        let(:tracestate) { "dd=o:origin,v1=1,v2=2" }
 
         it { expect(digest.trace_id).to eq(0xC0FFEE) }
         it { expect(digest.span_id).to eq(0xBEE) }
-        it { expect(digest.trace_state).to eq('v1=1,v2=2') }
-        it { expect(digest.trace_origin).to eq('origin') }
+        it { expect(digest.trace_state).to eq("v1=1,v2=2") }
+        it { expect(digest.trace_origin).to eq("origin") }
       end
 
       # HTTP frameworks (Rack and friends) hand header values to applications tagged
       # as ASCII-8BIT. See https://github.com/rack/rack/blob/5f06728c28f651a12eba6201e408474d30f79d3d/SPEC.rdoc?plain=1#L17
       # msgpack-ruby serializes those as `bin` rather than `str`,
       # which the agent's wire schema rejects for `SpanLinks[N].Tracestate`.
-      context 'with an ASCII-8BIT-tagged tracestate header' do
+      context "with an ASCII-8BIT-tagged tracestate header" do
         let(:tracestate) do
-          String.new('dd=o:origin,v1=1,v2=2', encoding: Encoding::ASCII_8BIT)
+          String.new("dd=o:origin,v1=1,v2=2", encoding: Encoding::ASCII_8BIT)
         end
 
-        it 'stores trace_state as UTF-8' do
-          expect(digest.trace_state).to eq('v1=1,v2=2')
+        it "stores trace_state as UTF-8" do
+          expect(digest.trace_state).to eq("v1=1,v2=2")
           expect(digest.trace_state.encoding).to eq(Encoding::UTF_8)
         end
 
-        it 'still extracts Datadog fields from the dd= entry' do
-          expect(digest.trace_origin).to eq('origin')
+        it "still extracts Datadog fields from the dd= entry" do
+          expect(digest.trace_origin).to eq("origin")
         end
       end
 
-      context 'with an ASCII-8BIT tracestate containing invalid UTF-8 bytes' do
+      context "with an ASCII-8BIT tracestate containing invalid UTF-8 bytes" do
         let(:tracestate) do
           String.new("v1=1,vendor=foo\xFFbar", encoding: Encoding::ASCII_8BIT)
         end
 
-        it 'drops the tracestate but keeps the traceparent' do
+        it "drops the tracestate but keeps the traceparent" do
           expect(digest.trace_id).to eq(0xC0FFEE)
           expect(digest.span_id).to eq(0xBEE)
           expect(digest.trace_state).to be_nil
@@ -588,14 +588,14 @@ RSpec.shared_examples 'Trace Context distributed format' do
       # The size-limit truncation in split_tracestate runs before encoding
       # validation, so an invalid byte that would be discarded by truncation
       # does not poison the parseable prefix.
-      context 'with an oversized ASCII-8BIT tracestate where invalid bytes are only in the truncated tail' do
+      context "with an oversized ASCII-8BIT tracestate where invalid bytes are only in the truncated tail" do
         let(:tracestate) do
-          String.new("dd=o:origin,v=1,#{'a' * 600}\xFF", encoding: Encoding::ASCII_8BIT)
+          String.new("dd=o:origin,v=1,#{"a" * 600}\xFF", encoding: Encoding::ASCII_8BIT)
         end
 
-        it 'preserves the parseable prefix instead of dropping the whole field' do
-          expect(digest.trace_origin).to eq('origin')
-          expect(digest.trace_state).to eq('v=1')
+        it "preserves the parseable prefix instead of dropping the whole field" do
+          expect(digest.trace_origin).to eq("origin")
+          expect(digest.trace_state).to eq("v=1")
           expect(digest.trace_state.encoding).to eq(Encoding::UTF_8)
         end
       end
@@ -604,134 +604,134 @@ RSpec.shared_examples 'Trace Context distributed format' do
       # SpanLink#to_hash and msgpack as a `str`, not a `bin`. msgpack-ruby
       # uses encoding as a type signal — ASCII-8BIT serializes as `bin`,
       # which the agent's wire schema rejects for `SpanLinks[N].Tracestate`.
-      context 'when the digest is serialized as a SpanLink through msgpack' do
+      context "when the digest is serialized as a SpanLink through msgpack" do
         let(:tracestate) do
-          String.new('dd=o:origin,v1=1,v2=2', encoding: Encoding::ASCII_8BIT)
+          String.new("dd=o:origin,v1=1,v2=2", encoding: Encoding::ASCII_8BIT)
         end
 
         let(:link_hash) { Datadog::Tracing::SpanLink.new(digest).to_hash }
         let(:roundtripped) { MessagePack.unpack(MessagePack.pack(link_hash)) }
 
-        it 'encodes tracestate as a msgpack str (UTF-8 on unpack), not bin' do
-          expect(roundtripped['tracestate']).to eq('v1=1,v2=2')
-          expect(roundtripped['tracestate'].encoding).to eq(Encoding::UTF_8)
+        it "encodes tracestate as a msgpack str (UTF-8 on unpack), not bin" do
+          expect(roundtripped["tracestate"]).to eq("v1=1,v2=2")
+          expect(roundtripped["tracestate"].encoding).to eq(Encoding::UTF_8)
         end
       end
 
-      context 'with oversized tracestate vendors' do
-        let(:tracestate) { Array.new(100) { |i| "v#{i}=#{'a' * 8}" }.join(',') }
+      context "with oversized tracestate vendors" do
+        let(:tracestate) { Array.new(100) { |i| "v#{i}=#{"a" * 8}" }.join(",") }
 
-        it 'truncates whole values to the tracestate limit' do
+        it "truncates whole values to the tracestate limit" do
           expect(digest.trace_state.bytesize).to be <= 512
-          expect(digest.trace_state.split(',').length).to be <= 32
-          expect(digest.trace_state.split(',').all? { |member| member.include?('=') }).to be true
+          expect(digest.trace_state.split(",").length).to be <= 32
+          expect(digest.trace_state.split(",").all? { |member| member.include?("=") }).to be true
         end
       end
 
-      context 'with more than 32 tracestate vendors' do
-        let(:tracestate) { Array.new(33) { |i| "v#{i}=1" }.join(',') }
+      context "with more than 32 tracestate vendors" do
+        let(:tracestate) { Array.new(33) { |i| "v#{i}=1" }.join(",") }
 
-        it 'keeps only the first 32 values' do
-          expect(digest.trace_state).to eq(Array.new(32) { |i| "v#{i}=1" }.join(','))
+        it "keeps only the first 32 values" do
+          expect(digest.trace_state).to eq(Array.new(32) { |i| "v#{i}=1" }.join(","))
         end
       end
 
-      context 'with an oversized tracestate value' do
-        let(:tracestate) { 'v=' + ('a' * 600) }
+      context "with an oversized tracestate value" do
+        let(:tracestate) { "v=" + ("a" * 600) }
 
         it { expect(digest.trace_state).to be_nil }
       end
 
-      context 'with a tracestate value at the size limit' do
-        let(:tracestate) { 'v=' + ('a' * 510) }
+      context "with a tracestate value at the size limit" do
+        let(:tracestate) { "v=" + ("a" * 510) }
 
         it { expect(digest.trace_state).to eq(tracestate) }
       end
 
-      context 'with a tracestate delimiter one byte after the size limit' do
-        let(:member) { 'v=' + ('a' * 510) }
+      context "with a tracestate delimiter one byte after the size limit" do
+        let(:member) { "v=" + ("a" * 510) }
         let(:tracestate) { "#{member},other=value" }
 
         it { expect(digest.trace_state).to eq(member) }
       end
 
-      context 'with ambiguous whitespace one byte after the size limit' do
-        let(:member) { 'v=' + ('a' * 510) }
+      context "with ambiguous whitespace one byte after the size limit" do
+        let(:member) { "v=" + ("a" * 510) }
         let(:tracestate) { "#{member} ,other=value" }
 
         it { expect(digest.trace_state).to be_nil }
       end
 
-      context 'with an oversized tracestate tail' do
-        let(:tracestate) { 'v=1,' + ('a' * 600) }
+      context "with an oversized tracestate tail" do
+        let(:tracestate) { "v=1," + ("a" * 600) }
 
-        it { expect(digest.trace_state).to eq('v=1') }
+        it { expect(digest.trace_state).to eq("v=1") }
       end
 
-      context 'with a trailing tracestate member truncated inside a multibyte character' do
-        let(:complete_member) { 'v=1' }
-        let(:partial_key) { 'w=' }
+      context "with a trailing tracestate member truncated inside a multibyte character" do
+        let(:complete_member) { "v=1" }
+        let(:partial_key) { "w=" }
         let(:partial_value) do
-          'a' * (512 - complete_member.bytesize - 1 - partial_key.bytesize - 1) + '🍀' # A 4-leaf clover, 4-byte character
+          "a" * (512 - complete_member.bytesize - 1 - partial_key.bytesize - 1) + "🍀" # A 4-leaf clover, 4-byte character
         end
         let(:tracestate) { "#{complete_member},#{partial_key}#{partial_value}" }
 
-        it 'extracts complete members before the partial multibyte tail' do
+        it "extracts complete members before the partial multibyte tail" do
           expect(digest.trace_state).to eq(complete_member)
         end
       end
 
-      context 'trailing whitespace' do
-        let(:traceparent) { '00-00000000000000000000000000c0ffee-0000000000000bee-00 ' }
+      context "trailing whitespace" do
+        let(:traceparent) { "00-00000000000000000000000000c0ffee-0000000000000bee-00 " }
 
         it { expect(digest.trace_id).to eq(0xC0FFEE) }
         it { expect(digest.span_id).to eq(0xBEE) }
         it { expect(digest.trace_sampling_priority).to eq(0) }
       end
 
-      context 'with a future version' do
-        let(:version) { '57' }
-        let(:trace_flags) { '01' }
+      context "with a future version" do
+        let(:version) { "57" }
+        let(:trace_flags) { "01" }
 
-        shared_examples 'parses tracestate using version 00 logic' do
+        shared_examples "parses tracestate using version 00 logic" do
           it { expect(digest.trace_id).to eq(0xC0FFEE) }
           it { expect(digest.span_id).to eq(0xBEE) }
           it { expect(digest.trace_sampling_priority).to eq(1) }
         end
 
-        include_examples 'parses tracestate using version 00 logic'
+        include_examples "parses tracestate using version 00 logic"
 
-        context 'traceparent ending in dash' do
-          let(:traceparent) { super() + '-' }
+        context "traceparent ending in dash" do
+          let(:traceparent) { super() + "-" }
 
-          include_examples 'parses tracestate using version 00 logic'
+          include_examples "parses tracestate using version 00 logic"
         end
 
-        context 'traceparent with extra unknown fields' do
-          let(:traceparent) { super() + '-fff-aaa' }
+        context "traceparent with extra unknown fields" do
+          let(:traceparent) { super() + "-fff-aaa" }
 
-          include_examples 'parses tracestate using version 00 logic'
+          include_examples "parses tracestate using version 00 logic"
         end
       end
 
-      context 'with an invalid version' do
-        let(:version) { 'ff' }
+      context "with an invalid version" do
+        let(:version) { "ff" }
         it { is_expected.to be_nil }
       end
 
-      context 'with a illegal characters' do
-        let(:version) { '.0' }
+      context "with a illegal characters" do
+        let(:version) { ".0" }
         it { is_expected.to be_nil }
       end
     end
 
-    context 'with only trace_id' do
-      let(:parent_id) { '0000000000000000' }
+    context "with only trace_id" do
+      let(:parent_id) { "0000000000000000" }
       it { is_expected.to be nil }
     end
 
-    context 'with only parent_id' do
-      let(:trace_id) { '00000000000000000000000000000000' }
+    context "with only parent_id" do
+      let(:trace_id) { "00000000000000000000000000000000" }
       it { is_expected.to be nil }
     end
   end
@@ -741,5 +741,5 @@ RSpec.describe Datadog::Tracing::Distributed::TraceContext do
   subject(:propagation) { described_class.new(fetcher: fetcher_class) }
   let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
 
-  it_behaves_like 'Trace Context distributed format'
+  it_behaves_like "Trace Context distributed format"
 end

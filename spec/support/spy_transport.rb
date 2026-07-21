@@ -1,7 +1,7 @@
-require 'datadog/core/encoding'
-require 'datadog/tracing/transport/http'
+require "datadog/core/encoding"
+require "datadog/tracing/transport/http"
 
-shared_context 'Datadog::Tracing::Transport::HTTP::Client spy' do
+shared_context "Datadog::Tracing::Transport::HTTP::Client spy" do
   let(:transport) { instance_double(Datadog::Tracing::Transport::HTTP::Client) }
 
   let(:spy_encoder) { Datadog::Core::Encoding::JSONEncoder }

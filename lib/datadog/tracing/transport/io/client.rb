@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../statistics'
-require_relative 'response'
+require_relative "../statistics"
+require_relative "response"
 
 module Datadog
   module Tracing

@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require 'uri'
+require "uri"
 
-require_relative '../../metadata/ext'
-require_relative '../utils/database'
-require_relative 'ext'
-require_relative '../ext'
-require_relative '../span_attribute_schema'
+require_relative "../../metadata/ext"
+require_relative "../utils/database"
+require_relative "ext"
+require_relative "../ext"
+require_relative "../span_attribute_schema"
 
 module Datadog
   module Tracing
@@ -26,7 +26,7 @@ module Datadog
             def adapter_name(database)
               scheme = database.adapter_scheme.to_s
 
-              if scheme == 'jdbc'
+              if scheme == "jdbc"
                 # The subtype is more important in this case,
                 # otherwise all database adapters will be 'jdbc'.
                 database_type(database)
@@ -53,7 +53,7 @@ module Datadog
               return result unless match
 
               vendor = match[:vendor].downcase
-              location, properties = match[:location].split(';', 2)
+              location, properties = match[:location].split(";", 2)
 
               # Several JDBC vendors append properties with semicolons, outside the URI
               # grammar. Parse the URI-compatible location separately from those properties.
@@ -133,7 +133,7 @@ module Datadog
               # A JDBC URL (in :uri, :url, or :database) can carry credentials, so always parse
               # it and emit only the parsed database name -- never the raw connection string.
               conn = opts[:uri] || opts[:url] || opts[:database]
-              is_jdbc = conn.is_a?(String) && conn.byteslice(0, 5)&.casecmp('jdbc:') == 0
+              is_jdbc = conn.is_a?(String) && conn.byteslice(0, 5)&.casecmp("jdbc:") == 0
               if is_jdbc
                 parsed = parse_jdbc_uri(conn)
 
@@ -152,10 +152,10 @@ module Datadog
             private
 
             def database_from_path(path)
-              return unless path&.start_with?('/')
+              return unless path&.start_with?("/")
 
               database = path[1..-1]
-              return if database.empty? || database.include?('/')
+              return if database.empty? || database.include?("/")
 
               database
             end
@@ -167,7 +167,7 @@ module Datadog
               return unless match
 
               database = match[:value]
-              database = database.split(',', 2).first if match[:key].casecmp('libraries').zero?
+              database = database.split(",", 2).first if match[:key].casecmp("libraries").zero?
               database
             end
 

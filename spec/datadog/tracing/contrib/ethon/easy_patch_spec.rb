@@ -1,12 +1,12 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/environment_service_name_examples'
-require 'datadog/tracing/contrib/span_attribute_schema_examples'
-require 'datadog/tracing/contrib/svc_src_examples'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/tracing/contrib/environment_service_name_examples"
+require "datadog/tracing/contrib/span_attribute_schema_examples"
+require "datadog/tracing/contrib/svc_src_examples"
 
-require 'ethon'
-require 'datadog/tracing/contrib/ethon/easy_patch'
-require 'datadog/tracing/contrib/ethon/shared_examples'
-require 'datadog/tracing/contrib/analytics_examples'
+require "ethon"
+require "datadog/tracing/contrib/ethon/easy_patch"
+require "datadog/tracing/contrib/ethon/shared_examples"
+require "datadog/tracing/contrib/analytics_examples"
 
 RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
   let(:configuration_options) { {} }
@@ -27,81 +27,81 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
     Datadog.registry[:ethon].reset_configuration!
   end
 
-  describe '#http_request' do
-    it 'preserves HTTP request method on easy instance' do
-      easy.http_request('example.com', 'POST')
-      expect(easy.instance_eval { @datadog_method }).to eq('POST')
+  describe "#http_request" do
+    it "preserves HTTP request method on easy instance" do
+      easy.http_request("example.com", "POST")
+      expect(easy.instance_eval { @datadog_method }).to eq("POST")
     end
   end
 
-  describe '#headers=' do
-    it 'preserves HTTP headers on easy instance' do
-      easy.headers = {key: 'value'}
-      expect(easy.instance_eval { @datadog_original_headers }).to eq(key: 'value')
+  describe "#headers=" do
+    it "preserves HTTP headers on easy instance" do
+      easy.headers = {key: "value"}
+      expect(easy.instance_eval { @datadog_original_headers }).to eq(key: "value")
     end
   end
 
-  describe '#perform' do
+  describe "#perform" do
     subject { easy.perform }
 
     let(:span_op) { easy.instance_eval { @datadog_span } }
 
     before do
       expect(::Ethon::Curl).to receive(:easy_perform).and_return(0)
-      expect(easy).to receive(:url).and_return('http://example.com/test').at_least(:once)
+      expect(easy).to receive(:url).and_return("http://example.com/test").at_least(:once)
       # NOTE: suppress call to #complete to isolate #perform functionality
       expect(easy).to receive(:complete)
     end
 
-    it 'creates a span operation' do
+    it "creates a span operation" do
       subject
       expect(easy.instance_eval { @datadog_span }).to be_instance_of(Datadog::Tracing::SpanOperation)
     end
 
-    context 'when split by domain' do
+    context "when split by domain" do
       let(:configuration_options) { super().merge(split_by_domain: true) }
 
       it do
         subject
         expect(span_op.name).to eq(Datadog::Tracing::Contrib::Ethon::Ext::SPAN_REQUEST)
-        expect(span_op.service).to eq('example.com')
-        expect(span_op.resource).to eq('N/A')
+        expect(span_op.service).to eq("example.com")
+        expect(span_op.resource).to eq("N/A")
       end
 
-      context 'and the host matches a specific configuration' do
+      context "and the host matches a specific configuration" do
         before do
           Datadog.configure do |c|
             c.tracing.instrument :ethon, describes: /example\.com/ do |ethon|
-              ethon.service_name = 'baz'
+              ethon.service_name = "baz"
               ethon.split_by_domain = false
             end
 
             c.tracing.instrument :ethon, describes: /badexample\.com/ do |ethon|
-              ethon.service_name = 'baz_bad'
+              ethon.service_name = "baz_bad"
               ethon.split_by_domain = false
             end
           end
         end
 
-        it 'uses the configured service name over the domain name and the correct describes block' do
+        it "uses the configured service name over the domain name and the correct describes block" do
           subject
-          expect(span_op.service).to eq('baz')
+          expect(span_op.service).to eq("baz")
         end
       end
     end
 
-    it_behaves_like 'span' do
+    it_behaves_like "span" do
       let(:span) { span_op }
       before { subject }
 
-      let(:method) { 'N/A' }
-      let(:path) { '/test' }
-      let(:host) { 'example.com' }
-      let(:port) { '80' }
+      let(:method) { "N/A" }
+      let(:path) { "/test" }
+      let(:host) { "example.com" }
+      let(:port) { "80" }
       let(:status) { nil }
     end
 
-    it_behaves_like 'analytics for integration' do
+    it_behaves_like "analytics for integration" do
       let(:span) { span_op }
       before { subject }
 
@@ -109,167 +109,167 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
       let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Ethon::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
-    it_behaves_like 'measured span for integration', false do
+    it_behaves_like "measured span for integration", false do
       let(:span) { span_op }
       before { subject }
     end
   end
 
-  describe '#complete' do
+  describe "#complete" do
     # NOTE: perform calls complete
     subject { easy.complete }
 
     before do
-      expect(easy).to receive(:url).and_return('http://example.com/test').at_least(:once)
-      allow(easy).to receive(:mirror).and_return(double('Fake mirror', options: {response_code: 200}))
+      expect(easy).to receive(:url).and_return("http://example.com/test").at_least(:once)
+      allow(easy).to receive(:mirror).and_return(double("Fake mirror", options: {response_code: 200}))
       easy.datadog_before_request
     end
 
-    it 'creates a span' do
+    it "creates a span" do
       expect { subject }.to change { fetch_spans.first }.to be_instance_of(Datadog::Tracing::Span)
     end
 
-    it 'cleans up span operation stored on easy' do
+    it "cleans up span operation stored on easy" do
       subject
       expect(easy.instance_eval { @datadog_span }).to be_nil
     end
 
-    it_behaves_like 'environment service name', 'DD_TRACE_ETHON_SERVICE_NAME'
-    it_behaves_like 'tags _dd.svc_src', 'ethon' do
+    it_behaves_like "environment service name", "DD_TRACE_ETHON_SERVICE_NAME"
+    it_behaves_like "tags _dd.svc_src", "ethon" do
       before { subject }
     end
-    it_behaves_like 'schema version span'
+    it_behaves_like "schema version span"
 
-    context 'when response is successful' do
+    context "when response is successful" do
       before do
-        expect(easy).to receive(:mirror).and_return(double('Fake mirror', options: {response_code: 200}))
+        expect(easy).to receive(:mirror).and_return(double("Fake mirror", options: {response_code: 200}))
       end
 
-      it_behaves_like 'span' do
+      it_behaves_like "span" do
         before { subject }
 
-        let(:method) { 'N/A' }
-        let(:path) { '/test' }
-        let(:host) { 'example.com' }
-        let(:port) { '80' }
-        let(:status) { '200' }
+        let(:method) { "N/A" }
+        let(:path) { "/test" }
+        let(:host) { "example.com" }
+        let(:port) { "80" }
+        let(:status) { "200" }
       end
     end
 
-    context 'when response is 500' do
+    context "when response is 500" do
       before do
-        expect(easy).to receive(:mirror).and_return(double('Fake mirror', options: {response_code: 500}))
+        expect(easy).to receive(:mirror).and_return(double("Fake mirror", options: {response_code: 500}))
         subject
       end
 
-      it 'has tag with status code' do
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('500')
+      it "has tag with status code" do
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq("500")
       end
 
-      it 'has error set' do
+      it "has error set" do
         expect(span).to have_error
-        expect(span).to have_error_message('Request has failed with HTTP error: 500')
+        expect(span).to have_error_message("Request has failed with HTTP error: 500")
       end
     end
 
-    context 'response has not found status' do
+    context "response has not found status" do
       before do
-        expect(easy).to receive(:mirror).and_return(double('Fake mirror', options: {response_code: 404}))
+        expect(easy).to receive(:mirror).and_return(double("Fake mirror", options: {response_code: 404}))
         subject
       end
 
-      it 'has tag with status code' do
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('404')
+      it "has tag with status code" do
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq("404")
       end
 
-      it 'has no error set' do
+      it "has no error set" do
         expect(span).to_not have_error_message
       end
 
-      context 'when the server error statuses are configured to include 404' do
+      context "when the server error statuses are configured to include 404" do
         let(:server_error_statuses) { 400..599 }
 
-        it 'has error set' do
+        it "has error set" do
           expect(span).to have_error
-          expect(span).to have_error_message('Request has failed with HTTP error: 404')
+          expect(span).to have_error_message("Request has failed with HTTP error: 404")
         end
       end
     end
 
-    context 'request timed out' do
+    context "request timed out" do
       before do
         expect(easy).to receive(:mirror).and_return(
-          double('Fake mirror', options: {response_code: 0, return_code: :operation_timedout})
+          double("Fake mirror", options: {response_code: 0, return_code: :operation_timedout})
         )
         subject
       end
 
-      it 'has no status code set' do
+      it "has no status code set" do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to be_nil
       end
 
-      it 'has error set' do
-        expect(span).to have_error_message('Request has failed: Timeout was reached')
+      it "has error set" do
+        expect(span).to have_error_message("Request has failed: Timeout was reached")
       end
     end
   end
 
-  describe '#reset' do
+  describe "#reset" do
     subject { easy.reset }
 
-    context 'with headers set up' do
+    context "with headers set up" do
       before do
-        easy.headers = {key: 'value'}
+        easy.headers = {key: "value"}
       end
 
-      it 'cleans up @datadog_original_headers variable' do
+      it "cleans up @datadog_original_headers variable" do
         expect { subject }.to change { easy.instance_eval { @datadog_original_headers } }
-          .from(key: 'value').to(nil)
+          .from(key: "value").to(nil)
       end
     end
 
-    context 'with HTTP method set up' do
+    context "with HTTP method set up" do
       before do
-        easy.http_request('example.com', :put)
+        easy.http_request("example.com", :put)
       end
 
-      it 'cleans up @datadog_method variable' do
+      it "cleans up @datadog_method variable" do
         expect { subject }.to change { easy.instance_eval { @datadog_method } }
-          .from('PUT').to(nil)
+          .from("PUT").to(nil)
       end
     end
 
-    context 'with span operation initialized' do
+    context "with span operation initialized" do
       before do
-        expect(easy).to receive(:url).and_return('http://example.com/test').at_least(:once)
+        expect(easy).to receive(:url).and_return("http://example.com/test").at_least(:once)
         easy.datadog_before_request
       end
 
-      it 'cleans up @datadog_span' do
+      it "cleans up @datadog_span" do
         expect { subject }.to change { easy.instance_eval { @datadog_span } }
           .from(an_instance_of(Datadog::Tracing::SpanOperation)).to(nil)
       end
     end
   end
 
-  context 'when basic auth in url' do
-    it 'does not collect auth info' do
-      easy = Ethon::Easy.new(url: 'http://username:pasword@example.com/sample/path')
+  context "when basic auth in url" do
+    it "does not collect auth info" do
+      easy = Ethon::Easy.new(url: "http://username:pasword@example.com/sample/path")
 
       easy.perform
 
-      expect(span.get_tag('http.url')).to eq('/sample/path')
-      expect(span.get_tag('out.host')).to eq('example.com')
+      expect(span.get_tag("http.url")).to eq("/sample/path")
+      expect(span.get_tag("out.host")).to eq("example.com")
     end
   end
 
-  context 'when query string in url' do
-    it 'does not collect query string' do
-      easy = Ethon::Easy.new(url: 'http://example.com/sample/path?foo=bar')
+  context "when query string in url" do
+    it "does not collect query string" do
+      easy = Ethon::Easy.new(url: "http://example.com/sample/path?foo=bar")
 
       easy.perform
 
-      expect(span.get_tag('http.url')).to eq('/sample/path')
+      expect(span.get_tag("http.url")).to eq("/sample/path")
     end
   end
 end

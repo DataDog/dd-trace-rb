@@ -24,11 +24,11 @@ module Datadog
           end
 
           def track(value)
-            raise NotImplementedError, 'method must be implemented in subclasses'
+            raise NotImplementedError, "method must be implemented in subclasses"
           end
 
           def type
-            raise NotImplementedError, 'method must be implemented in subclasses'
+            raise NotImplementedError, "method must be implemented in subclasses"
           end
 
           def to_h
@@ -71,7 +71,7 @@ module Datadog
           # @param common [Boolean] true if the metric is common for all languages, false for Ruby-specific metric
           # @param interval [Integer] metrics aggregation interval in seconds
           def initialize(name, interval:, tags: {}, common: true)
-            raise ArgumentError, 'interval must be a positive number' if interval.nil? || interval <= 0
+            raise ArgumentError, "interval must be a positive number" if interval.nil? || interval <= 0
 
             super(name, tags: tags, common: common)
 
@@ -98,7 +98,7 @@ module Datadog
         # Count metric adds up all the submitted values in a time interval. This would be suitable for a
         # metric tracking the number of website hits, for instance.
         class Count < Base
-          TYPE = 'count'
+          TYPE = "count"
 
           def type
             TYPE
@@ -121,7 +121,7 @@ module Datadog
         # CPU usage, where taking the last value provides a representative picture of the host’s behavior during the time
         # interval.
         class Gauge < IntervalMetric
-          TYPE = 'gauge'
+          TYPE = "gauge"
 
           def type
             TYPE
@@ -141,7 +141,7 @@ module Datadog
         # The rate type takes the count and divides it by the length of the time interval. This is useful if you’re
         # interested in the number of hits per second.
         class Rate < IntervalMetric
-          TYPE = 'rate'
+          TYPE = "rate"
 
           def initialize(name, interval:, tags: {}, common: true)
             super
@@ -162,7 +162,7 @@ module Datadog
 
         # Distribution metric represents the global statistical distribution of a set of values.
         class Distribution < Base
-          TYPE = 'distributions'
+          TYPE = "distributions"
 
           def type
             TYPE

@@ -1,9 +1,9 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/logger'
+require "datadog/core/logger"
 
 RSpec.describe Datadog::Core::Logger do
-  describe '::new' do
+  describe "::new" do
     subject(:logger) { described_class.new($stdout) }
 
     it { is_expected.to be_a_kind_of(::Logger) }
@@ -11,7 +11,7 @@ RSpec.describe Datadog::Core::Logger do
     it { expect(logger.progname).to eq(Datadog::Core::Logger::PREFIX) }
   end
 
-  describe 'output' do
+  describe "output" do
     subject(:lines) do
       log_messages! # This is done to manipulate the stacktrace
       buffer.string.lines
@@ -21,18 +21,18 @@ RSpec.describe Datadog::Core::Logger do
     let(:buffer) { StringIO.new }
 
     def log_messages!
-      logger.debug('Debug message')
-      logger.info('Info message')
-      logger.warn('Warning message')
-      logger.error { 'Error message #1' }
-      logger.error('my-progname') { 'Error message #2' }
-      logger.add(Logger::ERROR, 'Error message #3')
+      logger.debug("Debug message")
+      logger.info("Info message")
+      logger.warn("Warning message")
+      logger.error { "Error message #1" }
+      logger.error("my-progname") { "Error message #2" }
+      logger.add(Logger::ERROR, "Error message #3")
     end
 
-    context 'with default settings' do
+    context "with default settings" do
       it { is_expected.to have(5).items }
 
-      it 'produces log messages with expected format' do
+      it "produces log messages with expected format" do
         expect(lines[0]).to match(/I,.*INFO -- datadog: \[datadog\] Info message/)
 
         expect(lines[1]).to match(
@@ -53,12 +53,12 @@ RSpec.describe Datadog::Core::Logger do
       end
     end
 
-    context 'with debug level set' do
+    context "with debug level set" do
       before { logger.level = ::Logger::DEBUG }
 
       it { is_expected.to have(6).items }
 
-      it 'produces log messages with expected format' do
+      it "produces log messages with expected format" do
         expect(lines[0]).to match(
           /D,.*DEBUG -- datadog: \[datadog\] \(.*logger_spec.rb.*\) Debug message/
         )

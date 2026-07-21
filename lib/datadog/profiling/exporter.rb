@@ -93,7 +93,7 @@ module Datadog
         metrics << ["ruby_global_lock_wait_time_total", gvl_waiting_time_ns_total] if gvl_waiting_time_ns_total
 
         process_tags = Datadog.configuration.experimental_propagate_process_tags_enabled ?
-          Core::Environment::Process.serialized : ''
+          Core::Environment::Process.serialized : ""
 
         Flush.new(
           start: start,
