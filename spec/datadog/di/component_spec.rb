@@ -311,7 +311,13 @@ RSpec.describe Datadog::DI::Component do
     context "when code tracking is activated after the component is built (in-product enablement)" do
       before do
         # Simulate DI disabled at boot: no global code tracker exists when the
-        # component (and its instrumenter) are built.
+        # component (and its instrumenter) are built. Stop any tracker a prior
+        # example left active before dropping the global reference: nilling
+        # @code_tracker while its process-global :script_compiled TracePoint is
+        # still enabled orphans the TracePoint (deactivate_tracking! can no longer
+        # reach it), leaking it into later specs and double-firing
+        # code_tracker_spec's line-probe-installation examples.
+        Datadog::DI.deactivate_tracking!
         Datadog::DI.instance_variable_set(:@code_tracker, nil)
       end
 
