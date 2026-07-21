@@ -101,6 +101,8 @@ have_func("rb_iseq_type")
 # Only present when libdatadog was built with the `otel-thread-ctx` feature (Linux-only).
 have_header('datadog/otel-thread-ctx.h')
 
+have_struct_member("rb_internal_thread_event_data_t", "thread", "ruby/thread.h")
+
 create_makefile(EXTENSION_NAME)
 
 # rubocop:enable Style/GlobalVars

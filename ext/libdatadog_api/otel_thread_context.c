@@ -91,6 +91,16 @@ static void on_thread_exited(
 }
 #endif
 
+#ifdef HAVE_RB_INTERNAL_THREAD_EVENT_DATA_T_THREAD
+  static void on_thread_resumed(
+    DDTRACE_UNUSED rb_event_flag_t event,
+    const rb_internal_thread_event_data_t *event_data,
+    DDTRACE_UNUSED void *user_data
+  ) {
+    publish_context(get_fiber_context_for(event_data->thread));
+  }
+#endif
+
 static VALUE native_set(DDTRACE_UNUSED VALUE _self, VALUE trace_id, VALUE span_id, VALUE local_root_span_id) {
   otel_fiber_context *ctx = get_or_create_current_fiber_context();
 
@@ -115,6 +125,10 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
 
   #ifdef RUBY_INTERNAL_THREAD_EVENT_EXITED
     rb_internal_thread_add_event_hook(on_thread_exited, RUBY_INTERNAL_THREAD_EVENT_EXITED, NULL);
+  #endif
+
+  #ifdef HAVE_RB_INTERNAL_THREAD_EVENT_DATA_T_THREAD
+    rb_internal_thread_add_event_hook(on_thread_resumed, RUBY_INTERNAL_THREAD_EVENT_RESUMED, NULL);
   #endif
 
   enabled = true;
