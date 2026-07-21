@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../tracing/trace_digest'
+require_relative "../tracing/trace_digest"
 
 module Datadog
   module OpenTelemetry

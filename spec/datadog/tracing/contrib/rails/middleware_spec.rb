@@ -1,17 +1,17 @@
-require 'datadog/tracing/contrib/rails/rails_helper'
+require "datadog/tracing/contrib/rails/rails_helper"
 
-RSpec.describe 'Rails middleware', execute_in_fork: Rails.version.to_i >= 8 do
+RSpec.describe "Rails middleware", execute_in_fork: Rails.version.to_i >= 8 do
   include Rack::Test::Methods
-  include_context 'Rails test application'
+  include_context "Rails test application"
 
-  let(:routes) { {'/' => 'test#index'} }
+  let(:routes) { {"/" => "test#index"} }
   let(:use_rack) { true }
   let(:rails_options) { {} }
   let(:controllers) { [controller] }
 
   let(:controller) do
     stub_const(
-      'TestController',
+      "TestController",
       Class.new(ActionController::Base) do
         def index
           head :ok
@@ -38,11 +38,11 @@ RSpec.describe 'Rails middleware', execute_in_fork: Rails.version.to_i >= 8 do
     end
   end
 
-  context 'with middleware' do
-    context 'that does nothing' do
+  context "with middleware" do
+    context "that does nothing" do
       let(:middleware) do
         stub_const(
-          'PassthroughMiddleware',
+          "PassthroughMiddleware",
           Class.new do
             def initialize(app)
               @app = app
@@ -55,18 +55,18 @@ RSpec.describe 'Rails middleware', execute_in_fork: Rails.version.to_i >= 8 do
         )
       end
 
-      context 'and added after tracing is enabled' do
+      context "and added after tracing is enabled" do
         before do
           passthrough_middleware = middleware
           rails_test_application.configure { config.app_middleware.use passthrough_middleware }
         end
 
-        context 'with #middleware_names' do
+        context "with #middleware_names" do
           let(:use_rack) { false }
           let(:rails_options) { super().merge!(middleware_names: true) }
 
           it do
-            get '/'
+            get "/"
             expect(app).to have_kind_of_middleware(middleware)
             expect(last_response).to be_ok
           end
@@ -74,17 +74,17 @@ RSpec.describe 'Rails middleware', execute_in_fork: Rails.version.to_i >= 8 do
       end
     end
 
-    context 'that itself creates a span' do
+    context "that itself creates a span" do
       let(:middleware) do
         stub_const(
-          'CustomSpanMiddleware',
+          "CustomSpanMiddleware",
           Class.new do
             def initialize(app)
               @app = app
             end
 
             def call(env)
-              Datadog::Tracing.trace('custom.test') do
+              Datadog::Tracing.trace("custom.test") do
                 @app.call(env)
               end
             end
@@ -92,20 +92,20 @@ RSpec.describe 'Rails middleware', execute_in_fork: Rails.version.to_i >= 8 do
         )
       end
 
-      context 'and added after tracing is enabled' do
+      context "and added after tracing is enabled" do
         before do
           custom_span_middleware = middleware
           rails_test_application.configure { config.app_middleware.use custom_span_middleware }
         end
 
-        context 'with #middleware_names' do
+        context "with #middleware_names" do
           let(:use_rack) { false }
           let(:rails_options) { super().merge!(middleware_names: true) }
-          let(:span) { spans.find { |s| s.name == 'rack.request' } }
+          let(:span) { spans.find { |s| s.name == "rack.request" } }
 
           it do
-            get '/'
-            expect(trace.resource).to eq('TestController#index')
+            get "/"
+            expect(trace.resource).to eq("TestController#index")
 
             # This is flaky: depending on test order, this will be the middleware name or
             # it will be GET 200. This is because env['RESPONSE_MIDDLEWARE'] sometimes isn't
@@ -117,13 +117,13 @@ RSpec.describe 'Rails middleware', execute_in_fork: Rails.version.to_i >= 8 do
       end
     end
 
-    context 'that raises an exception' do
-      before { get '/' }
+    context "that raises an exception" do
+      before { get "/" }
 
       let(:rails_middleware) { [middleware] }
       let(:middleware) do
         stub_const(
-          'RaiseExceptionMiddleware',
+          "RaiseExceptionMiddleware",
           Class.new do
             def initialize(app)
               @app = app
@@ -143,33 +143,33 @@ RSpec.describe 'Rails middleware', execute_in_fork: Rails.version.to_i >= 8 do
         expect(spans).to have_at_least(2).items
       end
 
-      context 'rack span' do
-        let(:span) { spans.find { |s| s.name == 'rack.request' } }
+      context "rack span" do
+        let(:span) { spans.find { |s| s.name == "rack.request" } }
 
         it do
-          expect(trace.resource).to eq('TestController#index')
+          expect(trace.resource).to eq("TestController#index")
 
-          expect(span.name).to eq('rack.request')
-          expect(span.type).to eq('web')
-          expect(span.resource).to eq('TestController#index')
-          expect(span.get_tag('http.url')).to eq('/')
-          expect(span.get_tag('http.method')).to eq('GET')
-          expect(span.get_tag('http.status_code')).to eq('500')
-          expect(span.get_tag('error.type')).to eq('NotImplementedError')
-          expect(span.get_tag('error.message')).to eq('NotImplementedError')
+          expect(span.name).to eq("rack.request")
+          expect(span.type).to eq("web")
+          expect(span.resource).to eq("TestController#index")
+          expect(span.get_tag("http.url")).to eq("/")
+          expect(span.get_tag("http.method")).to eq("GET")
+          expect(span.get_tag("http.status_code")).to eq("500")
+          expect(span.get_tag("error.type")).to eq("NotImplementedError")
+          expect(span.get_tag("error.message")).to eq("NotImplementedError")
           expect(span).to have_error
-          expect(span.get_tag('error.stack')).to_not be nil
+          expect(span.get_tag("error.stack")).to_not be nil
         end
       end
     end
 
-    context 'that raises a known NotFound exception' do
-      before { get '/' }
+    context "that raises a known NotFound exception" do
+      before { get "/" }
 
       let(:rails_middleware) { [middleware] }
       let(:middleware) do
         stub_const(
-          'RaiseNotFoundMiddleware',
+          "RaiseNotFoundMiddleware",
           Class.new do
             def initialize(app)
               @app = app
@@ -177,7 +177,7 @@ RSpec.describe 'Rails middleware', execute_in_fork: Rails.version.to_i >= 8 do
 
             def call(env)
               @app.call(env)
-              raise ActionController::RoutingError, '/missing_route'
+              raise ActionController::RoutingError, "/missing_route"
             end
           end
         )
@@ -189,37 +189,37 @@ RSpec.describe 'Rails middleware', execute_in_fork: Rails.version.to_i >= 8 do
         expect(spans).to have_at_least(2).items
       end
 
-      context 'rack span' do
-        subject(:span) { spans.find { |s| s.name == 'rack.request' } }
+      context "rack span" do
+        subject(:span) { spans.find { |s| s.name == "rack.request" } }
 
         it do
-          expect(trace.resource).to eq('TestController#index')
+          expect(trace.resource).to eq("TestController#index")
 
-          expect(span.name).to eq('rack.request')
-          expect(span.type).to eq('web')
-          expect(span.resource).to eq('TestController#index')
-          expect(span.get_tag('http.url')).to eq('/')
-          expect(span.get_tag('http.method')).to eq('GET')
-          expect(span.get_tag('http.status_code')).to eq('404')
+          expect(span.name).to eq("rack.request")
+          expect(span.type).to eq("web")
+          expect(span.resource).to eq("TestController#index")
+          expect(span.get_tag("http.url")).to eq("/")
+          expect(span.get_tag("http.method")).to eq("GET")
+          expect(span.get_tag("http.status_code")).to eq("404")
 
-          expect(span.get_tag('error.type')).to be nil
-          expect(span.get_tag('error.message')).to be nil
+          expect(span.get_tag("error.type")).to be nil
+          expect(span.get_tag("error.message")).to be nil
           expect(span).to_not have_error
-          expect(span.get_tag('error.stack')).to be nil
+          expect(span.get_tag("error.stack")).to be nil
         end
       end
     end
 
-    context 'that raises a custom exception' do
-      before { get '/' }
+    context "that raises a custom exception" do
+      before { get "/" }
 
       let(:rails_middleware) { [middleware] }
       let(:error_class) do
         stub_const(
-          'CustomError',
+          "CustomError",
           Class.new(StandardError) do
             def message
-              'Custom error message!'
+              "Custom error message!"
             end
           end
         )
@@ -230,7 +230,7 @@ RSpec.describe 'Rails middleware', execute_in_fork: Rails.version.to_i >= 8 do
         error_class
 
         stub_const(
-          'RaiseCustomErrorMiddleware',
+          "RaiseCustomErrorMiddleware",
           Class.new do
             def initialize(app)
               @app = app
@@ -250,34 +250,34 @@ RSpec.describe 'Rails middleware', execute_in_fork: Rails.version.to_i >= 8 do
         expect(spans).to have_at_least(2).items
       end
 
-      context 'rack span' do
+      context "rack span" do
         subject(:span) { spans.first }
 
         it do
-          expect(trace.resource).to eq('TestController#index')
+          expect(trace.resource).to eq("TestController#index")
 
-          expect(span.name).to eq('rack.request')
-          expect(span.type).to eq('web')
-          expect(span.resource).to eq('TestController#index')
+          expect(span.name).to eq("rack.request")
+          expect(span.type).to eq("web")
+          expect(span.resource).to eq("TestController#index")
 
-          expect(span.get_tag('http.url')).to eq('/')
-          expect(span.get_tag('http.method')).to eq('GET')
-          expect(span.get_tag('http.status_code')).to eq('500')
-          expect(span.get_tag('error.type')).to eq('CustomError')
-          expect(span.get_tag('error.message')).to eq('Custom error message!')
+          expect(span.get_tag("http.url")).to eq("/")
+          expect(span.get_tag("http.method")).to eq("GET")
+          expect(span.get_tag("http.status_code")).to eq("500")
+          expect(span.get_tag("error.type")).to eq("CustomError")
+          expect(span.get_tag("error.message")).to eq("Custom error message!")
           expect(span).to have_error
-          expect(span.get_tag('error.stack')).to_not be nil
+          expect(span.get_tag("error.stack")).to_not be nil
         end
       end
 
-      context 'that is flagged as a custom 404' do
+      context "that is flagged as a custom 404" do
         # TODO: Make a cleaner API for injecting into Rails application configuration
         let(:initialize_block) do
           super_block = super()
           proc do
             instance_exec(&super_block)
             config.action_dispatch.rescue_responses.merge!(
-              'CustomError' => :not_found
+              "CustomError" => :not_found
             )
           end
         end
@@ -285,9 +285,9 @@ RSpec.describe 'Rails middleware', execute_in_fork: Rails.version.to_i >= 8 do
         after do
           # Be sure to delete configuration after, so it doesn't carry over to other examples.
           # TODO: Clear this configuration automatically via rails_helper shared examples
-          ActionDispatch::Railtie.config.action_dispatch.rescue_responses.delete('CustomError')
+          ActionDispatch::Railtie.config.action_dispatch.rescue_responses.delete("CustomError")
           ActionDispatch::ExceptionWrapper.class_variable_get(:@@rescue_responses).tap do |resps|
-            resps.delete('CustomError')
+            resps.delete("CustomError")
           end
         end
 
@@ -297,22 +297,22 @@ RSpec.describe 'Rails middleware', execute_in_fork: Rails.version.to_i >= 8 do
           expect(spans).to have_at_least(2).items
         end
 
-        context 'rack span' do
+        context "rack span" do
           subject(:span) { spans.first }
 
           it do
-            expect(trace.resource).to eq('TestController#index')
+            expect(trace.resource).to eq("TestController#index")
 
-            expect(span.name).to eq('rack.request')
-            expect(span.type).to eq('web')
-            expect(span.resource).to eq('TestController#index')
-            expect(span.get_tag('http.url')).to eq('/')
-            expect(span.get_tag('http.method')).to eq('GET')
-            expect(span.get_tag('http.status_code')).to eq('404')
-            expect(span.get_tag('error.type')).to be nil
-            expect(span.get_tag('error.message')).to be nil
+            expect(span.name).to eq("rack.request")
+            expect(span.type).to eq("web")
+            expect(span.resource).to eq("TestController#index")
+            expect(span.get_tag("http.url")).to eq("/")
+            expect(span.get_tag("http.method")).to eq("GET")
+            expect(span.get_tag("http.status_code")).to eq("404")
+            expect(span.get_tag("error.type")).to be nil
+            expect(span.get_tag("error.message")).to be nil
             expect(span).to_not have_error
-            expect(span.get_tag('error.stack')).to be nil
+            expect(span.get_tag("error.stack")).to be nil
           end
         end
       end

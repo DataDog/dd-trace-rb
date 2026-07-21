@@ -1,7 +1,9 @@
 stages:
   - manual-images
   - package
-  - shared-pipeline
+  - shared-pipeline-build
+  - shared-pipeline-test
+  - shared-pipeline-publish
   - macrobenchmarks
   - microbenchmarks
   # These benchmarks should ultimately replace the old macrobenchmarks setup
@@ -171,7 +173,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: 492a53f17bc9942a6ac80f5776f0b6590804aca0 # Automated: Updated by .github/workflows/update-system-tests.yml.
+    SYSTEM_TESTS_REF: a724f5b01554f65b27c4dca10bd0a27d28453bd6 # Automated: Updated by .github/workflows/update-system-tests.yml.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 

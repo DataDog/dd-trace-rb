@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../core/tag_builder'
-require_relative '../core/utils'
+require_relative "../core/tag_builder"
+require_relative "../core/utils"
 
-require 'set'
+require "set"
 
 module Datadog
   module Profiling
@@ -23,21 +23,21 @@ module Datadog
       # easy to end up with different tags in different languages.
       ALLOWED_TAGS = Set.new(
         [
-          'env',
-          'service',
-          'version',
-          'git.commit.sha',
-          'git.repository_url',
-          'host',
-          'language',
-          'runtime',
-          'runtime_engine',
-          'runtime_platform',
-          'runtime_version',
-          'runtime-id',
-          'process_id',
-          'profiler_version',
-          'profile_seq',
+          "env",
+          "service",
+          "version",
+          "git.commit.sha",
+          "git.repository_url",
+          "host",
+          "language",
+          "runtime",
+          "runtime_engine",
+          "runtime_platform",
+          "runtime_version",
+          "runtime-id",
+          "process_id",
+          "profiler_version",
+          "profile_seq",
         ]
       ).freeze
 
@@ -48,7 +48,7 @@ module Datadog
       )
         hash = Core::TagBuilder.tags(settings).merge(
           FORM_FIELD_TAG_PROFILER_VERSION => profiler_version,
-          'profile_seq' => profile_seq.to_s,
+          "profile_seq" => profile_seq.to_s,
         )
 
         user_tag_keys = settings.tags.keys

@@ -30,21 +30,21 @@ module Datadog
 
               raise ParseError, "could not parse: #{path.inspect}" if m.nil?
 
-              org_id = m['org_id']&.to_i
+              org_id = m["org_id"]&.to_i
 
-              source = m['source']
-              raise ParseError, 'missing source value' unless source
+              source = m["source"]
+              raise ParseError, "missing source value" unless source
 
               source = source.delete("/#{org_id}") if org_id
 
-              product = m['product']
-              raise ParseError, 'missing product value' unless product
+              product = m["product"]
+              raise ParseError, "missing product value" unless product
 
-              config_id = m['config_id']
-              raise ParseError, 'missing config_id value' unless config_id
+              config_id = m["config_id"]
+              raise ParseError, "missing config_id value" unless config_id
 
-              name = m['name']
-              raise ParseError, 'missing name value' unless name
+              name = m["name"]
+              raise ParseError, "missing name value" unless name
 
               new(source: source, org_id: org_id, product: product, config_id: config_id, name: name)
             end

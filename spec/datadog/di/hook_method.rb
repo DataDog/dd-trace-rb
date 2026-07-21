@@ -52,9 +52,9 @@ class HookTestClass
 
   def recursive(depth)
     if depth > 0
-      recursive(depth - 1) + '-'
+      recursive(depth - 1) + "-"
     else
-      '+'
+      "+"
     end
   end
 
@@ -71,7 +71,7 @@ class HookTestClass
   end
 
   def exception_method
-    raise TestException, 'Test exception'
+    raise TestException, "Test exception"
   end
 end
 

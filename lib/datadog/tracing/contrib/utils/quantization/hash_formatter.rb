@@ -7,7 +7,7 @@ module Datadog
         module Quantization
           # Quantization for Hash
           module HashFormatter
-            PLACEHOLDER = '?'
+            PLACEHOLDER = "?"
             EXCLUDE_KEYS = [].freeze
             SHOW_KEYS = [].freeze
 

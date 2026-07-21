@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../../../core/utils/only_once'
+require_relative "../../../core/utils/only_once"
 
-require_relative 'tracking_middleware'
-require_relative 'patches/signup_tracking_patch'
-require_relative 'patches/signin_tracking_patch'
-require_relative 'patches/skip_signin_tracking_patch'
+require_relative "tracking_middleware"
+require_relative "patches/signup_tracking_patch"
+require_relative "patches/signin_tracking_patch"
+require_relative "patches/skip_signin_tracking_patch"
 
 module Datadog
   module AppSec
@@ -32,7 +32,7 @@ module Datadog
               GUARD_ONCE_PER_APP[app].run do
                 app.middleware.insert_after(Warden::Manager, TrackingMiddleware)
               rescue RuntimeError
-                AppSec.telemetry.error('AppSec: unable to insert Devise TrackingMiddleware')
+                AppSec.telemetry.error("AppSec: unable to insert Devise TrackingMiddleware")
               end
             end
 
@@ -50,7 +50,7 @@ module Datadog
 
             if ::Devise::STRATEGIES.include?(:rememberable)
               # Rememberable strategy is required in autoloaded Rememberable model
-              require 'devise/models/rememberable'
+              require "devise/models/rememberable"
               ::Devise::Strategies::Rememberable.prepend(Patches::SkipSigninTrackingPatch)
             end
 
