@@ -1,6 +1,6 @@
 module Datadog
   module SymbolDatabase
-    type language_specifics = Hash[::Symbol, String | Integer | Array[String]]
+    type language_specifics = Hash[::Symbol, String | Integer | bool | Array[String]]
 
     UNKNOWN_MIN_LINE: Integer
 
