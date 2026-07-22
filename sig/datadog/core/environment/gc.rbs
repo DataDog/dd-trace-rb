@@ -4,7 +4,7 @@ module Datadog
       module GC
         def self?.stat: () -> ::Hash[::Symbol, ::Integer]
 
-        def self?.available?: () -> bool?
+        def self?.available?: () -> bool
       end
     end
   end
