@@ -1,0 +1,9 @@
+module Datadog
+  module DI
+    module EL
+      # Expression AST parsed from a probe definition (JSON value). Recursive:
+      # a single-key operation node, an operand list, or a literal scalar.
+      type ast = Hash[String, ast] | Array[ast] | String | Numeric | bool | nil
+    end
+  end
+end
