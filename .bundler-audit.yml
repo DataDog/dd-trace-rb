@@ -1,0 +1,14 @@
+# Managed ignore list for the dependency audit (dependency:audit rake task).
+#
+# Only add an advisory id here as a LAST RESORT, after the severity threshold
+# (high/critical only) and the 3.1+ scoping have already been applied and the
+# advisory is still genuinely unavoidable (e.g. a high/critical CVE in an old
+# compatibility gem with no fixed version available for that Ruby).
+#
+# Each entry MUST be documented with:
+#   - the advisory id (CVE or GHSA)
+#   - the gem and why it cannot be upgraded
+#   - the date added and who reviewed it
+#
+# Reviewed on a regular cadence; remove entries once the gem can be upgraded.
+ignore: []
