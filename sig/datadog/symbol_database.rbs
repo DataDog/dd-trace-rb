@@ -1,5 +1,7 @@
 module Datadog
   module SymbolDatabase
+    type language_specifics = Hash[::Symbol, String | Integer | Array[String]]
+
     UNKNOWN_MIN_LINE: Integer
 
     UNKNOWN_MAX_LINE: Integer

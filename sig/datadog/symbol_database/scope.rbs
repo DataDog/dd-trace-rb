@@ -13,7 +13,7 @@ module Datadog
 
       @targetable_lines: Array[Hash[::Symbol, Integer]]?
 
-      @language_specifics: Hash[::Symbol, any]
+      @language_specifics: language_specifics
 
       @symbols: Array[Datadog::SymbolDatabase::Symbol]
 
@@ -26,7 +26,7 @@ module Datadog
         ?start_line: Integer?,
         ?end_line: Integer?,
         ?targetable_lines: Array[Hash[::Symbol, Integer]]?,
-        ?language_specifics: Hash[::Symbol, any]?,
+        ?language_specifics: language_specifics?,
         ?symbols: Array[Datadog::SymbolDatabase::Symbol]?,
         ?scopes: Array[Scope]?
       ) -> void
@@ -45,7 +45,7 @@ module Datadog
 
       attr_reader targetable_lines: Array[Hash[::Symbol, Integer]]?
 
-      attr_reader language_specifics: Hash[::Symbol, any]
+      attr_reader language_specifics: language_specifics
 
       attr_reader symbols: Array[Datadog::SymbolDatabase::Symbol]
 
