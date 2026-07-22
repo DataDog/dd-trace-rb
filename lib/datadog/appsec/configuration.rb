@@ -52,6 +52,14 @@ module Datadog
                 o.default false
               end
 
+              # Set by the agentic onboarding solution; no behavior, reported verbatim in
+              # configuration telemetry only (RFC-1113).
+              option :agentic_onboarding do |o|
+                o.type :string
+                o.env "DD_APPSEC_AGENTIC_ONBOARDING"
+                o.default ""
+              end
+
               define_method(:instrument) do |integration_name|
                 if enabled
                   registered_integration = Datadog::AppSec::Contrib::Integration.registry[integration_name]

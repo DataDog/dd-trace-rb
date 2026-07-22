@@ -434,6 +434,38 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       end
     end
 
+    describe "#agentic_onboarding" do
+      subject(:agentic_onboarding) { settings.appsec.agentic_onboarding }
+
+      context "when DD_APPSEC_AGENTIC_ONBOARDING" do
+        around do |example|
+          ClimateControl.modify("DD_APPSEC_AGENTIC_ONBOARDING" => agentic_onboarding_env) do
+            example.run
+          end
+        end
+
+        context "is not defined" do
+          let(:agentic_onboarding_env) { nil }
+
+          it { is_expected.to eq("") }
+        end
+
+        context "is defined" do
+          let(:agentic_onboarding_env) { "true" }
+
+          it { is_expected.to eq("true") }
+        end
+      end
+    end
+
+    describe "#agentic_onboarding=" do
+      subject(:set_agentic_onboarding) { settings.appsec.agentic_onboarding = "true" }
+
+      before { set_agentic_onboarding }
+
+      it { expect(settings.appsec.agentic_onboarding).to eq("true") }
+    end
+
     describe "#obfuscator_key_regex" do
       subject(:obfuscator_key_regex) { settings.appsec.obfuscator_key_regex }
 
