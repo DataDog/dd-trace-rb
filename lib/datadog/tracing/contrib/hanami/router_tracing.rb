@@ -10,7 +10,8 @@ module Datadog
         # Hanami Instrumentation for `hanami.routing`
         module RouterTracing
           def call(env)
-            return super if Tracing.active_span && Tracing.active_span.name == Ext::SPAN_ROUTING
+            active_span = Tracing.active_span
+            return super if active_span && active_span.name == Ext::SPAN_ROUTING
 
             Tracing.trace(
               Ext::SPAN_ROUTING,
