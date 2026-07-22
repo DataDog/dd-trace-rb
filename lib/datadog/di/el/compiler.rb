@@ -16,8 +16,19 @@ module Datadog
       #
       # @api private
       class Compiler
+        # Compiles +ast+ into eval'able Ruby source.
+        #
+        # Returns the compiled source and companion compiled Regexp
+        # objects.
+        #
+        # @param ast [untyped] expression AST from the probe definition.
+        # @return [Array(String, Array<Regexp>)] the compiled Ruby source and
+        #   the precompiled Regexps, indexed in the order the compiled code
+        #   references them.
         def compile(ast)
-          compile_partial(ast)
+          regexps = []
+          code = compile_partial(ast, regexps)
+          [code, regexps]
         end
 
         private
@@ -37,9 +48,13 @@ module Datadog
           len isEmpty isUndefined
         ].freeze # steep:ignore IncompatibleAssignment
 
+        # `matches` is also a two-argument method but is special-cased in
+        # #compile_partial so that regular expressions can be precompiled
+        # once, so it is not listed here.
+        #
         # Steep: https://github.com/soutaro/steep/issues/363
         TWO_ARG_METHODS = %w[
-          startsWith endsWith contains matches
+          startsWith endsWith contains
           getmember index instanceof
         ].freeze # steep:ignore IncompatibleAssignment
 
@@ -49,7 +64,11 @@ module Datadog
           "or" => "||",
         }.freeze
 
-        def compile_partial(ast)
+        # @param ast [untyped] AST node to compile.
+        # @param regexps [Array<Regexp>] output array that collects the
+        #   companion precompiled Regexp objects.
+        # @return [String] compiled Ruby source for +ast+.
+        def compile_partial(ast, regexps)
           case ast
           when Hash
             if ast.length != 1
@@ -94,20 +113,33 @@ module Datadog
               end
             when *SINGLE_ARG_METHODS
               method_name = op.gsub(/[A-Z]/) { |m| "_#{m.downcase}" }
-              "#{method_name}(#{compile_partial(target)}, '#{var_name_maybe(target)}')"
+              "#{method_name}(#{compile_partial(target, regexps)}, '#{var_name_maybe(target)}')"
+            when "matches"
+              unless Array === target && target.length == 2
+                raise DI::Error::InvalidExpression, "Improper matches syntax"
+              end
+              first, second = target
+              if String === second
+                # Match against a literal regular expression (string).
+                index = precompile_regexp(second, regexps)
+                "matches_compiled(#{compile_partial(first, regexps)}, #{index})"
+              else
+                # Match against a (complex) expression.
+                "matches(#{compile_partial(first, regexps)}, (#{compile_partial(second, regexps)}))"
+              end
             when *TWO_ARG_METHODS
               method_name = op.gsub(/[A-Z]/) { |m| "_#{m.downcase}" }
               unless Array === target && target.length == 2
                 raise DI::Error::InvalidExpression, "Improper #{op} syntax"
               end
               first, second = target
-              "#{method_name}(#{compile_partial(first)}, (#{compile_partial(second)}))"
+              "#{method_name}(#{compile_partial(first, regexps)}, (#{compile_partial(second, regexps)}))"
             when *MULTI_ARG_METHODS.keys
               unless Array === target && target.length >= 1
                 raise DI::Error::InvalidExpression, "Improper #{op} syntax"
               end
               compiled_targets = target.map do |item|
-                "(#{compile_partial(item)})"
+                "(#{compile_partial(item, regexps)})"
               end
               compiled_op = MULTI_ARG_METHODS[op]
               "(#{compiled_targets.join(" #{compiled_op} ")})"
@@ -115,18 +147,18 @@ module Datadog
               unless Array === target && target.length == 3
                 raise DI::Error::InvalidExpression, "Improper #{op} syntax"
               end
-              "#{op}(#{target.map { |arg| "(#{compile_partial(arg)})" }.join(", ")})"
+              "#{op}(#{target.map { |arg| "(#{compile_partial(arg, regexps)})" }.join(", ")})"
             when "not"
-              "!(#{compile_partial(target)})"
+              "!(#{compile_partial(target, regexps)})"
             when *OPERATORS.keys
               unless Array === target && target.length == 2
                 raise DI::Error::InvalidExpression, "Improper #{op} syntax"
               end
               first, second = target
               operator = OPERATORS.fetch(op)
-              "(#{compile_partial(first)}) #{operator} (#{compile_partial(second)})"
+              "(#{compile_partial(first, regexps)}) #{operator} (#{compile_partial(second, regexps)})"
             when "any", "all", "filter"
-              "#{op}(#{compile_partial(target.first)}) { |current_item, current_key, current_value| #{compile_partial(target.last)} }"
+              "#{op}(#{compile_partial(target.first, regexps)}) { |current_item, current_key, current_value| #{compile_partial(target.last, regexps)} }"
             else
               raise DI::Error::InvalidExpression, "Unknown operation: #{op}"
             end
@@ -161,6 +193,23 @@ module Datadog
 
         def escape(needle)
           needle.gsub("\\") { "\\\\" }.gsub('"') { "\\\"" }.gsub("#") { "\\#" }
+        end
+
+        # Compile a literal regular expression +regexp_str+ at
+        # instrumentation time. Append it to +regexps+, returning its index for
+        # Evaluator#matches_compiled to look up.
+        #
+        # @param regexp_str [String] regular expression source.
+        # @param regexps [Array<Regexp>] output array to append the compiled
+        #   regexp to.
+        # @return [Integer] index into +regexps+.
+        # @raise [DI::Error::InvalidExpression] if +needle+ is not a valid regexp.
+        def precompile_regexp(regexp_str, regexps)
+          index = regexps.length
+          regexps << Evaluator.compile_regexp(regexp_str)
+          index
+        rescue RegexpError => exc
+          raise DI::Error::InvalidExpression, "Invalid regular expression in matches: #{exc.class}: #{exc.message}"
         end
       end
     end
