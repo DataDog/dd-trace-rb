@@ -20,6 +20,7 @@ ext/**/skipped_reason.txt
 .cache/
 .claude/settings.local.json
 compile_commands.json
+/.worktrees/
 
 ## Documentation cache and generated files:
 /.yardoc/
