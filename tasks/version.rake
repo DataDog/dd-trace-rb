@@ -31,7 +31,7 @@ namespace :version do
     replace_version(/PATCH = \d+/, "PATCH = #{patch}") if patch
     # If we allows double quote string without interpolation in style => use "PRE = #{pre.inspect}" instead
     if pre
-      replace_version(/PRE = \S+/, "PRE = '#{pre}'")
+      replace_version(/PRE = \S+/, "PRE = \"#{pre}\"")
     else
       replace_version(/PRE = \S+/, "PRE = nil")
     end
