@@ -99,6 +99,7 @@ GEM
     stripe (19.3.1)
       bigdecimal
       logger
+    strscan (3.1.2)
     warning (1.6.0)
     webmock (3.26.2)
       addressable (>= 2.8.0)
@@ -134,6 +135,7 @@ DEPENDENCIES
   rspec_junit_formatter (>= 0.5.1)
   simplecov (~> 0.22.0)
   stripe
+  strscan (= 3.1.2)
   warning (~> 1)
   webmock (>= 3.10.0)
   zstd-ruby
