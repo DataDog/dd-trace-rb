@@ -21,7 +21,7 @@ module Datadog
 
       attr_reader telemetry: Core::Telemetry::Component?
 
-      def combine_args: (Array[any] args, Hash[Symbol, any] kwargs, any target_self) -> Hash[Symbol, any]
+      def combine_args: (Array[any] args, Hash[Symbol, any] kwargs, Object target_self) -> Hash[Symbol, any]
       def serialize_args: (Array[any] args, Hash[Symbol, any] kwargs, any instance_vars, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?) -> Hash[Symbol, any]
       def serialize_vars: (Hash[Symbol, any] vars, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?) -> Hash[Symbol, any]
       def serialize_value: (any value, ?name: (Symbol | String)?, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?, ?type: Class?) -> Hash[Symbol, any]
