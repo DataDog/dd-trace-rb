@@ -20,13 +20,13 @@ module Datadog
       @entry_capture_expressions: Hash[String, any]?
       @entry_capture_evaluation_errors: Array[Hash[Symbol, String]]?
 
-      @return_value: any
+      @return_value: Object?
 
       @duration: Float?
 
       @exception: Exception?
 
-      def initialize: (probe: Probe, settings: Datadog::Core::Configuration::Settings, serializer: Serializer, ?locals: Hash[Symbol, any]?, ?target_self: Object?, ?path: String?, ?caller_locations: Array[Thread::Backtrace::Location]?, ?serialized_entry_args: Hash[Symbol, any]?, ?entry_capture_expressions: Hash[String, any]?, ?entry_capture_evaluation_errors: Array[Hash[Symbol, String]]?, ?return_value: any?, ?duration: Float?, ?exception: Exception?) -> void
+      def initialize: (probe: Probe, settings: Datadog::Core::Configuration::Settings, serializer: Serializer, ?locals: Hash[Symbol, any]?, ?target_self: Object?, ?path: String?, ?caller_locations: Array[Thread::Backtrace::Location]?, ?serialized_entry_args: Hash[Symbol, any]?, ?entry_capture_expressions: Hash[String, any]?, ?entry_capture_evaluation_errors: Array[Hash[Symbol, String]]?, ?return_value: Object?, ?duration: Float?, ?exception: Exception?) -> void
 
       attr_reader probe: Probe
 
@@ -43,7 +43,7 @@ module Datadog
       attr_reader serialized_entry_args: Hash[Symbol, any]?
       attr_reader entry_capture_expressions: Hash[String, any]?
       attr_reader entry_capture_evaluation_errors: Array[Hash[Symbol, String]]?
-      attr_reader return_value: any
+      attr_reader return_value: Object?
       attr_reader duration: Float?
       attr_reader exception: Exception?
 
