@@ -102,7 +102,7 @@
     "package": "excon",
     "source": "rubygems.org",
     "min_tested": "0.109.0",
-    "max_tested": "1.5.0"
+    "max_tested": "1.6.0"
   },
   {
     "integration": "faraday",
@@ -348,7 +348,7 @@
     "package": "stripe",
     "source": "rubygems.org",
     "min_tested": "5.15.0",
-    "max_tested": "19.3.0"
+    "max_tested": "19.3.1"
   },
   {
     "integration": "sucker_punch",
@@ -369,6 +369,6 @@
     "package": "waterdrop",
     "source": "rubygems.org",
     "min_tested": "2.6.14",
-    "max_tested": "2.10.2"
+    "max_tested": "2.10.3"
   }
 ]
