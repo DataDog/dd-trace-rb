@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.38.0)
+    datadog (2.39.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.3)
       libdatadog (~> 36.0.0.1.0)
@@ -91,7 +91,7 @@ GEM
       dry-inflector (~> 1.0)
       dry-logic (~> 1.4)
       zeitwerk (~> 2.6)
-    erb (6.0.4)
+    erb (6.0.5)
     erubi (1.13.0)
     ffi (1.17.4-aarch64-linux-gnu)
     ffi (1.17.4-arm64-darwin)

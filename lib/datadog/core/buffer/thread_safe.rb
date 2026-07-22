@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'random'
+require_relative "random"
 
 module Datadog
   module Core

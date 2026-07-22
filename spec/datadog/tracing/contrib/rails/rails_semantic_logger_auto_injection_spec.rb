@@ -1,11 +1,11 @@
-require 'datadog/tracing/contrib/rails/rails_helper'
+require "datadog/tracing/contrib/rails/rails_helper"
 
-RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >= 8 do
+RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >= 8 do
   include Rack::Test::Methods
-  include_context 'Rails test application'
+  include_context "Rails test application"
 
   let(:routes) do
-    {'/logging' => 'logging_test#index'}
+    {"/logging" => "logging_test#index"}
   end
 
   let(:controllers) do
@@ -38,12 +38,12 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
   #
   let(:logging_test_controller) do
     stub_const(
-      'LoggingTestController',
+      "LoggingTestController",
       Class.new(ActionController::Base) do
         def index
-          logger.info 'MY VOICE SHALL BE HEARD!'
+          logger.info "MY VOICE SHALL BE HEARD!"
 
-          render plain: 'OK'
+          render plain: "OK"
         end
       end
     )
@@ -68,28 +68,28 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
     Datadog.configuration.tracing[:semantic_logger].reset_options!
   end
 
-  context 'with log injection enabled' do
+  context "with log injection enabled" do
     let(:log_injection) { true }
 
-    context 'with Semantic Logger' do
+    context "with Semantic Logger" do
       # for logsog_injection testing
-      require 'rails_semantic_logger'
+      require "rails_semantic_logger"
 
-      subject(:response) { get '/logging' }
+      subject(:response) { get "/logging" }
 
-      context 'with semantic logger enabled' do
-        context 'with semantic logger setup and no log_tags' do
-          it 'injects trace_id into logs' do
+      context "with semantic logger enabled" do
+        context "with semantic logger setup and no log_tags" do
+          it "injects trace_id into logs" do
             is_expected.to be_ok
             # force flush
             SemanticLogger.flush
 
             expect(logs).to_not be_empty
 
-            if defined?(RailsSemanticLogger::ActionView::LogSubscriber) || Rails.version >= '5'
+            if defined?(RailsSemanticLogger::ActionView::LogSubscriber) || Rails.version >= "5"
               expect(log_entries).to have(6).items
               expect(log_entries).to all include format_for_correlation(trace.id)
-              expect(log_entries).to all include 'ddsource: ruby'
+              expect(log_entries).to all include "ddsource: ruby"
 
               rack_started_entry,
                 controller_processing_entry,
@@ -120,28 +120,28 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
               expect(log_entries).to have(5).items
 
               expect(log_entries).to all include format_for_correlation(trace.id)
-              expect(log_entries).to all include 'ddsource: ruby'
+              expect(log_entries).to all include "ddsource: ruby"
             end
           end
         end
 
-        context 'with semantic logger setup and existing log_tags' do
-          let(:log_tags) { {some_tag: 'some_value'} }
+        context "with semantic logger setup and existing log_tags" do
+          let(:log_tags) { {some_tag: "some_value"} }
 
-          it 'injects trace correlation context into logs and preserve existing log tags' do
+          it "injects trace correlation context into logs and preserve existing log tags" do
             is_expected.to be_ok
             # force flush
             SemanticLogger.flush
 
             expect(logs).to_not be_empty
 
-            if defined?(RailsSemanticLogger::ActionView::LogSubscriber) || Rails.version >= '5'
+            if defined?(RailsSemanticLogger::ActionView::LogSubscriber) || Rails.version >= "5"
               expect(log_entries).to have(6).items
 
               expect(log_entries).to all include(format_for_correlation(trace.id))
-              expect(log_entries).to all include('ddsource: ruby')
-              expect(log_entries).to all include('some_tag')
-              expect(log_entries).to all include('some_value')
+              expect(log_entries).to all include("ddsource: ruby")
+              expect(log_entries).to all include("some_tag")
+              expect(log_entries).to all include("some_value")
 
               rack_started_entry,
                 controller_processing_entry,
@@ -172,9 +172,9 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
               expect(log_entries).to have(5).items
 
               expect(log_entries).to all include(format_for_correlation(trace.id))
-              expect(log_entries).to all include('ddsource: ruby')
-              expect(log_entries).to all include('some_tag')
-              expect(log_entries).to all include('some_value')
+              expect(log_entries).to all include("ddsource: ruby")
+              expect(log_entries).to all include("some_tag")
+              expect(log_entries).to all include("some_value")
             end
           end
         end
@@ -182,29 +182,29 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
     end
   end
 
-  context 'with log injection disabled' do
+  context "with log injection disabled" do
     let(:log_injection) { false }
 
     before do
       Datadog.configuration.tracing[:semantic_logger].enabled = false
     end
 
-    context 'with Semantic Logger' do
+    context "with Semantic Logger" do
       # for log_injection testing
-      require 'rails_semantic_logger'
+      require "rails_semantic_logger"
 
-      subject(:response) { get '/logging' }
+      subject(:response) { get "/logging" }
 
-      context 'with semantic logger enabled' do
-        context 'with semantic logger setup and no log_tags' do
-          it 'does not inject trace_id into logs' do
+      context "with semantic logger enabled" do
+        context "with semantic logger setup and no log_tags" do
+          it "does not inject trace_id into logs" do
             is_expected.to be_ok
             # force flush
             SemanticLogger.flush
 
             expect(logs).to_not be_empty
 
-            if defined?(RailsSemanticLogger::ActionView::LogSubscriber) || Rails.version >= '5'
+            if defined?(RailsSemanticLogger::ActionView::LogSubscriber) || Rails.version >= "5"
               expect(log_entries).to have(6).items
             else
               expect(log_entries).to have(5).items
@@ -214,22 +214,22 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
               expect(l).to_not be_empty
 
               expect(l).to_not include(trace.id.to_s)
-              expect(l).to_not include('ddsource: ruby')
+              expect(l).to_not include("ddsource: ruby")
             end
           end
         end
 
-        context 'with semantic logger setup and existing log_tags' do
-          let(:log_tags) { {some_tag: 'some_value'} }
+        context "with semantic logger setup and existing log_tags" do
+          let(:log_tags) { {some_tag: "some_value"} }
 
-          it 'does not inject trace correlation context and preserve existing log tags' do
+          it "does not inject trace correlation context and preserve existing log tags" do
             is_expected.to be_ok
             # force flush
             SemanticLogger.flush
 
             expect(logs).to_not be_empty
 
-            if defined?(RailsSemanticLogger::ActionView::LogSubscriber) || Rails.version >= '5'
+            if defined?(RailsSemanticLogger::ActionView::LogSubscriber) || Rails.version >= "5"
               expect(log_entries).to have(6).items
             else
               expect(log_entries).to have(5).items
@@ -239,9 +239,9 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
               expect(l).to_not be_empty
 
               expect(l).to_not include(trace.id.to_s)
-              expect(l).to_not include('ddsource: ruby')
-              expect(l).to include('some_tag')
-              expect(l).to include('some_value')
+              expect(l).to_not include("ddsource: ruby")
+              expect(l).to include("some_tag")
+              expect(l).to include("some_value")
             end
           end
         end

@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative 'ext'
-require_relative 'utils'
-require_relative '../utils/quantization/hash_formatter'
-require_relative 'distributed/propagation'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "ext"
+require_relative "utils"
+require_relative "../utils/quantization/hash_formatter"
+require_relative "distributed/propagation"
 
 module Datadog
   module Tracing
@@ -57,17 +57,17 @@ module Datadog
               # Measure service stats
               Contrib::Analytics.set_measured(span)
 
-              span.set_tag(Ext::TAG_JOB_ID, job['jid'])
-              span.set_tag(Ext::TAG_JOB_RETRY, job['retry'])
-              span.set_tag(Ext::TAG_JOB_RETRY_COUNT, job['retry_count'])
-              span.set_tag(Ext::TAG_JOB_QUEUE, job['queue'])
-              span.set_tag(Ext::TAG_JOB_WRAPPER, job['class']) if job['wrapped']
+              span.set_tag(Ext::TAG_JOB_ID, job["jid"])
+              span.set_tag(Ext::TAG_JOB_RETRY, job["retry"])
+              span.set_tag(Ext::TAG_JOB_RETRY_COUNT, job["retry_count"])
+              span.set_tag(Ext::TAG_JOB_QUEUE, job["queue"])
+              span.set_tag(Ext::TAG_JOB_WRAPPER, job["class"]) if job["wrapped"]
 
-              enqueued_at = job['enqueued_at']
+              enqueued_at = job["enqueued_at"]
               enqueued_at *= Ext::SIDEKIQ_8_SECONDS_PER_INTEGER if enqueued_at.is_a?(Integer)
               span.set_tag(Ext::TAG_JOB_DELAY, 1000.0 * (Core::Utils::Time.now.utc.to_f - enqueued_at.to_f))
 
-              args = job['args']
+              args = job["args"]
               if args && !args.empty?
                 span.set_tag(Ext::TAG_JOB_ARGS, Contrib::Utils::Quantization::HashFormatter.format(args, @quantize[:args] || {}))
               end

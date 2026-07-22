@@ -1,16 +1,16 @@
-require 'datadog/tracing/contrib/support/spec_helper'
+require "datadog/tracing/contrib/support/spec_helper"
 
-require 'datadog'
+require "datadog"
 
 RSpec.describe Datadog::Tracing::Contrib::Integration do
-  describe 'implemented' do
+  describe "implemented" do
     subject(:integration_class) do
       Class.new.tap do |klass|
         klass.include(described_class)
       end
     end
 
-    describe 'instance behavior' do
+    describe "instance behavior" do
       subject(:integration_object) { integration_class.new(name) }
 
       let(:name) { :foo }

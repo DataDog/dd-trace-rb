@@ -1,14 +1,14 @@
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require_relative 'benchmarks_helper'
+require_relative "benchmarks_helper"
 
 # This benchmark measures the performance of allocation profiling
 
 class ExportToFile
-  PPROF_PREFIX = ENV.fetch('DD_PROFILING_PPROF_PREFIX', 'profiler-allocation')
+  PPROF_PREFIX = ENV.fetch("DD_PROFILING_PPROF_PREFIX", "profiler-allocation")
 
   def export(flush)
     File.write("#{PPROF_PREFIX}#{flush.start.strftime("%Y%m%dT%H%M%SZ")}.pprof", flush.encoded_profile._native_bytes)
@@ -24,9 +24,9 @@ class ProfilerAllocationBenchmark
         **benchmark_time,
       )
 
-      x.report('Allocations (baseline)', 'BasicObject.new')
+      x.report("Allocations (baseline)", "BasicObject.new")
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -46,9 +46,9 @@ class ProfilerAllocationBenchmark
         **benchmark_time,
       )
 
-      x.report("Allocations (#{ENV["CONFIG"]})", 'BasicObject.new')
+      x.report("Allocations (#{ENV["CONFIG"]})", "BasicObject.new")
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end

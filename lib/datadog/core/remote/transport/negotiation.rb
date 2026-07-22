@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../../core/transport/request'
-require_relative '../../../core/transport/transport'
-require_relative 'http/negotiation'
+require_relative "../../../core/transport/request"
+require_relative "../../../core/transport/transport"
+require_relative "http/negotiation"
 
 # TODO: Resolve conceptual conundrum
 #

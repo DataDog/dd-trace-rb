@@ -36,6 +36,8 @@ static void install_sigprof_signal_handler_internal(
 ) {
   struct sigaction existing_signal_handler_config = {.sa_sigaction = NULL};
   struct sigaction signal_handler_config = {
+    // NOTE: Deliberately not SA_ONSTACK. `handle_sampling_signal` uses "am I running on the alternate signal stack?"
+    // to detect that if it interrupted another signal handler from the Ruby VM, see `is_running_on_alternate_signal_stack` for details.
     .sa_flags = SA_RESTART | SA_SIGINFO,
     .sa_sigaction = signal_handler_function
   };

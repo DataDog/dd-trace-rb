@@ -11,9 +11,9 @@ module Datadog
         current_size, maximum_size = Process.getrlimit(:CORE)
         core_pattern =
           begin
-            File.read('/proc/sys/kernel/core_pattern').strip
+            File.read("/proc/sys/kernel/core_pattern").strip
           rescue
-            '(Could not open /proc/sys/kernel/core_pattern)'
+            "(Could not open /proc/sys/kernel/core_pattern)"
           end
 
         enabled_status = "Maximum size: #{maximum_size} Output pattern: '#{core_pattern}'"

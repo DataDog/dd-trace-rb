@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.38.0)
+    datadog (2.39.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.3)
       libdatadog (~> 36.0.0.1.0)
@@ -50,7 +50,7 @@ GEM
     google-protobuf (3.25.8)
     hashdiff (1.2.1)
     io-console (0.8.2)
-    json (2.20.0)
+    json (2.21.1)
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
@@ -94,7 +94,7 @@ GEM
     os (1.1.4)
     ostruct (0.6.3)
     parallel (1.28.0)
-    parser (3.3.11.1)
+    parser (3.3.12.0)
       ast (~> 2.4.1)
       racc
     pimpmychangelog (0.1.3)

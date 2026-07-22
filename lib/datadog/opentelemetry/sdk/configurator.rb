@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'span_processor'
-require_relative 'id_generator'
-require_relative 'propagator'
+require_relative "span_processor"
+require_relative "id_generator"
+require_relative "propagator"
 
 module Datadog
   module OpenTelemetry
@@ -45,7 +45,7 @@ module Datadog
           return super unless components.settings.opentelemetry.metrics.enabled
 
           begin
-            require 'opentelemetry-metrics-sdk'
+            require "opentelemetry-metrics-sdk"
           rescue LoadError => exc
             components.logger.warn("Failed to load OpenTelemetry metrics gems: #{exc.class}: #{exc.message}")
             return super
@@ -64,7 +64,7 @@ module Datadog
           end
 
           begin
-            require 'opentelemetry-logs-sdk'
+            require "opentelemetry-logs-sdk"
           rescue LoadError => exc
             components.logger.warn("Failed to load OpenTelemetry logs gems: #{exc.class}: #{exc.message}")
             return
@@ -72,19 +72,19 @@ module Datadog
 
           success = Datadog::OpenTelemetry::Logs.initialize!(components)
           unless success
-            components.logger.warn('Falling back to OpenTelemetry default logs configuration')
+            components.logger.warn("Falling back to OpenTelemetry default logs configuration")
             super if defined?(super)
           end
         end
 
         # Prepend to ConfiguratorPatch (not Configurator) so our hook runs first.
         begin
-          require 'opentelemetry-metrics-sdk' if defined?(OpenTelemetry::SDK) && !defined?(OpenTelemetry::SDK::Metrics::ConfiguratorPatch)
+          require "opentelemetry-metrics-sdk" if defined?(OpenTelemetry::SDK) && !defined?(OpenTelemetry::SDK::Metrics::ConfiguratorPatch)
         rescue LoadError
         end
 
         begin
-          require 'opentelemetry-logs-sdk' if defined?(OpenTelemetry::SDK) && !defined?(OpenTelemetry::SDK::Logs::ConfiguratorPatch)
+          require "opentelemetry-logs-sdk" if defined?(OpenTelemetry::SDK) && !defined?(OpenTelemetry::SDK::Logs::ConfiguratorPatch)
         rescue LoadError
         end
 

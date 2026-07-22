@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../../metadata/ext'
-require_relative '../../analytics'
-require_relative '../ext'
-require_relative '../event'
+require_relative "../../../metadata/ext"
+require_relative "../../analytics"
+require_relative "../ext"
+require_relative "../event"
 
 module Datadog
   module Tracing
@@ -14,7 +14,7 @@ module Datadog
           module Discard
             include ActiveJob::Event
 
-            EVENT_NAME = 'discard.active_job'
+            EVENT_NAME = "discard.active_job"
 
             module_function
 

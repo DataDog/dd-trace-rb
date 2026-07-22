@@ -8,7 +8,7 @@ module Datadog
         module GrapeRouteSerializer
           module_function
 
-          def serialize(route, path_prefix: '')
+          def serialize(route, path_prefix: "")
             path = path_prefix + route.pattern.origin
 
             {

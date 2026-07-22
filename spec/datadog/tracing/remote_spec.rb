@@ -1,18 +1,18 @@
-require 'spec_helper'
+require "spec_helper"
 
 RSpec.describe Datadog::Tracing::Remote do
   let(:remote) { described_class }
-  let(:path) { 'datadog/1/APM_TRACING/anything/lib_config' }
+  let(:path) { "datadog/1/APM_TRACING/anything/lib_config" }
 
-  it 'declares the APM_TRACING product' do
-    expect(remote.products).to contain_exactly('APM_TRACING')
+  it "declares the APM_TRACING product" do
+    expect(remote.products).to contain_exactly("APM_TRACING")
   end
 
-  it 'declares tracing capabilities (DI enablement bit 38 lives in DI::Remote)' do
+  it "declares tracing capabilities (DI enablement bit 38 lives in DI::Remote)" do
     expect(remote.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29)
   end
 
-  it 'declares matches that match APM_TRACING' do
+  it "declares matches that match APM_TRACING" do
     telemetry = instance_double(Datadog::Core::Telemetry::Component)
 
     expect(remote.receivers(telemetry)).to all(
@@ -24,32 +24,32 @@ RSpec.describe Datadog::Tracing::Remote do
     )
   end
 
-  describe '#process_config' do
+  describe "#process_config" do
     subject(:process_config) { remote.process_config(config, content) }
     let(:config) { nil }
-    let(:content) { Datadog::Core::Remote::Configuration::Content.parse({path: path, content: ''}) }
+    let(:content) { Datadog::Core::Remote::Configuration::Content.parse({path: path, content: ""}) }
 
-    context 'with an empty content' do
+    context "with an empty content" do
       let(:config) { {} }
 
-      it 'sets errored apply state' do
+      it "sets errored apply state" do
         process_config
         expect(content.apply_state).to eq(3)
-        expect(content.apply_error).to include('Error') & include('process_config')
+        expect(content.apply_error).to include("Error") & include("process_config")
       end
     end
 
-    context 'with a valid content' do
-      context 'and nothing configured' do
-        let(:config) { {'lib_config' => {}} }
+    context "with a valid content" do
+      context "and nothing configured" do
+        let(:config) { {"lib_config" => {}} }
 
-        it 'sets ok applied state and sends telemetry with empty values' do
+        it "sets ok applied state and sends telemetry with empty values" do
           expect(Datadog.send(:components).telemetry).to receive(:client_configuration_change!)
             .with(contain_exactly(
-              ['DD_LOGS_INJECTION', nil],
-              ['DD_TRACE_HEADER_TAGS', nil],
-              ['DD_TRACE_SAMPLE_RATE', nil],
-              ['DD_TRACE_SAMPLING_RULES', nil],
+              ["DD_LOGS_INJECTION", nil],
+              ["DD_TRACE_HEADER_TAGS", nil],
+              ["DD_TRACE_SAMPLE_RATE", nil],
+              ["DD_TRACE_SAMPLING_RULES", nil],
             ))
 
           process_config
@@ -59,16 +59,16 @@ RSpec.describe Datadog::Tracing::Remote do
         end
       end
 
-      context 'and one option configured' do
-        let(:config) { {'lib_config' => {'log_injection_enabled' => false}} }
+      context "and one option configured" do
+        let(:config) { {"lib_config" => {"log_injection_enabled" => false}} }
 
-        it 'sets ok applied state and sends telemetry with configuration value' do
+        it "sets ok applied state and sends telemetry with configuration value" do
           expect(Datadog.send(:components).telemetry).to receive(:client_configuration_change!)
             .with(contain_exactly(
-              ['DD_LOGS_INJECTION', false],
-              ['DD_TRACE_HEADER_TAGS', nil],
-              ['DD_TRACE_SAMPLE_RATE', nil],
-              ['DD_TRACE_SAMPLING_RULES', nil],
+              ["DD_LOGS_INJECTION", false],
+              ["DD_TRACE_HEADER_TAGS", nil],
+              ["DD_TRACE_SAMPLE_RATE", nil],
+              ["DD_TRACE_SAMPLING_RULES", nil],
             ))
 
           process_config
@@ -78,36 +78,72 @@ RSpec.describe Datadog::Tracing::Remote do
         end
       end
 
-      context 'and dynamic_instrumentation_enabled is configured' do
-        let(:symbol_database) { instance_double(Datadog::SymbolDatabase::Component) }
+      context "and dynamic_instrumentation_enabled is configured" do
+        let(:symbol_database) do
+          instance_double(
+            Datadog::SymbolDatabase::Component,
+            resume_pending_upload: nil,
+            stop_for_di_disable: nil,
+          )
+        end
+        let(:remote_component) do
+          instance_double(Datadog::Core::Remote::Component, add_products: nil, remove_products: nil)
+        end
+        # handle_rc_enablement (isolated here) is what actually starts DI; expose
+        # a component whose started? state the individual contexts control.
+        let(:di_component) { instance_double(Datadog::DI::Component, started?: true) }
 
         before do
           # Isolate the Symbol Database replay wiring from DI's own enablement.
           allow(Datadog::DI::Remote).to receive(:handle_rc_enablement)
           components = Datadog.send(:components)
           allow(components).to receive(:symbol_database).and_return(symbol_database)
+          allow(components).to receive(:remote).and_return(remote_component)
+          allow(components).to receive(:dynamic_instrumentation).and_return(di_component)
           allow(components.telemetry).to receive(:client_configuration_change!)
+          allow(Datadog::SymbolDatabase::Remote).to receive(:deferred_products)
+            .and_return(["LIVE_DEBUGGING_SYMBOL_DB"])
         end
 
-        context 'to true' do
-          let(:config) { {'lib_config' => {'dynamic_instrumentation_enabled' => true}} }
+        context "to true" do
+          let(:config) { {"lib_config" => {"dynamic_instrumentation_enabled" => true}} }
 
-          it 'replays any deferred Symbol Database upload' do
-            expect(symbol_database).to receive(:resume_pending_upload)
-            expect(symbol_database).not_to receive(:stop_for_di_disable)
+          context "and the DI component started" do
+            it "replays deferred Symbol Database upload and advertises the DI products" do
+              expect(symbol_database).to receive(:resume_pending_upload)
+              expect(symbol_database).not_to receive(:stop_for_di_disable)
+              expect(remote_component).to receive(:add_products)
+                .with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
 
-            process_config
+              process_config
 
-            expect(content.apply_state).to eq(2)
+              expect(content.apply_state).to eq(2)
+            end
+          end
+
+          context "but the DI component did not start (unsupported runtime or explicitly disabled)" do
+            let(:di_component) { nil }
+
+            it "withdraws the DI products instead of advertising them" do
+              expect(remote_component).not_to receive(:add_products)
+              expect(remote_component).to receive(:remove_products)
+                .with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
+
+              process_config
+
+              expect(content.apply_state).to eq(2)
+            end
           end
         end
 
-        context 'to false' do
-          let(:config) { {'lib_config' => {'dynamic_instrumentation_enabled' => false}} }
+        context "to false" do
+          let(:config) { {"lib_config" => {"dynamic_instrumentation_enabled" => false}} }
 
-          it 'stops Symbol Database (follows-DI case) and does not replay' do
+          it "stops Symbol Database (follows-DI case), withdraws products, and does not replay" do
             expect(symbol_database).to receive(:stop_for_di_disable)
             expect(symbol_database).not_to receive(:resume_pending_upload)
+            expect(remote_component).to receive(:remove_products)
+              .with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
 
             process_config
 

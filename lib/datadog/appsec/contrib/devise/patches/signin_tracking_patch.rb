@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../ext'
-require_relative '../configuration'
-require_relative '../data_extractor'
-require_relative '../../../trace_keeper'
+require_relative "../ext"
+require_relative "../configuration"
+require_relative "../data_extractor"
+require_relative "../../../trace_keeper"
 
 module Datadog
   module AppSec
@@ -23,7 +23,7 @@ module Datadog
               return result unless context
 
               if context.trace.nil? || context.span.nil?
-                Datadog.logger.debug { 'AppSec: unable to track signin events, due to missing trace or span' }
+                Datadog.logger.debug { "AppSec: unable to track signin events, due to missing trace or span" }
                 return result
               end
 
@@ -31,13 +31,13 @@ module Datadog
 
               if result
                 record_successful_signin(context, resource)
-                Instrumentation.gateway.push('appsec.events.user_lifecycle', Ext::EVENT_LOGIN_SUCCESS)
+                Instrumentation.gateway.push("appsec.events.user_lifecycle", Ext::EVENT_LOGIN_SUCCESS)
 
                 return result
               end
 
               record_failed_signin(context, resource)
-              Instrumentation.gateway.push('appsec.events.user_lifecycle', Ext::EVENT_LOGIN_FAILURE)
+              Instrumentation.gateway.push("appsec.events.user_lifecycle", Ext::EVENT_LOGIN_FAILURE)
 
               result
             end
@@ -56,7 +56,7 @@ module Datadog
               end
 
               context.span[Ext::TAG_LOGIN_SUCCESS_USR_LOGIN] ||= login
-              context.span[Ext::TAG_LOGIN_SUCCESS_TRACK] = 'true'
+              context.span[Ext::TAG_LOGIN_SUCCESS_TRACK] = "true"
               context.span[Ext::TAG_DD_USR_LOGIN] = login
               context.span[Ext::TAG_DD_LOGIN_SUCCESS_MODE] = Configuration.auto_user_instrumentation_mode
 
@@ -64,14 +64,14 @@ module Datadog
               #       and because of that we will trigger an additional event even
               #       if it was already done via the SDK
               AppSec::Instrumentation.gateway.push(
-                'identity.set_user', AppSec::Instrumentation::Gateway::User.new(id, login)
+                "identity.set_user", AppSec::Instrumentation::Gateway::User.new(id, login)
               )
             end
 
             def record_failed_signin(context, resource)
               extractor = DataExtractor.new(mode: Configuration.auto_user_instrumentation_mode)
 
-              context.span[Ext::TAG_LOGIN_FAILURE_TRACK] = 'true'
+              context.span[Ext::TAG_LOGIN_FAILURE_TRACK] = "true"
               context.span[Ext::TAG_DD_LOGIN_FAILURE_MODE] = Configuration.auto_user_instrumentation_mode
 
               unless resource
@@ -79,7 +79,7 @@ module Datadog
 
                 context.span[Ext::TAG_DD_USR_LOGIN] = login
                 context.span[Ext::TAG_LOGIN_FAILURE_USR_LOGIN] ||= login
-                context.span[Ext::TAG_LOGIN_FAILURE_USR_EXISTS] ||= 'false'
+                context.span[Ext::TAG_LOGIN_FAILURE_USR_EXISTS] ||= "false"
 
                 return
               end
@@ -94,7 +94,7 @@ module Datadog
 
               context.span[Ext::TAG_DD_USR_LOGIN] = login
               context.span[Ext::TAG_LOGIN_FAILURE_USR_LOGIN] ||= login
-              context.span[Ext::TAG_LOGIN_FAILURE_USR_EXISTS] ||= 'true'
+              context.span[Ext::TAG_LOGIN_FAILURE_USR_EXISTS] ||= "true"
             end
           end
         end

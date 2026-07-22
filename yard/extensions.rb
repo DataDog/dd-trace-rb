@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-TOP_LEVEL_MODULE_FILE = 'lib/datadog.rb'
+TOP_LEVEL_MODULE_FILE = "lib/datadog.rb"
 
 # The top-level `Datadog` module gets its docstring overwritten by
 # on almost every file in the repo, due to comments at the top of the file
@@ -14,7 +14,7 @@ TOP_LEVEL_MODULE_FILE = 'lib/datadog.rb'
 # and directives in the first lines of a file.
 module EnsureTopLevelModuleCommentConsistency
   def register_docstring(object, *args)
-    if object.is_a?(YARD::CodeObjects::ModuleObject) && object.path == 'Datadog' && parser.file != TOP_LEVEL_MODULE_FILE
+    if object.is_a?(YARD::CodeObjects::ModuleObject) && object.path == "Datadog" && parser.file != TOP_LEVEL_MODULE_FILE
       super(object, nil)
     else
       super
@@ -35,7 +35,7 @@ YARD::Parser::SourceParser.after_parse_list do
     case obj
     when YARD::CodeObjects::ModuleObject, YARD::CodeObjects::ClassObject
       # Mark modules and classes as private if they are not tagged with @public_api
-      unless obj.has_tag?('public_api')
+      unless obj.has_tag?("public_api")
         obj.visibility = :private
         next
       end
@@ -43,11 +43,11 @@ YARD::Parser::SourceParser.after_parse_list do
       # Do not change visibility of individual objects.
       # We'll handle their visibility in their encompassing modules and classes instead.
 
-      if obj.has_tag?('public_api')
+      if obj.has_tag?("public_api")
         log.warn(
           "The @public_api tag should be added to modules and classes only: #{obj.files.join(":")}.\n" \
-          'Please move the tag to the encompassing module or class. ' \
-          'You can hide non-public methods, attributes, and constants with the `@!visibility private` directive.'
+          "Please move the tag to the encompassing module or class. " \
+          "You can hide non-public methods, attributes, and constants with the `@!visibility private` directive."
         )
       end
 
@@ -71,8 +71,8 @@ YARD::Parser::SourceParser.after_parse_list do
     docstring = obj.docstring
     next if docstring.empty?
 
-    docstring.replace(docstring.all.gsub(/^[A-Z]+: .*/, '')) # Removes TODO:, DEV:
-    docstring.replace(docstring.all.gsub(/^rubocop:.*/, '')) # Removes rubocop:...
+    docstring.replace(docstring.all.gsub(/^[A-Z]+: .*/, "")) # Removes TODO:, DEV:
+    docstring.replace(docstring.all.gsub(/^rubocop:.*/, "")) # Removes rubocop:...
   end
 end
 
@@ -94,11 +94,11 @@ class DatadogConfigurationSettingsHandler < YARD::Handlers::Ruby::Base
       parent_module = namespace
     else
       # If not, create a DSL module to host generated classes
-      parent_module = YARD::CodeObjects::ModuleObject.new(namespace, 'DSL')
+      parent_module = YARD::CodeObjects::ModuleObject.new(namespace, "DSL")
 
       register(parent_module)
 
-      parent_module.docstring = 'Namespace for dynamically generated configuration classes.'
+      parent_module.docstring = "Namespace for dynamically generated configuration classes."
     end
 
     # The generated class inherits the docstring from the current statement.
@@ -106,13 +106,13 @@ class DatadogConfigurationSettingsHandler < YARD::Handlers::Ruby::Base
 
     register(generated_class)
 
-    generated_class.add_tag(YARD::Tags::Tag.new(:dsl, 'dsl'))
+    generated_class.add_tag(YARD::Tags::Tag.new(:dsl, "dsl"))
 
     # Remove @public_api tag from this statement, as `setting :option` is a method call
     # and @public_api tags should only exists in modules and classes.
     # The encompassing DSL modules and classes will inherit this tag, this only
     # applies to the accessor method.
-    new_docstring = statement.docstring.to_s.sub(/^\s*@public_api\b.*/, '')
+    new_docstring = statement.docstring.to_s.sub(/^\s*@public_api\b.*/, "")
 
     statement.docstring = <<~YARD
       #{new_docstring}
@@ -153,5 +153,5 @@ class DatadogConfigurationOptionHandler < YARD::Handlers::Ruby::Base
 end
 
 def camelize(str)
-  str.split('_').collect(&:capitalize).join
+  str.split("_").collect(&:capitalize).join
 end

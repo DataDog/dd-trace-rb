@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require_relative '../../../core/utils/only_once'
-require_relative '../rack/middlewares'
-require_relative 'framework'
-require_relative 'log_injection'
-require_relative 'middlewares'
-require_relative 'runner'
-require_relative '../semantic_logger/patcher'
+require_relative "../../../core/utils/only_once"
+require_relative "../rack/middlewares"
+require_relative "framework"
+require_relative "log_injection"
+require_relative "middlewares"
+require_relative "runner"
+require_relative "../semantic_logger/patcher"
 
 module Datadog
   module Tracing
@@ -86,7 +86,7 @@ module Datadog
           # Instruments the `bin/rails runner` command.
           def patch_rails_runner
             # The `RunnerCommand` class is only available in Rails 5.1 and later.
-            if defined?(::Rails::Command::RunnerCommand) && Integration.version >= Gem::Version.new('5.1')
+            if defined?(::Rails::Command::RunnerCommand) && Integration.version >= Gem::Version.new("5.1")
               ::Rails::Command::RunnerCommand.prepend(Runner)
             end
           end

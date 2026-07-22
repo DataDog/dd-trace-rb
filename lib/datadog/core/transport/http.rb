@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative 'http/builder'
-require_relative 'http/adapters/net'
-require_relative 'http/adapters/unix_socket'
-require_relative 'http/adapters/test'
-require_relative '../environment/container'
-require_relative '../environment/ext'
+require_relative "http/builder"
+require_relative "http/adapters/net"
+require_relative "http/adapters/unix_socket"
+require_relative "http/adapters/test"
+require_relative "../environment/container"
+require_relative "../environment/ext"
 
 module Datadog
   module Core
@@ -51,7 +51,7 @@ module Datadog
 
         def default_headers
           {
-            Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_TOP_LEVEL => '1',
+            Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_TOP_LEVEL => "1",
             Core::Transport::Ext::HTTP::HEADER_META_LANG =>
               Datadog::Core::Environment::Ext::LANG,
             Core::Transport::Ext::HTTP::HEADER_META_LANG_VERSION =>
@@ -70,7 +70,7 @@ module Datadog
             unless Datadog.configuration.apm.tracing.enabled
               # Sending this header to the agent will disable metrics computation (and billing) on the agent side
               # by pretending it has already been done on the library side.
-              headers[Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_STATS] = 'yes'
+              headers[Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_STATS] = "yes"
             end
           end
         end
