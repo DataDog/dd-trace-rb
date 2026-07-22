@@ -18,7 +18,8 @@ runs:
       shell: bash
       run: |
         id=$(ruby -e "puts RUBY_DESCRIPTION") # Includes patchlevel, os, and arch
-        echo "id=$id" >> "$GITHUB_OUTPUT"
+        ext_api_version=$(ruby -e "puts Gem.extension_api_version") # Busts the cache when native extension ABI changes (e.g. static vs shared build)
+        echo "id=$id-$ext_api_version" >> "$GITHUB_OUTPUT"
     - name: Resolve lockfile
       id: lockfile
       shell: bash
