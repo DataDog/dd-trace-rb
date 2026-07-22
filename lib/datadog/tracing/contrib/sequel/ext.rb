@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../ext"
+
 module Datadog
   module Tracing
     module Contrib
@@ -16,6 +18,8 @@ module Datadog
           TAG_PREPARED_NAME = "sequel.prepared.name"
           TAG_COMPONENT = "sequel"
           TAG_OPERATION_QUERY = "query"
+          TAG_DB_NAME = "sequel.db.name"
+          PEER_SERVICE_SOURCES = ([TAG_DB_NAME] + Contrib::Ext::DB::PEER_SERVICE_SOURCES).freeze
         end
       end
     end

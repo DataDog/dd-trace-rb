@@ -79,10 +79,22 @@ RSpec.describe "Sequel instrumentation" do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("sequel")
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq("query")
 
-          if PlatformHelpers.jruby?
-            nil # TODO: Extract host for Sequel with JDBC
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq("client")
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_SYSTEM)).to eq(db_system)
+          if database_name
+            expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(database_name)
+            expect(span.get_tag("sequel.db.name")).to eq(database_name)
           else
+            expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to be_nil
+            expect(span.get_tag("sequel.db.name")).to be_nil
+          end
+
+          if host
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
+          else
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to be_nil
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to be_nil
           end
         end
 
@@ -108,6 +120,14 @@ RSpec.describe "Sequel instrumentation" do
           let(:expected_query) { sequel.literal(query) }
         end
       end
+    end
+
+    it_behaves_like "a peer service span" do
+      subject { sequel.run("SELECT * FROM tbl WHERE name = 'foo'") }
+
+      let(:span) { spans.first }
+      let(:peer_service_val) { database_name }
+      let(:peer_service_source) { database_name ? "sequel.db.name" : nil }
     end
 
     describe "when queried through a Sequel::Dataset" do
@@ -225,6 +245,8 @@ RSpec.describe "Sequel instrumentation" do
     let(:connection_string) { "sqlite::memory:" }
     let(:adapter) { "sqlite" }
     let(:host) { nil }
+    let(:database_name) { nil }
+    let(:db_system) { "sqlite" }
 
     it_behaves_like "instrumented queries"
   end
@@ -245,6 +267,8 @@ RSpec.describe "Sequel instrumentation" do
         "mysql2"
       end
     end
+    let(:database_name) { ENV.fetch("TEST_MYSQL_DB", "mysql") }
+    let(:db_system) { "mysql" }
 
     it_behaves_like "instrumented queries"
   end
@@ -260,6 +284,8 @@ RSpec.describe "Sequel instrumentation" do
     let(:host) { ENV.fetch("TEST_POSTGRES_HOST", "127.0.0.1") }
     let(:normalized_adapter) { "postgres" }
     let(:adapter) { "postgresql" }
+    let(:database_name) { ENV.fetch("TEST_POSTGRES_DB", "postgres") }
+    let(:db_system) { "postgres" }
 
     it_behaves_like "instrumented queries"
   end
