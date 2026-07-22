@@ -14,9 +14,9 @@ module Datadog
       attr_reader target: ::Logger
 
       # debug/warn accept either a positional message or a block (delegated to ::Logger)
-      def debug: (?any? message) ?{ () -> any } -> void
-      def warn: (?any? message) ?{ () -> any } -> void
-      def trace: () { () -> any } -> void
+      def debug: (?String message) ?{ () -> String } -> void
+      def warn: (?String message) ?{ () -> String } -> void
+      def trace: () ?{ () -> String } -> void
     end
   end
 end
