@@ -482,7 +482,8 @@ void sample_thread(
     #if defined(HAVE_DLADDR1) && HAVE_DLADDR1
       struct link_map *extra_info = NULL;
       if (dladdr1(function, &info, (void **) &extra_info, RTLD_DL_LINKMAP) != 0 && extra_info != NULL) {
-        native_filename = extra_info->l_name != NULL ? extra_info->l_name : info.dli_fname;
+        // The main executable has an empty link-map name; dladdr still reports its path in dli_fname.
+        native_filename = extra_info->l_name != NULL && extra_info->l_name[0] != '\0' ? extra_info->l_name : info.dli_fname;
       }
     #elif defined(HAVE_DLADDR) && HAVE_DLADDR
       if (dladdr(function, &info) != 0) {
