@@ -51,7 +51,7 @@ module Datadog
 
       attr_reader scopes: Array[Scope]
 
-      def to_h: () -> Hash[::Symbol, any]
+      def to_h: () -> Hash[::Symbol, untyped]
 
       def to_json: (?untyped _state) -> String
     end

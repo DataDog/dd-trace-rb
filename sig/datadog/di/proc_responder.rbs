@@ -11,9 +11,9 @@ module Datadog
 
       attr_reader failed_proc: Proc?
 
-      def probe_executed_callback: (Context context) -> any
+      def probe_executed_callback: (Context context) -> untyped
 
-      def probe_condition_evaluation_failed_callback: (Context context, Exception exc) -> any
+      def probe_condition_evaluation_failed_callback: (Context context, Exception exc) -> untyped
 
       def probe_disabled_callback: (Probe probe, Float duration) -> void
     end

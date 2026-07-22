@@ -43,7 +43,7 @@ module Datadog
 
       attr_reader final: bool?
 
-      def to_h: () -> Hash[::Symbol, any]
+      def to_h: () -> Hash[::Symbol, untyped]
 
       def to_json: (?untyped _state) -> String
     end
