@@ -57,7 +57,7 @@ module Datadog
 
       def calculate_class_line_range: (Class klass, Array[::Symbol] methods) -> [Integer, Integer]
 
-      def build_class_language_specifics: (Class klass) -> Hash[::Symbol, any]
+      def build_class_language_specifics: (Class klass) -> language_specifics
 
       def extract_method_scopes: (Class klass) -> Array[Scope]
 
