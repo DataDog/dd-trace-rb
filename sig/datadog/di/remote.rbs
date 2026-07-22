@@ -19,14 +19,14 @@ module Datadog
 
       private
 
-      def self.parse_content: (any content) -> Hash[String, any]
+      def self.parse_content: (Core::Remote::Configuration::Content content) -> Hash[String, any]
 
       def self.replay_current_probes: (Core::Remote::Configuration::Repository repository, Component component) -> void
       def self.probe_known?: (untyped probe_id, Component component) -> bool
-      def self.probe_in_content_known?: (any content, Component component) -> bool
+      def self.probe_in_content_known?: (Core::Remote::Configuration::Content content, Component component) -> bool
 
-      def self.add_probe: (any content, Component component) -> void
-      def self.remove_probe: (any previous_content, Component component) -> void
+      def self.add_probe: (Core::Remote::Configuration::Content content, Component component) -> void
+      def self.remove_probe: (Core::Remote::Configuration::Content previous_content, Component component) -> void
     end
   end
 end
