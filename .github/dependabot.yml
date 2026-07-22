@@ -20,3 +20,16 @@ updates:
       - dependency-name: "DataDog/system-tests/.github/workflows/system-tests.yml"
     cooldown:
       default-days: 7
+  - package-ecosystem: "docker"
+    directories:
+      - "/"
+      - "/integration/images/ruby/*"
+      - "/integration/apps/*"
+    schedule:
+      interval: "weekly"
+    groups:
+      docker-images:
+        patterns:
+          - "*"
+    cooldown:
+      default-days: 7
