@@ -9,7 +9,7 @@ module Datadog
 
 
       def initialize: (status: ::Integer, ?headers: ::Hash[::String, ::String], ?body: ::Array[::String]) -> void
-      def to_rack: () -> ::Array[untyped]
+      def to_rack: () -> Rack::response
 
       def self.from_interrupt_params: (::Hash[::String, ::String] interrupt_params, ::String http_accept_header) -> Response
 

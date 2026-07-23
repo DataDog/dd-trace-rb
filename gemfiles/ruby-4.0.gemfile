@@ -58,6 +58,7 @@ group :check do
   #
   # TODO: Remove once rubocop has updated its dependencies
   gem 'tsort'
+  gem 'bundler-audit', '~> 0.9.3', require: false
 end
 group :dev do
   gem 'appraisal', '~> 2.4.0', require: false
