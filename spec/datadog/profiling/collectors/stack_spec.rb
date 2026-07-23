@@ -909,6 +909,23 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
+  describe "Using static_ruby_actual_filename in static Rubies without libruby.so" do
+    def set_file_info_for_cfunc(static_ruby_actual_filename)
+      described_class::Testing._native_set_file_info_for_cfunc(static_ruby_actual_filename)
+    end
+
+    it "uses static_ruby_actual_filename when it is set" do
+      expect(set_file_info_for_cfunc("/static/ruby/path")).to eq("/static/ruby/path")
+    end
+
+    context "when static_ruby_actual_filename is unset" do
+      it "falls back to the raw dladdr-resolved filename for the Ruby VM" do
+        expect(set_file_info_for_cfunc(nil))
+          .to include("rspec").or(end_with("/ruby")).or(include("libruby"))
+      end
+    end
+  end
+
   def convert_reference_stack(raw_reference_stack)
     raw_reference_stack.map do |location|
       ProfileHelpers::Frame.new(location.base_label, location.path, location.lineno).freeze
