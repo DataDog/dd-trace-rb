@@ -3,14 +3,10 @@
 #include <ruby/st.h>
 #include <stdatomic.h>
 
-#include "extconf.h" // This is needed for the HAVE_DLADDR and friends below
-
-#if defined(HAVE_DLADDR) && HAVE_DLADDR
-  #ifndef _GNU_SOURCE
-    #define _GNU_SOURCE
-  #endif
-  #include <dlfcn.h>
+#ifndef _GNU_SOURCE
+  #define _GNU_SOURCE // Needed for dlfcn.h/dladdr
 #endif
+#include <dlfcn.h>
 
 #include "datadog_ruby_common.h"
 #include "private_vm_api_access.h"
@@ -45,7 +41,7 @@ static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_Char
 extern VALUE rb_iseq_path(const VALUE);
 extern VALUE rb_iseq_base_label(const VALUE);
 
-// NULL if dladdr is not available or we weren't able to get the native filename for the Ruby VM
+// NULL if we weren't able to get the native filename for the Ruby VM
 static const char *ruby_native_filename = NULL;
 
 void collectors_stack_init(VALUE profiling_module) {
@@ -59,20 +55,18 @@ void collectors_stack_init(VALUE profiling_module) {
 
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, -1);
 
-  #if defined(HAVE_DLADDR) && HAVE_DLADDR
-    // To be able to detect when a frame is coming from Ruby, we record here its filename as returned by dladdr.
-    // We expect this same pointer to be returned by dladdr for all frames coming from Ruby.
-    //
-    // Small note: Creating/deleting the cache is a bit awkward here, but it seems like a bigger footgun to allow
-    // `get_or_compute_native_filename` to run without a cache, since we never expect that to happen during sampling. So it seems
-    // like a reasonable trade-off to force callers to always figure that out.
-    st_table *temporary_cache = st_init_numtable();
-    const char *native_filename = get_or_compute_native_filename(rb_ary_new, temporary_cache);
-    if (native_filename != NULL && native_filename[0] != '\0') {
-      ruby_native_filename = native_filename;
-    }
-    st_free_table(temporary_cache);
-  #endif
+  // To be able to detect when a frame is coming from Ruby, we record here its filename as returned by dladdr.
+  // We expect this same pointer to be returned by dladdr for all frames coming from Ruby.
+  //
+  // Small note: Creating/deleting the cache is a bit awkward here, but it seems like a bigger footgun to allow
+  // `get_or_compute_native_filename` to run without a cache, since we never expect that to happen during sampling. So it seems
+  // like a reasonable trade-off to force callers to always figure that out.
+  st_table *temporary_cache = st_init_numtable();
+  const char *native_filename = get_or_compute_native_filename(rb_ary_new, temporary_cache);
+  if (native_filename != NULL && native_filename[0] != '\0') {
+    ruby_native_filename = native_filename;
+  }
+  st_free_table(temporary_cache);
 }
 
 static VALUE _native_ruby_native_filename(DDTRACE_UNUSED VALUE self) {
@@ -418,83 +412,67 @@ void sample_thread(
   );
 }
 
-#if defined(HAVE_DLADDR) && HAVE_DLADDR
-  static void set_file_info_for_cfunc(
-    ddog_CharSlice *filename_slice,
-    int *line,
-    ddog_CharSlice last_ruby_frame_filename,
-    int last_ruby_line,
-    void *function,
-    bool top_of_the_stack,
-    bool native_filenames_enabled,
-    st_table *native_filenames_cache
-  ) {
-    if (native_filenames_enabled) {
-      const char *native_filename = get_or_compute_native_filename(function, native_filenames_cache);
-      if (native_filename && native_filename[0] != '\0' &&
-        // Using the ruby_native_filename at the top of the stack has a weird effect on the "top methods" table because
-        // e.g. we don't have classnames for methods. This is especially visible in the allocations profile, e.g.
-        // what a surprise, you're telling me "libruby.so:new" is the top method always?
-        //
-        // Until we have a better way of dealing with that, we don't do this replacement for the top frame.
-        //
-        // Also, dladdr is expected to always return the same pointer to the ruby_native_filename, so that's why we're
-        // comparing only pointer values and not the string contents.
-        (native_filename != ruby_native_filename || !top_of_the_stack)
-      ) {
-        *filename_slice = (ddog_CharSlice) {.ptr = native_filename, .len = strlen(native_filename)};
-        // Explicitly set the line to 0 as it has no meaning on a native library (e.g. an .so is built of many source files)
-        // and anyway often that debug info is not available.
-        *line = 0;
-        return;
-      }
+static void set_file_info_for_cfunc(
+  ddog_CharSlice *filename_slice,
+  int *line,
+  ddog_CharSlice last_ruby_frame_filename,
+  int last_ruby_line,
+  void *function,
+  bool top_of_the_stack,
+  bool native_filenames_enabled,
+  st_table *native_filenames_cache
+) {
+  if (native_filenames_enabled) {
+    const char *native_filename = get_or_compute_native_filename(function, native_filenames_cache);
+    if (native_filename && native_filename[0] != '\0' &&
+      // Using the ruby_native_filename at the top of the stack has a weird effect on the "top methods" table because
+      // e.g. we don't have classnames for methods. This is especially visible in the allocations profile, e.g.
+      // what a surprise, you're telling me "libruby.so:new" is the top method always?
+      //
+      // Until we have a better way of dealing with that, we don't do this replacement for the top frame.
+      //
+      // Also, dladdr is expected to always return the same pointer to the ruby_native_filename, so that's why we're
+      // comparing only pointer values and not the string contents.
+      (native_filename != ruby_native_filename || !top_of_the_stack)
+    ) {
+      *filename_slice = (ddog_CharSlice) {.ptr = native_filename, .len = strlen(native_filename)};
+      // Explicitly set the line to 0 as it has no meaning on a native library (e.g. an .so is built of many source files)
+      // and anyway often that debug info is not available.
+      *line = 0;
+      return;
     }
-
-    *filename_slice = last_ruby_frame_filename;
-    *line = last_ruby_line;
   }
 
-  // `native_filenames_cache` is used to cache native filename lookup results (Map[void *function_pointer, char *filename])
-  //
-  // Caching this information is safe because there's no API in Ruby to "unrequire" a native extension. Thus, if we see a
-  // frame on the **Ruby** stack with a given `function`, then that `function` was registered with the Ruby VM and
-  // belongs to a Ruby extension, so a lot of other bad things would happen if it was dlclosed.
-  static const char *get_or_compute_native_filename(void *function, st_table *native_filenames_cache) {
-    const char *cached_filename = NULL;
-    st_lookup(native_filenames_cache, (st_data_t) function, (st_data_t *) &cached_filename);
-    if (cached_filename != NULL) return cached_filename;
+  *filename_slice = last_ruby_frame_filename;
+  *line = last_ruby_line;
+}
 
-    Dl_info info;
-    const char *native_filename = dladdr(function, &info) != 0 ? info.dli_fname : NULL;
+// `native_filenames_cache` is used to cache native filename lookup results (Map[void *function_pointer, char *filename])
+//
+// Caching this information is safe because there's no API in Ruby to "unrequire" a native extension. Thus, if we see a
+// frame on the **Ruby** stack with a given `function`, then that `function` was registered with the Ruby VM and
+// belongs to a Ruby extension, so a lot of other bad things would happen if it was dlclosed.
+static const char *get_or_compute_native_filename(void *function, st_table *native_filenames_cache) {
+  const char *cached_filename = NULL;
+  st_lookup(native_filenames_cache, (st_data_t) function, (st_data_t *) &cached_filename);
+  if (cached_filename != NULL) return cached_filename;
 
-    // We explicitly use an empty string here so as to cache lookups that somehow "failed". Otherwise we would keep trying them every time.
-    if (native_filename == NULL) native_filename = "";
+  Dl_info info;
+  const char *native_filename = dladdr(function, &info) != 0 ? info.dli_fname : NULL;
 
-    // An st_table is what Ruby uses for its own hashtables. This allows us to get an easy estimate of the size of the cache:
-    // `ObjectSpace.memsize_of((0..100000).map { |it| [it, nil] }.to_h)` => 4194400 bytes as of Ruby 3.2 so that seems reasonable?
-    // Note: `st_table_size()` is available from Ruby 3.2+ but not before
-    if (native_filenames_cache->num_entries >= 100000) {
-      st_clear(native_filenames_cache);
-    }
+  // We explicitly use an empty string here so as to cache lookups that somehow "failed". Otherwise we would keep trying them every time.
+  if (native_filename == NULL) native_filename = "";
 
-    st_insert(native_filenames_cache, (st_data_t) function, (st_data_t) native_filename);
-    return native_filename;
+  // An st_table is what Ruby uses for its own hashtables. This allows us to get an easy estimate of the size of the cache:
+  // `ObjectSpace.memsize_of((0..100000).map { |it| [it, nil] }.to_h)` => 4194400 bytes as of Ruby 3.2 so that seems reasonable?
+  // Note: `st_table_size()` is available from Ruby 3.2+ but not before
+  if (native_filenames_cache->num_entries >= 100000) {
+    st_clear(native_filenames_cache);
   }
-#else
-  static void set_file_info_for_cfunc(
-    ddog_CharSlice *filename_slice,
-    int *line,
-    ddog_CharSlice last_ruby_frame_filename,
-    int last_ruby_line,
-    DDTRACE_UNUSED void *function,
-    DDTRACE_UNUSED bool top_of_the_stack,
-    DDTRACE_UNUSED bool native_filenames_enabled,
-    DDTRACE_UNUSED st_table *native_filenames_cache
-  ) {
-    *filename_slice = last_ruby_frame_filename;
-    *line = last_ruby_line;
-  }
-#endif
+
+  st_insert(native_filenames_cache, (st_data_t) function, (st_data_t) native_filename);
+  return native_filename;
+}
 
 // Rails's ActionView likes to dynamically generate method names with suffixed hashes/ids, resulting in methods with
 // names such as:
