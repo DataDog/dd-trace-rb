@@ -273,10 +273,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       context "when native filenames are enabled", if: PlatformHelpers.linux? do
         let(:native_filenames_enabled) { true }
 
-        before do
-          skip("Native filenames are only available on Linux") unless described_class._native_filenames_available?
-        end
-
         it "matches the Ruby backtrace API after the 6th frame" do
           expect(gathered_stack[5..-1]).to eq reference_stack[5..-1]
         end
@@ -322,10 +318,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       context "when native filenames are enabled", if: PlatformHelpers.linux? do
         let(:native_filenames_enabled) { true }
-
-        before do
-          skip("Native filenames are only available on Linux") unless described_class._native_filenames_available?
-        end
 
         it "matches the Ruby backtrace API after the 5th frame" do
           expect(gathered_stack[4..-1]).to eq reference_stack[4..-1]
@@ -905,12 +897,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       expect do
         sample(Thread.current, Datadog::Profiling::StackRecorder.for_testing, metric_values, labels, max_frames: 10_001)
       end.to raise_error(ArgumentError)
-    end
-  end
-
-  describe "_native_filenames_available?" do
-    it "returns true on linux and macOS" do
-      expect(described_class._native_filenames_available?).to be true
     end
   end
 
