@@ -108,6 +108,7 @@ GEM
       rack (~> 2.2)
       rack-protection (= 2.2.4)
       tilt (~> 2.0)
+    strscan (3.1.2)
     tilt (2.1.0)
     warning (1.6.0)
     webmock (3.25.0)
@@ -145,9 +146,10 @@ DEPENDENCIES
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
   simplecov (~> 0.22.0)
+  strscan (= 3.1.2)
   warning (~> 1)
   webmock (>= 3.10.0)
   zstd-ruby
 
 BUNDLED WITH
-   2.3.26
+   2.3.27
