@@ -11,6 +11,10 @@ on: # yamllint disable-line rule:truthy
   schedule:
     - cron: "00 04 * * 0-6"
 
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: "${{ github.ref != 'refs/heads/master' }}"
+
 # Default permissions for all jobs
 permissions: {}
 

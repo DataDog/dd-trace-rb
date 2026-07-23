@@ -8,6 +8,10 @@ on: # yamllint disable-line rule:truthy
     branches:
       - master
 
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: "${{ github.ref != 'refs/heads/master' }}"
+
 # Default permissions for all jobs
 permissions: {}
 
