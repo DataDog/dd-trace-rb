@@ -270,7 +270,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         expect(gathered_stack).to eq reference_stack
       end
 
-      context "when native filenames are enabled", if: PlatformHelpers.linux? do
+      context "when native filenames are enabled" do
         let(:native_filenames_enabled) { true }
 
         it "matches the Ruby backtrace API after the 6th frame" do
@@ -284,11 +284,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             have_attributes(base_label: "sleep", path: __FILE__, lineno: @expected_line),
             have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: @expected_line),
             # Bigdecimal is a native extension shipped separately from Ruby
-            have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),
+            have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so").or(end_with("bigdecimal.bundle")), lineno: 0),
             have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: be_positive),
             # We expect the native filename for catch to be inside the Ruby VM -- either in the ruby binary or the libruby library
-            # Note that this may not apply everywhere (e.g. you can rename your Ruby), but it seems sane enough to require this when running tests
-            have_attributes(base_label: "catch", path: end_with("/ruby").or(include("libruby").and(include(".so"))), lineno: 0),
+            have_attributes(base_label: "catch", path: described_class._native_ruby_native_filename, lineno: 0),
           )
         end
       end
@@ -316,7 +315,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         expect(gathered_stack).to eq reference_stack
       end
 
-      context "when native filenames are enabled", if: PlatformHelpers.linux? do
+      context "when native filenames are enabled" do
         let(:native_filenames_enabled) { true }
 
         it "matches the Ruby backtrace API after the 5th frame" do
@@ -328,7 +327,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             have_attributes(base_label: "sleep", path: __FILE__, lineno: be_positive),
             have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: be_positive),
             # Bigdecimal is a native extension shipped separately from Ruby
-            have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),
+            have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so").or(end_with("bigdecimal.bundle")), lineno: 0),
             # This is the frame in module_calling_super.save_rounding_mode (the one that calls super)
             have_attributes(base_label: "save_rounding_mode", path: __FILE__, lineno: be_positive),
           )
