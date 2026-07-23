@@ -5,14 +5,11 @@
 
 #include "extconf.h" // This is needed for the HAVE_DLADDR and friends below
 
-#if (defined(HAVE_DLADDR1) && HAVE_DLADDR1) || (defined(HAVE_DLADDR) && HAVE_DLADDR)
+#if defined(HAVE_DLADDR) && HAVE_DLADDR
   #ifndef _GNU_SOURCE
     #define _GNU_SOURCE
   #endif
   #include <dlfcn.h>
-  #if defined(HAVE_DLADDR1) && HAVE_DLADDR1
-    #include <link.h>
-  #endif
 #endif
 
 #include "datadog_ruby_common.h"
@@ -62,7 +59,7 @@ void collectors_stack_init(VALUE profiling_module) {
 
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, -1);
 
-  #if (defined(HAVE_DLADDR1) && HAVE_DLADDR1) || (defined(HAVE_DLADDR) && HAVE_DLADDR)
+  #if defined(HAVE_DLADDR) && HAVE_DLADDR
     // To be able to detect when a frame is coming from Ruby, we record here its filename as returned by dladdr.
     // We expect this same pointer to be returned by dladdr for all frames coming from Ruby.
     //
@@ -421,7 +418,7 @@ void sample_thread(
   );
 }
 
-#if (defined(HAVE_DLADDR1) && HAVE_DLADDR1) || (defined(HAVE_DLADDR) && HAVE_DLADDR)
+#if defined(HAVE_DLADDR) && HAVE_DLADDR
   static void set_file_info_for_cfunc(
     ddog_CharSlice *filename_slice,
     int *line,
@@ -468,17 +465,7 @@ void sample_thread(
     if (cached_filename != NULL) return cached_filename;
 
     Dl_info info;
-    const char *native_filename = NULL;
-    #if defined(HAVE_DLADDR1) && HAVE_DLADDR1
-      struct link_map *extra_info = NULL;
-      if (dladdr1(function, &info, (void **) &extra_info, RTLD_DL_LINKMAP) != 0 && extra_info != NULL) {
-        native_filename = extra_info->l_name != NULL ? extra_info->l_name : info.dli_fname;
-      }
-    #elif defined(HAVE_DLADDR) && HAVE_DLADDR
-      if (dladdr(function, &info) != 0) {
-        native_filename = info.dli_fname;
-      }
-    #endif
+    const char *native_filename = dladdr(function, &info) != 0 ? info.dli_fname : NULL;
 
     // We explicitly use an empty string here so as to cache lookups that somehow "failed". Otherwise we would keep trying them every time.
     if (native_filename == NULL) native_filename = "";
