@@ -1,0 +1,70 @@
+module Datadog
+  module Tracing
+    module Transport
+      module Native
+        UNSUPPORTED_REASON: String?
+
+        def self?.supported?: () -> bool
+
+        # Defined by the C extension in +ext/libdatadog_api/trace_exporter.c+.
+        class TraceExporter
+          def self._native_new: (
+            url: String,
+            tracer_version: String,
+            language: String,
+            language_version: String,
+            language_interpreter: String,
+            hostname: String?,
+            env: String?,
+            service: String?,
+            version: String?
+          ) -> TraceExporter
+          def _native_send_traces: (Array[Array[Datadog::Tracing::Span]] chunks) -> Array[Response]
+          def _native_before_fork: () -> void
+          def _native_after_fork_in_parent: () -> void
+          def _native_after_fork_in_child: () -> void
+        end
+
+        class Transport
+          include Statistics
+
+          @logger: Datadog::Core::Logger
+          @exporter: TraceExporter?
+          @send_mutex: Thread::Mutex
+          @fork_hooks: Hash[Symbol, Proc]?
+          @unsupported_fields_warned: bool
+
+          attr_reader logger: Datadog::Core::Logger
+
+          def initialize: (agent_settings: Datadog::Core::Configuration::AgentSettings, logger: Datadog::Core::Logger) -> void
+          def self.finalizer_for: (Hash[Symbol, Proc] fork_hooks) -> Proc
+          def close: () -> void
+          def send_traces: (Array[Datadog::Tracing::TraceSegment] traces) -> Array[Response | InternalErrorResponse]
+
+          private
+
+          def warn_unsupported_fields!: (Array[Array[Datadog::Tracing::Span]] chunks) -> void
+          def tracer_version_string: () -> String
+        end
+
+        class InternalErrorResponse
+          @error: StandardError
+
+          attr_reader error: StandardError
+
+          def initialize: (StandardError error) -> void
+          def ok?: () -> false
+          def internal_error?: () -> true
+          def server_error?: () -> false
+          def client_error?: () -> false
+          def not_found?: () -> false
+          def unsupported?: () -> false
+          def payload: () -> nil
+          def trace_count: () -> 0
+          def service_rates: () -> nil
+          def inspect: () -> String
+        end
+      end
+    end
+  end
+end
