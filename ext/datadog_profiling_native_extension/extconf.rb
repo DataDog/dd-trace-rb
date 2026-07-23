@@ -139,10 +139,6 @@ end
 
 have_func "malloc_stats"
 
-# Used to get native filenames
-# Note it's possible it's not available
-have_func("dladdr") if have_header("dlfcn.h")
-
 # On older Rubies, there was no primitive mutex and condition variable implemented in `thread_sync.rb` (internal)
 $defs << "-DNO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE" if RUBY_VERSION < "4"
 
