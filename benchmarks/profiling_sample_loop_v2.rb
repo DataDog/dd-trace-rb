@@ -79,11 +79,11 @@ class ProfilerSampleLoopBenchmark
     if mode == :native
       unless Datadog::Profiling::Collectors::Stack._native_filenames_available?
         if OS.linux?
-          puts "Skipping benchmarking native_frames, not supported by this Ruby build"
+          raise "Native filenames are not available. This is not expected on Linux!"
         else
           puts "Skipping benchmarking native_frames, not supported outside of Linux"
+          return
         end
-        return
       end
 
       Datadog::Profiling::Collectors::ThreadContext.for_testing(
