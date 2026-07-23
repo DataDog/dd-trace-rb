@@ -7,6 +7,8 @@
 #ifdef HAVE_DATADOG_OTEL_THREAD_CTX_H
 #include <datadog/otel-thread-ctx.h>
 
+extern __thread void *otel_thread_ctx_v1;
+
 typedef struct {
   uint8_t trace_id[16];
   uint8_t span_id[8];
@@ -24,7 +26,7 @@ static ID fiber_context_slot;
 static VALUE native_set(VALUE _self, VALUE trace_id, VALUE  span_id, VALUE local_root_span_id);
 static VALUE native_supported_p(VALUE _self);
 static VALUE native_enable(VALUE _self);
-static VALUE native_debug_read(VALUE _self);
+static VALUE native_read(VALUE _self);
 
 void otel_thread_context_init(VALUE core_module) {
   fiber_context_slot = rb_intern("__dd_otel_fiber_context");
@@ -34,7 +36,7 @@ void otel_thread_context_init(VALUE core_module) {
   rb_define_singleton_method(otel_thread_context_module, "_native_set", native_set, 3);
   rb_define_singleton_method(otel_thread_context_module, "_native_supported?", native_supported_p, 0);
   rb_define_singleton_method(otel_thread_context_module, "_native_enable", native_enable, 0);
-  rb_define_singleton_method(otel_thread_context_module, "_native_debug_read", native_debug_read, 0);
+  rb_define_singleton_method(otel_thread_context_module, "_native_read", native_read, 0);
 }
 
 static otel_fiber_context *get_fiber_context_for(VALUE thread) {
@@ -135,42 +137,18 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
   return Qtrue;
 }
 
-static VALUE native_debug_read(VALUE _self) {
-  struct ddog_ThreadContextHandle *ctx = ddog_otel_thread_ctx_detach();
+static VALUE native_read(VALUE _self) {
+  if (!otel_thread_ctx_v1) return Qnil;
 
-  if (!ctx) return Qnil;
+  const uint8_t *raw = (const uint8_t *) otel_thread_ctx_v1;
 
-  const uint8_t *raw = (const uint8_t *) ctx;
-
-  VALUE trace_id = rb_integer_unpack(raw, 16, 1, 0, INTEGER_PACK_MSWORD_FIRST | INTEGER_PACK_MSBYTE_FIRST);
-  VALUE span_id = rb_integer_unpack(raw + 16, 8, 1, 0, INTEGER_PACK_MSWORD_FIRST | INTEGER_PACK_MSBYTE_FIRST);
-  VALUE valid = raw[24] ? Qtrue : Qfalse;
-
-  VALUE attrs = rb_hash_new();
-
-  const uint8_t *attrs_data = raw + 28;
   const uint16_t attrs_data_size = (uint16_t) raw[26] | ((uint16_t) raw[27] << 8);
-  uint16_t offset = 0;
-  while (offset + 2 <= attrs_data_size) {
-    uint8_t key_index = attrs_data[offset];
-    uint8_t value_len = attrs_data[offset + 1];
-
-    if (offset + 2 + value_len > attrs_data_size) break;
-
-    VALUE value = rb_str_new((const char *) (attrs_data + offset + 2), value_len);
-
-    rb_hash_aset(attrs, INT2FIX(key_index), value);
-    offset += 2 + value_len;
-  }
-
-  struct ddog_ThreadContextHandle *previous = ddog_otel_thread_ctx_attach(ctx);
-  if (previous) raise_error(rb_eRuntimeError, "Internal: unexpected context already attached during debug read");
 
   VALUE result = rb_hash_new();
-  rb_hash_aset(result, ID2SYM(rb_intern("trace_id")), trace_id);
-  rb_hash_aset(result, ID2SYM(rb_intern("span_id")), span_id);
-  rb_hash_aset(result, ID2SYM(rb_intern("valid")), valid);
-  rb_hash_aset(result, ID2SYM(rb_intern("attrs")), attrs);
+  rb_hash_aset(result, ID2SYM(rb_intern("trace_id")), rb_str_new((const char *) raw, 16));
+  rb_hash_aset(result, ID2SYM(rb_intern("span_id")), rb_str_new((const char *) (raw + 16), 8));
+  rb_hash_aset(result, ID2SYM(rb_intern("valid")), rb_str_new((const char *) (raw + 24), 1));
+  rb_hash_aset(result, ID2SYM(rb_intern("attrs")), rb_str_new((const char *) (raw + 28), attrs_data_size));
 
   return result;
 }
@@ -187,7 +165,7 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
   return Qfalse;
 }
 
-static VALUE native_debug_read(VALUE _self) {
+static VALUE native_read(VALUE _self) {
   return Qnil;
 }
 #endif
