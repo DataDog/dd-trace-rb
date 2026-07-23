@@ -24,7 +24,6 @@
 // Gathers stack traces from running threads, storing them in a StackRecorder instance
 // This file implements the native bits of the Datadog::Profiling::Collectors::Stack class
 
-static VALUE _native_filenames_available(DDTRACE_UNUSED VALUE self);
 static VALUE _native_ruby_native_filename(DDTRACE_UNUSED VALUE self);
 static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE native_sample_do(VALUE args);
@@ -56,7 +55,6 @@ void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
   VALUE collectors_stack_class = rb_define_class_under(collectors_module, "Stack", rb_cObject);
 
-  rb_define_singleton_method(collectors_stack_class, "_native_filenames_available?", _native_filenames_available, 0);
   rb_define_singleton_method(collectors_stack_class, "_native_ruby_native_filename", _native_ruby_native_filename, 0);
 
   // Hosts methods used for testing the native code using RSpec
@@ -77,14 +75,6 @@ void collectors_stack_init(VALUE profiling_module) {
       ruby_native_filename = native_filename;
     }
     st_free_table(temporary_cache);
-  #endif
-}
-
-static VALUE _native_filenames_available(DDTRACE_UNUSED VALUE self) {
-  #if (defined(HAVE_DLADDR1) && HAVE_DLADDR1) || (defined(HAVE_DLADDR) && HAVE_DLADDR)
-    return ruby_native_filename != NULL ? Qtrue : Qfalse;
-  #else
-    return Qfalse;
   #endif
 }
 
