@@ -17,7 +17,7 @@ runs:
       id: ruby-env-id
       shell: bash
       run: |
-        id=$(ruby -e "puts RUBY_DESCRIPTION") # Includes patchlevel, os, and arch
+        id=$(ruby -rrubygems -e 'puts [RUBY_DESCRIPTION, Gem.extension_api_version].join("-")') # Includes patchlevel, os, arch, and extension ABI
         echo "id=$id" >> "$GITHUB_OUTPUT"
     - name: Resolve lockfile
       id: lockfile

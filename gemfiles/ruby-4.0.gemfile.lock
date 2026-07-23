@@ -25,6 +25,9 @@ GEM
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
     bigdecimal (4.1.2)
+    bundler-audit (0.9.3)
+      bundler (>= 1.2.0)
+      thor (~> 1.0)
     byebug (13.0.0)
       reline (>= 0.6.0)
     cgi (0.5.2)
@@ -231,6 +234,7 @@ DEPENDENCIES
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   bigdecimal
+  bundler-audit (~> 0.9.3)
   byebug
   climate_control (~> 1.2.0)
   concurrent-ruby
@@ -265,4 +269,4 @@ DEPENDENCIES
   zstd-ruby
 
 BUNDLED WITH
-   2.7.2
+  4.0.16
