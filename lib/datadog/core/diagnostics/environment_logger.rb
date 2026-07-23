@@ -75,7 +75,10 @@ module Datadog
               tags: tags,
               runtime_metrics_enabled: runtime_metrics_enabled,
               vm: vm,
-              health_metrics_enabled: health_metrics_enabled
+              health_metrics_enabled: health_metrics_enabled,
+              otlp_traces_export_enabled: otlp_traces_export_enabled,
+              otlp_metrics_export_enabled: otlp_metrics_export_enabled,
+              otlp_logs_export_enabled: otlp_logs_export_enabled
             }
           end
 
@@ -159,7 +162,33 @@ module Datadog
             !!Datadog.configuration.health_metrics.enabled
           end
 
+          # @return [Boolean] whether the tracer exports traces over OTLP.
+          #   Always false: Ruby exports spans in Datadog's native format and has no OTLP trace exporter.
+          def otlp_traces_export_enabled
+            false
+          end
+
+          # @return [Boolean] whether the tracer exports metrics over OTLP
+          def otlp_metrics_export_enabled
+            !!opentelemetry_settings&.metrics&.enabled
+          end
+
+          # @return [Boolean] whether the tracer exports logs over OTLP
+          def otlp_logs_export_enabled
+            !!opentelemetry_settings&.logs&.enabled
+          end
+
           private
+
+          # The `opentelemetry` settings namespace is registered by core configuration, but access it
+          # defensively so a missing/unregistered namespace defaults to `false` rather than raising.
+          def opentelemetry_settings
+            return unless Datadog.configuration.respond_to?(:opentelemetry)
+
+            Datadog.configuration.opentelemetry
+          rescue
+            nil
+          end
 
           # Outputs "k1:v1,k2:v2,..."
           def hash_serializer(h)
