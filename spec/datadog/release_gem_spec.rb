@@ -9,7 +9,8 @@ RSpec.describe "gem release process" do
         single_files_excluded = %r{
           ^
           (
-            \.dockerignore
+            \.bundler-audit\.yml
+           |\.dockerignore
            |\.editorconfig
            |\.env
            |\.git-blame-ignore-revs

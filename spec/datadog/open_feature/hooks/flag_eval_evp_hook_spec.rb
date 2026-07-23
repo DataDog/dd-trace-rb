@@ -107,11 +107,9 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
     # Fallback: when the provider did not stamp a timestamp, fall back to hook-fire time.
     it "falls back to a real hook-fire timestamp when dd.eval.timestamp_ms is absent" do
       details = build_evaluation_details(variant: "on")
-      Datadog::Core::Utils::Time.now_provider = -> { ::Time.at(1_650_000_000) }
+      allow(Datadog::Core::Utils::Time).to receive(:now).and_return(::Time.at(1_650_000_000))
       expect(writer).to receive(:enqueue).with(hash_including(eval_time_ms: 1_650_000_000_000))
       hook.finally(hook_context: hook_context, evaluation_details: details)
-    ensure
-      Datadog::Core::Utils::Time.now_provider = -> { ::Time.now }
     end
 
     # Concern: detect runtime default from ABSENT variant, passed through as nil (aggregator decides).
