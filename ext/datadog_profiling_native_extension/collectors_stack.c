@@ -8,6 +8,11 @@
 #endif
 #include <dlfcn.h>
 
+#ifdef __APPLE__
+  #include <libproc.h> // Needed for proc_pidpath, used to find the path to a static Ruby's executable
+  #include <unistd.h> // Needed for getpid
+#endif
+
 #include "datadog_ruby_common.h"
 #include "private_vm_api_access.h"
 #include "ruby_helpers.h"
@@ -18,6 +23,7 @@
 // This file implements the native bits of the Datadog::Profiling::Collectors::Stack class
 
 static VALUE _native_ruby_native_filename(DDTRACE_UNUSED VALUE self);
+static VALUE _native_set_file_info_for_cfunc(DDTRACE_UNUSED VALUE self, VALUE new_static_ruby_actual_filename);
 static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE native_sample_do(VALUE args);
 static VALUE native_sample_ensure(VALUE args);
@@ -32,6 +38,7 @@ static void set_file_info_for_cfunc(
   st_table *native_filenames_cache
 );
 static const char *get_or_compute_native_filename(void *function, st_table *native_filenames_cache);
+static void initialize_static_ruby_actual_filename(void);
 static void add_truncated_frames_placeholder(ddog_prof_Location *locations);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
@@ -41,8 +48,12 @@ static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_Char
 extern VALUE rb_iseq_path(const VALUE);
 extern VALUE rb_iseq_base_label(const VALUE);
 
-// NULL if we weren't able to get the native filename for the Ruby VM
+// NULL if we weren't able to get the native filename for the Ruby VM.
+// On a static Ruby without libruby.so, `get_or_compute_native_filename` returns `ruby_native_filename` but
+// `static_ruby_actual_filename` (below) is what we want to show instead.
 static const char *ruby_native_filename = NULL;
+// Qnil unless we're running on a static Ruby
+static VALUE static_ruby_actual_filename = Qnil;
 
 void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -54,6 +65,7 @@ void collectors_stack_init(VALUE profiling_module) {
   VALUE testing_module = rb_define_module_under(collectors_stack_class, "Testing");
 
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, -1);
+  rb_define_singleton_method(testing_module, "_native_set_file_info_for_cfunc", _native_set_file_info_for_cfunc, 1);
 
   // To be able to detect when a frame is coming from Ruby, we record here its filename as returned by dladdr.
   // We expect this same pointer to be returned by dladdr for all frames coming from Ruby.
@@ -67,10 +79,16 @@ void collectors_stack_init(VALUE profiling_module) {
     ruby_native_filename = native_filename;
   }
   st_free_table(temporary_cache);
+
+  if (native_filename != NULL) initialize_static_ruby_actual_filename();
 }
 
 static VALUE _native_ruby_native_filename(DDTRACE_UNUSED VALUE self) {
-  return ruby_native_filename != NULL ? rb_utf8_str_new_cstr(ruby_native_filename) : Qnil;
+  if (static_ruby_actual_filename != Qnil) {
+    return static_ruby_actual_filename;
+  } else {
+    return ruby_native_filename != NULL ? rb_utf8_str_new_cstr(ruby_native_filename) : Qnil;
+  }
 }
 
 typedef struct {
@@ -435,7 +453,12 @@ static void set_file_info_for_cfunc(
       // comparing only pointer values and not the string contents.
       (native_filename != ruby_native_filename || !top_of_the_stack)
     ) {
-      *filename_slice = (ddog_CharSlice) {.ptr = native_filename, .len = strlen(native_filename)};
+      // On a static Ruby without libruby.so, we show `static_ruby_actual_filename` instead of `ruby_native_filename`
+      if (native_filename == ruby_native_filename && static_ruby_actual_filename != Qnil) {
+        *filename_slice = char_slice_from_ruby_string(static_ruby_actual_filename);
+      } else {
+        *filename_slice = (ddog_CharSlice) {.ptr = native_filename, .len = strlen(native_filename)};
+      }
       // Explicitly set the line to 0 as it has no meaning on a native library (e.g. an .so is built of many source files)
       // and anyway often that debug info is not available.
       *line = 0;
@@ -638,4 +661,58 @@ void sampling_buffer_mark(sampling_buffer *buffer) {
   // Make sure iteration completes before `is_marking` is unset...
   atomic_signal_fence(memory_order_seq_cst);
   buffer->is_marking = false;
+}
+
+static bool valid_looking_path(VALUE string) {
+  return string != Qnil && RB_TYPE_P(string, T_STRING) && RSTRING_LEN(string) > 0 && RSTRING_PTR(string)[0] == '/';
+}
+
+// On a static Ruby without libruby.so the `ruby_native_filename` returned from `dladdr` is in practice `argv[0]`
+// (e.g. can be rspec, rake, etc), so here we find the actual Ruby binary to use instead
+static void initialize_static_ruby_actual_filename(void) {
+  bool ruby_is_static = rb_eval_string("require 'rbconfig'; (RbConfig::CONFIG['ENABLE_SHARED'] == 'no')") == Qtrue;
+  if (!ruby_is_static) return;
+
+  VALUE actual_filename = Qnil;
+
+  #if defined(__linux__)
+    actual_filename = rb_eval_string("File.readlink('/proc/self/exe').delete_suffix(' (deleted)') rescue nil");
+  #elif defined(__APPLE__)
+    char path_buffer[PROC_PIDPATHINFO_MAXSIZE];
+    int path_length = proc_pidpath(getpid(), path_buffer, sizeof(path_buffer));
+    if (path_length > 0) actual_filename = rb_utf8_str_new(path_buffer, path_length);
+  #endif
+
+  if (!valid_looking_path(actual_filename)) actual_filename = rb_eval_string("RbConfig.ruby");
+  if (!valid_looking_path(actual_filename)) return;
+
+  static_ruby_actual_filename = rb_obj_freeze(actual_filename);
+  rb_gc_register_mark_object(static_ruby_actual_filename);
+}
+
+static VALUE _native_set_file_info_for_cfunc(DDTRACE_UNUSED VALUE self, VALUE new_static_ruby_actual_filename) {
+  if (new_static_ruby_actual_filename != Qnil) ENFORCE_TYPE(new_static_ruby_actual_filename, T_STRING);
+
+  VALUE previous_static_ruby_actual_filename = static_ruby_actual_filename;
+  static_ruby_actual_filename = new_static_ruby_actual_filename;
+
+  ddog_CharSlice filename_slice;
+  int line;
+  st_table *native_filenames_cache = st_init_numtable();
+
+  set_file_info_for_cfunc(
+    &filename_slice,
+    &line,
+    DDOG_CHARSLICE_C("(not used when testing)"),
+    0,
+    rb_ary_new, // Symbol inside Ruby VM to trigger comparison login
+    false,
+    true,
+    native_filenames_cache
+  );
+
+  st_free_table(native_filenames_cache);
+  static_ruby_actual_filename = previous_static_ruby_actual_filename;
+
+  return rb_utf8_str_new(filename_slice.ptr, filename_slice.len);
 }
