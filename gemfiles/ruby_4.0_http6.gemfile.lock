@@ -247,4 +247,4 @@ CHECKSUMS
   zstd-ruby (2.0.6) sha256=4d57faa75a11ed5db551fb8befe5bb508046518be1898a91a5d9ddf782f146de
 
 BUNDLED WITH
-   2.7.2
+  4.0.16

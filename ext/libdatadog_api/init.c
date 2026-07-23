@@ -6,6 +6,7 @@
 #include "feature_flags.h"
 #include "library_config.h"
 #include "process_discovery.h"
+#include "trace_exporter.h"
 
 void ddsketch_init(VALUE core_module);
 void di_init(VALUE datadog_module);
@@ -24,4 +25,7 @@ void DDTRACE_EXPORT Init_libdatadog_api(void) {
   ddsketch_init(core_module);
   feature_flags_init(core_module);
   di_init(datadog_module);
+
+  VALUE tracing_module = rb_define_module_under(datadog_module, "Tracing");
+  trace_exporter_init(tracing_module);
 }

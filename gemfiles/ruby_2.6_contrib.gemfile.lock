@@ -138,6 +138,7 @@ GEM
       rack (~> 2.2, >= 2.2.4)
       rack-protection (= 3.0.5)
       tilt (~> 2.0)
+    strscan (3.1.2)
     sucker_punch (3.1.0)
       concurrent-ruby (~> 1.0)
     tilt (2.1.0)
@@ -183,6 +184,7 @@ DEPENDENCIES
   semantic_logger (~> 4.0)
   sidekiq (~> 6.5)
   simplecov (~> 0.22.0)
+  strscan (= 3.1.2)
   sucker_punch
   warning (~> 1)
   webmock (>= 3.10.0)

@@ -29,6 +29,9 @@ gem 'rspec-collection_matchers', '~> 1.1'
 gem 'rspec-wait', '~> 0'
 gem 'rspec_junit_formatter', '>= 0.5.1'
 gem 'simplecov', '~> 0.22.0'
+# strscan 3.1.8 declares Ruby 2.7 support but calls rb_deprecate_constant,
+# which Ruby 2.7 does not export.
+gem 'strscan', '3.1.2'
 gem 'warning', '~> 1' # NOTE: Used in spec_helper.rb
 gem 'webmock', '>= 3.10.0'
 # The last binary ffi gem compatible with 2.7 is 1.17.2, newer versions are incompatible:

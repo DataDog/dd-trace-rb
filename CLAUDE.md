@@ -139,7 +139,7 @@ Skip versions the Matrixfile marks as unsupported for that task. For `test:main`
 
 See `AGENTS.md` for:
 - Project structure and directory layout
-- Docker container setup (`docker compose run --rm tracer-3.4 /bin/bash`)
+- Docker container setup (`docker compose run --rm tracer-4.0 /bin/bash`)
 - Bundle, rake, and rspec commands
 - Integration patterns (`patcher.rb`, `integration.rb`, `ext.rb`, `configuration/settings.rb`)
 
