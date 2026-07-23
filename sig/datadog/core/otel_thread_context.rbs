@@ -1,0 +1,38 @@
+module Datadog
+  module Core
+    module OTelThreadContext
+      type native_record = {
+        trace_id: String,
+        span_id: String,
+        valid: String,
+        attrs: String,
+      }
+
+      type record = {
+        trace_id: Integer,
+        span_id: Integer,
+        local_root_span_id: Integer?,
+        valid: bool,
+        attrs: Hash[Integer, String],
+      }
+
+      def self.supported?: () -> bool
+
+      def self.enable!: () -> bool
+
+      def self.set: (trace_id: Integer, span_id: Integer, local_root_span_id: Integer) -> bool
+
+      def self.read: () -> record?
+
+      def self._native_supported?: () -> bool
+
+      def self._native_enable: () -> bool
+
+      def self._native_set: (Integer trace_id, Integer span_id, Integer local_root_span_id) -> bool
+
+      def self._native_read: () -> native_record?
+
+      def self.decode_attrs: (String raw_attrs) -> Hash[Integer, String]
+    end
+  end
+end
