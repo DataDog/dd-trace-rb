@@ -120,6 +120,7 @@ GEM
       rack-protection (= 3.2.0)
       sinatra (= 3.2.0)
       tilt (~> 2.0)
+    strscan (3.1.2)
     tilt (2.3.0)
     warning (1.6.0)
     webmock (3.26.2)
@@ -159,6 +160,7 @@ DEPENDENCIES
   simplecov (~> 0.22.0)
   sinatra (~> 3)
   sinatra-contrib (~> 3)
+  strscan (= 3.1.2)
   warning (~> 1)
   webmock (>= 3.10.0)
   zstd-ruby
