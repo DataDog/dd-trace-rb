@@ -17,7 +17,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
 
   let(:response) do
     {
-      "statusCode" => 200,
+      "status_code" => 200,
       "headers" => {"Content-Type" => "application/json"},
     }
   end
