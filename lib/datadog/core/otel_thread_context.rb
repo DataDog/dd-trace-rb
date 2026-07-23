@@ -31,8 +31,8 @@ module Datadog
           attrs = decode_attrs(raw[:attrs])
 
           {
-            trace_id: raw[:trace_id].unpack1("H*").to_i(16),
-            span_id: raw[:span_id].unpack1("H*").to_i(16),
+            trace_id: raw[:trace_id].unpack1("H*").to_s.to_i(16),
+            span_id: raw[:span_id].unpack1("H*").to_s.to_i(16),
             local_root_span_id: attrs[0]&.to_i(16),
             valid: raw[:valid].getbyte(0) == 1,
             attrs: attrs
@@ -48,7 +48,8 @@ module Datadog
 
           while offset + 2 <= size
             key_index = raw_attrs.getbyte(offset)
-            value_len = raw_attrs.getbyte(offset+1)
+            value_len = raw_attrs.getbyte(offset + 1)
+            break unless key_index && value_len
             break if offset + 2 + value_len > size
 
             attrs[key_index] = raw_attrs.byteslice(offset + 2, value_len)
