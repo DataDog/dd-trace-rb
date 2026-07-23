@@ -126,6 +126,7 @@ GEM
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
     spring (3.1.1)
+    strscan (3.1.2)
     sys-uname (1.4.0)
       ffi (~> 1.1)
       memoist (~> 0.16.2)
@@ -167,9 +168,10 @@ DEPENDENCIES
   rspec_junit_formatter (>= 0.5.1)
   simplecov (~> 0.22.0)
   spring (>= 2.0.2)
+  strscan (= 3.1.2)
   warning (~> 1)
   webmock (>= 3.10.0)
   zstd-ruby
 
 BUNDLED WITH
-   2.3.26
+   2.3.27
