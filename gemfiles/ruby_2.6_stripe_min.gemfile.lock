@@ -95,6 +95,7 @@ GEM
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
     stripe (5.15.0)
+    strscan (3.1.2)
     warning (1.6.0)
     webmock (3.26.2)
       addressable (>= 2.8.0)
@@ -130,6 +131,7 @@ DEPENDENCIES
   rspec_junit_formatter (>= 0.5.1)
   simplecov (~> 0.22.0)
   stripe (= 5.15.0)
+  strscan (= 3.1.2)
   warning (~> 1)
   webmock (>= 3.10.0)
   zstd-ruby
