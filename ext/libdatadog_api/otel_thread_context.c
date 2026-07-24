@@ -207,4 +207,13 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
 static VALUE native_read(VALUE _self) {
   return Qnil;
 }
+
+void otel_thread_context_init(VALUE core_module) {
+  VALUE otel_thread_context_module = rb_define_module_under(core_module, "OTelThreadContext");
+
+  rb_define_singleton_method(otel_thread_context_module, "_native_set", native_set, 3);
+  rb_define_singleton_method(otel_thread_context_module, "_native_supported?", native_supported_p, 0);
+  rb_define_singleton_method(otel_thread_context_module, "_native_enable", native_enable, 0);
+  rb_define_singleton_method(otel_thread_context_module, "_native_read", native_read, 0);
+}
 #endif
