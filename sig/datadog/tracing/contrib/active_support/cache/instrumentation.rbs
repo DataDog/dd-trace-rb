@@ -29,6 +29,11 @@ module Datadog
             module Delete
               def delete: (*untyped args) ?{ () -> untyped } -> untyped
             end
+            module PreserveOriginalKey
+              def normalize_key: (any key, ::Hash[::Symbol, any] options) -> any
+
+              def merged_options: (any call_options) -> any
+            end
           end
         end
       end
