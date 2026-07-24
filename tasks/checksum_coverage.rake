@@ -1,4 +1,4 @@
-require_relative "checksum_coverage"
+require_relative "checksum_scanning"
 
 namespace :dependency do
   desc "Check that every checksum-eligible lockfile has a CHECKSUMS section, and no legacy one does"

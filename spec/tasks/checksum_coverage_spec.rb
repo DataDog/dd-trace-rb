@@ -1,5 +1,5 @@
 require "spec_helper"
-require_relative "../../tasks/checksum_coverage"
+require_relative "../../tasks/checksum_scanning"
 
 RSpec.describe ChecksumScanning do
   let(:fixtures) { "spec/fixtures/checksum_coverage" }
