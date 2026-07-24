@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'base'
+require_relative "base"
 
 module Datadog
   module Core
@@ -23,7 +23,7 @@ module Datadog
           end
 
           def type
-            'app-started'
+            "app-started"
           end
 
           def payload
@@ -82,30 +82,30 @@ module Datadog
             # Special values that are not tied to a configuration option
             list = [
               conf_value(
-                'DD_GIT_REPOSITORY_URL',
+                "DD_GIT_REPOSITORY_URL",
                 Core::Environment::Git.git_repository_url,
                 (Core::Environment::Git.git_repository_url ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
               ),
               conf_value(
-                'DD_GIT_COMMIT_SHA',
+                "DD_GIT_COMMIT_SHA",
                 Core::Environment::Git.git_commit_sha,
                 (Core::Environment::Git.git_commit_sha ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
               ),
 
               # Mix of env var, programmatic and default config, so we use unknown
-              unknown_conf_value('DD_AGENT_TRANSPORT', agent_transport(agent_settings)), # rubocop:disable CustomCops/EnvStringValidationCop
+              unknown_conf_value("DD_AGENT_TRANSPORT", agent_transport(agent_settings)), # rubocop:disable CustomCops/EnvStringValidationCop
             ]
 
             # Set by the customer application (eg. `require 'datadog/auto_instrument'`)
             auto_instrument_enabled = !defined?(Datadog::AutoInstrument::LOADED).nil?
             list << conf_value(
-              'tracing.auto_instrument.enabled',
+              "tracing.auto_instrument.enabled",
               auto_instrument_enabled,
               auto_instrument_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
             )
             opentelemetry_enabled = !defined?(Datadog::OpenTelemetry::LOADED).nil?
             list << conf_value(
-              'tracing.opentelemetry.enabled',
+              "tracing.opentelemetry.enabled",
               opentelemetry_enabled,
               opentelemetry_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
             )
@@ -114,39 +114,39 @@ module Datadog
             instrumentation_source = if Datadog.const_defined?(:SingleStepInstrument, false) &&
                 Datadog::SingleStepInstrument.const_defined?(:LOADED, false) &&
                 Datadog::SingleStepInstrument::LOADED
-              'ssi'
+              "ssi"
             else
-              'manual'
+              "manual"
             end
 
             list.push(
               conf_value(
-                'instrumentation_source',
+                "instrumentation_source",
                 instrumentation_source,
-                (instrumentation_source == 'ssi') ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
+                (instrumentation_source == "ssi") ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
               ),
               conf_value(
-                'DD_INJECT_FORCE',
-                Core::Environment::VariableHelpers.env_to_bool('DD_INJECT_FORCE', false),
-                (DATADOG_ENV.key?('DD_INJECT_FORCE') ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
+                "DD_INJECT_FORCE",
+                Core::Environment::VariableHelpers.env_to_bool("DD_INJECT_FORCE", false),
+                (DATADOG_ENV.key?("DD_INJECT_FORCE") ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
               ),
               conf_value(
-                'DD_INJECTION_ENABLED',
-                DATADOG_ENV['DD_INJECTION_ENABLED'] || '',
-                (DATADOG_ENV.key?('DD_INJECTION_ENABLED') ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
+                "DD_INJECTION_ENABLED",
+                DATADOG_ENV["DD_INJECTION_ENABLED"] || "",
+                (DATADOG_ENV.key?("DD_INJECTION_ENABLED") ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
               ),
             )
 
             # Extract writer options as separate configuration payloads.
-            resolve_option(settings, 'tracing.writer_options').values_per_precedence.each do |precedence, value|
+            resolve_option(settings, "tracing.writer_options").values_per_precedence.each do |precedence, value|
               list << conf_value(
-                'tracing.writer_options.buffer_size',
+                "tracing.writer_options.buffer_size",
                 # Steep: Value is always a hash for writer_options (ensured by o.type :hash)
                 to_telemetry_value(value[:buffer_size]), # steep:ignore NoMethod
                 precedence
               )
               list << conf_value(
-                'tracing.writer_options.flush_interval',
+                "tracing.writer_options.flush_interval",
                 # Steep: Value is always a hash for writer_options (ensured by o.type :hash)
                 to_telemetry_value(value[:flush_interval]), # steep:ignore NoMethod
                 precedence
@@ -155,7 +155,7 @@ module Datadog
 
             # Add some more custom additional payload values here
             if settings.logger.instance
-              logger_instance_option = resolve_option(settings, 'logger.instance')
+              logger_instance_option = resolve_option(settings, "logger.instance")
               logger_instance_option.values_per_precedence.each do |precedence, value|
                 list << conf_value(option_telemetry_name(logger_instance_option), value.nil? ? nil : value.class.to_s, precedence)
               end
@@ -169,16 +169,16 @@ module Datadog
             end
 
             # We still want to report nil default and programmatic values as they are valid values
-            list.reject! { |entry| entry[:origin] != 'default' && entry[:origin] != 'code' && entry[:value].nil? }
+            list.reject! { |entry| entry[:origin] != "default" && entry[:origin] != "code" && entry[:value].nil? }
             list
           end
 
           def agent_transport(agent_settings)
             adapter = agent_settings.adapter
             if adapter == Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
-              'UDS'
+              "UDS"
             else
-              'TCP'
+              "TCP"
             end
           end
 
@@ -195,17 +195,17 @@ module Datadog
           end
 
           def unknown_conf_value(name, value)
-            build_conf_value(name, value, 'unknown', Configuration::Option::Precedence::LIST.size + 1)
+            build_conf_value(name, value, "unknown", Configuration::Option::Precedence::LIST.size + 1)
           end
 
           def build_conf_value(name, value, origin, seq_id)
             # @type var result: Event::telemetry_configuration
             result = {name: name, value: value, origin: origin, seq_id: seq_id}
 
-            if origin == 'fleet_stable_config'
+            if origin == "fleet_stable_config"
               fleet_id = Core::Configuration::StableConfig.configuration.dig(:fleet, :id)
               result[:config_id] = fleet_id if fleet_id
-            elsif origin == 'local_stable_config'
+            elsif origin == "local_stable_config"
               local_id = Core::Configuration::StableConfig.configuration.dig(:local, :id)
               result[:config_id] = local_id if local_id
             end
@@ -219,9 +219,9 @@ module Datadog
             when Integer, String, true, false, nil
               value
             when Hash
-              value.map { |key, entry_value| "#{key}:#{entry_value}" }.join(',')
+              value.map { |key, entry_value| "#{key}:#{entry_value}" }.join(",")
             when Array
-              value.join(',')
+              value.join(",")
             when Module
               value.name.to_s
             else
@@ -235,9 +235,9 @@ module Datadog
 
           def install_signature(settings)
             {
-              install_id: settings.dig('telemetry', 'install_id'),
-              install_type: settings.dig('telemetry', 'install_type'),
-              install_time: settings.dig('telemetry', 'install_time'),
+              install_id: settings.dig("telemetry", "install_id"),
+              install_type: settings.dig("telemetry", "install_type"),
+              install_time: settings.dig("telemetry", "install_time"),
             }
           end
 
@@ -273,7 +273,7 @@ module Datadog
           end
 
           def resolve_option(settings, config_path)
-            split_option = config_path.split('.')
+            split_option = config_path.split(".")
             option_name = split_option.pop
             raise ArgumentError, "Invalid config path: #{config_path}" if option_name.nil?
 

@@ -18,6 +18,10 @@ module Datadog
           TAG_COMPONENT: "sequel"
 
           TAG_OPERATION_QUERY: "query"
+
+          TAG_DB_NAME: "sequel.db.name"
+
+          PEER_SERVICE_SOURCES: Array[String]
         end
       end
     end

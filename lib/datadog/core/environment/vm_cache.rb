@@ -56,7 +56,7 @@ module Datadog
         end
 
         def available?
-          defined?(::RubyVM) && ::RubyVM.respond_to?(:stat)
+          !!(defined?(::RubyVM) && ::RubyVM.respond_to?(:stat))
         end
       end
     end

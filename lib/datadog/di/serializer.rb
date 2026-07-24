@@ -380,28 +380,28 @@ module Datadog
         # array allocations.
         case value
         when NilClass
-          'nil'
+          "nil"
         when Integer, Float, TrueClass, FalseClass, Time, Date
           value.to_s
         when String
           serialize_string_or_symbol_for_message(value)
         when Symbol
-          ':' + serialize_string_or_symbol_for_message(value) # steep:ignore ArgumentTypeMismatch
+          ":" + serialize_string_or_symbol_for_message(value) # steep:ignore ArgumentTypeMismatch
         when Array
-          return '...' if depth <= 0
+          return "..." if depth <= 0
 
           max = max_capture_collection_size_for_message
           if value.length > max
             value_ = value[0...max - 1] || []
-            value_ << '...'
+            value_ << "..."
             value_ << value[-1]
             value = value_
           end
-          '[' + value.map do |item|
+          "[" + value.map do |item|
             serialize_value_for_message(item, depth - 1)
-          end.join(', ') + ']'
+          end.join(", ") + "]"
         when Hash
-          return '...' if depth <= 0
+          return "..." if depth <= 0
 
           max = max_capture_collection_size_for_message
           keys = value.keys
@@ -417,11 +417,11 @@ module Datadog
           end
           if truncated
             serialized[serialized.length] = serialized[serialized.length - 1]
-            serialized[serialized.length - 2] = '...'
+            serialized[serialized.length - 2] = "..."
           end
           "{#{serialized.join(", ")}}"
         else
-          return '...' if depth <= 0
+          return "..." if depth <= 0
 
           vars = value.instance_variables
           truncated = false
@@ -439,10 +439,10 @@ module Datadog
           end
           if truncated
             serialized << serialized.last
-            serialized[-2] = '...'
+            serialized[-2] = "..."
           end
           serialized = if serialized.any?
-            ' ' + serialized.join(' ')
+            " " + serialized.join(" ")
           end
           "#<#{class_name(value.class)}#{serialized}>"
         end
@@ -501,7 +501,7 @@ module Datadog
             if max % 2 == 0
               upper += 1
             end
-            value[0...max / 2 - 1] + '...' + value[upper...length] # steep:ignore NoMethod
+            value[0...max / 2 - 1] + "..." + value[upper...length] # steep:ignore NoMethod
           end
         else
           value
@@ -543,7 +543,7 @@ module Datadog
           when 0x27 # '
             "\\'"
           when 0x5C # \
-            '\\\\'
+            "\\\\"
           when 0x20..0x7E # Printable ASCII (space through ~)
             byte.chr
           else

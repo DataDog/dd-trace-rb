@@ -1,19 +1,19 @@
 # frozen_string_literal: true
 
-require 'time'
+require "time"
 
-require_relative '../core/environment/identity'
-require_relative '../core/utils'
-require_relative '../core/utils/time'
-require_relative '../core/utils/safe_dup'
+require_relative "../core/environment/identity"
+require_relative "../core/utils"
+require_relative "../core/utils/time"
+require_relative "../core/utils/safe_dup"
 
-require_relative 'event'
-require_relative 'metadata'
-require_relative 'metadata/ext'
-require_relative 'span'
-require_relative 'span_event'
-require_relative 'span_link'
-require_relative 'utils'
+require_relative "event"
+require_relative "metadata"
+require_relative "metadata/ext"
+require_relative "span"
+require_relative "span_event"
+require_relative "span_link"
+require_relative "utils"
 
 module Datadog
   module Tracing
@@ -146,7 +146,7 @@ module Datadog
       end
 
       def measure
-        raise ArgumentError, 'Must provide block to measure!' unless block_given?
+        raise ArgumentError, "Must provide block to measure!" unless block_given?
         # TODO: Should we just invoke the block and skip tracing instead?
         raise AlreadyStartedError if started?
 
@@ -318,14 +318,14 @@ module Datadog
         exc = Core::Error.build_from(exception)
 
         event_attributes = {
-          'exception.type' => exc.type,
-          'exception.message' => exc.message,
-          'exception.stacktrace' => exc.backtrace,
+          "exception.type" => exc.type,
+          "exception.message" => exc.message,
+          "exception.stacktrace" => exc.backtrace,
         }
 
         # Steep: Caused by wrong declaration, should be the same parameters as `merge`
         # https://github.com/ruby/rbs/blob/3d0fb3a7fdde60af7120e875fe3bd7237b5b6a88/core/hash.rbs#L1468
-        @span_events << SpanEvent.new('exception', attributes: event_attributes.merge!(attributes)) # steep:ignore ArgumentTypeMismatch
+        @span_events << SpanEvent.new("exception", attributes: event_attributes.merge!(attributes)) # steep:ignore ArgumentTypeMismatch
       end
 
       # Return a string representation of the span.
@@ -374,19 +374,19 @@ module Datadog
           q.text "Start: #{start_time}\n"
           q.text "End: #{end_time}\n"
           q.text "Duration: #{duration.to_f if stopped?}\n"
-          q.group(2, 'Tags: [', "]\n") do
+          q.group(2, "Tags: [", "]\n") do
             q.breakable
             q.seplist meta.each do |key, value|
               q.text "#{key} => #{value}"
             end
           end
-          q.group(2, 'Metrics: [', "]\n") do
+          q.group(2, "Metrics: [", "]\n") do
             q.breakable
             q.seplist metrics.each do |key, value|
               q.text "#{key} => #{value}"
             end
           end
-          q.group(2, 'Metastruct: [', ']') do
+          q.group(2, "Metastruct: [", "]") do
             metastruct.pretty_print(q)
           end
         end
@@ -496,7 +496,7 @@ module Datadog
       # Error when the span attempts to start again after being started
       class AlreadyStartedError < StandardError
         def message
-          'Cannot measure an already started span!'
+          "Cannot measure an already started span!"
         end
       end
 

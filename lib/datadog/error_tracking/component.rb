@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'set'
-require_relative 'collector'
-require_relative 'filters'
+require "set"
+require_relative "collector"
+require_relative "filters"
 
 module Datadog
   module ErrorTracking
@@ -30,10 +30,10 @@ module Datadog
         end
 
         def environment_supported?(logger)
-          if RUBY_ENGINE != 'ruby'
+          if RUBY_ENGINE != "ruby"
             logger.warn("error tracking: cannot enable error tracking: MRI is required, but running on #{RUBY_ENGINE}")
             false
-          elsif RubyVersion.is?('< 2.7')
+          elsif RubyVersion.is?("< 2.7")
             logger.warn(
               "error tracking: cannot enable error tracking: Ruby 2.7+ is required, but running
               on #{RUBY_VERSION}"
@@ -63,7 +63,7 @@ module Datadog
         # Before Ruby3.3 the TracePoint listen for :raise events.
         # If an error is not handled, we will delete the according
         # span event in the collector.
-        event = RubyVersion.is?('>= 3.3') ? :rescue : :raise
+        event = RubyVersion.is?(">= 3.3") ? :rescue : :raise
 
         # This TracePoint is in charge of capturing the handled exceptions
         # and of adding the corresponding span events to the collector
@@ -113,9 +113,9 @@ module Datadog
             # - otherwise we just check if the name provided is in the path and is
             #   either the name of a folder or of a ruby file.
             regex =
-              if file_to_instr.start_with?('/')
+              if file_to_instr.start_with?("/")
                 %r{\A#{Regexp.escape(file_to_instr)}(?:/|\.rb\z|\z)}
-              elsif file_to_instr.start_with?('./')
+              elsif file_to_instr.start_with?("./")
                 abs_path = File.expand_path(file_to_instr)
                 %r{\A#{Regexp.escape(abs_path)}(?:/|\.rb\z|\z)}
               else
@@ -152,11 +152,11 @@ module Datadog
       def generate_span_event(exception)
         formatted_exception = Datadog::Core::Error.build_from(exception)
         attributes = {
-          'exception.type' => formatted_exception.type,
-          'exception.message' => formatted_exception.message,
-          'exception.stacktrace' => formatted_exception.backtrace
+          "exception.type" => formatted_exception.type,
+          "exception.message" => formatted_exception.message,
+          "exception.stacktrace" => formatted_exception.backtrace
         }
-        Datadog::Tracing::SpanEvent.new('exception', attributes: attributes)
+        Datadog::Tracing::SpanEvent.new("exception", attributes: attributes)
       end
 
       def add_instrumented_file(file_path)

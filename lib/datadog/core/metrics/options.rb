@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative '../environment/ext'
-require_relative '../environment/identity'
+require_relative "ext"
+require_relative "../environment/ext"
+require_relative "../environment/identity"
 
 module Datadog
   module Core

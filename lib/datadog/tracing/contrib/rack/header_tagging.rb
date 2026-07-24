@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'header_collection'
+require_relative "header_collection"
 
 module Datadog
   module Tracing
@@ -9,8 +9,8 @@ module Datadog
         # Matches Rack-style headers with a matcher and sets matching headers into a span.
         module HeaderTagging
           DATADOG_REQUEST_ATTRIBUTION_HEADERS = [
-            'x-datadog-endpoint-scan',
-            'x-datadog-security-test'
+            "x-datadog-endpoint-scan",
+            "x-datadog-security-test"
           ].freeze
 
           def self.tag_request_headers(span, env, configuration)
@@ -55,7 +55,7 @@ module Datadog
                 # Rack 2.x => { 'foo' => 'bar,baz' }
                 # Rack 3.x => { 'foo' => ['bar', 'baz'] }
                 result[header_tag] = if header_value.is_a? Array
-                  header_value.join(',')
+                  header_value.join(",")
                 else
                   header_value
                 end

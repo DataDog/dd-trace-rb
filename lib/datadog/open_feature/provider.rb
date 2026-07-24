@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative '../core/utils/time'
-require 'open_feature/sdk'
+require_relative "ext"
+require_relative "../core/utils/time"
+require "open_feature/sdk"
 
 module Datadog
   module OpenFeature
@@ -58,7 +58,7 @@ module Datadog
     #   # => 'Welcome back!'
     #   ```
     class Provider
-      NAME = 'Datadog Feature Flagging Provider'
+      NAME = "Datadog Feature Flagging Provider"
 
       attr_reader :metadata
 
@@ -76,9 +76,10 @@ module Datadog
 
       def hooks
         component = Datadog.send(:components).open_feature
-        otel_hook = component&.flag_eval_metrics_hook
-        evp_hook = component&.flag_eval_evp_hook
-        [otel_hook, evp_hook].compact
+        [
+          component&.flag_eval_metrics_hook,
+          component&.flag_eval_evp_hook,
+        ].compact
       end
 
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
@@ -124,6 +125,11 @@ module Datadog
           return sdk_error_details(default_value, result.error_code, result.error_message, result.reason, flag_meta)
         end
 
+        # Drive APM span enrichment directly from the evaluation path. This is the only reliable
+        # way to attach `ffe_*` tags across all supported OpenFeature SDK versions, since older
+        # SDKs do not dispatch provider hooks. Guarded so enrichment can never break evaluation.
+        enrich_span(flag_key, result, evaluation_context)
+
         sdk_success_details(result, flag_meta)
       rescue => e
         error_message = "#{e.class}: #{e.message}"
@@ -168,13 +174,42 @@ module Datadog
       def build_flag_metadata(result, eval_time_ms)
         metadata = result.flag_metadata&.dup || {}
         allocation_key = result.allocation_key
-        metadata['__dd_allocation_key'] = allocation_key if allocation_key && !allocation_key.empty?
+        metadata[Ext::METADATA_ALLOCATION_KEY] = allocation_key if allocation_key && !allocation_key.empty?
 
         # Eval-time stamped at provider entry; the EVP hook reads 'dd.eval.timestamp_ms' for
         # accurate first/last_evaluation bounds (it falls back to hook-fire time when absent).
-        metadata['dd.eval.timestamp_ms'] = eval_time_ms
+        metadata["dd.eval.timestamp_ms"] = eval_time_ms
 
         metadata
+      end
+
+      # Dispatch span enrichment from the evaluation path in a never-throw
+      # wrapper. Reads the split serial id / do-log flag directly off the Datadog
+      # `ResolutionDetails` struct and the targeting key off the built evaluation
+      # context. A nil hook (gate off or component absent) is a no-op.
+      def enrich_span(flag_key, result, evaluation_context)
+        hook = span_enrichment_hook
+        return unless hook
+
+        # Hook resolved first so the common gate-off path short-circuits without
+        # resolving the tracer. With the gate on but no active trace there is
+        # nowhere to attach tags, so skip before building the capture call.
+        return unless Datadog::Tracing.active_trace
+
+        hook.capture(
+          flag_key: flag_key,
+          variant: result.variant,
+          value: result.value,
+          serial_id: result.serial_id,
+          do_log: result.log? || false,
+          targeting_key: evaluation_context&.targeting_key,
+        )
+      rescue => e
+        Datadog.logger.debug { "OpenFeature: span enrichment dispatch failed: #{e.class}: #{e.message}" }
+      end
+
+      def span_enrichment_hook
+        Datadog.send(:components).open_feature&.span_enrichment_hook
       end
 
       def component_not_configured_default(value, eval_time_ms)
@@ -183,7 +218,7 @@ module Datadog
           error_code: Ext::PROVIDER_FATAL,
           error_message: "Datadog's OpenFeature component must be configured",
           reason: Ext::ERROR,
-          flag_metadata: {'dd.eval.timestamp_ms' => eval_time_ms}
+          flag_metadata: {"dd.eval.timestamp_ms" => eval_time_ms}
         )
       end
     end

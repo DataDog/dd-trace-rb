@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require_relative '../../../../tracing'
-require_relative '../../../metadata/ext'
-require_relative '../distributed/propagation'
-require_relative '../../analytics'
-require_relative '../ext'
-require_relative '../../ext'
-require_relative '../formatting'
+require_relative "../../../../tracing"
+require_relative "../../../metadata/ext"
+require_relative "../distributed/propagation"
+require_relative "../../analytics"
+require_relative "../ext"
+require_relative "../../ext"
+require_relative "../formatting"
 
 module Datadog
   module Tracing

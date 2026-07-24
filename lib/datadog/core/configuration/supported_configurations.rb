@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'set'
+require "set"
 
 # This file is auto-generated from `supported-configurations.json` by `rake local_config_map:generate`.
 # Do not change manually! Please refer to `docs/AccessEnvironmentVariables.md` for more information.
@@ -59,6 +59,8 @@ module Datadog
           "DD_ERROR_TRACKING_HANDLED_ERRORS",
           "DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE",
           "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED",
+          "DD_EXPERIMENTAL_FLAGGING_PROVIDER_SPAN_ENRICHMENT_ENABLED",
+          "DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED",
           "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED",
           "DD_EXTERNAL_ENV",
           "DD_FLAGGING_EVALUATION_COUNTS_ENABLED",

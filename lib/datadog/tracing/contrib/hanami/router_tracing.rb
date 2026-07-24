@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative '../../metadata/ext'
+require_relative "ext"
+require_relative "../../metadata/ext"
 
 module Datadog
   module Tracing
@@ -10,7 +10,8 @@ module Datadog
         # Hanami Instrumentation for `hanami.routing`
         module RouterTracing
           def call(env)
-            return super if Tracing.active_span && Tracing.active_span.name == Ext::SPAN_ROUTING
+            active_span = Tracing.active_span
+            return super if active_span && active_span.name == Ext::SPAN_ROUTING
 
             Tracing.trace(
               Ext::SPAN_ROUTING,
@@ -28,7 +29,7 @@ module Datadog
               span_op.resource ||= if trace_op.resource_override?
                 trace_op.resource
               else
-                env['REQUEST_METHOD']
+                env["REQUEST_METHOD"]
               end
             end
           end

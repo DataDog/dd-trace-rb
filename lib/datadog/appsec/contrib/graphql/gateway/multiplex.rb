@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'graphql'
+require "graphql"
 
-require_relative '../../../instrumentation/gateway/argument'
+require_relative "../../../instrumentation/gateway/argument"
 
 module Datadog
   module AppSec

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'statistics'
-require_relative '../../../core/transport/http/client'
-require_relative '../../../core/transport/http/env'
-require_relative '../../../core/transport/http/response'
+require_relative "statistics"
+require_relative "../../../core/transport/http/client"
+require_relative "../../../core/transport/http/env"
+require_relative "../../../core/transport/http/response"
 
 module Datadog
   module Tracing

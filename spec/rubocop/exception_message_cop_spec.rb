@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require "spec_helper"
 
-require 'rubocop'
-require 'rubocop/rspec/support'
-require 'rubocop/custom_cops/exception_message_cop'
+require "rubocop"
+require "rubocop/rspec/support"
+require "rubocop/custom_cops/exception_message_cop"
 
 RSpec.describe CustomCops::ExceptionMessageCop do
   subject(:cop) { described_class.new }
 
-  describe 'bare exception interpolation' do
+  describe "bare exception interpolation" do
     it 'registers an offense for bare #{e} in interpolation and auto-corrects to .message' do # rubocop:disable Lint/InterpolationCheck
       expect_offense(<<~'RUBY')
         begin
@@ -48,14 +48,14 @@ RSpec.describe CustomCops::ExceptionMessageCop do
       RUBY
     end
 
-    it 'does not register an offense outside a rescue block' do
+    it "does not register an offense outside a rescue block" do
       expect_no_offenses(<<~'RUBY')
         e = SomeObject.new
         log("#{e}")
       RUBY
     end
 
-    it 'does not register an offense for `e.message` (the preferred form)' do
+    it "does not register an offense for `e.message` (the preferred form)" do
       expect_no_offenses(<<~'RUBY')
         begin
           something
@@ -65,7 +65,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
       RUBY
     end
 
-    it 'does not flag bare `e` outside string interpolation' do
+    it "does not flag bare `e` outside string interpolation" do
       # `raise e`, `log(e)`, etc. are valid uses of the rescue variable.
       expect_no_offenses(<<~RUBY)
         begin
@@ -77,8 +77,8 @@ RSpec.describe CustomCops::ExceptionMessageCop do
     end
   end
 
-  describe 'e.class.name detection' do
-    it 'registers an offense for e.class.name in string interpolation and auto-corrects' do
+  describe "e.class.name detection" do
+    it "registers an offense for e.class.name in string interpolation and auto-corrects" do
       expect_offense(<<~'RUBY')
         begin
           something
@@ -97,7 +97,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
       RUBY
     end
 
-    it 'registers an offense for e.class.name outside interpolation but does not auto-correct' do
+    it "registers an offense for e.class.name outside interpolation but does not auto-correct" do
       expect_offense(<<~RUBY)
         begin
           something
@@ -110,7 +110,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
       expect_no_corrections
     end
 
-    it 'does not register an offense outside a rescue block' do
+    it "does not register an offense outside a rescue block" do
       expect_no_offenses(<<~RUBY)
         e = SomeObject.new
         log(e.class.name)
@@ -118,8 +118,8 @@ RSpec.describe CustomCops::ExceptionMessageCop do
     end
   end
 
-  describe 'combined patterns' do
-    it 'registers offenses for both e.class.name and bare e and auto-corrects both' do
+  describe "combined patterns" do
+    it "registers offenses for both e.class.name and bare e and auto-corrects both" do
       expect_offense(<<~'RUBY')
         begin
           something
@@ -140,16 +140,16 @@ RSpec.describe CustomCops::ExceptionMessageCop do
     end
   end
 
-  describe 'inline rescue' do
-    it 'does not register an offense for inline rescue (no rescue variable)' do
+  describe "inline rescue" do
+    it "does not register an offense for inline rescue (no rescue variable)" do
       expect_no_offenses(<<~RUBY)
         result = something rescue nil
       RUBY
     end
   end
 
-  describe 'variable shadowing' do
-    it 'does not register an offense when a block parameter shadows the rescue variable' do
+  describe "variable shadowing" do
+    it "does not register an offense when a block parameter shadows the rescue variable" do
       expect_no_offenses(<<~'RUBY')
         begin
           something
@@ -159,7 +159,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
       RUBY
     end
 
-    it 'does not register an offense when a destructured block parameter shadows the rescue variable' do
+    it "does not register an offense when a destructured block parameter shadows the rescue variable" do
       expect_no_offenses(<<~'RUBY')
         begin
           something
@@ -169,7 +169,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
       RUBY
     end
 
-    it 'does not register an offense for the missing-class check when shadowed' do
+    it "does not register an offense for the missing-class check when shadowed" do
       expect_no_offenses(<<~'RUBY')
         begin
           something
@@ -179,7 +179,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
       RUBY
     end
 
-    it 'does not register an offense when a method definition uses the same parameter name' do
+    it "does not register an offense when a method definition uses the same parameter name" do
       expect_no_offenses(<<~'RUBY')
         begin
           something
@@ -191,7 +191,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
       RUBY
     end
 
-    it 'still registers an offense for the rescue variable used outside the shadowing block' do
+    it "still registers an offense for the rescue variable used outside the shadowing block" do
       expect_offense(<<~'RUBY')
         begin
           something
@@ -204,8 +204,8 @@ RSpec.describe CustomCops::ExceptionMessageCop do
     end
   end
 
-  describe 'different rescue variable names' do
-    it 'registers an offense when the rescue variable is named differently' do
+  describe "different rescue variable names" do
+    it "registers an offense when the rescue variable is named differently" do
       expect_offense(<<~'RUBY')
         begin
           something
@@ -224,7 +224,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
       RUBY
     end
 
-    it 'registers an offense for err.class.name' do
+    it "registers an offense for err.class.name" do
       expect_offense(<<~'RUBY')
         begin
           something
@@ -244,7 +244,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
     end
   end
 
-  describe 'missing class detection' do
+  describe "missing class detection" do
     it 'flags bare `#{e}` first; the missing-class offense surfaces on a second pass after autocorrect' do # rubocop:disable Lint/InterpolationCheck
       # RuboCop deduplicates offenses on the same node, so the first pass shows
       # only the bare-exception offense. After autocorrect to `e.message`, a
@@ -278,7 +278,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
       RUBY
     end
 
-    it 'does not register a missing-class offense when class is present in the same string' do
+    it "does not register a missing-class offense when class is present in the same string" do
       expect_no_offenses(<<~'RUBY')
         begin
           something
@@ -288,7 +288,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
       RUBY
     end
 
-    it 'does not register a missing-class offense when class is present elsewhere in the same string' do
+    it "does not register a missing-class offense when class is present elsewhere in the same string" do
       expect_no_offenses(<<~'RUBY')
         begin
           something
@@ -298,7 +298,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
       RUBY
     end
 
-    it 'does not register a missing-class offense outside a rescue block' do
+    it "does not register a missing-class offense outside a rescue block" do
       expect_no_offenses(<<~'RUBY')
         e = SomeObject.new
         log("error: #{e}")
@@ -306,8 +306,8 @@ RSpec.describe CustomCops::ExceptionMessageCop do
     end
   end
 
-  describe 'good patterns (no offense)' do
-    it 'does not flag the correct convention' do
+  describe "good patterns (no offense)" do
+    it "does not flag the correct convention" do
       expect_no_offenses(<<~'RUBY')
         begin
           something

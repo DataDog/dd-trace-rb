@@ -1,15 +1,15 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/tracing/context'
-require 'datadog/tracing/trace_operation'
+require "datadog/tracing/context"
+require "datadog/tracing/trace_operation"
 
 RSpec.describe Datadog::Tracing::Context do
   subject(:context) { described_class.new(**options) }
 
   let(:options) { {} }
 
-  describe '#initialize' do
-    context 'with defaults' do
+  describe "#initialize" do
+    context "with defaults" do
       it do
         is_expected.to have_attributes(
           active_trace: nil
@@ -17,12 +17,12 @@ RSpec.describe Datadog::Tracing::Context do
       end
     end
 
-    context 'given' do
-      context ':trace' do
+    context "given" do
+      context ":trace" do
         let(:options) { {trace: trace} }
         let(:trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: finished?) }
 
-        context 'that is finished' do
+        context "that is finished" do
           let(:finished?) { true }
 
           it do
@@ -32,7 +32,7 @@ RSpec.describe Datadog::Tracing::Context do
           end
         end
 
-        context 'that isn\'t finished' do
+        context "that isn't finished" do
           let(:finished?) { false }
 
           it do
@@ -45,13 +45,13 @@ RSpec.describe Datadog::Tracing::Context do
     end
   end
 
-  describe '#activate!' do
+  describe "#activate!" do
     subject(:activate!) { context.activate!(trace) }
 
-    context 'given a TraceOperation' do
+    context "given a TraceOperation" do
       let(:trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: finished?) }
 
-      context 'that is finished' do
+      context "that is finished" do
         let(:finished?) { true }
 
         it { expect { |b| context.activate!(trace, &b) }.to yield_control }
@@ -63,7 +63,7 @@ RSpec.describe Datadog::Tracing::Context do
             .from(nil)
         end
 
-        context 'and a block' do
+        context "and a block" do
           it do
             expect(context.active_trace).to be nil
 
@@ -75,7 +75,7 @@ RSpec.describe Datadog::Tracing::Context do
             expect(context.active_trace).to be nil
           end
 
-          context 'outside which another trace is active' do
+          context "outside which another trace is active" do
             let(:original_trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: false) }
 
             it do
@@ -90,7 +90,7 @@ RSpec.describe Datadog::Tracing::Context do
               expect(context.active_trace).to be original_trace
             end
 
-            context 'which completes in the block' do
+            context "which completes in the block" do
               it do
                 context.activate!(original_trace)
                 expect(context.active_trace).to be original_trace
@@ -106,10 +106,10 @@ RSpec.describe Datadog::Tracing::Context do
             end
           end
 
-          context 'that raises an Exception' do
+          context "that raises an Exception" do
             let(:error) { error_class.new }
             # rubocop:disable Lint/InheritException
-            let(:error_class) { stub_const('TestError', Class.new(Exception)) }
+            let(:error_class) { stub_const("TestError", Class.new(Exception)) }
             # rubocop:enable Lint/InheritException
 
             it do
@@ -128,7 +128,7 @@ RSpec.describe Datadog::Tracing::Context do
         end
       end
 
-      context 'that isn\'t finished' do
+      context "that isn't finished" do
         let(:finished?) { false }
 
         it { expect { |b| context.activate!(trace, &b) }.to yield_control }
@@ -141,7 +141,7 @@ RSpec.describe Datadog::Tracing::Context do
             .to(trace)
         end
 
-        context 'and a block' do
+        context "and a block" do
           it do
             expect(context.active_trace).to be nil
 
@@ -153,7 +153,7 @@ RSpec.describe Datadog::Tracing::Context do
             expect(context.active_trace).to be nil
           end
 
-          context 'outside which another trace is active' do
+          context "outside which another trace is active" do
             let(:original_trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: false) }
 
             it do
@@ -168,7 +168,7 @@ RSpec.describe Datadog::Tracing::Context do
               expect(context.active_trace).to be original_trace
             end
 
-            context 'which completes in the block' do
+            context "which completes in the block" do
               it do
                 context.activate!(original_trace)
                 expect(context.active_trace).to be original_trace
@@ -184,10 +184,10 @@ RSpec.describe Datadog::Tracing::Context do
             end
           end
 
-          context 'that raises an Exception' do
+          context "that raises an Exception" do
             let(:error) { error_class.new }
             # rubocop:disable Lint/InheritException
-            let(:error_class) { stub_const('TestError', Class.new(Exception)) }
+            let(:error_class) { stub_const("TestError", Class.new(Exception)) }
             # rubocop:enable Lint/InheritException
 
             it do
@@ -208,10 +208,10 @@ RSpec.describe Datadog::Tracing::Context do
     end
   end
 
-  describe '#fork_clone' do
+  describe "#fork_clone" do
     subject(:fork_clone) { context.fork_clone }
 
-    context 'when a trace is active' do
+    context "when a trace is active" do
       let(:trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: false) }
       let(:cloned_trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: false) }
 
@@ -226,7 +226,7 @@ RSpec.describe Datadog::Tracing::Context do
       end
     end
 
-    context 'when a trace is not active' do
+    context "when a trace is not active" do
       it do
         is_expected.to be_a_kind_of(described_class)
         expect(fork_clone.active_trace).to be nil

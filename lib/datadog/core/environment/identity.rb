@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require 'securerandom'
+require "securerandom"
 
-require_relative '../configuration/config_helper'
-require_relative 'ext'
-require_relative '../utils/forking'
+require_relative "../configuration/config_helper"
+require_relative "ext"
+require_relative "../utils/forking"
 
 module Datadog
   module Core
@@ -14,8 +14,8 @@ module Datadog
       module Identity
         extend Core::Utils::Forking
 
-        ENV_ROOT_SESSION_ID = '_DD_ROOT_RB_SESSION_ID'
-        ENV_PARENT_SESSION_ID = '_DD_PARENT_RB_SESSION_ID'
+        ENV_ROOT_SESSION_ID = "_DD_ROOT_RB_SESSION_ID"
+        ENV_PARENT_SESSION_ID = "_DD_PARENT_RB_SESSION_ID"
 
         module_function
 
@@ -92,16 +92,16 @@ module Datadog
         # Use {.gem_datadog_version} (not this method) when a RubyGems-style string is
         # required (e.g. gem-internal contexts, gemspec interop).
         def gem_datadog_version_semver2
-          major, minor, patch, rest = gem_datadog_version.split('.', 4)
+          major, minor, patch, rest = gem_datadog_version.split(".", 4)
 
           semver = "#{major}.#{minor}.#{patch}"
 
           return semver unless rest
 
-          pre = ''
-          build = ''
+          pre = ""
+          build = ""
 
-          rest.split('.').tap do |segments|
+          rest.split(".").tap do |segments|
             if segments.length >= 4
               pre = "-#{segments.shift}"
               build = "+#{segments.join(".")}"
