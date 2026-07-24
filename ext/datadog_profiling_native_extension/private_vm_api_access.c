@@ -502,6 +502,13 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
           // rb_profile_frames does not do this check, but `backtrace_each` (`vm_backtrace.c`) does. This frame is not
           // exposed by the Ruby backtrace APIs and for now we want to match its behavior 1:1
         }
+        else if (cfp->ep == NULL) {
+          // Do nothing -- this frame should not be used
+          //
+          // We're not sure this can ever happen, but we've seen a crash inside `VM_FRAME_RUBYFRAME_P` below (which
+          // dereferences `cfp->ep`), so "just in case" we're adding this extra sanity check to avoid crashing on a
+          // NULL `ep`.
+        }
         else if (VM_FRAME_RUBYFRAME_P(cfp)) {
             if (start > 0) {
                 start--;

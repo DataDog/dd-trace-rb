@@ -32,7 +32,7 @@ module Datadog
 
         private
 
-        def try_run: (input_data persistent_data, input_data ephemeral_data, untyped timeout) -> WAF::Result
+        def try_run: (input_data persistent_data, input_data ephemeral_data, ::Integer timeout) -> WAF::Result
 
         def report_execution: (WAF::Result result) -> void
       end

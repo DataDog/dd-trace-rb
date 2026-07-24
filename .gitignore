@@ -20,6 +20,7 @@ ext/**/skipped_reason.txt
 .cache/
 .claude/settings.local.json
 compile_commands.json
+/.worktrees/
 
 ## Documentation cache and generated files:
 /.yardoc/
@@ -58,3 +59,6 @@ lib/*.so
 
 # Benchmark result files
 /benchmarks/*.json
+
+# Superpowers brainstorming/plan output (local, not tracked)
+/docs/superpowers/

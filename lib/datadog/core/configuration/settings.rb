@@ -799,55 +799,40 @@ module Datadog
           end
         end
 
-        # The time provider used by Datadog. It must respect the interface of [Time](https://ruby-doc.org/core-3.0.1/Time.html).
-        #
-        # When testing, it can be helpful to use a different time provider.
-        #
-        # For [Timecop](https://rubygems.org/gems/timecop), for example, `->{ Time.now_without_mock_time }`
-        # allows Datadog features to use the real wall time when time is frozen.
-        #
-        # @default `->{ Time.now }`
-        # @return [Proc<Time>]
+        # Deprecated and no longer does anything.
+        # This gem already takes care to not be affected by timecop.
+        # DEV-3.0: Remove `time_now_provider` option
         option :time_now_provider do |o|
-          o.default_proc { ::Time.now }
+          o.default_proc { Datadog::Core::Utils::Time.now }
           o.type :proc
-
-          o.after_set do |time_provider|
-            Core::Utils::Time.now_provider = time_provider
-          end
-
-          o.resetter do |_value|
-            # TODO: Resetter needs access to the default value
-            # TODO: to help reduce duplication.
-            -> { ::Time.now }.tap do |default|
-              Core::Utils::Time.now_provider = default
+          o.after_set do |_, _, precedence|
+            unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+              unless defined?(Datadog::CI) # the datadog-ci gem needs to work with any datadog gem version and not warn
+                Core.log_deprecation(key: :time_now_provider) do
+                  "The time_now_provider setting has been deprecated for removal " \
+                    "and no longer does anything. Please remove it from your Datadog.configure block. " \
+                    "The datadog gem always uses the real non-mocked time, even when the timecop gem monkey-patches Time."
+                end
+              end
             end
           end
         end
 
-        # The monotonic clock time provider used by Datadog. This option is internal and is used by `datadog-ci`
-        # gem to avoid traces' durations being skewed by timecop.
-        #
-        # It must respect the interface of [Datadog::Core::Utils::Time#get_time] method.
-        #
-        # For [Timecop](https://rubygems.org/gems/timecop), for example,
-        # `->(unit = :float_second) { ::Process.clock_gettime_without_mock(Datadog::Core::Utils::Time::MONOTONIC_CLOCK_ID, unit) }`
-        # allows Datadog features to use the real monotonic time when time is frozen with
-        # `Timecop.mock_process_clock = true`.
-        #
-        # @default `->(unit = :float_second) { ::Process.clock_gettime(Core::Utils::Time::MONOTONIC_CLOCK_ID, unit) }`
-        # @return [Proc<Numeric>]
+        # Deprecated and no longer does anything.
+        # This gem already takes care to not be affected by timecop.
+        # DEV-3.0: Remove `get_time_provider` option
         option :get_time_provider do |o|
-          o.default_proc { |unit = :float_second| ::Process.clock_gettime(Core::Utils::Time::MONOTONIC_CLOCK_ID, unit) }
+          o.default_proc { |unit = :float_second| Datadog::Core::Utils::Time.get_time(unit) }
           o.type :proc
-
-          o.after_set do |get_time_provider|
-            Core::Utils::Time.get_time_provider = get_time_provider
-          end
-
-          o.resetter do |_value|
-            ->(unit = :float_second) { ::Process.clock_gettime(Core::Utils::Time::MONOTONIC_CLOCK_ID, unit) }.tap do |default|
-              Core::Utils::Time.get_time_provider = default
+          o.after_set do |_, _, precedence|
+            unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+              unless defined?(Datadog::CI) # the datadog-ci gem needs to work with any datadog gem version and not warn
+                Core.log_deprecation(key: :get_time_provider) do
+                  "The get_time_provider setting has been deprecated for removal " \
+                    "and no longer does anything. Please remove it from your Datadog.configure block. " \
+                    "The datadog gem always uses the real non-mocked time, even when the timecop gem monkey-patches Process.clock_gettime."
+                end
+              end
             end
           end
         end

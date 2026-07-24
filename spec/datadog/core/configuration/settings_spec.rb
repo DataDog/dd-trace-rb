@@ -1470,11 +1470,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     context "when default" do
-      before { allow(Time).to receive(:now).and_return(time_now) }
-
       it "delegates to Time.now" do
-        expect(settings.time_now_provider.call).to be(time_now)
-        expect(Datadog::Core::Utils::Time.now).to be(time_now)
+        expect(settings.time_now_provider.call).to be_a(::Time)
       end
     end
 
@@ -1483,26 +1480,18 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       it "returns the provided time" do
         expect(settings.time_now_provider.call).to be(time_now)
-        expect(Datadog::Core::Utils::Time.now).to be(time_now)
       end
     end
 
     context "then reset" do
-      let(:original_time_now) { double("original time") }
+      before { set_time_now_provider }
 
-      before do
-        set_time_now_provider
-        allow(Time).to receive(:now).and_return(original_time_now)
-      end
-
-      it "returns the provided time" do
+      it "returns the default time after reset" do
         expect(settings.time_now_provider.call).to be(time_now)
-        expect(Datadog::Core::Utils::Time.now).to be(time_now)
 
         settings.reset!
 
-        expect(settings.time_now_provider.call).to be(original_time_now)
-        expect(Datadog::Core::Utils::Time.now).to be(original_time_now)
+        expect(settings.time_now_provider.call).to be_a(::Time)
       end
     end
   end
@@ -1511,8 +1500,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     subject(:set_get_time_provider) { settings.get_time_provider = get_time_provider }
 
     after { settings.reset! }
-
-    let(:get_time) { 1 }
 
     let(:get_time_new_milliseconds) { 42 }
     let(:get_time_new_seconds) { 0.042 }
@@ -1526,11 +1513,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     context "when default" do
-      before { allow(Process).to receive(:clock_gettime).with(Datadog::Core::Utils::Time::MONOTONIC_CLOCK_ID, unit).and_return(1) }
-
-      it "delegates to Process.clock_gettime" do
-        expect(settings.get_time_provider.call(unit)).to eq(get_time)
-        expect(Datadog::Core::Utils::Time.get_time(unit)).to eq(get_time)
+      it "delegates to Core::Utils::Time.get_time" do
+        expect(settings.get_time_provider.call(unit)).to be_a(Float)
       end
     end
 
@@ -1540,7 +1524,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       context "when unit is :float_second" do
         it "returns the provided time in float seconds" do
           expect(settings.get_time_provider.call(unit)).to eq(get_time_new_seconds)
-          expect(Datadog::Core::Utils::Time.get_time(unit)).to eq(get_time_new_seconds)
         end
       end
 
@@ -1549,27 +1532,19 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
         it "returns the provided time in float milliseconds" do
           expect(settings.get_time_provider.call(unit)).to eq(get_time_new_milliseconds)
-          expect(Datadog::Core::Utils::Time.get_time(unit)).to eq(get_time_new_milliseconds)
         end
       end
     end
 
     context "then reset" do
-      let(:original_get_time) { 1 }
+      before { set_get_time_provider }
 
-      before do
-        set_get_time_provider
-        allow(Process).to receive(:clock_gettime).with(Datadog::Core::Utils::Time::MONOTONIC_CLOCK_ID, unit).and_return(original_get_time)
-      end
-
-      it "returns the provided time" do
+      it "returns the default time after reset" do
         expect(settings.get_time_provider.call(unit)).to eq(get_time_new_seconds)
-        expect(Datadog::Core::Utils::Time.get_time(unit)).to eq(get_time_new_seconds)
 
         settings.reset!
 
-        expect(settings.get_time_provider.call(unit)).to eq(original_get_time)
-        expect(Datadog::Core::Utils::Time.get_time(unit)).to eq(original_get_time)
+        expect(settings.get_time_provider.call(unit)).to be_a(Float)
       end
     end
   end

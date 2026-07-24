@@ -643,6 +643,23 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe "#native_transport" do
+      subject(:native_transport) { settings.tracing.native_transport }
+
+      it_behaves_like "a binary setting with",
+        env_variable: "DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED",
+        default: false
+    end
+
+    describe "#native_transport=" do
+      it "changes the #native_transport setting" do
+        expect { settings.tracing.native_transport = true }
+          .to change { settings.tracing.native_transport }
+          .from(false)
+          .to(true)
+      end
+    end
+
     describe "#sampler" do
       subject(:sampler) { settings.tracing.sampler }
 

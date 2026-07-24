@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.39.0.dev)
+    datadog (2.40.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.3)
       libdatadog (~> 36.0.0.1.0)
@@ -117,6 +117,7 @@ GEM
     sorted_set (1.0.3)
       rbtree
       set (~> 1.0)
+    strscan (3.1.2)
     thor (1.5.0)
     warning (1.6.0)
     webmock (3.26.2)
@@ -153,6 +154,7 @@ DEPENDENCIES
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
   simplecov (~> 0.22.0)
+  strscan (= 3.1.2)
   warning (~> 1)
   webmock (>= 3.10.0)
   zstd-ruby
