@@ -40,15 +40,14 @@ void otel_thread_context_init(VALUE core_module) {
 
   VALUE otel_thread_context_module = rb_define_module_under(core_module, "OTelThreadContext");
 
+  rb_define_singleton_method(otel_thread_context_module, "_native_enable", native_enable, 0);
+
 #ifdef HAVE_RB_EXT_RACTOR_SAFE
   rb_ext_ractor_safe(true);
 #endif
-
   rb_define_singleton_method(otel_thread_context_module, "_native_set", native_set, 3);
   rb_define_singleton_method(otel_thread_context_module, "_native_supported?", native_supported_p, 0);
-  rb_define_singleton_method(otel_thread_context_module, "_native_enable", native_enable, 0);
   rb_define_singleton_method(otel_thread_context_module, "_native_read", native_read, 0);
-
 #ifdef HAVE_RB_EXT_RACTOR_SAFE
   rb_ext_ractor_safe(false);
 #endif
