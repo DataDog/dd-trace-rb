@@ -230,10 +230,28 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
         it { is_expected.to include otlp_metrics_export_enabled: true }
       end
 
+      context "with OTLP metrics enabled but the exporter set to none" do
+        before do
+          allow(Datadog.configuration.opentelemetry.metrics).to receive(:enabled).and_return(true)
+          allow(Datadog.configuration.opentelemetry.metrics).to receive(:exporter).and_return("none")
+        end
+
+        it { is_expected.to include otlp_metrics_export_enabled: false }
+      end
+
       context "with OTLP logs export enabled" do
         before { expect(Datadog.configuration.opentelemetry.logs).to receive(:enabled).and_return(true) }
 
         it { is_expected.to include otlp_logs_export_enabled: true }
+      end
+
+      context "with OTLP logs enabled but the exporter set to none" do
+        before do
+          allow(Datadog.configuration.opentelemetry.logs).to receive(:enabled).and_return(true)
+          allow(Datadog.configuration.opentelemetry.logs).to receive(:exporter).and_return("none")
+        end
+
+        it { is_expected.to include otlp_logs_export_enabled: false }
       end
 
       context "when the opentelemetry settings namespace is unavailable" do

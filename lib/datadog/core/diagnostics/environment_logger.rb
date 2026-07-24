@@ -170,12 +170,18 @@ module Datadog
 
           # @return [Boolean] whether the tracer exports metrics over OTLP
           def otlp_metrics_export_enabled
-            !!opentelemetry_settings&.metrics&.enabled
+            metrics = opentelemetry_settings&.metrics
+            # A "none" exporter skips the OTLP metric reader even when metrics are enabled
+            # (mirrors Datadog::OpenTelemetry::Ext::EXPORTER_NONE).
+            !!(metrics&.enabled && metrics.exporter != "none")
           end
 
           # @return [Boolean] whether the tracer exports logs over OTLP
           def otlp_logs_export_enabled
-            !!opentelemetry_settings&.logs&.enabled
+            logs = opentelemetry_settings&.logs
+            # A "none" exporter skips the OTLP log record processor even when logs are enabled
+            # (mirrors Datadog::OpenTelemetry::Ext::EXPORTER_NONE).
+            !!(logs&.enabled && logs.exporter != "none")
           end
 
           private
