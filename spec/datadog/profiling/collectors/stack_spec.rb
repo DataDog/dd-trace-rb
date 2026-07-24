@@ -270,12 +270,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         expect(gathered_stack).to eq reference_stack
       end
 
-      context "when native filenames are enabled", if: PlatformHelpers.linux? do
+      context "when native filenames are enabled" do
         let(:native_filenames_enabled) { true }
-
-        before do
-          skip("Native filenames are only available on Linux") unless described_class._native_filenames_available?
-        end
 
         it "matches the Ruby backtrace API after the 6th frame" do
           expect(gathered_stack[5..-1]).to eq reference_stack[5..-1]
@@ -288,11 +284,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             have_attributes(base_label: "sleep", path: __FILE__, lineno: @expected_line),
             have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: @expected_line),
             # Bigdecimal is a native extension shipped separately from Ruby
-            have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),
+            have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so").or(end_with("bigdecimal.bundle")), lineno: 0),
             have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: be_positive),
             # We expect the native filename for catch to be inside the Ruby VM -- either in the ruby binary or the libruby library
-            # Note that this may not apply everywhere (e.g. you can rename your Ruby), but it seems sane enough to require this when running tests
-            have_attributes(base_label: "catch", path: end_with("/ruby").or(include("libruby").and(include(".so"))), lineno: 0),
+            have_attributes(base_label: "catch", path: described_class._native_ruby_native_filename, lineno: 0),
           )
         end
       end
@@ -320,12 +315,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         expect(gathered_stack).to eq reference_stack
       end
 
-      context "when native filenames are enabled", if: PlatformHelpers.linux? do
+      context "when native filenames are enabled" do
         let(:native_filenames_enabled) { true }
-
-        before do
-          skip("Native filenames are only available on Linux") unless described_class._native_filenames_available?
-        end
 
         it "matches the Ruby backtrace API after the 5th frame" do
           expect(gathered_stack[4..-1]).to eq reference_stack[4..-1]
@@ -336,7 +327,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             have_attributes(base_label: "sleep", path: __FILE__, lineno: be_positive),
             have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: be_positive),
             # Bigdecimal is a native extension shipped separately from Ruby
-            have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),
+            have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so").or(end_with("bigdecimal.bundle")), lineno: 0),
             # This is the frame in module_calling_super.save_rounding_mode (the one that calls super)
             have_attributes(base_label: "save_rounding_mode", path: __FILE__, lineno: be_positive),
           )
@@ -908,23 +899,30 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
-  describe "_native_filenames_available?" do
-    it "returns true on linux and macOS" do
-      skip("Native filenames are unavailable for this Ruby build") unless described_class._native_filenames_available?
-
-      expect(described_class._native_filenames_available?).to be true
-    end
-  end
-
   describe "_native_ruby_native_filename" do
     it "returns the correct filename", if: PlatformHelpers.linux? do
-      skip("Native filenames are unavailable for this Ruby build") unless described_class._native_filenames_available?
-
       expect(described_class._native_ruby_native_filename).to end_with("/ruby").or(include("libruby").and(include(".so")))
     end
 
     it "returns the correct filename on Mac", if: PlatformHelpers.mac? do
       expect(described_class._native_ruby_native_filename).to end_with("/ruby").or(match(/libruby[^\/]+dylib$/))
+    end
+  end
+
+  describe "Using static_ruby_actual_filename in static Rubies without libruby.so" do
+    def set_file_info_for_cfunc(static_ruby_actual_filename)
+      described_class::Testing._native_set_file_info_for_cfunc(static_ruby_actual_filename)
+    end
+
+    it "uses static_ruby_actual_filename when it is set" do
+      expect(set_file_info_for_cfunc("/static/ruby/path")).to eq("/static/ruby/path")
+    end
+
+    context "when static_ruby_actual_filename is unset" do
+      it "falls back to the raw dladdr-resolved filename for the Ruby VM" do
+        expect(set_file_info_for_cfunc(nil))
+          .to include("rspec").or(end_with("/ruby")).or(include("libruby"))
+      end
     end
   end
 

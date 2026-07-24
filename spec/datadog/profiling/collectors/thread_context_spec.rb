@@ -198,28 +198,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         }.to raise_error(ArgumentError, "Unexpected value for otel_context_enabled: :invalid")
       end
     end
-
-    context "when native filenames are enabled but feature is not available" do
-      let(:native_filenames_enabled) { true }
-
-      before do
-        allow(Datadog::Profiling::Collectors::Stack).to receive(:_native_filenames_available?).and_return(false)
-        allow(Datadog.logger).to receive(:debug)
-      end
-
-      it "disables native filenames" do
-        expect(described_class)
-          .to receive(:_native_initialize).with(hash_including(native_filenames_enabled: false)).and_call_original
-
-        thread_context_collector
-      end
-
-      it "logs a debug message" do
-        expect(Datadog.logger).to receive(:debug).with(/Disabling native filenames/)
-
-        thread_context_collector
-      end
-    end
   end
 
   describe "#sample" do

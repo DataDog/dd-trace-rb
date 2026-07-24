@@ -51,8 +51,6 @@ module Datadog
         private
 
         def safely_extract_context_key_from: (untyped tracer) -> ::Symbol?
-
-        def validate_native_filenames: (bool native_filenames_enabled) -> bool
       end
     end
   end
