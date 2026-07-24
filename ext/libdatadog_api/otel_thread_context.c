@@ -23,6 +23,10 @@ static const rb_data_type_t otel_fiber_context_type = {
 
 static ID fiber_context_slot;
 
+#ifdef HAVE_RUBY_THREAD_STORAGE_API
+static rb_internal_thread_specific_key_t otel_ctx_key;
+#endif
+
 static VALUE native_set(VALUE _self, VALUE trace_id, VALUE  span_id, VALUE local_root_span_id);
 static VALUE native_supported_p(VALUE _self);
 static VALUE native_enable(VALUE _self);
@@ -30,6 +34,9 @@ static VALUE native_read(VALUE _self);
 
 void otel_thread_context_init(VALUE core_module) {
   fiber_context_slot = rb_intern("__dd_otel_fiber_context");
+#ifdef HAVE_RUBY_THREAD_STORAGE_API
+  otel_ctx_key = rb_internal_thread_specific_key_create();
+#endif
 
   VALUE otel_thread_context_module = rb_define_module_under(core_module, "OTelThreadContext");
 
@@ -58,10 +65,18 @@ static otel_fiber_context *get_fiber_context_for(VALUE thread) {
 
 static otel_fiber_context *get_or_create_current_fiber_context(void) {
   otel_fiber_context *ctx = get_fiber_context_for(rb_thread_current());
-  if (ctx) return ctx;
+  if (ctx) {
+#ifdef HAVE_RUBY_THREAD_STORAGE_API
+    rb_internal_thread_specific_set(rb_thread_current(), otel_ctx_key, ctx);
+#endif
+    return ctx;
+  }
 
   VALUE obj = TypedData_Make_Struct(rb_cObject, otel_fiber_context, &otel_fiber_context_type, ctx);
   rb_thread_local_aset(rb_thread_current(), fiber_context_slot, obj);
+#ifdef HAVE_RUBY_THREAD_STORAGE_API
+  rb_internal_thread_specific_set(rb_thread_current(), otel_ctx_key, ctx);
+#endif
   return ctx;
 }
 
@@ -112,13 +127,14 @@ static void on_thread_end(
 }
 #endif
 
-#ifdef HAVE_RB_INTERNAL_THREAD_EVENT_DATA_T_THREAD
+#ifdef HAVE_RUBY_THREAD_STORAGE_API
   static void on_thread_resumed(
     DDTRACE_UNUSED rb_event_flag_t event,
     const rb_internal_thread_event_data_t *event_data,
     DDTRACE_UNUSED void *user_data
   ) {
-    publish_context(get_fiber_context_for(event_data->thread));
+    otel_fiber_context *ctx = rb_internal_thread_specific_get(event_data->thread, otel_ctx_key);
+    publish_context(ctx);
   }
 #endif
 
@@ -152,7 +168,7 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
     rb_add_event_hook(on_thread_end, RUBY_EVENT_THREAD_END, Qnil);
   #endif
 
-  #ifdef HAVE_RB_INTERNAL_THREAD_EVENT_DATA_T_THREAD
+  #ifdef HAVE_RUBY_THREAD_STORAGE_API
     rb_internal_thread_add_event_hook(on_thread_resumed, RUBY_INTERNAL_THREAD_EVENT_RESUMED, NULL);
   #endif
 
