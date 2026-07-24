@@ -128,14 +128,14 @@ static void on_thread_end(
 #endif
 
 #ifdef HAVE_RUBY_THREAD_STORAGE_API
-  static void on_thread_resumed(
-    DDTRACE_UNUSED rb_event_flag_t event,
-    const rb_internal_thread_event_data_t *event_data,
-    DDTRACE_UNUSED void *user_data
-  ) {
-    otel_fiber_context *ctx = rb_internal_thread_specific_get(event_data->thread, otel_ctx_key);
-    publish_context(ctx);
-  }
+static void on_thread_resumed(
+  DDTRACE_UNUSED rb_event_flag_t event,
+  const rb_internal_thread_event_data_t *event_data,
+  DDTRACE_UNUSED void *user_data
+) {
+  otel_fiber_context *ctx = rb_internal_thread_specific_get(event_data->thread, otel_ctx_key);
+  publish_context(ctx);
+}
 #endif
 
 static VALUE native_set(DDTRACE_UNUSED VALUE _self, VALUE trace_id, VALUE span_id, VALUE local_root_span_id) {
@@ -160,17 +160,17 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
 
   rb_add_event_hook(on_fiber_switch, RUBY_EVENT_FIBER_SWITCH, Qnil);
 
-  // Starting with Ruby 3.2 we use internal thread EXITED hook and not
-  // RUBY_EVENT_THREAD_END VM trace event, since trace events are scoped to main Ractor only
-  #ifdef RUBY_INTERNAL_THREAD_EVENT_EXITED
-    rb_internal_thread_add_event_hook(on_thread_exited, RUBY_INTERNAL_THREAD_EVENT_EXITED, NULL);
-  #else
-    rb_add_event_hook(on_thread_end, RUBY_EVENT_THREAD_END, Qnil);
-  #endif
+// Starting with Ruby 3.2 we use internal thread EXITED hook and not
+// RUBY_EVENT_THREAD_END VM trace event, since trace events are scoped to main Ractor only
+#ifdef RUBY_INTERNAL_THREAD_EVENT_EXITED
+  rb_internal_thread_add_event_hook(on_thread_exited, RUBY_INTERNAL_THREAD_EVENT_EXITED, NULL);
+#else
+  rb_add_event_hook(on_thread_end, RUBY_EVENT_THREAD_END, Qnil);
+#endif
 
-  #ifdef HAVE_RUBY_THREAD_STORAGE_API
-    rb_internal_thread_add_event_hook(on_thread_resumed, RUBY_INTERNAL_THREAD_EVENT_RESUMED, NULL);
-  #endif
+#ifdef HAVE_RUBY_THREAD_STORAGE_API
+  rb_internal_thread_add_event_hook(on_thread_resumed, RUBY_INTERNAL_THREAD_EVENT_RESUMED, NULL);
+#endif
 
   enabled = true;
   return Qtrue;
