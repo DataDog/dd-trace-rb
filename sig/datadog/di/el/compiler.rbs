@@ -2,7 +2,7 @@ module Datadog
   module DI
     module EL
       class Compiler
-        def compile: (untyped ast) -> [ ::String, ::Array[::Regexp] ]
+        def compile: (ast ast) -> [ ::String, ::Array[::Regexp] ]
 
         private
 
@@ -14,8 +14,8 @@ module Datadog
 
         MULTI_ARG_METHODS: { "and" => "&&", "or" => "||" }
 
-        def compile_partial: (untyped ast, ::Array[::Regexp] regexps) -> ::String
-        def var_name_maybe: (untyped target) -> String
+        def compile_partial: (ast ast, ::Array[::Regexp] regexps) -> ::String
+        def var_name_maybe: (ast target) -> String
 
         def escape: (String needle) -> String
 

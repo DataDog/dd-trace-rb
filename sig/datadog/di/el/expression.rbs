@@ -12,7 +12,7 @@ module Datadog
 
         attr_reader evaluator: Evaluator
 
-        def evaluate: (Context context) -> untyped
+        def evaluate: (Context context) -> any
 
         def satisfied?: (Context context) -> bool
       end
