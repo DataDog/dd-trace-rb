@@ -159,7 +159,7 @@ static void ruby_runtime_stack_callback(
     frame_info *info = &runtime_stack_buffer[i];
 
     if (info->is_ruby_frame) {
-      const void *iseq = (const void *)info->as.ruby_frame.iseq;
+      const rb_iseq_t *iseq = info->as.ruby_frame.iseq;
       ddog_CharSlice function_slice = DDOG_CHARSLICE_C("<unknown>");
       ddog_CharSlice file_slice = DDOG_CHARSLICE_C("<unknown>");
 
@@ -181,9 +181,10 @@ static void ruby_runtime_stack_callback(
       ddog_CharSlice function_slice = DDOG_CHARSLICE_C("<C method>");
       ddog_CharSlice file_slice = DDOG_CHARSLICE_C("<C extension>");
 
-      if (info->as.native_frame.method_id) {
-        const char *method_name = rb_id2name(info->as.native_frame.method_id);
-        if (is_pointer_readable(method_name, 256)) {
+      const rb_callable_method_entry_t *cme = info->cme;
+      if (cme && is_pointer_readable(cme, sizeof_rb_callable_method_entry_t())) {
+        const char *method_name = ddtrace_cme_original_method_name(cme);
+        if (method_name && is_pointer_readable(method_name, 256)) {
           size_t method_name_len = strnlen(method_name, 256);
           if (method_name_len > 0 && method_name_len < 256) {
             function_slice = char_slice_from_cstr(method_name);

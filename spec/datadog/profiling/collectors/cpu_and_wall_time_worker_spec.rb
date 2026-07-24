@@ -329,10 +329,16 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # Ensure the per_thread_context TypedData wrapper is already allocated for the current Thread
         sample
         allocations_after_initial = cpu_and_wall_time_worker.stats.fetch(:allocations_during_sample)
+        cpu_sampled_before = cpu_and_wall_time_worker.stats.fetch(:cpu_sampled)
 
+        # `allocations_during_sample` only counts allocations that happen while the `during_sample` flag is set, and
+        # that flag is set exclusively by the worker's own sampling path (SIGPROF -> postponed job). The warmup
+        # `sample` above bypasses that flag, so we must wait for the worker to take at least one real sample through
+        # its own path before checking; otherwise this test passes without ever exercising the sampling hot path
+        # while allocations are being counted. (`cpu_sampled` only increases on that path.)
         try_wait_until do
-          samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-          samples if samples.any?
+          recorder.serialize! # drain accumulated samples while we wait
+          cpu_and_wall_time_worker.stats.fetch(:cpu_sampled) > cpu_sampled_before
         end
 
         cpu_and_wall_time_worker.stop
@@ -750,7 +756,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # For Ruby 4 onwards, new is inlined into the bytecode of the caller and there's no "new"
         # frame at the top of the stack, see https://github.com/ruby/ruby/pull/13080
         expect(RubyVersion.is?(">= 4") ? allocation_sample.locations[0] : allocation_sample.locations[1])
-          .to match(have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: allocation_line))
+          .to match(have_attributes(label: end_with("<top (required)>"), path: __FILE__, lineno: allocation_line))
       end
 
       context "with dynamic_sampling_rate_enabled" do
@@ -959,7 +965,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
           allocation_trigger_frame.lineno == allocation_line &&
             allocation_trigger_frame.path == __FILE__ &&
-            allocation_trigger_frame.base_label == current_method_name &&
+            allocation_trigger_frame.label.end_with?(current_method_name) &&
             sample.labels[:"allocation class"] == "CpuAndWallTimeWorkerSpec::TestStruct" &&
             (sample.values[:"heap-live-samples"] || 0) > 0
         end

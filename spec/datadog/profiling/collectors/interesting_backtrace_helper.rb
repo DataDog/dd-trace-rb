@@ -72,11 +72,7 @@ module IbhContainsRefinement
   module RefinesIbhClassG
     refine IbhClassG do
       def hello
-        if RubyVersion.is?(">= 2.7")
-          IbhClassE.instance_method(:hello).bind_call(IbhClassF.new)
-        else
-          IbhClassE.instance_method(:hello).bind(IbhClassF.new).call
-        end
+        IbhClassE.instance_method(:hello).bind(IbhClassF.new).call
       end
     end
   end
@@ -196,8 +192,14 @@ module IbhModuleO
   end
 end
 
+class IbhOperator
+  def <<(_)
+    IbhModuleO.hello
+  end
+end
+
 def ibh_top_level_hello
-  IbhModuleO.hello
+  IbhOperator.new << :hello
 end
 
 1.times {
