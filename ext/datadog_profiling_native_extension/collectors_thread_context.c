@@ -320,8 +320,8 @@ static void trigger_sample_for_thread(
 );
 static VALUE _native_thread_list(VALUE self);
 static void check_frozen_thread(VALUE thread);
-static per_thread_context *get_or_create_context_for(VALUE thread);
-static void initialize_context(VALUE thread, per_thread_context *thread_context);
+static per_thread_context *get_or_create_context_for(VALUE thread, long current_monotonic_wall_time_ns);
+static void initialize_context(VALUE thread, per_thread_context *thread_context, long current_monotonic_wall_time_ns);
 static VALUE _native_inspect(VALUE self, VALUE collector_instance);
 static VALUE per_thread_context_to_ruby_hash(per_thread_context *thread_context);
 static VALUE stats_to_ruby_hash(thread_context_collector_state *state, VALUE hash);
@@ -368,7 +368,8 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread);
   static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread);
   static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception);
 #endif
-static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE delta_ns);
+static VALUE _native_apply_delta_to_time_at_previous_sample_ns(int argc, VALUE *argv, DDTRACE_UNUSED VALUE self);
+static VALUE _native_apply_delta_to_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE delta_ns);
 static void otel_without_ddtrace_trace_identifiers_for(
   thread_context_collector_state *state,
   VALUE thread,
@@ -429,7 +430,8 @@ void collectors_thread_context_init(VALUE profiling_module) {
     rb_define_singleton_method(testing_module, "_native_on_gvl_running", _native_on_gvl_running, 2);
     rb_define_singleton_method(testing_module, "_native_sample_after_gvl_running", _native_sample_after_gvl_running, 3);
   #endif
-  rb_define_singleton_method(testing_module, "_native_apply_delta_to_cpu_time_at_previous_sample_ns", _native_apply_delta_to_cpu_time_at_previous_sample_ns, 2);
+  rb_define_singleton_method(testing_module, "_native_apply_delta_to_time_at_previous_sample_ns", _native_apply_delta_to_time_at_previous_sample_ns, -1);
+  rb_define_singleton_method(testing_module, "_native_apply_delta_to_gvl_waiting_at_for", _native_apply_delta_to_gvl_waiting_at_for, 2);
 
   at_active_span_id = rb_intern_const("@active_span");
   at_active_trace_id = rb_intern_const("@active_trace");
@@ -743,7 +745,7 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   VALUE current_thread = rb_thread_current();
-  per_thread_context *current_thread_context = get_or_create_context_for(current_thread);
+  per_thread_context *current_thread_context = get_or_create_context_for(current_thread, current_monotonic_wall_time_ns);
   long cpu_time_at_sample_start_for_current_thread = cpu_time_now_ns(current_thread_context);
 
   VALUE threads = thread_list(state);
@@ -751,7 +753,7 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
     VALUE thread = RARRAY_AREF(threads, i);
-    per_thread_context *thread_context = get_or_create_context_for(thread);
+    per_thread_context *thread_context = get_or_create_context_for(thread, current_monotonic_wall_time_ns);
 
     // We account for cpu-time for the current thread in a different way: we use the cpu-time at sampling start,
     // to avoid blaming the time the profiler took on whatever is currently running on the thread,
@@ -793,25 +795,26 @@ static void update_metrics_and_sample(
 
   if (skip_sample(state, thread_context, is_gvl_waiting_state, force_sample)) return;
 
+  // A thread enters "Waiting for GVL", well, as the name implies, without the GVL.
+  //
+  // As a consequence, it's possible for another thread to enter "Waiting for GVL" in parallel with the current thread working
+  // on sampling, and thus for the `current_monotonic_wall_time_ns` (which is recorded at the start of sampling)
+  // to be <= the time we observe for a "Waiting for GVL".
+  //
+  // When that happens, `handle_gvl_waiting` has already accounted for all wall-time up to the (later) start of the
+  // wait via the extra sample it pushes (see comments on that function), so there may be no remaining time
+  // to account for here.
+  // Thus, in this case, we don't want to produce a sample representing "Waiting for GVL" with a wall-time of 0 (nor negative!), and
+  // thus we skip creating such a sample.
+  if (is_gvl_waiting_state && current_monotonic_wall_time_ns <= thread_context->wall_time_at_previous_sample_ns) return;
+  // ...you may also wonder: is there any other situation where it makes sense to produce a sample with
+  // wall_time_elapsed_ns == 0? I believe that yes, because the sample still includes a timestamp and a stack, but we
+  // may revisit/change our minds on this in the future.
+
   // Don't assign/update cpu during "Waiting for GVL"
   long cpu_time_elapsed_ns = is_gvl_waiting_state ? 0 : update_cpu_time_since_previous_sample(thread_context, current_cpu_time_ns);
 
   long wall_time_elapsed_ns = update_wall_time_since_previous_sample(thread_context, current_monotonic_wall_time_ns);
-
-  // A thread enters "Waiting for GVL", well, as the name implies, without the GVL.
-  //
-  // As a consequence, it's possible that a thread enters "Waiting for GVL" in parallel with the current thread working
-  // on sampling, and thus for the `current_monotonic_wall_time_ns` (which is recorded at the start of sampling)
-  // to be < the time at which we started Waiting for GVL.
-  //
-  // All together, this means that when `handle_gvl_waiting` creates an extra sample (see comments on that function for
-  // what the extra sample is), it's possible that there's no more wall-time to be assigned.
-  // Thus, in this case, we don't want to produce a sample representing Waiting for GVL with a wall-time of 0, and
-  // thus we skip creating such a sample.
-  if (is_gvl_waiting_state && wall_time_elapsed_ns == 0) return;
-  // ...you may also wonder: is there any other situation where it makes sense to produce a sample with
-  // wall_time_elapsed_ns == 0? I believe that yes, because the sample still includes a timestamp and a stack, but we
-  // may revisit/change our minds on this in the future.
 
   trigger_sample_for_thread(
     state,
@@ -949,7 +952,7 @@ bool thread_context_collector_on_gc_finish(VALUE self_instance) {
 
   // Update cpu-time accounting so it doesn't include the cpu-time spent in GC during the next sample.
   // We don't do the same for wall-time, because GC is just like any other reason a thread didn't make
-  // progress -- time always goes forward regardless of the thread making progress on what it wanted. 
+  // progress -- time always goes forward regardless of the thread making progress on what it wanted.
   if (thread_context->cpu_time_at_previous_sample_ns != INVALID_TIME) {
     thread_context->cpu_time_at_previous_sample_ns += gc_cpu_time_elapsed_ns;
   }
@@ -1183,14 +1186,14 @@ static void check_frozen_thread(VALUE thread) {
 
 // See the docs on struct per_thread_context.
 // This allocates a Ruby object and therefore needs the GVL and is not safe to call from RUBY_INTERNAL_EVENT_* hooks.
-static per_thread_context *get_or_create_context_for(VALUE thread) {
+static per_thread_context *get_or_create_context_for(VALUE thread, long current_monotonic_wall_time_ns) {
   per_thread_context *thread_context = get_per_thread_context(thread);
   if (thread_context != NULL) return thread_context;
 
   check_frozen_thread(thread);
 
   thread_context = calloc(1, sizeof(per_thread_context)); // See "note on calloc vs ruby_xcalloc use" in heap_recorder.c
-  initialize_context(thread, thread_context);
+  initialize_context(thread, thread_context, current_monotonic_wall_time_ns);
 
   VALUE wrapper = TypedData_Wrap_Struct(rb_cObject, &per_thread_context_typed_data, thread_context);
   rb_ivar_set(thread, dd_per_thread_context_id, wrapper);
@@ -1204,7 +1207,7 @@ static void on_thread_begin_event(VALUE tracepoint_data, DDTRACE_UNUSED void *un
 
   VALUE thread = rb_tracearg_self(rb_tracearg_from_tracepoint(tracepoint_data));
   ENFORCE_THREAD(thread);
-  get_or_create_context_for(thread);
+  get_or_create_context_for(thread, monotonic_wall_time_now_ns(RAISE_ON_FAILURE));
 }
 
 #define LOGGING_GEM_PATH "/lib/logging/diagnostic_context.rb"
@@ -1228,7 +1231,7 @@ static bool is_logging_gem_monkey_patch(VALUE invoke_file_location) {
   return strncmp(invoke_file + invoke_file_len - logging_gem_path_len, LOGGING_GEM_PATH, logging_gem_path_len) == 0;
 }
 
-static void initialize_context(VALUE thread, per_thread_context *thread_context) {
+static void initialize_context(VALUE thread, per_thread_context *thread_context, long current_monotonic_wall_time_ns) {
   // We always create per_thread_context's with latest_max_frames; that value is kept in sync with the
   // active profiler's max_frames by the global reset that runs when profiling starts
   // so we expect to always see here the latest correct value to be used.
@@ -1265,7 +1268,7 @@ static void initialize_context(VALUE thread, per_thread_context *thread_context)
 
   thread_context->thread_cpu_time_id = thread_cpu_time_id_for(thread);
 
-  thread_context->wall_time_at_previous_sample_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  thread_context->wall_time_at_previous_sample_ns = current_monotonic_wall_time_ns;
   thread_context->cpu_time_at_previous_sample_ns = cpu_time_now_ns(thread_context);
 
   // These will only be used during a GC operation
@@ -1295,6 +1298,8 @@ void thread_context_collector_reset_all_per_thread_contexts(VALUE self_instance)
 
   latest_max_frames = state->locations.len;
 
+  long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+
   VALUE threads = thread_list(state);
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
@@ -1305,12 +1310,12 @@ void thread_context_collector_reset_all_per_thread_contexts(VALUE self_instance)
 
       sampling_buffer_free(&thread_context->sampling_buffer);
       memset(thread_context, 0, sizeof(per_thread_context));
-      initialize_context(thread, thread_context);
+      initialize_context(thread, thread_context, current_monotonic_wall_time_ns);
 
       thread_context->is_profiler_internal_thread = is_profiler_internal_thread;
     } else {
       // If thread didn't have a context, let's trigger its creation
-      get_or_create_context_for(thread);
+      get_or_create_context_for(thread, current_monotonic_wall_time_ns);
     }
   }
 }
@@ -1452,10 +1457,7 @@ static long update_cpu_time_since_previous_sample(per_thread_context *thread_con
     thread_context
   );
 
-  // We don't expect cpu-time to go backwards, so let's flag this as a bug
-  if (elapsed_time_ns < 0) {
-    raise_error(rb_eRuntimeError, "BUG: Unexpected CPU time going backwards between samples");
-  }
+  if (elapsed_time_ns < 0) raise_error(rb_eRuntimeError, "BUG: Unexpected CPU time going backwards between samples");
 
   return elapsed_time_ns;
 }
@@ -1467,11 +1469,9 @@ static long update_wall_time_since_previous_sample(per_thread_context *thread_co
     thread_context
   );
 
-  // Wall-time can actually go backwards (e.g. when the system clock gets set) so we can't assume time going backwards
-  // was a bug.
-  // @ivoanjo: I've also observed time going backwards spuriously on macOS, see discussion on
-  // https://github.com/DataDog/dd-trace-rb/pull/2336.
-  return long_max_of(elapsed_time_ns, 0);
+  if (elapsed_time_ns < 0) raise_error(rb_eRuntimeError, "BUG: Unexpected wall time going backwards between samples");
+
+  return elapsed_time_ns;
 }
 
 // Safety: This function is assumed never to raise exceptions by callers
@@ -2086,12 +2086,12 @@ static void mark_thread_as_profiler_internal(per_thread_context *ctx) {
 }
 
 void thread_context_collector_profiler_internal_thread_started(void) {
-  per_thread_context *ctx = get_or_create_context_for(rb_thread_current());
+  per_thread_context *ctx = get_or_create_context_for(rb_thread_current(), monotonic_wall_time_now_ns(RAISE_ON_FAILURE));
   mark_thread_as_profiler_internal(ctx);
 }
 
 static VALUE _native_mark_thread_as_profiler_internal(DDTRACE_UNUSED VALUE self, VALUE thread) {
-  per_thread_context *ctx = get_or_create_context_for(thread);
+  per_thread_context *ctx = get_or_create_context_for(thread, monotonic_wall_time_now_ns(RAISE_ON_FAILURE));
   mark_thread_as_profiler_internal(ctx);
   return Qnil;
 }
@@ -2106,13 +2106,13 @@ void thread_context_collector_profiler_internal_thread_done(VALUE self_instance)
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   VALUE current_thread = rb_thread_current();
-  per_thread_context *thread_context = get_or_create_context_for(current_thread);
+  long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  per_thread_context *thread_context = get_or_create_context_for(current_thread, current_monotonic_wall_time_ns);
   if (!thread_context->is_profiler_internal_thread) {
     rb_raise(rb_eRuntimeError, "current thread %"PRIsVALUE" is not profiler-internal thread", current_thread);
   }
 
   long current_cpu_time_ns = cpu_time_now_ns(thread_context);
-  long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
 
   update_metrics_and_sample(
     state,
@@ -2278,7 +2278,7 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
     thread_context_collector_state *state;
     TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-    per_thread_context *thread_context = get_or_create_context_for(current_thread);
+    per_thread_context *thread_context = get_or_create_context_for(current_thread, current_monotonic_wall_time_ns);
 
     long gvl_waiting_at = thread_context->gvl_waiting_at;
 
@@ -2453,13 +2453,33 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
 
 #endif // NO_GVL_INSTRUMENTATION
 
-static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE delta_ns) {
+static VALUE _native_apply_delta_to_time_at_previous_sample_ns(int argc, VALUE *argv, DDTRACE_UNUSED VALUE self) {
+  VALUE thread;
+  VALUE options;
+  rb_scan_args(argc, argv, "1:", &thread, &options);
+  if (options == Qnil) options = rb_hash_new();
+
+  VALUE cpu_time_delta_ns = rb_hash_lookup2(options, ID2SYM(rb_intern("cpu_time")), INT2FIX(0));
+  VALUE wall_time_delta_ns = rb_hash_lookup2(options, ID2SYM(rb_intern("wall_time")), INT2FIX(0));
+
   ENFORCE_THREAD(thread);
 
   per_thread_context *thread_context = get_per_thread_context(thread);
   if (thread_context == NULL) raise_error(rb_eArgError, "Unexpected: This method cannot be used unless the per-thread context for the thread already exists");
 
-  thread_context->cpu_time_at_previous_sample_ns += NUM2LONG(delta_ns);
+  thread_context->cpu_time_at_previous_sample_ns += NUM2LONG(cpu_time_delta_ns);
+  thread_context->wall_time_at_previous_sample_ns += NUM2LONG(wall_time_delta_ns);
+
+  return Qtrue;
+}
+
+static VALUE _native_apply_delta_to_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE delta_ns) {
+  ENFORCE_THREAD(thread);
+
+  per_thread_context *thread_context = get_per_thread_context(thread);
+  if (thread_context == NULL) raise_error(rb_eArgError, "Unexpected: This method cannot be used unless the per-thread context for the thread already exists");
+
+  thread_context->gvl_waiting_at += NUM2LONG(delta_ns);
 
   return Qtrue;
 }

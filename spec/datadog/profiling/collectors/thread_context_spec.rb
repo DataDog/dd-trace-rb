@@ -44,6 +44,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:pprof_result) { recorder.serialize! }
   let(:samples) { samples_from_pprof(pprof_result) }
   let(:invalid_time) { -1 }
+  let(:one_second_in_ns) { 1_000_000_000 }
   let(:tracer) { nil }
   let(:endpoint_collection_enabled) { true }
 
@@ -148,7 +149,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   def apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
     described_class::Testing
-      ._native_apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
+      ._native_apply_delta_to_time_at_previous_sample_ns(thread, cpu_time: delta_ns)
+  end
+
+  def apply_delta_to_wall_time_at_previous_sample_ns(thread, delta_ns)
+    described_class::Testing
+      ._native_apply_delta_to_time_at_previous_sample_ns(thread, wall_time: delta_ns)
+  end
+
+  def apply_delta_to_gvl_waiting_at_for(thread, delta_ns)
+    described_class::Testing._native_apply_delta_to_gvl_waiting_at_for(thread, delta_ns)
   end
 
   def prepare_sample_inside_signal_handler
@@ -1264,6 +1274,37 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             end
           end
         end
+
+        context "when a thread's 'Waiting for GVL' starts concurrent with/in the middle of a sample" do
+          let(:one_hour_in_ns) { 60 * 60 * one_second_in_ns }
+
+          before do
+            skip_if_gvl_profiling_not_supported(self)
+
+            thread_context_collector # trigger context creation
+
+            @wall_time_at_context_creation = per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
+
+            # Simulate a "Waiting for GVL" that started "after" our sample below by just pushing it to the future
+            on_gvl_waiting(t1)
+            @on_gvl_waiting_at = per_thread_context.fetch(t1).fetch(:gvl_waiting_at)
+            apply_delta_to_gvl_waiting_at_for(t1, one_hour_in_ns)
+
+            expect(gvl_waiting_at_for(t1)).to eq(@on_gvl_waiting_at + one_hour_in_ns)
+          end
+
+          it "records a single sample with the elapsed time up to the (fake) start of the wait, and doesn't advance the clock" do
+            # We don't expect an exception here if this is correct, but if it's not, we want to see an exception
+            # rather than the unsafe API call checker firing
+            sample(allow_exception: true)
+
+            expect(sample_for_thread(samples, t1).values.fetch(:"wall-time")).to eq(
+              (@on_gvl_waiting_at - @wall_time_at_context_creation) + one_hour_in_ns
+            )
+
+            expect(per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)).to eq gvl_waiting_at_for(t1)
+          end
+        end
       end
     end
 
@@ -1283,6 +1324,44 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         expect {
           sample(allow_exception: true)
         }.to raise_error(FrozenError, "Cannot setup profiler state for Thread #{t1} because it is frozen. Please avoid freezing Thread instances and/or report the issue to dd-trace-rb")
+      end
+    end
+
+    context "when cpu-time goes backwards" do
+      before do
+        sample
+
+        # Make it look like the previous sample took place in the future
+        apply_delta_to_cpu_time_at_previous_sample_ns(t1, 60 * 60 * one_second_in_ns)
+      end
+
+      it "raises an exception" do
+        expect { sample(allow_exception: true) }.to raise_error(RuntimeError, /CPU time going backwards/)
+      end
+    end
+
+    context "when wall-time goes backwards" do
+      before do
+        sample
+
+        # Make it look like the previous sample took place in the future
+        apply_delta_to_wall_time_at_previous_sample_ns(t1, 60 * 60 * one_second_in_ns)
+      end
+
+      it "raises an exception" do
+        expect { sample(allow_exception: true) }.to raise_error(RuntimeError, /wall time going backwards/)
+      end
+    end
+
+    context "when a thread's per-thread context was removed before sampling" do
+      before do
+        sample # Trigger context creation, and some regular sampling work, for all threads
+
+        remove_per_thread_context_for(t1)
+      end
+
+      it "does not raise an exception when the context gets lazily recreated mid-sample" do
+        expect { sample(allow_exception: true) }.to_not raise_error
       end
     end
   end
