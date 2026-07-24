@@ -106,7 +106,7 @@ static ID otel_fiber_context_storage_id; // id of :@opentelemetry_context in Rub
 
 // This is mutable and gets set last-writer-wins style by
 // `thread_context_collector_reset_all_per_thread_contexts`, which is called whenever
-// profiling is starting or restating.
+// profiling is starting or restarting.
 //
 // Note: We must be careful to not change this value while the profiler is still running,
 // otherwise new threads can get the new value and cause profiling to stop with an
@@ -115,6 +115,18 @@ static ID otel_fiber_context_storage_id; // id of :@opentelemetry_context in Rub
 // The initial value should be kept in sync with the default for DD_PROFILING_MAX_FRAMES
 // in settings.rb. See `initialize_context` for details on why this is needed/used.
 static uint16_t latest_max_frames = 400;
+
+// This is mutable and gets set last-writer-wins style by
+// `thread_context_collector_reset_all_per_thread_contexts`, which is called whenever
+// profiling is starting or restarting (same lifecycle as `latest_max_frames` above).
+//
+// We read it from `thread_context_collector_on_gvl_running`, which may only use async-signal-safe
+// functions and must not call arbitrary Ruby APIs,
+// so it cannot read `waiting_for_gvl_threshold_ns` off the collector state there.
+//
+// The initial value should be kept in sync with the default for waiting_for_gvl_threshold_ns in
+// collectors/thread_context.rb.
+static uint32_t latest_waiting_for_gvl_threshold_ns = 10 * 1000 * 1000; // 10ms
 
 // Global tracepoint for RUBY_EVENT_THREAD_BEGIN. Created and enabled once when the first ThreadContext collector is initialized.
 static VALUE thread_begin_tracepoint = Qnil;
@@ -365,7 +377,7 @@ static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread);
 #ifndef NO_GVL_INSTRUMENTATION
   static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
-  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread);
+  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread);
   static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception);
 #endif
 static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE delta_ns);
@@ -426,7 +438,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_on_gvl_released", _native_on_gvl_released, 1);
   #ifndef NO_GVL_INSTRUMENTATION
     rb_define_singleton_method(testing_module, "_native_gvl_waiting_at_for", _native_gvl_waiting_at_for, 1);
-    rb_define_singleton_method(testing_module, "_native_on_gvl_running", _native_on_gvl_running, 2);
+    rb_define_singleton_method(testing_module, "_native_on_gvl_running", _native_on_gvl_running, 1);
     rb_define_singleton_method(testing_module, "_native_sample_after_gvl_running", _native_sample_after_gvl_running, 3);
   #endif
   rb_define_singleton_method(testing_module, "_native_apply_delta_to_cpu_time_at_previous_sample_ns", _native_apply_delta_to_cpu_time_at_previous_sample_ns, 2);
@@ -949,7 +961,7 @@ bool thread_context_collector_on_gc_finish(VALUE self_instance) {
 
   // Update cpu-time accounting so it doesn't include the cpu-time spent in GC during the next sample.
   // We don't do the same for wall-time, because GC is just like any other reason a thread didn't make
-  // progress -- time always goes forward regardless of the thread making progress on what it wanted. 
+  // progress -- time always goes forward regardless of the thread making progress on what it wanted.
   if (thread_context->cpu_time_at_previous_sample_ns != INVALID_TIME) {
     thread_context->cpu_time_at_previous_sample_ns += gc_cpu_time_elapsed_ns;
   }
@@ -1294,6 +1306,10 @@ void thread_context_collector_reset_all_per_thread_contexts(VALUE self_instance)
   }
 
   latest_max_frames = state->locations.len;
+
+  // Keep the global in sync so `thread_context_collector_on_gvl_running` (which cannot safely access
+  // the collector state) sees the threshold for the collector that's about to start sampling.
+  latest_waiting_for_gvl_threshold_ns = state->waiting_for_gvl_threshold_ns;
 
   VALUE threads = thread_list(state);
   const long thread_count = RARRAY_LEN(threads);
@@ -2190,12 +2206,9 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
 }
 
 #ifndef NO_GVL_INSTRUMENTATION
-  // This function runs on the passed thread and has the GVL because it gets called just after the Ruby thread acquired the GVL
+  // We MUST only use async-signal-safe functions here, see notes in the caller
   __attribute__((warn_unused_result))
-  on_gvl_running_result thread_context_collector_on_gvl_running(VALUE self_instance, VALUE thread, per_thread_context *thread_context) {
-    thread_context_collector_state *state;
-    TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
-
+  on_gvl_running_result thread_context_collector_on_gvl_running(VALUE thread, per_thread_context *thread_context) {
     // Bump the event counter and clears the state bit to "running"
     uint64_t counter_portion = thread_context->gvl_state_change_count >> 1;
     thread_context->gvl_state_change_count = ((counter_portion + 1) << 1) | GVL_RUNNING;
@@ -2212,7 +2225,9 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
 
     long waiting_for_gvl_duration_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - gvl_waiting_at;
 
-    bool should_sample = waiting_for_gvl_duration_ns >= state->waiting_for_gvl_threshold_ns;
+    // Read the threshold from the global rather than the collector state to honor the
+    // async-signal-safety constraint noted above.
+    bool should_sample = waiting_for_gvl_duration_ns >= latest_waiting_for_gvl_threshold_ns;
 
     if (should_sample) {
       // We flip the gvl_waiting_at to negative to mark that the thread is now running and no longer waiting
@@ -2408,7 +2423,7 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
     return result;
   }
 
-  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread) {
+  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread) {
     ENFORCE_THREAD(thread);
 
     debug_enter_unsafe_context();
@@ -2416,7 +2431,7 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
     per_thread_context *thread_context = get_per_thread_context(thread);
     VALUE result;
     if (thread_context) {
-      result = thread_context_collector_on_gvl_running(collector_instance, thread, thread_context).action == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
+      result = thread_context_collector_on_gvl_running(thread, thread_context).action == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
     } else {
       result = Qfalse;
     }
