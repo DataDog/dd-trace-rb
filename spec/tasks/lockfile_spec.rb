@@ -25,4 +25,16 @@ RSpec.describe Lockfile do
       expect(described_class.new("ruby-2.5.gemfile.lock").checksum_eligible?).to eq(false)
     end
   end
+
+  describe "#has_checksums_section?" do
+    let(:fixtures) { "spec/fixtures/checksum_coverage" }
+
+    it "is true for a lockfile with a CHECKSUMS section" do
+      expect(described_class.new("#{fixtures}/ruby-3.1_eligible_with_checksums.gemfile.lock").has_checksums_section?).to eq(true)
+    end
+
+    it "is false for a lockfile without a CHECKSUMS section" do
+      expect(described_class.new("#{fixtures}/ruby-3.1_eligible_without_checksums.gemfile.lock").has_checksums_section?).to eq(false)
+    end
+  end
 end

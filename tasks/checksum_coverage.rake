@@ -1,19 +1,16 @@
 require_relative "lockfile"
-require_relative "checksum_scanning"
 
 namespace :dependency do
   desc "Check that every checksum-eligible lockfile has a CHECKSUMS section"
   task :checksum_coverage do
-    lockfiles = Dir.glob("gemfiles/*.gemfile.lock").select { |path| Lockfile.new(path).checksum_eligible? }.sort
-    findings = ChecksumScanning.findings(lockfiles)
+    lockfiles = Dir.glob("gemfiles/*.gemfile.lock").map { |path| Lockfile.new(path) }.select(&:checksum_eligible?).sort_by(&:path)
+    missing = lockfiles.reject(&:has_checksums_section?)
 
-    if findings.empty?
+    if missing.empty?
       puts "Checksum coverage OK across #{lockfiles.size} lockfiles."
     else
-      puts "Found #{findings.size} checksum coverage issue(s):"
-      findings.each do |f|
-        puts "  #{f[:lockfile]}: missing expected CHECKSUMS section"
-      end
+      puts "Found #{missing.size} checksum coverage issue(s):"
+      missing.each { |lockfile| puts "  #{lockfile.path}: missing expected CHECKSUMS section" }
       abort("Checksum coverage check failed.")
     end
   end

@@ -23,6 +23,10 @@ class Lockfile
     capable?(:checksum)
   end
 
+  def has_checksums_section?
+    File.readlines(path).any? { |line| line.strip == "CHECKSUMS" }
+  end
+
   private
 
   def capable?(capability)
