@@ -17,6 +17,17 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
     Datadog.configuration.reset!
   end
 
+  # The dev shell may export OTLP-related env vars; clear them so "default"-state
+  # assertions are deterministic regardless of the surrounding environment.
+  around do |example|
+    ClimateControl.modify(
+      "DD_METRICS_OTEL_ENABLED" => nil,
+      "DD_LOGS_OTEL_ENABLED" => nil,
+    ) do
+      example.run
+    end
+  end
+
   describe "#collect_and_log!" do
     include_context "non-development execution environment"
 
@@ -38,6 +49,9 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
         "runtime_metrics_enabled" => false,
         "vm" => be_a(String),
         "health_metrics_enabled" => false,
+        "otlp_traces_export_enabled" => false,
+        "otlp_metrics_export_enabled" => false,
+        "otlp_logs_export_enabled" => false,
       }
     end
 
@@ -134,7 +148,10 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
           tags: nil,
           runtime_metrics_enabled: false,
           vm: be_a(String),
-          health_metrics_enabled: false
+          health_metrics_enabled: false,
+          otlp_traces_export_enabled: false,
+          otlp_metrics_export_enabled: false,
+          otlp_logs_export_enabled: false
         )
       end
 
@@ -205,6 +222,30 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
         before { expect(Datadog.configuration.health_metrics).to receive(:enabled).and_return(true) }
 
         it { is_expected.to include health_metrics_enabled: true }
+      end
+
+      context "with OTLP metrics export enabled" do
+        before { expect(Datadog.configuration.opentelemetry.metrics).to receive(:enabled).and_return(true) }
+
+        it { is_expected.to include otlp_metrics_export_enabled: true }
+      end
+
+      context "with OTLP logs export enabled" do
+        before { expect(Datadog.configuration.opentelemetry.logs).to receive(:enabled).and_return(true) }
+
+        it { is_expected.to include otlp_logs_export_enabled: true }
+      end
+
+      context "when the opentelemetry settings namespace is unavailable" do
+        before { allow(Datadog.configuration).to receive(:respond_to?).with(:opentelemetry).and_return(false) }
+
+        it do
+          is_expected.to include(
+            otlp_traces_export_enabled: false,
+            otlp_metrics_export_enabled: false,
+            otlp_logs_export_enabled: false,
+          )
+        end
       end
     end
   end
