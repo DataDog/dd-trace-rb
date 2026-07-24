@@ -55,7 +55,7 @@ jobs:
           - name: ruby
             version: "2.5"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}-gnu-gcc
+      image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
       env:
         BUNDLE_GEMFILE: gemfiles/${{ matrix.engine.name }}-${{ matrix.engine.version }}.gemfile
         BUNDLE_WITHOUT: check
@@ -68,7 +68,10 @@ jobs:
           ruby -v
           gem -v
           bundler -v
-      - run: bundle lock --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin
+      - id: checksum
+        run: |
+          echo "eligible=$(ruby -r./tasks/security_capabilities -e 'print SecurityCapabilities.for_version(RUBY_VERSION)[:checksum]')" >> "$GITHUB_OUTPUT"
+      - run: bundle lock --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin${{ steps.checksum.outputs.eligible == 'true' && ' --add-checksums' || '' }}
       - run: bundle install
       - run: bundle exec rake dependency:all
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
