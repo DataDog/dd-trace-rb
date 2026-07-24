@@ -68,15 +68,22 @@ module Datadog
               end
 
               def on_start(span, event, _id, payload)
+                mapping = MAPPING.fetch(event)
+
                 # Since Rails 8, `dd_original_keys` contains the denormalized keys provided
-                # by the user, as an insertion-ordered `key => true` Hash.
+                # by the user, as an insertion-ordered Set.
                 # In previous versions, the denormalized key is stored in the official `key` attribute.
                 # We fall back to `key`, even in Rails 8, as a defensive measure.
+                #
+                # `dd_original_keys` is always a Set, even for single-key events, so it's unwrapped
+                # to its sole entry unless `set_cache_key` is expecting a multi-key collection.
                 original_keys = payload[:dd_original_keys]
-                key = original_keys ? original_keys.keys : payload[:key]
+                key = if original_keys
+                  mapping[:multi_key] ? original_keys : original_keys.first
+                else
+                  payload[:key]
+                end
                 store = payload[:store]
-
-                mapping = MAPPING.fetch(event)
 
                 span.service = configuration[:cache_service]
                 span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
