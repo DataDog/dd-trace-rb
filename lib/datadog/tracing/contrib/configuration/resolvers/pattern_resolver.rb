@@ -15,7 +15,7 @@ module Datadog
               return if configurations.empty?
 
               # Try to find a matching pattern
-              _, config = configurations.reverse_each.find do |matcher, _|
+              _, config = ordered_config.find do |matcher, _|
                 matcher === if matcher.is_a?(Proc)
                   value
                 else
