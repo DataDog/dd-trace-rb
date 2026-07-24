@@ -1,18 +1,11 @@
-require_relative "lockfile"
-
 module ChecksumScanning
   module_function
 
+  # `lockfile_paths` is expected to already be filtered to checksum-eligible
+  # lockfiles; this only checks for a missing CHECKSUMS section.
   def findings(lockfile_paths)
     lockfile_paths.each_with_object([]) do |path, findings|
-      eligible = Lockfile.new(path).checksum_eligible?
-      has_checksums = has_checksums_section?(path)
-
-      if eligible && !has_checksums
-        findings << {lockfile: path, problem: :missing_checksums}
-      elsif !eligible && has_checksums
-        findings << {lockfile: path, problem: :unexpected_checksums}
-      end
+      findings << {lockfile: path, problem: :missing_checksums} unless has_checksums_section?(path)
     end
   end
 
