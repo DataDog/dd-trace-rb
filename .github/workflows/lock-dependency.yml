@@ -66,7 +66,10 @@ jobs:
           ruby -v
           gem -v
           bundler -v
-      - run: bundle lock --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin
+      - id: checksum
+        run: |
+          echo "eligible=$(ruby -r./tasks/security_capabilities -e 'print SecurityCapabilities.for_version(RUBY_VERSION)[:checksum]')" >> "$GITHUB_OUTPUT"
+      - run: bundle lock --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin${{ steps.checksum.outputs.eligible == 'true' && ' --add-checksums' || '' }}
       - run: bundle install
       - run: bundle exec rake dependency:all
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
