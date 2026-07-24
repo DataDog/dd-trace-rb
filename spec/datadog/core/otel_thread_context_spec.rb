@@ -66,23 +66,22 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
 
       expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
     end
-  end
 
-  it 'keeps thread context correct under the M:N scheduler', if: RUBY_VERSION >= '3.3' do
-    # M:N is disabled on the main Ractor by default
-    results = Ractor.new do
-      Array.new(Etc.nprocessors * 4 + 1) do |i|
-        Thread.new do
-          Datadog::Core::OTelThreadContext.set(trace_id: i, span_id: i + 1, local_root_span_id: i + 2)
+    it 'keeps thread context correct under the M:N scheduler', if: RUBY_VERSION >= '3.3' do
+      thread_count = Etc.nprocessors * 4 + 1
 
-          10.times.all? do
+      # M:N is disabled on the main Ractor by default
+      results = Ractor.new(thread_count) do |count|
+        Array.new(count) do |i|
+          Thread.new do
+            Datadog::Core::OTelThreadContext.set(trace_id: i, span_id: i + 1, local_root_span_id: i + 2)
             Thread.pass
-            Datadog::Core::OTelThreadContext.read&.fetch(:trace_id) == i
+            Datadog::Core::OTelThreadContext.read&.fetch(:trace_id)
           end
-        end
-      end.map(&:value)
-    end.take
+        end.map(&:value)
+      end.take
 
-    expect(results).to all(be true)
+      expect(results).to match_array((0..(thread_count - 1)).to_a)
+    end
   end
 end
