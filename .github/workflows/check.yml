@@ -129,9 +129,6 @@ jobs:
 
   checksum-coverage:
     name: checksum-coverage
-    # TODO: re-enable once lockfiles are regenerated with CHECKSUMS sections
-    # (supply-chain-checksum-write). Until then this job would fail on every PR.
-    if: false
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
@@ -222,7 +219,8 @@ jobs:
       - 'zizmor'
       - 'actionlint'
       - 'yaml-lint'
-      # TODO: add 'bundler-audit' and 'checksum-coverage' back to this list
+      - 'checksum-coverage'
+      # TODO: add 'bundler-audit' back to this list
       # once those jobs are no longer disabled (see their `if: false` above)
       # — a skipped dependency would otherwise make this aggregate job skip too.
     runs-on: ubuntu-24.04
