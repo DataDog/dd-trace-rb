@@ -99,6 +99,17 @@ static void on_thread_exited(
   struct ddog_ThreadContextHandle *ctx = ddog_otel_thread_ctx_detach();
   if (ctx) ddog_otel_thread_ctx_free(ctx);
 }
+#else
+static void on_thread_end(
+  DDTRACE_UNUSED rb_event_flag_t evflag,
+  DDTRACE_UNUSED VALUE data,
+  DDTRACE_UNUSED VALUE self,
+  DDTRACE_UNUSED ID mid,
+  DDTRACE_UNUSED VALUE klass
+) {
+  struct ddog_ThreadContextHandle *ctx = ddog_otel_thread_ctx_detach();
+  if (ctx) ddog_otel_thread_ctx_free(ctx);
+}
 #endif
 
 #ifdef HAVE_RB_INTERNAL_THREAD_EVENT_DATA_T_THREAD
@@ -133,8 +144,12 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
 
   rb_add_event_hook(on_fiber_switch, RUBY_EVENT_FIBER_SWITCH, Qnil);
 
+  // Starting with Ruby 3.2 we use internal thread EXITED hook and not
+  // RUBY_EVENT_THREAD_END VM trace event, since trace events are scoped to main Ractor only
   #ifdef RUBY_INTERNAL_THREAD_EVENT_EXITED
     rb_internal_thread_add_event_hook(on_thread_exited, RUBY_INTERNAL_THREAD_EVENT_EXITED, NULL);
+  #else
+    rb_add_event_hook(on_thread_end, RUBY_EVENT_THREAD_END, Qnil);
   #endif
 
   #ifdef HAVE_RB_INTERNAL_THREAD_EVENT_DATA_T_THREAD
