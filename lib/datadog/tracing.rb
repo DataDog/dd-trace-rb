@@ -42,8 +42,8 @@ module Datadog
 
       # (see Datadog::Tracing::Tracer#continue_trace!)
       # @public_api
-      def continue_trace!(digest, &block)
-        tracer.continue_trace!(digest, &block)
+      def continue_trace!(digest, auto_finish_with_block: false, &block)
+        tracer.continue_trace!(digest, auto_finish_with_block: auto_finish_with_block, &block)
       end
 
       # The tracer's internal logger instance.

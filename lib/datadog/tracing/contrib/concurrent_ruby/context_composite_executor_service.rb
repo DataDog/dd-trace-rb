@@ -25,7 +25,12 @@ module Datadog
             # Pass the original arguments to the composited executor, which
             # pushes them (possibly transformed) as block args
             executor.post(*args) do |*block_args|
-              Tracing.continue_trace!(digest) do
+              # Wrap the task in a block so the propagated trace context is restored
+              # afterwards, preventing it from leaking across pooled worker threads.
+              # `auto_finish_with_block` keeps the default per-span trace lifetime:
+              # spans created by the task are not merged into a single block-scoped
+              # trace and may be finished after the task returns.
+              Tracing.continue_trace!(digest, auto_finish_with_block: true) do
                 # Pass the executor-provided block args as they should have been
                 # originally passed without composition, see ChainPromise#on_resolvable
                 yield(*block_args)

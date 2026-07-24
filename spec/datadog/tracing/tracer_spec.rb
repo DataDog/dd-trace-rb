@@ -1124,6 +1124,92 @@ RSpec.describe Datadog::Tracing::Tracer do
         end
       end
     end
+
+    context 'with auto_finish_with_block: true and a block' do
+      it 'restores the original active trace afterwards' do
+        tracer.continue_trace!(nil)
+        original_trace = tracer.active_trace
+        expect(original_trace).to be_a_kind_of(Datadog::Tracing::TraceOperation)
+
+        tracer.continue_trace!(nil, auto_finish_with_block: true) do
+          expect(tracer.active_trace).to_not be original_trace
+        end
+
+        expect(tracer.active_trace).to be original_trace
+      end
+
+      it 'restores the previous context when the task creates no spans' do
+        expect(tracer.active_trace).to be nil
+
+        tracer.continue_trace!(nil, auto_finish_with_block: true) {}
+
+        expect(tracer.active_trace).to be nil
+      end
+
+      it 'does not force-finish spans left open in the block' do
+        held = nil
+        tracer.continue_trace!(nil, auto_finish_with_block: true) do
+          held = tracer.trace('held-span')
+        end
+
+        # The block does not force the trace to finish, so the span stays valid
+        # and nothing is flushed until it is finished.
+        expect(held.finished?).to be false
+        expect(fetch_spans).to be_empty
+
+        held.finish
+
+        expect(spans).to have(1).item
+        expect(span.name).to eq('held-span')
+      end
+
+      context 'given nil (no propagated context)' do
+        it 'keeps sequential top-level traces independent' do
+          trace_ids = []
+          tracer.continue_trace!(nil, auto_finish_with_block: true) do
+            tracer.trace('span-1') { trace_ids << tracer.active_trace.id }
+            tracer.trace('span-2') { trace_ids << tracer.active_trace.id }
+          end
+
+          expect(trace_ids.uniq).to have(2).items
+          expect(spans).to have(2).items
+          expect(spans).to all(be_root_span)
+        end
+      end
+
+      context 'given a TraceDigest' do
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(
+            span_id: Datadog::Tracing::Utils.next_id,
+            trace_id: Datadog::Tracing::Utils.next_id,
+          )
+        end
+
+        it 'makes the first span a child of the digest' do
+          tracer.continue_trace!(digest, auto_finish_with_block: true) do
+            tracer.trace('span-1') {}
+          end
+
+          expect(span.parent_id).to eq(digest.span_id)
+          expect(span.trace_id).to eq(digest.trace_id)
+        end
+
+        it 'starts an unrelated trace for a subsequent span instead of merging' do
+          tracer.continue_trace!(digest, auto_finish_with_block: true) do
+            tracer.trace('span-1') {}
+            tracer.trace('span-2') {}
+          end
+
+          expect(spans).to have(2).items
+          span1 = spans.find { |s| s.name == 'span-1' }
+          span2 = spans.find { |s| s.name == 'span-2' }
+          expect(span1.parent_id).to eq(digest.span_id)
+          expect(span1.trace_id).to eq(digest.trace_id)
+          expect(span2.parent_id).to eq(0)
+          expect(span2.trace_id).to_not eq(digest.trace_id)
+        end
+      end
+    end
   end
 
   describe '#trace_completed' do

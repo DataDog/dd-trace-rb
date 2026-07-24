@@ -226,6 +226,32 @@ RSpec.describe 'ConcurrentRuby integration tests' do
       ensure
         executor&.kill
       end
+
+      it 'exports a span left open by the task once it is finished later' do
+        executor = Concurrent::SingleThreadExecutor.new
+        future = Concurrent::Future.new(executor: executor) { tracer.trace('held_span') }
+        held = future.execute.value
+        held.finish
+
+        expect(spans).to have(1).item
+        expect(spans.first.name).to eq('held_span')
+      ensure
+        executor&.kill
+      end
+
+      it 'keeps sequential top-level traces created by a task independent' do
+        executor = Concurrent::SingleThreadExecutor.new
+        trace_ids = Concurrent::Array.new
+        future = Concurrent::Future.new(executor: executor) do
+          tracer.trace('first_span') { trace_ids << Datadog::Tracing.active_trace.id }
+          tracer.trace('second_span') { trace_ids << Datadog::Tracing.active_trace.id }
+        end
+        future.execute.wait
+
+        expect(trace_ids.uniq).to have(2).items
+      ensure
+        executor&.kill
+      end
     end
   end
 

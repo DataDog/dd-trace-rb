@@ -254,15 +254,27 @@ module Datadog
       # When a block is given, the trace context is restored inside the block execution.
       # It remains active until the block ends, even when the first span created inside
       # the block finishes. This means that multiple spans can be direct children of the
-      # active span from when the {Datadog::Tracing::TraceDigest} was created.
+      # active span from when the {Datadog::Tracing::TraceDigest} was created. On block
+      # exit the trace is force-finished and flushed, so spans left open are lost.
+      #
+      # When a block is given together with `auto_finish_with_block: true`, the block is
+      # used only to scope context restoration: the previous context is restored when the
+      # block ends, but the trace keeps the same auto-finish behavior as the no-block form
+      # (it finishes when its local root span finishes, and a subsequent span starts a new,
+      # unrelated trace). The trace is *not* force-finished on block exit, so spans left
+      # open inside the block stay valid and can be finished later. This is useful to clean
+      # up propagated context across reused execution contexts (e.g. a thread pool) without
+      # altering span or trace lifetimes.
       #
       # @param [Datadog::Tracing::TraceDigest] digest continue from the {Datadog::Tracing::TraceDigest}.
       # @param [Thread] key Thread to retrieve trace from. Defaults to current thread. For internal use only.
+      # @param [Boolean] auto_finish_with_block when a block is given, keep the no-block
+      #   auto-finish behavior instead of binding the trace's lifetime to the block.
       # @return [Object] If a block is provided, the result of the block execution.
       # @return [Datadog::Tracing::TraceOperation] If no block, the active {Datadog::Tracing::TraceOperation}.
       # @yield Optional block where this {#continue_trace!} `digest` scope is active.
       #   If no block, the `digest` remains active after {#continue_trace!} returns.
-      def continue_trace!(digest, key = nil, &block)
+      def continue_trace!(digest, key = nil, auto_finish_with_block: false, &block)
         # Only accept {TraceDigest} as a digest.
         # Otherwise, create a new execution context.
         digest = nil unless digest.is_a?(TraceDigest)
@@ -274,7 +286,11 @@ module Datadog
         # it auto finish when the local root span finishes. This would
         # create mutiple traces inside the block. Instead, we'll
         # expliclity finish the trace after the block finishes.
-        auto_finish = !block
+        #
+        # With auto_finish_with_block, the block only scopes context restoration:
+        # the trace keeps the no-block auto-finish behavior and is not force-finished
+        # when the block ends, so open spans keep their normal lifetime.
+        auto_finish = !block || auto_finish_with_block
 
         trace = start_trace(continue_from: digest, auto_finish: auto_finish)
 
@@ -287,10 +303,12 @@ module Datadog
           context.activate!(trace) do
             yield
           ensure # We have to flush even when an error occurs
-            # On block completion, force the trace to finish and flush its finished spans.
-            # Unfinished spans are lost as the {TraceOperation} has ended.
-            trace.finish!
-            flush_trace(trace)
+            unless auto_finish
+              # On block completion, force the trace to finish and flush its finished spans.
+              # Unfinished spans are lost as the {TraceOperation} has ended.
+              trace.finish!
+              flush_trace(trace)
+            end
           end
         else
           # Otherwise, the trace will be bound to the current thread after this point
