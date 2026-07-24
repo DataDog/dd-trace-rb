@@ -20,7 +20,7 @@ jobs:
     name: build
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -81,7 +81,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -112,7 +112,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
