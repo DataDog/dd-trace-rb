@@ -2,12 +2,11 @@
 
 module Datadog
   module Core
-    # Publishes a per-thread OpenTelemetry context record (trace id, span id) into a
-    # thread-local slot, so an out-of-process reader (e.g. the eBPF profiler) can discover it.
+    # Publishes a per-thread OpenTelemetry context record into a thread-local slot,
+    # so an out-of-process reader (e.g. the eBPF profiler) can discover it.
     # See the "OTel Thread Context" OTEP (open-telemetry/opentelemetry-specification#4947).
     #
-    # APIs in this module are implemented as native code; see ext/libdatadog_api/otel_thread_ctx.c.
-    # Linux-only: `supported?` is `false` everywhere else.
+    # Native functions are implemented in ext/libdatadog_api/otel_thread_context.c
     module OTelThreadContext
       class << self
         def supported?
