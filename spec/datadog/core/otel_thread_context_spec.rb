@@ -93,7 +93,7 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
       expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
     end
 
-    it "keeps thread context correct under the M:N scheduler", if: RUBY_VERSION >= "3.3" do
+    it "keeps thread context correct under the M:N scheduler", if: RUBY_VERSION >= "3.3", memcheck_valgrind_skip: true do
       thread_count = Etc.nprocessors * 4 + 1
 
       # M:N is disabled on the main Ractor by default

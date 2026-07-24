@@ -31,6 +31,7 @@ CORE_WITH_LIBDATADOG_API = [
   "spec/datadog/open_feature_spec.rb",
   "spec/datadog/core/libdatadog_extconf_helpers_spec.rb",
   "spec/datadog/core/datadog_ruby_common_spec.rb",
+  "spec/datadog/core/otel_thread_context_spec.rb",
 ].freeze
 
 # Native trace exporter / transport specs (spec/datadog/tracing/transport/native).
