@@ -1,11 +1,11 @@
-require_relative "security_capabilities"
+require_relative "lockfile"
 
 module ChecksumScanning
   module_function
 
   def findings(lockfile_paths)
     lockfile_paths.each_with_object([]) do |path, findings|
-      eligible = SecurityCapabilities.checksum_eligible_lockfile?(File.basename(path))
+      eligible = Lockfile.new(path).checksum_eligible?
       has_checksums = has_checksums_section?(path)
 
       if eligible && !has_checksums
