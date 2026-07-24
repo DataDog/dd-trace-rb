@@ -1,4 +1,5 @@
 require_relative "appraisal_conversion"
+require_relative "security_capabilities"
 
 namespace :dependency do
   desc "Regenerate, lock, and propagate dependencies for #{AppraisalConversion.runtime_identifier}"
@@ -46,11 +47,13 @@ namespace :dependency do
     pattern = args.extras.any? ? args.extras : AppraisalConversion.gemfile_pattern
 
     gemfiles = Dir.glob(pattern)
+    checksum_eligible = SecurityCapabilities.for_version(RUBY_VERSION)[:checksum]
 
     gemfiles.each do |gemfile|
       Bundler.with_unbundled_env do
         command = +"bundle lock"
         command << " --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin"
+        command << " --add-checksums" if checksum_eligible
         sh({"BUNDLE_GEMFILE" => gemfile.to_s}, command)
       end
     end
