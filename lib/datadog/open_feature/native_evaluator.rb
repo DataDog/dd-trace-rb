@@ -52,7 +52,7 @@ module Datadog
         ResolutionDetails.build_error(
           value: default_value,
           error_code: Ext::PARSE_ERROR,
-          error_message: INVALID_FLAG_CONFIGURATION_ERROR_MESSAGE
+          error_message: INVALID_FLAG_CONFIGURATION_ERROR_MESSAGE,
         )
       end
     end

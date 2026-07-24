@@ -99,7 +99,7 @@ RSpec.describe Datadog::AppSec::Context do
     context "when multiple same matching runs were made within a single context" do
       let!(:run_results) do
         persistent_data = {
-          "server.request.headers.no_cookies" => {"user-agent" => "Nessus SOAP"}
+          "server.request.headers.no_cookies" => {"user-agent" => "Nessus SOAP"},
         }
 
         Array.new(3) { context.run_waf(persistent_data, {}, 1_000_000) }
@@ -110,8 +110,8 @@ RSpec.describe Datadog::AppSec::Context do
           [
             kind_of(Datadog::AppSec::SecurityEngine::Result::Match),
             kind_of(Datadog::AppSec::SecurityEngine::Result::Ok),
-            kind_of(Datadog::AppSec::SecurityEngine::Result::Ok)
-          ]
+            kind_of(Datadog::AppSec::SecurityEngine::Result::Ok),
+          ],
         )
       end
     end
@@ -120,7 +120,7 @@ RSpec.describe Datadog::AppSec::Context do
       let!(:run_results) do
         persistent_data_1 = {"server.request.query" => {"q" => "1 OR 1;"}}
         persistent_data_2 = {
-          "server.request.headers.no_cookies" => {"user-agent" => "Nessus SOAP"}
+          "server.request.headers.no_cookies" => {"user-agent" => "Nessus SOAP"},
         }
 
         [
@@ -133,8 +133,8 @@ RSpec.describe Datadog::AppSec::Context do
         expect(run_results).to match_array(
           [
             kind_of(Datadog::AppSec::SecurityEngine::Result::Match),
-            kind_of(Datadog::AppSec::SecurityEngine::Result::Match)
-          ]
+            kind_of(Datadog::AppSec::SecurityEngine::Result::Match),
+          ],
         )
       end
     end
@@ -150,7 +150,7 @@ RSpec.describe Datadog::AppSec::Context do
       let(:ephemeral_data) do
         {
           "server.db.statement" => "SELECT * FROM users WHERE name = '1' OR 1=1;",
-          "server.db.system" => "mysql"
+          "server.db.system" => "mysql",
         }
       end
 
@@ -179,7 +179,7 @@ RSpec.describe Datadog::AppSec::Context do
       let(:ephemeral_data) do
         {
           "server.db.statement" => "SELECT * FROM users WHERE name = '1' OR 1=1;",
-          "server.db.system" => "mysql"
+          "server.db.system" => "mysql",
         }
       end
 

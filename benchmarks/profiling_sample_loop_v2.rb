@@ -88,7 +88,7 @@ class ProfilerSampleLoopBenchmark
 
       Datadog::Profiling::Collectors::ThreadContext.for_testing(
         recorder: @recorder,
-        native_filenames_enabled: false
+        native_filenames_enabled: false,
       )
       collector_without_native_filenames = collector
     end
@@ -140,7 +140,7 @@ class ProfilerSampleLoopBenchmark
   def sample(collector)
     Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(
       collector,
-      false
+      false,
     )
   end
 

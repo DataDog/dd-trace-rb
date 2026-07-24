@@ -60,16 +60,16 @@ module Datadog
           @configured_hostname = pick_from(
             DetectedConfiguration.new(
               friendly_name: "'c.agent.host'",
-              value: settings.agent.host
+              value: settings.agent.host,
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
-              value: parsed_http_url&.hostname
+              value: parsed_http_url&.hostname,
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST} environment variable",
-              value: DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST]
-            )
+              value: DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST],
+            ),
           )
         end
 
@@ -88,7 +88,7 @@ module Datadog
             try_parsing_as_integer(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT} environment variable",
               value: DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT],
-            )
+            ),
           )
         end
 
@@ -103,7 +103,7 @@ module Datadog
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
               value: parsed_url_ssl?,
-            )
+            ),
           )
         end
 
@@ -119,7 +119,7 @@ module Datadog
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS} " \
                 "environment variable",
               value: DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS],
-            )
+            ),
           )
         end
 
@@ -129,12 +129,12 @@ module Datadog
           @configured_uds_path = pick_from(
             DetectedConfiguration.new(
               friendly_name: "'c.agent.uds_path'",
-              value: settings.agent.uds_path
+              value: settings.agent.uds_path,
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
-              value: parsed_url_uds_path
-            )
+              value: parsed_url_uds_path,
+            ),
           )
         end
 
@@ -239,7 +239,7 @@ module Datadog
                   friendly_name: "configuration of hostname/port for http/https use",
                   value: "hostname: '#{hostname}', port: '#{port}'",
                 ),
-              ]
+              ],
             )
           end
 
@@ -269,7 +269,7 @@ module Datadog
                 log_warning(
                   "Invalid URI scheme '#{parsed.scheme}' for #{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} " \
                   "environment variable ('#{unparsed_url_from_env}'). " \
-                  "Ignoring the contents of #{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL}."
+                  "Ignoring the contents of #{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL}.",
                 )
                 # rubocop:enable Layout/LineLength
 
@@ -297,7 +297,8 @@ module Datadog
             "Configuration mismatch: values differ between " \
             "#{detected_configurations_in_priority_order
               .map { |config| "#{config.friendly_name} (#{config.value.inspect})" }.join(" and ")}" \
-            ". Using #{detected_configurations_in_priority_order.first.value.inspect} and ignoring other configuration."
+            ". Using #{detected_configurations_in_priority_order.first.value.inspect} " \
+            "and ignoring other configuration.",
           )
         end
 

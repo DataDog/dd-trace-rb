@@ -25,7 +25,7 @@ module Datadog
           end
         rescue => e
           logger.warn(
-            "Failed to collect tracing environment information: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+            "Failed to collect tracing environment information: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}",
           )
         end
       end
@@ -47,7 +47,7 @@ module Datadog
 
           def collect_errors!(responses)
             {
-              agent_error: agent_error(responses)
+              agent_error: agent_error(responses),
             }
           end
 
@@ -114,7 +114,7 @@ module Datadog
               {
                 name: rule.matcher.name,
                 service: rule.matcher.service,
-                sample_rate: rule.sampler.sample_rate(nil)
+                sample_rate: rule.sampler.sample_rate(nil),
               }
             end.compact
           end

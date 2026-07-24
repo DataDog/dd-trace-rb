@@ -19,7 +19,7 @@ module Datadog
                 when 2 then array << (Integer(v.first)..Integer(v.last))
                 else
                   Datadog.logger.debug(
-                    "Invalid error_status_codes configuration: Unable to parse #{value}, containing #{v}."
+                    "Invalid error_status_codes configuration: Unable to parse #{value}, containing #{v}.",
                   )
                   next
                 end

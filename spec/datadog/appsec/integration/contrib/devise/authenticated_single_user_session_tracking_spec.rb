@@ -186,16 +186,16 @@ RSpec.describe "Devise auto login and signup events session tracking" do
                 "inputs" => [
                   {
                     "address" => "server.request.headers.no_cookies",
-                    "key_path" => ["user-agent"]
-                  }
+                    "key_path" => ["user-agent"],
+                  },
                 ],
-                "regex" => '^Arachni\\/v'
+                "regex" => '^Arachni\\/v',
               },
-              "operator" => "match_regex"
-            }
+              "operator" => "match_regex",
+            },
           ],
-          "on_match" => ["block"]
-        }
+          "on_match" => ["block"],
+        },
       ],
       "scanners" => [],
       "processors" => [
@@ -209,14 +209,14 @@ RSpec.describe "Devise auto login and signup events session tracking" do
                 "cookies" => [{"address" => "server.request.cookies"}],
                 "session_id" => [{"address" => "usr.session_id"}],
                 "user_id" => [{"address" => "usr.id"}],
-                "output" => "_dd.appsec.fp.session"
-              }
-            ]
+                "output" => "_dd.appsec.fp.session",
+              },
+            ],
           },
           "evaluate" => true,
-          "output" => true
-        }
-      ]
+          "output" => true,
+        },
+      ],
     }
   end
 
@@ -267,7 +267,7 @@ RSpec.describe "Devise auto login and signup events session tracking" do
       expect(http_service_entry_span.tags).not_to have_key("usr.session_id")
       expect(http_service_entry_span.tags).to include(
         "usr.id" => "1",
-        "_dd.appsec.fp.session" => String
+        "_dd.appsec.fp.session" => String,
       )
     end
   end
@@ -311,7 +311,7 @@ RSpec.describe "Devise auto login and signup events session tracking" do
         expect(http_service_entry_span.tags).not_to have_key("usr.session_id")
         expect(http_service_entry_span.tags).to include(
           "usr.id" => "42",
-          "_dd.appsec.fp.session" => String
+          "_dd.appsec.fp.session" => String,
         )
       end
     end
@@ -347,7 +347,7 @@ RSpec.describe "Devise auto login and signup events session tracking" do
         expect(http_service_entry_span.tags).to include(
           "usr.id" => "42",
           "usr.session_id" => "1234567890",
-          "_dd.appsec.fp.session" => String
+          "_dd.appsec.fp.session" => String,
         )
       end
     end

@@ -45,8 +45,8 @@ RSpec.describe Datadog::OpenFeature::Remote do
         {
           "custom" => {"v" => 1},
           "hashes" => {"sha256" => Digest::SHA256.hexdigest(content_data)},
-          "length" => content_data.length
-        }
+          "length" => content_data.length,
+        },
       )
     end
     let(:content) do
@@ -54,7 +54,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
         {
           path: "datadog/1/FFE_FLAGS/latest/config",
           content: content_data,
-        }
+        },
       )
     end
     let(:content_data) do
@@ -127,7 +127,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
       end
       let(:new_content) do
         Datadog::Core::Remote::Configuration::Content.parse(
-          {path: content.path.to_s, content: new_content_data}
+          {path: content.path.to_s, content: new_content_data},
         )
       end
       let(:new_content_data) do
@@ -178,7 +178,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
             Datadog::Core::Remote::Configuration::Repository::Change::Updated,
             path: missing_path,
             type: :update,
-          )
+          ),
         ]
       end
       let(:missing_path) do

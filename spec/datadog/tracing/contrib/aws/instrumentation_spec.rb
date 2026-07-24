@@ -149,7 +149,7 @@ RSpec.describe "AWS instrumentation" do
             :list_buckets,
             status_code: 500,
             body: "test body with 500 error",
-            headers: {}
+            headers: {},
           )
         end
 
@@ -170,7 +170,7 @@ RSpec.describe "AWS instrumentation" do
             :list_buckets,
             status_code: 404,
             body: "test body with 404 error",
-            headers: {}
+            headers: {},
           )
         end
 
@@ -268,8 +268,8 @@ RSpec.describe "AWS instrumentation" do
         client.send_message(
           {
             queue_url: "https://sqs.us-stubbed-1.amazonaws.com/123456789012/MyQueueName",
-            message_body: "Hello, world!"
-          }
+            message_body: "Hello, world!",
+          },
         )
       end
 
@@ -279,7 +279,7 @@ RSpec.describe "AWS instrumentation" do
           md5_of_message_attributes: "msg attributes",
           md5_of_message_system_attributes: "message system attributes",
           message_id: "123",
-          sequence_number: "456"
+          sequence_number: "456",
         }}
       end
 
@@ -349,14 +349,14 @@ RSpec.describe "AWS instrumentation" do
                 message_group_id: "String",
               },
             ],
-          }
+          },
         )
       end
 
       let(:responses) do
         {send_message_batch: {
           successful: [],
-          failed: []
+          failed: [],
         }}
       end
 
@@ -400,13 +400,13 @@ RSpec.describe "AWS instrumentation" do
           {
             queue_name: "MyQueueName",
             queue_owner_aws_account_id: "1234",
-          }
+          },
         )
       end
 
       let(:responses) do
         {get_queue_url: {
-          queue_url: "myQueueURL"
+          queue_url: "myQueueURL",
         }}
       end
 
@@ -452,15 +452,15 @@ RSpec.describe "AWS instrumentation" do
         client.publish(
           {
             topic_arn: "arn:aws:sns:us-west-2:123456789012:my-topic-name",
-            message: "Hello, world!"
-          }
+            message: "Hello, world!",
+          },
         )
       end
 
       let(:responses) do
         {publish: {
           message_id: "1234",
-          sequence_number: "5678"
+          sequence_number: "5678",
         }}
       end
 
@@ -511,8 +511,8 @@ RSpec.describe "AWS instrumentation" do
                 key: "TagKey", # required
                 value: "TagValue", # required
               },
-            ]
-          }
+            ],
+          },
         )
       end
 
@@ -566,7 +566,7 @@ RSpec.describe "AWS instrumentation" do
             "AlbumTitle" => "Songs About Life",
             "Artist" => "Acme Band",
             "SongTitle" => "Happy Day",
-          }
+          },
         }}
       end
 
@@ -612,7 +612,7 @@ RSpec.describe "AWS instrumentation" do
         client.put_record(
           stream_name: "my-stream-name",
           partition_key: "parition-1",
-          data: "Hello world!"
+          data: "Hello world!",
         )
       end
 
@@ -620,7 +620,7 @@ RSpec.describe "AWS instrumentation" do
         {put_record: {
           shard_id: "1234",
           sequence_number: "5678",
-          encryption_type: "NONE"
+          encryption_type: "NONE",
         }}
       end
 
@@ -673,8 +673,8 @@ RSpec.describe "AWS instrumentation" do
             consumer_arn: "consumerArn",
             consumer_status: "CREATING",
             consumer_creation_timestamp: Time.new(2023, 3, 31, 12, 30, 0, "-04:00"),
-            stream_arn: "streamArn"
-          }
+            stream_arn: "streamArn",
+          },
         }}
       end
 
@@ -724,13 +724,13 @@ RSpec.describe "AWS instrumentation" do
                 value: "TagValue", # required
               },
             ],
-          }
+          },
         )
       end
 
       let(:responses) do
         {put_rule: {
-          rule_arn: "my-rule-arn"
+          rule_arn: "my-rule-arn",
         }}
       end
 
@@ -772,13 +772,13 @@ RSpec.describe "AWS instrumentation" do
         client.list_targets_by_rule(
           {
             rule: "RuleName", # required
-          }
+          },
         )
       end
 
       let(:responses) do
         {list_targets_by_rule: {
-          targets: []
+          targets: [],
         }}
       end
 
@@ -823,15 +823,15 @@ RSpec.describe "AWS instrumentation" do
       subject!(:start_execution) do
         client.start_execution(
           {
-            state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine" # required
-          }
+            state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine", # required
+          },
         )
       end
 
       let(:responses) do
         {start_execution: {
           execution_arn: "execution-arn",
-          start_date: Time.new(2023, 3, 31, 12, 30, 0, "-04:00")
+          start_date: Time.new(2023, 3, 31, 12, 30, 0, "-04:00"),
         }}
       end
 
@@ -876,14 +876,14 @@ RSpec.describe "AWS instrumentation" do
             name: "my-state-machine-name", # required
             definition: "Definition", # required
             role_arn: "Arn", # required
-          }
+          },
         )
       end
 
       let(:responses) do
         {create_state_machine: {
           state_machine_arn: "arn",
-          creation_date: Time.new(2023, 3, 31, 12, 30, 0, "-04:00")
+          creation_date: Time.new(2023, 3, 31, 12, 30, 0, "-04:00"),
         }}
       end
 
@@ -925,7 +925,7 @@ RSpec.describe "AWS instrumentation" do
         client.describe_state_machine(
           {
             state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine-name", # required
-          }
+          },
         )
       end
 
@@ -941,7 +941,7 @@ RSpec.describe "AWS instrumentation" do
                         \'End\':true}}}',
           role_arn: "arn:aws:iam::123456789012:role/StateExecutionRole",
           type: "STANDARD",
-          creation_date: Time.now
+          creation_date: Time.now,
         }}
       end
 
@@ -983,13 +983,13 @@ RSpec.describe "AWS instrumentation" do
         client.update_state_machine(
           {
             state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine-name", # required
-          }
+          },
         )
       end
 
       let(:responses) do
         {update_state_machine: {
-          update_date: Time.new(2023, 3, 31, 12, 30, 0, "-04:00")
+          update_date: Time.new(2023, 3, 31, 12, 30, 0, "-04:00"),
         }}
       end
 
@@ -1031,7 +1031,7 @@ RSpec.describe "AWS instrumentation" do
         client.delete_state_machine(
           {
             state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine-name", # required
-          }
+          },
         )
       end
 
@@ -1077,7 +1077,7 @@ RSpec.describe "AWS instrumentation" do
         client.describe_execution(
           {
             execution_arn: "arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution",
-          }
+          },
         )
       end
 
@@ -1097,7 +1097,7 @@ RSpec.describe "AWS instrumentation" do
           output_details: {
             included: true | false,
           },
-          trace_header: "string"
+          trace_header: "string",
         }}
       end
 
@@ -1139,7 +1139,7 @@ RSpec.describe "AWS instrumentation" do
         client.stop_execution(
           {
             execution_arn: "arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution",
-          }
+          },
         )
       end
 

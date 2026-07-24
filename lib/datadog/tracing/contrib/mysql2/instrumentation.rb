@@ -31,7 +31,7 @@ module Datadog
                 if datadog_configuration[:peer_service]
                   span.set_tag(
                     Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                    datadog_configuration[:peer_service]
+                    datadog_configuration[:peer_service],
                   )
                 end
 
@@ -62,7 +62,7 @@ module Datadog
               propagation_mode = Contrib::Propagation::SqlComment::Mode.new(
                 datadog_configuration[:comment_propagation],
                 datadog_configuration[:append_comment],
-                datadog_configuration[:inject_sql_basehash]
+                datadog_configuration[:inject_sql_basehash],
               )
 
               Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
@@ -70,7 +70,7 @@ module Datadog
                 sql,
                 span,
                 trace_op,
-                propagation_mode
+                propagation_mode,
               )
             end
 

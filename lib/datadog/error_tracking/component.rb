@@ -36,7 +36,7 @@ module Datadog
           elsif RubyVersion.is?("< 2.7")
             logger.warn(
               "error tracking: cannot enable error tracking: Ruby 2.7+ is required, but running
-              on #{RUBY_VERSION}"
+              on #{RUBY_VERSION}",
             )
             false
           else
@@ -154,7 +154,7 @@ module Datadog
         attributes = {
           "exception.type" => formatted_exception.type,
           "exception.message" => formatted_exception.message,
-          "exception.stacktrace" => formatted_exception.backtrace
+          "exception.stacktrace" => formatted_exception.backtrace,
         }
         Datadog::Tracing::SpanEvent.new("exception", attributes: attributes)
       end

@@ -15,15 +15,15 @@ module Datadog
         # Add adapters to registry
         Builder::REGISTRY.set(
           Core::Transport::HTTP::Adapters::Net,
-          Core::Configuration::Ext::Agent::HTTP::ADAPTER
+          Core::Configuration::Ext::Agent::HTTP::ADAPTER,
         )
         Builder::REGISTRY.set(
           Core::Transport::HTTP::Adapters::Test,
-          Core::Transport::Ext::Test::ADAPTER
+          Core::Transport::Ext::Test::ADAPTER,
         )
         Builder::REGISTRY.set(
           Core::Transport::HTTP::Adapters::UnixSocket,
-          Core::Transport::Ext::UnixSocket::ADAPTER
+          Core::Transport::Ext::UnixSocket::ADAPTER,
         )
 
         module_function
@@ -61,7 +61,7 @@ module Datadog
             Core::Transport::Ext::HTTP::HEADER_META_LANG_INTERPRETER_VENDOR =>
               Core::Environment::Ext::LANG_ENGINE,
             Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION =>
-              Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION
+              Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION,
           }.tap do |headers|
             # Add application container info
             headers.merge!(Core::Environment::Container.to_headers)

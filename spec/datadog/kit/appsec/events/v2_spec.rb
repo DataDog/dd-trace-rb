@@ -94,7 +94,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
         expect { sdk.track_user_login_success("john.snow", "42", "usr.id": "13") }
           .to change { span.tags }.to include(
             "usr.id" => "42",
-            "appsec.events.users.login.success.usr.id" => "42"
+            "appsec.events.users.login.success.usr.id" => "42",
           )
       end
 
@@ -102,7 +102,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
         expect { sdk.track_user_login_success("john.snow", "42", "usr.login": "john.doe") }
           .to change { span.tags }.to include(
             "usr.login" => "john.snow",
-            "appsec.events.users.login.success.usr.login" => "john.snow"
+            "appsec.events.users.login.success.usr.login" => "john.snow",
           )
       end
 
@@ -203,7 +203,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
           expect(gateway).to receive(:push)
             .with(
               "identity.set_user",
-              have_attributes(id: nil, login: "john.snow", session_id: nil)
+              have_attributes(id: nil, login: "john.snow", session_id: nil),
             )
             .and_call_original
 

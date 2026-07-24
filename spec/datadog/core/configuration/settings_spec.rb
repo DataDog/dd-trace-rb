@@ -94,8 +94,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           ClimateControl.modify(
             {
               Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED => dd_debug_env,
-              "OTEL_LOG_LEVEL" => otel_level_env
-            }
+              "OTEL_LOG_LEVEL" => otel_level_env,
+            },
           ) do
             example.run
           end
@@ -306,7 +306,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           info: true,
           warn: true,
           error: true,
-          level: true
+          level: true,
         )
       end
 
@@ -1055,7 +1055,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       around do |example|
         ClimateControl.modify(
           primary_env_var => primary_enabled,
-          fallback_env_var => fallback_enabled
+          fallback_env_var => fallback_enabled,
         ) do
           example.run
         end
@@ -1365,7 +1365,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       around do |example|
         ClimateControl.modify(
           "OTEL_RESOURCE_ATTRIBUTES" => otel_tags,
-          Datadog::Core::Environment::Ext::ENV_TAGS => dd_tags
+          Datadog::Core::Environment::Ext::ENV_TAGS => dd_tags,
         ) do
           example.run
         end

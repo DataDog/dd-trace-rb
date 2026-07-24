@@ -12,7 +12,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
       metrics: metrics,
       run_rasp: waf_response,
       downstream_body_sampler: Datadog::AppSec::CounterSampler.new(1.0),
-      state: {downstream_body_analyzed_count: 0}
+      state: {downstream_body_analyzed_count: 0},
     )
   end
   let(:waf_response) { instance_double(Datadog::AppSec::SecurityEngine::Result::Ok, match?: false) }
@@ -42,99 +42,99 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
           "Content-Type" => "text/plain",
           "Set-Cookie" => ["a=1", "b=2"],
           "Via" => ["1.1 foo.io", "2.2 bar.io"],
-          "Age" => "1"
-        }
+          "Age" => "1",
+        },
       )
 
     stub_request(:post, "http://example.com/application-json")
       .to_return(
         status: 200,
         body: '{"response":"OK"}',
-        headers: {"Content-Type" => "application/json", "Content-Length" => "17"}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "17"},
       )
 
     stub_request(:post, "http://example.com/invalid-json")
       .to_return(
         status: 200,
         body: "not json",
-        headers: {"Content-Type" => "application/json", "Content-Length" => "8"}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "8"},
       )
 
     stub_request(:post, "http://example.com/application-json-no-content-length")
       .to_return(
         status: 200,
         body: '{"response":"OK"}',
-        headers: {"Content-Type" => "application/json"}
+        headers: {"Content-Type" => "application/json"},
       )
 
     stub_request(:post, "http://example.com/application-json-zero-content-length")
       .to_return(
         status: 200,
         body: '{"response":"OK"}',
-        headers: {"Content-Type" => "application/json", "Content-Length" => "0"}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "0"},
       )
 
     stub_request(:post, "http://example.com/application-json-invalid-content-length")
       .to_return(
         status: 200,
         body: '{"response":"OK"}',
-        headers: {"Content-Type" => "application/json", "Content-Length" => "12, 3"}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "12, 3"},
       )
 
     stub_request(:post, "http://example.com/application-json-too-big")
       .to_return(
         status: 200,
         body: '{"response":"OK"}',
-        headers: {"Content-Type" => "application/json", "Content-Length" => "17"}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "17"},
       )
 
     stub_request(:post, "http://example.com/application-json-content-length-lie")
       .to_return(
         status: 200,
         body: '{"response":"OK"}',
-        headers: {"Content-Type" => "application/json", "Content-Length" => "2"}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "2"},
       )
 
     stub_request(:post, "http://example.com/redirect-301")
       .to_return(
         status: 301,
         body: '{"redirect":"body"}',
-        headers: {"Content-Type" => "application/json", "Location" => "/redirect-chain-finish"}
+        headers: {"Content-Type" => "application/json", "Location" => "/redirect-chain-finish"},
       )
 
     stub_request(:post, "http://example.com/redirect-302")
       .to_return(
         status: 302,
         body: "<html>Redirecting...</html>",
-        headers: {"Content-Type" => "text/html", "Location" => "http://example.com/application-json"}
+        headers: {"Content-Type" => "text/html", "Location" => "http://example.com/application-json"},
       )
 
     stub_request(:post, "http://example.com/redirect-no-location")
       .to_return(
         status: 301,
         body: '{"redirect":"body"}',
-        headers: {"Content-Type" => "application/json", "Content-Length" => "19"}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "19"},
       )
 
     stub_request(:get, "http://example.com/redirect-chain-start")
       .to_return(
         status: 301,
         body: '{"hop":"1"}',
-        headers: {"Content-Type" => "application/json", "Location" => "http://example.com/redirect-chain-hop"}
+        headers: {"Content-Type" => "application/json", "Location" => "http://example.com/redirect-chain-hop"},
       )
 
     stub_request(:get, "http://example.com/redirect-chain-hop")
       .to_return(
         status: 302,
         body: '{"hop":"2"}',
-        headers: {"Content-Type" => "application/json", "Location" => "/redirect-chain-finish"}
+        headers: {"Content-Type" => "application/json", "Location" => "/redirect-chain-finish"},
       )
 
     stub_request(:get, "http://example.com/redirect-chain-finish")
       .to_return(
         status: 200,
         body: '{"final":"response"}',
-        headers: {"Content-Type" => "application/json", "Content-Length" => "20"}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "20"},
       )
   end
 
@@ -172,11 +172,11 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
             "server.io.net.request.headers" => hash_including(
               "cookie" => "x=1; y=2",
               "accept" => "text/plain, application/json",
-              "dnt" => "1"
-            )
+              "dnt" => "1",
+            ),
           ),
           kind_of(Integer),
-          phase: "request"
+          phase: "request",
         )
 
       expect(Datadog::AppSec.active_context).to receive(:run_rasp)
@@ -188,17 +188,17 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
             "server.io.net.response.headers" => hash_including(
               "set-cookie" => "a=1, b=2",
               "via" => "1.1 foo.io, 2.2 bar.io",
-              "age" => "1"
-            )
+              "age" => "1",
+            ),
           ),
           kind_of(Integer),
-          phase: "response"
+          phase: "response",
         )
 
       RestClient.post(
         "http://example.com/text-plain?z=1",
         nil,
-        {"Cookie" => "x=1; y=2", "Accept" => "text/plain, application/json", "DNT" => "1"}
+        {"Cookie" => "x=1; y=2", "Accept" => "text/plain, application/json", "DNT" => "1"},
       )
     end
 
@@ -434,7 +434,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
         metrics: metrics,
         run_rasp: waf_response,
         downstream_body_sampler: Datadog::AppSec::CounterSampler.new(0.5),
-        state: {downstream_body_analyzed_count: 0}
+        state: {downstream_body_analyzed_count: 0},
       )
     end
 
@@ -470,10 +470,10 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
         {},
         hash_including(
           "server.io.net.response.status" => "301",
-          "server.io.net.response.headers" => hash_including("location" => "/redirect-chain-finish")
+          "server.io.net.response.headers" => hash_including("location" => "/redirect-chain-finish"),
         ),
         anything,
-        phase: "response"
+        phase: "response",
       )
     end
   end
@@ -561,7 +561,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
         .to_return(
           status: 301,
           body: "redirecting",
-          headers: {"Content-Type" => "text/plain", "Location" => "http://example.com/other"}
+          headers: {"Content-Type" => "text/plain", "Location" => "http://example.com/other"},
         )
     end
 

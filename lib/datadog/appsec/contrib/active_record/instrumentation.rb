@@ -25,7 +25,7 @@ module Datadog
 
             ephemeral_data = {
               "server.db.statement" => sql,
-              "server.db.system" => db_system
+              "server.db.system" => db_system,
             }
 
             waf_timeout = Datadog.configuration.appsec.waf_timeout
@@ -36,7 +36,7 @@ module Datadog
               TraceKeeper.keep!(context.trace) if result.keep?
 
               context.events.push(
-                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
               )
 
               AppSec::ActionsHandler.handle(result.actions)

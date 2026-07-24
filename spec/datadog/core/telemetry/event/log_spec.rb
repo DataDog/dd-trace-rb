@@ -15,9 +15,9 @@ RSpec.describe Datadog::Core::Telemetry::Event::Log do
           logs: [{
             message: "Hi",
             level: "ERROR",
-            count: 1
-          }]
-        }
+            count: 1,
+          }],
+        },
       )
     end
 
@@ -29,9 +29,9 @@ RSpec.describe Datadog::Core::Telemetry::Event::Log do
           logs: [{
             message: "Hi",
             level: "WARN",
-            count: 1
-          }]
-        }
+            count: 1,
+          }],
+        },
       )
     end
   end

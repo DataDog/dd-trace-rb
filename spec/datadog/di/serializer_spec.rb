@@ -136,20 +136,20 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {type: "DISerializerExceptionWithFieldsTestClass", fields: {
          "@test_field": {
            value: "bar", type: "String"
-         }
+         },
        }}},
       {name: "Exception instance with @message field", input: DISerializerExceptionWithMessageFieldTestClass.new("test error"),
        expected: {type: "DISerializerExceptionWithMessageFieldTestClass", fields: {
          "@message": {
            value: "bar", type: "String"
-         }
+         },
        }}},
       {name: "Custom exception instance which raises in #message", input: DISerializerExceptionWithMessageRaiseTestClass.new("test error"),
        expected: {type: "DISerializerExceptionWithMessageRaiseTestClass", fields: {
          # Fields are still serialized.
          "@message": {
            value: "bar", type: "String"
-         }
+         },
        }}},
     ]
 
@@ -235,9 +235,9 @@ RSpec.describe Datadog::DI::Serializer do
          ]}],
        ]}}},
       {name: "object with no attributes", input: {v: DISerializerSpecTestClass.new},
-       expected: {v: {type: "DISerializerSpecTestClass", fields: {}}},},
+       expected: {v: {type: "DISerializerSpecTestClass", fields: {}}}},
       {name: "object of anonymous class with no attributes", input: {v: Class.new.new},
-       expected: {v: {type: "[Unnamed class]", fields: {}}},},
+       expected: {v: {type: "[Unnamed class]", fields: {}}}},
       # TODO hash with a complex object as key?
     ]
 
@@ -344,7 +344,7 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {arg1: {type: "Integer", value: "1"},
                   arg2: {type: "String", value: "x"},
                   a: {type: "Integer", value: "42"},
-                  self: {type: "Object", fields: {}},}},
+                  self: {type: "Object", fields: {}}}},
       {name: "args, kwargs and instance vars",
        args: [1, "x"],
        kwargs: {a: 42},
@@ -357,7 +357,7 @@ RSpec.describe Datadog::DI::Serializer do
                     fields: {
                       "@ivar": {type: "String", value: "quux"},
                     },
-                  },},},
+                  }}},
       {name: "kwargs contains redacted identifier",
        args: [1, "x"],
        kwargs: {password: 42},
@@ -365,7 +365,7 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {arg1: {type: "Integer", value: "1"},
                   arg2: {type: "String", value: "x"},
                   password: {type: "Integer", notCapturedReason: "redactedIdent"},
-                  self: {type: "Object", fields: {}},}},
+                  self: {type: "Object", fields: {}}}},
     ]
 
     cases.each do |c|
@@ -587,7 +587,7 @@ RSpec.describe Datadog::DI::Serializer do
         expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: ArgumentError/)
         expect(telemetry).to receive(:report).with(
           an_instance_of(ArgumentError),
-          description: "Custom serializer condition failed"
+          description: "Custom serializer condition failed",
         )
 
         serialized = serializer.serialize_value(invalid_utf8)
@@ -614,7 +614,7 @@ RSpec.describe Datadog::DI::Serializer do
         expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: ArgumentError/)
         expect(telemetry).to receive(:report).with(
           an_instance_of(ArgumentError),
-          description: "Custom serializer condition failed"
+          description: "Custom serializer condition failed",
         )
 
         serialized = serializer.serialize_value(invalid_utf8)
@@ -638,7 +638,7 @@ RSpec.describe Datadog::DI::Serializer do
         expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: NotImplementedError/)
         expect(telemetry).to receive(:report).with(
           an_instance_of(NotImplementedError),
-          description: "Custom serializer condition failed"
+          description: "Custom serializer condition failed",
         )
 
         serialized = serializer.serialize_value("trigger non-standard")
@@ -1140,7 +1140,7 @@ RSpec.describe Datadog::DI::Serializer do
       # Register a custom serializer that raises SystemStackError
       # This simulates what happens when a serializer creates infinite recursion
       Datadog::DI::Serializer.register(
-        condition: lambda { |value| DISerializerStackOverflowTestClass === value }
+        condition: lambda { |value| DISerializerStackOverflowTestClass === value },
       ) do |*args|
         raise SystemStackError, "stack level too deep (emulated infinite recursion)"
       end
@@ -1247,7 +1247,7 @@ RSpec.describe Datadog::DI::Serializer do
       # Register a custom serializer that raises NoMemoryError
       # This simulates what happens when trying to serialize extremely large objects
       Datadog::DI::Serializer.register(
-        condition: lambda { |value| DISerializerOutOfMemoryTestClass === value }
+        condition: lambda { |value| DISerializerOutOfMemoryTestClass === value },
       ) do |*args|
         raise NoMemoryError, "failed to allocate memory (emulated out of memory condition)"
       end

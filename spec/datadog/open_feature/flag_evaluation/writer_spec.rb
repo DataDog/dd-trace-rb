@@ -62,7 +62,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       # Worker is now alive and waiting on the condition variable (effectively sleeping).
       writer.enqueue(
         flag_key: "shutdown-flag", variant: "on", allocation_key: "",
-        targeting_key: "u1", eval_time_ms: 1_000, attrs: {},
+        targeting_key: "u1", eval_time_ms: 1_000, attrs: {}
       )
 
       # stop() must wake the sleeping worker immediately, drain, and final-flush (no 10s wait).
@@ -100,7 +100,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       writer.enqueue(
         flag_key: "late-shutdown-flag", variant: "on", allocation_key: "",
-        targeting_key: "u2", eval_time_ms: 2_000, attrs: {},
+        targeting_key: "u2", eval_time_ms: 2_000, attrs: {}
       )
       release_drain << true
       stop_thread.join
@@ -137,7 +137,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       5.times do |i|
         writer.enqueue(
           flag_key: "bounded-drain", variant: "on", allocation_key: "",
-          targeting_key: "user-#{i}", eval_time_ms: realistic_eval_ms + i, attrs: {"bucket" => i},
+          targeting_key: "user-#{i}", eval_time_ms: realistic_eval_ms + i, attrs: {"bucket" => i}
         )
       end
 
@@ -166,7 +166,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       writer = described_class.new(transport: transport, logger: logger)
       writer.instance_variable_set(
         :@aggregator,
-        Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 100, per_flag_cap: 12, degraded_cap: 10)
+        Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 100, per_flag_cap: 12, degraded_cap: 10),
       )
       queue = writer.instance_variable_get(:@queue)
 
@@ -174,7 +174,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         try_wait_until(attempts: 100, backoff: 0.001) { queue.length < described_class::QUEUE_SIZE }
         writer.enqueue(
           flag_key: "natural-degrade", variant: "on", allocation_key: "alloc",
-          targeting_key: "user-#{i}", eval_time_ms: realistic_eval_ms + i, attrs: {"bucket" => i},
+          targeting_key: "user-#{i}", eval_time_ms: realistic_eval_ms + i, attrs: {"bucket" => i}
         )
       end
 
@@ -222,7 +222,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
         writer.enqueue(
           flag_key: "prefork-flag", variant: "on", allocation_key: "alloc",
-          targeting_key: "prefork-user", eval_time_ms: realistic_eval_ms, attrs: {"worker" => "child"},
+          targeting_key: "prefork-user", eval_time_ms: realistic_eval_ms, attrs: {"worker" => "child"}
         )
         writer.stop
 
@@ -231,8 +231,8 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
           include(
             "flag" => {"key" => "prefork-flag"},
             "targeting_key" => "prefork-user",
-            "evaluation_count" => 1
-          )
+            "evaluation_count" => 1,
+          ),
         )
       end
     ensure
@@ -246,14 +246,14 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       writer.enqueue(
         flag_key: "parent-flag", variant: "on", allocation_key: "alloc",
-        targeting_key: "parent-user", eval_time_ms: realistic_eval_ms, attrs: {"worker" => "parent"},
+        targeting_key: "parent-user", eval_time_ms: realistic_eval_ms, attrs: {"worker" => "parent"}
       )
       writer.instance_variable_set(:@dropped_queue_overflow, 3)
 
       writer.send(:after_fork)
       writer.enqueue(
         flag_key: "child-flag", variant: "on", allocation_key: "alloc",
-        targeting_key: "child-user", eval_time_ms: realistic_eval_ms, attrs: {"worker" => "child"},
+        targeting_key: "child-user", eval_time_ms: realistic_eval_ms, attrs: {"worker" => "child"}
       )
       writer.send(:drain_and_flush)
 
@@ -278,7 +278,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       capacity = described_class::QUEUE_SIZE
       event = {
         flag_key: "f", variant: "on", allocation_key: "",
-        targeting_key: "t", eval_time_ms: 1, attrs: {},
+        targeting_key: "t", eval_time_ms: 1, attrs: {}
       }
       capacity.times { writer.enqueue(**event) }
       expect(writer.dropped_queue_overflow).to eq(0)
@@ -297,7 +297,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         telemetry,
         "flagevaluation.rows.dropped",
         3,
-        {reason: "queue_overflow"}
+        {reason: "queue_overflow"},
       )
       expect(writer.dropped_queue_overflow).to eq(0)
     end
@@ -311,7 +311,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(Datadog::OpenFeature::FlagEvaluation::Aggregator).not_to receive(:prune_context)
       writer.enqueue(
         flag_key: "f", variant: "on", allocation_key: "",
-        targeting_key: "t", eval_time_ms: 1, attrs: raw,
+        targeting_key: "t", eval_time_ms: 1, attrs: raw
       )
 
       queued = writer.instance_variable_get(:@queue).pop(true)
@@ -341,7 +341,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         writer.enqueue(
           flag_key: "schema-flag", variant: "on", allocation_key: "alloc-1",
           targeting_key: "user-42",
-          eval_time_ms: realistic_eval_ms, attrs: {"env" => "prod", "tier" => "gold"},
+          eval_time_ms: realistic_eval_ms, attrs: {"env" => "prod", "tier" => "gold"}
         )
       end
 
@@ -362,7 +362,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       writer.enqueue(
         flag_key: "time-flag", variant: "on", allocation_key: "alloc-1",
-        targeting_key: "user-42", eval_time_ms: realistic_eval_ms, attrs: {},
+        targeting_key: "user-42", eval_time_ms: realistic_eval_ms, attrs: {}
       )
 
       before_flush = (Datadog::Core::Utils::Time.now.to_f * 1000).to_i
@@ -384,7 +384,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       writer.enqueue(
         flag_key: "normal-flag", variant: "on", allocation_key: "alloc-1",
-        targeting_key: "user-42", eval_time_ms: realistic_eval_ms, attrs: {"env" => "prod"},
+        targeting_key: "user-42", eval_time_ms: realistic_eval_ms, attrs: {"env" => "prod"}
       )
       writer.send(:drain_and_flush)
 
@@ -398,11 +398,11 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         writer.instance_variable_set(:@aggregator, small)
         writer.enqueue(
           flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
-          targeting_key: "u1", eval_time_ms: realistic_eval_ms, attrs: {"x" => 1},
+          targeting_key: "u1", eval_time_ms: realistic_eval_ms, attrs: {"x" => 1}
         )
         writer.enqueue(
           flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
-          targeting_key: "u2", eval_time_ms: realistic_eval_ms, attrs: {"x" => 2},
+          targeting_key: "u2", eval_time_ms: realistic_eval_ms, attrs: {"x" => 2}
         )
       end
 
@@ -423,12 +423,12 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       writer.enqueue(
         flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
-        targeting_key: "u1", eval_time_ms: realistic_eval_ms, attrs: {"x" => 1},
+        targeting_key: "u1", eval_time_ms: realistic_eval_ms, attrs: {"x" => 1}
       )
       3.times do |i|
         writer.enqueue(
           flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
-          targeting_key: "u#{i + 2}", eval_time_ms: realistic_eval_ms + i + 1, attrs: {"x" => i + 2},
+          targeting_key: "u#{i + 2}", eval_time_ms: realistic_eval_ms + i + 1, attrs: {"x" => i + 2}
         )
       end
       writer.send(:drain_and_flush)
@@ -437,7 +437,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         telemetry,
         "flagevaluation.rows.degraded",
         3,
-        {reason: "cardinality_cap"}
+        {reason: "cardinality_cap"},
       )
     end
 
@@ -450,7 +450,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       payload = captured_payload do |writer|
         writer.enqueue(
           flag_key: "prune-flag", variant: "on", allocation_key: "",
-          targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: raw,
+          targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: raw
         )
       end
 
@@ -472,7 +472,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       payload = captured_payload do |writer|
         writer.enqueue(
           flag_key: "snapshot-flag", variant: "on", allocation_key: "",
-          targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: raw,
+          targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: raw
         )
 
         raw["profile"]["plan"] = "enterprise"
@@ -497,7 +497,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       payload = captured_payload do |writer|
         writer.enqueue(
           flag_key: "cyclic-context-flag", variant: "on", allocation_key: "",
-          targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: raw,
+          targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: raw
         )
       end
 
@@ -511,7 +511,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         writer.enqueue(
           flag_key: "error-flag", variant: nil, allocation_key: "",
           error_message: "flag not found", targeting_key: "user-42",
-          eval_time_ms: realistic_eval_ms, attrs: {},
+          eval_time_ms: realistic_eval_ms, attrs: {}
         )
       end
 
@@ -526,7 +526,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         writer.enqueue(
           flag_key: "typed-default-flag", variant: "variant-a", allocation_key: "",
           runtime_default: true, targeting_key: "user-42",
-          eval_time_ms: realistic_eval_ms, attrs: {},
+          eval_time_ms: realistic_eval_ms, attrs: {}
         )
       end
 
@@ -540,12 +540,12 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         writer.enqueue(
           flag_key: "reasonless-flag", variant: "on", allocation_key: "alloc-1",
           reason: "TARGETING_MATCH", targeting_key: "user-42",
-          eval_time_ms: realistic_eval_ms, attrs: {"env" => "prod"},
+          eval_time_ms: realistic_eval_ms, attrs: {"env" => "prod"}
         )
         writer.enqueue(
           flag_key: "reasonless-flag", variant: "on", allocation_key: "alloc-1",
           reason: "DEFAULT", targeting_key: "user-42",
-          eval_time_ms: realistic_eval_ms + 1, attrs: {"env" => "prod"},
+          eval_time_ms: realistic_eval_ms + 1, attrs: {"env" => "prod"}
         )
       end
 
@@ -579,11 +579,11 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       writer.enqueue(
         flag_key: "flag-a", variant: "on", allocation_key: "alloc",
-        targeting_key: "user-a", eval_time_ms: realistic_eval_ms, attrs: {"blob" => "a" * 180},
+        targeting_key: "user-a", eval_time_ms: realistic_eval_ms, attrs: {"blob" => "a" * 180}
       )
       writer.enqueue(
         flag_key: "flag-b", variant: "on", allocation_key: "alloc",
-        targeting_key: "user-b", eval_time_ms: realistic_eval_ms, attrs: {"blob" => "b" * 180},
+        targeting_key: "user-b", eval_time_ms: realistic_eval_ms, attrs: {"blob" => "b" * 180}
       )
       writer.send(:drain_and_flush)
 
@@ -597,7 +597,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       writer.enqueue(
         flag_key: "large", variant: "on", allocation_key: "alloc",
-        targeting_key: "user-large", eval_time_ms: realistic_eval_ms, attrs: {"blob" => "x" * 256},
+        targeting_key: "user-large", eval_time_ms: realistic_eval_ms, attrs: {"blob" => "x" * 256}
       )
       writer.send(:drain_and_flush)
 
@@ -610,7 +610,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         telemetry,
         "flagevaluation.rows.degraded",
         1,
-        {reason: "payload_limit"}
+        {reason: "payload_limit"},
       )
       expect(logged).to be_empty
     end
@@ -620,7 +620,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       writer.enqueue(
         flag_key: "f" * 256, variant: "on", allocation_key: "alloc",
-        targeting_key: "", eval_time_ms: realistic_eval_ms, attrs: {},
+        targeting_key: "", eval_time_ms: realistic_eval_ms, attrs: {}
       )
       writer.send(:drain_and_flush)
 
@@ -630,7 +630,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         telemetry,
         "flagevaluation.rows.dropped",
         1,
-        {reason: "payload_limit"}
+        {reason: "payload_limit"},
       )
     end
   end
@@ -664,7 +664,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       # Inject an aggregator whose flush reports a degraded-overflow drop.
       fake_aggregator = instance_double(Datadog::OpenFeature::FlagEvaluation::Aggregator)
       allow(fake_aggregator).to receive(:flush_and_reset).and_return(
-        {full: {}, degraded: {}, dropped_degraded_overflow: 7}
+        {full: {}, degraded: {}, dropped_degraded_overflow: 7},
       )
       writer.instance_variable_set(:@aggregator, fake_aggregator)
 
@@ -678,7 +678,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         telemetry,
         "flagevaluation.rows.dropped",
         7,
-        {reason: "degraded_cap"}
+        {reason: "degraded_cap"},
       )
     end
   end

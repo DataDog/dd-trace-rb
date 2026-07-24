@@ -15,7 +15,7 @@ module Datadog
           :hierarchy,
           :controllers,
           :path,
-          :inode
+          :inode,
         )
 
         module_function
@@ -52,7 +52,7 @@ module Datadog
             hierarchy,
             controllers,
             path,
-            inode_for(controllers, path)
+            inode_for(controllers, path),
           )
         end
 

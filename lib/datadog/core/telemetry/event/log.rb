@@ -52,8 +52,8 @@ module Datadog
                   level: @level,
                   stack_trace: @stack_trace,
                   count: @count,
-                }.compact
-              ]
+                }.compact,
+              ],
             }
           end
 

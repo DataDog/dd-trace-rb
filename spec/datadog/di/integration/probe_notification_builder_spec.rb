@@ -115,7 +115,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
                 type: "NilClass",
                 isNull: true,
               },
-            }, throwable: nil,
+            }, throwable: nil
           }}
         end
 
@@ -161,7 +161,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             target_self: Object.new,
             locals: {
               bar: 42,
-            },
+            }
           )
         end
 
@@ -187,7 +187,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             expect(payload).to be_a(Hash)
             expect(payload[:message]).to eq "hello[evaluation error]"
             expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:evaluationErrors)).to eq [
-              {message: "ArgumentError: bad value for range", expr: "(expression)"}
+              {message: "ArgumentError: bad value for range", expr: "(expression)"},
             ]
 
             # We asked to not create a snapshot
@@ -224,7 +224,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             Datadog::DI::Context.new(
               settings: settings, serializer: serializer,
               probe: probe,
-              target_self: Object.new,
+              target_self: Object.new
             )
           end
 

@@ -21,7 +21,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
       host_prefix: host_prefix,
       url_override: url_override,
       url_override_source: url_override_source,
-      logger: logger
+      logger: logger,
     )
   end
 
@@ -53,7 +53,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
           ssl: true,
           uds_path: nil,
           timeout_seconds: 30,
-        )
+        ),
       )
     end
   end
@@ -90,7 +90,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
             ssl: true,
             uds_path: nil,
             timeout_seconds: 30,
-          )
+          ),
         )
       end
 
@@ -119,7 +119,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
               ssl: false,
               uds_path: "/var/run/test.sock",
               timeout_seconds: 30,
-            )
+            ),
           )
         end
       end
@@ -160,7 +160,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
             ssl: false,
             uds_path: nil,
             timeout_seconds: 30,
-          )
+          ),
         )
       end
     end
@@ -177,7 +177,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
             ssl: true,
             uds_path: nil,
             timeout_seconds: 42,
-          )
+          ),
         )
       end
     end

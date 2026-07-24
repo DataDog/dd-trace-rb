@@ -9,7 +9,7 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
     {
       queue: "low",
       priority: 10,
-      tags: {a: 1, b: 2}
+      tags: {a: 1, b: 2},
     }
   end
   let(:job_args) { {field_one: 1} }
@@ -19,7 +19,7 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
       Class.new(::Que::Job) do
         def run(*args)
         end
-      end
+      end,
     )
   end
   let(:error_job_class) do
@@ -29,7 +29,7 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
         def run(*_args)
           raise StandardError, "with some error"
         end
-      end
+      end,
     )
   end
 

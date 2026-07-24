@@ -37,7 +37,7 @@ RSpec.describe "Schema extraction for API security in Sinatra" do
             tags: {
               type: "sql_injection",
               category: "exploit",
-              module: "rasp"
+              module: "rasp",
             },
             conditions: [
               {
@@ -45,12 +45,12 @@ RSpec.describe "Schema extraction for API security in Sinatra" do
                 parameters: {
                   resource: [{address: "server.db.statement"}],
                   params: [{address: "server.request.query"}],
-                  db_type: [{address: "server.db.system"}]
-                }
-              }
+                  db_type: [{address: "server.db.system"}],
+                },
+              },
             ],
-            on_match: ["block"]
-          }
+            on_match: ["block"],
+          },
         ],
         processors: [
           {
@@ -63,40 +63,40 @@ RSpec.describe "Schema extraction for API security in Sinatra" do
                   inputs: [
                     {
                       address: "waf.context.processor",
-                      key_path: ["extract-schema"]
-                    }
+                      key_path: ["extract-schema"],
+                    },
                   ],
                   type: "boolean",
-                  value: true
-                }
-              }
+                  value: true,
+                },
+              },
             ],
             parameters: {
               mappings: [
                 {
                   inputs: [{address: "server.request.body"}],
-                  output: "_dd.appsec.s.req.body"
+                  output: "_dd.appsec.s.req.body",
                 },
                 {
                   inputs: [{address: "server.request.cookies"}],
-                  output: "_dd.appsec.s.req.cookies"
+                  output: "_dd.appsec.s.req.cookies",
                 },
                 {
                   inputs: [{address: "server.request.query"}],
-                  output: "_dd.appsec.s.req.query"
+                  output: "_dd.appsec.s.req.query",
                 },
                 {
                   inputs: [{address: "server.request.path_params"}],
-                  output: "_dd.appsec.s.req.params"
+                  output: "_dd.appsec.s.req.params",
                 },
                 {
                   inputs: [{address: "server.response.body"}],
-                  output: "_dd.appsec.s.res.body"
-                }
-              ]
+                  output: "_dd.appsec.s.res.body",
+                },
+              ],
             },
             evaluate: false,
-            output: true
+            output: true,
           },
           {
             id: "extract-headers",
@@ -108,30 +108,30 @@ RSpec.describe "Schema extraction for API security in Sinatra" do
                   inputs: [
                     {
                       address: "waf.context.processor",
-                      key_path: ["extract-schema"]
-                    }
+                      key_path: ["extract-schema"],
+                    },
                   ],
                   type: "boolean",
-                  value: true
-                }
-              }
+                  value: true,
+                },
+              },
             ],
             parameters: {
               mappings: [
                 {
                   inputs: [{address: "server.request.headers.no_cookies"}],
-                  output: "_dd.appsec.s.req.headers"
+                  output: "_dd.appsec.s.req.headers",
                 },
                 {
                   inputs: [{address: "server.response.headers.no_cookies"}],
-                  output: "_dd.appsec.s.res.headers"
-                }
-              ]
+                  output: "_dd.appsec.s.res.headers",
+                },
+              ],
             },
             evaluate: false,
-            output: true
+            output: true,
           },
-        ]
+        ],
       }
     end
 
@@ -179,7 +179,7 @@ RSpec.describe "Schema extraction for API security in Sinatra" do
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
         "api_security.request.schema",
         1,
-        tags: {framework: "sinatra"}
+        tags: {framework: "sinatra"},
       )
     end
   end

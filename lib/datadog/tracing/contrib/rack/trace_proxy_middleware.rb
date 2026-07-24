@@ -27,7 +27,7 @@ module Datadog
             options = {
               service: configuration[:web_service_name],
               start_time: start_time,
-              type: Tracing::Metadata::Ext::HTTP::TYPE_PROXY
+              type: Tracing::Metadata::Ext::HTTP::TYPE_PROXY,
             }
 
             request_span = Tracing.trace(Ext::SPAN_HTTP_PROXY_REQUEST, **options)

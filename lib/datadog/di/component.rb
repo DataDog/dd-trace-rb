@@ -82,11 +82,11 @@ module Datadog
           agent_settings: agent_settings,
           probe_repository: probe_repository,
           probe_notification_builder: probe_notification_builder,
-          telemetry: telemetry,
+          telemetry: telemetry
         )
         @probe_manager = ProbeManager.new(
           settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository,
-          telemetry: telemetry,
+          telemetry: telemetry
         )
         # @started transitions are serialized by @lifecycle_mutex so that
         # concurrent RC callbacks (which run on the remote-config thread)

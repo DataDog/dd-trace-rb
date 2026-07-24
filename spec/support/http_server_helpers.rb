@@ -31,7 +31,7 @@ module HttpServerHelpers
           Logger: http_server_log,
           AccessLog: http_server_access_log,
           Port: 0,
-          StartCallback: -> { http_server_init_signal.push(1) }
+          StartCallback: -> { http_server_init_signal.push(1) },
         }.update(base_http_server_options).update(http_server_options)
         WEBrick::HTTPServer.new(options).tap do |http_server|
           instance_exec(http_server, &block)

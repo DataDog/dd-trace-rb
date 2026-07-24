@@ -32,7 +32,7 @@ RSpec.describe "Faraday SSRF Injection" do
               cwe: "918",
               capec: "1000/225/115/664",
               confidence: "0",
-              module: "rasp"
+              module: "rasp",
             },
             conditions: [
               {
@@ -44,16 +44,16 @@ RSpec.describe "Faraday SSRF Injection" do
                     {address: "server.request.path_params"},
                     {address: "grpc.server.request.message"},
                     {address: "graphql.server.all_resolvers"},
-                    {address: "graphql.server.resolver"}
-                  ]
+                    {address: "graphql.server.resolver"},
+                  ],
                 },
-                operator: "ssrf_detector"
-              }
+                operator: "ssrf_detector",
+              },
             ],
             transformers: [],
-            on_match: ["block"]
-          }
-        ]
+            on_match: ["block"],
+          },
+        ],
       }
 
       c.remote.enabled = false
@@ -84,7 +84,7 @@ RSpec.describe "Faraday SSRF Injection" do
             response = client.get("/")
 
             [200, {"Content-Type" => "application/json"}, [response.status.to_s]]
-          end
+          end,
         )
       end
     end

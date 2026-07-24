@@ -56,7 +56,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
             Datadog::DI::CaptureExpression.new(
               name: "x", expr: compile_expression("x", {"ref" => "x"}),
             ),
-          ],
+          ]
         )
       end
 
@@ -78,7 +78,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
               expr: compile_expression("len(badvar)",
                 {"len" => {"ref" => "badvar"}}),
             ),
-          ],
+          ]
         )
       end
 
@@ -110,7 +110,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
           id: "p1", type: :log, type_name: "F", method_name: "m",
           capture_expressions: [
             Datadog::DI::CaptureExpression.new(name: "boom", expr: expr),
-          ],
+          ]
         )
       end
 
@@ -135,7 +135,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
           id: "p1", type: :log, type_name: "F", method_name: "m",
           capture_expressions: [
             Datadog::DI::CaptureExpression.new(name: "boom", expr: expr),
-          ],
+          ]
         )
       end
 
@@ -161,7 +161,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
               expr: compile_expression("len(badvar)",
                 {"len" => {"ref" => "badvar"}}),
             ),
-          ],
+          ]
         )
       end
 
@@ -188,7 +188,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
             Datadog::DI::CaptureExpression.new(
               name: "y", expr: compile_expression("name", {"ref" => "name"}),
             ),
-          ],
+          ]
         )
       end
 
@@ -201,7 +201,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
 
       it "increments the timeout telemetry counter for each timed-out expression" do
         expect(telemetry).to receive(:inc).with(
-          "dynamic_instrumentation", "capture_expressions_skipped_by_timeout", 1,
+          "dynamic_instrumentation", "capture_expressions_skipped_by_timeout", 1
         ).twice
         evaluator.evaluate(probe, context)
       end
@@ -231,7 +231,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
             Datadog::DI::CaptureExpression.new(
               name: "y", expr: compile_expression("name", {"ref" => "name"}),
             ),
-          ],
+          ]
         )
       end
 
@@ -244,7 +244,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
 
       it "increments the timeout counter only for the timed-out expression" do
         expect(telemetry).to receive(:inc).with(
-          "dynamic_instrumentation", "capture_expressions_skipped_by_timeout", 1,
+          "dynamic_instrumentation", "capture_expressions_skipped_by_timeout", 1
         ).once
         evaluator.evaluate(probe, context)
       end
@@ -258,9 +258,9 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
           capture_expressions: [
             Datadog::DI::CaptureExpression.new(
               name: "deep", expr: compile_expression("x", {"ref" => "x"}),
-              limits: Datadog::DI::CaptureLimits.new(max_reference_depth: 5),
+              limits: Datadog::DI::CaptureLimits.new(max_reference_depth: 5)
             ),
-          ],
+          ]
         )
       end
 

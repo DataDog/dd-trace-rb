@@ -27,7 +27,7 @@ RSpec.describe "Datadog::Tracing::Contrib::GraphQL::UnifiedTrace" do
       let(:locations) do
         [
           {"line" => 3, "column" => 10},
-          {"line" => 7, "column" => 8}
+          {"line" => 7, "column" => 8},
         ]
       end
 

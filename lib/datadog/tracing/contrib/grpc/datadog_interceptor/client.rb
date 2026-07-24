@@ -25,7 +25,7 @@ module Datadog
                 type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND,
                 service: service_name, # Maintain client-side service name configuration
                 resource: formatter.resource_name,
-                on_error: on_error
+                on_error: on_error,
               }
 
               Tracing.trace(Ext::SPAN_CLIENT, **options) do |span, trace|
@@ -56,7 +56,7 @@ module Datadog
               if datadog_configuration[:peer_service]
                 span.set_tag(
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                  datadog_configuration[:peer_service]
+                  datadog_configuration[:peer_service],
                 )
               end
 
@@ -80,7 +80,7 @@ module Datadog
               if Tracing::Distributed::PropagationPolicy.enabled?(
                 pin_config: Datadog.configuration_for(self),
                 global_config: datadog_configuration,
-                trace: trace
+                trace: trace,
               )
                 GRPC.inject(trace, metadata)
               end

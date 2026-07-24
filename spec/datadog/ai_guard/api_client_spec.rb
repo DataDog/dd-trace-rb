@@ -9,7 +9,7 @@ RSpec.describe Datadog::AIGuard::APIClient do
         endpoint: endpoint,
         api_key: "api-key",
         application_key: "application-key",
-        timeout: 10000
+        timeout: 10000,
       )
     end
 
@@ -68,13 +68,13 @@ RSpec.describe Datadog::AIGuard::APIClient do
         endpoint: "https://app.datadoghq.com/api/v2/ai-guard",
         api_key: "api-key",
         application_key: "application-key",
-        timeout: 10000
+        timeout: 10000,
       )
     end
 
     let(:response_body) do
       {
-        some: "response"
+        some: "response",
       }
     end
 
@@ -90,13 +90,13 @@ RSpec.describe Datadog::AIGuard::APIClient do
           "DD-AI-GUARD-VERSION": Datadog::VERSION::STRING,
           "DD-AI-GUARD-SOURCE": "SDK",
           "DD-AI-GUARD-LANGUAGE": "ruby",
-          "content-type": "application/json"
+          "content-type": "application/json",
         })
         .to_return do |request|
           {
             status: response_status_code,
             body: response_body.to_json,
-            headers: {"Content-Type" => "application/json"}
+            headers: {"Content-Type" => "application/json"},
           }
         end
     end

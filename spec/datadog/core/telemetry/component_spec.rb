@@ -53,7 +53,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       metrics_manager: anything,
       settings: settings,
       agent_settings: agent_settings,
-      shutdown_timeout: shutdown_timeout_seconds
+      shutdown_timeout: shutdown_timeout_seconds,
     ).and_return(worker)
 
     allow(worker).to receive(:start)
@@ -90,7 +90,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
           expect_lazy_log(
             logger,
             :debug,
-            /Telemetry disabled. Agentless telemetry requires a DD_API_KEY variable to be set/
+            /Telemetry disabled. Agentless telemetry requires a DD_API_KEY variable to be set/,
           )
           expect(telemetry.enabled).to be false
           expect(telemetry.worker).to be nil
@@ -168,7 +168,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         emit_closing!
 
         expect(worker).to have_received(:enqueue).with(
-          an_instance_of(Datadog::Core::Telemetry::Event::AppClosing)
+          an_instance_of(Datadog::Core::Telemetry::Event::AppClosing),
         )
       end
     end
@@ -218,7 +218,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         integrations_change!
 
         expect(worker).to have_received(:enqueue).with(
-          an_instance_of(Datadog::Core::Telemetry::Event::AppIntegrationsChange)
+          an_instance_of(Datadog::Core::Telemetry::Event::AppIntegrationsChange),
         )
       end
     end
@@ -258,7 +258,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         client_configuration_change!
 
         expect(worker).to have_received(:enqueue).with(
-          an_instance_of(Datadog::Core::Telemetry::Event::AppClientConfigurationChange)
+          an_instance_of(Datadog::Core::Telemetry::Event::AppClientConfigurationChange),
         )
       end
     end
@@ -283,15 +283,15 @@ RSpec.describe Datadog::Core::Telemetry::Component do
           resource_name: "GET /events",
           operation_name: "http.request",
           method: "GET",
-          path: "/events"
+          path: "/events",
         },
         {
           type: "REST",
           resource_name: "GET /events/:id",
           operation_name: "http.request",
           method: "GET",
-          path: "/event/:id"
-        }
+          path: "/event/:id",
+        },
       ]
     end
 
@@ -408,7 +408,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     before do
       expect(Datadog::Core::Telemetry::MetricsManager).to receive(:new).with(
         aggregation_interval: metrics_aggregation_interval_seconds,
-        enabled: enabled && metrics_enabled
+        enabled: enabled && metrics_enabled,
       ).and_return(metrics_manager)
     end
 

@@ -19,7 +19,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
         "Configurable",
         Module.new do
           include Datadog::Tracing::Contrib::Configurable
-        end
+        end,
       )
     end
 
@@ -75,7 +75,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
             context "when given environment variable DD_TRACE_PEER_SERVICE_MAPPING" do
               around do |example|
                 ClimateControl.modify(
-                  "DD_TRACE_PEER_SERVICE_MAPPING" => env_var
+                  "DD_TRACE_PEER_SERVICE_MAPPING" => env_var,
                 ) do
                   example.run
                 end
@@ -125,7 +125,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
             context "when given environment variable DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED" do
               around do |example|
                 ClimateControl.modify(
-                  "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED" => env_var
+                  "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED" => env_var,
                 ) do
                   example.run
                 end
@@ -153,7 +153,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
           context "when the integration doesn't exist" do
             it do
               expect { settings[:foobar] }.to raise_error(
-                Datadog::Tracing::Contrib::Extensions::Configuration::Settings::InvalidIntegrationError
+                Datadog::Tracing::Contrib::Extensions::Configuration::Settings::InvalidIntegrationError,
               )
             end
           end
@@ -250,7 +250,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
                     def self.patch
                       true
                     end
-                  end
+                  end,
                 )
               end
             end
@@ -266,7 +266,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
               it do
                 expect(integration).to receive(:configure).with(:default, {}).and_call_original
                 expect { |b| settings.send(:instrument, integration_name, options, &b) }.to yield_with_args(
-                  a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings)
+                  a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings),
                 )
               end
             end

@@ -24,7 +24,7 @@ RSpec.shared_examples "B3 Single distributed format" do
       let(:digest) do
         Datadog::Tracing::TraceDigest.new(
           span_id: 0xabc,
-          trace_id: 0xdef
+          trace_id: 0xdef,
         )
       end
 
@@ -34,14 +34,14 @@ RSpec.shared_examples "B3 Single distributed format" do
         [-1, 0],
         [0, 0],
         [1, 1],
-        [2, 1]
+        [2, 1],
       ].each do |value, expected|
         context "with sampling priority #{value}" do
           let(:digest) do
             Datadog::Tracing::TraceDigest.new(
               span_id: 0xabc,
               trace_id: 0xdef,
-              trace_sampling_priority: value
+              trace_sampling_priority: value,
             )
           end
 
@@ -54,7 +54,7 @@ RSpec.shared_examples "B3 Single distributed format" do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xabcdef,
             span_id: 0xfedcba,
-            trace_origin: "synthetics"
+            trace_origin: "synthetics",
           )
         end
 
@@ -66,7 +66,7 @@ RSpec.shared_examples "B3 Single distributed format" do
       let(:digest) do
         Datadog::Tracing::TraceDigest.new(
           trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
-          span_id: 0xbbbbbbbbbbbbbbbb
+          span_id: 0xbbbbbbbbbbbbbbbb,
         )
       end
 
@@ -80,7 +80,7 @@ RSpec.shared_examples "B3 Single distributed format" do
     context "with span_id nil" do
       let(:digest) do
         Datadog::Tracing::TraceDigest.new(
-          trace_id: 0xabcdef
+          trace_id: 0xabcdef,
         )
       end
 
@@ -120,7 +120,7 @@ RSpec.shared_examples "B3 Single distributed format" do
         context "with parent_id" do
           let(:data) do
             {
-              prepare_key[b3_single_header] => "abcdef-fedcba-1-4e20"
+              prepare_key[b3_single_header] => "abcdef-fedcba-1-4e20",
             }
           end
 

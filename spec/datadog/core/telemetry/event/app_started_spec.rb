@@ -43,7 +43,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       # ['logger.instance', 'MyLogger'], # not reported by default
       ["DD_APPSEC_ENABLED", false],
       # ['DD_APPSEC_SCA_ENABLED', false], # not reported by default
-      ["DD_APM_TRACING_ENABLED", true]
+      ["DD_APM_TRACING_ENABLED", true],
     ].freeze
   end
   let(:expected_install_signature) do
@@ -110,7 +110,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
             name: "DD_GIT_REPOSITORY_URL",
             origin: "env_var",
             seq_id: 3,
-            value: "https://github.com/datadog/hello"
+            value: "https://github.com/datadog/hello",
           },
           {name: "DD_GIT_COMMIT_SHA", origin: "env_var", seq_id: 3, value: "1234hash"},
         )
@@ -181,7 +181,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           {name: "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT", origin: "default", seq_id: 1, value: 10000},
           {name: "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE", origin: "default", seq_id: 1, value: "delta"},
           {name: "OTEL_METRIC_EXPORT_INTERVAL", origin: "default", seq_id: 1, value: 10000},
-          {name: "OTEL_METRIC_EXPORT_TIMEOUT", origin: "default", seq_id: 1, value: 7500}
+          {name: "OTEL_METRIC_EXPORT_TIMEOUT", origin: "default", seq_id: 1, value: 7500},
         )
       end
     end
@@ -265,7 +265,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
 
       it "does not report logs headers to telemetry" do
         expect(event.payload[:configuration]).to_not include(
-          include(name: "OTEL_EXPORTER_OTLP_LOGS_HEADERS")
+          include(name: "OTEL_EXPORTER_OTLP_LOGS_HEADERS"),
         )
       end
     end
@@ -327,7 +327,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
             {
               fleet: {id: "12345", config: {"DD_APPSEC_ENABLED" => "true"}},
               local: {id: "56789", config: {"DD_LOGS_INJECTION" => "false"}},
-            }
+            },
           )
         end
 
@@ -343,8 +343,8 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
             allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
               {
                 fleet: {config: {"DD_APPSEC_ENABLED" => "true"}},
-                local: {config: {"DD_LOGS_INJECTION" => "false"}}
-              }
+                local: {config: {"DD_LOGS_INJECTION" => "false"}},
+              },
             )
           end
 
@@ -368,8 +368,8 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       it "removes empty configurations from payload" do
         is_expected.to_not match(
           configuration: include(
-            {name: "logger.instance", origin: anything, seq_id: anything, value: anything}
-          )
+            {name: "logger.instance", origin: anything, seq_id: anything, value: anything},
+          ),
         )
       end
     end

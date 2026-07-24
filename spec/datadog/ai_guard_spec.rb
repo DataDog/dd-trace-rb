@@ -62,7 +62,7 @@ RSpec.describe Datadog::AIGuard do
 
       let(:messages) do
         [
-          Datadog::AIGuard::Evaluation::Message.new(role: :system, content: "Hello")
+          Datadog::AIGuard::Evaluation::Message.new(role: :system, content: "Hello"),
         ]
       end
 
@@ -74,7 +74,7 @@ RSpec.describe Datadog::AIGuard do
             {
               status: 200,
               body: raw_response.to_json,
-              headers: {"Content-Type" => "application/json"}
+              headers: {"Content-Type" => "application/json"},
             }
           end
       end
@@ -92,9 +92,9 @@ RSpec.describe Datadog::AIGuard do
                 "reason" => "No rule match",
                 "tags" => [],
                 "tag_probs" => {},
-                "is_blocking_enabled" => false
-              }
-            }
+                "is_blocking_enabled" => false,
+              },
+            },
           }
         end
 
@@ -119,15 +119,15 @@ RSpec.describe Datadog::AIGuard do
                 "reason" => "Rule match",
                 "tags" => ["indirect-prompt-injection"],
                 "tag_probs" => {"indirect-prompt-injection" => 0.95},
-                "is_blocking_enabled" => true
-              }
-            }
+                "is_blocking_enabled" => true,
+              },
+            },
           }
         end
 
         it "raises Datadog::AIGuard::AIGuardAbortError when allow_raise is set to true" do
           expect { described_class.evaluate(*messages, allow_raise: true) }.to raise_error(
-            Datadog::AIGuard::AIGuardAbortError
+            Datadog::AIGuard::AIGuardAbortError,
           )
         end
 
@@ -149,7 +149,7 @@ RSpec.describe Datadog::AIGuard do
 
       let(:messages) do
         [
-          Datadog::AIGuard::Evaluation::Message.new(role: :system, content: "Hello")
+          Datadog::AIGuard::Evaluation::Message.new(role: :system, content: "Hello"),
         ]
       end
 

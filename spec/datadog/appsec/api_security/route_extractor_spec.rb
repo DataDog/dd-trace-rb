@@ -59,7 +59,7 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
       context "when pattern is nil" do
         before do
           allow(request).to receive(:env).and_return(
-            {"grape.routing_args" => {route_info: double("Grape::Router::Route", pattern: nil)}}
+            {"grape.routing_args" => {route_info: double("Grape::Router::Route", pattern: nil)}},
           )
         end
 
@@ -99,7 +99,7 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
         context "when route has nested path" do
           before do
             allow(request).to receive(:env).and_return(
-              {"action_dispatch.route_uri_pattern" => "/api/v1/users/:id/posts/:post_id(.:format)"}
+              {"action_dispatch.route_uri_pattern" => "/api/v1/users/:id/posts/:post_id(.:format)"},
             )
           end
 
@@ -138,7 +138,7 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
       context "when both datadog and native rails route keys are present" do
         before do
           allow(request).to receive(:env).and_return(
-            {"datadog.action_dispatch.route" => datadog_route, "action_dispatch.route" => native_route}
+            {"datadog.action_dispatch.route" => datadog_route, "action_dispatch.route" => native_route},
           )
         end
 
@@ -166,7 +166,7 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
           allow(request).to receive(:env).and_return({
             "action_dispatch.routes" => route_set,
             "action_dispatch.request.path_parameters" => {},
-            "PATH_INFO" => "/users/1"
+            "PATH_INFO" => "/users/1",
           })
         end
 
@@ -189,7 +189,7 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
             "action_dispatch.routes" => route_set,
             "action_dispatch.request.path_parameters" => {
               "controller" => "users", "action" => "show", "id" => "1"
-            }
+            },
           }
         end
         let(:router) { double("ActionDispatch::Routing::RouteSet::Router") }
@@ -225,7 +225,7 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
         before do
           allow(request).to receive(:env).and_return({
             "action_dispatch.routes" => route_set,
-            "PATH_INFO" => "/unmatched/route"
+            "PATH_INFO" => "/unmatched/route",
           })
           allow(router).to receive(:recognize).with(request).and_return([])
         end
@@ -245,8 +245,8 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
             "action_dispatch.request.path_parameters" => {
               "controller" => "users",
               "action" => "show",
-              "id" => "1"
-            }
+              "id" => "1",
+            },
           })
 
           expect(route_set).to receive(:request_class).and_raise(StandardError)
@@ -307,7 +307,7 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
         before do
           allow(request).to receive(:env).and_return({
             "sinatra.route" => "GET /sinatra/route",
-            "grape.routing_args" => {route_info: route_info}
+            "grape.routing_args" => {route_info: route_info},
           })
         end
 
@@ -320,7 +320,7 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
         before do
           allow(request).to receive(:env).and_return({
             "sinatra.route" => "GET /sinatra/route",
-            "action_dispatch.route_uri_pattern" => "/rails/route(.:format)"
+            "action_dispatch.route_uri_pattern" => "/rails/route(.:format)",
           })
         end
 
@@ -337,7 +337,7 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
         before do
           allow(request).to receive(:env).and_return({
             "grape.routing_args" => {route_info: route_info},
-            "action_dispatch.route_uri_pattern" => "/rails/route(.:format)"
+            "action_dispatch.route_uri_pattern" => "/rails/route(.:format)",
           })
         end
 

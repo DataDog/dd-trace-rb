@@ -21,7 +21,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
   let(:headers) do
     {
       accept: "application/vnd.elasticsearch+json; compatible-with=8",
-      content_type: "application/vnd.elasticsearch+json; compatible-with=8"
+      content_type: "application/vnd.elasticsearch+json; compatible-with=8",
     }
   end
 
@@ -30,9 +30,9 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       url: server,
       adapter: :net_http,
       transport_options: {
-        headers: headers
+        headers: headers,
       },
-      request_timeout: 5
+      request_timeout: 5,
     )
   end
   let(:configuration_options) { {} }
@@ -152,13 +152,13 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       {
         field: "Test",
         nested_object: {
-          value: "x"
+          value: "x",
         },
         nested_array: %w[a b],
         nested_object_array: [
           {a: "a"},
-          {b: "b"}
-        ]
+          {b: "b"},
+        ],
       }
     end
     let(:index_name) { "some_index" }

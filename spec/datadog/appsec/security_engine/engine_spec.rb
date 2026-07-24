@@ -26,7 +26,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         {
           version: "2.2",
           metadata: {
-            rules_version: "1.0.0"
+            rules_version: "1.0.0",
           },
           rules: [
             {
@@ -35,7 +35,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
               tags: {
                 type: "sql_injection",
                 category: "exploit",
-                module: "rasp"
+                module: "rasp",
               },
               conditions: [
                 {
@@ -43,13 +43,13 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
                   parameters: {
                     resource: [{address: "server.db.statement"}],
                     params: [{address: "server.request.query"}],
-                    db_type: [{address: "server.db.system"}]
-                  }
-                }
+                    db_type: [{address: "server.db.system"}],
+                  },
+                },
               ],
-              on_match: ["block-sqli"]
-            }
-          ]
+              on_match: ["block-sqli"],
+            },
+          ],
         }
       end
 
@@ -66,7 +66,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.init", 1, tags: {
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
             event_rules_version: "1.0.0",
-            success: "true"
+            success: "true",
           }
         )
 
@@ -86,7 +86,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       it "reports error through telemetry" do
         expect(telemetry).to receive(:report).with(
           Datadog::AppSec::WAF::LibDDWAFError,
-          description: "AppSec security engine failed to initialize"
+          description: "AppSec security engine failed to initialize",
         )
 
         expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
@@ -108,7 +108,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.init", 1, tags: {
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
             event_rules_version: "",
-            success: "false"
+            success: "false",
           }
         )
 
@@ -121,9 +121,9 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         appsec_settings.ruleset = {
           rules: [
             {
-              id: "invalid-rule-id"
-            }
-          ]
+              id: "invalid-rule-id",
+            },
+          ],
         }
 
         allow(telemetry).to receive(:inc)
@@ -143,8 +143,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             event_rules_version: "",
             action: "init",
             config_key: "rules",
-            scope: "item"
-          }
+            scope: "item",
+          },
         )
 
         expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
@@ -172,7 +172,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.init", 1, tags: {
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
             event_rules_version: "",
-            success: "false"
+            success: "false",
           }
         )
 
@@ -186,7 +186,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       {
         version: "2.2",
         metadata: {
-          rules_version: "1.0.0"
+          rules_version: "1.0.0",
         },
         rules: [
           {
@@ -195,7 +195,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             tags: {
               type: "sql_injection",
               category: "exploit",
-              module: "rasp"
+              module: "rasp",
             },
             conditions: [
               {
@@ -203,13 +203,13 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
                 parameters: {
                   resource: [{address: "server.db.statement"}],
                   params: [{address: "server.request.query"}],
-                  db_type: [{address: "server.db.system"}]
-                }
-              }
+                  db_type: [{address: "server.db.system"}],
+                },
+              },
             ],
-            on_match: ["block-sqli"]
-          }
-        ]
+            on_match: ["block-sqli"],
+          },
+        ],
       }
     end
 
@@ -242,16 +242,16 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             {
               conditions: [{
                 operator: "phrase_match",
-                parameters: {inputs: [{address: "server.request.method"}], list: ["TEST"]}
+                parameters: {inputs: [{address: "server.request.method"}], list: ["TEST"]},
               }],
               id: "test-custom-rule-id",
               name: "Test rule",
               tags: {category: "attack_attempt", custom: "1", type: "custom"},
-              transformers: []
-            }
-          ]
+              transformers: [],
+            },
+          ],
         },
-        path: "datadog/603646/ASM/test-custom-rule"
+        path: "datadog/603646/ASM/test-custom-rule",
       )
 
       aggregate_failures("diagnostics") do
@@ -267,23 +267,23 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             {
               conditions: [{
                 operator: "phrase_match",
-                parameters: {inputs: [{address: "server.request.method"}], list: ["TEST"]}
+                parameters: {inputs: [{address: "server.request.method"}], list: ["TEST"]},
               }],
               id: "test-custom-rule-id",
               name: "Test rule",
               tags: {category: "attack_attempt", custom: "1", type: "custom"},
-              transformers: []
+              transformers: [],
             },
             {
-              id: "invalid-rule-one-id"
+              id: "invalid-rule-one-id",
             },
             {
               id: "invalid-rule-two-id",
               conditions: [{
-                operator: "phrase_match"
-              }]
-            }
-          ]
+                operator: "phrase_match",
+              }],
+            },
+          ],
         }
       end
 
@@ -301,7 +301,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
 
           expect(diagnostics.dig("custom_rules", "errors")).to eq({
             "missing key 'conditions'" => %w[invalid-rule-one-id],
-            "missing key 'parameters'" => %w[invalid-rule-two-id]
+            "missing key 'parameters'" => %w[invalid-rule-two-id],
           })
         end
       end
@@ -316,8 +316,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             event_rules_version: "",
             action: "update",
             config_key: "custom_rules",
-            scope: "item"
-          }
+            scope: "item",
+          },
         )
 
         engine.add_or_update_config(config_with_invalid_rule, path: "datadog/603646/ASM/test-custom-rule")
@@ -352,8 +352,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
             event_rules_version: "",
             action: "update",
-            scope: "top-level"
-          }
+            scope: "top-level",
+          },
         )
 
         engine.add_or_update_config("", path: "datadog/603646/ASM/test-custom-rule")
@@ -391,8 +391,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             event_rules_version: "",
             action: "update",
             config_key: "custom_rules",
-            scope: "top-level"
-          }
+            scope: "top-level",
+          },
         )
 
         engine.add_or_update_config({custom_rules: ""}, path: "datadog/603646/ASM/test-custom-rule")
@@ -410,7 +410,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         {
           version: "2.2",
           metadata: {
-            rules_version: "1.0.0"
+            rules_version: "1.0.0",
           },
           rules: [
             {
@@ -419,7 +419,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
               tags: {
                 type: "sql_injection",
                 category: "exploit",
-                module: "rasp"
+                module: "rasp",
               },
               conditions: [
                 {
@@ -427,12 +427,12 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
                   parameters: {
                     resource: [{address: "server.db.statement"}],
                     params: [{address: "server.request.query"}],
-                    db_type: [{address: "server.db.system"}]
-                  }
-                }
+                    db_type: [{address: "server.db.system"}],
+                  },
+                },
               ],
-              on_match: ["block-sqli"]
-            }
+              on_match: ["block-sqli"],
+            },
           ],
           actions: [
             {
@@ -441,10 +441,10 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
               parameters: {
                 status_code: "418",
                 grpc_status_code: "42",
-                type: "auto"
-              }
-            }
-          ]
+                type: "auto",
+              },
+            },
+          ],
         }
       end
 
@@ -477,7 +477,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       context "when adding of config fails" do
         let(:invalid_config) do
           {
-            rules: ""
+            rules: "",
           }
         end
 
@@ -496,8 +496,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
               event_rules_version: "",
               action: "update",
               config_key: "rules",
-              scope: "top-level"
-            }
+              scope: "top-level",
+            },
           )
 
           engine.add_or_update_config(invalid_config, path: "datadog/603646/ASM_DD/latest/config")
@@ -535,14 +535,14 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           {
             conditions: [{
               operator: "phrase_match",
-              parameters: {inputs: [{address: "server.request.method"}], list: ["TEST"]}
+              parameters: {inputs: [{address: "server.request.method"}], list: ["TEST"]},
             }],
             id: "test-custom-rule-id",
             name: "Test rule",
             tags: {category: "attack_attempt", custom: "2", type: "custom"},
-            transformers: []
-          }
-        ]
+            transformers: [],
+          },
+        ],
       }
     end
 
@@ -569,7 +569,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             tags: {
               type: "ssrf",
               category: "vulnerability_trigger",
-              module: "rasp"
+              module: "rasp",
             },
             conditions: [
               {
@@ -578,14 +578,14 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
                   params: [
                     {address: "server.request.query"},
                     {address: "server.request.body"},
-                    {address: "server.request.path_params"}
-                  ]
+                    {address: "server.request.path_params"},
+                  ],
                 },
-                operator: "ssrf_detector"
-              }
+                operator: "ssrf_detector",
+              },
             ],
-            on_match: ["stack_trace"]
-          }]
+            on_match: ["stack_trace"],
+          }],
         }
         engine = described_class.new(appsec_settings: appsec_settings, telemetry: telemetry)
 
@@ -600,7 +600,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
                 tags: {
                   type: "sql_injection",
                   category: "exploit",
-                  module: "rasp"
+                  module: "rasp",
                 },
                 conditions: [
                   {
@@ -608,15 +608,15 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
                     parameters: {
                       resource: [{address: "server.db.statement"}],
                       params: [{address: "server.request.query"}],
-                      db_type: [{address: "server.db.system"}]
-                    }
-                  }
+                      db_type: [{address: "server.db.system"}],
+                    },
+                  },
                 ],
-                on_match: ["block-sqli"]
-              }
-            ]
+                on_match: ["block-sqli"],
+              },
+            ],
           },
-          path: "datadog/603646/ASM_DD/latest/config"
+          path: "datadog/603646/ASM_DD/latest/config",
         )
         engine.reconfigure!
 
@@ -626,7 +626,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         end.to(
           change { engine.new_runner.waf_addresses }
             .from(match_array(%w[server.db.statement server.request.query server.db.system]))
-            .to(match_array(%w[server.io.net.url server.request.query server.request.body server.request.path_params]))
+            .to(match_array(%w[server.io.net.url server.request.query server.request.body server.request.path_params])),
         )
       end
     end
@@ -639,7 +639,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       {
         version: "2.2",
         metadata: {
-          rules_version: "1.0.0"
+          rules_version: "1.0.0",
         },
         rules: [
           {
@@ -648,7 +648,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             tags: {
               type: "sql_injection",
               category: "exploit",
-              module: "rasp"
+              module: "rasp",
             },
             conditions: [
               {
@@ -656,13 +656,13 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
                 parameters: {
                   resource: [{address: "server.db.statement"}],
                   params: [{address: "server.request.query"}],
-                  db_type: [{address: "server.db.system"}]
-                }
-              }
+                  db_type: [{address: "server.db.system"}],
+                },
+              },
             ],
-            on_match: ["block-sqli"]
-          }
-        ]
+            on_match: ["block-sqli"],
+          },
+        ],
       }
     end
 
@@ -680,7 +680,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         tags: {
           waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
           event_rules_version: "1.0.0",
-          success: "true"
+          success: "true",
         }
       )
 
@@ -692,9 +692,9 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         {
           version: "2.2",
           metadata: {
-            rules_version: "2.0.0"
+            rules_version: "2.0.0",
           },
-          rules: []
+          rules: [],
         }
       end
 
@@ -711,7 +711,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       it "reports error through telemetry" do
         expect(telemetry).to receive(:report).with(
           Datadog::AppSec::WAF::LibDDWAFError,
-          description: "AppSec security engine failed to reconfigure, reverting to the previous configuration"
+          description: "AppSec security engine failed to reconfigure, reverting to the previous configuration",
         )
 
         engine.reconfigure!
@@ -728,7 +728,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           tags: {
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
             event_rules_version: "2.0.0",
-            success: "false"
+            success: "false",
           }
         )
 

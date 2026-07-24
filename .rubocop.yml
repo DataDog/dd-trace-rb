@@ -25,14 +25,17 @@ AllCops:
 # "**/**" ignore list (Layout/LeadingCommentSpace has an extra reason
 # there) so it stays clear which tool is, or is not, enforcing each cop.
 
+# Require a comma in multiline literals and method calls. This avoids a comma
+# immediately before a closing delimiter when the final item shares a line.
+
 Style/TrailingCommaInArguments:
-  Enabled: false
+  EnforcedStyleForMultiline: comma
 
 Style/TrailingCommaInArrayLiteral:
-  Enabled: false
+  EnforcedStyleForMultiline: comma
 
 Style/TrailingCommaInHashLiteral:
-  Enabled: false
+  EnforcedStyleForMultiline: comma
 
 Layout/LeadingCommentSpace:
   Enabled: false

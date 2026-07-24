@@ -23,10 +23,10 @@ RSpec.shared_context "ActionMailer helpers" do
             body: "sk test",
             subject: "miniswan",
             bcc: "test_a@example.com,test_b@example.com",
-            cc: ["test_c@example.com", "test_d@example.com"]
+            cc: ["test_c@example.com", "test_d@example.com"],
           )
         end
-      end
+      end,
     )
   end
 end

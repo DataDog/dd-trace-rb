@@ -18,7 +18,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
         "job.work",
         resource: "generate_report",
         service: "jobs-worker",
-        type: "worker"
+        type: "worker",
       )
 
       span.set_tag("component", "sidekiq")
@@ -76,7 +76,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
         Array.new(3) do |_i|
           Datadog::Tracing::Span.new(
             "dummy",
-            trace_id: trace_id
+            trace_id: trace_id,
           )
         end
       end
@@ -111,7 +111,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
                   trace_state: "vendor1=value,v2=v,dd=s:1",
                   trace_sampling_priority: 0x1,
                 ),
-                attributes: {"link.name" => "test_link"}
+                attributes: {"link.name" => "test_link"},
               ),
               Datadog::Tracing::SpanLink.new(
                 Datadog::Tracing::TraceDigest.new(
@@ -121,7 +121,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
               ),
               Datadog::Tracing::SpanLink.new(
                 Datadog::Tracing::TraceDigest.new,
-              )
+              ),
             ],
           )
         end
@@ -131,7 +131,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
         expect(
           unpacked_trace.map do |s|
             s["span_links"]
-          end
+          end,
         ).to all(
           eq(
             [{
@@ -146,10 +146,10 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
                 "span_id" => 2,
                 "trace_id" => 0x0123456789abcdef,
                 "trace_id_high" => 10,
-                "flags" => 0
+                "flags" => 0,
               },
-              {"span_id" => 0, "trace_id" => 0, "flags" => 0}]
-          )
+              {"span_id" => 0, "trace_id" => 0, "flags" => 0}],
+          ),
         )
       end
     end
@@ -162,7 +162,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
             events: [
               Datadog::Tracing::SpanEvent.new(
                 "First Event",
-                time_unix_nano: 123
+                time_unix_nano: 123,
               ),
               Datadog::Tracing::SpanEvent.new(
                 "Another Event #{i}!",
@@ -178,14 +178,14 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
         expect(
           unpacked_trace.map do |s|
             s["meta"]["events"]
-          end
+          end,
         ).to eq(
           [
             '[{"name":"First Event","time_unix_nano":123},{"name":"Another Event 0!","time_unix_nano":456,' \
             '"attributes":{"id":0,"required":false}}]',
             '[{"name":"First Event","time_unix_nano":123},{"name":"Another Event 1!","time_unix_nano":456,' \
             '"attributes":{"id":1,"required":true}}]',
-          ]
+          ],
         )
       end
 
@@ -198,22 +198,22 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
           expect(
             unpacked_trace.map do |s|
               s["span_events"]
-            end
+            end,
           ).to eq(
             [
               [
                 {"name" => "First Event", "time_unix_nano" => 123},
                 {"name" => "Another Event 0!", "time_unix_nano" => 456, "attributes" => {
                   "id" => {"int_value" => 0, "type" => 2}, "required" => {"bool_value" => false, "type" => 1}
-                }}
+                }},
               ],
               [
                 {"name" => "First Event", "time_unix_nano" => 123},
                 {"name" => "Another Event 1!", "time_unix_nano" => 456, "attributes" => {
                   "id" => {"int_value" => 1, "type" => 2}, "required" => {"bool_value" => true, "type" => 1}
-                }}
+                }},
               ],
-            ]
+            ],
           )
         end
 
@@ -248,7 +248,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
         Array.new(3) do |_i|
           Datadog::Tracing::Span.new(
             "dummy",
-            trace_id: trace_id
+            trace_id: trace_id,
           )
         end
       end

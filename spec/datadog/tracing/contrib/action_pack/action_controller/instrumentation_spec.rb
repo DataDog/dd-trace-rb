@@ -25,7 +25,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionController::Instrume
           headers: {
             # The exception this controller was given in the request,
             # which is typical if the controller is configured to handle exceptions.
-            request_exception: action_dispatch_exception
+            request_exception: action_dispatch_exception,
           },
           tracing_context: {},
         }
@@ -92,7 +92,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionController::Instrume
         let(:payload) do
           super().merge(
             exception: [error.class.name, error.message],
-            exception_object: error
+            exception_object: error,
           )
         end
 
@@ -113,7 +113,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionController::Instrume
         let(:payload) do
           super().merge(
             exception: [error.class.name, error.message],
-            exception_object: error
+            exception_object: error,
           )
         end
 

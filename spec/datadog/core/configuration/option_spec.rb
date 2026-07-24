@@ -163,7 +163,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
               expect(args).to include(
                 setter_value,
                 old_value,
-                Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+                Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
               )
               expect(block).to be after_set
               after_set.call
@@ -196,7 +196,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(after_set).to receive(:call).with(
             :original_value,
             nil,
-            Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+            Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION,
           )
           allow(after_set).to receive(:call).with(:override, :original_value, anything)
 
@@ -208,7 +208,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(after_set).to receive(:call).with(
             :override,
             :original_value,
-            Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+            Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION,
           )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
           expect(option.get).to eq(:override)
@@ -250,7 +250,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(after_set).to receive(:call).with(
             :original_value,
             nil,
-            Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+            Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
           )
 
           option.set(:original_value, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
@@ -261,7 +261,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(after_set).to receive(:call).with(
             :override,
             :original_value,
-            Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+            Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION,
           )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
           expect(option.get).to eq(:override)
@@ -271,7 +271,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(after_set).to receive(:call).with(
             :override,
             :original_value,
-            Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+            Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
           )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
           expect(option.get).to eq(:override)
@@ -294,7 +294,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(after_set).to receive(:call).with(
             :original_value,
             nil,
-            Datadog::Core::Configuration::Option::Precedence::DEFAULT
+            Datadog::Core::Configuration::Option::Precedence::DEFAULT,
           )
 
           option.set(:original_value, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
@@ -304,7 +304,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(after_set).to receive(:call).with(
             :override,
             :original_value,
-            Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+            Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION,
           )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
           expect(option.get).to eq(:override)
@@ -314,7 +314,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(after_set).to receive(:call).with(
             :override,
             :original_value,
-            Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+            Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
           )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
           expect(option.get).to eq(:override)
@@ -324,7 +324,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(after_set).to receive(:call).with(
             :override,
             :original_value,
-            Datadog::Core::Configuration::Option::Precedence::DEFAULT
+            Datadog::Core::Configuration::Option::Precedence::DEFAULT,
           )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
           expect(option.get).to eq(:override)
@@ -609,7 +609,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           before do
             option.set(
               Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
-              precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+              precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
             )
 
             option.unset(Datadog::Core::Configuration::Option::Precedence::DEFAULT)
@@ -625,7 +625,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           before do
             option.set(
               Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
-              precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+              precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
             )
 
             option.unset(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
@@ -641,7 +641,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           before do
             option.set(
               Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
-              precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+              precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
             )
 
             option.unset(Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
@@ -659,11 +659,11 @@ RSpec.describe Datadog::Core::Configuration::Option do
           before do
             option.set(
               Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT,
-              precedence: Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT
+              precedence: Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT,
             )
             option.set(
               Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
-              precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+              precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
             )
 
             option.unset(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
@@ -679,11 +679,11 @@ RSpec.describe Datadog::Core::Configuration::Option do
           before do
             option.set(
               Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT,
-              precedence: Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT
+              precedence: Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT,
             )
             option.set(
               Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
-              precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+              precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
             )
 
             option.unset(Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT)
@@ -952,7 +952,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       let(:setter) { proc { |value| value } }
       before do
         allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
-          {local: {id: "12345", config: {"TEST" => "test"}}}
+          {local: {id: "12345", config: {"TEST" => "test"}}},
         )
       end
 
@@ -966,7 +966,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       let(:setter) { proc { |value| value } }
       before do
         allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
-          {fleet: {id: "56789", config: {"TEST" => "test"}}}
+          {fleet: {id: "56789", config: {"TEST" => "test"}}},
         )
       end
 
@@ -1104,7 +1104,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       option.set(:programmatic_value, precedence: described_class::Precedence::PROGRAMMATIC)
 
       expect(values_per_precedence).to eq(
-        described_class::Precedence::PROGRAMMATIC => :programmatic_value
+        described_class::Precedence::PROGRAMMATIC => :programmatic_value,
       )
     end
 
@@ -1113,7 +1113,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       option.unset(described_class::Precedence::PROGRAMMATIC)
 
       expect(values_per_precedence).to eq(
-        described_class::Precedence::DEFAULT => :default_value
+        described_class::Precedence::DEFAULT => :default_value,
       )
     end
 
@@ -1130,7 +1130,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       it "materializes default and environment values before returning them" do
         expect(values_per_precedence).to eq(
           described_class::Precedence::DEFAULT => :default_value,
-          described_class::Precedence::ENVIRONMENT => "env-value"
+          described_class::Precedence::ENVIRONMENT => "env-value",
         )
       end
     end

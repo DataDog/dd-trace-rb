@@ -46,7 +46,7 @@ module Datadog
           return unless trace_id # Could not parse traceparent
 
           tracestate, sampling_priority, origin, ts_parent_id, tags, unknown_fields = extract_tracestate(
-            fetcher[@tracestate_key]
+            fetcher[@tracestate_key],
           )
 
           sampling_priority = parse_priority_sampling(sampled, sampling_priority) do |decision|
@@ -83,7 +83,7 @@ module Datadog
           build_traceparent_string(
             digest.trace_id,
             digest.span_id || 0, # Fall back to zero (invalid) if not present
-            build_trace_flags(digest)
+            build_trace_flags(digest),
           )
         end
 

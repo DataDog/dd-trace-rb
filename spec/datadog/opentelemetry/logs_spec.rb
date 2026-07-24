@@ -215,7 +215,7 @@ RSpec.describe "OpenTelemetry Logs Integration", ruby: ">= 3.1" do
         {
           "OTEL_EXPORTER_OTLP_ENDPOINT" => "http://general:4317",
           "OTEL_EXPORTER_OTLP_TIMEOUT" => "8000",
-          "OTEL_EXPORTER_OTLP_HEADERS" => "general=value"
+          "OTEL_EXPORTER_OTLP_HEADERS" => "general=value",
         }
       end
       it "uses the general OTLP endpoint" do
@@ -257,7 +257,7 @@ RSpec.describe "OpenTelemetry Logs Integration", ruby: ">= 3.1" do
     context "with multiple headers" do
       let(:env_overrides) do
         {
-          "OTEL_EXPORTER_OTLP_HEADERS" => "api-key=secret123,other-config-value=test-value"
+          "OTEL_EXPORTER_OTLP_HEADERS" => "api-key=secret123,other-config-value=test-value",
         }
       end
       it "parses all headers correctly" do
@@ -269,7 +269,7 @@ RSpec.describe "OpenTelemetry Logs Integration", ruby: ">= 3.1" do
     context "with malformed logs headers" do
       let(:env_overrides) do
         {
-          "OTEL_EXPORTER_OTLP_LOGS_HEADERS" => "api-key=secret123,malformed"
+          "OTEL_EXPORTER_OTLP_LOGS_HEADERS" => "api-key=secret123,malformed",
         }
       end
       it "returns an empty headers hash" do
@@ -306,7 +306,7 @@ RSpec.describe "OpenTelemetry Logs Integration", ruby: ">= 3.1" do
       let(:env_overrides) do
         {
           "DD_LOGS_OTEL_ENABLED" => "false",
-          "OTEL_LOGS_EXPORTER" => "console"
+          "OTEL_LOGS_EXPORTER" => "console",
         }
       end
       it "lets the upstream OpenTelemetry logs SDK configure logs" do

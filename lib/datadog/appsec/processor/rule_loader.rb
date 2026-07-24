@@ -17,7 +17,7 @@ module Datadog
               Datadog.logger.warn(
                 "The :risky Application Security Management ruleset has been deprecated and no longer available." \
                 "The `:recommended` ruleset will be used instead." \
-                "Please remove the `appsec.ruleset = :risky` setting from your Datadog.configure block."
+                "Please remove the `appsec.ruleset = :risky` setting from your Datadog.configure block.",
               )
               JSON.parse(Datadog::AppSec::Assets.waf_rules(:recommended))
             when String
@@ -59,7 +59,7 @@ module Datadog
             {
               "id" => id,
               "type" => "data_with_expiration",
-              "data" => denylist.map { |v| {"value" => v.to_s, "expiration" => 2**63} }
+              "data" => denylist.map { |v| {"value" => v.to_s, "expiration" => 2**63} },
             }
           end
 
@@ -82,12 +82,12 @@ module Datadog
                   "parameters" => {
                     "inputs" => [
                       {
-                        "address" => "http.client_ip"
-                      }
+                        "address" => "http.client_ip",
+                      },
                     ],
-                    "list" => pass
-                  }
-                }
+                    "list" => pass,
+                  },
+                },
               ],
               "id" => SecureRandom.uuid,
             }
@@ -99,15 +99,15 @@ module Datadog
                   "parameters" => {
                     "inputs" => [
                       {
-                        "address" => "http.client_ip"
-                      }
+                        "address" => "http.client_ip",
+                      },
                     ],
-                    "list" => monitor
-                  }
-                }
+                    "list" => monitor,
+                  },
+                },
               ],
               "id" => SecureRandom.uuid,
-              "on_match" => "monitor"
+              "on_match" => "monitor",
             }
 
             exclusions

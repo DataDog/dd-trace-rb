@@ -119,7 +119,7 @@ RSpec.describe "Rails Endpoint Collection" do
         {
           message: "Grape Params Endpoint (GET)",
           route: route,
-          name: params[:name]
+          name: params[:name],
         }
       end
 
@@ -129,7 +129,7 @@ RSpec.describe "Rails Endpoint Collection" do
           {
             message: "Grape Params Endpoint (GET)",
             route: route,
-            name: params[:name]
+            name: params[:name],
           }
         end
       end
@@ -219,190 +219,190 @@ RSpec.describe "Rails Endpoint Collection" do
           resource_name: "GET /",
           operation_name: "http.request",
           method: "GET",
-          path: "/"
+          path: "/",
         },
         {
           type: "REST",
           resource_name: "GET /products",
           operation_name: "http.request",
           method: "GET",
-          path: "/products"
+          path: "/products",
         },
         {
           type: "REST",
           resource_name: "GET /products/new",
           operation_name: "http.request",
           method: "GET",
-          path: "/products/new"
+          path: "/products/new",
         },
         {
           type: "REST",
           resource_name: "POST /products",
           operation_name: "http.request",
           method: "POST",
-          path: "/products"
+          path: "/products",
         },
         {
           type: "REST",
           resource_name: "GET /products/:id",
           operation_name: "http.request",
           method: "GET",
-          path: "/products/:id"
+          path: "/products/:id",
         },
         {
           type: "REST",
           resource_name: "GET /products/:id/edit",
           operation_name: "http.request",
           method: "GET",
-          path: "/products/:id/edit"
+          path: "/products/:id/edit",
         },
         {
           type: "REST",
           resource_name: "PATCH /products/:id",
           operation_name: "http.request",
           method: "PATCH",
-          path: "/products/:id"
+          path: "/products/:id",
         },
         {
           type: "REST",
           resource_name: "PUT /products/:id",
           operation_name: "http.request",
           method: "PUT",
-          path: "/products/:id"
+          path: "/products/:id",
         },
         {
           type: "REST",
           resource_name: "DELETE /products/:id",
           operation_name: "http.request",
           method: "DELETE",
-          path: "/products/:id"
+          path: "/products/:id",
         },
         {
           type: "REST",
           resource_name: "GET /users",
           operation_name: "http.request",
           method: "GET",
-          path: "/users"
+          path: "/users",
         },
         {
           type: "REST",
           resource_name: "GET /users/:id",
           operation_name: "http.request",
           method: "GET",
-          path: "/users/:id"
+          path: "/users/:id",
         },
         {
           type: "REST",
           resource_name: "GET /users/:user_id/photos",
           operation_name: "http.request",
           method: "GET",
-          path: "/users/:user_id/photos"
+          path: "/users/:user_id/photos",
         },
         {
           type: "REST",
           resource_name: "POST /users/:user_id/photos",
           operation_name: "http.request",
           method: "POST",
-          path: "/users/:user_id/photos"
+          path: "/users/:user_id/photos",
         },
         {
           type: "REST",
           resource_name: "DELETE /users/:user_id/photos/:id",
           operation_name: "http.request",
           method: "DELETE",
-          path: "/users/:user_id/photos/:id"
+          path: "/users/:user_id/photos/:id",
         },
         {
           type: "REST",
           resource_name: "GET /photos(/:id)",
           operation_name: "http.request",
           method: "GET",
-          path: "/photos(/:id)"
+          path: "/photos(/:id)",
         },
         {
           type: "REST",
           resource_name: "GET /admin/stats",
           operation_name: "http.request",
           method: "GET",
-          path: "/admin/stats"
+          path: "/admin/stats",
         },
         {
           type: "REST",
           resource_name: "POST /admin/sign-in",
           operation_name: "http.request",
           method: "POST",
-          path: "/admin/sign-in"
+          path: "/admin/sign-in",
         },
         {
           type: "REST",
           resource_name: "DELETE /admin/sign-out",
           operation_name: "http.request",
           method: "DELETE",
-          path: "/admin/sign-out"
+          path: "/admin/sign-out",
         },
         {
           type: "REST",
           resource_name: "GET /job-queue",
           operation_name: "http.request",
           method: "GET",
-          path: "/job-queue"
+          path: "/job-queue",
         },
         {
           type: "REST",
           resource_name: "* /search",
           operation_name: "http.request",
           method: "*",
-          path: "/search"
+          path: "/search",
         },
         {
           type: "REST",
           resource_name: "GET /multi-method-route",
           operation_name: "http.request",
           method: "GET",
-          path: "/multi-method-route"
+          path: "/multi-method-route",
         },
         {
           type: "REST",
           resource_name: "POST /multi-method-route",
           operation_name: "http.request",
           method: "POST",
-          path: "/multi-method-route"
+          path: "/multi-method-route",
         },
         {
           type: "REST",
           resource_name: "GET /grape/",
           operation_name: "http.request",
           method: "GET",
-          path: "/grape/"
+          path: "/grape/",
         },
         {
           type: "REST",
           resource_name: "GET /grape/param/:name",
           operation_name: "http.request",
           method: "GET",
-          path: "/grape/param/:name"
+          path: "/grape/param/:name",
         },
         {
           type: "REST",
           resource_name: "GET /grape/namespaced/param/:name",
           operation_name: "http.request",
           method: "GET",
-          path: "/grape/namespaced/param/:name"
+          path: "/grape/namespaced/param/:name",
         },
         {
           type: "REST",
           resource_name: "GET /sinatra/",
           operation_name: "http.request",
           method: "GET",
-          path: "/sinatra/"
+          path: "/sinatra/",
         },
         {
           type: "REST",
           resource_name: "GET /sinatra/param/{name}",
           operation_name: "http.request",
           method: "GET",
-          path: "/sinatra/param/{name}"
-        }
+          path: "/sinatra/param/{name}",
+        },
       )
     end
   end

@@ -129,7 +129,7 @@ module Datadog
               logger: logger,
               settings: settings,
               agent_settings: agent_settings,
-              agent_info: agent_info
+              agent_info: agent_info,
             )
           rescue => e
             logger.warn("Failed to initialize Data Streams Monitoring: #{e.class}: #{e.message}")
@@ -218,7 +218,7 @@ module Datadog
               Datadog::SymbolDatabase::Component.build(
                 settings, agent_settings, @logger,
                 telemetry: telemetry,
-                di_active: -> { dynamic_instrumentation&.started? || false },
+                di_active: -> { dynamic_instrumentation&.started? || false }
               )
             end
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
@@ -352,13 +352,13 @@ module Datadog
           # have direct ownership of it.
           old_statsd = [
             runtime_metrics.metrics.statsd,
-            health_metrics.statsd
+            health_metrics.statsd,
           ].compact.uniq
 
           new_statsd = if replacement
             [
               replacement.runtime_metrics.metrics.statsd,
-              replacement.health_metrics.statsd
+              replacement.health_metrics.statsd,
             ].compact.uniq
           else
             []

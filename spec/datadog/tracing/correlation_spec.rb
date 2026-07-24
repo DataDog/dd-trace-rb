@@ -41,7 +41,7 @@ RSpec.describe Datadog::Tracing::Correlation do
           service: default_service,
           span_id: "0",
           trace_id: "0",
-          version: default_version
+          version: default_version,
         )
       end
 
@@ -69,7 +69,7 @@ RSpec.describe Datadog::Tracing::Correlation do
           service: default_service,
           span_id: span_id.to_s,
           trace_id: format_for_correlation(trace_id),
-          version: default_version
+          version: default_version,
         )
       end
 
@@ -160,7 +160,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             service: default_service,
             span_id: "0",
             trace_id: "0",
-            version: default_version
+            version: default_version,
           )
         end
 
@@ -180,7 +180,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             service: service,
             span_id: span_id,
             trace_id: trace_id,
-            version: version
+            version: version,
           )
         end
 
@@ -190,7 +190,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             service: service,
             span_id: span_id.to_s,
             trace_id: format_for_correlation(trace_id),
-            version: version
+            version: version,
           )
         end
 
@@ -223,10 +223,10 @@ RSpec.describe Datadog::Tracing::Correlation do
                 service: "acme-api",
                 version: "1.0",
                 trace_id: format_for_correlation(trace_id),
-                span_id: span_id.to_s
+                span_id: span_id.to_s,
               },
-              ddsource: "ruby"
-            }
+              ddsource: "ruby",
+            },
           )
         end
       end
@@ -250,8 +250,8 @@ RSpec.describe Datadog::Tracing::Correlation do
                 trace_id: "0",
                 span_id: "0",
               },
-              ddsource: "ruby"
-            }
+              ddsource: "ruby",
+            },
           )
         end
       end
@@ -319,7 +319,7 @@ RSpec.describe Datadog::Tracing::Correlation do
                 let(:expected_trace_id) { trace_id }
                 it do
                   is_expected.to have_attribute(
-                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}"
+                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}",
                   )
                 end
               end
@@ -331,7 +331,7 @@ RSpec.describe Datadog::Tracing::Correlation do
                 let(:expected_trace_id) { 0xffffffffffffffff }
                 it do
                   is_expected.to have_attribute(
-                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}"
+                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}",
                   )
                 end
               end
@@ -349,7 +349,7 @@ RSpec.describe Datadog::Tracing::Correlation do
                 let(:expected_trace_id) { trace_id }
                 it do
                   is_expected.to have_attribute(
-                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}"
+                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}",
                   )
                 end
               end
@@ -362,7 +362,7 @@ RSpec.describe Datadog::Tracing::Correlation do
 
                 it do
                   is_expected.to have_attribute(
-                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=ffffffffffffffffaaaaaaaaaaaaaaaa"
+                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=ffffffffffffffffaaaaaaaaaaaaaaaa",
                   )
                 end
               end
@@ -376,7 +376,7 @@ RSpec.describe Datadog::Tracing::Correlation do
 
               it do
                 is_expected.to have_attribute(
-                  "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}"
+                  "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}",
                 )
               end
             end
@@ -388,7 +388,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             let(:trace_id) { nil }
             it do
               is_expected.to have_attribute(
-                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=0"
+                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=0",
               )
             end
           end
@@ -401,7 +401,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             let(:span_id) { Datadog::Tracing::Utils.next_id }
             it do
               is_expected.to have_attribute(
-                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_SPAN_ID}=#{span_id}"
+                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_SPAN_ID}=#{span_id}",
               )
             end
           end
@@ -412,7 +412,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             let(:span_id) { nil }
             it do
               is_expected.to have_attribute(
-                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_SPAN_ID}=0"
+                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_SPAN_ID}=0",
               )
             end
           end
@@ -425,7 +425,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             let(:env) { "dev" }
             it do
               is_expected.to have_attribute(
-                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_ENV}=#{env}"
+                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_ENV}=#{env}",
               )
             end
 
@@ -440,7 +440,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             let(:env) { nil }
             it do
               is_expected.to_not have_attribute(
-                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_ENV}=#{env}"
+                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_ENV}=#{env}",
               )
             end
           end
@@ -453,7 +453,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             let(:service) { "acme-api" }
             it do
               is_expected.to have_attribute(
-                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_SERVICE}=#{service}"
+                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_SERVICE}=#{service}",
               )
             end
 
@@ -468,7 +468,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             let(:service) { nil }
             it do
               is_expected.to_not have_attribute(
-                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_SERVICE}=#{service}"
+                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_SERVICE}=#{service}",
               )
             end
           end
@@ -481,7 +481,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             let(:version) { "0.1" }
             it do
               is_expected.to have_attribute(
-                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_VERSION}=#{version}"
+                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_VERSION}=#{version}",
               )
             end
 
@@ -496,7 +496,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             let(:version) { nil }
             it do
               is_expected.to_not have_attribute(
-                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_VERSION}=#{version}"
+                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_VERSION}=#{version}",
               )
             end
           end

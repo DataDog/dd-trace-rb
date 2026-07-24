@@ -65,8 +65,8 @@ RSpec.describe Datadog::Tracing::ClientIp do
         headers = Datadog::Core::HeaderCollection.from_hash(
           {
             "My-Custom-Header" => "1.11.1",
-            "X-Forwarded-For" => "1.11.1"
-          }
+            "X-Forwarded-For" => "1.11.1",
+          },
         )
 
         expect(span).to_not receive(:set_tag)
@@ -77,7 +77,7 @@ RSpec.describe Datadog::Tracing::ClientIp do
         headers = Datadog::Core::HeaderCollection.from_hash(
           {
             "My-Custom-Header" => "1.11.1",
-          }
+          },
         )
 
         expect(span).to_not receive(:set_tag)
@@ -141,8 +141,8 @@ RSpec.describe Datadog::Tracing::ClientIp do
         Datadog::Core::HeaderCollection.from_hash(
           {
             "Accept" => "*/*",
-            "Authorization" => "Bearer XXXXXX"
-          }
+            "Authorization" => "Bearer XXXXXX",
+          },
         )
       end
 
@@ -166,7 +166,7 @@ RSpec.describe Datadog::Tracing::ClientIp do
       it "is plain ipv6" do
         expect(span).to receive(:set_tag).with(
           Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP,
-          "2001:db8::8a2e:370:7334"
+          "2001:db8::8a2e:370:7334",
         )
         client_ip.set_client_ip_tag(span, remote_ip: "2001:db8::8a2e:370:7334")
       end
@@ -179,7 +179,7 @@ RSpec.describe Datadog::Tracing::ClientIp do
       it "is ipv6 and port" do
         expect(span).to receive(:set_tag).with(
           Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP,
-          "2001:db8::8a2e:370:7334"
+          "2001:db8::8a2e:370:7334",
         )
         client_ip.set_client_ip_tag(span, remote_ip: "[2001:db8::8a2e:370:7334]:8080")
       end
@@ -187,7 +187,7 @@ RSpec.describe Datadog::Tracing::ClientIp do
       it "is ipv6 with interface id" do
         expect(span).to receive(:set_tag).with(
           Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP,
-          "2001:db8::8a2e:370:7334"
+          "2001:db8::8a2e:370:7334",
         )
         client_ip.set_client_ip_tag(span, remote_ip: "2001:db8::8a2e:370:7334%eth0")
       end
@@ -195,7 +195,7 @@ RSpec.describe Datadog::Tracing::ClientIp do
       it "is bracketed ipv6 without port" do
         expect(span).to receive(:set_tag).with(
           Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP,
-          "2001:db8::8a2e:370:7334"
+          "2001:db8::8a2e:370:7334",
         )
         client_ip.set_client_ip_tag(span, remote_ip: "[2001:db8::8a2e:370:7334]")
       end

@@ -34,7 +34,7 @@ module Datadog
                 host: hash[:host],
                 port: hash[:port],
                 db: hash[:db],
-                scheme: hash[:scheme]
+                scheme: hash[:scheme],
               }
             end
 

@@ -98,7 +98,7 @@ module Datadog
 
           root_span.set_tag(
             Tracing::Metadata::Ext::Sampling::TAG_AGENT_RATE,
-            trace.agent_sample_rate
+            trace.agent_sample_rate,
           )
         end
 
@@ -107,7 +107,7 @@ module Datadog
 
           root_span.set_tag(
             Tracing::Metadata::Ext::NET::TAG_HOSTNAME,
-            trace.hostname
+            trace.hostname,
           )
         end
 
@@ -117,7 +117,7 @@ module Datadog
 
           root_span.set_tag(
             Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE,
-            format("%.6f", (rate * 1e6).round / 1e6).sub(/\.?0+\z/, "")
+            format("%.6f", (rate * 1e6).round / 1e6).sub(/\.?0+\z/, ""),
           )
         end
 
@@ -126,7 +126,7 @@ module Datadog
 
           root_span.set_tag(
             Core::Runtime::Ext::TAG_LANG,
-            trace.lang
+            trace.lang,
           )
         end
 
@@ -135,7 +135,7 @@ module Datadog
 
           root_span.set_tag(
             Tracing::Metadata::Ext::Distributed::TAG_ORIGIN,
-            trace.origin
+            trace.origin,
           )
         end
 
@@ -150,7 +150,7 @@ module Datadog
 
           root_span.set_tag(
             Tracing::Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE,
-            trace.rate_limiter_rate
+            trace.rate_limiter_rate,
           )
         end
 
@@ -159,7 +159,7 @@ module Datadog
 
           root_span.set_tag(
             Tracing::Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE,
-            trace.rule_sample_rate
+            trace.rule_sample_rate,
           )
         end
 
@@ -168,7 +168,7 @@ module Datadog
 
           root_span.set_tag(
             Core::Runtime::Ext::TAG_ID,
-            trace.runtime_id
+            trace.runtime_id,
           )
         end
 
@@ -177,7 +177,7 @@ module Datadog
 
           root_span.set_tag(
             Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE,
-            trace.sample_rate
+            trace.sample_rate,
           )
         end
 
@@ -192,7 +192,7 @@ module Datadog
 
           root_span.set_metric(
             Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY,
-            trace.sampling_priority
+            trace.sampling_priority,
           )
         end
 
@@ -233,7 +233,7 @@ module Datadog
 
           first_span.set_tag(
             Core::Environment::Ext::TAG_PROCESS_TAGS,
-            Core::Environment::Process.serialized
+            Core::Environment::Process.serialized,
           )
         end
 

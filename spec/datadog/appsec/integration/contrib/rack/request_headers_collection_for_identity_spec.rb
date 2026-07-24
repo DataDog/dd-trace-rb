@@ -65,7 +65,7 @@ RSpec.describe "Rack-request headers collection for identity.set_user" do
             )
 
             [200, {"Content-Type" => "text/html"}, ["OK"]]
-          end
+          end,
         )
       end
 
@@ -83,7 +83,7 @@ RSpec.describe "Rack-request headers collection for identity.set_user" do
     before do
       headers = {
         "HTTP_UNKNOWNHEADER" => "something",
-        "HTTP_CF_CONNECTING_IPV6" => "2001:db8:3333:4444:5555:6666:1.2.3.4"
+        "HTTP_CF_CONNECTING_IPV6" => "2001:db8:3333:4444:5555:6666:1.2.3.4",
       }
       get("/with-identity-set-user", {}, headers)
     end
@@ -93,7 +93,7 @@ RSpec.describe "Rack-request headers collection for identity.set_user" do
 
       expect(http_service_entry_span.tags).not_to have_key("http.request.headers.unknownheader")
       expect(http_service_entry_span.tags).to include(
-        "http.request.headers.cf-connecting-ipv6" => "2001:db8:3333:4444:5555:6666:1.2.3.4"
+        "http.request.headers.cf-connecting-ipv6" => "2001:db8:3333:4444:5555:6666:1.2.3.4",
       )
     end
   end
@@ -103,7 +103,7 @@ RSpec.describe "Rack-request headers collection for identity.set_user" do
       headers = {
         "HTTP_UNKNOWNHEADER" => "something",
         "CONTENT_TYPE" => "text/html",
-        "HTTP_CF_CONNECTING_IPV6" => "2001:db8:3333:4444:5555:6666:1.2.3.4"
+        "HTTP_CF_CONNECTING_IPV6" => "2001:db8:3333:4444:5555:6666:1.2.3.4",
       }
       get("/without-identity-set-user", {}, headers)
     end
@@ -119,7 +119,7 @@ RSpec.describe "Rack-request headers collection for identity.set_user" do
       expect(response).to be_ok
 
       expect(http_service_entry_span.tags).to include(
-        "http.request.headers.content-type" => "text/html"
+        "http.request.headers.content-type" => "text/html",
       )
     end
   end
@@ -134,7 +134,7 @@ RSpec.describe "Rack-request headers collection for identity.set_user" do
 
       expect(last_response).to be_ok
       expect(http_service_entry_span.tags).to include(
-        "http.request.headers.cf-connecting-ipv6" => "2001:db8:3333:4444:5555:6666:1.2.3.4"
+        "http.request.headers.cf-connecting-ipv6" => "2001:db8:3333:4444:5555:6666:1.2.3.4",
       )
 
       clear_traces!

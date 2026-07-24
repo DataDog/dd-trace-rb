@@ -27,7 +27,7 @@ module Datadog
 
                   if context
                     persistent_data = {
-                      "graphql.server.all_resolvers" => gateway_multiplex.arguments
+                      "graphql.server.all_resolvers" => gateway_multiplex.arguments,
                     }
 
                     result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
@@ -37,7 +37,7 @@ module Datadog
                       TraceKeeper.keep!(context.trace) if result.keep?
 
                       context.events.push(
-                        AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                        AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                       )
 
                       AppSec::ActionsHandler.handle(result.actions)

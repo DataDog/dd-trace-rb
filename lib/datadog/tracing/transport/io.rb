@@ -21,7 +21,7 @@ module Datadog
         def default(options = {})
           new(
             options.fetch(:out, $stdout),
-            options.fetch(:encoder, Core::Encoding::JSONEncoder)
+            options.fetch(:encoder, Core::Encoding::JSONEncoder),
           )
         end
       end

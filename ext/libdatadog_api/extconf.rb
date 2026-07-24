@@ -6,7 +6,7 @@ require_relative "../libdatadog_extconf_helpers"
 
 def skip_building_extension!(reason)
   $stderr.puts(
-    "WARN: Skipping build of libdatadog_api (#{reason}). Some functionality will not be available."
+    "WARN: Skipping build of libdatadog_api (#{reason}). Some functionality will not be available.",
   )
 
   fail_install_if_missing_extension = ENV["DD_FAIL_INSTALL_IF_MISSING_EXTENSION"].to_s.strip.downcase == "true"

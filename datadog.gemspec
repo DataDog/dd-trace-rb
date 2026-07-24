@@ -94,6 +94,6 @@ Gem::Specification.new do |spec|
 
   spec.extensions = [
     "ext/datadog_profiling_native_extension/extconf.rb",
-    "ext/libdatadog_api/extconf.rb"
+    "ext/libdatadog_api/extconf.rb",
   ]
 end

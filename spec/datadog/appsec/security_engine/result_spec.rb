@@ -14,7 +14,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
           timeout: true,
           duration_ns: 400,
           duration_ext_ns: 500,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 

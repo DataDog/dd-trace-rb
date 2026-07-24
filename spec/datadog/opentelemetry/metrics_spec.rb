@@ -245,7 +245,7 @@ RSpec.describe "OpenTelemetry Metrics Integration", ruby: ">= 3.1" do
           "OTEL_EXPORTER_OTLP_ENDPOINT" => "http://general:4317",
           "OTEL_EXPORTER_OTLP_PROTOCOL" => "http/protobuf",
           "OTEL_EXPORTER_OTLP_TIMEOUT" => "8000",
-          "OTEL_EXPORTER_OTLP_HEADERS" => "general=value"
+          "OTEL_EXPORTER_OTLP_HEADERS" => "general=value",
         }
       end
 
@@ -301,7 +301,7 @@ RSpec.describe "OpenTelemetry Metrics Integration", ruby: ">= 3.1" do
 
     it "parses multiple headers correctly" do
       setup_metrics(
-        "OTEL_EXPORTER_OTLP_HEADERS" => "api-key=secret123,other-config-value=test-value"
+        "OTEL_EXPORTER_OTLP_HEADERS" => "api-key=secret123,other-config-value=test-value",
       )
       headers = exporter.instance_variable_get(:@headers)
       expect(headers["api-key"]).to eq("secret123")
@@ -310,14 +310,14 @@ RSpec.describe "OpenTelemetry Metrics Integration", ruby: ">= 3.1" do
 
     it "returns empty hash when headers are malformed" do
       setup_metrics(
-        "OTEL_EXPORTER_OTLP_METRICS_HEADERS" => "api-key=secret123,malformed"
+        "OTEL_EXPORTER_OTLP_METRICS_HEADERS" => "api-key=secret123,malformed",
       )
       expect(metrics_settings.headers).to eq({})
     end
 
     it "returns empty hash when header has empty key or value" do
       setup_metrics(
-        "OTEL_EXPORTER_OTLP_METRICS_HEADERS" => "api-key=secret123,=value"
+        "OTEL_EXPORTER_OTLP_METRICS_HEADERS" => "api-key=secret123,=value",
       )
       expect(metrics_settings.headers).to eq({})
     end
@@ -335,7 +335,7 @@ RSpec.describe "OpenTelemetry Metrics Integration", ruby: ">= 3.1" do
 
     it "defaults to HTTP when protocol is set to grpc" do
       setup_metrics(
-        "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL" => "grpc"
+        "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL" => "grpc",
       )
       expect(metrics_settings.protocol).to eq("http/protobuf")
       # Should use HTTP port (4318) and path (/v1/metrics) even though grpc was specified
@@ -344,7 +344,7 @@ RSpec.describe "OpenTelemetry Metrics Integration", ruby: ">= 3.1" do
 
     it "defaults to delta when temporality preference is invalid" do
       setup_metrics(
-        "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE" => "invalid"
+        "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE" => "invalid",
       )
       expect(metrics_settings.temporality_preference).to eq("delta")
     end

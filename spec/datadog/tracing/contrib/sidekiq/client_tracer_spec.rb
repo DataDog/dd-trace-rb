@@ -75,7 +75,7 @@ RSpec.describe "ClientTracerTest" do
           Class.new do
             def self.do_work
             end
-          end
+          end,
         )
       end
 

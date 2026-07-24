@@ -32,7 +32,7 @@ module Datadog
 
               def span_options
                 {
-                  type: Ext::SPAN_TYPE_CACHE
+                  type: Ext::SPAN_TYPE_CACHE,
                 }
               end
 
@@ -42,7 +42,7 @@ module Datadog
                 "cache_read.active_support" => {resource: Ext::RESOURCE_CACHE_GET},
                 "cache_read_multi.active_support" => {resource: Ext::RESOURCE_CACHE_MGET, multi_key: true},
                 "cache_write.active_support" => {resource: Ext::RESOURCE_CACHE_SET},
-                "cache_write_multi.active_support" => {resource: Ext::RESOURCE_CACHE_MSET, multi_key: true}
+                "cache_write_multi.active_support" => {resource: Ext::RESOURCE_CACHE_MSET, multi_key: true},
               }.freeze
 
               def trace?(event, payload)

@@ -8,7 +8,7 @@ RSpec.describe Datadog::AppSec::Metrics::Exporter do
     let(:span) { instance_double(Datadog::Tracing::SpanOperation) }
     let(:empty_store) do
       Datadog::AppSec::Metrics::Collector::Store.new(
-        evals: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0, downstream_requests: 0
+        evals: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0, downstream_requests: 0,
       )
     end
 
@@ -29,7 +29,7 @@ RSpec.describe Datadog::AppSec::Metrics::Exporter do
     context "when waf metrics present" do
       let(:waf_store) do
         Datadog::AppSec::Metrics::Collector::Store.new(
-          evals: 10, timeouts: 5, duration_ns: 1000, duration_ext_ns: 2000, downstream_requests: 0
+          evals: 10, timeouts: 5, duration_ns: 1000, duration_ext_ns: 2000, downstream_requests: 0,
         )
       end
 
@@ -45,7 +45,7 @@ RSpec.describe Datadog::AppSec::Metrics::Exporter do
     context "when RASP metrics present" do
       let(:rasp_store) do
         Datadog::AppSec::Metrics::Collector::Store.new(
-          evals: 10, timeouts: 5, duration_ns: 1000, duration_ext_ns: 2000, downstream_requests: 0
+          evals: 10, timeouts: 5, duration_ns: 1000, duration_ext_ns: 2000, downstream_requests: 0,
         )
       end
 
@@ -62,7 +62,7 @@ RSpec.describe Datadog::AppSec::Metrics::Exporter do
     context "when RASP metrics present with no timeouts" do
       let(:rasp_store) do
         Datadog::AppSec::Metrics::Collector::Store.new(
-          evals: 3, timeouts: 0, duration_ns: 1000, duration_ext_ns: 2000, downstream_requests: 0
+          evals: 3, timeouts: 0, duration_ns: 1000, duration_ext_ns: 2000, downstream_requests: 0,
         )
       end
 
@@ -78,7 +78,7 @@ RSpec.describe Datadog::AppSec::Metrics::Exporter do
     context "when RASP downstream requests present" do
       let(:rasp_store) do
         Datadog::AppSec::Metrics::Collector::Store.new(
-          evals: 3, timeouts: 0, duration_ns: 1000, duration_ext_ns: 2000, downstream_requests: 2
+          evals: 3, timeouts: 0, duration_ns: 1000, duration_ext_ns: 2000, downstream_requests: 2,
         )
       end
 
@@ -113,7 +113,7 @@ RSpec.describe Datadog::AppSec::Metrics::Exporter do
           content_type_invalid: 1,
           content_length_missing: 0,
           content_length_too_big: 2,
-          content_exceed_content_length: 3
+          content_exceed_content_length: 3,
         )
       end
 

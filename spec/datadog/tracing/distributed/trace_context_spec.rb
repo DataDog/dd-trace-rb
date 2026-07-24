@@ -70,7 +70,7 @@ RSpec.shared_examples "Trace Context distributed format" do
               Datadog::Tracing::TraceDigest.new(
                 trace_id: 0xC0FFEE,
                 span_id: 0xBEE,
-                trace_sampling_priority: sampling_priority
+                trace_sampling_priority: sampling_priority,
               )
             end
 
@@ -90,7 +90,7 @@ RSpec.shared_examples "Trace Context distributed format" do
               trace_id: 0xC0FFEE,
               span_id: 0xBEE,
               trace_sampling_priority: 1,
-              trace_origin: "synthetics"
+              trace_origin: "synthetics",
             )
           end
 
@@ -103,7 +103,7 @@ RSpec.shared_examples "Trace Context distributed format" do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xC0FFEE,
             span_id: 0xBEE,
-            trace_origin: origin
+            trace_origin: origin,
           )
         end
 
@@ -119,7 +119,7 @@ RSpec.shared_examples "Trace Context distributed format" do
             ";",
             "~",
             "\u007F", # First upper invalid character
-            "\u{10FFFF}" # Last unicode character
+            "\u{10FFFF}", # Last unicode character
           ].each do |character|
             context character.inspect do
               let(:origin) { character }
@@ -146,7 +146,7 @@ RSpec.shared_examples "Trace Context distributed format" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
-            span_id: 0xbbbbbbbbbbbbbbbb
+            span_id: 0xbbbbbbbbbbbbbbbb,
           )
         end
 
@@ -162,7 +162,7 @@ RSpec.shared_examples "Trace Context distributed format" do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xC0FFEE,
             span_id: 0xBEE,
-            trace_distributed_tags: tags
+            trace_distributed_tags: tags,
           )
         end
 
@@ -216,7 +216,7 @@ RSpec.shared_examples "Trace Context distributed format" do
             ",",
             "=",
             "\u007F", # First upper invalid character
-            "\u{10FFFF}" # Last unicode character
+            "\u{10FFFF}", # Last unicode character
           ].each do |character|
             context character.inspect do
               let(:tags) { {character => "value"} }
@@ -233,7 +233,7 @@ RSpec.shared_examples "Trace Context distributed format" do
             ",",
             ";",
             "~", # First upper invalid character (\u007E)
-            "\u{10FFFF}" # Last unicode character
+            "\u{10FFFF}", # Last unicode character
           ].each do |character|
             context character.inspect do
               let(:tags) { {"key" => character.dup} }
@@ -328,7 +328,7 @@ RSpec.shared_examples "Trace Context distributed format" do
             let(:options) do
               super().merge(
                 trace_origin: "origin",
-                trace_state_unknown_fields: "future=field;large:#{"x" * 300};small:ok;"
+                trace_state_unknown_fields: "future=field;large:#{"x" * 300};small:ok;",
               )
             end
 
@@ -343,7 +343,7 @@ RSpec.shared_examples "Trace Context distributed format" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xC0FFEE,
-            span_id: nil
+            span_id: nil,
           )
         end
 
@@ -410,7 +410,7 @@ RSpec.shared_examples "Trace Context distributed format" do
       let(:data) do
         {
           prepare_key["traceparent"] => "00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00",
-          prepare_key["tracestate"] => "dd=t.tid:cccccccccccccccc"
+          prepare_key["tracestate"] => "dd=t.tid:cccccccccccccccc",
         }
       end
 
@@ -435,7 +435,7 @@ RSpec.shared_examples "Trace Context distributed format" do
       let(:data) do
         {
           prepare_key["traceparent"] => "00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00",
-          prepare_key["tracestate"] => ""
+          prepare_key["tracestate"] => "",
         }
       end
 

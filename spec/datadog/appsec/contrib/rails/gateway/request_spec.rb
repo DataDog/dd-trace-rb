@@ -13,8 +13,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Request do
       {
         :method => "POST",
         :input => "name=john",
-        "CONTENT_TYPE" => "application/x-www-form-urlencoded"
-      }
+        "CONTENT_TYPE" => "application/x-www-form-urlencoded",
+      },
     )
   end
 

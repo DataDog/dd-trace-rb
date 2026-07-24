@@ -31,7 +31,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
           duration: 100,
           keep?: false,
           timeout?: false,
-          input_truncated?: false
+          input_truncated?: false,
         )
       end
 
@@ -105,13 +105,13 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
           status: :match,
           events: [],
           actions: {
-            "block_request" => {"grpc_status_code" => "10", "status_code" => "403", "type" => "auto"}
+            "block_request" => {"grpc_status_code" => "10", "status_code" => "403", "type" => "auto"},
           },
           attributes: {},
           duration: 10,
           keep?: false,
           timeout?: false,
-          input_truncated?: false
+          input_truncated?: false,
         )
       end
       let(:result) { runner.run({"addr.a" => "a"}, {}, 1_000) }
@@ -123,7 +123,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         expect(result).not_to be_input_truncated
         expect(result.events).to eq([])
         expect(result.actions).to eq(
-          {"block_request" => {"grpc_status_code" => "10", "status_code" => "403", "type" => "auto"}}
+          {"block_request" => {"grpc_status_code" => "10", "status_code" => "403", "type" => "auto"}},
         )
         expect(result.attributes).to eq({})
         expect(result.duration_ns).to eq(10)
@@ -137,13 +137,13 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
             status: :match,
             events: [],
             actions: {
-              "block_request" => {"grpc_status_code" => "10", "status_code" => "403", "type" => "auto"}
+              "block_request" => {"grpc_status_code" => "10", "status_code" => "403", "type" => "auto"},
             },
             attributes: {},
             duration: 10,
             keep?: false,
             timeout?: false,
-            input_truncated?: true
+            input_truncated?: true,
           )
         end
 
@@ -170,7 +170,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
           duration: 100,
           keep?: true,
           timeout?: true,
-          input_truncated?: false
+          input_truncated?: false,
         )
       end
       let(:result) { runner.run({"addr.a" => "a"}, {}, 1_000) }

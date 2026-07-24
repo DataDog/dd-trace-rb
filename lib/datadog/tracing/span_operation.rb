@@ -346,7 +346,7 @@ module Datadog
           resource: @resource,
           service: @service,
           trace_id: @trace_id,
-          type: @type
+          type: @type,
         }
 
         if stopped?
@@ -535,7 +535,7 @@ module Datadog
           trace_id: @trace_id,
           links: @links,
           events: @span_events,
-          service_entry: parent.nil? || (service && parent.service != service)
+          service_entry: parent.nil? || (service && parent.service != service),
         )
       end
 

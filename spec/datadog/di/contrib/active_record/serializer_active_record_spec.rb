@@ -45,7 +45,7 @@ RSpec.describe Datadog::DI::Serializer do
       database: ENV.fetch("TEST_MYSQL_DB", "mysql"),
       host: ENV.fetch("TEST_MYSQL_HOST", "127.0.0.1"),
       password: ENV.fetch("TEST_MYSQL_ROOT_PASSWORD", "root"),
-      port: ENV.fetch("TEST_MYSQL_PORT", "3306")
+      port: ENV.fetch("TEST_MYSQL_PORT", "3306"),
     }
   end
 
@@ -99,7 +99,7 @@ RSpec.describe Datadog::DI::Serializer do
       {name: "AR model with filled out attributes",
        input: -> {
                 SerializerRailsSpecTestBasicModel.new(
-                  title: "Hello, world!", created_at: Time.utc(2020, 1, 2), updated_at: Time.utc(2020, 1, 3)
+                  title: "Hello, world!", created_at: Time.utc(2020, 1, 2), updated_at: Time.utc(2020, 1, 3),
                 )
               },
        expected: {type: "SerializerRailsSpecTestBasicModel", entries: [[
@@ -117,7 +117,7 @@ RSpec.describe Datadog::DI::Serializer do
       {name: "AR model with filled out attributes and persisted",
        input: -> {
                 SerializerRailsSpecTestBasicModel.create!(
-                  title: "Hello, world!", created_at: Time.utc(2020, 1, 2), updated_at: Time.utc(2020, 1, 3)
+                  title: "Hello, world!", created_at: Time.utc(2020, 1, 2), updated_at: Time.utc(2020, 1, 3),
                 )
               },
        expected: {type: "SerializerRailsSpecTestBasicModel", entries: [[

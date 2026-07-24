@@ -33,9 +33,9 @@ RSpec.describe Datadog::DataStreams::Transport::Stats do
               "Start" => 1000000000,
               "Duration" => 10000000000,
               "Stats" => [],
-              "Backlogs" => []
-            }
-          ]
+              "Backlogs" => [],
+            },
+          ],
         }
       end
 

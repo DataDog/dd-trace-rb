@@ -28,10 +28,10 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
       flag_metadata: {
         "allocationKey" => "4-for-john-doe",
         "variationType" => "number",
-        "doLog" => true
+        "doLog" => true,
       },
       log?: true,
-      error?: false
+      error?: false,
     )
   end
 
@@ -76,7 +76,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
           allocation_key: "4-for-john-doe",
           flag_metadata: {},
           log?: false,
-          error?: true
+          error?: true,
         )
       end
 

@@ -67,7 +67,7 @@ module Datadog
               else
                 Datadog.logger.warn(
                   "Sql comment propagation with `full` mode is aborted, because tracing is disabled. " \
-                  "Please set `Datadog.configuration.tracing.enabled = true` to continue."
+                  "Please set `Datadog.configuration.tracing.enabled = true` to continue.",
                 )
               end
             end

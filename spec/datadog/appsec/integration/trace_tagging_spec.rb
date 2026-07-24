@@ -26,16 +26,16 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                 "inputs" => [
                   {
                     "address" => "server.request.headers.no_cookies",
-                    "key_path" => ["user-agent"]
-                  }
+                    "key_path" => ["user-agent"],
+                  },
                 ],
-                "regex" => '^Arachni\/v'
+                "regex" => '^Arachni\/v',
               },
-              "operator" => "match_regex"
-            }
+              "operator" => "match_regex",
+            },
           ],
-          "on_match" => ["block"]
-        }
+          "on_match" => ["block"],
+        },
       ],
       "rules_compat" => [
         {
@@ -48,13 +48,13 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                 "inputs" => [
                   {
                     "address" => "server.request.headers.no_cookies",
-                    "key_path" => ["user-agent"]
-                  }
+                    "key_path" => ["user-agent"],
+                  },
                 ],
-                "regex" => '^TraceTagging\/v1'
+                "regex" => '^TraceTagging\/v1',
               },
-              "operator" => "match_regex"
-            }
+              "operator" => "match_regex",
+            },
           ],
           "output" => {
             "event" => false,
@@ -63,11 +63,11 @@ RSpec.describe "Blocking with deny and pass list configuration" do
               "_dd.appsec.trace.integer" => {"value" => 1},
               "_dd.appsec.trace.agent" => {
                 "address" => "server.request.headers.no_cookies",
-                "key_path" => ["user-agent"]
-              }
-            }
+                "key_path" => ["user-agent"],
+              },
+            },
           },
-          "on_match" => []
+          "on_match" => [],
         },
         {
           "id" => "ttr-000-002",
@@ -79,13 +79,13 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                 "inputs" => [
                   {
                     "address" => "server.request.headers.no_cookies",
-                    "key_path" => ["user-agent"]
-                  }
+                    "key_path" => ["user-agent"],
+                  },
                 ],
-                "regex" => '^TraceTagging\/v2'
+                "regex" => '^TraceTagging\/v2',
               },
-              "operator" => "match_regex"
-            }
+              "operator" => "match_regex",
+            },
           ],
           "output" => {
             "event" => false,
@@ -94,11 +94,11 @@ RSpec.describe "Blocking with deny and pass list configuration" do
               "_dd.appsec.trace.integer" => {"value" => 2},
               "_dd.appsec.trace.agent" => {
                 "address" => "server.request.headers.no_cookies",
-                "key_path" => ["user-agent"]
-              }
-            }
+                "key_path" => ["user-agent"],
+              },
+            },
           },
-          "on_match" => []
+          "on_match" => [],
         },
         {
           "id" => "ttr-000-003",
@@ -110,13 +110,13 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                 "inputs" => [
                   {
                     "address" => "server.request.headers.no_cookies",
-                    "key_path" => ["user-agent"]
-                  }
+                    "key_path" => ["user-agent"],
+                  },
                 ],
-                "regex" => '^TraceTagging\/v3'
+                "regex" => '^TraceTagging\/v3',
               },
-              "operator" => "match_regex"
-            }
+              "operator" => "match_regex",
+            },
           ],
           "output" => {
             "event" => true,
@@ -125,11 +125,11 @@ RSpec.describe "Blocking with deny and pass list configuration" do
               "_dd.appsec.trace.integer" => {"value" => 3},
               "_dd.appsec.trace.agent" => {
                 "address" => "server.request.headers.no_cookies",
-                "key_path" => ["user-agent"]
-              }
-            }
+                "key_path" => ["user-agent"],
+              },
+            },
           },
-          "on_match" => []
+          "on_match" => [],
         },
         {
           "id" => "ttr-000-004",
@@ -141,13 +141,13 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                 "inputs" => [
                   {
                     "address" => "server.request.headers.no_cookies",
-                    "key_path" => ["user-agent"]
-                  }
+                    "key_path" => ["user-agent"],
+                  },
                 ],
-                "regex" => '^TraceTagging\/v4'
+                "regex" => '^TraceTagging\/v4',
               },
-              "operator" => "match_regex"
-            }
+              "operator" => "match_regex",
+            },
           ],
           "output" => {
             "event" => true,
@@ -156,14 +156,14 @@ RSpec.describe "Blocking with deny and pass list configuration" do
               "_dd.appsec.trace.integer" => {"value" => 4},
               "_dd.appsec.trace.agent" => {
                 "address" => "server.request.headers.no_cookies",
-                "key_path" => ["user-agent"]
-              }
-            }
+                "key_path" => ["user-agent"],
+              },
+            },
           },
-          "on_match" => []
-        }
+          "on_match" => [],
+        },
       ],
-      "processors" => []
+      "processors" => [],
     }
   end
 
@@ -227,7 +227,7 @@ RSpec.describe "Blocking with deny and pass list configuration" do
       expect(http_service_entry_span.tags).to include(
         "_sampling_priority_v1" => 1.0,
         "_dd.appsec.trace.integer" => 1.0,
-        "_dd.appsec.trace.agent" => "TraceTagging/v1"
+        "_dd.appsec.trace.agent" => "TraceTagging/v1",
       )
     end
   end
@@ -242,7 +242,7 @@ RSpec.describe "Blocking with deny and pass list configuration" do
         "_sampling_priority_v1" => 2.0,
         "_dd.appsec.trace.integer" => 2.0,
         "_dd.appsec.trace.agent" => "TraceTagging/v2",
-        "http.request.headers.via" => "test"
+        "http.request.headers.via" => "test",
       )
     end
   end
@@ -257,7 +257,7 @@ RSpec.describe "Blocking with deny and pass list configuration" do
         "_sampling_priority_v1" => 2.0,
         "_dd.appsec.trace.integer" => 3.0,
         "_dd.appsec.trace.agent" => "TraceTagging/v3",
-        "http.request.headers.via" => "test"
+        "http.request.headers.via" => "test",
       )
     end
   end
@@ -272,7 +272,7 @@ RSpec.describe "Blocking with deny and pass list configuration" do
       expect(http_service_entry_span.tags).to include(
         "_sampling_priority_v1" => 1.0,
         "_dd.appsec.trace.integer" => 4.0,
-        "_dd.appsec.trace.agent" => "TraceTagging/v4"
+        "_dd.appsec.trace.agent" => "TraceTagging/v4",
       )
     end
   end

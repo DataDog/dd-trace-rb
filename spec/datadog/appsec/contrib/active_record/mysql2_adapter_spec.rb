@@ -55,7 +55,7 @@ RSpec.describe "AppSec ActiveRecord integration for Mysql2 adapter" do
       database: ENV.fetch("TEST_MYSQL_DB", "mysql"),
       host: ENV.fetch("TEST_MYSQL_HOST", "127.0.0.1"),
       password: ENV.fetch("TEST_MYSQL_ROOT_PASSWORD", "root"),
-      port: ENV.fetch("TEST_MYSQL_PORT", "3306")
+      port: ENV.fetch("TEST_MYSQL_PORT", "3306"),
     }
   end
 
@@ -106,10 +106,10 @@ RSpec.describe "AppSec ActiveRecord integration for Mysql2 adapter" do
           {},
           {
             "server.db.statement" => "SELECT `users`.* FROM `users` WHERE `users`.`name` = 'Bob'",
-            "server.db.system" => "mysql2"
+            "server.db.system" => "mysql2",
           },
-          Datadog.configuration.appsec.waf_timeout
-        ).and_call_original
+          Datadog.configuration.appsec.waf_timeout,
+        ).and_call_original,
       )
 
       User.where(name: "Bob").to_a
@@ -122,10 +122,10 @@ RSpec.describe "AppSec ActiveRecord integration for Mysql2 adapter" do
           {},
           {
             "server.db.statement" => "SELECT * FROM users WHERE name = 'Bob'",
-            "server.db.system" => "mysql2"
+            "server.db.system" => "mysql2",
           },
-          Datadog.configuration.appsec.waf_timeout
-        ).and_call_original
+          Datadog.configuration.appsec.waf_timeout,
+        ).and_call_original,
       )
 
       User.find_by_sql("SELECT * FROM users WHERE name = 'Bob'").to_a
@@ -141,7 +141,7 @@ RSpec.describe "AppSec ActiveRecord integration for Mysql2 adapter" do
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 

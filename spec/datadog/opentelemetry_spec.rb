@@ -185,13 +185,13 @@ RSpec.describe Datadog::OpenTelemetry do
               [
                 :producer,
                 {"messaging.system" => "Kafka", "messaging.operation" => "Receive"},
-                "kafka.receive"
+                "kafka.receive",
               ],
               [:producer, {}, "producer"],
               [
                 :consumer,
                 {"messaging.system" => "Kafka", "messaging.operation" => "Receive"},
-                "kafka.receive"
+                "kafka.receive",
               ],
               [:consumer, {}, "consumer"],
               [:client, {"http.request.method" => "GET"}, "http.client.request"],
@@ -203,7 +203,7 @@ RSpec.describe Datadog::OpenTelemetry do
               [
                 :client,
                 {"faas.invoked_provider" => "aws", "faas.invoked_name" => "My-Function"},
-                "aws.my-function.invoke"
+                "aws.my-function.invoke",
               ],
               [:client, {"network.protocol.name" => "Amqp"}, "amqp.client.request"],
               [:client, {}, "client.request"],
@@ -360,7 +360,7 @@ RSpec.describe Datadog::OpenTelemetry do
         let(:sc1) do
           OpenTelemetry::Trace::SpanContext.new(
             trace_id: ["000000000000006d5b953ca4d9c834ab"].pack("H*"),
-            span_id: ["0000000fcec36d3f"].pack("H*")
+            span_id: ["0000000fcec36d3f"].pack("H*"),
           )
         end
         let(:sc2) do
@@ -368,7 +368,7 @@ RSpec.describe Datadog::OpenTelemetry do
             trace_id: ["0000000000000000000000000012d666"].pack("H*"),
             span_id: ["000000000000000a"].pack("H*"),
             trace_flags: OpenTelemetry::Trace::TraceFlags::SAMPLED,
-            tracestate: OpenTelemetry::Trace::Tracestate.from_string("otel=blahxd")
+            tracestate: OpenTelemetry::Trace::Tracestate.from_string("otel=blahxd"),
           )
         end
         let(:links) do
@@ -546,13 +546,13 @@ RSpec.describe Datadog::OpenTelemetry do
             [
               :producer,
               {"messaging.system" => "Kafka", "messaging.operation" => "Receive"},
-              "kafka.receive"
+              "kafka.receive",
             ],
             [:producer, {}, "producer"],
             [
               :consumer,
               {"messaging.system" => "Kafka", "messaging.operation" => "Receive"},
-              "kafka.receive"
+              "kafka.receive",
             ],
             [:consumer, {}, "consumer"],
             [:client, {"http.request.method" => "GET"}, "http.client.request"],
@@ -564,7 +564,7 @@ RSpec.describe Datadog::OpenTelemetry do
             [
               :client,
               {"faas.invoked_provider" => "aws", "faas.invoked_name" => "My-Function"},
-              "aws.my-function.invoke"
+              "aws.my-function.invoke",
             ],
             [:client, {"network.protocol.name" => "Amqp"}, "amqp.client.request"],
             [:client, {}, "client.request"],
@@ -628,12 +628,12 @@ RSpec.describe Datadog::OpenTelemetry do
 
             expect(span.events[0].attributes.keys).to match_array(
               ["exception.message", "exception.type",
-                "exception.stacktrace"]
+                "exception.stacktrace"],
             )
             expect(span.events[0].attributes["exception.message"]).to eq("Error")
             expect(span.events[0].attributes["exception.type"]).to eq("StandardError")
             expect(span.events[0].attributes["exception.stacktrace"]).to include(
-              "full_message': Error (StandardError)"
+              "full_message': Error (StandardError)",
             )
             expect(span).to_not have_error
             expect(span).to have_error_message("Error")
@@ -936,7 +936,7 @@ RSpec.describe Datadog::OpenTelemetry do
         context "with TraceContext headers" do
           let(:carrier) do
             {
-              "traceparent" => "00-11111111111111111111111111111111-2222222222222222-01"
+              "traceparent" => "00-11111111111111111111111111111111-2222222222222222-01",
             }
           end
 
@@ -1045,7 +1045,7 @@ RSpec.describe Datadog::OpenTelemetry do
           # Get all values
           expect(otel_baggage.values(context: context)).to include(
             "key1" => "value1",
-            "key2" => "value2"
+            "key2" => "value2",
           )
         end
 

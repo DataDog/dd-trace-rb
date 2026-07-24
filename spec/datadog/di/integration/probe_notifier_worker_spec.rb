@@ -22,7 +22,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       settings, logger,
       agent_settings: agent_settings,
       probe_repository: probe_repository,
-      probe_notification_builder: probe_notification_builder,
+      probe_notification_builder: probe_notification_builder
     )
   end
 
@@ -130,11 +130,11 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
            probeVersion: 0,
            runtimeId: "test runtime id",
            status: "INSTALLED",
-         }
+         },
        },
        message: "test message",
        service: "rspec",
-       timestamp: 1234567890,}.freeze
+       timestamp: 1234567890}.freeze
     end
 
     it "sends expected payload" do

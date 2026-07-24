@@ -172,7 +172,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
   context "when user successfully signed up and immediately login" do
     before do
       form_data = {
-        user: {username: "JohnDoe", email: "john.doe@example.com", password: "123456", password_confirmation: "123456"}
+        user: {username: "JohnDoe", email: "john.doe@example.com", password: "123456", password_confirmation: "123456"},
       }
 
       post("/users", form_data)
@@ -190,7 +190,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
         "appsec.events.users.signup.usr.login" => "john.doe@example.com",
         "_dd.appsec.events.users.signup.auto.mode" => "identification",
         "_dd.appsec.usr.login" => "john.doe@example.com",
-        "_dd.appsec.usr.id" => "1"
+        "_dd.appsec.usr.id" => "1",
       )
     end
   end
@@ -198,7 +198,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
   context "when user successfully signed up and immediately login, but ID is unavailable" do
     before do
       form_data = {
-        user: {username: "JohnDoe", email: "john.doe@example.com", password: "123456", password_confirmation: "123456"}
+        user: {username: "JohnDoe", email: "john.doe@example.com", password: "123456", password_confirmation: "123456"},
       }
 
       post("/users", form_data)
@@ -235,7 +235,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
         "appsec.events.users.signup.track" => "true",
         "appsec.events.users.signup.usr.login" => "john.doe@example.com",
         "_dd.appsec.events.users.signup.auto.mode" => "identification",
-        "_dd.appsec.usr.login" => "john.doe@example.com"
+        "_dd.appsec.usr.login" => "john.doe@example.com",
       )
     end
   end
@@ -243,7 +243,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
   context "when user successfully signed up and must confirm email before loggin in" do
     before do
       form_data = {
-        user: {username: "JohnDoe", email: "john.doe@example.com", password: "123456", password_confirmation: "123456"}
+        user: {username: "JohnDoe", email: "john.doe@example.com", password: "123456", password_confirmation: "123456"},
       }
 
       post("/users", form_data)
@@ -292,7 +292,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
         "appsec.events.users.signup.usr.login" => "john.doe@example.com",
         "_dd.appsec.events.users.signup.auto.mode" => "identification",
         "_dd.appsec.usr.login" => "john.doe@example.com",
-        "_dd.appsec.usr.id" => "1"
+        "_dd.appsec.usr.id" => "1",
       )
     end
   end
@@ -300,7 +300,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
   context "when user successfully signed up and customer uses SDK to set user" do
     before do
       form_data = {
-        user: {username: "JohnDoe", email: "john.doe@example.com", password: "123456", password_confirmation: "123456"}
+        user: {username: "JohnDoe", email: "john.doe@example.com", password: "123456", password_confirmation: "123456"},
       }
 
       post("/users", form_data)
@@ -313,7 +313,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
             Datadog::Tracing.active_trace,
             Datadog::Tracing.active_span,
             user: {id: "42"},
-            "usr.login": "hello@gmail.com"
+            "usr.login": "hello@gmail.com",
           )
 
           super
@@ -352,7 +352,7 @@ RSpec.describe "Devise sign up tracking with auto user instrumentation" do
         "_dd.appsec.events.users.signup.sdk" => "true",
         "_dd.appsec.events.users.signup.auto.mode" => "identification",
         "_dd.appsec.usr.login" => "john.doe@example.com",
-        "_dd.appsec.usr.id" => "1"
+        "_dd.appsec.usr.id" => "1",
       )
     end
   end

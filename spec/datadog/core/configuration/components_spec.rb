@@ -467,7 +467,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           {enabled: settings.runtime_metrics.enabled,
            services: [settings.service],
            experimental_runtime_id_enabled: settings.runtime_metrics.experimental_runtime_id_enabled,
-           experimental_propagate_process_tags_enabled: settings.experimental_propagate_process_tags_enabled,}
+           experimental_propagate_process_tags_enabled: settings.experimental_propagate_process_tags_enabled}
         end
         let(:options) { {} }
 
@@ -552,7 +552,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:default_options) do
           {
             enabled: settings.runtime_metrics.enabled,
-            metrics: runtime_metrics
+            metrics: runtime_metrics,
           }
         end
         let(:options) { {} }
@@ -620,7 +620,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         expect { reconfigure_sampler }.to(
           change do
             components.tracer.sampler.sampler.priority_sampler.rate_limiter.rate
-          end.from(100).to(123)
+          end.from(100).to(123),
         )
       end
     end
@@ -729,7 +729,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       expect(Datadog::Core::Diagnostics::EnvironmentLogger).to \
         receive(:collect_and_log!).with(
-          environment_logger_extra.merge(dynamic_instrumentation_enabled: false)
+          environment_logger_extra.merge(dynamic_instrumentation_enabled: false),
         )
 
       startup!

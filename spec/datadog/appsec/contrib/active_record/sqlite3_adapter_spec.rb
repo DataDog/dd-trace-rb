@@ -100,10 +100,10 @@ RSpec.describe "AppSec ActiveRecord integration for SQLite3 adapter" do
           {},
           {
             "server.db.statement" => 'SELECT "users".* FROM "users" WHERE "users"."name" = ?',
-            "server.db.system" => "sqlite"
+            "server.db.system" => "sqlite",
           },
-          Datadog.configuration.appsec.waf_timeout
-        ).and_call_original
+          Datadog.configuration.appsec.waf_timeout,
+        ).and_call_original,
       )
 
       User.where(name: "Bob").to_a
@@ -116,10 +116,10 @@ RSpec.describe "AppSec ActiveRecord integration for SQLite3 adapter" do
           {},
           {
             "server.db.statement" => "SELECT * FROM users WHERE name = 'Bob'",
-            "server.db.system" => "sqlite"
+            "server.db.system" => "sqlite",
           },
-          Datadog.configuration.appsec.waf_timeout
-        ).and_call_original
+          Datadog.configuration.appsec.waf_timeout,
+        ).and_call_original,
       )
 
       User.find_by_sql("SELECT * FROM users WHERE name = 'Bob'").to_a
@@ -135,7 +135,7 @@ RSpec.describe "AppSec ActiveRecord integration for SQLite3 adapter" do
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 

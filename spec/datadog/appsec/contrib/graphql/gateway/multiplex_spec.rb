@@ -18,7 +18,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
         schema: schema,
         queries: queries,
         context: {dataloader: GraphQL::Dataloader.new(nonblocking: nil)},
-        max_complexity: nil
+        max_complexity: nil,
       )
     end
 
@@ -27,7 +27,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
         [
           ::GraphQL::Query.new(
             schema,
-            <<~END_OF_QUERY
+            <<~END_OF_QUERY,
               query {
                 post(slug: "my-first-post") {
                   title
@@ -36,7 +36,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
                 author(username: "john") { name }
               }
             END_OF_QUERY
-          )
+          ),
         ]
       end
 
@@ -44,8 +44,8 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
         expect(dd_multiplex.arguments).to(
           eq(
             "post" => [{"slug" => "my-first-post"}],
-            "author" => [{"username" => "john"}]
-          )
+            "author" => [{"username" => "john"}],
+          ),
         )
       end
     end
@@ -67,8 +67,8 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
                 author(username: $authorUsername) { name }
               }
             END_OF_QUERY
-            variables: {"postSlug" => "some-post", "authorUsername" => "jane"}
-          )
+            variables: {"postSlug" => "some-post", "authorUsername" => "jane"},
+          ),
         ]
       end
 
@@ -76,8 +76,8 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
         expect(dd_multiplex.arguments).to(
           eq(
             "post" => [{"slug" => "some-post"}],
-            "author" => [{"username" => "jane"}]
-          )
+            "author" => [{"username" => "jane"}],
+          ),
         )
       end
     end
@@ -87,7 +87,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
         [
           ::GraphQL::Query.new(
             schema,
-            <<~END_OF_QUERY
+            <<~END_OF_QUERY,
               query getPost($postSlug: String = "default-post") {
                 post(slug: $postSlug) {
                   title
@@ -95,7 +95,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
                 }
               }
             END_OF_QUERY
-          )
+          ),
         ]
       end
 
@@ -117,7 +117,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
                 }
               }
             END_OF_QUERY
-            variables: {"postSlug" => "some-post"}
+            variables: {"postSlug" => "some-post"},
           ),
           ::GraphQL::Query.new(
             schema,
@@ -129,14 +129,14 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
                 }
               }
             END_OF_QUERY
-            variables: {"postSlug" => "another-post"}
-          )
+            variables: {"postSlug" => "another-post"},
+          ),
         ]
       end
 
       it "returns all arguments for the field" do
         expect(dd_multiplex.arguments).to(
-          eq("post" => [{"slug" => "some-post"}, {"slug" => "another-post"}])
+          eq("post" => [{"slug" => "some-post"}, {"slug" => "another-post"}]),
         )
       end
     end
@@ -154,9 +154,9 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
             END_OF_QUERY
             variables: {
               "firstPostSlug" => "first-post",
-              "secondPostSlug" => "second-post"
-            }
-          )
+              "secondPostSlug" => "second-post",
+            },
+          ),
         ]
       end
 
@@ -164,8 +164,8 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
         expect(dd_multiplex.arguments).to(
           eq(
             "firstPost" => [{"slug" => "first-post"}],
-            "secondPost" => [{"slug" => "second-post"}]
-          )
+            "secondPost" => [{"slug" => "second-post"}],
+          ),
         )
       end
     end
@@ -185,9 +185,9 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
             END_OF_QUERY
             variables: {
               "postSlug" => "some-post",
-              "ignoreDislikes" => true
-            }
-          )
+              "ignoreDislikes" => true,
+            },
+          ),
         ]
       end
 
@@ -195,8 +195,8 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
         expect(dd_multiplex.arguments).to(
           eq(
             "post" => [{"slug" => "some-post"}],
-            "rating" => [{"ignoreDislikes" => true}]
-          )
+            "rating" => [{"ignoreDislikes" => true}],
+          ),
         )
       end
     end
@@ -230,8 +230,8 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
                 }
               }
             END_OF_QUERY
-            variables: {postSlug: "some-post", withComments: true, skipAuthor: false}
-          )
+            variables: {postSlug: "some-post", withComments: true, skipAuthor: false},
+          ),
         ]
       end
 
@@ -240,8 +240,8 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
           eq(
             "post" => [{"slug" => "some-post"}],
             "author" => [{"skip" => {"if" => false}}],
-            "comments" => [{"include" => {"if" => true}}]
-          )
+            "comments" => [{"include" => {"if" => true}}],
+          ),
         )
       end
     end
@@ -278,8 +278,8 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
                 }
               }
             END_OF_QUERY
-            variables: {"postSlug" => "some-post"}
-          )
+            variables: {"postSlug" => "some-post"},
+          ),
         ]
       end
 
@@ -293,7 +293,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
         [
           GraphQL::Query.new(
             schema,
-            <<~END_OF_QUERY
+            <<~END_OF_QUERY,
               fragment UserSearch on Query @custom(value: "$definitionattack") {
                 namedUser: userByName(name: "$namedattack") {
                   id
@@ -309,7 +309,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
                 ...UserSearch @custom(value: "$spreadattack")
               }
             END_OF_QUERY
-          )
+          ),
         ]
       end
 
@@ -320,10 +320,10 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
             "userByName" => [{"name" => "$inlinefieldattack"}],
             "UserSearch" => [
               {"custom" => {"value" => "$spreadattack"}},
-              {"custom" => {"value" => "$definitionattack"}}
+              {"custom" => {"value" => "$definitionattack"}},
             ],
-            "namedUser" => [{"name" => "$namedattack"}]
-          )
+            "namedUser" => [{"name" => "$namedattack"}],
+          ),
         )
       end
     end
@@ -341,8 +341,8 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
         [
           GraphQL::Query.new(
             schema,
-            "#{fragments.join("\n")}\nquery MyTestQuery { ...F20 }\n"
-          )
+            "#{fragments.join("\n")}\nquery MyTestQuery { ...F20 }\n",
+          ),
         ]
       end
 
@@ -372,8 +372,8 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
                 }
               }
             END_OF_QUERY
-            variables: {"postContent" => "Some content", "authorID" => "1"}
-          )
+            variables: {"postContent" => "Some content", "authorID" => "1"},
+          ),
         ]
       end
 
@@ -385,11 +385,11 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
                 "input" => {
                   "content" => "Some content",
                   "authorId" => "1",
-                  "title" => "Some title"
-                }
-              }
-            ]
-          )
+                  "title" => "Some title",
+                },
+              },
+            ],
+          ),
         )
       end
     end
@@ -409,14 +409,14 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
                 }
               }
             END_OF_QUERY
-            variables: {"postSlug" => "some-post"}
-          )
+            variables: {"postSlug" => "some-post"},
+          ),
         ]
       end
 
       it "returns correct arguments" do
         expect(dd_multiplex.arguments).to(
-          eq("postCommentsSubscribe" => [{"slug" => "some-post"}])
+          eq("postCommentsSubscribe" => [{"slug" => "some-post"}]),
         )
       end
     end
@@ -428,7 +428,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
         schema: schema,
         queries: [query],
         context: {dataloader: GraphQL::Dataloader.new(nonblocking: nil)},
-        max_complexity: nil
+        max_complexity: nil,
       )
     end
 

@@ -49,7 +49,7 @@ RSpec.describe "Server tracer" do
           def perform
             raise ZeroDivisionError, "job error"
           end
-        end
+        end,
       )
     end
 
@@ -82,7 +82,7 @@ RSpec.describe "Server tracer" do
 
           def perform(id)
           end
-        end
+        end,
       )
     end
 
@@ -179,7 +179,7 @@ RSpec.describe "Server tracer" do
             def self.do_work
               puts "a"
             end
-          end
+          end,
         )
       end
 

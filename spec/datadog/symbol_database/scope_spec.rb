@@ -80,7 +80,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
 
       expect(scope.to_h).to eq({
         scope_type: "CLASS",
-        name: "MyClass"
+        name: "MyClass",
       })
     end
 
@@ -90,7 +90,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
         name: "my_method",
         source_file: "/path/file.rb",
         start_line: 10,
-        end_line: 20
+        end_line: 20,
       )
 
       expect(scope.to_h).to include(
@@ -98,7 +98,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
         name: "my_method",
         source_file: "/path/file.rb",
         start_line: 10,
-        end_line: 20
+        end_line: 20,
       )
     end
 
@@ -114,7 +114,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
 
       expect(hash).to eq({
         scope_type: "CLASS",
-        name: "MyClass"
+        name: "MyClass",
       })
       expect(hash).not_to have_key(:source_file)
       expect(hash).not_to have_key(:start_line)

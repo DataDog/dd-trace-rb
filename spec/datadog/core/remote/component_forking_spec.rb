@@ -137,8 +137,8 @@ RSpec.describe Datadog::Core::Remote::Component do
           {
             version: "1.0",
             endpoints: ["/info", "/v0.7/config"],
-            config: {}
-          }
+            config: {},
+          },
         )
       end
     end
@@ -159,7 +159,7 @@ RSpec.describe Datadog::Core::Remote::Component do
             method: req.request_method,
             client_id: client_id,
             runtime_id: runtime_id,
-            pid: Process.pid
+            pid: Process.pid,
           }
         end
 
@@ -177,13 +177,13 @@ RSpec.describe Datadog::Core::Remote::Component do
               {
                 signed: {
                   expires: "2099-12-31T23:59:59Z",
-                  targets: {}
-                }
-              }
+                  targets: {},
+                },
+              },
             ),
             target_files: [],
-            client_configs: []
-          }
+            client_configs: [],
+          },
         )
       end
     end

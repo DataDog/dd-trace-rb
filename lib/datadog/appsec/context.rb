@@ -57,12 +57,12 @@ module Datadog
         @waf_runner = waf_runner
         @metrics = Metrics::Collector.new
         @downstream_body_sampler = CounterSampler.new(
-          Datadog.configuration.appsec.api_security.downstream_body_analysis.sample_rate
+          Datadog.configuration.appsec.api_security.downstream_body_analysis.sample_rate,
         )
         @state = {
           events: [],
           interrupted: false,
-          downstream_body_analyzed_count: 0
+          downstream_body_analyzed_count: 0,
         }
       end
 

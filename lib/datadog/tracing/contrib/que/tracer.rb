@@ -12,7 +12,7 @@ module Datadog
             trace_options = {
               service: configuration[:service_name],
               type: Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
-              on_error: configuration[:on_error]
+              on_error: configuration[:on_error],
             }
 
             Tracing.trace(Ext::SPAN_JOB, **trace_options) do |request_span|
@@ -49,7 +49,7 @@ module Datadog
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(
                 request_span,
-                configuration[:analytics_sample_rate]
+                configuration[:analytics_sample_rate],
               )
             end
           end

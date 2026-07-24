@@ -18,7 +18,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
         Datadog::AppSec::Context,
         waf_runner_ruleset_version: "1.0.0",
         interrupted?: false,
-        trace: trace
+        trace: trace,
       )
     end
 
@@ -42,7 +42,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
           request_blocked: "false",
           block_failure: "false",
           rate_limited: "false",
-          input_truncated: "false"
+          input_truncated: "false",
         }
       )
 

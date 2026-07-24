@@ -298,7 +298,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     it "resets full and degraded maps after flush" do
       aggregator.record(
         flag_key: "f", variant: "v", allocation_key: "",
-        targeting_key: "", eval_time_ms: 1000, attrs: {},
+        targeting_key: "", eval_time_ms: 1000, attrs: {}
       )
       aggregator.flush_and_reset
       snapshot2 = aggregator.flush_and_reset

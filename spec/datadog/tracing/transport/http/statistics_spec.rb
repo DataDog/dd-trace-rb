@@ -33,7 +33,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Statistics do
               type: :api_responses,
               name: nil,
               value: 1,
-              options: {tags: ["status_code:#{response.code}"]}
+              options: {tags: ["status_code:#{response.code}"]},
             )
           end
         end
@@ -56,7 +56,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Statistics do
               type: :api_responses,
               name: nil,
               value: 1,
-              options: {tags: ["status_code:#{response.code}"]}
+              options: {tags: ["status_code:#{response.code}"]},
             )
           end
         end
@@ -79,7 +79,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Statistics do
               type: :api_responses,
               name: nil,
               value: 1,
-              options: {tags: ["status_code:#{response.code}"]}
+              options: {tags: ["status_code:#{response.code}"]},
             )
           end
         end
@@ -99,7 +99,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Statistics do
             expect(metrics_for_response[:api_errors]).to have_attributes(
               type: :api_errors,
               name: nil,
-              value: 1
+              value: 1,
             )
           end
         end

@@ -13,7 +13,7 @@ module Datadog
             trace.keep!
             trace.set_tag(
               Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-              Tracing::Sampling::Ext::Decision::AI_GUARD
+              Tracing::Sampling::Ext::Decision::AI_GUARD,
             )
             trace.set_distributed_source(Ext::PRODUCT_BIT)
             trace.set_tag(Ext::EVENT_TAG, true)
@@ -51,8 +51,8 @@ module Datadog
                 messages: truncate_content(truncate_messages(request.serialized_messages)),
                 attack_categories: result.tags,
                 sds: result.sds_findings,
-                tag_probs: result.tag_probabilities
-              }
+                tag_probs: result.tag_probabilities,
+              },
             )
 
             if allow_raise && (result.deny? || result.abort?) && result.blocking_enabled?
@@ -98,7 +98,7 @@ module Datadog
             else
               {
                 **message,
-                content: message[:content].byteslice(0, max_bytes)
+                content: message[:content].byteslice(0, max_bytes),
               }
             end
           end

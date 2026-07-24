@@ -20,11 +20,11 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
           expect(event.payload).to include(
             logs: [{message: "RuntimeError", level: "ERROR", count: 1,
-                    stack_trace: a_string_including("REDACTED")}]
+                    stack_trace: a_string_including("REDACTED")}],
           )
           expect(event.payload).to include(
             logs: [{message: "RuntimeError", level: "ERROR", count: 1,
-                    stack_trace: a_string_including("\n/spec/")}]
+                    stack_trace: a_string_including("\n/spec/")}],
           )
           expect(event.payload[:logs].map { |log| log[:message] }).not_to include("p@ssw0rd")
         end
@@ -41,11 +41,11 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
           expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
             expect(event.payload).to include(
               logs: [{message: "RuntimeError: Must not contain PII", level: "ERROR", count: 1,
-                      stack_trace: a_string_including("REDACTED")}]
+                      stack_trace: a_string_including("REDACTED")}],
             )
             expect(event.payload).to include(
               logs: [{message: "RuntimeError: Must not contain PII", level: "ERROR", count: 1,
-                      stack_trace: a_string_including("\n/spec/")}]
+                      stack_trace: a_string_including("\n/spec/")}],
             )
             expect(event.payload[:logs].map { |log| log[:message] }).not_to include("p@ssw0rd")
           end
@@ -64,11 +64,11 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
           expect(event.payload).to include(
             logs: [{message: /#<Class:/, level: "ERROR", count: 1,
-                    stack_trace: a_string_including("REDACTED")}]
+                    stack_trace: a_string_including("REDACTED")}],
           )
           expect(event.payload).to include(
             logs: [{message: /#<Class:/, level: "ERROR", count: 1,
-                    stack_trace: a_string_including("\n/spec/")}]
+                    stack_trace: a_string_including("\n/spec/")}],
           )
           expect(event.payload[:logs].map { |log| log[:message] }).not_to include("p@ssw0rd")
         end
@@ -98,7 +98,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
           expect(event.payload).to include(
             logs: [{message: "Errno::ENOENT: (Safe message)", level: "ERROR", count: 1,
-                    stack_trace: a_string_including("REDACTED")}]
+                    stack_trace: a_string_including("REDACTED")}],
           )
           expect(event.payload[:logs].map { |log| log[:message] }).not_to include("Dynamic message")
         end
@@ -113,7 +113,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
           expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
             expect(event.payload).to include(
               logs: [{message: "Errno::ENOENT: Operation failed (Safe message)", level: "ERROR", count: 1,
-                      stack_trace: a_string_including("REDACTED")}]
+                      stack_trace: a_string_including("REDACTED")}],
             )
             expect(event.payload[:logs].map { |log| log[:message] }).not_to include("Dynamic message")
           end
@@ -127,7 +127,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
           expect(event.payload).to include(
             logs: [{message: "RuntimeError: (Static message)", level: "ERROR", count: 1,
-                    stack_trace: a_string_including("REDACTED")}]
+                    stack_trace: a_string_including("REDACTED")}],
           )
           expect(event.payload[:logs].map { |log| log[:message] }).not_to include("Dynamic message")
         end
@@ -144,7 +144,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
           expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
             expect(event.payload).to include(
               logs: [{message: "RuntimeError: Static description (Static message)", level: "ERROR", count: 1,
-                      stack_trace: a_string_including("REDACTED")}]
+                      stack_trace: a_string_including("REDACTED")}],
             )
             expect(event.payload[:logs].map { |log| log[:message] }).not_to include("Dynamic message")
           end
@@ -162,7 +162,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
           expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
             expect(event.payload).to include(
               logs: [{message: "RuntimeError", level: "ERROR", count: 1,
-                      stack_trace: a_string_including("REDACTED")}]
+                      stack_trace: a_string_including("REDACTED")}],
             )
             expect(event.payload[:logs].map { |log| log[:message] }).not_to include("Dynamic message")
           end
@@ -179,7 +179,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
           expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
             expect(event.payload).to include(
               logs: [{message: "RuntimeError: Static description", level: "ERROR", count: 1,
-                      stack_trace: a_string_including("REDACTED")}]
+                      stack_trace: a_string_including("REDACTED")}],
             )
             expect(event.payload[:logs].map { |log| log[:message] }).not_to include(/memory address/)
           end

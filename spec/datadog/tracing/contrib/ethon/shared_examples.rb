@@ -139,8 +139,8 @@ RSpec.shared_examples_for "instrumented request" do
         it "has error set" do
           expect(span).to have_error_message(
             eq("Request has failed: Couldn't connect to server").or( # Connection timeout
-              eq("Request has failed: Timeout was reached") # Response timeout
-            )
+              eq("Request has failed: Timeout was reached"), # Response timeout
+            ),
           )
         end
       end
@@ -158,7 +158,7 @@ RSpec.shared_examples_for "instrumented request" do
           headers = JSON.parse(response.body)["headers"]
           distributed_tracing_headers = {
             "x-datadog-parent-id" => [span.id.to_s],
-            "x-datadog-trace-id" => [low_order_trace_id(span.trace_id).to_s]
+            "x-datadog-trace-id" => [low_order_trace_id(span.trace_id).to_s],
           }
 
           expect(headers).to include(distributed_tracing_headers)
@@ -174,8 +174,8 @@ RSpec.shared_examples_for "instrumented request" do
         before do
           tracer.continue_trace!(
             Datadog::Tracing::TraceDigest.new(
-              trace_sampling_priority: sampling_priority
-            )
+              trace_sampling_priority: sampling_priority,
+            ),
           )
         end
 

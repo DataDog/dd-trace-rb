@@ -12,7 +12,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
          "tracer-predicates" => {"tracer_predicates_v1" => [{"clientID" => "854b784e-64ae-4c82-ac9b-fc2aea723260"}]},
          "v" => 21},
       "hashes" => {"sha256" => Digest::SHA256.hexdigest(raw.to_json)},
-      "length" => 645
+      "length" => 645,
     }
   end
 
@@ -29,16 +29,16 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
               parameters: {
                 inputs: [
                   {
-                    address: "http.client_ip"
-                  }
+                    address: "http.client_ip",
+                  },
                 ],
                 list: [
-                  "4.4.4.4"
-                ]
-              }
-            }
+                  "4.4.4.4",
+                ],
+              },
+            },
           ],
-          id: "874459ae-137f-4c99-9c54-109b1a117b86"
+          id: "874459ae-137f-4c99-9c54-109b1a117b86",
         },
         {
           conditions: [
@@ -47,25 +47,25 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
               parameters: {
                 inputs: [
                   {
-                    address: "server.request.uri.raw"
-                  }
+                    address: "server.request.uri.raw",
+                  },
                 ],
                 options: {
-                  case_sensitive: false
+                  case_sensitive: false,
                 },
-                regex: "^/waf"
-              }
-            }
+                regex: "^/waf",
+              },
+            },
           ],
-          id: "d1390949-cf1a-408d-bc3f-043d0689d89e"
+          id: "d1390949-cf1a-408d-bc3f-043d0689d89e",
         },
         {
           id: "5fe8e530-d3ec-4e6d-bc06-0a6637c6e763",
           rules_target: [
             {
-              rule_id: "ua0-600-55x"
-            }
-          ]
+              rule_id: "ua0-600-55x",
+            },
+          ],
         },
         {
           conditions: [
@@ -74,19 +74,19 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
               parameters: {
                 inputs: [
                   {
-                    address: "http.client_ip"
-                  }
+                    address: "http.client_ip",
+                  },
                 ],
                 list: [
-                  "8.8.8.8"
-                ]
-              }
-            }
+                  "8.8.8.8",
+                ],
+              },
+            },
           ],
-          id: "081e1fbe-c73b-4ad2-bb83-4752354271bc"
-        }
+          id: "081e1fbe-c73b-4ad2-bb83-4752354271bc",
+        },
       ],
-      rules_override: []
+      rules_override: [],
     }
   end
   let(:string_io_content) { raw.to_json }
@@ -94,8 +94,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
     described_class.parse(
       [{
         path: path.to_s,
-        content: string_io_content
-      }]
+        content: string_io_content,
+      }],
     )
   end
 
@@ -112,8 +112,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
           described_class.parse(
             [{
               path: "invalid path",
-              content: string_io_content
-            }]
+              content: string_io_content,
+            }],
           )
         end.to raise_error(Datadog::Core::Remote::Configuration::Path::ParseError)
       end
@@ -141,15 +141,15 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
             "tracer-predicates" => {
               "tracer_predicates_v1" => [
                 {
-                  "clientID" => "5bb79ec4-0f50-464c-8400-b88521e1b96e"
-                }
-              ]
+                  "clientID" => "5bb79ec4-0f50-464c-8400-b88521e1b96e",
+                },
+              ],
             },
-            "v" => 245
+            "v" => 245,
           },
           "hashes" => {"sha256" => "e39c699e5e626da1a43369ab3e7f17cce6a21c0ce1d2261280c7f2ac61c5db1b"},
-          "length" => 4605
-        }
+          "length" => 4605,
+        },
       )
 
       content = content_list.find_content(path, wrong_target)
@@ -177,8 +177,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
       Datadog::Core::Remote::Configuration::Content.parse(
         {
           path: path.to_s,
-          content: updated_string_io
-        }
+          content: updated_string_io,
+        },
       )
     end
 
@@ -229,8 +229,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
       described_class.parse(
         {
           path: path.to_s,
-          content: string_io_content
-        }
+          content: string_io_content,
+        },
       )
     end
 
@@ -258,8 +258,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
             {
               sha256: "c8358ce9038693fb74ad8625e4c6c563bd2afb16b4412b2c8f7dba062e9e88de",
               sha512: "546b5325ec8559dda0b34f3e628e99c7b9d18eb59b23ec87f672b1ed8c4ac9ac" \
-                "11ac6ffb15e6b4d71f5f343ec243d142db61aaf60f4a0410e39dc916c623cc82"
-            }
+                "11ac6ffb15e6b4d71f5f343ec243d142db61aaf60f4a0410e39dc916c623cc82",
+            },
           )
         end
       end

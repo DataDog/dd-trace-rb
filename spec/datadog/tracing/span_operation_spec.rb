@@ -21,7 +21,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
   shared_examples "a root span operation" do
     it do
       is_expected.to have_attributes(
-        parent_id: 0
+        parent_id: 0,
       )
     end
   end
@@ -30,7 +30,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
     it "associates to the parent" do
       expect(span_op).to have_attributes(
         parent_id: parent.id,
-        trace_id: parent.trace_id
+        trace_id: parent.trace_id,
       )
     end
   end
@@ -92,7 +92,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           status: 0,
           trace_id: kind_of(Integer),
           type: nil,
-          links: []
+          links: [],
         )
       end
 
@@ -101,7 +101,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           duration: nil,
           finished?: false,
           started?: false,
-          stopped?: false
+          stopped?: false,
         )
       end
 
@@ -186,7 +186,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
                 span_op.measure(&block)
               end.to yield_with_args(
                 a_kind_of(described_class),
-                error
+                error,
               )
             end.to raise_error(error)
 
@@ -200,7 +200,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
           it "fallbacks to default error handler and log a debug message" do
             expect(Datadog.logger).to receive(:warn).with(
-              /on_error argument to SpanOperation ignored because is not a Proc: not a proc/
+              /on_error argument to SpanOperation ignored because is not a Proc: not a proc/,
             )
             expect do
               span_op.measure(&block)
@@ -267,7 +267,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           let(:span_links) do
             [Datadog::Tracing::SpanLink.new(
               Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2),
-              attributes: {"link.name": "moon"}
+              attributes: {"link.name": "moon"},
             )]
           end
           it { is_expected.to have_attributes(links: span_links) }
@@ -992,7 +992,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           "exception.type" => "StandardError",
           "exception.message" => "test error",
           "exception.stacktrace" => "this is a backtrace: test error (StandardError)\n",
-        }
+        },
       )
       expect(span_op.span_events[1]).to have_attributes(
         name: "exception",
@@ -1000,7 +1000,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           "exception.type" => "StandardError",
           "exception.message" => "test error",
           "exception.stacktrace" => "this is a backtrace: test error (StandardError)\n",
-        }
+        },
       )
     end
 
@@ -1008,7 +1008,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       span_op.record_exception(
         error,
         attributes: {"custom_attr1" => "value",
-                     :custom_attr2 => "value"}
+                     :custom_attr2 => "value"},
       )
 
       expect(span_op.span_events.last).to have_attributes(
@@ -1018,8 +1018,8 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           "exception.message" => "test error",
           "exception.stacktrace" => "this is a backtrace: test error (StandardError)\n",
           "custom_attr1" => "value",
-          "custom_attr2" => "value"
-        }
+          "custom_attr2" => "value",
+        },
       )
     end
 
@@ -1036,8 +1036,8 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           "custom_attr5" => 2 << 65,
           "custom_attr6" => -2 << 65,
           "custom_attr7" => Float::NAN,
-          "custom_attr8" => Float::INFINITY
-        }
+          "custom_attr8" => Float::INFINITY,
+        },
       )
 
       expect(span_op.span_events[0].attributes.keys.length).to eq(4)
@@ -1047,21 +1047,21 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           "exception.type" => "StandardError",
           "exception.message" => "test error",
           "exception.stacktrace" => "this is a backtrace: test error (StandardError)\n",
-          "custom_attr" => "value"
-        }
+          "custom_attr" => "value",
+        },
       )
       expect(Datadog.logger).to have_received(:warn).with(
-        /Attribute custom_attr2 must be a string, number, boolean, or array: \{.*foo.*bar.*\}./
+        /Attribute custom_attr2 must be a string, number, boolean, or array: \{.*foo.*bar.*\}./,
       )
       expect(Datadog.logger).to have_received(:warn).with(
-        "Attribute custom_attr3 must be a string, number, or boolean: [[1]]."
+        "Attribute custom_attr3 must be a string, number, or boolean: [[1]].",
       )
       expect(Datadog.logger).to have_received(:warn).with('Attribute custom_attr4 array must be homogenous: [1, "foo"].')
       expect(Datadog.logger).to have_received(:warn).with(
-        "Attribute custom_attr5 must be within the range of a signed 64-bit integer: #{2 << 65}."
+        "Attribute custom_attr5 must be within the range of a signed 64-bit integer: #{2 << 65}.",
       )
       expect(Datadog.logger).to have_received(:warn).with(
-        "Attribute custom_attr6 must be within the range of a signed 64-bit integer: #{-(2 << 65)}."
+        "Attribute custom_attr6 must be within the range of a signed 64-bit integer: #{-(2 << 65)}.",
       )
       expect(Datadog.logger).to have_received(:warn).with("Attribute custom_attr7 must be a finite number: NaN.")
       expect(Datadog.logger).to have_received(:warn).with("Attribute custom_attr8 must be a finite number: Infinity.")
@@ -1077,7 +1077,7 @@ RSpec.describe Datadog::Tracing::SpanOperation::Events do
       is_expected.to have_attributes(
         after_finish: kind_of(described_class::AfterFinish),
         before_start: kind_of(described_class::BeforeStart),
-        on_error: kind_of(described_class::OnError)
+        on_error: kind_of(described_class::OnError),
       )
     }
   end

@@ -63,7 +63,7 @@ namespace :local_config_map do
     raise("Please run this task on Ruby >= 3.4") unless RUBY_VERSION >= "3.4"
     File.write(
       "lib/datadog/core/configuration/supported_configurations.rb",
-      <<~RUBY
+      <<~RUBY,
         # frozen_string_literal: true
 
         require 'set'

@@ -106,13 +106,13 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
               conditions: [
                 {
                   parameters: {inputs: [{address: "server.request.query"}]},
-                  operator: "is_sqli"
-                }
+                  operator: "is_sqli",
+                },
               ],
               transformers: ["removeNulls"],
-              on_match: ["block"]
+              on_match: ["block"],
             },
-          ]
+          ],
         }
       end
 

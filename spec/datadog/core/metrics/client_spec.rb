@@ -18,11 +18,11 @@ RSpec.describe Datadog::Core::Metrics::Client do
   shared_examples_for "logs an error without raising" do |action|
     it do
       expect(logger).to receive(:error).with(
-        /Failed to send #{action} stat/
+        /Failed to send #{action} stat/,
       )
       expect(telemetry).to receive(:report).with(
         a_kind_of(StandardError),
-        description: "Failed to send #{action} stat"
+        description: "Failed to send #{action} stat",
       )
 
       expect { subject }.to_not raise_error
@@ -767,7 +767,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
       let(:metrics_list) do
         [
           Datadog::Core::Metrics::Metric.new(:distribution, dist_name, dist_value, dist_options),
-          Datadog::Core::Metrics::Metric.new(:increment, inc_name, nil, inc_options)
+          Datadog::Core::Metrics::Metric.new(:increment, inc_name, nil, inc_options),
         ]
       end
 

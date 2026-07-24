@@ -16,7 +16,7 @@ RSpec.shared_context "Sidekiq testing" do
         include Sidekiq::Worker
         def perform
         end
-      end
+      end,
     )
   end
 end

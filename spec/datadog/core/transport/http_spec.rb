@@ -15,7 +15,7 @@ RSpec.describe Datadog::Core::Transport::HTTP do
           Datadog::Core::Environment::Ext::LANG_INTERPRETER,
         "Datadog-Meta-Lang-Interpreter-Vendor" => RUBY_ENGINE,
         Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION =>
-          Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION
+          Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION,
       )
     end
 
@@ -24,7 +24,7 @@ RSpec.describe Datadog::Core::Transport::HTTP do
         {
           "Datadog-Container-ID" => "abc123",
           "Datadog-Entity-ID" => "ci-abc123",
-          "Datadog-External-Env" => "provided-by-container-runner"
+          "Datadog-External-Env" => "provided-by-container-runner",
         }
       end
 

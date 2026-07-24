@@ -48,7 +48,7 @@ module Datadog
             if include_middleware?(Datadog::Tracing::Contrib::Rack::TraceMiddleware, app)
               app.middleware.insert_after(
                 Datadog::Tracing::Contrib::Rack::TraceMiddleware,
-                Datadog::AIGuard::Contrib::Rack::RequestMiddleware
+                Datadog::AIGuard::Contrib::Rack::RequestMiddleware,
               )
             else
               app.middleware.insert_before(0, Datadog::AIGuard::Contrib::Rack::RequestMiddleware)

@@ -115,7 +115,7 @@ RSpec.describe Datadog::Tracing::SpanLink do
       it {
         is_expected.to include(
           attributes: {"link.name" => "test_link", "link.id" => "1", "nested.0" => "true",
-                       "nested.1.0" => "2", "nested.1.1" => "3", "nested.2" => "val",}
+                       "nested.1.0" => "2", "nested.1.1" => "3", "nested.2" => "val"},
         )
       }
     end

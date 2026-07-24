@@ -36,7 +36,7 @@ RSpec.describe "Rack integration tests" do
         {
           status: 200,
           body: request.headers.to_json,
-          headers: {"Content-Type" => "application/json"}
+          headers: {"Content-Type" => "application/json"},
         }
       end
 
@@ -45,7 +45,7 @@ RSpec.describe "Rack integration tests" do
       {
         status: 200,
         body: request.headers.to_json,
-        headers: {"Content-Type" => "application/json"}
+        headers: {"Content-Type" => "application/json"},
       }
     end
 
@@ -438,7 +438,7 @@ RSpec.describe "Rack integration tests" do
                 end
 
                 [200, {"Content-Type" => "application/json"}, [ext_response.body]]
-              end
+              end,
             )
           end
         end
@@ -665,7 +665,7 @@ RSpec.describe "Rack integration tests" do
             "HTTP_X_DATADOG_SAMPLING_PRIORITY" => headers_sampling_priority,
             "HTTP_X_DATADOG_ORIGIN" => headers_origin,
             "HTTP_X_DATADOG_TAGS" => headers_tags,
-            "HTTP_USER_AGENT" => user_agent
+            "HTTP_USER_AGENT" => user_agent,
           }
         end
         let(:env) { headers }
@@ -701,12 +701,12 @@ RSpec.describe "Rack integration tests" do
               uds_path: nil,
               hostname: "localhost",
               port: 6218,
-              timeout_seconds: 30
+              timeout_seconds: 30,
             )
             agent_http_adapter = Datadog::Core::Transport::HTTP::Adapters::Net.new(agent_settings)
             agent_http_client = Datadog::Tracing::Transport::HTTP.default(
               agent_settings: test_agent_settings,
-              logger: logger
+              logger: logger,
             ) do |t|
               t.adapter agent_http_adapter
             end
@@ -727,7 +727,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with APM disablement tags",
               {
                 tag_other_propagation: "1",
-                tag_sampling_priority_condition: ->(x) { x <= 0 }
+                tag_sampling_priority_condition: ->(x) { x <= 0 },
               }
             it_behaves_like "a request sent without propagated headers"
           end
@@ -738,7 +738,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with APM disablement tags",
               {
                 tag_other_propagation: "1",
-                tag_sampling_priority_condition: ->(x) { x <= 0 }
+                tag_sampling_priority_condition: ->(x) { x <= 0 },
               }
             it_behaves_like "a request sent without propagated headers"
           end
@@ -749,7 +749,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with APM disablement tags",
               {
                 tag_other_propagation: "1",
-                tag_sampling_priority_condition: ->(x) { x <= 0 }
+                tag_sampling_priority_condition: ->(x) { x <= 0 },
               }
             it_behaves_like "a request sent without propagated headers"
           end
@@ -760,7 +760,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with APM disablement tags",
               {
                 tag_other_propagation: "1",
-                tag_sampling_priority_condition: ->(x) { x <= 0 }
+                tag_sampling_priority_condition: ->(x) { x <= 0 },
               }
             it_behaves_like "a request sent without propagated headers"
           end
@@ -1050,7 +1050,7 @@ RSpec.describe "Rack integration tests" do
                   request_span.set_tag("http.url", "/app/static/")
 
                   [200, {"Content-Type" => "text/html"}, ["OK"]]
-                end
+                end,
               )
             end
           end
@@ -1103,7 +1103,7 @@ RSpec.describe "Rack integration tests" do
 
                     [200, {"Content-Type" => "text/html"}, ["OK"]]
                   end
-                end
+                end,
               )
             end
           end
@@ -1178,7 +1178,7 @@ RSpec.describe "Rack integration tests" do
                     request_span.set_tag("error.stack", "Handled exception")
 
                     [500, {"Content-Type" => "text/html"}, ["OK"]]
-                  end
+                  end,
                 )
               end
             end
@@ -1221,7 +1221,7 @@ RSpec.describe "Rack integration tests" do
                     request_span.set_tag("error.stack", "Handled exception")
 
                     [500, {"Content-Type" => "text/html"}, ["OK"]]
-                  end
+                  end,
                 )
               end
             end
@@ -1306,10 +1306,10 @@ RSpec.describe "Rack integration tests" do
                   "Expires" => "Thu, 01 Dec 1994 16:00:00 GMT",
                   "Last-Modified" => "Tue, 15 Nov 1994 12:45:26 GMT",
                   "X-Request-ID" => "f058ebd6-02f7-4d3f-942e-904344e8cde5",
-                  "X-Fake-Response" => "Don't tag me."
+                  "X-Fake-Response" => "Don't tag me.",
                 }
                 [200, response_headers, ["OK"]]
-              end
+              end,
             )
           end
         end
@@ -1321,7 +1321,7 @@ RSpec.describe "Rack integration tests" do
             c.tracing.instrument :rack,
               headers: {
                 request: [
-                  "Cache-Control"
+                  "Cache-Control",
                 ],
                 response: [
                   "Content-Type",
@@ -1332,8 +1332,8 @@ RSpec.describe "Rack integration tests" do
                   "Last-Modified",
                   # This lowercase 'Id' header doesn't match.
                   # Ensure middleware allows for case-insensitive matching.
-                  "X-Request-Id"
-                ]
+                  "X-Request-Id",
+                ],
               }
           end
         end
@@ -1395,7 +1395,7 @@ RSpec.describe "Rack integration tests" do
               {
                 "HTTP_CACHE_CONTROL" => "no-cache",
                 "HTTP_X_REQUEST_ID" => SecureRandom.uuid,
-                "HTTP_X_FAKE_REQUEST" => "Don't tag me."
+                "HTTP_X_FAKE_REQUEST" => "Don't tag me.",
               }
             end
 
@@ -1477,7 +1477,7 @@ RSpec.describe "Rack integration tests" do
               proc do |env|
                 env["REQUEST_METHOD"] = "GET"
                 [200, {"Content-Type" => "text/html"}, ["OK"]]
-              end
+              end,
             )
           end
         end

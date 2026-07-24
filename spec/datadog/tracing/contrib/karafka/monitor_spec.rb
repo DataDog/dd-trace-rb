@@ -52,7 +52,7 @@ RSpec.describe "Karafka monitor" do
           Datadog::Tracing::Contrib::Karafka::Ext::TAG_OFFSET => 42,
           Datadog::Tracing::Contrib::Karafka::Ext::TAG_CONSUMER => "Consumer",
           "messaging.destination" => "topic_name",
-          "messaging.system" => Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM
+          "messaging.system" => Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM,
         )
       end
     end

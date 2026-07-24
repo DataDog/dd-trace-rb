@@ -19,7 +19,7 @@ module Datadog
           TELEMETRY_METRICS_EVENTS_INTO_TYPES = {
             LOGIN_SUCCESS_EVENT => "login_success",
             LOGIN_FAILURE_EVENT => "login_failure",
-            SIGNUP_EVENT => "signup"
+            SIGNUP_EVENT => "signup",
           }.freeze
 
           class << self
@@ -50,7 +50,7 @@ module Datadog
 
               if trace.nil? || span.nil?
                 return Datadog.logger.warn(
-                  "Kit::AppSec: Tracing is not enabled. Please enable tracing if you want to track events"
+                  "Kit::AppSec: Tracing is not enabled. Please enable tracing if you want to track events",
                 )
               end
 
@@ -102,7 +102,7 @@ module Datadog
 
               if trace.nil? || span.nil?
                 return Datadog.logger.warn(
-                  "Kit::AppSec: Tracing is not enabled. Please enable tracing if you want to track events"
+                  "Kit::AppSec: Tracing is not enabled. Please enable tracing if you want to track events",
                 )
               end
 
@@ -155,7 +155,7 @@ module Datadog
 
               if trace.nil? || span.nil?
                 return Datadog.logger.warn(
-                  "Kit::AppSec: Tracing is not enabled. Please enable tracing if you want to track events"
+                  "Kit::AppSec: Tracing is not enabled. Please enable tracing if you want to track events",
                 )
               end
 
@@ -235,13 +235,13 @@ module Datadog
 
               if telemetry.nil?
                 return Datadog.logger.debug(
-                  "Kit::AppSec: Telemetry component is unavailable. Skip recording SDK metrics"
+                  "Kit::AppSec: Telemetry component is unavailable. Skip recording SDK metrics",
                 )
               end
 
               tags = {
                 event_type: TELEMETRY_METRICS_EVENTS_INTO_TYPES[event],
-                sdk_version: TELEMETRY_METRICS_SDK_VERSION
+                sdk_version: TELEMETRY_METRICS_SDK_VERSION,
               }
               telemetry.inc(TELEMETRY_METRICS_NAMESPACE, TELEMETRY_METRICS_SDK_EVENT, 1, tags: tags)
             end

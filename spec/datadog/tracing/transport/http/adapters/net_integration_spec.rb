@@ -29,7 +29,7 @@ RSpec.describe "Adapters::Net tracing integration tests" do
         Port: 0,
         Logger: log,
         AccessLog: access_log,
-        StartCallback: -> { init_signal.push(1) }
+        StartCallback: -> { init_signal.push(1) },
       )
     end
     let(:hostname) { "127.0.0.1" }
@@ -88,12 +88,12 @@ RSpec.describe "Adapters::Net tracing integration tests" do
           "datadog-meta-lang-interpreter" => [Datadog::Core::Environment::Ext::LANG_INTERPRETER],
           "datadog-meta-tracer-version" => [Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION],
           "content-type" => ["application/msgpack"],
-          "x-datadog-trace-count" => [traces.length.to_s]
+          "x-datadog-trace-count" => [traces.length.to_s],
         )
 
         unless Datadog::Core::Environment::Container.container_id.nil?
           expect(http_request.header).to include(
-            "datadog-container-id" => [Datadog::Core::Environment::Container.container_id]
+            "datadog-container-id" => [Datadog::Core::Environment::Container.container_id],
           )
         end
 

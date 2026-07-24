@@ -65,7 +65,7 @@ module Datadog
                 # actually enabled by env var or by implicit enablement via
                 # remote config.
                 enabled: components.dynamic_instrumentation&.started? || false,
-              }
+              },
             }
 
             if (unsupported_reason = Datadog::Profiling.unsupported_reason)
@@ -84,12 +84,12 @@ module Datadog
               conf_value(
                 "DD_GIT_REPOSITORY_URL",
                 Core::Environment::Git.git_repository_url,
-                (Core::Environment::Git.git_repository_url ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
+                (Core::Environment::Git.git_repository_url ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT),
               ),
               conf_value(
                 "DD_GIT_COMMIT_SHA",
                 Core::Environment::Git.git_commit_sha,
-                (Core::Environment::Git.git_commit_sha ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
+                (Core::Environment::Git.git_commit_sha ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT),
               ),
 
               # Mix of env var, programmatic and default config, so we use unknown
@@ -101,13 +101,13 @@ module Datadog
             list << conf_value(
               "tracing.auto_instrument.enabled",
               auto_instrument_enabled,
-              auto_instrument_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
+              auto_instrument_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT,
             )
             opentelemetry_enabled = !defined?(Datadog::OpenTelemetry::LOADED).nil?
             list << conf_value(
               "tracing.opentelemetry.enabled",
               opentelemetry_enabled,
-              opentelemetry_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
+              opentelemetry_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT,
             )
 
             # Track ssi configurations
@@ -123,17 +123,17 @@ module Datadog
               conf_value(
                 "instrumentation_source",
                 instrumentation_source,
-                (instrumentation_source == "ssi") ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
+                (instrumentation_source == "ssi") ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT,
               ),
               conf_value(
                 "DD_INJECT_FORCE",
                 Core::Environment::VariableHelpers.env_to_bool("DD_INJECT_FORCE", false),
-                (DATADOG_ENV.key?("DD_INJECT_FORCE") ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
+                (DATADOG_ENV.key?("DD_INJECT_FORCE") ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT),
               ),
               conf_value(
                 "DD_INJECTION_ENABLED",
                 DATADOG_ENV["DD_INJECTION_ENABLED"] || "",
-                (DATADOG_ENV.key?("DD_INJECTION_ENABLED") ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
+                (DATADOG_ENV.key?("DD_INJECTION_ENABLED") ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT),
               ),
             )
 
@@ -143,13 +143,13 @@ module Datadog
                 "tracing.writer_options.buffer_size",
                 # Steep: Value is always a hash for writer_options (ensured by o.type :hash)
                 to_telemetry_value(value[:buffer_size]), # steep:ignore NoMethod
-                precedence
+                precedence,
               )
               list << conf_value(
                 "tracing.writer_options.flush_interval",
                 # Steep: Value is always a hash for writer_options (ensured by o.type :hash)
                 to_telemetry_value(value[:flush_interval]), # steep:ignore NoMethod
-                precedence
+                precedence,
               )
             end
 

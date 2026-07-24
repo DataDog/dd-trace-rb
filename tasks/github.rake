@@ -55,7 +55,7 @@ namespace :github do
 
     data = {
       batches: batched_matrix,
-      misc: {"include" => [{"batch" => "0", "tasks" => misc_tasks}]}
+      misc: {"include" => [{"batch" => "0", "tasks" => misc_tasks}]},
     }
 
     # Output the JSON
@@ -120,7 +120,7 @@ namespace :github do
     rescue => e
       rake_output_message(
         "Bundle install failure (Attempt: #{retries + 1}): #{e.class.name}: #{e.message}, \
-        Source:\n#{Array(e.backtrace).join("\n")}"
+        Source:\n#{Array(e.backtrace).join("\n")}",
       )
       sleep(2**retries)
       retries += 1

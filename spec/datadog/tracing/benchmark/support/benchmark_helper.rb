@@ -187,7 +187,7 @@ RSpec.shared_context "benchmark" do
         allocated_memory_by_gem: per_gem_report[report.allocated_memory_by_gem],
         allocated_objects_by_gem: per_gem_report[report.allocated_objects_by_gem],
         retained_memory_by_gem: per_gem_report[report.retained_memory_by_gem],
-        retained_objects_by_gem: per_gem_report[report.retained_objects_by_gem]
+        retained_objects_by_gem: per_gem_report[report.retained_objects_by_gem],
       }
       write_result(result, step)
     end

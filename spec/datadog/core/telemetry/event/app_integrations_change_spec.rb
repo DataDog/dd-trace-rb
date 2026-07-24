@@ -28,8 +28,8 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppIntegrationsChange do
               name: "http",
               version: RUBY_VERSION,
               compatible: true,
-              enabled: true
-            )
+              enabled: true,
+            ),
           )
         end
       end
@@ -50,7 +50,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppIntegrationsChange do
               compatible: false,
               enabled: false,
               error: "Available?: false, Loaded? false, Compatible? false, Patchable? false",
-            )
+            ),
           )
         end
       end

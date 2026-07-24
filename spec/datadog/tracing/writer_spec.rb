@@ -72,7 +72,7 @@ RSpec.describe Datadog::Tracing::Writer do
           it "configures the transport using the agent_settings" do
             expect(Datadog::Tracing::Transport::HTTP).to receive(:default).with(
               agent_settings: agent_settings,
-              logger: logger
+              logger: logger,
             )
 
             writer
@@ -89,13 +89,13 @@ RSpec.describe Datadog::Tracing::Writer do
             buffer_size: Datadog::Tracing::Workers::AsyncTransport::DEFAULT_BUFFER_MAX_SIZE,
             on_trace: anything,
             interval: Datadog::Tracing::Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL,
-            shutdown_timeout: Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT
+            shutdown_timeout: Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT,
           }
         end
 
         before do
           expect(Datadog::Tracing::Workers::AsyncTransport).to(
-            receive(:new).with(**expected_async_transport_params).and_return(worker)
+            receive(:new).with(**expected_async_transport_params).and_return(worker),
           )
         end
 
@@ -184,7 +184,7 @@ RSpec.describe Datadog::Tracing::Writer do
               internal_error?: false,
               server_error?: false,
               ok?: true,
-              trace_count: 10
+              trace_count: 10,
             )
           end
           let(:response2) do
@@ -193,7 +193,7 @@ RSpec.describe Datadog::Tracing::Writer do
               internal_error?: false,
               server_error?: false,
               ok?: true,
-              trace_count: 20
+              trace_count: 20,
             )
           end
 
@@ -205,7 +205,7 @@ RSpec.describe Datadog::Tracing::Writer do
                 Datadog::Tracing::Transport::HTTP::Traces::Response,
                 internal_error?: false,
                 server_error?: true,
-                ok?: false
+                ok?: false,
               )
             end
 

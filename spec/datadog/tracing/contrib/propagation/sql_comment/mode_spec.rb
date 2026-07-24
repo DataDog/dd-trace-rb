@@ -10,7 +10,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment::Mode do
       ["service", true],
       ["dynamic_service", true],
       ["full", true],
-      ["undefined", false]
+      ["undefined", false],
     ].each do |string, result|
       context "when given `#{string}`" do
         subject { described_class.new(string, append, inject_sql_basehash).enabled? }
@@ -25,7 +25,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment::Mode do
       ["service", true],
       ["dynamic_service", true],
       ["full", false],
-      ["undefined", false]
+      ["undefined", false],
     ].each do |string, result|
       context "when given `#{string}`" do
         subject { described_class.new(string, append, inject_sql_basehash).service? }
@@ -40,7 +40,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment::Mode do
       ["service", false],
       ["dynamic_service", false],
       ["full", true],
-      ["undefined", false]
+      ["undefined", false],
     ].each do |string, result|
       context "when given `#{string}`" do
         subject { described_class.new(string, append, inject_sql_basehash).full? }
@@ -52,7 +52,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment::Mode do
   describe "#append?" do
     [
       [false, false],
-      [true, true]
+      [true, true],
     ].each do |value, result|
       context "when given `#{value}`" do
         subject { described_class.new("full", value, inject_sql_basehash).append? }
@@ -66,7 +66,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment::Mode do
       ["service", false, false],
       ["service", true, true],
       ["dynamic_service", false, true],
-      ["dynamic_service", true, true]
+      ["dynamic_service", true, true],
     ].each do |mode, value, result|
       context "when given mode `#{mode}` and inject_sql_basehash `#{value}`" do
         subject { described_class.new(mode, false, value).inject_sql_basehash? }

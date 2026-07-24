@@ -17,7 +17,7 @@ RSpec.describe Datadog::ErrorTracking::Configuration::Settings do
         ["handled_errors", "third_party"],
         ["handled_errors_include", []],
         ["handled_errors_include", ["foo"]],
-        ["handled_errors_include", ["foo", "bar", "hello", "world"]]
+        ["handled_errors_include", ["foo", "bar", "hello", "world"]],
       ].each do |(name, value)|
         context "when #{name} set to #{value}" do
           before do
@@ -72,7 +72,7 @@ RSpec.describe Datadog::ErrorTracking::Configuration::Settings do
         expect(Datadog.logger).to have_received(:warn).with(
           "Invalid handled errors scope: invalid. " \
           "Supported values are: all | user | third_party. " \
-          "Deactivating the feature."
+          "Deactivating the feature.",
         )
         expect(settings.error_tracking.handled_errors).to eq(Datadog::ErrorTracking::Ext::DEFAULT_HANDLED_ERRORS)
       end

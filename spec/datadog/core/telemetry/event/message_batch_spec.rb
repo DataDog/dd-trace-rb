@@ -23,13 +23,13 @@ RSpec.describe Datadog::Core::Telemetry::Event::MessageBatch do
         [
           {
             request_type: "app-closing",
-            payload: {}
+            payload: {},
           },
           {
             request_type: "app-heartbeat",
-            payload: {}
-          }
-        ]
+            payload: {},
+          },
+        ],
       )
     end
   end

@@ -453,7 +453,7 @@ module Datadog
           start_line: UNKNOWN_MIN_LINE,
           end_line: UNKNOWN_MAX_LINE,
           language_specifics: lang,
-          scopes: inner_scopes
+          scopes: inner_scopes,
         )
       end
 
@@ -470,7 +470,7 @@ module Datadog
           source_file: source_file,
           start_line: UNKNOWN_MIN_LINE,
           end_line: UNKNOWN_MAX_LINE,
-          symbols: extract_scope_symbols(mod)
+          symbols: extract_scope_symbols(mod),
         )
       end
 
@@ -490,7 +490,7 @@ module Datadog
           end_line: end_line,
           language_specifics: build_class_language_specifics(klass),
           scopes: extract_method_scopes(klass),
-          symbols: extract_scope_symbols(klass)
+          symbols: extract_scope_symbols(klass),
         )
       end
 
@@ -616,9 +616,9 @@ module Datadog
           language_specifics: {
             visibility: method_visibility(klass, method_name),
             method_type: method_type.to_s,
-            arity: method.arity
+            arity: method.arity,
           },
-          symbols: extract_method_parameters(method)
+          symbols: extract_method_parameters(method),
         )
       rescue Exception => e # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)
@@ -841,7 +841,7 @@ module Datadog
 
         root = {
           name: file_path, type: "FILE", children: {},
-          methods: [], mod: nil, source_file: file_path, fqn: nil,
+          methods: [], mod: nil, source_file: file_path, fqn: nil
         }
 
         # Sort by FQN depth so parent namespaces are placed before children.
@@ -1015,7 +1015,7 @@ module Datadog
           end_line: end_line,
           language_specifics: lang,
           scopes: method_scopes + child_scopes,
-          symbols: symbols
+          symbols: symbols,
         )
       end
 
@@ -1043,9 +1043,9 @@ module Datadog
           language_specifics: {
             visibility: klass ? method_visibility(klass, method_name) : "public", # steep:ignore
             method_type: "instance",
-            arity: method.arity
+            arity: method.arity,
           },
-          symbols: extract_method_parameters(method)
+          symbols: extract_method_parameters(method),
         )
       rescue Exception => e # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)
@@ -1067,7 +1067,7 @@ module Datadog
             symbols << Symbol.new(
               symbol_type: "STATIC_FIELD",
               name: var_name.to_s,
-              line: UNKNOWN_MIN_LINE
+              line: UNKNOWN_MIN_LINE,
             )
           end
         end
@@ -1083,7 +1083,7 @@ module Datadog
             symbol_type: "STATIC_FIELD",
             name: const_name.to_s,
             line: UNKNOWN_MIN_LINE,
-            type: safe_mod_name(KERNEL_CLASS.bind(const_value).call)
+            type: safe_mod_name(KERNEL_CLASS.bind(const_value).call),
           )
         rescue NameError, LoadError, NoMethodError, TypeError => e # standard:disable Lint/ShadowedException
           # Expected: constant removed/undefined (NameError), autoload failure (LoadError),

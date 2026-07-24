@@ -136,7 +136,7 @@ module Datadog
         error_result = Datadog::OpenFeature::ResolutionDetails.build_error(
           value: default_value,
           error_code: Ext::GENERAL,
-          error_message: error_message
+          error_message: error_message,
         )
         error_flag_meta = build_flag_metadata(error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i)
 
@@ -148,7 +148,7 @@ module Datadog
           flag_key,
           default_value: default_value,
           expected_type: expected_type,
-          evaluation_context: evaluation_context
+          evaluation_context: evaluation_context,
         )
       end
 
@@ -167,7 +167,7 @@ module Datadog
           error_code: error_code,
           error_message: error_message,
           reason: reason,
-          flag_metadata: flag_meta
+          flag_metadata: flag_meta,
         )
       end
 
@@ -218,7 +218,7 @@ module Datadog
           error_code: Ext::PROVIDER_FATAL,
           error_message: "Datadog's OpenFeature component must be configured",
           reason: Ext::ERROR,
-          flag_metadata: {"dd.eval.timestamp_ms" => eval_time_ms}
+          flag_metadata: {"dd.eval.timestamp_ms" => eval_time_ms},
         )
       end
     end

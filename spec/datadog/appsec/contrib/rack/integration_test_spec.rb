@@ -36,7 +36,7 @@ RSpec.describe "Rack integration tests" do
     {
       version: "2.2",
       metadata: {
-        rules_version: "1.4.1"
+        rules_version: "1.4.1",
       },
       rules: [
         {
@@ -45,36 +45,36 @@ RSpec.describe "Rack integration tests" do
           tags: {
             type: "sql_injection",
             crs_id: "942100",
-            category: "attack_attempt"
+            category: "attack_attempt",
           },
           conditions: [
             {
               parameters: {
                 inputs: [
                   {
-                    address: "server.request.query"
+                    address: "server.request.query",
                   },
                   {
-                    address: "server.request.body"
+                    address: "server.request.body",
                   },
                   {
-                    address: "server.request.path_params"
+                    address: "server.request.path_params",
                   },
                   {
-                    address: "grpc.server.request.message"
-                  }
-                ]
+                    address: "grpc.server.request.message",
+                  },
+                ],
               },
-              operator: "is_sqli"
-            }
+              operator: "is_sqli",
+            },
           ],
           transformers: [
-            "removeNulls"
+            "removeNulls",
           ],
           on_match: [
             "block",
-            "extract_schema"
-          ]
+            "extract_schema",
+          ],
         },
       ],
       processors: [
@@ -89,47 +89,47 @@ RSpec.describe "Rack integration tests" do
                   {
                     address: "waf.context.processor",
                     key_path: [
-                      "extract-schema"
-                    ]
-                  }
+                      "extract-schema",
+                    ],
+                  },
                 ],
                 type: "boolean",
-                value: true
-              }
-            }
+                value: true,
+              },
+            },
           ],
           parameters: {
             mappings: [
               {
                 inputs: [
                   {
-                    address: "server.request.query"
-                  }
+                    address: "server.request.query",
+                  },
                 ],
-                output: "_dd.appsec.s.req.query"
+                output: "_dd.appsec.s.req.query",
               },
               {
                 inputs: [
                   {
-                    address: "server.request.body"
-                  }
+                    address: "server.request.body",
+                  },
                 ],
-                output: "_dd.appsec.s.req.body"
+                output: "_dd.appsec.s.req.body",
               },
               {
                 inputs: [
                   {
-                    address: "server.request.path_params"
-                  }
+                    address: "server.request.path_params",
+                  },
                 ],
-                output: "_dd.appsec.s.req.params"
+                output: "_dd.appsec.s.req.params",
               },
-            ]
+            ],
           },
           evaluate: false,
-          output: true
+          output: true,
         },
-      ]
+      ],
     }
   end
 
@@ -137,7 +137,7 @@ RSpec.describe "Rack integration tests" do
     {
       version: "2.2",
       metadata: {
-        rules_version: "1.4.1"
+        rules_version: "1.4.1",
       },
       rules: [
         {
@@ -146,7 +146,7 @@ RSpec.describe "Rack integration tests" do
           tags: {
             type: "security_scanner",
             category: "attack_attempt",
-            confidence: "1"
+            confidence: "1",
           },
           conditions: [
             {
@@ -154,34 +154,34 @@ RSpec.describe "Rack integration tests" do
               parameters: {
                 inputs: [
                   {
-                    address: "server.response.status"
-                  }
+                    address: "server.response.status",
+                  },
                 ],
                 regex: "^404$",
                 options: {
-                  case_sensitive: true
-                }
-              }
+                  case_sensitive: true,
+                },
+              },
             },
             {
               operator: "match_regex",
               parameters: {
                 inputs: [
                   {
-                    address: "server.request.uri.raw"
-                  }
+                    address: "server.request.uri.raw",
+                  },
                 ],
                 regex: 'readme\\.[\\.a-z0-9]+$',
                 options: {
-                  case_sensitive: false
-                }
-              }
-            }
+                  case_sensitive: false,
+                },
+              },
+            },
           ],
           transformers: [],
           on_match: [
-            "block"
-          ]
+            "block",
+          ],
         },
       ],
       processors: [
@@ -196,31 +196,31 @@ RSpec.describe "Rack integration tests" do
                   {
                     address: "waf.context.processor",
                     key_path: [
-                      "extract-schema"
-                    ]
-                  }
+                      "extract-schema",
+                    ],
+                  },
                 ],
                 type: "boolean",
-                value: true
-              }
-            }
+                value: true,
+              },
+            },
           ],
           parameters: {
             mappings: [
               {
                 inputs: [
                   {
-                    address: "server.request.uri.raw"
-                  }
+                    address: "server.request.uri.raw",
+                  },
                 ],
-                output: "_dd.appsec.s.req.uri.raw"
-              }
-            ]
+                output: "_dd.appsec.s.req.uri.raw",
+              },
+            ],
           },
           evaluate: false,
-          output: true
+          output: true,
         },
-      ]
+      ],
     }
   end
 
@@ -231,7 +231,7 @@ RSpec.describe "Rack integration tests" do
         {
           status: 200,
           body: request.headers.to_json,
-          headers: {"Content-Type" => "application/json"}
+          headers: {"Content-Type" => "application/json"},
         }
       end
 
@@ -292,7 +292,7 @@ RSpec.describe "Rack integration tests" do
     let(:middlewares) do
       [
         Datadog::Tracing::Contrib::Rack::TraceMiddleware,
-        Datadog::AppSec::Contrib::Rack::RequestMiddleware
+        Datadog::AppSec::Contrib::Rack::RequestMiddleware,
       ]
     end
 
@@ -710,7 +710,7 @@ RSpec.describe "Rack integration tests" do
                 else
                   [200, {"Content-Type" => "text/html"}, ["OK"]]
                 end
-              end
+              end,
             )
           end
 
@@ -719,7 +719,7 @@ RSpec.describe "Rack integration tests" do
               proc do |_env|
                 Datadog::Kit::Identity.set_user(Datadog::Tracing.active_trace, id: "blocked-user-id")
                 [200, {"Content-Type" => "text/html"}, ["OK"]]
-              end
+              end,
             )
           end
 
@@ -737,7 +737,7 @@ RSpec.describe "Rack integration tests" do
                 end
 
                 [200, {"Content-Type" => "application/json"}, [ext_response.body]]
-              end
+              end,
             )
           end
         end
@@ -793,7 +793,7 @@ RSpec.describe "Rack integration tests" do
                 "55c24b96ca84c02201000001",
 
               "http.request.headers.x-sigsci-tags" =>
-                "SITE-FLAGGED-IP,IMPOSTOR"
+                "SITE-FLAGGED-IP,IMPOSTOR",
             }
           end
 
@@ -824,7 +824,7 @@ RSpec.describe "Rack integration tests" do
                 "55c24b96ca84c02201000001",
 
               "HTTP_X_SIGSCI_TAGS" =>
-                "SITE-FLAGGED-IP,IMPOSTOR"
+                "SITE-FLAGGED-IP,IMPOSTOR",
             }
           end
 
@@ -1105,7 +1105,7 @@ RSpec.describe "Rack integration tests" do
             "HTTP_X_DATADOG_SAMPLING_PRIORITY" => headers_sampling_priority,
             "HTTP_X_DATADOG_ORIGIN" => headers_origin,
             "HTTP_X_DATADOG_TAGS" => headers_tags,
-            "HTTP_USER_AGENT" => user_agent
+            "HTTP_USER_AGENT" => user_agent,
           }
         end
         let(:env) { headers }
@@ -1142,7 +1142,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with ASM Standalone tags",
               {
                 tag_other_propagation: "1",
-                tag_sampling_priority_condition: ->(x) { x <= 0 }
+                tag_sampling_priority_condition: ->(x) { x <= 0 },
               }
             it_behaves_like "a request sent without propagated headers"
           end
@@ -1153,7 +1153,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with ASM Standalone tags",
               {
                 tag_other_propagation: "1",
-                tag_sampling_priority_condition: ->(x) { x <= 0 }
+                tag_sampling_priority_condition: ->(x) { x <= 0 },
               }
             it_behaves_like "a request sent without propagated headers"
           end
@@ -1164,7 +1164,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with ASM Standalone tags",
               {
                 tag_other_propagation: "1",
-                tag_sampling_priority_condition: ->(x) { x <= 0 }
+                tag_sampling_priority_condition: ->(x) { x <= 0 },
               }
             it_behaves_like "a request sent without propagated headers"
           end
@@ -1175,7 +1175,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with ASM Standalone tags",
               {
                 tag_other_propagation: "1",
-                tag_sampling_priority_condition: ->(x) { x <= 0 }
+                tag_sampling_priority_condition: ->(x) { x <= 0 },
               }
             it_behaves_like "a request sent without propagated headers"
           end
@@ -1198,7 +1198,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with ASM Standalone tags",
               {
                 appsec_bit_in_source: true,
-                tag_sampling_priority_condition: ->(x) { x == 2 }
+                tag_sampling_priority_condition: ->(x) { x == 2 },
               }
             it_behaves_like "a request sent with propagated headers",
               {
@@ -1206,7 +1206,7 @@ RSpec.describe "Rack integration tests" do
                 res_parent_id_not_equal: "34343434",
                 res_tags: ["_dd.p.other=1", "_dd.p.ts=02"],
                 res_sampling_priority_condition: ->(x) { x == "2" },
-                res_trace_id: "1212121212121212121"
+                res_trace_id: "1212121212121212121",
               }
           end
 
@@ -1216,7 +1216,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with ASM Standalone tags",
               {
                 appsec_bit_in_source: true,
-                tag_sampling_priority_condition: ->(x) { x == 2 }
+                tag_sampling_priority_condition: ->(x) { x == 2 },
               }
             it_behaves_like "a request sent with propagated headers",
               {
@@ -1224,7 +1224,7 @@ RSpec.describe "Rack integration tests" do
                 res_parent_id_not_equal: "34343434",
                 res_tags: ["_dd.p.other=1", "_dd.p.ts=02"],
                 res_sampling_priority_condition: ->(x) { x == "2" },
-                res_trace_id: "1212121212121212121"
+                res_trace_id: "1212121212121212121",
               }
           end
         end
@@ -1248,7 +1248,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with ASM Standalone tags",
               {
                 appsec_bit_in_source: true,
-                tag_sampling_priority_condition: ->(x) { x == 0 }
+                tag_sampling_priority_condition: ->(x) { x == 0 },
               }
             it_behaves_like "a request sent with propagated headers",
               {
@@ -1256,7 +1256,7 @@ RSpec.describe "Rack integration tests" do
                 res_parent_id_not_equal: "34343434",
                 res_tags: ["_dd.p.ts=02"],
                 res_sampling_priority_condition: ->(x) { x == "0" },
-                res_trace_id: "1212121212121212121"
+                res_trace_id: "1212121212121212121",
               }
           end
 
@@ -1266,7 +1266,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with ASM Standalone tags",
               {
                 appsec_bit_in_source: true,
-                tag_sampling_priority_condition: ->(x) { [1, 2].include?(x) }
+                tag_sampling_priority_condition: ->(x) { [1, 2].include?(x) },
               }
             it_behaves_like "a request sent with propagated headers",
               {
@@ -1274,7 +1274,7 @@ RSpec.describe "Rack integration tests" do
                 res_parent_id_not_equal: "34343434",
                 res_tags: ["_dd.p.ts=02"],
                 res_sampling_priority_condition: ->(x) { ["1", "2"].include?(x) },
-                res_trace_id: "1212121212121212121"
+                res_trace_id: "1212121212121212121",
               }
           end
 
@@ -1284,7 +1284,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with ASM Standalone tags",
               {
                 appsec_bit_in_source: true,
-                tag_sampling_priority_condition: ->(x) { x == 2 }
+                tag_sampling_priority_condition: ->(x) { x == 2 },
               }
             it_behaves_like "a request sent with propagated headers",
               {
@@ -1292,7 +1292,7 @@ RSpec.describe "Rack integration tests" do
                 res_parent_id_not_equal: "34343434",
                 res_tags: ["_dd.p.ts=02"],
                 res_sampling_priority_condition: ->(x) { x == "2" },
-                res_trace_id: "1212121212121212121"
+                res_trace_id: "1212121212121212121",
               }
           end
         end
@@ -1315,7 +1315,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with ASM Standalone tags",
               {
                 appsec_bit_in_source: true,
-                tag_sampling_priority_condition: ->(x) { x == 2 }
+                tag_sampling_priority_condition: ->(x) { x == 2 },
               }
             it_behaves_like "a request sent with propagated headers",
               {
@@ -1323,7 +1323,7 @@ RSpec.describe "Rack integration tests" do
                 res_parent_id_not_equal: "34343434",
                 res_tags: ["_dd.p.ts=02"],
                 res_sampling_priority_condition: ->(x) { x == "2" },
-                res_trace_id: "1212121212121212121"
+                res_trace_id: "1212121212121212121",
               }
           end
 
@@ -1333,7 +1333,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with ASM Standalone tags",
               {
                 appsec_bit_in_source: true,
-                tag_sampling_priority_condition: ->(x) { x == 2 }
+                tag_sampling_priority_condition: ->(x) { x == 2 },
               }
             it_behaves_like "a request sent with propagated headers",
               {
@@ -1341,7 +1341,7 @@ RSpec.describe "Rack integration tests" do
                 res_parent_id_not_equal: "34343434",
                 res_tags: ["_dd.p.ts=02"],
                 res_sampling_priority_condition: ->(x) { x == "2" },
-                res_trace_id: "1212121212121212121"
+                res_trace_id: "1212121212121212121",
               }
           end
 
@@ -1351,7 +1351,7 @@ RSpec.describe "Rack integration tests" do
             it_behaves_like "a trace with ASM Standalone tags",
               {
                 appsec_bit_in_source: true,
-                tag_sampling_priority_condition: ->(x) { x == 2 }
+                tag_sampling_priority_condition: ->(x) { x == 2 },
               }
             it_behaves_like "a request sent with propagated headers",
               {
@@ -1359,7 +1359,7 @@ RSpec.describe "Rack integration tests" do
                 res_parent_id_not_equal: "34343434",
                 res_tags: ["_dd.p.ts=02"],
                 res_sampling_priority_condition: ->(x) { x == "2" },
-                res_trace_id: "1212121212121212121"
+                res_trace_id: "1212121212121212121",
               }
           end
         end

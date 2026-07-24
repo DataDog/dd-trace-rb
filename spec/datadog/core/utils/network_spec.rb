@@ -10,7 +10,7 @@ RSpec.describe Datadog::Core::Utils::Network do
           headers = Datadog::Core::HeaderCollection.from_hash(
             {"X-Forwarded-For" => "10.42.42.42",
              "True-Client-Ip" => "43.43.43.43",
-             "X-Cluster-Client-Ip" => "10.0.0.1",}
+             "X-Cluster-Client-Ip" => "10.0.0.1"},
           )
 
           result = described_class.stripped_ip_from_request_headers(headers)
@@ -51,7 +51,7 @@ RSpec.describe Datadog::Core::Utils::Network do
 
         it "correctly parses multiple for IPs" do
           headers = Datadog::Core::HeaderCollection.from_hash(
-            {"Forwarded" => 'for=127.0.0.1;host="example.host";by=2.2.2.2;proto=http,for="1.1.1.1:6543"'}
+            {"Forwarded" => 'for=127.0.0.1;host="example.host";by=2.2.2.2;proto=http,for="1.1.1.1:6543"'},
           )
 
           result = described_class.stripped_ip_from_request_headers(headers)
@@ -79,7 +79,7 @@ RSpec.describe Datadog::Core::Utils::Network do
             {
               "X-Forwarded-For" => "64.233.161.147",
               "test-header" => "43.43.43.43",
-            }
+            },
           )
 
           result = described_class.stripped_ip_from_request_headers(headers, ip_headers_to_check: ["test-header"])
@@ -103,7 +103,7 @@ RSpec.describe Datadog::Core::Utils::Network do
 
       it "returns nil if no public valid IP addresss present in the headers" do
         headers = Datadog::Core::HeaderCollection.from_hash(
-          {"X-Forwarded-For" => "10.42.42.42"}
+          {"X-Forwarded-For" => "10.42.42.42"},
         )
 
         result = described_class.stripped_ip_from_request_headers(headers)
@@ -148,7 +148,7 @@ RSpec.describe Datadog::Core::Utils::Network do
             "",
             "dd",
             "02001:0000:1234:0000:0000:C1C0:ABCD:0876",
-            "2001:0000:1234:0000:00001:C1C0:ABCD:0876"
+            "2001:0000:1234:0000:00001:C1C0:ABCD:0876",
           ]
 
         ips.each do |ip|

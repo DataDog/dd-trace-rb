@@ -70,7 +70,7 @@ module Datadog
         module Patcher
           PATCHERS = [
             MiddlewarePatcher,
-            MiddlewareNamePatcher
+            MiddlewareNamePatcher,
           ].freeze
 
           module_function
@@ -95,7 +95,7 @@ module Datadog
                   %(
                 Rack :middleware_names requires you to also pass :application.
                 Middleware names have NOT been patched; please provide :application.
-                e.g. use: :rack, middleware_names: true, application: my_rack_app)
+                e.g. use: :rack, middleware_names: true, application: my_rack_app),
                 )
               end
             end

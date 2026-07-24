@@ -102,7 +102,7 @@ RSpec.describe Datadog::Tracing::Component do
           expect(writer.events.after_send).to receive(:subscribe) do |&block|
             expect(block)
               .to be(
-                described_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK
+                described_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK,
               )
           end
 
@@ -124,7 +124,7 @@ RSpec.describe Datadog::Tracing::Component do
           expect(writer.events.after_send).to receive(:subscribe) do |&block|
             expect(block)
               .to be(
-                described_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK
+                described_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK,
               )
           end
 
@@ -253,10 +253,10 @@ RSpec.describe Datadog::Tracing::Component do
                 span_sampler: be_a(Datadog::Tracing::Sampling::Span::Sampler) & have_attributes(
                   rules: [
                     Datadog::Tracing::Sampling::Span::Rule.new(
-                      Datadog::Tracing::Sampling::Span::Matcher.new(name_pattern: "foo")
-                    )
-                  ]
-                )
+                      Datadog::Tracing::Sampling::Span::Matcher.new(name_pattern: "foo"),
+                    ),
+                  ],
+                ),
               }
             end
           end
@@ -290,7 +290,7 @@ RSpec.describe Datadog::Tracing::Component do
         let(:tags) do
           {
             "env" => "tag_env",
-            "version" => "tag_version"
+            "version" => "tag_version",
           }
         end
 
@@ -405,7 +405,7 @@ RSpec.describe Datadog::Tracing::Component do
                     it_behaves_like "new tracer" do
                       let(:options) do
                         {
-                          writer: kind_of(Datadog::Tracing::SyncWriter)
+                          writer: kind_of(Datadog::Tracing::SyncWriter),
                         }
                       end
                       let(:writer) { sync_writer }
@@ -421,7 +421,7 @@ RSpec.describe Datadog::Tracing::Component do
                       let(:options) do
                         {
                           trace_flush: trace_flush,
-                          writer: kind_of(Datadog::Tracing::SyncWriter)
+                          writer: kind_of(Datadog::Tracing::SyncWriter),
                         }
                       end
                       let(:writer) { sync_writer }
@@ -444,7 +444,7 @@ RSpec.describe Datadog::Tracing::Component do
                     it_behaves_like "new tracer" do
                       let(:options) do
                         {
-                          writer: writer
+                          writer: writer,
                         }
                       end
                       let(:writer) { sync_writer }

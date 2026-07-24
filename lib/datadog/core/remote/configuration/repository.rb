@@ -111,9 +111,9 @@ module Datadog
                   hashes: content.hashes.map do |algorithm, hexdigest|
                     {
                       algorithm: algorithm,
-                      hash: hexdigest
+                      hash: hexdigest,
                     }
-                  end
+                  end,
                 }
               end
             end

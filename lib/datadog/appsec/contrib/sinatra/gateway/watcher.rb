@@ -56,7 +56,7 @@ module Datadog
 
                   if result.match? || !result.attributes.empty?
                     context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
                   end
 
@@ -77,7 +77,7 @@ module Datadog
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY] # : Context
 
                   persistent_data = {
-                    "server.request.path_params" => gateway_route_params.params
+                    "server.request.path_params" => gateway_route_params.params,
                   }
 
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
@@ -87,7 +87,7 @@ module Datadog
                     TraceKeeper.keep!(context.trace) if result.keep?
 
                     context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
 
                     AppSec::ActionsHandler.handle(result.actions)
@@ -102,13 +102,13 @@ module Datadog
                   context = container.context # : Context
 
                   persistent_data = {
-                    "server.response.body" => container.data
+                    "server.response.body" => container.data,
                   }
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
                   if result.match?
                     context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
 
                     AppSec::Event.tag(context, result)

@@ -23,7 +23,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       hostname: hostname,
       port: port,
       uds_path: uds_path,
-      timeout_seconds: timeout_seconds
+      timeout_seconds: timeout_seconds,
     }
   end
 
@@ -662,7 +662,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
         **settings,
         ssl: false,
         hostname: "custom-hostname",
-        port: 1234
+        port: 1234,
       )
     end
 

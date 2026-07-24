@@ -65,7 +65,7 @@ RSpec.shared_context "GraphQL test application" do
 
   let(:routes) do
     {
-      [:post, "/graphql"] => "graphql#execute"
+      [:post, "/graphql"] => "graphql#execute",
     }
   end
   let(:controllers) { [controller] }
@@ -92,7 +92,7 @@ RSpec.shared_context "GraphQL test application" do
                 query: param[:query],
                 operation_name: param[:operationName],
                 variables: prepare_variables(param[:variables]),
-                context: {}
+                context: {},
               }
             end
             TestGraphQL::Schema.multiplex(queries)
@@ -101,7 +101,7 @@ RSpec.shared_context "GraphQL test application" do
               query: params[:query],
               operation_name: params[:operationName],
               variables: prepare_variables(params[:variables]),
-              context: {}
+              context: {},
             )
           end
           render json: result
@@ -125,7 +125,7 @@ RSpec.shared_context "GraphQL test application" do
             raise ArgumentError, "Unexpected parameter: #{variables_param}"
           end
         end
-      end
+      end,
     )
   end
 end

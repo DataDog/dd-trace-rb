@@ -32,8 +32,8 @@ RSpec.describe Datadog::OpenTelemetry::API::Baggage do
       expect(ctx.instance_variable_get(:@trace).baggage).to eq(
         {
           "key1" => "value1",
-          "key2" => "value2"
-        }
+          "key2" => "value2",
+        },
       )
     end
 
@@ -70,8 +70,8 @@ RSpec.describe Datadog::OpenTelemetry::API::Baggage do
       expect(result.instance_variable_get(:@trace).baggage).to eq(
         {
           "key1" => "value1",
-          "key2" => "value2"
-        }
+          "key2" => "value2",
+        },
       )
     end
   end
@@ -100,8 +100,8 @@ RSpec.describe Datadog::OpenTelemetry::API::Baggage do
       expect(baggage.values(context: ctx)).to eq(
         {
           "key1" => "value1",
-          "key2" => "value2"
-        }
+          "key2" => "value2",
+        },
       )
     end
 

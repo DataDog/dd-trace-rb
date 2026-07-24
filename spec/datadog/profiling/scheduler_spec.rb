@@ -55,7 +55,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
           started?: false,
           forked?: false,
           fork_policy: :restart,
-          result: nil
+          result: nil,
         )
       end
     end
@@ -79,7 +79,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
           started?: true,
           forked?: false,
           fork_policy: :restart,
-          result: nil
+          result: nil,
         )
       end
 

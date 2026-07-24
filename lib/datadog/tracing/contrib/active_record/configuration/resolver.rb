@@ -76,7 +76,7 @@ module Datadog
               #
               Datadog.logger.error(
                 "Failed to resolve ActiveRecord database configuration. " \
-                "Cause: #{e.class} Source: #{Array(e.backtrace).first}"
+                "Cause: #{e.class} Source: #{Array(e.backtrace).first}",
               )
               Core::Telemetry::Logger.report(e, description: "Failed to resolve ActiveRecord database configuration")
 
@@ -96,7 +96,7 @@ module Datadog
             rescue => e
               Datadog.logger.error(
                 "Failed to resolve key #{matcher.inspect}. " \
-                "Cause: #{e.class} Source: #{Array(e.backtrace).first}"
+                "Cause: #{e.class} Source: #{Array(e.backtrace).first}",
               )
               Core::Telemetry::Logger.report(e, description: "Failed to resolve key")
 
@@ -138,7 +138,7 @@ module Datadog
                 host: active_record_config[:host],
                 port: active_record_config[:port],
                 database: active_record_config[:database],
-                username: active_record_config[:username]
+                username: active_record_config[:username],
               }
             end
 

@@ -31,23 +31,23 @@ RSpec.describe "Excon SSRF Injection" do
               cwe: "918",
               capec: "1000/225/115/664",
               confidence: "0",
-              module: "rasp"
+              module: "rasp",
             },
             conditions: [
               {
                 parameters: {
                   resource: [{address: "server.io.net.url"}],
                   params: [
-                    {address: "server.request.query"}
-                  ]
+                    {address: "server.request.query"},
+                  ],
                 },
-                operator: "ssrf_detector"
-              }
+                operator: "ssrf_detector",
+              },
             ],
             transformers: [],
-            on_match: ["block"]
-          }
-        ]
+            on_match: ["block"],
+          },
+        ],
       }
 
       c.remote.enabled = false
@@ -76,7 +76,7 @@ RSpec.describe "Excon SSRF Injection" do
             response = client.get(path: "/success")
 
             [200, {"Content-Type" => "application/json"}, [response.status.to_s]]
-          end
+          end,
         )
       end
     end

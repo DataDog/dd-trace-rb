@@ -15,7 +15,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
       events: [],
       state: {},
       trace: instance_double(Datadog::Tracing::TraceOperation),
-      span: instance_double(Datadog::Tracing::SpanOperation)
+      span: instance_double(Datadog::Tracing::SpanOperation),
     )
   end
 
@@ -25,7 +25,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
       match?: false,
       attributes: [],
       actions: {},
-      keep?: false
+      keep?: false,
     )
   end
 
@@ -43,9 +43,9 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
             :method => "POST",
             :input => "name=john",
             "CONTENT_TYPE" => "application/x-www-form-urlencoded",
-            Datadog::AppSec::Ext::CONTEXT_KEY => context
-          }
-        )
+            Datadog::AppSec::Ext::CONTEXT_KEY => context,
+          },
+        ),
       )
     end
 
@@ -195,8 +195,8 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         Datadog::AppSec::Contrib::Sinatra::Gateway::Request.new(
           Rack::MockRequest.env_for(
             "http://example.com/",
-            {:method => "GET", Datadog::AppSec::Ext::CONTEXT_KEY => context}
-          )
+            {:method => "GET", Datadog::AppSec::Ext::CONTEXT_KEY => context},
+          ),
         )
       end
 

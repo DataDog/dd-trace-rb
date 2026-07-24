@@ -81,11 +81,11 @@ module Datadog
           rescue => e
             result = nil
             ::Datadog.logger.error(
-              "Error injecting distributed trace data. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+              "Error injecting distributed trace data. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}",
             )
             ::Datadog::Core::Telemetry::Logger.report(
               e,
-              description: "Error injecting distributed trace data with #{propagator.class.name}"
+              description: "Error injecting distributed trace data with #{propagator.class.name}",
             )
           end
 
@@ -146,13 +146,13 @@ module Datadog
                 span_id: parent_id,
                 trace_state: tracecontext_digest.trace_state,
                 trace_state_unknown_fields: tracecontext_digest.trace_state_unknown_fields,
-                trace_distributed_tags: distributed_tags
+                trace_distributed_tags: distributed_tags,
               )
             end
           rescue => e
             # TODO: Not to report Telemetry logs for now
             ::Datadog.logger.error(
-              "Error extracting distributed trace data. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+              "Error extracting distributed trace data. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}",
             )
           end
           # Handle baggage after all other styles if present
@@ -168,7 +168,7 @@ module Datadog
             attributes: {
               "reason" => "propagation_behavior_extract",
               "context_headers" => extracted_style_name,
-            }
+            },
           )
           baggage_tags = extracted_trace_digest.trace_distributed_tags&.select { |k, _| k.start_with?("baggage.") }
           baggage_tags = nil if baggage_tags&.empty?
@@ -189,7 +189,7 @@ module Datadog
             if digest
               extracted_trace_digest.merge(
                 baggage: digest.baggage,
-                trace_distributed_tags: digest.trace_distributed_tags
+                trace_distributed_tags: digest.trace_distributed_tags,
               )
             else
               extracted_trace_digest
@@ -204,7 +204,7 @@ module Datadog
           dd_propagator = @propagation_style_extract.find { |propagator| propagator.is_a?(Datadog) }
           if tracecontext_tags&.fetch(
             Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID,
-            Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
+            Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT,
           ) != Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
             # tracecontext headers contain a p value, ensure this value is sent to backend
             tracecontext_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID]

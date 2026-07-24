@@ -83,7 +83,7 @@ RSpec.describe "gem release process" do
             `git ls-files -z`
               .split("\x0")
               .reject { |f| f.match(directories_excluded) }
-              .reject { |f| f.match(single_files_excluded) }
+              .reject { |f| f.match(single_files_excluded) },
           )
       end
     end
@@ -140,7 +140,7 @@ RSpec.describe "gem release process" do
       it do
         {
           "changelog_uri" => "https://github.com/DataDog/dd-trace-rb/blob/v#{gemspec.version}/CHANGELOG.md",
-          "source_code_uri" => "https://github.com/DataDog/dd-trace-rb/tree/v#{gemspec.version}"
+          "source_code_uri" => "https://github.com/DataDog/dd-trace-rb/tree/v#{gemspec.version}",
         }.each do |key, value|
           expect(gemspec.metadata[key]).to eq(value)
         end

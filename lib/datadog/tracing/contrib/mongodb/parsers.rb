@@ -28,9 +28,9 @@ module Datadog
             {
               "operation" => command_name,
               "database" => database_name,
-              "collection" => command.values.first
+              "collection" => command.values.first,
             },
-            options
+            options,
           )
 
           base_info.merge(Contrib::Utils::Quantization::HashFormatter.format(command, options))

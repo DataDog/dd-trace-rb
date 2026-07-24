@@ -88,7 +88,7 @@ module Datadog
               hostname: hostname,
               env: env,
               service: service,
-              version: version
+              version: version,
             )
             @exporter = exporter
 

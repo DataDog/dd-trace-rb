@@ -22,7 +22,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
         {method: :get, path: "/timeout"},
         lambda do |_request_params|
           raise Excon::Errors::Timeout, "READ TIMEOUT"
-        end
+        end,
       )
     end
   end
@@ -58,8 +58,8 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
         middlewares: [
           Excon::Middleware::ResponseParser,
           described_class.with(middleware_options),
-          Excon::Middleware::Mock
-        ]
+          Excon::Middleware::Mock,
+        ],
       )
     end
   end
@@ -288,11 +288,11 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
             headers = datum[:headers]
             expect(headers).to include(
               "x-datadog-trace-id" => low_order_trace_id(span.trace_id).to_s,
-              "x-datadog-parent-id" => span.id.to_s
+              "x-datadog-parent-id" => span.id.to_s,
             )
 
             expect(headers).to include(
-              "x-datadog-sampling-priority"
+              "x-datadog-sampling-priority",
             )
           end
         end
@@ -321,7 +321,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
             expect(headers).to_not include(
               "x-datadog-trace-id",
               "x-datadog-parent-id",
-              "x-datadog-sampling-priority"
+              "x-datadog-sampling-priority",
             )
           end
         end

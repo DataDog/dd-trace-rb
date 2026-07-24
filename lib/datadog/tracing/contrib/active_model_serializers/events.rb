@@ -11,7 +11,7 @@ module Datadog
         module Events
           ALL = [
             Events::Render,
-            Events::Serialize
+            Events::Serialize,
           ].freeze
 
           module_function

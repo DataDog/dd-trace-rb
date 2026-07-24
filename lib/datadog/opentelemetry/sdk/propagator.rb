@@ -19,7 +19,7 @@ module Datadog
             Datadog.logger.error(
               "Custom setter is not supported. Please inform the `datadog` team at " \
             " https://github.com/DataDog/dd-trace-rb of your use case so we can best support you. Using the default " \
-            "OpenTelemetry::Context::Propagation.text_map_setter as a fallback setter."
+            "OpenTelemetry::Context::Propagation.text_map_setter as a fallback setter.",
             )
           end
 
@@ -36,7 +36,7 @@ module Datadog
             Datadog.logger.error(
               "Custom getter #{getter} is not supported. Please inform the `datadog` team at " \
             " https://github.com/DataDog/dd-trace-rb of your use case so we can best support you. Using the default " \
-            "OpenTelemetry::Context::Propagation.text_map_getter as a fallback getter."
+            "OpenTelemetry::Context::Propagation.text_map_getter as a fallback getter.",
             )
           end
 
@@ -75,7 +75,7 @@ module Datadog
             span_id: span_id,
             trace_flags: trace_flags,
             tracestate: tracestate,
-            remote: true
+            remote: true,
           )
 
           span = ::OpenTelemetry::Trace.non_recording_span(span_context)

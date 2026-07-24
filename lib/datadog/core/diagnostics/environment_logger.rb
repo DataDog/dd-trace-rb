@@ -53,7 +53,7 @@ module Datadog
           end
         rescue => e
           logger.warn(
-            "Failed to collect core environment information: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+            "Failed to collect core environment information: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}",
           )
         end
       end
@@ -75,7 +75,7 @@ module Datadog
               tags: tags,
               runtime_metrics_enabled: runtime_metrics_enabled,
               vm: vm,
-              health_metrics_enabled: health_metrics_enabled
+              health_metrics_enabled: health_metrics_enabled,
             }
           end
 

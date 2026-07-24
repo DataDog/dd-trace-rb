@@ -50,7 +50,7 @@ module Datadog
               runtime_version: Core::Environment::Ext::ENGINE_VERSION,
               service_name: config.service,
               service_version: config.version,
-              tracer_version: tracer_version
+              tracer_version: tracer_version,
             }
 
             tag_process_tags!(app, config)
@@ -64,7 +64,7 @@ module Datadog
               hostname: Core::Environment::Platform.hostname,
               kernel_name: Core::Environment::Platform.kernel_name,
               kernel_release: Core::Environment::Platform.kernel_release,
-              kernel_version: Core::Environment::Platform.kernel_version
+              kernel_version: Core::Environment::Platform.kernel_version,
             }
           end
 

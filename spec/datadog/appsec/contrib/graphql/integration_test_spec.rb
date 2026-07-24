@@ -38,7 +38,7 @@ RSpec.describe "GraphQL integration tests",
       {
         "version" => "2.2",
         "metadata" => {
-          "rules_version" => "1.4.1"
+          "rules_version" => "1.4.1",
         },
         "rules" => [
           {
@@ -50,34 +50,34 @@ RSpec.describe "GraphQL integration tests",
               cwe: "200",
               capec: "1000/118/169",
               tool_name: "Datadog Canary Test",
-              confidence: "1"
+              confidence: "1",
             },
             conditions: [
               {
                 parameters: {
                   inputs: [
                     {
-                      address: "graphql.server.all_resolvers"
-                    }
+                      address: "graphql.server.all_resolvers",
+                    },
                   ],
                   options: {
-                    enforce_word_boundary: true
+                    enforce_word_boundary: true,
                   },
                   list: [
-                    "$testattack"
-                  ]
+                    "$testattack",
+                  ],
                 },
-                operator: "phrase_match"
-              }
+                operator: "phrase_match",
+              },
             ],
             transformers: [
-              "lowercase"
+              "lowercase",
             ],
             on_match: [
-              "block"
-            ]
-          }
-        ]
+              "block",
+            ],
+          },
+        ],
       }
     end
 
@@ -85,7 +85,7 @@ RSpec.describe "GraphQL integration tests",
       {
         "version" => "2.2",
         "metadata" => {
-          "rules_version" => "1.4.1"
+          "rules_version" => "1.4.1",
         },
         "rules" => [
           {
@@ -97,31 +97,31 @@ RSpec.describe "GraphQL integration tests",
               cwe: "200",
               capec: "1000/118/169",
               tool_name: "Datadog Canary Test",
-              confidence: "1"
+              confidence: "1",
             },
             conditions: [
               {
                 parameters: {
                   inputs: [
                     {
-                      address: "graphql.server.all_resolvers"
-                    }
+                      address: "graphql.server.all_resolvers",
+                    },
                   ],
                   options: {
-                    enforce_word_boundary: true
+                    enforce_word_boundary: true,
                   },
                   list: [
-                    "$testattack"
-                  ]
+                    "$testattack",
+                  ],
                 },
-                operator: "phrase_match"
-              }
+                operator: "phrase_match",
+              },
             ],
             transformers: [
-              "lowercase"
-            ]
-          }
-        ]
+              "lowercase",
+            ],
+          },
+        ],
       }
     end
 
@@ -182,7 +182,7 @@ RSpec.describe "GraphQL integration tests",
               ),
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
 
@@ -206,7 +206,7 @@ RSpec.describe "GraphQL integration tests",
               ),
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
 
@@ -221,7 +221,7 @@ RSpec.describe "GraphQL integration tests",
 
           it do
             expect(JSON.parse(last_response.body)).to eq(
-              "errors" => [{"title" => "Blocked", "detail" => "Security provided by Datadog."}]
+              "errors" => [{"title" => "Blocked", "detail" => "Security provided by Datadog."}],
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -229,12 +229,12 @@ RSpec.describe "GraphQL integration tests",
               ),
               an_object_having_attributes(
                 name: "graphql.execute_multiplex",
-              )
+              ),
             )
             expect(spans).not_to include(
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
 
@@ -253,7 +253,7 @@ RSpec.describe "GraphQL integration tests",
 
           it do
             expect(last_response.body).to eq(
-              {"data" => {"createUser" => {"user" => {"name" => "k9", "id" => "1"}}}}.to_json
+              {"data" => {"createUser" => {"user" => {"name" => "k9", "id" => "1"}}}}.to_json,
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -264,7 +264,7 @@ RSpec.describe "GraphQL integration tests",
               ),
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
 
@@ -295,7 +295,7 @@ RSpec.describe "GraphQL integration tests",
 
           it do
             expect(JSON.parse(last_response.body)).to eq(
-              "errors" => [{"title" => "Blocked", "detail" => "Security provided by Datadog."}]
+              "errors" => [{"title" => "Blocked", "detail" => "Security provided by Datadog."}],
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -303,12 +303,12 @@ RSpec.describe "GraphQL integration tests",
               ),
               an_object_having_attributes(
                 name: "graphql.execute_multiplex",
-              )
+              ),
             )
             expect(spans).not_to include(
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
 
@@ -336,12 +336,12 @@ RSpec.describe "GraphQL integration tests",
             [
               {
                 "query" => "query { user(id: 1) { name } }",
-                "variables" => {}
+                "variables" => {},
               },
               {
                 "query" => "query Test($name: String!) { userByName(name: $name) { id } }",
-                "variables" => {"name" => "Caniche"}
-              }
+                "variables" => {"name" => "Caniche"},
+              },
             ]
           end
 
@@ -349,8 +349,8 @@ RSpec.describe "GraphQL integration tests",
             expect(last_response.body).to eq(
               [
                 {"data" => {"user" => {"name" => "Bits"}}},
-                {"data" => {"userByName" => {"id" => "10"}}}
-              ].to_json
+                {"data" => {"userByName" => {"id" => "10"}}},
+              ].to_json,
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -361,7 +361,7 @@ RSpec.describe "GraphQL integration tests",
               ),
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
 
@@ -376,12 +376,12 @@ RSpec.describe "GraphQL integration tests",
             [
               {
                 "query" => "query { user(id: 1) { name } }",
-                "variables" => {}
+                "variables" => {},
               },
               {
                 "query" => "query Test($name: String!) { userByName(name: $name) { id } }",
-                "variables" => {"name" => "$testattack"}
-              }
+                "variables" => {"name" => "$testattack"},
+              },
             ]
           end
 
@@ -389,23 +389,23 @@ RSpec.describe "GraphQL integration tests",
             expect(last_response.body).to eq(
               [
                 {"data" => {"user" => {"name" => "Bits"}}},
-                {"data" => {"userByName" => {"id" => "1"}}}
-              ].to_json
+                {"data" => {"userByName" => {"id" => "1"}}},
+              ].to_json,
             )
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.parse",
-              )
+              ),
             ).twice
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.execute_multiplex",
-              )
+              ),
             ).once
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             ).twice
           end
 
@@ -420,33 +420,33 @@ RSpec.describe "GraphQL integration tests",
             [
               {
                 "query" => "query Test($name: String!) { userByName(name: $name) { id } }",
-                "variables" => {"name" => "$testattack"}
+                "variables" => {"name" => "$testattack"},
               },
               {
                 "query" => "query { user(id: 1) { name } }",
-                "variables" => {}
-              }
+                "variables" => {},
+              },
             ]
           end
 
           it do
             expect(JSON.parse(last_response.body)).to eq(
-              "errors" => [{"title" => "Blocked", "detail" => "Security provided by Datadog."}]
+              "errors" => [{"title" => "Blocked", "detail" => "Security provided by Datadog."}],
             )
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.parse",
-              )
+              ),
             ).twice
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.execute_multiplex",
-              )
+              ),
             ).once
             expect(spans).not_to include(
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
         end
@@ -461,8 +461,8 @@ RSpec.describe "GraphQL integration tests",
             [
               {
                 "query" => "query Test($format: String!) { user(id: 1) { name @case(format: $format) } }",
-                "variables" => {"format" => "upcase"}
-              }
+                "variables" => {"format" => "upcase"},
+              },
             ]
           end
 
@@ -470,7 +470,7 @@ RSpec.describe "GraphQL integration tests",
             expect(last_response.body).to eq(
               [
                 {"data" => {"user" => {"name" => "BITS"}}},
-              ].to_json
+              ].to_json,
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -481,7 +481,7 @@ RSpec.describe "GraphQL integration tests",
               ),
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
 
@@ -496,31 +496,31 @@ RSpec.describe "GraphQL integration tests",
             [
               {
                 "query" => "query Test($format: String!) { user(id: 1) { name @case(format: $format) } }",
-                "variables" => {"format" => "$testattack"}
-              }
+                "variables" => {"format" => "$testattack"},
+              },
             ]
           end
 
           it do
             expect(last_response.body).to eq(
               [
-                {"data" => {"user" => {"name" => "Bits"}}}
-              ].to_json
+                {"data" => {"user" => {"name" => "Bits"}}},
+              ].to_json,
             )
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.parse",
-              )
+              ),
             ).once
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.execute_multiplex",
-              )
+              ),
             ).once
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             ).once
           end
 
@@ -535,29 +535,29 @@ RSpec.describe "GraphQL integration tests",
             [
               {
                 "query" => "query Test($format: String!) { user(id: 1) { name @case(format: $format) } }",
-                "variables" => {"format" => "$testattack"}
-              }
+                "variables" => {"format" => "$testattack"},
+              },
             ]
           end
 
           it do
             expect(JSON.parse(last_response.body)).to eq(
-              "errors" => [{"title" => "Blocked", "detail" => "Security provided by Datadog."}]
+              "errors" => [{"title" => "Blocked", "detail" => "Security provided by Datadog."}],
             )
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.parse",
-              )
+              ),
             ).once
             expect(spans).to include(
               an_object_having_attributes(
                 name: "graphql.execute_multiplex",
-              )
+              ),
             ).once
             expect(spans).not_to include(
               an_object_having_attributes(
                 name: "graphql.execute",
-              )
+              ),
             )
           end
         end
