@@ -37,7 +37,7 @@ module Datadog
               # DD_SYMBOL_DATABASE_UPLOAD_ENABLED or c.symbol_database.enabled to
               # override: true uploads regardless of DI, false disables entirely.
               option :enabled do |o|
-                o.env 'DD_SYMBOL_DATABASE_UPLOAD_ENABLED'
+                o.env "DD_SYMBOL_DATABASE_UPLOAD_ENABLED"
                 o.default nil
                 o.type :bool, nilable: true
               end
@@ -51,7 +51,7 @@ module Datadog
                 # and Python's private force_upload setting.
                 option :force_upload do |o|
                   o.type :bool
-                  o.env 'DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD'
+                  o.env "DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD"
                   o.default false
                 end
 
@@ -60,7 +60,7 @@ module Datadog
                 option :trace_logging do |o|
                   o.type :bool
                   o.default false
-                  o.env 'DD_TRACE_DEBUG'
+                  o.env "DD_TRACE_DEBUG"
                 end
               end
             end

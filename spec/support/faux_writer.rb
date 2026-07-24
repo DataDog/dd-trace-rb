@@ -1,8 +1,8 @@
-require 'net/http'
+require "net/http"
 
-require 'datadog/tracing/writer'
+require "datadog/tracing/writer"
 
-require 'support/faux_transport'
+require "support/faux_transport"
 
 # FauxWriter is a dummy writer that buffers spans locally.
 class FauxWriter < Datadog::Tracing::Writer

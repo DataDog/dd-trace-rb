@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require_relative '../../../../tracing'
-require_relative '../../../metadata/ext'
+require_relative "../../../../tracing"
+require_relative "../../../metadata/ext"
 
-require_relative '../ext'
-require_relative '../utils'
-require_relative '../../rack/middlewares'
-require_relative '../../analytics'
-require_relative '../../../../core/telemetry/logger'
+require_relative "../ext"
+require_relative "../utils"
+require_relative "../../rack/middlewares"
+require_relative "../../analytics"
+require_relative "../../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -108,7 +108,7 @@ module Datadog
                   headers: {
                     # The exception this controller was given in the request,
                     # which is typical if the controller is configured to handle exceptions.
-                    request_exception: request.headers['action_dispatch.exception']
+                    request_exception: request.headers["action_dispatch.exception"]
                   },
                   tracing_context: {}
                 }

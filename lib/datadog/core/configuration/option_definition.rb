@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'option'
+require_relative "option"
 
 module Datadog
   module Core
@@ -174,9 +174,9 @@ module Datadog
           def validate_options!
             if !@default.nil? && @default_proc
               raise InvalidOptionError,
-                'Using `default` and `default_proc` is not allowed. Please use one or the other.' \
-                                'If you want to store a block as the default value use `default_proc`' \
-                                ' otherwise use `default`'
+                "Using `default` and `default_proc` is not allowed. Please use one or the other." \
+                                "If you want to store a block as the default value use `default_proc`" \
+                                " otherwise use `default`"
             end
           end
         end

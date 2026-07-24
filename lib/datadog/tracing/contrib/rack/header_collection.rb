@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../core/header_collection'
+require_relative "../../../core/header_collection"
 
 module Datadog
   module Tracing
@@ -31,9 +31,9 @@ module Datadog
           end
 
           def self.to_rack_header(name)
-            key = name.to_s.upcase.gsub(/[-\s]/, '_')
+            key = name.to_s.upcase.gsub(/[-\s]/, "_")
             case key
-            when 'CONTENT_TYPE', 'CONTENT_LENGTH'
+            when "CONTENT_TYPE", "CONTENT_LENGTH"
               # NOTE: The Rack spec says:
               # > The environment must not contain the keys HTTP_CONTENT_TYPE or HTTP_CONTENT_LENGTH
               # > (use the versions without HTTP_).

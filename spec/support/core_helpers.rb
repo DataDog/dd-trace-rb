@@ -1,7 +1,7 @@
 module CoreHelpers
   LOWERCASE_UUID_REGEXP = /\A[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}\z/
 
-  RSpec.shared_context 'non-development execution environment' do
+  RSpec.shared_context "non-development execution environment" do
     before { allow(Datadog::Core::Environment::Execution).to receive(:development?).and_return(false) }
   end
 
@@ -86,9 +86,9 @@ module CoreHelpers
 
   module ClassMethods
     def skip_unless_integration_testing_enabled
-      unless ENV['TEST_DATADOG_INTEGRATION']
+      unless ENV["TEST_DATADOG_INTEGRATION"]
         before(:all) do
-          skip 'Set TEST_DATADOG_INTEGRATION=1 in environment to run this test'
+          skip "Set TEST_DATADOG_INTEGRATION=1 in environment to run this test"
         end
       end
     end
@@ -96,7 +96,7 @@ module CoreHelpers
     def skip_unless_fork_supported
       unless Process.respond_to?(:fork)
         before(:all) do
-          skip 'Fork is not supported on current platform'
+          skip "Fork is not supported on current platform"
         end
       end
     end
@@ -106,7 +106,7 @@ module CoreHelpers
     # should be used in any given call.
     def with_env(*args, **opts)
       if args.any? && opts.any? # rubocop:disable Style/IfUnlessModifier
-        raise ArgumentError, 'Do not pass both args and opts'
+        raise ArgumentError, "Do not pass both args and opts"
       end
 
       around do |example|

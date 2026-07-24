@@ -2,11 +2,19 @@ module Datadog
   module DI
     module EL
       class Evaluator
+        MATCHES_TIMEOUT_SECONDS: ::Float
+
         @context: Context
 
-        def initialize: (Context context) -> void
+        @regexps: ::Array[::Regexp]
+
+        def initialize: (?::Array[::Regexp] regexps) -> void
 
         def evaluate: (Context compiled) -> untyped
+
+        def regexps: () -> ::Array[::Regexp]
+
+        def self.compile_regexp: (::String needle) -> ::Regexp
 
         def ref: ((Symbol | String) var) -> untyped
 
@@ -21,6 +29,10 @@ module Datadog
         def contains: (untyped haystack, untyped needle) -> bool
 
         def matches: (String haystack, String needle) -> bool
+
+        def matches_compiled: (::String haystack, ::Integer index) -> bool
+
+        private def bounded_match?: (::Regexp re, ::String haystack) -> bool
 
         def getmember: (untyped object, (Symbol | String) field) -> untyped
 

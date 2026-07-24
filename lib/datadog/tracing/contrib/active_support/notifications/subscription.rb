@@ -19,7 +19,7 @@ module Datadog
             #   possibly including more information in the `payload` argument.
             # @param trace [Proc] whether to trace the event. Defaults to returning `true`.
             def initialize(span_name, span_options, on_start: nil, on_finish: nil, trace: nil)
-              raise ArgumentError, 'Must be given either on_start or on_finish' unless on_start || on_finish
+              raise ArgumentError, "Must be given either on_start or on_finish" unless on_start || on_finish
 
               @span_name = span_name
               @span_options = span_options

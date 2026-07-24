@@ -1,8 +1,8 @@
-RSpec.shared_examples 'rails sub-gem auto_instrument?' do
-  context 'auto_instrument?' do
+RSpec.shared_examples "rails sub-gem auto_instrument?" do
+  context "auto_instrument?" do
     subject(:auto_instrument?) { integration.auto_instrument? }
 
-    context 'outside of a rails application' do
+    context "outside of a rails application" do
       before do
         allow(Datadog::Core::Contrib::Rails::Utils).to receive(:railtie_supported?).and_return(false)
       end
@@ -10,7 +10,7 @@ RSpec.shared_examples 'rails sub-gem auto_instrument?' do
       it { is_expected.to be(true) }
     end
 
-    context 'when within a rails application' do
+    context "when within a rails application" do
       before do
         allow(Datadog::Core::Contrib::Rails::Utils).to receive(:railtie_supported?).and_return(true)
       end

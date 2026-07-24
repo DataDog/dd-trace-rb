@@ -1,11 +1,11 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog"
 
-require 'active_support/notifications'
-require 'datadog/tracing/contrib/active_support/notifications/event'
+require "active_support/notifications"
+require "datadog/tracing/contrib/active_support/notifications/event"
 
 RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event do
-  describe 'implemented' do
+  describe "implemented" do
     subject(:test_class) do
       test_event_name = event_name
       test_span_name = span_name
@@ -18,8 +18,8 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event do
       end
     end
 
-    let(:event_name) { double('event_name') }
-    let(:span_name) { double('span_name') }
+    let(:event_name) { double("event_name") }
+    let(:span_name) { double("span_name") }
     let(:process_block) { proc { spy.call } }
     let(:spy) { double(:spy) }
 
@@ -31,9 +31,9 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event do
       }
     end
 
-    describe 'class' do
-      describe 'behavior' do
-        describe '#subscribe!' do
+    describe "class" do
+      describe "behavior" do
+        describe "#subscribe!" do
           subject(:result) { test_class.subscribe! }
 
           it do
@@ -42,7 +42,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event do
             is_expected.to be true
           end
 
-          context 'is called a second time' do
+          context "is called a second time" do
             before do
               allow(ActiveSupport::Notifications).to receive(:subscribe)
                 .with(event_name, be_a_kind_of(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription))
@@ -56,14 +56,14 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event do
           end
         end
 
-        describe '#subscribe' do
+        describe "#subscribe" do
           before do
             expect(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
               .with(test_class.span_name, test_class.span_options, **callbacks)
               .and_call_original
           end
 
-          context 'when given no pattern' do
+          context "when given no pattern" do
             subject(:subscription) { test_class.subscribe }
 
             before do
@@ -76,10 +76,10 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event do
             it { expect(test_class.subscriptions).to contain_exactly(subscription) }
           end
 
-          context 'when given a pattern' do
+          context "when given a pattern" do
             subject(:subscription) { test_class.subscribe(pattern) }
 
-            let(:pattern) { double('pattern') }
+            let(:pattern) { double("pattern") }
 
             before do
               expect_any_instance_of(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription)
@@ -92,23 +92,23 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event do
           end
         end
 
-        describe '#subscription' do
-          context 'when given no options' do
+        describe "#subscription" do
+          context "when given no options" do
             subject(:subscription) { test_class.subscription }
 
             it { expect { subscription }.to raise_error(ArgumentError) }
           end
 
-          context 'when given options' do
+          context "when given options" do
             subject(:subscription) do
               test_class.subscription(span_name, options, on_start: on_start, on_finish: on_finish, trace: trace)
             end
 
-            let(:span_name) { double('span name') }
-            let(:options) { double('options') }
-            let(:on_start) { double('on_start') }
-            let(:on_finish) { double('on_finish') }
-            let(:trace) { double('trace') }
+            let(:span_name) { double("span name") }
+            let(:options) { double("options") }
+            let(:on_start) { double("on_start") }
+            let(:on_finish) { double("on_finish") }
+            let(:trace) { double("trace") }
 
             before do
               expect(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)

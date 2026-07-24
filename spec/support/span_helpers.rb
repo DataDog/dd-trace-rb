@@ -1,4 +1,4 @@
-require 'datadog/tracing/metadata/ext'
+require "datadog/tracing/metadata/ext"
 
 module SpanHelpers
   RSpec::Matchers.define :have_error do
@@ -70,7 +70,7 @@ module SpanHelpers
   # Span with the metric '_dd.measured' set to 1.0.
   RSpec::Matchers.define :be_measured do
     match do |span|
-      value = span.get_metric('_dd.measured')
+      value = span.get_metric("_dd.measured")
       values_match? 1.0, value
     end
 

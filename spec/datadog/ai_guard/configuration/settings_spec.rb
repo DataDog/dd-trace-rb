@@ -94,8 +94,8 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
 
     describe "#app_key=" do
       it "changes app key value" do
-        expect { settings.ai_guard.app_key = 'new-app-key' }
-          .to change { settings.ai_guard.app_key }.to('new-app-key')
+        expect { settings.ai_guard.app_key = "new-app-key" }
+          .to change { settings.ai_guard.app_key }.to("new-app-key")
       end
     end
 

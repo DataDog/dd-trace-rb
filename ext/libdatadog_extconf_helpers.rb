@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'rubygems'
-require 'pathname'
+require "rubygems"
+require "pathname"
 
 module Datadog
   # Contains a bunch of shared helpers that get used during building of extensions that link to libdatadog
@@ -10,7 +10,7 @@ module Datadog
   module LibdatadogExtconfHelpers
     # Used to make sure the correct gem version gets loaded, as extconf.rb does not get run with "bundle exec" and thus
     # may see multiple libdatadog versions. See https://github.com/DataDog/dd-trace-rb/pull/2531 for the horror story.
-    LIBDATADOG_VERSION = '~> 36.0.0.1.0'
+    LIBDATADOG_VERSION = "~> 36.0.0.1.0"
 
     # Used as an workaround for a limitation with how dynamic linking works in environments where the datadog gem and
     # libdatadog are moved after the extension gets compiled.
@@ -151,8 +151,8 @@ module Datadog
     # rubocop:enable Style/GlobalVars
 
     def self.try_loading_libdatadog
-      gem 'libdatadog', LIBDATADOG_VERSION
-      require 'libdatadog'
+      gem "libdatadog", LIBDATADOG_VERSION
+      require "libdatadog"
       nil
     rescue Exception => e # rubocop:disable Lint/RescueException
       if block_given?
@@ -175,7 +175,7 @@ module Datadog
     # prints the failure.
     def self.dump_mkmf_log_on_failure!
       # Doesn't work on 2.5/2.6 and not worth extra complexity to support
-      return if RUBY_VERSION < '2.7'
+      return if RUBY_VERSION < "2.7"
 
       MakeMakefile.prepend(DumpMkmfLogOnFailure)
     end
@@ -184,12 +184,12 @@ module Datadog
     # See `dump_mkmf_log_on_failure!` for details.
     module DumpMkmfLogOnFailure
       def mkmf_failed(path)
-        unless $makefile_created || File.exist?('Makefile')
-          log_path = File.expand_path('mkmf.log')
+        unless $makefile_created || File.exist?("Makefile")
+          log_path = File.expand_path("mkmf.log")
           if File.exist?(log_path)
             # The full log is very verbose so let's grab only the last check which should be the one that failed
             entries = File.read(log_path).split(/^-{20}$\n?/)
-            last_entry = entries.reverse.find { |e| !e.strip.empty? } || ''
+            last_entry = entries.reverse.find { |e| !e.strip.empty? } || ""
 
             $stderr.puts(
               "+------------------------------------------------------------------------------+\n" \

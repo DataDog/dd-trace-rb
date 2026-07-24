@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../ext'
-require_relative '../../event'
-require_relative '../../consumer_event'
-require_relative '../../consumer_group_event'
+require_relative "../../ext"
+require_relative "../../event"
+require_relative "../../consumer_event"
+require_relative "../../consumer_group_event"
 
 module Datadog
   module Tracing
@@ -17,7 +17,7 @@ module Datadog
               extend Kafka::ConsumerEvent
               extend Kafka::ConsumerGroupEvent
 
-              EVENT_NAME = 'join_group.consumer.kafka'
+              EVENT_NAME = "join_group.consumer.kafka"
 
               module_function
 

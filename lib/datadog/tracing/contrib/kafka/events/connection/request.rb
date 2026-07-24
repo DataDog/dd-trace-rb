@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../ext'
-require_relative '../../event'
+require_relative "../../ext"
+require_relative "../../event"
 
 module Datadog
   module Tracing
@@ -13,7 +13,7 @@ module Datadog
             module Request
               include Kafka::Event
 
-              EVENT_NAME = 'request.connection.kafka'
+              EVENT_NAME = "request.connection.kafka"
 
               module_function
 

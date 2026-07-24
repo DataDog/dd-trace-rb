@@ -16,6 +16,8 @@ module Datadog
       PROVIDER_FATAL: ::String
 
       PROVIDER_NOT_READY: ::String
+
+      METADATA_ALLOCATION_KEY: ::String
     end
   end
 end

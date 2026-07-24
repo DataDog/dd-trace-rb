@@ -137,7 +137,7 @@ module Datadog
               option :max_time_to_serialize_ms do |o|
                 o.type :int
                 o.default 200
-                o.env 'DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE'
+                o.env "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE"
               end
 
               # Settings in the 'internal' group are for internal Datadog
@@ -229,7 +229,7 @@ module Datadog
                   # dedicated environment variable in the future but
                   # will likely need a way to turn on remote config
                   # debugging (since DI uses RC for configuration).
-                  o.env 'DD_TRACE_DEBUG'
+                  o.env "DD_TRACE_DEBUG"
                 end
 
                 # If the CPU time consumed by the thread performing instrumentation

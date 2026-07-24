@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
-require_relative 'ext'
-require_relative 'matcher'
-require_relative 'rule'
+require_relative "ext"
+require_relative "matcher"
+require_relative "rule"
 
 module Datadog
   module Tracing
@@ -75,22 +75,22 @@ module Datadog
 
             def parse_rule(hash)
               matcher_options = {}
-              if (name_pattern = hash['name'])
+              if (name_pattern = hash["name"])
                 matcher_options[:name_pattern] = name_pattern
               end
 
-              if (service_pattern = hash['service'])
+              if (service_pattern = hash["service"])
                 matcher_options[:service_pattern] = service_pattern
               end
 
               matcher = Matcher.new(**matcher_options)
 
               rule_options = {}
-              if (sample_rate = hash['sample_rate'])
+              if (sample_rate = hash["sample_rate"])
                 rule_options[:sample_rate] = sample_rate
               end
 
-              if (max_per_second = hash['max_per_second'])
+              if (max_per_second = hash["max_per_second"])
                 rule_options[:rate_limit] = max_per_second
               end
 

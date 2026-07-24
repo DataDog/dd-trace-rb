@@ -1,79 +1,79 @@
 # frozen_string_literal: true
 
-require 'datadog/symbol_database'
-require 'datadog/symbol_database/symbol'
+require "datadog/symbol_database"
+require "datadog/symbol_database/symbol"
 
 RSpec.describe Datadog::SymbolDatabase::Symbol do
-  describe '#initialize' do
-    it 'creates symbol with required fields' do
+  describe "#initialize" do
+    it "creates symbol with required fields" do
       symbol = described_class.new(
-        symbol_type: 'FIELD',
-        name: '@my_var',
+        symbol_type: "FIELD",
+        name: "@my_var",
         line: 10,
       )
 
-      expect(symbol.symbol_type).to eq('FIELD')
-      expect(symbol.name).to eq('@my_var')
+      expect(symbol.symbol_type).to eq("FIELD")
+      expect(symbol.name).to eq("@my_var")
       expect(symbol.line).to eq(10)
       expect(symbol.type).to be_nil
       expect(symbol.language_specifics).to be_nil
     end
 
-    it 'creates symbol with all fields' do
+    it "creates symbol with all fields" do
       symbol = described_class.new(
-        symbol_type: 'ARG',
-        name: 'param1',
+        symbol_type: "ARG",
+        name: "param1",
         line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
-        type: 'String',
+        type: "String",
         language_specifics: {optional: false},
       )
 
-      expect(symbol.symbol_type).to eq('ARG')
-      expect(symbol.name).to eq('param1')
+      expect(symbol.symbol_type).to eq("ARG")
+      expect(symbol.name).to eq("param1")
       expect(symbol.line).to eq(Datadog::SymbolDatabase::UNKNOWN_MIN_LINE)
-      expect(symbol.type).to eq('String')
+      expect(symbol.type).to eq("String")
       expect(symbol.language_specifics).to eq({optional: false})
     end
   end
 
-  describe '#to_h' do
-    it 'converts symbol to hash with required fields' do
+  describe "#to_h" do
+    it "converts symbol to hash with required fields" do
       symbol = described_class.new(
-        symbol_type: 'STATIC_FIELD',
-        name: 'CONSTANT',
+        symbol_type: "STATIC_FIELD",
+        name: "CONSTANT",
         line: 5,
       )
 
       expect(symbol.to_h).to eq({
-        symbol_type: 'STATIC_FIELD',
-        name: 'CONSTANT',
+        symbol_type: "STATIC_FIELD",
+        name: "CONSTANT",
         line: 5,
         type: nil
       })
     end
 
-    it 'includes optional type field when present' do
+    it "includes optional type field when present" do
       symbol = described_class.new(
-        symbol_type: 'LOCAL',
-        name: 'local_var',
+        symbol_type: "LOCAL",
+        name: "local_var",
         line: 15,
-        type: 'Integer',
+        type: "Integer",
       )
 
       hash = symbol.to_h
 
       expect(hash).to include(
-        symbol_type: 'LOCAL',
-        name: 'local_var',
+        symbol_type: "LOCAL",
+        name: "local_var",
         line: 15,
-        type: 'Integer',
+        type: "Integer",
       )
     end
 
-    it 'keeps the type key with nil value, omits nil language_specifics' do
+    it "keeps the type key with nil value, omits nil language_specifics" do
       symbol = described_class.new(
-        symbol_type: 'FIELD',
-        name: '@var',
+        symbol_type: "FIELD",
+        name: "@var",
         line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
         type: nil,
         language_specifics: nil,
@@ -82,8 +82,8 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       hash = symbol.to_h
 
       expect(hash).to eq({
-        symbol_type: 'FIELD',
-        name: '@var',
+        symbol_type: "FIELD",
+        name: "@var",
         line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
         type: nil
       })
@@ -91,10 +91,10 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       expect(hash).not_to have_key(:language_specifics)
     end
 
-    it 'handles UNKNOWN_MIN_LINE (available in entire scope)' do
+    it "handles UNKNOWN_MIN_LINE (available in entire scope)" do
       symbol = described_class.new(
-        symbol_type: 'ARG',
-        name: 'param',
+        symbol_type: "ARG",
+        name: "param",
         line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
       )
 
@@ -103,10 +103,10 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       expect(hash[:line]).to eq(Datadog::SymbolDatabase::UNKNOWN_MIN_LINE)
     end
 
-    it 'handles UNKNOWN_MAX_LINE (method-level only)' do
+    it "handles UNKNOWN_MAX_LINE (method-level only)" do
       symbol = described_class.new(
-        symbol_type: 'LOCAL',
-        name: 'var',
+        symbol_type: "LOCAL",
+        name: "var",
         line: Datadog::SymbolDatabase::UNKNOWN_MAX_LINE,
       )
 
@@ -116,11 +116,11 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
     end
   end
 
-  describe '#to_json' do
-    it 'serializes symbol to JSON string' do
+  describe "#to_json" do
+    it "serializes symbol to JSON string" do
       symbol = described_class.new(
-        symbol_type: 'FIELD',
-        name: '@my_field',
+        symbol_type: "FIELD",
+        name: "@my_field",
         line: 10,
       )
 
@@ -128,17 +128,17 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
 
       expect(json).to be_a(String)
       parsed = JSON.parse(json)
-      expect(parsed['symbol_type']).to eq('FIELD')
-      expect(parsed['name']).to eq('@my_field')
-      expect(parsed['line']).to eq(10)
+      expect(parsed["symbol_type"]).to eq("FIELD")
+      expect(parsed["name"]).to eq("@my_field")
+      expect(parsed["line"]).to eq(10)
     end
 
-    it 'produces valid JSON for symbol with all fields' do
+    it "produces valid JSON for symbol with all fields" do
       symbol = described_class.new(
-        symbol_type: 'ARG',
-        name: 'param',
+        symbol_type: "ARG",
+        name: "param",
         line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
-        type: 'Hash',
+        type: "Hash",
         language_specifics: {required: true},
       )
 
@@ -146,11 +146,11 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       parsed = JSON.parse(json)
 
       expect(parsed).to include(
-        'symbol_type' => 'ARG',
-        'name' => 'param',
-        'line' => Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
-        'type' => 'Hash',
-        'language_specifics' => {'required' => true},
+        "symbol_type" => "ARG",
+        "name" => "param",
+        "line" => Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
+        "type" => "Hash",
+        "language_specifics" => {"required" => true},
       )
     end
   end

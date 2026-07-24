@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'events/instantiation'
-require_relative 'events/sql'
+require_relative "events/instantiation"
+require_relative "events/sql"
 
 module Datadog
   module Tracing

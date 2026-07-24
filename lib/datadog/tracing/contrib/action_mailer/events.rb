@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'events/process'
-require_relative 'events/deliver'
+require_relative "events/process"
+require_relative "events/deliver"
 
 module Datadog
   module Tracing

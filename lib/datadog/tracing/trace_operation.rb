@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require_relative '../core/environment/identity'
-require_relative '../core/utils'
-require_relative 'event'
-require_relative 'metadata/tagging'
-require_relative 'sampling/ext'
-require_relative 'span_operation'
-require_relative 'trace_digest'
-require_relative 'correlation'
-require_relative 'trace_segment'
-require_relative 'utils'
+require_relative "../core/environment/identity"
+require_relative "../core/utils"
+require_relative "event"
+require_relative "metadata/tagging"
+require_relative "sampling/ext"
+require_relative "span_operation"
+require_relative "trace_digest"
+require_relative "correlation"
+require_relative "trace_segment"
+require_relative "utils"
 
 module Datadog
   module Tracing
@@ -206,7 +206,7 @@ module Datadog
       def set_distributed_source(product_bit)
         source = get_tag(Metadata::Ext::Distributed::TAG_TRACE_SOURCE)&.to_i(16) || 0
         source |= product_bit
-        set_tag(Metadata::Ext::Distributed::TAG_TRACE_SOURCE, format('%02X', source))
+        set_tag(Metadata::Ext::Distributed::TAG_TRACE_SOURCE, format("%02X", source))
       end
 
       def tags

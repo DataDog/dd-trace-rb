@@ -1,13 +1,13 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/analytics_examples'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/tracing/contrib/analytics_examples"
 
 # FFI::Function background native thread
 ThreadHelpers.with_leaky_thread_creation(:rdkafka) do
-  require 'karafka'
+  require "karafka"
 end
-require 'datadog'
+require "datadog"
 
-RSpec.describe 'Karafka patcher' do
+RSpec.describe "Karafka patcher" do
   let(:configuration_options) { {distributed_tracing: true} }
   let(:client_id) { SecureRandom.uuid }
   let(:span) do
@@ -27,19 +27,19 @@ RSpec.describe 'Karafka patcher' do
     Datadog.registry[:karafka].reset_configuration!
   end
 
-  describe 'Karafka::message#consume' do
+  describe "Karafka::message#consume" do
     let(:span_name) { Datadog::Tracing::Contrib::Karafka::Ext::SPAN_MESSAGE_CONSUME }
 
-    it 'is expected to send a span' do
+    it "is expected to send a span" do
       metadata = ::Karafka::Messages::Metadata.new
-      metadata['offset'] = 412
+      metadata["offset"] = 412
       raw_payload = rand.to_s
 
       message = ::Karafka::Messages::Message.new(raw_payload, metadata)
       allow(message).to receive(:timestamp).and_return(Time.now)
-      allow(message).to receive(:topic).and_return('topic_a')
+      allow(message).to receive(:topic).and_return("topic_a")
 
-      topic = ::Karafka::Routing::Topic.new('topic_a', double(id: 0))
+      topic = ::Karafka::Routing::Topic.new("topic_a", double(id: 0))
 
       messages = ::Karafka::Messages::Builders::Messages.call([message], topic, 0, Time.now)
 
@@ -47,45 +47,45 @@ RSpec.describe 'Karafka patcher' do
 
       expect(spans).to have(1).items
       expect(span).to_not be nil
-      expect(span.get_tag('kafka.offset')).to eq 412
-      expect(span.get_tag('messaging.destination')).to eq 'topic_a'
-      expect(span.get_tag('messaging.system')).to eq 'kafka'
+      expect(span.get_tag("kafka.offset")).to eq 412
+      expect(span.get_tag("messaging.destination")).to eq "topic_a"
+      expect(span.get_tag("messaging.system")).to eq "kafka"
       expect(span).to_not have_error
-      expect(span.resource).to eq 'topic_a'
+      expect(span.resource).to eq "topic_a"
     end
 
-    context 'when the message has tracing headers' do
+    context "when the message has tracing headers" do
       let(:message) do
         headers = {}
-        Datadog::Tracing.trace('producer') do |span, trace|
+        Datadog::Tracing.trace("producer") do |span, trace|
           Datadog::Tracing::Contrib::Karafka.inject(trace.to_digest, headers)
         end
         metadata = ::Karafka::Messages::Metadata.new
-        metadata['offset'] = 412
+        metadata["offset"] = 412
         metadata[headers_accessor] = headers
         raw_payload = rand.to_s
 
         message = ::Karafka::Messages::Message.new(raw_payload, metadata)
         allow(message).to receive(:timestamp).and_return(Time.now)
-        allow(message).to receive(:topic).and_return('topic_a')
+        allow(message).to receive(:topic).and_return("topic_a")
         message
       end
       let(:headers_accessor) do
-        ::Karafka::Messages::Metadata.members.include?(:raw_headers) ? 'raw_headers' : 'headers'
+        ::Karafka::Messages::Metadata.members.include?(:raw_headers) ? "raw_headers" : "headers"
       end
 
-      context 'when distributed tracing is enabled' do
-        it 'continues the span that produced the message' do
+      context "when distributed tracing is enabled" do
+        it "continues the span that produced the message" do
           producer_trace_digest = Datadog::Tracing::Contrib::Karafka.extract(message.metadata[headers_accessor])
 
           consumer_span = nil
           consumer_trace = nil
 
-          Datadog::Tracing.trace('consumer') do
+          Datadog::Tracing.trace("consumer") do
             consumer_span = Datadog::Tracing.active_span
             consumer_trace = Datadog::Tracing.active_trace
 
-            topic = ::Karafka::Routing::Topic.new('topic_a', double(id: 0))
+            topic = ::Karafka::Routing::Topic.new("topic_a", double(id: 0))
             messages = ::Karafka::Messages::Builders::Messages.call([message], topic, 0, Time.now)
             # NOTE: The following will iterate through the messages and create a new span representing
             #       the individual message processing (and `span` will refer to that particular span)
@@ -108,18 +108,18 @@ RSpec.describe 'Karafka patcher' do
         end
       end
 
-      context 'when distributed tracing is not enabled' do
+      context "when distributed tracing is not enabled" do
         let(:configuration_options) { {distributed_tracing: false} }
 
-        it 'does not continue the span that produced the message' do
+        it "does not continue the span that produced the message" do
           consumer_span = nil
           consumer_trace = nil
 
-          Datadog::Tracing.trace('consumer') do
+          Datadog::Tracing.trace("consumer") do
             consumer_span = Datadog::Tracing.active_span
             consumer_trace = Datadog::Tracing.active_trace
 
-            topic = ::Karafka::Routing::Topic.new('topic_a', double(id: 0))
+            topic = ::Karafka::Routing::Topic.new("topic_a", double(id: 0))
             messages = ::Karafka::Messages::Builders::Messages.call([message], topic, 0, Time.now)
             # NOTE: The following will iterate through the messages and create a new span representing
             #       the individual message processing (and `span` will refer to that particular span)
@@ -144,33 +144,33 @@ RSpec.describe 'Karafka patcher' do
     end
   end
 
-  describe 'worker.processed' do
+  describe "worker.processed" do
     let(:span_name) { Datadog::Tracing::Contrib::Karafka::Ext::SPAN_WORKER_PROCESS }
 
-    it 'is expected to send a span' do
+    it "is expected to send a span" do
       metadata = ::Karafka::Messages::Metadata.new
-      metadata['offset'] = 412
+      metadata["offset"] = 412
       raw_payload = rand.to_s
 
       message = ::Karafka::Messages::Message.new(raw_payload, metadata)
-      job = double(executor: double(topic: double(name: 'topic_a', consumer: 'ABC'), partition: 0), messages: [message])
+      job = double(executor: double(topic: double(name: "topic_a", consumer: "ABC"), partition: 0), messages: [message])
 
-      Karafka.monitor.instrument('worker.processed', {job: job}) do
+      Karafka.monitor.instrument("worker.processed", {job: job}) do
         # Noop
       end
 
       expect(spans).to have(1).items
       expect(span).to_not be nil
-      expect(span.get_tag('kafka.offset')).to eq 412
-      expect(span.get_tag('kafka.partition')).to eq 0
-      expect(span.get_tag('kafka.message_count')).to eq 1
-      expect(span.get_tag('messaging.destination')).to eq 'topic_a'
-      expect(span.get_tag('messaging.system')).to eq 'kafka'
-      expect(span.resource).to eq 'ABC#consume'
+      expect(span.get_tag("kafka.offset")).to eq 412
+      expect(span.get_tag("kafka.partition")).to eq 0
+      expect(span.get_tag("kafka.message_count")).to eq 1
+      expect(span.get_tag("messaging.destination")).to eq "topic_a"
+      expect(span.get_tag("messaging.system")).to eq "kafka"
+      expect(span.resource).to eq "ABC#consume"
     end
   end
 
-  describe 'framework auto-instrumentation' do
+  describe "framework auto-instrumentation" do
     around do |example|
       # Reset before and after each example; don't allow global state to linger.
       Datadog.registry[:waterdrop].reset_configuration!
@@ -189,14 +189,14 @@ RSpec.describe 'Karafka patcher' do
       Datadog::Tracing::Contrib::WaterDrop::Integration.compatible?
     end
 
-    context 'when WaterDrop integration is on a compatible version' do
+    context "when WaterDrop integration is on a compatible version" do
       before do
-        skip 'WaterDrop is not activated unless it is on a supported version' unless waterdrop_compatible?
+        skip "WaterDrop is not activated unless it is on a supported version" unless waterdrop_compatible?
       end
 
-      it 'automatically enables WaterDrop instrumentation' do
+      it "automatically enables WaterDrop instrumentation" do
         Karafka::App.setup do |c|
-          c.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
+          c.kafka = {"bootstrap.servers": "127.0.0.1:9092"}
         end
 
         expect(Datadog.configuration.tracing[:karafka][:enabled]).to be true
@@ -206,10 +206,10 @@ RSpec.describe 'Karafka patcher' do
         expect(Datadog.configuration.tracing[:waterdrop][:distributed_tracing]).to be true
       end
 
-      context 'when user does not supply a custom producer' do
-        it 'sets up Karafka.producer with the datadog waterdrop middleware' do
+      context "when user does not supply a custom producer" do
+        it "sets up Karafka.producer with the datadog waterdrop middleware" do
           Karafka::App.setup do |c|
-            c.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
+            c.kafka = {"bootstrap.servers": "127.0.0.1:9092"}
           end
 
           expect(producer_middlewares).to eq([
@@ -218,14 +218,14 @@ RSpec.describe 'Karafka patcher' do
         end
       end
 
-      context 'when the user does supply a custom producer with custom middlewares' do
+      context "when the user does supply a custom producer with custom middlewares" do
         let(:custom_middleware) { ->(message) { messsage } }
 
-        it 'appends the datadog middleware at the end of the Karafka.producer middleware stack' do
+        it "appends the datadog middleware at the end of the Karafka.producer middleware stack" do
           Karafka::App.setup do |c|
-            c.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
+            c.kafka = {"bootstrap.servers": "127.0.0.1:9092"}
             c.producer = WaterDrop::Producer.new do |producer_config|
-              producer_config.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
+              producer_config.kafka = {"bootstrap.servers": "127.0.0.1:9092"}
               producer_config.middleware.append(custom_middleware)
             end
           end
@@ -237,13 +237,13 @@ RSpec.describe 'Karafka patcher' do
         end
       end
 
-      context 'when the waterdrop integration is manually configured' do
-        it 'appends the datadog middleware to Karafka.producer only once' do
+      context "when the waterdrop integration is manually configured" do
+        it "appends the datadog middleware to Karafka.producer only once" do
           Datadog.configure do |c|
             c.tracing.instrument :waterdrop, configuration_options
           end
           Karafka::App.setup do |c|
-            c.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
+            c.kafka = {"bootstrap.servers": "127.0.0.1:9092"}
           end
 
           expect(producer_middlewares).to eq([
@@ -253,14 +253,14 @@ RSpec.describe 'Karafka patcher' do
       end
     end
 
-    context 'when the waterdrop integration is not on a compatible version' do
+    context "when the waterdrop integration is not on a compatible version" do
       before do
-        skip 'WaterDrop is on a supported version' if waterdrop_compatible?
+        skip "WaterDrop is on a supported version" if waterdrop_compatible?
       end
 
-      it 'does not attempt to activate waterdrop or append any producer middleware' do
+      it "does not attempt to activate waterdrop or append any producer middleware" do
         Karafka::App.setup do |c|
-          c.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
+          c.kafka = {"bootstrap.servers": "127.0.0.1:9092"}
         end
 
         expect(producer_middlewares).to be_empty

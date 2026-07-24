@@ -33,6 +33,8 @@ module Datadog
 
       attr_reader code_tracker: CodeTracker?
 
+      attr_writer code_tracker: CodeTracker?
+
       attr_reader logger: DI::Logger
 
       attr_reader telemetry: Core::Telemetry::Component?

@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require 'excon'
+require "excon"
 
-require_relative '../../../core'
-require_relative '../../metadata/ext'
-require_relative '../http'
-require_relative '../analytics'
-require_relative 'ext'
-require_relative '../http_annotation_helper'
+require_relative "../../../core"
+require_relative "../../metadata/ext"
+require_relative "../http"
+require_relative "../analytics"
+require_relative "ext"
+require_relative "../http_annotation_helper"
 
 module Datadog
   module Tracing

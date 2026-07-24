@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require_relative '../core/encoding'
-require_relative '../core/evp'
-require_relative '../core/transport/http'
-require_relative '../core/transport/http/env'
-require_relative '../core/transport/http/api/endpoint'
-require_relative '../core/transport/http/api/instance'
-require_relative '../core/transport/parcel'
-require_relative '../core/transport/request'
+require_relative "../core/encoding"
+require_relative "../core/evp"
+require_relative "../core/transport/http"
+require_relative "../core/transport/http/env"
+require_relative "../core/transport/http/api/endpoint"
+require_relative "../core/transport/http/api/instance"
+require_relative "../core/transport/parcel"
+require_relative "../core/transport/request"
 
 module Datadog
   module OpenFeature
@@ -17,14 +17,14 @@ module Datadog
         class Spec
           def initialize
             @endpoint = Core::Transport::HTTP::API::Endpoint.new(
-              :post, '/evp_proxy/v2/api/v2/exposures'
+              :post, "/evp_proxy/v2/api/v2/exposures"
             )
           end
 
           # TODO rename to send_request?
           def call(env, &block)
             @endpoint.call(env) do |request_env|
-              request_env.headers['Content-Type'] = env.request.parcel.content_type
+              request_env.headers["Content-Type"] = env.request.parcel.content_type
               request_env.headers[Core::EVP::SUBDOMAIN_HEADER_NAME] =
                 Core::EVP::EVENT_PLATFORM_INTAKE_SUBDOMAIN
               request_env.body = env.request.parcel.data
@@ -40,13 +40,13 @@ module Datadog
         class FlagevaluationsSpec
           def initialize
             @endpoint = Core::Transport::HTTP::API::Endpoint.new(
-              :post, '/evp_proxy/v2/api/v2/flagevaluation'
+              :post, "/evp_proxy/v2/api/v2/flagevaluation"
             )
           end
 
           def call(env, &block)
             @endpoint.call(env) do |request_env|
-              request_env.headers['Content-Type'] = env.request.parcel.content_type
+              request_env.headers["Content-Type"] = env.request.parcel.content_type
               request_env.headers[Core::EVP::SUBDOMAIN_HEADER_NAME] =
                 Core::EVP::EVENT_PLATFORM_INTAKE_SUBDOMAIN
               request_env.body = env.request.parcel.data
@@ -60,7 +60,7 @@ module Datadog
           Core::Transport::HTTP.build(
             agent_settings: agent_settings,
             logger: logger
-          ) { |t| t.api('exposures', HTTP::Spec.new) }.to_transport(self)
+          ) { |t| t.api("exposures", HTTP::Spec.new) }.to_transport(self)
         end
 
         # Build a transport instance for the flagevaluation EVP endpoint.
@@ -68,7 +68,7 @@ module Datadog
           Core::Transport::HTTP.build(
             agent_settings: agent_settings,
             logger: logger
-          ) { |t| t.api('flagevaluations', HTTP::FlagevaluationsSpec.new) }.to_transport(self)
+          ) { |t| t.api("flagevaluations", HTTP::FlagevaluationsSpec.new) }.to_transport(self)
         end
 
         def initialize(apis, default_api, logger:)

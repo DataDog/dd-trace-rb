@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../core/semaphore'
-require_relative 'fatal_exceptions'
+require_relative "../core/semaphore"
+require_relative "fatal_exceptions"
 
 module Datadog
   module DI
@@ -231,7 +231,7 @@ module Datadog
         payload = probe_notification_builder.build_status(
           probe,
           message: "Probe #{probe.id} disabled: snapshot JSON encoding failed (#{exception.class}: #{exception})",
-          status: 'ERROR',
+          status: "ERROR",
           exception: exception,
         )
         add_status(payload, probe: probe)
@@ -241,13 +241,13 @@ module Datadog
         # DEV: The tags could be cached but they need to be recreated
         # when process forks (since the child receives new runtime IDs).
         Core::TagBuilder.tags(settings).merge(
-          'debugger_version' => Core::Environment::Identity.gem_datadog_version,
+          "debugger_version" => Core::Environment::Identity.gem_datadog_version,
         )
       end
 
       [
-        [:status, 'probe status'],
-        [:snapshot, 'snapshot'],
+        [:status, "probe status"],
+        [:snapshot, "snapshot"],
       ].each do |(event_type, event_name)|
         attr_reader "#{event_type}_queue"
 

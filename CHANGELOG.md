@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+## [2.39.0] - 2026-07-22
+
+### Added
+
+* Tracing: Integrations: Add database name and host to Sequel spans and infer `peer.service` so datastore dependencies appear in the service map. ([#6072][])
+
+### Fixed
+
+* AppSec: Fix error in `devise` contrib for non-standard Warden session serialization. ([#6064][])
+* Dynamic Instrumentation: Fix dynamic instrumentation line probes failing to install when dynamic instrumentation is enabled remotely after application startup. ([#6050][])
+* Profiling: Fix crash when trying to sample during GC compaction ([#6056][])
+* Tracing: Integrations: Fix an `ArgumentError` (and the resulting `Kafka::BufferOverflow`) raised by the Kafka producer integration on Ruby 2.5 and 2.6. ([#6060][])
+
+## [2.38.0] - 2026-07-16
+
+### Added
+
+* Dynamic Instrumentation: Log probes now support capture expressions as an alternative to capturing the full local/argument scope ([#5845][])
+* SSI: Add support for Ruby 4.0 runtime ([#5981][])
+* SSI: Add support for Bundler 4.0 and RubyGems 4.0 ([#5981][])
+
+### Fixed
+
+* AppSec: Fix Rack-based and Rails request body analysis when body parsing fails ([#5993][])
+* Profiling: Add workaround for crash when collecting frame information ([#6014][])
+* Profiling: Fix left-over state impacting samples when profiler gets stopped and started again ([#5960][])
+* Profiling: Fix Ruby 4.0.6 support by bumping minimum version of `datadog-ruby_core_source` to 3.5.3 ([#6047][])
+* Profiling: Disable live heap size profiling on Ruby 4.0 due to incompatibility ([#6022][])
+* Profiling: Disallow heap profiling on Ruby 4.1+ ([#6023][])
+* Tracing: Fix `pg` instrumentation which raised `ArgumentError` when calling `exec_params`, `exec_prepared` without a `params` argument, or their `async_`/`sync_` variants ([#6020][])
+
 ## [2.37.0] - 2026-07-06
 
 ### Added
@@ -3685,7 +3716,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.37.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.39.0...master
+[2.39.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.38.0...v2.39.0
+[2.38.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.37.0...v2.38.0
 [2.37.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.36.0...v2.37.0
 [2.36.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.35.0...v2.36.0
 [2.35.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.34.0...v2.35.0
@@ -5454,6 +5487,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#5834]: https://github.com/DataDog/dd-trace-rb/issues/5834
 [#5836]: https://github.com/DataDog/dd-trace-rb/issues/5836
 [#5844]: https://github.com/DataDog/dd-trace-rb/issues/5844
+[#5845]: https://github.com/DataDog/dd-trace-rb/issues/5845
 [#5857]: https://github.com/DataDog/dd-trace-rb/issues/5857
 [#5872]: https://github.com/DataDog/dd-trace-rb/issues/5872
 [#5877]: https://github.com/DataDog/dd-trace-rb/issues/5877
@@ -5470,12 +5504,25 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#5945]: https://github.com/DataDog/dd-trace-rb/issues/5945
 [#5954]: https://github.com/DataDog/dd-trace-rb/issues/5954
 [#5955]: https://github.com/DataDog/dd-trace-rb/issues/5955
+[#5960]: https://github.com/DataDog/dd-trace-rb/issues/5960
 [#5970]: https://github.com/DataDog/dd-trace-rb/issues/5970
 [#5973]: https://github.com/DataDog/dd-trace-rb/issues/5973
 [#5975]: https://github.com/DataDog/dd-trace-rb/issues/5975
+[#5981]: https://github.com/DataDog/dd-trace-rb/issues/5981
 [#5987]: https://github.com/DataDog/dd-trace-rb/issues/5987
 [#5990]: https://github.com/DataDog/dd-trace-rb/issues/5990
 [#5991]: https://github.com/DataDog/dd-trace-rb/issues/5991
+[#5993]: https://github.com/DataDog/dd-trace-rb/issues/5993
+[#6014]: https://github.com/DataDog/dd-trace-rb/issues/6014
+[#6020]: https://github.com/DataDog/dd-trace-rb/issues/6020
+[#6022]: https://github.com/DataDog/dd-trace-rb/issues/6022
+[#6023]: https://github.com/DataDog/dd-trace-rb/issues/6023
+[#6047]: https://github.com/DataDog/dd-trace-rb/issues/6047
+[#6050]: https://github.com/DataDog/dd-trace-rb/issues/6050
+[#6056]: https://github.com/DataDog/dd-trace-rb/issues/6056
+[#6060]: https://github.com/DataDog/dd-trace-rb/issues/6060
+[#6064]: https://github.com/DataDog/dd-trace-rb/issues/6064
+[#6072]: https://github.com/DataDog/dd-trace-rb/issues/6072
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot

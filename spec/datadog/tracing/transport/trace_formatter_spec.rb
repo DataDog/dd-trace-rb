@@ -1,21 +1,21 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/environment/identity'
-require 'datadog/core/runtime/ext'
+require "datadog/core/environment/identity"
+require "datadog/core/runtime/ext"
 
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/sampling/ext'
-require 'datadog/tracing/span'
-require 'datadog/tracing/trace_segment'
-require 'datadog/tracing/utils'
-require 'datadog/tracing/transport/trace_formatter'
+require "datadog/tracing/metadata/ext"
+require "datadog/tracing/sampling/ext"
+require "datadog/tracing/span"
+require "datadog/tracing/trace_segment"
+require "datadog/tracing/utils"
+require "datadog/tracing/transport/trace_formatter"
 
 RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
   subject(:trace_formatter) { described_class.new(trace) }
   let(:trace_options) { {id: trace_id} }
   let(:trace_id) { 0xa3efc9f3333333334d39dacf84ab3fe }
 
-  shared_context 'trace metadata' do
+  shared_context "trace metadata" do
     let(:trace_tags) do
       nil
     end
@@ -39,62 +39,62 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
       }
     end
 
-    let(:resource) { 'trace.resource' }
+    let(:resource) { "trace.resource" }
     let(:agent_sample_rate) { rand }
-    let(:hostname) { 'trace.hostname' }
+    let(:hostname) { "trace.hostname" }
     let(:lang) { Datadog::Core::Environment::Identity.lang }
-    let(:origin) { 'trace.origin' }
-    let(:process_id) { 'trace.process_id' }
+    let(:origin) { "trace.origin" }
+    let(:process_id) { "trace.process_id" }
     let(:rate_limiter_rate) { rand }
     let(:rule_sample_rate) { rand }
-    let(:runtime_id) { 'trace.runtime_id' }
+    let(:runtime_id) { "trace.runtime_id" }
     let(:sample_rate) { rand }
     let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
     let(:profiling_enabled) { true }
   end
 
-  shared_context 'trace metadata with tags' do
-    include_context 'trace metadata'
+  shared_context "trace metadata with tags" do
+    include_context "trace metadata"
 
     let(:trace_tags) do
       {
-        'foo' => 'bar',
-        'baz' => 42,
-        '_dd.p.dm' => '-1',
-        '_dd.p.tid' => 'aaaaaaaaaaaaaaaa'
+        "foo" => "bar",
+        "baz" => 42,
+        "_dd.p.dm" => "-1",
+        "_dd.p.tid" => "aaaaaaaaaaaaaaaa"
       }
     end
   end
 
-  shared_context 'git environment stub' do
+  shared_context "git environment stub" do
     before do
       allow(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(git_repository_url)
       allow(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return(git_commit_sha)
     end
   end
 
-  shared_context 'git metadata' do
-    let(:git_repository_url) { 'git_repository_url' }
-    let(:git_commit_sha) { 'git_commit_sha' }
+  shared_context "git metadata" do
+    let(:git_repository_url) { "git_repository_url" }
+    let(:git_commit_sha) { "git_commit_sha" }
 
-    include_context 'git environment stub'
+    include_context "git environment stub"
   end
 
-  shared_context 'no git metadata' do
+  shared_context "no git metadata" do
     let(:git_repository_url) { nil }
     let(:git_commit_sha) { nil }
 
-    include_context 'git environment stub'
+    include_context "git environment stub"
   end
 
-  shared_context 'no root span' do
+  shared_context "no root span" do
     let(:trace) { Datadog::Tracing::TraceSegment.new(spans, **trace_options) }
-    let(:spans) { Array.new(3) { Datadog::Tracing::Span.new('my.job') } }
+    let(:spans) { Array.new(3) { Datadog::Tracing::Span.new("my.job") } }
     let(:root_span) { spans.last }
     let(:first_span) { spans.first }
   end
 
-  shared_context 'missing root span' do
+  shared_context "missing root span" do
     let(:trace) do
       Datadog::Tracing::TraceSegment.new(
         spans,
@@ -102,21 +102,21 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         **trace_options
       )
     end
-    let(:spans) { Array.new(3) { Datadog::Tracing::Span.new('my.job') } }
+    let(:spans) { Array.new(3) { Datadog::Tracing::Span.new("my.job") } }
     let(:root_span) { spans.last }
     let(:first_span) { spans.first }
   end
 
-  shared_context 'available root span' do
+  shared_context "available root span" do
     let(:trace) { Datadog::Tracing::TraceSegment.new(spans, root_span_id: root_span.id, **trace_options) }
-    let(:spans) { Array.new(3) { Datadog::Tracing::Span.new('my.job') } }
+    let(:spans) { Array.new(3) { Datadog::Tracing::Span.new("my.job") } }
     let(:root_span) { spans[1] }
     let(:first_span) { spans.first }
   end
 
-  describe '::new' do
-    context 'given a TraceSegment' do
-      shared_examples 'a formatter with root span' do
+  describe "::new" do
+    context "given a TraceSegment" do
+      shared_examples "a formatter with root span" do
         it do
           is_expected.to have_attributes(
             trace: trace,
@@ -125,28 +125,28 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         end
       end
 
-      context 'with no root span' do
-        include_context 'no root span'
-        it_behaves_like 'a formatter with root span'
+      context "with no root span" do
+        include_context "no root span"
+        it_behaves_like "a formatter with root span"
       end
 
-      context 'with missing root span' do
-        include_context 'missing root span'
-        it_behaves_like 'a formatter with root span'
+      context "with missing root span" do
+        include_context "missing root span"
+        it_behaves_like "a formatter with root span"
       end
 
-      context 'with a root span' do
-        include_context 'available root span'
-        it_behaves_like 'a formatter with root span'
+      context "with a root span" do
+        include_context "available root span"
+        it_behaves_like "a formatter with root span"
       end
     end
   end
 
-  describe '#format!' do
+  describe "#format!" do
     subject(:format!) { trace_formatter.format! }
 
-    context 'when initialized with a TraceSegment' do
-      shared_examples 'root span with no tags' do
+    context "when initialized with a TraceSegment" do
+      shared_examples "root span with no tags" do
         it do
           format!
           expect(root_span).to have_metadata(
@@ -166,7 +166,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         end
       end
 
-      shared_examples 'root span with tags' do
+      shared_examples "root span with tags" do
         it do
           format!
           expect(root_span).to have_metadata(
@@ -174,7 +174,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
             Datadog::Tracing::Metadata::Ext::NET::TAG_HOSTNAME => hostname,
             Datadog::Core::Runtime::Ext::TAG_LANG => lang,
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_ORIGIN => origin,
-            'process_id' => process_id,
+            "process_id" => process_id,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE => rate_limiter_rate,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE => rule_sample_rate,
             Datadog::Core::Runtime::Ext::TAG_ID => runtime_id,
@@ -184,80 +184,80 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
           )
         end
 
-        context 'knuth sampling rate on root span' do
+        context "knuth sampling rate on root span" do
           let(:rule_sample_rate) { 0.75 }
 
-          it 'sets _dd.p.ksr as a string tag' do
+          it "sets _dd.p.ksr as a string tag" do
             format!
             # rule_sample_rate takes priority over agent_sample_rate
             expect(root_span.meta).to include(
-              Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => '0.75'
+              Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => "0.75"
             )
           end
         end
       end
 
-      shared_examples 'root span with generic tags' do
-        context 'metrics' do
-          it 'sets root span tags from trace tags' do
+      shared_examples "root span with generic tags" do
+        context "metrics" do
+          it "sets root span tags from trace tags" do
             format!
-            expect(root_span.metrics).to include({'baz' => 42})
+            expect(root_span.metrics).to include({"baz" => 42})
           end
         end
 
-        context 'meta' do
-          it 'sets root span tags from trace tags' do
+        context "meta" do
+          it "sets root span tags from trace tags" do
             format!
             expect(root_span.meta).to include(
               {
-                'foo' => 'bar',
-                '_dd.p.dm' => '-1',
-                '_dd.p.tid' => '0a3efc9f33333333',
+                "foo" => "bar",
+                "_dd.p.dm" => "-1",
+                "_dd.p.tid" => "0a3efc9f33333333",
               }
             )
           end
         end
       end
 
-      shared_examples 'root span without generic tags' do
-        context 'metrics' do
-          it { expect(root_span.metrics).to_not include('baz') }
+      shared_examples "root span without generic tags" do
+        context "metrics" do
+          it { expect(root_span.metrics).to_not include("baz") }
         end
 
-        context 'meta' do
-          it { expect(root_span.meta).to_not include('foo') }
-          it { expect(root_span.meta).to_not include('_dd.p.dm') }
-          it { expect(root_span.meta).to_not include('_dd.p.tid') }
+        context "meta" do
+          it { expect(root_span.meta).to_not include("foo") }
+          it { expect(root_span.meta).to_not include("_dd.p.dm") }
+          it { expect(root_span.meta).to_not include("_dd.p.tid") }
         end
       end
 
-      shared_examples 'first span with no git metadata' do
+      shared_examples "first span with no git metadata" do
         it do
           format!
-          expect(first_span.meta).to_not include('_dd.git.repository_url', '_dd.git.commit.sha')
+          expect(first_span.meta).to_not include("_dd.git.repository_url", "_dd.git.commit.sha")
         end
       end
 
-      shared_examples 'first span with git metadata' do
+      shared_examples "first span with git metadata" do
         it do
           format!
           expect(first_span.meta).to include(
             {
-              '_dd.git.repository_url' => git_repository_url,
-              '_dd.git.commit.sha' => git_commit_sha
+              "_dd.git.repository_url" => git_repository_url,
+              "_dd.git.commit.sha" => git_commit_sha
             }
           )
         end
       end
 
-      shared_examples 'spans with process tags' do
-        it 'the first span has process tags' do
+      shared_examples "spans with process tags" do
+        it "the first span has process tags" do
           format!
           expect(first_span.meta).to include(Datadog::Core::Environment::Ext::TAG_PROCESS_TAGS)
           expect(first_span.meta[Datadog::Core::Environment::Ext::TAG_PROCESS_TAGS]).to eq(Datadog::Core::Environment::Process.serialized)
         end
 
-        it 'does not add process tags to non first spans' do
+        it "does not add process tags to non first spans" do
           format!
           trace.spans.each_with_index do |span, index|
             if index == 0
@@ -270,8 +270,8 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         end
       end
 
-      shared_examples 'spans without process tags' do
-        it 'does not add process tags to any spans' do
+      shared_examples "spans without process tags" do
+        it "does not add process tags to any spans" do
           format!
           trace.spans.each do |span|
             expect(span.meta).to_not include(Datadog::Core::Environment::Ext::TAG_PROCESS_TAGS)
@@ -279,238 +279,238 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         end
       end
 
-      context 'with no root span' do
-        include_context 'no root span'
+      context "with no root span" do
+        include_context "no root span"
 
-        context 'when trace has no metadata set' do
+        context "when trace has no metadata set" do
           it { is_expected.to be(trace) }
 
-          it 'does not override the root span resource' do
+          it "does not override the root span resource" do
             expect { format! }.to_not(change { root_span.resource })
           end
 
-          it_behaves_like 'root span with no tags'
+          it_behaves_like "root span with no tags"
         end
 
-        context 'when trace has metadata set' do
-          include_context 'trace metadata'
+        context "when trace has metadata set" do
+          include_context "trace metadata"
 
           it { is_expected.to be(trace) }
 
-          it 'does not override the root span resource' do
+          it "does not override the root span resource" do
             expect { format! }.to_not(change { root_span.resource })
           end
 
-          it_behaves_like 'root span with tags'
+          it_behaves_like "root span with tags"
         end
 
-        context 'when trace has metadata set with generic tags' do
-          include_context 'trace metadata with tags'
+        context "when trace has metadata set with generic tags" do
+          include_context "trace metadata with tags"
 
           it { is_expected.to be(trace) }
 
-          it 'does not override the root span resource' do
+          it "does not override the root span resource" do
             expect { format! }.to_not(change { root_span.resource })
           end
 
-          it_behaves_like 'root span with tags'
-          it_behaves_like 'root span without generic tags'
+          it_behaves_like "root span with tags"
+          it_behaves_like "root span without generic tags"
         end
 
-        context 'with git metadata' do
-          include_context 'git metadata'
-          it_behaves_like 'first span with git metadata'
+        context "with git metadata" do
+          include_context "git metadata"
+          it_behaves_like "first span with git metadata"
         end
 
-        context 'without git metadata' do
-          include_context 'no git metadata'
-          it_behaves_like 'first span with no git metadata'
+        context "without git metadata" do
+          include_context "no git metadata"
+          it_behaves_like "first span with no git metadata"
         end
 
-        context 'with process tags enabled' do
+        context "with process tags enabled" do
           before do
             allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
           end
-          it_behaves_like 'spans with process tags'
+          it_behaves_like "spans with process tags"
         end
 
-        context 'without process tags enabled' do
+        context "without process tags enabled" do
           before do
             allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
           end
-          it_behaves_like 'spans without process tags'
+          it_behaves_like "spans without process tags"
         end
       end
 
-      context 'with missing root span' do
-        include_context 'missing root span'
+      context "with missing root span" do
+        include_context "missing root span"
 
-        context 'when trace has no metadata set' do
+        context "when trace has no metadata set" do
           it { is_expected.to be(trace) }
 
-          it 'does not override the root span resource' do
+          it "does not override the root span resource" do
             expect { format! }.to_not(change { root_span.resource })
           end
 
-          it_behaves_like 'root span with no tags'
+          it_behaves_like "root span with no tags"
         end
 
-        context 'when trace has metadata set' do
-          include_context 'trace metadata'
+        context "when trace has metadata set" do
+          include_context "trace metadata"
 
           it { is_expected.to be(trace) }
 
-          it 'does not override the root span resource' do
+          it "does not override the root span resource" do
             expect { format! }.to_not(change { root_span.resource })
           end
 
-          it_behaves_like 'root span with tags'
+          it_behaves_like "root span with tags"
         end
 
-        context 'when trace has metadata set with generic tags' do
-          include_context 'trace metadata with tags'
+        context "when trace has metadata set with generic tags" do
+          include_context "trace metadata with tags"
 
           it { is_expected.to be(trace) }
 
-          it 'does not override the root span resource' do
+          it "does not override the root span resource" do
             expect { format! }.to_not(change { root_span.resource })
           end
 
-          it_behaves_like 'root span with tags'
-          it_behaves_like 'root span without generic tags'
+          it_behaves_like "root span with tags"
+          it_behaves_like "root span without generic tags"
         end
 
-        context 'with git metadata' do
-          include_context 'git metadata'
-          it_behaves_like 'first span with git metadata'
+        context "with git metadata" do
+          include_context "git metadata"
+          it_behaves_like "first span with git metadata"
         end
 
-        context 'without git metadata' do
-          include_context 'no git metadata'
-          it_behaves_like 'first span with no git metadata'
+        context "without git metadata" do
+          include_context "no git metadata"
+          it_behaves_like "first span with no git metadata"
         end
 
-        context 'with process tags enabled' do
+        context "with process tags enabled" do
           before do
             allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
           end
-          it_behaves_like 'spans with process tags'
+          it_behaves_like "spans with process tags"
         end
 
-        context 'without process tags enabled' do
+        context "without process tags enabled" do
           before do
             allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
           end
-          it_behaves_like 'spans without process tags'
+          it_behaves_like "spans without process tags"
         end
       end
 
-      context 'with a root span' do
-        include_context 'available root span'
+      context "with a root span" do
+        include_context "available root span"
 
-        context 'when trace has no metadata set' do
+        context "when trace has no metadata set" do
           it { is_expected.to be(trace) }
 
-          it 'does not override the root span resource' do
+          it "does not override the root span resource" do
             expect { format! }.to_not(change { root_span.resource })
           end
 
-          it_behaves_like 'root span with no tags'
+          it_behaves_like "root span with no tags"
         end
 
-        context 'when trace has metadata set' do
-          include_context 'trace metadata'
+        context "when trace has metadata set" do
+          include_context "trace metadata"
 
           it { is_expected.to be(trace) }
 
-          it 'sets the root span resource from trace resource' do
+          it "sets the root span resource from trace resource" do
             format!
             expect(root_span.resource).to eq(resource)
           end
 
-          it_behaves_like 'root span with tags'
+          it_behaves_like "root span with tags"
         end
 
-        context 'when trace has metadata set with generic tags' do
-          include_context 'trace metadata with tags'
+        context "when trace has metadata set with generic tags" do
+          include_context "trace metadata with tags"
 
           it { is_expected.to be(trace) }
 
-          it 'sets the root span resource from trace resource' do
+          it "sets the root span resource from trace resource" do
             format!
             expect(root_span.resource).to eq(resource)
           end
 
-          it_behaves_like 'root span with tags'
-          it_behaves_like 'root span with generic tags'
+          it_behaves_like "root span with tags"
+          it_behaves_like "root span with generic tags"
         end
 
-        context 'with git metadata' do
-          include_context 'git metadata'
-          it_behaves_like 'first span with git metadata'
+        context "with git metadata" do
+          include_context "git metadata"
+          it_behaves_like "first span with git metadata"
         end
 
-        context 'without git metadata' do
-          include_context 'no git metadata'
-          it_behaves_like 'first span with no git metadata'
+        context "without git metadata" do
+          include_context "no git metadata"
+          it_behaves_like "first span with no git metadata"
         end
 
-        context 'with process tags enabled' do
+        context "with process tags enabled" do
           before do
             allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
           end
-          it_behaves_like 'spans with process tags'
+          it_behaves_like "spans with process tags"
         end
 
-        context 'without process tags enabled' do
+        context "without process tags enabled" do
           before do
             allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
           end
-          it_behaves_like 'spans without process tags'
+          it_behaves_like "spans without process tags"
         end
       end
     end
 
-    context 'knuth sampling rate (_dd.p.ksr)' do
-      include_context 'available root span'
+    context "knuth sampling rate (_dd.p.ksr)" do
+      include_context "available root span"
 
-      context 'when only agent_sample_rate is set' do
+      context "when only agent_sample_rate is set" do
         let(:trace_options) { {id: trace_id, agent_sample_rate: 0.5} }
 
-        it 'sets _dd.p.ksr from agent_sample_rate' do
+        it "sets _dd.p.ksr from agent_sample_rate" do
           format!
           expect(root_span.meta).to include(
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => '0.5'
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => "0.5"
           )
         end
       end
 
-      context 'when only rule_sample_rate is set' do
+      context "when only rule_sample_rate is set" do
         let(:trace_options) { {id: trace_id, rule_sample_rate: 0.75} }
 
-        it 'sets _dd.p.ksr from rule_sample_rate' do
+        it "sets _dd.p.ksr from rule_sample_rate" do
           format!
           expect(root_span.meta).to include(
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => '0.75'
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => "0.75"
           )
         end
       end
 
-      context 'when both agent_sample_rate and rule_sample_rate are set' do
+      context "when both agent_sample_rate and rule_sample_rate are set" do
         let(:trace_options) { {id: trace_id, agent_sample_rate: 0.3, rule_sample_rate: 0.8} }
 
-        it 'sets _dd.p.ksr from rule_sample_rate (rule takes priority)' do
+        it "sets _dd.p.ksr from rule_sample_rate (rule takes priority)" do
           format!
           expect(root_span.meta).to include(
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => '0.8'
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => "0.8"
           )
         end
       end
 
-      context 'when neither agent_sample_rate nor rule_sample_rate is set' do
+      context "when neither agent_sample_rate nor rule_sample_rate is set" do
         let(:trace_options) { {id: trace_id} }
 
-        it 'does not set _dd.p.ksr' do
+        it "does not set _dd.p.ksr" do
           format!
           expect(root_span.meta).to_not include(
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE
@@ -518,17 +518,17 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         end
       end
 
-      context 'value formatting with up to 6 decimal digits' do
+      context "value formatting with up to 6 decimal digits" do
         [
-          [1.0, '1'],
-          [0.5, '0.5'],
-          [0.1, '0.1'],
-          [0.7654321, '0.765432'],
-          [0.100000, '0.1'],
-          [0.000001, '0.000001'],
-          [0.123456789, '0.123457'],
-          [0.0000001, '0'],
-          [0.0000005, '0.000001'],
+          [1.0, "1"],
+          [0.5, "0.5"],
+          [0.1, "0.1"],
+          [0.7654321, "0.765432"],
+          [0.100000, "0.1"],
+          [0.000001, "0.000001"],
+          [0.123456789, "0.123457"],
+          [0.0000001, "0"],
+          [0.0000005, "0.000001"],
         ].each do |rate, expected|
           context "when rate is #{rate}" do
             let(:trace_options) { {id: trace_id, agent_sample_rate: rate} }
@@ -541,13 +541,13 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         end
       end
 
-      context 'tag type' do
+      context "tag type" do
         let(:trace_options) { {id: trace_id, agent_sample_rate: 0.5} }
 
-        it 'is stored as a string in meta (not metrics)' do
+        it "is stored as a string in meta (not metrics)" do
           format!
           expect(root_span.meta).to include(
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => '0.5'
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => "0.5"
           )
           expect(root_span.metrics).to_not include(
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE
@@ -555,10 +555,10 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         end
       end
 
-      context 'propagation' do
+      context "propagation" do
         let(:trace_options) { {id: trace_id, agent_sample_rate: 0.5} }
 
-        it 'has the _dd.p. prefix for distributed propagation' do
+        it "has the _dd.p. prefix for distributed propagation" do
           expect(Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE).to start_with(
             Datadog::Tracing::Metadata::Ext::Distributed::TAGS_PREFIX
           )

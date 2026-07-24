@@ -6,21 +6,25 @@ module Datadog
           class Request < Instrumentation::Gateway::Argument
             @env: ::Rack::env
 
+            @request: ::Rack::Request?
+
             attr_reader env: ::Rack::env
 
             def initialize: (::Rack::env env) -> void
 
             def request: () -> ::Rack::Request
 
-            def query: () -> Hash[String, any]
+            def query: () -> ::Rack::query
 
             def headers: () -> Hash[String, String]
-
-            def body: () -> String
 
             def method: () -> String
 
             def url: () -> String
+
+            def fullpath: () -> String
+
+            def path: () -> String
 
             def cookies: () -> Hash[String, String]
 

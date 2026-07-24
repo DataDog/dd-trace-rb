@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../core/utils'
-require_relative 'helpers'
+require_relative "../../core/utils"
+require_relative "helpers"
 
 module Datadog
   module Tracing
@@ -10,9 +10,9 @@ module Datadog
       # The trace is propagated through two fields: `traceparent` and `tracestate`.
       # @see https://www.w3.org/TR/trace-context/
       class TraceContext
-        TRACEPARENT_KEY = 'traceparent'
-        TRACESTATE_KEY = 'tracestate'
-        SPEC_VERSION = '00'
+        TRACEPARENT_KEY = "traceparent"
+        TRACESTATE_KEY = "tracestate"
+        SPEC_VERSION = "00"
 
         def initialize(
           fetcher:,
@@ -123,7 +123,7 @@ module Datadog
 
         # @see https://www.w3.org/TR/trace-context/#tracestate-header
         def build_tracestate(digest)
-          tracestate = +'dd='
+          tracestate = +"dd="
           append_dd(tracestate, last_dd_parent_id(digest))
           append_dd(tracestate, "s:#{digest.trace_sampling_priority};") if digest.trace_sampling_priority
           append_dd(tracestate, "o:#{serialize_origin(digest.trace_origin)};") if digest.trace_origin
@@ -150,20 +150,20 @@ module Datadog
 
             if vendors && !vendors.empty?
               # Delete existing `dd=` tracestate fields, if present.
-              vendors.reject! { |v| v.start_with?('dd=') }
+              vendors.reject! { |v| v.start_with?("dd=") }
 
               # Ensure the list has at most 31 elements, as we need to prepend Datadog's
               # entry and the limit is 32 elements total.
               vendors.first(TRACESTATE_MAX_LIST_MEMBERS - 1).each do |vendor|
                 break if tracestate.bytesize + vendor.bytesize + 1 > TRACESTATE_MAX_SIZE_LIMIT
 
-                tracestate << ',' << vendor
+                tracestate << "," << vendor
               end
             end
 
             tracestate.to_s
           elsif vendors && !vendors.empty?
-            vendors.join(',')
+            vendors.join(",")
           end
         end
 
@@ -185,7 +185,7 @@ module Datadog
           elsif digest.trace_distributed_tags&.key?(Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID)
             "p:#{digest.trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID]};"
           else
-            ''
+            ""
           end
         end
 
@@ -198,13 +198,13 @@ module Datadog
           # DEV: come from Datadog-controlled sources.
           # DEV: Trying to `match?` is measurably faster than a `gsub` that does not match.
           value = if INVALID_ORIGIN_CHARS.match?(value)
-            value.gsub(INVALID_ORIGIN_CHARS, '_')
+            value.gsub(INVALID_ORIGIN_CHARS, "_")
           else
             value
           end
 
           if REMAP_ORIGIN_CHARS.match?(value)
-            value.gsub(REMAP_ORIGIN_CHARS, '~')
+            value.gsub(REMAP_ORIGIN_CHARS, "~")
           else
             value
           end
@@ -221,7 +221,7 @@ module Datadog
           # DEV: It's unlikely that characters will be out of range, as they mostly
           # DEV: come from Datadog-controlled sources.
           # DEV: Trying to `match?` is measurably faster than a `gsub!` that does not match.
-          key.gsub!(INVALID_TAG_KEY_CHARS, '_') if INVALID_TAG_KEY_CHARS.match?(key)
+          key.gsub!(INVALID_TAG_KEY_CHARS, "_") if INVALID_TAG_KEY_CHARS.match?(key)
 
           key
         end
@@ -235,14 +235,14 @@ module Datadog
           # DEV: come from Datadog-controlled sources.
           # DEV: Trying to `match?` is measurably faster than a `gsub` that does not match.
           ret = if INVALID_TAG_VALUE_CHARS.match?(value)
-            value.gsub(INVALID_TAG_VALUE_CHARS, '_')
+            value.gsub(INVALID_TAG_VALUE_CHARS, "_")
           else
             value
           end
 
           # DEV: Checking for an unlikely '=' is faster than a no-op `tr`.
-          if ret.include?('=')
-            ret.tr('=', '~')
+          if ret.include?("=")
+            ret.tr("=", "~")
           else
             ret
           end
@@ -265,11 +265,11 @@ module Datadog
 
           traceparent = traceparent.strip
 
-          version, trace_id, parent_id, trace_flags, extra = traceparent.split('-', 5)
+          version, trace_id, parent_id, trace_flags, extra = traceparent.split("-", 5)
 
           return unless version && trace_id && parent_id && trace_flags
           return if version.size != 2 || trace_id.size != 32 || parent_id.size != 16 || trace_flags.size != 2
-          return if version[0] < '0' || version[0] > 'f' || version[1] < '0' || version[1] > 'f'
+          return if version[0] < "0" || version[0] > "f" || version[1] < "0" || version[1] > "f"
 
           return if version == INVALID_VERSION
 
@@ -294,10 +294,10 @@ module Datadog
           vendors = split_tracestate(tracestate)
           return unless vendors && !vendors.empty?
 
-          tracestate = vendors.join(',')
+          tracestate = vendors.join(",")
 
           # Find Datadog's `dd=` tracestate field.
-          idx = vendors.index { |v| v.start_with?('dd=') }
+          idx = vendors.index { |v| v.start_with?("dd=") }
           return tracestate unless idx
 
           # Delete `dd=` prefix
@@ -306,7 +306,7 @@ module Datadog
 
           origin, sampling_priority, ts_parent_id, tags, unknown_fields = extract_datadog_fields(dd_tracestate)
 
-          [vendors.join(','), sampling_priority, origin, ts_parent_id, tags, unknown_fields]
+          [vendors.join(","), sampling_priority, origin, ts_parent_id, tags, unknown_fields]
         end
 
         def extract_datadog_fields(dd_tracestate)
@@ -317,18 +317,18 @@ module Datadog
           unknown_fields = nil
 
           # DEV: Since Ruby 2.6 `split` can receive a block, so `each` can be removed then.
-          dd_tracestate.split(';').each do |pair|
-            key, value = pair.split(':', 2)
+          dd_tracestate.split(";").each do |pair|
+            key, value = pair.split(":", 2)
             case key
-            when 's'
+            when "s"
               sampling_priority = begin
                 Integer(value)
               rescue
                 nil
               end
-            when 'o'
+            when "o"
               origin = value
-            when 'p'
+            when "p"
               ts_parent_id = value
             when /^t\./
               key.slice!(0..1) # Delete `t.` prefix
@@ -342,9 +342,9 @@ module Datadog
               tags ||= {}
               tags["#{Tracing::Metadata::Ext::Distributed::TAGS_PREFIX}#{key}"] = value
             else
-              unknown_fields ||= +''
+              unknown_fields ||= +""
               unknown_fields << pair
-              unknown_fields << ';'
+              unknown_fields << ";"
             end
           end
 
@@ -353,7 +353,7 @@ module Datadog
 
         # Restore `~` back to `=`.
         def deserialize_tag_value(value)
-          value.tr!('~', '=')
+          value.tr!("~", "=")
           value
         end
 
@@ -391,7 +391,7 @@ module Datadog
           if tracestate.bytesize > TRACESTATE_MAX_SIZE_LIMIT
             # We parse 1 byte over the limit to detect if the last member
             # is a partial member (toss) or ends exactly at the limit (keep).
-            remove_last_member = tracestate.byteslice(TRACESTATE_MAX_SIZE_LIMIT, 1) != ','
+            remove_last_member = tracestate.byteslice(TRACESTATE_MAX_SIZE_LIMIT, 1) != ","
 
             # To ensure we don't have a trailing partial UTF-8 codepoint, we keep one extra byte
             # and safely remove it with `#chop`.
@@ -404,13 +404,13 @@ module Datadog
           tracestate = ::Datadog::Core::Utils.utf8_encode(tracestate, placeholder: nil)
           return unless tracestate
 
-          vendors = tracestate.split(',', TRACESTATE_MAX_LIST_MEMBERS + 1)
+          vendors = tracestate.split(",", TRACESTATE_MAX_LIST_MEMBERS + 1)
           if vendors.length > TRACESTATE_MAX_LIST_MEMBERS || remove_last_member
             vendors.pop
           end
 
           vendors.each(&:strip!)
-          vendors.pop while vendors.last == ''
+          vendors.pop while vendors.last == ""
           vendors
         end
 
@@ -425,7 +425,7 @@ module Datadog
 
         # Version 0xFF is invalid as per spec
         # @see https://www.w3.org/TR/trace-context/#version
-        INVALID_VERSION = 'ff'
+        INVALID_VERSION = "ff"
         private_constant :INVALID_VERSION
 
         # Empty 8-bit `trace-flags`.

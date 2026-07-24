@@ -6,7 +6,7 @@ module Datadog
       # SecurityEngine::Engine creates WAF builder and manages its configuration.
       # It also rebuilds WAF handle from the WAF builder when configuration changes.
       class Engine
-        DEFAULT_RULES_CONFIG_PATH = 'ASM_DD/default'
+        DEFAULT_RULES_CONFIG_PATH = "ASM_DD/default"
         TELEMETRY_ACTIONS = %w[init update].freeze
         DIAGNOSTICS_CONFIG_KEYS = %w[
           rules
@@ -36,19 +36,19 @@ module Datadog
           )
 
           diagnostics = load_default_config(telemetry: telemetry)
-          report_configuration_diagnostics(diagnostics, action: 'init', telemetry: telemetry)
-          @ruleset_version = diagnostics['ruleset_version']
+          report_configuration_diagnostics(diagnostics, action: "init", telemetry: telemetry)
+          @ruleset_version = diagnostics["ruleset_version"]
 
           @handle_ref = ThreadSafeRef.new(@waf_builder.build_handle)
 
-          metric('init', success: true, ruleset_version: @ruleset_version, telemetry: telemetry)
+          metric("init", success: true, ruleset_version: @ruleset_version, telemetry: telemetry)
         rescue WAF::Error => e
-          error_message = 'AppSec security engine failed to initialize'
+          error_message = "AppSec security engine failed to initialize"
 
           Datadog.logger.error("#{error_message}, error #{e.inspect}")
           telemetry.report(e, description: error_message)
 
-          metric('init', success: false, ruleset_version: @ruleset_version, telemetry: telemetry)
+          metric("init", success: false, ruleset_version: @ruleset_version, telemetry: telemetry)
 
           raise e
         end
@@ -58,23 +58,23 @@ module Datadog
         end
 
         def add_or_update_config(config, path:)
-          is_ruleset_update = path.include?('ASM_DD')
+          is_ruleset_update = path.include?("ASM_DD")
 
           # default config has to be removed when adding an ASM_DD config
           remove_config_at_path(DEFAULT_RULES_CONFIG_PATH) if is_ruleset_update
 
           diagnostics = @waf_builder.add_or_update_config(config, path: path)
-          @reconfigured_ruleset_version = diagnostics['ruleset_version'] if diagnostics.key?('ruleset_version')
-          report_configuration_diagnostics(diagnostics, action: 'update', telemetry: AppSec.telemetry)
+          @reconfigured_ruleset_version = diagnostics["ruleset_version"] if diagnostics.key?("ruleset_version")
+          report_configuration_diagnostics(diagnostics, action: "update", telemetry: AppSec.telemetry)
 
           # we need to load default config if diagnostics contains top-level error for rules or processors
           if is_ruleset_update &&
-              (diagnostics.key?('error') ||
-              diagnostics.dig('rules', 'error') ||
-              diagnostics.dig('processors', 'errors'))
+              (diagnostics.key?("error") ||
+              diagnostics.dig("rules", "error") ||
+              diagnostics.dig("processors", "errors"))
             diagnostics = load_default_config(telemetry: AppSec.telemetry)
-            @reconfigured_ruleset_version = diagnostics['ruleset_version']
-            report_configuration_diagnostics(diagnostics, action: 'update', telemetry: AppSec.telemetry)
+            @reconfigured_ruleset_version = diagnostics["ruleset_version"]
+            report_configuration_diagnostics(diagnostics, action: "update", telemetry: AppSec.telemetry)
           end
 
           diagnostics
@@ -88,10 +88,10 @@ module Datadog
         def remove_config_at_path(path)
           result = @waf_builder.remove_config_at_path(path)
 
-          if result && path != DEFAULT_RULES_CONFIG_PATH && path.include?('ASM_DD')
+          if result && path != DEFAULT_RULES_CONFIG_PATH && path.include?("ASM_DD")
             diagnostics = load_default_config(telemetry: AppSec.telemetry)
-            @reconfigured_ruleset_version = diagnostics['ruleset_version']
-            report_configuration_diagnostics(diagnostics, action: 'update', telemetry: AppSec.telemetry)
+            @reconfigured_ruleset_version = diagnostics["ruleset_version"]
+            report_configuration_diagnostics(diagnostics, action: "update", telemetry: AppSec.telemetry)
           end
 
           result
@@ -108,16 +108,16 @@ module Datadog
 
           @handle_ref.current = new_waf_handle
 
-          metric('updates', success: true, ruleset_version: @ruleset_version, telemetry: AppSec.telemetry)
+          metric("updates", success: true, ruleset_version: @ruleset_version, telemetry: AppSec.telemetry)
         rescue WAF::Error => e
           # WAF::Error can only be raised during new WAF handle creation or when reading known addresses.
           # This means that the current WAF handle was not yet substituted.
-          error_message = 'AppSec security engine failed to reconfigure, reverting to the previous configuration'
+          error_message = "AppSec security engine failed to reconfigure, reverting to the previous configuration"
 
           Datadog.logger.error("#{error_message}, error #{e.inspect}")
           AppSec.telemetry.report(e, description: error_message)
 
-          metric('updates', success: false, ruleset_version: @reconfigured_ruleset_version, telemetry: AppSec.telemetry)
+          metric("updates", success: false, ruleset_version: @reconfigured_ruleset_version, telemetry: AppSec.telemetry)
         end
 
         private
@@ -139,54 +139,54 @@ module Datadog
           config = AppSec::Processor::RuleLoader.load_rules(telemetry: telemetry, ruleset: @default_ruleset)
 
           # deprecated - ip and user id denylists should be configured via RC
-          config['rules_data'] ||= AppSec::Processor::RuleLoader.load_data(
+          config["rules_data"] ||= AppSec::Processor::RuleLoader.load_data(
             ip_denylist: @default_ip_denylist,
             user_id_denylist: @default_user_id_denylist
           )
 
           # deprecated - ip passlist should be configured via RC
-          config['exclusions'] ||= AppSec::Processor::RuleLoader.load_exclusions(ip_passlist: @default_ip_passlist)
+          config["exclusions"] ||= AppSec::Processor::RuleLoader.load_exclusions(ip_passlist: @default_ip_passlist)
 
           @waf_builder.add_or_update_config(config, path: DEFAULT_RULES_CONFIG_PATH)
         end
 
         def report_configuration_diagnostics(diagnostics, action:, telemetry:)
-          raise ArgumentError, 'action must be one of TELEMETRY_ACTIONS' unless TELEMETRY_ACTIONS.include?(action)
+          raise ArgumentError, "action must be one of TELEMETRY_ACTIONS" unless TELEMETRY_ACTIONS.include?(action)
 
           common_tags = {
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
-            event_rules_version: diagnostics['ruleset_version'].to_s,
+            event_rules_version: diagnostics["ruleset_version"].to_s,
             action: action
           }
 
-          if diagnostics['error']
+          if diagnostics["error"]
             telemetry.inc(
-              Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.config_errors', 1,
-              tags: common_tags.merge(scope: 'top-level')
+              Ext::TELEMETRY_METRICS_NAMESPACE, "waf.config_errors", 1,
+              tags: common_tags.merge(scope: "top-level")
             )
 
-            telemetry.error(diagnostics['error'])
+            telemetry.error(diagnostics["error"])
           end
 
           diagnostics.each do |config_key, config_diagnostics|
             next unless DIAGNOSTICS_CONFIG_KEYS.include?(config_key)
-            next if !config_diagnostics.key?('error') && config_diagnostics.fetch('errors', []).empty?
+            next if !config_diagnostics.key?("error") && config_diagnostics.fetch("errors", []).empty?
 
-            if config_diagnostics['error']
-              telemetry.error(config_diagnostics['error'])
+            if config_diagnostics["error"]
+              telemetry.error(config_diagnostics["error"])
 
               telemetry.inc(
-                Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.config_errors', 1,
-                tags: common_tags.merge(config_key: config_key, scope: 'top-level')
+                Ext::TELEMETRY_METRICS_NAMESPACE, "waf.config_errors", 1,
+                tags: common_tags.merge(config_key: config_key, scope: "top-level")
               )
-            elsif config_diagnostics['errors']
-              config_diagnostics['errors'].each do |error, config_ids|
+            elsif config_diagnostics["errors"]
+              config_diagnostics["errors"].each do |error, config_ids|
                 telemetry.error("#{error}: [#{config_ids.join(",")}]")
               end
 
               telemetry.inc(
-                Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.config_errors', config_diagnostics['errors'].count,
-                tags: common_tags.merge(config_key: config_key, scope: 'item')
+                Ext::TELEMETRY_METRICS_NAMESPACE, "waf.config_errors", config_diagnostics["errors"].count,
+                tags: common_tags.merge(config_key: config_key, scope: "item")
               )
             end
           end

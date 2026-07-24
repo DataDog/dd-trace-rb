@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../analytics'
-require_relative '../patcher'
-require_relative 'tracing_patcher'
-require_relative 'trace_patcher'
-require_relative 'unified_trace_patcher'
+require_relative "../analytics"
+require_relative "../patcher"
+require_relative "tracing_patcher"
+require_relative "trace_patcher"
+require_relative "unified_trace_patcher"
 
 module Datadog
   module Tracing
@@ -37,8 +37,8 @@ module Datadog
             else
               Datadog.logger.warn(
                 "GraphQL version (#{target_version}) does not support GraphQL::Tracing::DataDogTrace" \
-                'or Datadog::Tracing::Contrib::GraphQL::UnifiedTrace.' \
-                'Falling back to GraphQL::Tracing::DataDogTracing.'
+                "or Datadog::Tracing::Contrib::GraphQL::UnifiedTrace." \
+                "Falling back to GraphQL::Tracing::DataDogTracing."
               )
               TracingPatcher.patch!(schemas)
             end

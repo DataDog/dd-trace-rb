@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
-require_relative '../../../event'
-require_relative '../../../trace_keeper'
-require_relative '../../../security_event'
-require_relative '../../../instrumentation/gateway'
+require_relative "../../../event"
+require_relative "../../../trace_keeper"
+require_relative "../../../security_event"
+require_relative "../../../instrumentation/gateway"
 
 module Datadog
   module AppSec
@@ -22,12 +22,12 @@ module Datadog
               end
 
               def watch_multiplex(gateway = Instrumentation.gateway)
-                gateway.watch('graphql.multiplex') do |stack, gateway_multiplex|
+                gateway.watch("graphql.multiplex") do |stack, gateway_multiplex|
                   context = AppSec::Context.active
 
                   if context
                     persistent_data = {
-                      'graphql.server.all_resolvers' => gateway_multiplex.arguments
+                      "graphql.server.all_resolvers" => gateway_multiplex.arguments
                     }
 
                     result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)

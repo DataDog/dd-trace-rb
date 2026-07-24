@@ -24,39 +24,39 @@ module Datadog
 
           packer.write_map_header(3)
 
-          packer.write('id')
-          packer.write(@stack_id.encode('UTF-8'))
+          packer.write("id")
+          packer.write(@stack_id.encode("UTF-8"))
 
-          packer.write('language')
-          packer.write('ruby'.encode('UTF-8'))
+          packer.write("language")
+          packer.write("ruby".encode("UTF-8"))
 
           serializable_locations_map = build_serializable_locations_map
 
-          packer.write('frames')
+          packer.write("frames")
           packer.write_array_header(serializable_locations_map.size)
 
           serializable_locations_map.each do |frame_id, location|
             packer.write_map_header(6)
 
-            packer.write('id')
+            packer.write("id")
             packer.write(frame_id)
 
-            packer.write('text')
-            packer.write(location.to_s.encode('UTF-8'))
+            packer.write("text")
+            packer.write(location.to_s.encode("UTF-8"))
 
-            packer.write('file')
-            packer.write(location.path&.encode('UTF-8'))
+            packer.write("file")
+            packer.write(location.path&.encode("UTF-8"))
 
-            packer.write('line')
+            packer.write("line")
             packer.write(location.lineno)
 
             class_name, function_name = location.label&.match(CLASS_AND_FUNCTION_NAME_REGEX)&.captures
 
-            packer.write('class_name')
-            packer.write(class_name&.encode('UTF-8'))
+            packer.write("class_name")
+            packer.write(class_name&.encode("UTF-8"))
 
-            packer.write('function')
-            packer.write(function_name&.encode('UTF-8'))
+            packer.write("function")
+            packer.write(function_name&.encode("UTF-8"))
           end
 
           packer
@@ -74,7 +74,7 @@ module Datadog
           frame_idx = -1
           @locations.each_with_object({}) do |location, map|
             # we are dropping frames from library code without increasing frame index
-            next if location.path&.include?('lib/datadog')
+            next if location.path&.include?("lib/datadog")
 
             frame_idx += 1
 

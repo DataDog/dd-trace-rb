@@ -1,18 +1,18 @@
 # frozen_string_literal: true
 
-require 'date'
-require 'json'
-require 'net/http'
+require "date"
+require "json"
+require "net/http"
 
 module ReleasePrep
-  REPO = 'DataDog/dd-trace-rb'
+  REPO = "DataDog/dd-trace-rb"
   REPO_URL = "https://github.com/#{REPO}"
-  API_URL = 'https://api.github.com'
-  CHANGELOG_FILE = 'CHANGELOG.md'
+  API_URL = "https://api.github.com"
+  CHANGELOG_FILE = "CHANGELOG.md"
 
   # Separates release "highlights" (release-page only) from the changelog body in
   # the draft release. When the marker is absent we fall back to the whole body.
-  CHANGELOG_MARKER = '<!-- changelog -->'
+  CHANGELOG_MARKER = "<!-- changelog -->"
 
   PREVIOUS_VERSION_PATTERN = %r{\[Unreleased\]: #{Regexp.escape(REPO_URL)}/compare/v(.+?)\.\.\.master}
   UNRELEASED_FOOTER_PATTERN = %r{\[Unreleased\]: #{Regexp.escape(REPO_URL)}/compare/.*?\.\.\.master}
@@ -30,19 +30,19 @@ module ReleasePrep
   def draft_changelog(version)
     uri = URI("#{API_URL}/repos/#{REPO}/releases?per_page=100")
     request = Net::HTTP::Get.new(uri)
-    request['Authorization'] = "Bearer #{ENV['GITHUB_TOKEN']}"
-    request['Accept'] = 'application/vnd.github+json'
-    request['X-GitHub-Api-Version'] = '2022-11-28'
-    request['User-Agent'] = 'dd-trace-rb-release-prep'
+    request["Authorization"] = "Bearer #{ENV["GITHUB_TOKEN"]}"
+    request["Accept"] = "application/vnd.github+json"
+    request["X-GitHub-Api-Version"] = "2022-11-28"
+    request["User-Agent"] = "dd-trace-rb-release-prep"
 
     response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(request) }
     fail!("GitHub API request failed: #{response.code} #{response.body}") unless response.is_a?(Net::HTTPSuccess)
 
     tag = "v#{version}"
-    draft = JSON.parse(response.body).find { |release| release['tag_name'] == tag && release['draft'] == true }
+    draft = JSON.parse(response.body).find { |release| release["tag_name"] == tag && release["draft"] == true }
     fail!("No draft release found with tag #{tag}. Please create and approve a draft release first.") unless draft
 
-    body = draft['body'].to_s
+    body = draft["body"].to_s
 
     # Highlights (release-page only) precede the marker; the changelog follows
     # it. Fall back to the whole body when the marker is absent.
@@ -86,7 +86,7 @@ end
 # version with no pre-release segment (e.g. 2.36.0, but not 2.36.0.beta1,
 # 2.36.0.rc1, or a partial version like 2.36).
 namespace :release_prep do
-  desc 'Prepare a release: write the changelog and bump the gem version (e.g. release_prep:prepare[2.36.0])'
+  desc "Prepare a release: write the changelog and bump the gem version (e.g. release_prep:prepare[2.36.0])"
   task :prepare, [:version] do |_t, args|
     version = args[:version] || raise(ArgumentError, 'Please provide a version, e.g. rake "release_prep:prepare[2.36.0]"')
 
@@ -98,10 +98,10 @@ namespace :release_prep do
     changelog = ReleasePrep.draft_changelog(version)
 
     ReleasePrep.insert_changelog(version, changelog)
-    Rake::Task['changelog:format'].invoke
+    Rake::Task["changelog:format"].invoke
     ReleasePrep.rewrite_footer(version, previous)
 
     # `version:bump` also asserts the resulting gemspec matches the version.
-    Rake::Task['version:bump'].invoke(version)
+    Rake::Task["version:bump"].invoke(version)
   end
 end

@@ -1,6 +1,6 @@
 require "datadog/di/spec_helper"
 require "datadog/di/serializer"
-require_relative 'serializer_helper'
+require_relative "serializer_helper"
 
 class DISerializerSpecSensitiveType
 end
@@ -35,25 +35,25 @@ class DISerializerCustomExceptionTestClass < StandardError; end
 class DISerializerExceptionWithFieldsTestClass < StandardError
   def initialize(message)
     super
-    @test_field = 'bar'
+    @test_field = "bar"
   end
 end
 
 class DISerializerExceptionWithMessageFieldTestClass < StandardError
   def initialize(message)
     super
-    @message = 'bar'
+    @message = "bar"
   end
 end
 
 class DISerializerExceptionWithMessageRaiseTestClass < StandardError
   def initialize(message)
     super
-    @message = 'bar'
+    @message = "bar"
   end
 
   def message
-    raise 'uh oh'
+    raise "uh oh"
   end
 end
 
@@ -118,37 +118,37 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {type: "String", value: "123"}},
       # We can assert exact value when the time zone is UTC,
       # since we don't know the local time zone ahead of time.
-      {name: 'Time value in UTC', input: Time.utc(2020, 1, 2, 3, 4, 5),
-       expected: {type: 'Time', value: '2020-01-02T03:04:05Z'}},
-      {name: 'Time value in local time zone', input: Time.local(2020, 1, 2, 3, 4, 5),
-       expected_matches: {type: 'Time', value: %r{\A2020-01-02T03:04:05[-+]\d\d:\d\d\z}}},
-      {name: 'Date value', input: Date.new(2020, 1, 2),
-       expected: {type: 'Date', value: '2020-01-02'}},
-      {name: 'DateTime value', input: DateTime.new(2020, 1, 2, 3, 4, 5),
-       expected: {type: 'DateTime', value: '2020-01-02T03:04:05+00:00'}},
+      {name: "Time value in UTC", input: Time.utc(2020, 1, 2, 3, 4, 5),
+       expected: {type: "Time", value: "2020-01-02T03:04:05Z"}},
+      {name: "Time value in local time zone", input: Time.local(2020, 1, 2, 3, 4, 5),
+       expected_matches: {type: "Time", value: %r{\A2020-01-02T03:04:05[-+]\d\d:\d\d\z}}},
+      {name: "Date value", input: Date.new(2020, 1, 2),
+       expected: {type: "Date", value: "2020-01-02"}},
+      {name: "DateTime value", input: DateTime.new(2020, 1, 2, 3, 4, 5),
+       expected: {type: "DateTime", value: "2020-01-02T03:04:05+00:00"}},
 
       # Exception classes do not have a dedicated serializer, but document
       # the lack of serialization of their messages (because we cannot do
       # so safely - guaranteeing not to invoke customer code).
-      {name: 'Exception instance', input: IOError.new('test error'),
-       expected: {type: 'IOError', fields: {}}},
-      {name: 'Exception instance with a field', input: DISerializerExceptionWithFieldsTestClass.new('test error'),
-       expected: {type: 'DISerializerExceptionWithFieldsTestClass', fields: {
+      {name: "Exception instance", input: IOError.new("test error"),
+       expected: {type: "IOError", fields: {}}},
+      {name: "Exception instance with a field", input: DISerializerExceptionWithFieldsTestClass.new("test error"),
+       expected: {type: "DISerializerExceptionWithFieldsTestClass", fields: {
          "@test_field": {
-           value: 'bar', type: 'String'
+           value: "bar", type: "String"
          }
        }}},
-      {name: 'Exception instance with @message field', input: DISerializerExceptionWithMessageFieldTestClass.new('test error'),
-       expected: {type: 'DISerializerExceptionWithMessageFieldTestClass', fields: {
+      {name: "Exception instance with @message field", input: DISerializerExceptionWithMessageFieldTestClass.new("test error"),
+       expected: {type: "DISerializerExceptionWithMessageFieldTestClass", fields: {
          "@message": {
-           value: 'bar', type: 'String'
+           value: "bar", type: "String"
          }
        }}},
-      {name: 'Custom exception instance which raises in #message', input: DISerializerExceptionWithMessageRaiseTestClass.new('test error'),
-       expected: {type: 'DISerializerExceptionWithMessageRaiseTestClass', fields: {
+      {name: "Custom exception instance which raises in #message", input: DISerializerExceptionWithMessageRaiseTestClass.new("test error"),
+       expected: {type: "DISerializerExceptionWithMessageRaiseTestClass", fields: {
          # Fields are still serialized.
          "@message": {
-           value: 'bar', type: 'String'
+           value: "bar", type: "String"
          }
        }}},
     ]
@@ -344,18 +344,18 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {arg1: {type: "Integer", value: "1"},
                   arg2: {type: "String", value: "x"},
                   a: {type: "Integer", value: "42"},
-                  self: {type: 'Object', fields: {}},}},
+                  self: {type: "Object", fields: {}},}},
       {name: "args, kwargs and instance vars",
        args: [1, "x"],
        kwargs: {a: 42},
-       target_self: DISerializerSpecInstanceVariable.new('quux'),
+       target_self: DISerializerSpecInstanceVariable.new("quux"),
        expected: {arg1: {type: "Integer", value: "1"},
                   arg2: {type: "String", value: "x"},
                   a: {type: "Integer", value: "42"},
                   self: {
-                    type: 'DISerializerSpecInstanceVariable',
+                    type: "DISerializerSpecInstanceVariable",
                     fields: {
-                      "@ivar": {type: 'String', value: 'quux'},
+                      "@ivar": {type: "String", value: "quux"},
                     },
                   },},},
       {name: "kwargs contains redacted identifier",
@@ -365,7 +365,7 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {arg1: {type: "Integer", value: "1"},
                   arg2: {type: "String", value: "x"},
                   password: {type: "Integer", notCapturedReason: "redactedIdent"},
-                  self: {type: 'Object', fields: {}},}},
+                  self: {type: "Object", fields: {}},}},
     ]
 
     cases.each do |c|
@@ -385,83 +385,83 @@ RSpec.describe Datadog::DI::Serializer do
       end
     end
 
-    context 'when positional arg is mutated' do
+    context "when positional arg is mutated" do
       let(:args) do
-        ['hello', 'world']
+        ["hello", "world"]
       end
 
       let(:kwargs) { {} }
       let(:target_self) { Object.new }
 
-      it 'preserves original value' do
+      it "preserves original value" do
         serialized
 
-        args.first.gsub!('hello', 'bye')
+        args.first.gsub!("hello", "bye")
 
         expect(serialized).to eq(
-          arg1: {type: 'String', value: 'hello'},
-          arg2: {type: 'String', value: 'world'},
-          self: {type: 'Object', fields: {}},
+          arg1: {type: "String", value: "hello"},
+          arg2: {type: "String", value: "world"},
+          self: {type: "Object", fields: {}},
         )
       end
     end
 
-    context 'when keyword arg is mutated' do
+    context "when keyword arg is mutated" do
       let(:args) do
         []
       end
 
       let(:kwargs) do
-        {foo: 'bar'}
+        {foo: "bar"}
       end
 
       let(:target_self) { Object.new }
 
-      it 'preserves original value' do
+      it "preserves original value" do
         serialized
 
-        kwargs[:foo].gsub!('bar', 'bye')
+        kwargs[:foo].gsub!("bar", "bye")
 
         expect(serialized).to eq(
-          foo: {type: 'String', value: 'bar'},
-          self: {type: 'Object', fields: {}},
+          foo: {type: "String", value: "bar"},
+          self: {type: "Object", fields: {}},
         )
       end
     end
 
-    context 'when positional arg is frozen' do
-      let(:frozen_string) { 'hello'.freeze }
+    context "when positional arg is frozen" do
+      let(:frozen_string) { "hello".freeze }
 
       let(:args) do
-        [frozen_string, 'world']
+        [frozen_string, "world"]
       end
 
       let(:kwargs) { {} }
       let(:target_self) { Object.new }
 
-      it 'serializes without duplication' do
+      it "serializes without duplication" do
         expect(serialized).to eq(
-          arg1: {type: 'String', value: 'hello'},
-          arg2: {type: 'String', value: 'world'},
-          self: {type: 'Object', fields: {}},
+          arg1: {type: "String", value: "hello"},
+          arg2: {type: "String", value: "world"},
+          self: {type: "Object", fields: {}},
         )
 
         expect(serialized[:arg1][:value]).to be frozen_string
       end
     end
 
-    context 'when keyword arg is frozen' do
-      let(:frozen_string) { 'hello'.freeze }
+    context "when keyword arg is frozen" do
+      let(:frozen_string) { "hello".freeze }
 
       let(:args) { [] }
 
       let(:kwargs) { {foo: frozen_string} }
       let(:target_self) { Object.new }
 
-      it 'serializes without duplication' do
+      it "serializes without duplication" do
         expect(serialized).to eq(
-          foo: {type: 'String', value: 'hello'},
-          self: {type: 'Object', fields: {}},
+          foo: {type: "String", value: "hello"},
+          self: {type: "Object", fields: {}},
         )
 
         expect(serialized[:foo][:value]).to be frozen_string
@@ -469,35 +469,35 @@ RSpec.describe Datadog::DI::Serializer do
     end
   end
 
-  describe '#serialize_string_or_symbol_for_message' do
+  describe "#serialize_string_or_symbol_for_message" do
     [
-      [100, 'short', 'short'],
-      [100, 'short1234', 'short1234'],
+      [100, "short", "short"],
+      [100, "short1234", "short1234"],
       # Truncation where the max length is too short for the ellipsis
-      [4, 'short', 'shor'],
+      [4, "short", "shor"],
       # Minimum space for ellipsis but there is no need to truncate
-      [5, 'short', 'short'],
+      [5, "short", "short"],
       # Minimum space for ellipsis and truncation is happening
-      [5, 'short1', 's...1'],
-      [5, :short1, 's...1'],
+      [5, "short1", "s...1"],
+      [5, :short1, "s...1"],
       # Limited to 100
-      [1000, 'long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long', 'long42longlong42longlong42longlong42longlong42lon...ng42longlong42longlong42longlong42longlong42long'],
-      [1000, 'long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long1', 'long42longlong42longlong42longlong42longlong42lon...g42longlong42longlong42longlong42longlong42long1'],
-      [99, 'long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long', 'long42longlong42longlong42longlong42longlong42lo...ng42longlong42longlong42longlong42longlong42long'],
-      [99, 'long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long1', 'long42longlong42longlong42longlong42longlong42lo...g42longlong42longlong42longlong42longlong42long1'],
+      [1000, "long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long", "long42longlong42longlong42longlong42longlong42lon...ng42longlong42longlong42longlong42longlong42long"],
+      [1000, "long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long1", "long42longlong42longlong42longlong42longlong42lon...g42longlong42longlong42longlong42longlong42long1"],
+      [99, "long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long", "long42longlong42longlong42longlong42longlong42lo...ng42longlong42longlong42longlong42longlong42long"],
+      [99, "long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long1", "long42longlong42longlong42longlong42longlong42lo...g42longlong42longlong42longlong42longlong42long1"],
     ].each do |max_length, input, expected_output|
       context "max length: #{max_length}, input: #{input}" do
         # Verify our expected output is not longer than the max length
-        it 'output not exceed max length' do
+        it "output not exceed max length" do
           expect(expected_output.length).to be <= max_length
         end
 
-        context 'serialize' do
+        context "serialize" do
           before do
             expect(di_settings).to receive(:max_capture_string_length).and_return(max_length)
           end
 
-          it 'produces expected output' do
+          it "produces expected output" do
             expect(serializer.send(:serialize_string_or_symbol_for_message, input)).to eq(expected_output)
           end
         end
@@ -505,78 +505,78 @@ RSpec.describe Datadog::DI::Serializer do
     end
   end
 
-  describe '#serialize_value_for_message' do
+  describe "#serialize_value_for_message" do
     [
-      ['nil', nil, 'nil'],
-      ['integer', 42, '42'],
-      ['float', 42.1, '42.1'],
-      ['true', true, 'true'],
-      ['false', false, 'false'],
-      ['time', Time.utc(2020, 1, 2, 3, 4, 5), '2020-01-02 03:04:05 UTC'],
-      ['date', Date.new(2020, 1, 2), '2020-01-02'],
-      ['string', 'hello world', 'hello world'],
-      ['long string', 'loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong string', 'loooooooooooooooooooooooooooooooooooooooooooooooo...ooooooooooooooooooooooooooooooooooooooong string'],
-      ['symbol', :"hello world", ':hello world'],
-      ['empty array', [], '[]'],
-      ['small array', [1, '2'], '[1, 2]'],
-      ['large array', [1, '2', 3.3, 'hello'], '[1, 2, ..., hello]'],
-      ['empty hash', {}, '{}'],
-      ['small hash', {a: 1, b: 2}, '{:a => 1, :b => 2}'],
-      ['large hash', {:a => 1, :b => 2, 'c' => 3, 'd' => 4}, '{:a => 1, :b => 2, ..., d => 4}'],
-      ['array with hash element', [{a: 1}, 2], '[..., 2]'],
-      ['array with object element', [Object.new, 2], '[..., 2]'],
-      ['hash with array value', {a: [1, 2], b: 3}, '{:a => ..., :b => 3}'],
-      ['hash with object value', {a: Object.new, b: 3}, '{:a => ..., :b => 3}'],
-      ['object without fields', Object.new, '#<Object>'],
-      ['object with few fields', DISerializerSpecFields.new(a: 1, b: 2), '#<DISerializerSpecFields @a=1 @b=2>'],
-      ['object with many fields', DISerializerSpecFields.new(a: 1, b: 2, c: 'x', d: 4, e: 4, f: 5), '#<DISerializerSpecFields @a=1 @b=2 @c=x @d=4 ... @f=5>'],
-      ['object with array field', DISerializerSpecFields.new(a: 1, b: [2]), '#<DISerializerSpecFields @a=1 @b=...>'],
-      ['object with hash field', DISerializerSpecFields.new(a: 1, b: {x: 2}), '#<DISerializerSpecFields @a=1 @b=...>'],
-      ['when serialization fails', DISerializerSpecBrokenHash.new, '#<DISerializerSpecBrokenHash: serialization error>'],
+      ["nil", nil, "nil"],
+      ["integer", 42, "42"],
+      ["float", 42.1, "42.1"],
+      ["true", true, "true"],
+      ["false", false, "false"],
+      ["time", Time.utc(2020, 1, 2, 3, 4, 5), "2020-01-02 03:04:05 UTC"],
+      ["date", Date.new(2020, 1, 2), "2020-01-02"],
+      ["string", "hello world", "hello world"],
+      ["long string", "loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong string", "loooooooooooooooooooooooooooooooooooooooooooooooo...ooooooooooooooooooooooooooooooooooooooong string"],
+      ["symbol", :"hello world", ":hello world"],
+      ["empty array", [], "[]"],
+      ["small array", [1, "2"], "[1, 2]"],
+      ["large array", [1, "2", 3.3, "hello"], "[1, 2, ..., hello]"],
+      ["empty hash", {}, "{}"],
+      ["small hash", {a: 1, b: 2}, "{:a => 1, :b => 2}"],
+      ["large hash", {:a => 1, :b => 2, "c" => 3, "d" => 4}, "{:a => 1, :b => 2, ..., d => 4}"],
+      ["array with hash element", [{a: 1}, 2], "[..., 2]"],
+      ["array with object element", [Object.new, 2], "[..., 2]"],
+      ["hash with array value", {a: [1, 2], b: 3}, "{:a => ..., :b => 3}"],
+      ["hash with object value", {a: Object.new, b: 3}, "{:a => ..., :b => 3}"],
+      ["object without fields", Object.new, "#<Object>"],
+      ["object with few fields", DISerializerSpecFields.new(a: 1, b: 2), "#<DISerializerSpecFields @a=1 @b=2>"],
+      ["object with many fields", DISerializerSpecFields.new(a: 1, b: 2, c: "x", d: 4, e: 4, f: 5), "#<DISerializerSpecFields @a=1 @b=2 @c=x @d=4 ... @f=5>"],
+      ["object with array field", DISerializerSpecFields.new(a: 1, b: [2]), "#<DISerializerSpecFields @a=1 @b=...>"],
+      ["object with hash field", DISerializerSpecFields.new(a: 1, b: {x: 2}), "#<DISerializerSpecFields @a=1 @b=...>"],
+      ["when serialization fails", DISerializerSpecBrokenHash.new, "#<DISerializerSpecBrokenHash: serialization error>"],
     ].each do |desc, input, expected_output|
       context desc do
         let(:actual) do
           serializer.serialize_value_for_message(input)
         end
 
-        it 'produces expected output' do
+        it "produces expected output" do
           expect(actual).to eq(expected_output)
         end
       end
     end
   end
 
-  describe '.register' do
+  describe ".register" do
     with_di_registry_change
 
-    context 'with condition' do
+    context "with condition" do
       before do
         described_class.register(condition: lambda { |value| String === value && value =~ /serializer spec hello/ }) do |serializer, value, name:, depth:|
-          serializer.serialize_value('replacement value')
+          serializer.serialize_value("replacement value")
         end
       end
 
       let(:expected) do
-        {type: 'String', value: 'replacement value'}
+        {type: "String", value: "replacement value"}
       end
 
-      it 'invokes custom serializer' do
-        serialized = serializer.serialize_value('serializer spec hello world')
+      it "invokes custom serializer" do
+        serialized = serializer.serialize_value("serializer spec hello world")
         expect(serialized).to eq(expected)
       end
     end
 
-    context 'when condition raises an exception' do
-      let(:telemetry) { double('telemetry') }
+    context "when condition raises an exception" do
+      let(:telemetry) { double("telemetry") }
       let(:serializer) do
         described_class.new(settings, redactor, telemetry: telemetry)
       end
 
-      it 'skips the custom serializer and uses default serialization' do
+      it "skips the custom serializer and uses default serialization" do
         # Register a custom serializer with a condition that raises an exception
         # This simulates a regex match against invalid UTF-8 strings
         described_class.register(condition: lambda { |value| value =~ /test/ }) do |serializer, value, name:, depth:|
-          serializer.serialize_value('should not be called')
+          serializer.serialize_value("should not be called")
         end
 
         # Invalid UTF-8 string that will cause regex match to raise
@@ -593,19 +593,19 @@ RSpec.describe Datadog::DI::Serializer do
         serialized = serializer.serialize_value(invalid_utf8)
 
         # Should fall back to default serialization (binary escaping)
-        expect(serialized[:type]).to eq('String')
+        expect(serialized[:type]).to eq("String")
         expect(serialized[:value]).to eq("b'\\x80\\xff'")
       end
 
-      it 'continues checking other custom serializers after exception' do
+      it "continues checking other custom serializers after exception" do
         # Register a custom serializer with a condition that raises an exception
         described_class.register(condition: lambda { |value| value =~ /first/ }) do |serializer, value, name:, depth:|
-          serializer.serialize_value('first serializer')
+          serializer.serialize_value("first serializer")
         end
 
         # Register another custom serializer that should work
         described_class.register(condition: lambda { |value| String === value && value.encoding == Encoding::UTF_8 && !value.valid_encoding? }) do |serializer, value, name:, depth:|
-          {type: 'String', value: 'second serializer'}
+          {type: "String", value: "second serializer"}
         end
 
         invalid_utf8 = "\x80\xFF".force_encoding(Encoding::UTF_8)
@@ -620,19 +620,19 @@ RSpec.describe Datadog::DI::Serializer do
         serialized = serializer.serialize_value(invalid_utf8)
 
         # Should skip the first (failing) serializer and use the second one
-        expect(serialized[:type]).to eq('String')
-        expect(serialized[:value]).to eq('second serializer')
+        expect(serialized[:type]).to eq("String")
+        expect(serialized[:value]).to eq("second serializer")
       end
 
-      it 'skips the custom serializer when the condition raises a non-StandardError' do
+      it "skips the custom serializer when the condition raises a non-StandardError" do
         # NotImplementedError inherits from ScriptError, not StandardError, so the
         # previous `rescue => e` would have let it escape the whole serialization.
         condition = lambda do |value|
-          raise NotImplementedError, 'boom' if value == 'trigger non-standard'
+          raise NotImplementedError, "boom" if value == "trigger non-standard"
           false
         end
         described_class.register(condition: condition) do |serializer, value, name:, depth:|
-          serializer.serialize_value('should not be called')
+          serializer.serialize_value("should not be called")
         end
 
         expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: NotImplementedError/)
@@ -641,27 +641,27 @@ RSpec.describe Datadog::DI::Serializer do
           description: "Custom serializer condition failed"
         )
 
-        serialized = serializer.serialize_value('trigger non-standard')
+        serialized = serializer.serialize_value("trigger non-standard")
 
-        expect(serialized[:type]).to eq('String')
-        expect(serialized[:value]).to eq('trigger non-standard')
+        expect(serialized[:type]).to eq("String")
+        expect(serialized[:value]).to eq("trigger non-standard")
       end
 
-      it 'propagates a fatal exception raised by the condition' do
+      it "propagates a fatal exception raised by the condition" do
         condition = lambda do |value|
-          raise SystemExit if value == 'trigger fatal'
+          raise SystemExit if value == "trigger fatal"
           false
         end
         described_class.register(condition: condition) do |serializer, value, name:, depth:|
-          serializer.serialize_value('should not be called')
+          serializer.serialize_value("should not be called")
         end
 
-        expect { serializer.serialize_value('trigger fatal') }.to raise_error(SystemExit)
+        expect { serializer.serialize_value("trigger fatal") }.to raise_error(SystemExit)
       end
     end
   end
 
-  context 'when serialization raises an exception' do
+  context "when serialization raises an exception" do
     with_di_registry_change
 
     before do
@@ -679,8 +679,8 @@ RSpec.describe Datadog::DI::Serializer do
       cases = [
         {name: "serializes other values", input: {a: DISerializerCustomExceptionTestClass.new, b: 1},
          expected: {type: "Hash", entries: [
-           [{type: 'Symbol', value: 'a'}, {type: 'DISerializerCustomExceptionTestClass', notSerializedReason: 'Test exception'}],
-           [{type: 'Symbol', value: 'b'}, {type: 'Integer', value: '1'}],
+           [{type: "Symbol", value: "a"}, {type: "DISerializerCustomExceptionTestClass", notSerializedReason: "Test exception"}],
+           [{type: "Symbol", value: "b"}, {type: "Integer", value: "1"}],
          ]}},
       ]
 
@@ -688,7 +688,7 @@ RSpec.describe Datadog::DI::Serializer do
     end
   end
 
-  context 'when serialization raises a fatal exception' do
+  context "when serialization raises a fatal exception" do
     with_di_registry_change
 
     before do
@@ -697,53 +697,53 @@ RSpec.describe Datadog::DI::Serializer do
       end
     end
 
-    it 'propagates the fatal exception instead of returning a safe stub' do
+    it "propagates the fatal exception instead of returning a safe stub" do
       expect { serializer.serialize_value(DISerializerCustomExceptionTestClass.new) }.to raise_error(SystemExit)
     end
   end
 
-  describe 'binary data serialization' do
-    context 'with high bytes' do
+  describe "binary data serialization" do
+    context "with high bytes" do
       # Create a shorter string with high bytes to avoid truncation
       let(:binary_string) do
         "\x80\x90\xa0\xb0\xc0\xd0\xe0\xf0\xff".b
       end
 
-      it 'escapes binary data to JSON-safe format' do
+      it "escapes binary data to JSON-safe format" do
         # Serialize the binary string
         serialized = serializer.serialize_value(binary_string)
 
         # The serializer produces an escaped string in b'...' format
-        expect(serialized[:type]).to eq('String')
+        expect(serialized[:type]).to eq("String")
         expect(serialized[:value]).to eq("b'\\x80\\x90\\xa0\\xb0\\xc0\\xd0\\xe0\\xf0\\xff'")
         expect(serialized[:value].encoding).to eq(Encoding::UTF_8)
       end
     end
 
-    context 'in nested structures' do
+    context "in nested structures" do
       let(:binary_string) { "\x80\x81\x82\xFF\xFE".b }
 
-      it 'escapes binary strings in vars' do
+      it "escapes binary strings in vars" do
         # Simulate a more realistic snapshot with binary data in locals
         vars = {binary_data: binary_string, normal_string: "hello"}
         serialized = serializer.serialize_vars(vars)
 
         # Binary data is escaped
-        expect(serialized[:binary_data][:type]).to eq('String')
+        expect(serialized[:binary_data][:type]).to eq("String")
         expect(serialized[:binary_data][:value]).to eq("b'\\x80\\x81\\x82\\xff\\xfe'")
         expect(serialized[:binary_data][:value].encoding).to eq(Encoding::UTF_8)
 
         # Normal string is unchanged
-        expect(serialized[:normal_string][:type]).to eq('String')
-        expect(serialized[:normal_string][:value]).to eq('hello')
+        expect(serialized[:normal_string][:type]).to eq("String")
+        expect(serialized[:normal_string][:value]).to eq("hello")
         expect(serialized[:normal_string][:value].encoding).to eq(Encoding::UTF_8)
       end
     end
 
-    context 'in method arguments' do
+    context "in method arguments" do
       let(:binary_string) { "\x00\x01\x02\xFF".b }
 
-      it 'escapes binary strings in args' do
+      it "escapes binary strings in args" do
         # Simulate method arguments containing binary data
         args = [binary_string, "normal arg"]
         kwargs = {data: binary_string}
@@ -752,21 +752,21 @@ RSpec.describe Datadog::DI::Serializer do
         serialized = serializer.serialize_args(args, kwargs, target_self)
 
         # Binary data is escaped
-        expect(serialized[:arg1][:type]).to eq('String')
+        expect(serialized[:arg1][:type]).to eq("String")
         expect(serialized[:arg1][:value]).to eq("b'\\x00\\x01\\x02\\xff'")
         expect(serialized[:arg1][:value].encoding).to eq(Encoding::UTF_8)
 
         # Normal arg is unchanged
-        expect(serialized[:arg2][:type]).to eq('String')
-        expect(serialized[:arg2][:value]).to eq('normal arg')
+        expect(serialized[:arg2][:type]).to eq("String")
+        expect(serialized[:arg2][:value]).to eq("normal arg")
         expect(serialized[:arg2][:value].encoding).to eq(Encoding::UTF_8)
       end
     end
 
-    context 'with mixed printable and binary data' do
+    context "with mixed printable and binary data" do
       let(:binary_string) { "Hello\x00World\xFF".b }
 
-      it 'escapes non-printable bytes while preserving printable ASCII' do
+      it "escapes non-printable bytes while preserving printable ASCII" do
         serialized = serializer.serialize_value(binary_string)
 
         expect(serialized[:value]).to eq("b'Hello\\x00World\\xff'")
@@ -774,10 +774,10 @@ RSpec.describe Datadog::DI::Serializer do
       end
     end
 
-    context 'with special escape sequences' do
+    context "with special escape sequences" do
       let(:binary_string) { "Line1\nLine2\tTab\rReturn".b }
 
-      it 'uses standard escape sequences' do
+      it "uses standard escape sequences" do
         serialized = serializer.serialize_value(binary_string)
 
         expect(serialized[:value]).to eq("b'Line1\\nLine2\\tTab\\rReturn'")
@@ -785,10 +785,10 @@ RSpec.describe Datadog::DI::Serializer do
       end
     end
 
-    context 'with quotes and backslashes' do
+    context "with quotes and backslashes" do
       let(:binary_string) { "It's a\\test".b }
 
-      it 'escapes quotes and backslashes' do
+      it "escapes quotes and backslashes" do
         serialized = serializer.serialize_value(binary_string)
 
         expect(serialized[:value]).to eq("b'It\\'s a\\\\test'")
@@ -796,21 +796,21 @@ RSpec.describe Datadog::DI::Serializer do
       end
     end
 
-    context 'truncation behavior' do
+    context "truncation behavior" do
       # Truncation is applied to the ORIGINAL binary data (in bytes) before escaping.
       # This is efficient - we only escape what we need rather than escaping a large
       # binary string and then throwing away most of the work.
       #
       # The size field reports the original binary data length in bytes.
 
-      context 'when binary data is under the limit' do
+      context "when binary data is under the limit" do
         let(:binary_string) { "\xFF".b * 5 }
 
         before do
           allow(di_settings).to receive(:max_capture_string_length).and_return(10)
         end
 
-        it 'does not truncate and escapes all bytes' do
+        it "does not truncate and escapes all bytes" do
           serialized = serializer.serialize_value(binary_string)
 
           # 5 bytes < 10 limit, no truncation
@@ -821,14 +821,14 @@ RSpec.describe Datadog::DI::Serializer do
         end
       end
 
-      context 'when binary data is at the exact limit' do
+      context "when binary data is at the exact limit" do
         let(:binary_string) { "\x00".b * 10 }
 
         before do
           allow(di_settings).to receive(:max_capture_string_length).and_return(10)
         end
 
-        it 'does not truncate and escapes all bytes' do
+        it "does not truncate and escapes all bytes" do
           serialized = serializer.serialize_value(binary_string)
 
           # 10 bytes == 10 limit, no truncation
@@ -839,14 +839,14 @@ RSpec.describe Datadog::DI::Serializer do
         end
       end
 
-      context 'when binary data exceeds the limit' do
+      context "when binary data exceeds the limit" do
         let(:binary_string) { "\xFF".b * 20 }
 
         before do
           allow(di_settings).to receive(:max_capture_string_length).and_return(10)
         end
 
-        it 'truncates original binary to limit then escapes' do
+        it "truncates original binary to limit then escapes" do
           serialized = serializer.serialize_value(binary_string)
 
           # 20 bytes > 10 limit, truncate to first 10 bytes
@@ -857,14 +857,14 @@ RSpec.describe Datadog::DI::Serializer do
         end
       end
 
-      context 'with very large binary data' do
+      context "with very large binary data" do
         let(:binary_string) { "\x80".b * 1000 }
 
         before do
           allow(di_settings).to receive(:max_capture_string_length).and_return(10)
         end
 
-        it 'efficiently truncates before escaping' do
+        it "efficiently truncates before escaping" do
           serialized = serializer.serialize_value(binary_string)
 
           # 1000 bytes > 10 limit, truncate to first 10 bytes then escape
@@ -875,7 +875,7 @@ RSpec.describe Datadog::DI::Serializer do
         end
       end
 
-      context 'with mixed printable and non-printable bytes' do
+      context "with mixed printable and non-printable bytes" do
         let(:binary_string) { "Hello\x00\x01\x02World\xFF".b }
 
         before do
@@ -883,7 +883,7 @@ RSpec.describe Datadog::DI::Serializer do
           allow(di_settings).to receive(:max_capture_string_length).and_return(8)
         end
 
-        it 'truncates to byte limit before escaping' do
+        it "truncates to byte limit before escaping" do
           serialized = serializer.serialize_value(binary_string)
 
           # 14 bytes > 8 limit, truncate to first 8 bytes: "Hello\x00\x01\x02"
@@ -894,8 +894,8 @@ RSpec.describe Datadog::DI::Serializer do
         end
       end
 
-      context 'size field reporting' do
-        it 'reports original binary byte count, not escaped string length' do
+      context "size field reporting" do
+        it "reports original binary byte count, not escaped string length" do
           binary_string = "\xFF".b * 50
           allow(di_settings).to receive(:max_capture_string_length).and_return(10)
 
@@ -910,7 +910,7 @@ RSpec.describe Datadog::DI::Serializer do
       end
     end
 
-    context 'with printable ASCII in binary string' do
+    context "with printable ASCII in binary string" do
       # Printable ASCII in binary strings is preserved during escaping
       let(:binary_string) { "Hello World! This is a test.".b }
 
@@ -919,7 +919,7 @@ RSpec.describe Datadog::DI::Serializer do
         allow(di_settings).to receive(:max_capture_string_length).and_return(20)
       end
 
-      it 'truncates to byte limit before escaping' do
+      it "truncates to byte limit before escaping" do
         serialized = serializer.serialize_value(binary_string)
 
         # Original: 28 bytes
@@ -931,9 +931,9 @@ RSpec.describe Datadog::DI::Serializer do
       end
     end
 
-    context 'regular UTF-8 string truncation' do
+    context "regular UTF-8 string truncation" do
       # Verify that regular (non-binary) strings use character-based truncation
-      it 'truncates based on character count for UTF-8 strings' do
+      it "truncates based on character count for UTF-8 strings" do
         # 15 character string (no escaping needed)
         utf8_string = "Hello, World!!!"
         allow(di_settings).to receive(:max_capture_string_length).and_return(10)
@@ -946,7 +946,7 @@ RSpec.describe Datadog::DI::Serializer do
         expect(serialized[:size]).to eq(15)
       end
 
-      it 'handles multi-byte UTF-8 characters correctly' do
+      it "handles multi-byte UTF-8 characters correctly" do
         # String with emoji: "Hello 👋 World" = 13 characters (emoji is 1 char)
         utf8_string = "Hello 👋 World"
         allow(di_settings).to receive(:max_capture_string_length).and_return(8)
@@ -959,7 +959,7 @@ RSpec.describe Datadog::DI::Serializer do
         expect(serialized[:size]).to eq(13)
       end
 
-      it 'does not escape valid UTF-8 strings' do
+      it "does not escape valid UTF-8 strings" do
         utf8_string = "Hello"
         allow(di_settings).to receive(:max_capture_string_length).and_return(100)
 
@@ -971,8 +971,8 @@ RSpec.describe Datadog::DI::Serializer do
       end
     end
 
-    context 'with invalid UTF-8 strings' do
-      it 'escapes strings marked as UTF-8 but with invalid byte sequences' do
+    context "with invalid UTF-8 strings" do
+      it "escapes strings marked as UTF-8 but with invalid byte sequences" do
         # String marked as UTF-8 but containing invalid bytes
         # This commonly happens when binary data is incorrectly tagged
         invalid_utf8 = "\x80\xFF".force_encoding(Encoding::UTF_8)
@@ -981,7 +981,7 @@ RSpec.describe Datadog::DI::Serializer do
         result = serializer.serialize_value(invalid_utf8)
 
         # Should escape like binary data
-        expect(result[:type]).to eq('String')
+        expect(result[:type]).to eq("String")
         expect(result[:value]).to eq("b'\\x80\\xff'")
         expect(result[:value].encoding).to eq(Encoding::UTF_8)
 
@@ -991,21 +991,21 @@ RSpec.describe Datadog::DI::Serializer do
         }.not_to raise_error
       end
 
-      it 'escapes strings with mixed valid and invalid UTF-8 sequences' do
+      it "escapes strings with mixed valid and invalid UTF-8 sequences" do
         # Valid UTF-8 text followed by invalid bytes
         invalid_utf8 = "Hello\x80World\xFF".force_encoding(Encoding::UTF_8)
         expect(invalid_utf8.valid_encoding?).to be false
 
         result = serializer.serialize_value(invalid_utf8)
 
-        expect(result[:type]).to eq('String')
+        expect(result[:type]).to eq("String")
         expect(result[:value]).to eq("b'Hello\\x80World\\xff'")
         expect(result[:value].encoding).to eq(Encoding::UTF_8)
       end
     end
 
-    context 'with non-UTF8, non-Binary encodings' do
-      it 'handles Latin1 (ISO-8859-1) strings with high-bit characters' do
+    context "with non-UTF8, non-Binary encodings" do
+      it "handles Latin1 (ISO-8859-1) strings with high-bit characters" do
         # Latin1 "é" (0xE9) - valid Latin1, not valid UTF-8 byte sequence
         latin1 = "\xE9".force_encoding(Encoding::ISO_8859_1)
         expect(latin1.encoding).to eq(Encoding::ISO_8859_1)
@@ -1015,7 +1015,7 @@ RSpec.describe Datadog::DI::Serializer do
 
         # Should NOT escape (it's a valid encoding, not binary)
         # JSON.dump will transcode Latin1 to UTF-8 automatically
-        expect(result[:type]).to eq('String')
+        expect(result[:type]).to eq("String")
         expect(result[:value]).not_to start_with("b'") # Not escaped
         expect(result[:value].encoding).to eq(Encoding::ISO_8859_1) # Preserved
 
@@ -1025,7 +1025,7 @@ RSpec.describe Datadog::DI::Serializer do
         }.not_to raise_error
       end
 
-      it 'handles Latin1 strings with all high-bit bytes' do
+      it "handles Latin1 strings with all high-bit bytes" do
         # All Latin1 high-bit characters (128-255)
         latin1 = (128..255).map { |i| i.chr(Encoding::ISO_8859_1) }.join
         expect(latin1.encoding).to eq(Encoding::ISO_8859_1)
@@ -1034,7 +1034,7 @@ RSpec.describe Datadog::DI::Serializer do
         result = serializer.serialize_value(latin1)
 
         # Should NOT escape - it's a valid encoding
-        expect(result[:type]).to eq('String')
+        expect(result[:type]).to eq("String")
         expect(result[:value]).not_to start_with("b'")
         expect(result[:value].encoding).to eq(Encoding::ISO_8859_1)
 
@@ -1043,11 +1043,11 @@ RSpec.describe Datadog::DI::Serializer do
           json = JSON.dump(result)
           parsed = JSON.parse(json)
           # JSON transcodes to UTF-8
-          expect(parsed['value'].encoding).to eq(Encoding::UTF_8)
+          expect(parsed["value"].encoding).to eq(Encoding::UTF_8)
         }.not_to raise_error
       end
 
-      it 'handles Windows-1252 encoding' do
+      it "handles Windows-1252 encoding" do
         # Windows-1252 specific character: € (0x80)
         windows1252 = "\x80".force_encoding(Encoding::Windows_1252)
         expect(windows1252.valid_encoding?).to be true
@@ -1055,7 +1055,7 @@ RSpec.describe Datadog::DI::Serializer do
         result = serializer.serialize_value(windows1252)
 
         # Should NOT escape - it's a valid encoding
-        expect(result[:type]).to eq('String')
+        expect(result[:type]).to eq("String")
         expect(result[:value]).not_to start_with("b'")
         expect(result[:value].encoding).to eq(Encoding::Windows_1252)
 
@@ -1065,7 +1065,7 @@ RSpec.describe Datadog::DI::Serializer do
         }.not_to raise_error
       end
 
-      it 'truncates Latin1 strings based on character length' do
+      it "truncates Latin1 strings based on character length" do
         # 20 character Latin1 string with high bits
         latin1 = "\xE9" * 20 # "é" repeated 20 times
         latin1 = latin1.force_encoding(Encoding::ISO_8859_1)
@@ -1081,23 +1081,23 @@ RSpec.describe Datadog::DI::Serializer do
       end
     end
 
-    context 'with empty binary string' do
+    context "with empty binary string" do
       let(:binary_string) { "".b }
 
-      it 'produces empty escaped string' do
+      it "produces empty escaped string" do
         serialized = serializer.serialize_value(binary_string)
 
-        expect(serialized[:type]).to eq('String')
+        expect(serialized[:type]).to eq("String")
         expect(serialized[:value]).to eq("b''")
         expect(serialized[:value].encoding).to eq(Encoding::UTF_8)
         expect(serialized).not_to have_key(:truncated)
       end
     end
 
-    context 'with very large binary string' do
+    context "with very large binary string" do
       let(:binary_string) { ("\xFF" * 100_000).b }
 
-      it 'truncates to max_capture_string_length' do
+      it "truncates to max_capture_string_length" do
         # Default max is 100 in the test helper
         serialized = serializer.serialize_value(binary_string)
 
@@ -1112,7 +1112,7 @@ RSpec.describe Datadog::DI::Serializer do
         expect(serialized[:size]).to eq(100_000)
       end
 
-      it 'is JSON-serializable despite large size' do
+      it "is JSON-serializable despite large size" do
         serialized = serializer.serialize_value(binary_string)
 
         expect {
@@ -1122,7 +1122,7 @@ RSpec.describe Datadog::DI::Serializer do
     end
   end
 
-  context 'when custom serializer raises SystemStackError' do
+  context "when custom serializer raises SystemStackError" do
     # SystemStackError typically occurs due to infinite recursion.
     # This test emulates a custom serializer that creates deeply nested structures
     # or has circular references, causing stack overflow during serialization.
@@ -1146,7 +1146,7 @@ RSpec.describe Datadog::DI::Serializer do
       end
     end
 
-    let(:telemetry) { double('telemetry') }
+    let(:telemetry) { double("telemetry") }
     let(:serializer) do
       described_class.new(settings, redactor, telemetry: telemetry)
     end
@@ -1154,18 +1154,18 @@ RSpec.describe Datadog::DI::Serializer do
     describe "#serialize_value" do
       let(:value) { DISerializerStackOverflowTestClass.new }
 
-      it 'returns safe structure with notSerializedReason when SystemStackError is raised' do
+      it "returns safe structure with notSerializedReason when SystemStackError is raised" do
         allow(telemetry).to receive(:report)
 
         serialized = serializer.serialize_value(value)
 
-        expect(serialized[:type]).to eq('DISerializerStackOverflowTestClass')
+        expect(serialized[:type]).to eq("DISerializerStackOverflowTestClass")
         expect(serialized[:notSerializedReason]).to match(/stack level too deep/)
         expect(serialized).not_to have_key(:value)
         expect(serialized).not_to have_key(:fields)
       end
 
-      it 'returns JSON-serializable output despite SystemStackError' do
+      it "returns JSON-serializable output despite SystemStackError" do
         allow(telemetry).to receive(:report)
 
         serialized = serializer.serialize_value(value)
@@ -1175,12 +1175,12 @@ RSpec.describe Datadog::DI::Serializer do
         expect {
           json = JSON.dump(serialized)
           expect(json).to be_a(String)
-          expect(json).to include('notSerializedReason')
-          expect(json).to include('stack level too deep')
+          expect(json).to include("notSerializedReason")
+          expect(json).to include("stack level too deep")
         }.not_to raise_error
       end
 
-      it 'reports SystemStackError to telemetry' do
+      it "reports SystemStackError to telemetry" do
         expect(telemetry).to receive(:report).with(
           an_instance_of(SystemStackError),
           description: "Error serializing",
@@ -1190,8 +1190,8 @@ RSpec.describe Datadog::DI::Serializer do
       end
     end
 
-    context 'in a snapshot with multiple values' do
-      it 'isolates SystemStackError to one variable while successfully serializing others' do
+    context "in a snapshot with multiple values" do
+      it "isolates SystemStackError to one variable while successfully serializing others" do
         # A snapshot might contain multiple captured variables, some of which
         # serialize successfully and one that raises SystemStackError.
         # The exception is caught per-variable, so other values still serialize.
@@ -1208,14 +1208,14 @@ RSpec.describe Datadog::DI::Serializer do
 
         serialized = serializer.serialize_vars(vars)
 
-        expect(serialized[:normal_value][:type]).to eq('String')
-        expect(serialized[:normal_value][:value]).to eq('hello')
+        expect(serialized[:normal_value][:type]).to eq("String")
+        expect(serialized[:normal_value][:value]).to eq("hello")
 
-        expect(serialized[:problematic_value][:type]).to eq('DISerializerStackOverflowTestClass')
+        expect(serialized[:problematic_value][:type]).to eq("DISerializerStackOverflowTestClass")
         expect(serialized[:problematic_value][:notSerializedReason]).to match(/stack level too deep/)
 
-        expect(serialized[:another_value][:type]).to eq('Integer')
-        expect(serialized[:another_value][:value]).to eq('42')
+        expect(serialized[:another_value][:type]).to eq("Integer")
+        expect(serialized[:another_value][:value]).to eq("42")
 
         expect {
           JSON.dump(serialized)
@@ -1224,7 +1224,7 @@ RSpec.describe Datadog::DI::Serializer do
     end
   end
 
-  context 'when custom serializer raises NoMemoryError' do
+  context "when custom serializer raises NoMemoryError" do
     # NoMemoryError occurs when Ruby cannot allocate more memory.
     # This test emulates a custom serializer that attempts to create very large
     # structures (e.g., huge strings or arrays) that exceed available memory.
@@ -1253,7 +1253,7 @@ RSpec.describe Datadog::DI::Serializer do
       end
     end
 
-    let(:telemetry) { double('telemetry') }
+    let(:telemetry) { double("telemetry") }
     let(:serializer) do
       described_class.new(settings, redactor, telemetry: telemetry)
     end
@@ -1261,18 +1261,18 @@ RSpec.describe Datadog::DI::Serializer do
     describe "#serialize_value" do
       let(:value) { DISerializerOutOfMemoryTestClass.new }
 
-      it 'returns safe structure with notSerializedReason when NoMemoryError is raised' do
+      it "returns safe structure with notSerializedReason when NoMemoryError is raised" do
         allow(telemetry).to receive(:report)
 
         serialized = serializer.serialize_value(value)
 
-        expect(serialized[:type]).to eq('DISerializerOutOfMemoryTestClass')
+        expect(serialized[:type]).to eq("DISerializerOutOfMemoryTestClass")
         expect(serialized[:notSerializedReason]).to match(/failed to allocate memory/)
         expect(serialized).not_to have_key(:value)
         expect(serialized).not_to have_key(:fields)
       end
 
-      it 'returns JSON-serializable output despite NoMemoryError' do
+      it "returns JSON-serializable output despite NoMemoryError" do
         allow(telemetry).to receive(:report)
 
         serialized = serializer.serialize_value(value)
@@ -1282,12 +1282,12 @@ RSpec.describe Datadog::DI::Serializer do
         expect {
           json = JSON.dump(serialized)
           expect(json).to be_a(String)
-          expect(json).to include('notSerializedReason')
-          expect(json).to include('failed to allocate memory')
+          expect(json).to include("notSerializedReason")
+          expect(json).to include("failed to allocate memory")
         }.not_to raise_error
       end
 
-      it 'reports NoMemoryError to telemetry' do
+      it "reports NoMemoryError to telemetry" do
         expect(telemetry).to receive(:report).with(
           an_instance_of(NoMemoryError),
           description: "Error serializing",
@@ -1297,8 +1297,8 @@ RSpec.describe Datadog::DI::Serializer do
       end
     end
 
-    context 'in a snapshot with multiple values' do
-      it 'isolates NoMemoryError to one variable while successfully serializing others' do
+    context "in a snapshot with multiple values" do
+      it "isolates NoMemoryError to one variable while successfully serializing others" do
         # Even if one value causes NoMemoryError, others should still serialize.
         # The exception is caught per-variable, so other values still serialize.
         vars = {
@@ -1314,14 +1314,14 @@ RSpec.describe Datadog::DI::Serializer do
 
         serialized = serializer.serialize_vars(vars)
 
-        expect(serialized[:small_value][:type]).to eq('String')
-        expect(serialized[:small_value][:value]).to eq('tiny')
+        expect(serialized[:small_value][:type]).to eq("String")
+        expect(serialized[:small_value][:value]).to eq("tiny")
 
-        expect(serialized[:huge_value][:type]).to eq('DISerializerOutOfMemoryTestClass')
+        expect(serialized[:huge_value][:type]).to eq("DISerializerOutOfMemoryTestClass")
         expect(serialized[:huge_value][:notSerializedReason]).to match(/failed to allocate memory/)
 
-        expect(serialized[:number][:type]).to eq('Integer')
-        expect(serialized[:number][:value]).to eq('123')
+        expect(serialized[:number][:type]).to eq("Integer")
+        expect(serialized[:number][:value]).to eq("123")
 
         expect {
           JSON.dump(serialized)

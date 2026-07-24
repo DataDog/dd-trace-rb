@@ -10,7 +10,7 @@ module Datadog
         # - https://www.rfc-editor.org/rfc/rfc7231#section-5.3.1
         # - https://www.rfc-editor.org/rfc/rfc7231#section-5.3.2
         class MediaType
-          WILDCARD = '*'
+          WILDCARD = "*"
 
           # See: https://www.rfc-editor.org/rfc/rfc7230#section-3.2.6
           TOKEN_RE = /[-#$%&'*+.^_`|~A-Za-z0-9]+/.freeze
@@ -47,14 +47,14 @@ module Datadog
             match = MEDIA_TYPE_RE.match(media)
             return if match.nil?
 
-            type = match['type'] || WILDCARD
+            type = match["type"] || WILDCARD
             type.downcase!
 
-            subtype = match['subtype'] || WILDCARD
+            subtype = match["subtype"] || WILDCARD
             subtype.downcase!
 
             parameters = {}
-            params = match['parameters']
+            params = match["parameters"]
 
             unless params.nil? || params.empty?
               params.scan(PARAMETER_RE) do |name, unquoted_value, quoted_value|

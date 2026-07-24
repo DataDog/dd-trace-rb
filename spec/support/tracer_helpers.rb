@@ -1,8 +1,8 @@
-require 'datadog/tracing/tracer'
-require 'datadog/tracing/correlation'
-require 'datadog/tracing/trace_operation'
-require 'support/faux_writer'
-require 'datadog/tracing/utils'
+require "datadog/tracing/tracer"
+require "datadog/tracing/correlation"
+require "datadog/tracing/trace_operation"
+require "support/faux_writer"
+require "datadog/tracing/utils"
 
 module TracerHelpers
   # Return a test tracer instance with a faux writer.
@@ -38,14 +38,14 @@ module TracerHelpers
   end
 
   # Return some test traces
-  def get_test_traces(n, service: 'test-app', resource: '/traces', type: 'web')
+  def get_test_traces(n, service: "test-app", resource: "/traces", type: "web")
     traces = []
 
     n.times do
       trace_op = Datadog::Tracing::TraceOperation.new
 
-      trace_op.measure('client.testing', service: service, resource: resource, type: type) do
-        trace_op.measure('client.testing', service: service, resource: resource, type: type) do
+      trace_op.measure("client.testing", service: service, resource: resource, type: type) do
+        trace_op.measure("client.testing", service: service, resource: resource, type: type) do
         end
       end
 
@@ -57,8 +57,8 @@ module TracerHelpers
 
   # Return some test services
   def get_test_services
-    {'rest-api' => {'app' => 'rails', 'app_type' => 'web'},
-     'master' => {'app' => 'postgres', 'app_type' => 'db'}}
+    {"rest-api" => {"app" => "rails", "app_type" => "web"},
+     "master" => {"app" => "postgres", "app_type" => "db"}}
   end
 
   def writer
@@ -134,6 +134,6 @@ module TracerHelpers
   # Wraps call to Tracing::Utils::TraceId.to_high_order and converts to hex
   # for better test readability
   def high_order_hex_trace_id(trace_id)
-    format('%016x', Datadog::Tracing::Utils::TraceId.to_high_order(trace_id))
+    format("%016x", Datadog::Tracing::Utils::TraceId.to_high_order(trace_id))
   end
 end

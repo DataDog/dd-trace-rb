@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    datadog (2.38.0.dev)
+    datadog (2.40.0.dev)
       cgi
-      datadog-ruby_core_source (~> 3.5, >= 3.5.2)
+      datadog-ruby_core_source (~> 3.5, >= 3.5.3)
       libdatadog (~> 36.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
@@ -101,7 +101,7 @@ GEM
       bigdecimal
       rexml
     crass (1.0.6)
-    datadog-ruby_core_source (3.5.2)
+    datadog-ruby_core_source (3.5.3)
     date (3.5.1)
     debug (1.11.1)
       irb (~> 1.10)
@@ -110,7 +110,7 @@ GEM
     docile (1.4.1)
     dogstatsd-ruby (5.7.1)
     drb (2.2.1)
-    erb (6.0.4)
+    erb (6.0.5)
     erubi (1.13.1)
     extlz4 (0.3.4)
     ffi (1.17.4-aarch64-linux-gnu)
@@ -345,4 +345,4 @@ DEPENDENCIES
   webrick (>= 1.7.0)
 
 BUNDLED WITH
-   2.7.2
+  4.0.16

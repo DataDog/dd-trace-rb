@@ -20,7 +20,7 @@ jobs:
     name: build
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -81,7 +81,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -102,6 +102,30 @@ jobs:
         run: bundle exec rake steep:check
       - name: Record stats
         run: bundle exec rake steep:stats[md] >> "$GITHUB_STEP_SUMMARY"
+
+  bundler-audit:
+    name: bundler-audit
+    # TODO: re-enable once the pre-existing high/critical CVE backlog across
+    # the 368 eligible lockfiles is triaged (either fixed or reviewed into
+    # .bundler-audit.yml). Until then this job would fail on every PR.
+    if: false
+    runs-on: ubuntu-24.04
+    needs: ['build']
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Restore bundle cache
+        uses: ./.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.build.outputs.lockfile }}
+          cache-key: ${{ needs.build.outputs.cache-key }}
+      - run: bundle exec rake dependency:audit
 
   semgrep:
     name: semgrep/ci
@@ -175,6 +199,9 @@ jobs:
       - 'zizmor'
       - 'actionlint'
       - 'yaml-lint'
+      # TODO: add 'bundler-audit' back to this list once the job is no
+      # longer disabled (see the `if: false` above) — a skipped dependency
+      # would otherwise make this aggregate job skip too.
     runs-on: ubuntu-24.04
     steps:
       - run: echo "Done"

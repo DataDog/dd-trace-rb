@@ -1,18 +1,18 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/statsd'
-require 'datadog'
+require "datadog/statsd"
+require "datadog"
 
-require 'benchmark/ips'
+require "benchmark/ips"
 unless PlatformHelpers.jruby?
-  require 'benchmark/memory'
-  require 'memory_profiler'
+  require "benchmark/memory"
+  require "memory_profiler"
 end
 
-require 'fileutils'
-require 'json'
+require "fileutils"
+require "json"
 
-RSpec.shared_context 'benchmark' do
+RSpec.shared_context "benchmark" do
   # When applicable, runs the test subject for different input sizes.
   # Similar to how N in Big O notation works.
   #
@@ -68,7 +68,7 @@ RSpec.shared_context 'benchmark' do
 
   # Create result directory for current benchmark
   def result_directory!(subtype = nil)
-    path = File.join('tmp', 'benchmark', @test)
+    path = File.join("tmp", "benchmark", @test)
     path = File.join(path, subtype.to_s) if subtype
 
     FileUtils.mkdir_p(path)
@@ -77,7 +77,7 @@ RSpec.shared_context 'benchmark' do
   end
 
   # Measure execution time
-  it 'timing' do
+  it "timing" do
     report = Benchmark.ips do |x|
       x.config(time: timing_runtime, warmup: timing_runtime / 10.0)
 
@@ -98,7 +98,7 @@ RSpec.shared_context 'benchmark' do
   end
 
   # Measure memory usage (object creation and memory size)
-  it 'memory' do
+  it "memory" do
     warm_up
 
     skip("'benchmark/memory' not supported") if PlatformHelpers.jruby?
@@ -125,7 +125,7 @@ RSpec.shared_context 'benchmark' do
   end
 
   # Measure GC cycles triggered during run
-  it 'gc' do
+  it "gc" do
     skip if PlatformHelpers.jruby?
 
     warm_up
@@ -151,13 +151,13 @@ RSpec.shared_context 'benchmark' do
 
   # Reports that generate non-aggregated data.
   # Useful for debugging.
-  context 'detailed' do
-    before { skip('Detailed report are too verbose for CI') if ENV.key?('CI') }
+  context "detailed" do
+    before { skip("Detailed report are too verbose for CI") if ENV.key?("CI") }
 
     let(:ignore_files) { defined?(super) ? super() : nil }
 
     # Memory report with reference to each allocation site
-    it 'memory report' do
+    it "memory report" do
       skip("'benchmark/memory' not supported") if PlatformHelpers.jruby?
 
       warm_up
@@ -193,7 +193,7 @@ RSpec.shared_context 'benchmark' do
     end
 
     # CPU profiling report
-    context 'RubyProf report' do
+    context "RubyProf report" do
       before do
         if PlatformHelpers.jruby?
           skip("'ruby-prof' not supported")
@@ -201,7 +201,7 @@ RSpec.shared_context 'benchmark' do
       end
 
       before do
-        require 'ruby-prof'
+        require "ruby-prof"
         RubyProf.measure_mode = RubyProf::PROCESS_TIME
       end
 
@@ -226,16 +226,16 @@ RSpec.shared_context 'benchmark' do
         printer.print(path: directory)
 
         warn("Results written in Callgrind format to #{directory}")
-        warn('You can use KCachegrind or QCachegrind to read these results.')
-        warn('On MacOS:')
-        warn('$ brew install qcachegrind')
+        warn("You can use KCachegrind or QCachegrind to read these results.")
+        warn("On MacOS:")
+        warn("$ brew install qcachegrind")
         warn("$ qcachegrind '#{Dir["#{directory}/*"].min}'")
       end
     end
   end
 end
 
-require 'socket'
+require "socket"
 
 # An "agent" that always responds with a proper OK response, while
 # keeping minimum overhead.
@@ -245,8 +245,8 @@ require 'socket'
 #
 # It finds a locally available port to listen on, and updates the value of
 # {Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT} accordingly.
-RSpec.shared_context 'minimal agent' do
-  let(:agent_server) { TCPServer.new '127.0.0.1', agent_port }
+RSpec.shared_context "minimal agent" do
+  let(:agent_server) { TCPServer.new "127.0.0.1", agent_port }
   let(:agent_port) { ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT].to_i }
 
   def server_runner
@@ -291,7 +291,7 @@ RSpec.shared_context 'minimal agent' do
   after do
     if Process.respond_to?(:fork)
       begin
-        Process.kill('TERM', @agent_runner)
+        Process.kill("TERM", @agent_runner)
       rescue
         nil
       end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../monitor'
-require_relative 'gateway/watcher'
+require_relative "../../monitor"
+require_relative "gateway/watcher"
 
 module Datadog
   module AppSec

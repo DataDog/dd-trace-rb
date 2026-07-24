@@ -76,7 +76,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:pprof_file_name) { "profile.pprof" }
   let(:code_provenance_data) { "the_code_provenance_data" }
   let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
-  let(:process_tags) { '' }
+  let(:process_tags) { "" }
   let(:info_json) do
     JSON.generate(
       {
@@ -319,7 +319,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   context "integration testing" do
     shared_context "HTTP server" do
       http_server do |http_server|
-        http_server.mount_proc('/', &server_proc)
+        http_server.mount_proc("/", &server_proc)
       end
       let(:hostname) { "127.0.0.1" }
       let(:server_proc) do
@@ -402,7 +402,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     end
 
     context "when process tags are enabled" do
-      let(:process_tags) { 'entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:bin,entrypoint.type:script' }
+      let(:process_tags) { "entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:bin,entrypoint.type:script" }
 
       it "includes the process tags in the payload" do
         success = http_transport.export(flush)
@@ -440,7 +440,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
     context "via unix domain socket" do
       define_http_server_uds do |http_server|
-        http_server.mount_proc('/', &server_proc)
+        http_server.mount_proc("/", &server_proc)
       end
       let(:adapter) { Datadog::Core::Transport::Ext::UnixSocket::ADAPTER }
       let(:uds_path) { uds_socket_path }

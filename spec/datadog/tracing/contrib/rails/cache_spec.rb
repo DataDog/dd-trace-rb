@@ -1,16 +1,16 @@
-require 'spec_helper'
-require 'datadog/tracing/contrib/analytics_examples'
+require "spec_helper"
+require "datadog/tracing/contrib/analytics_examples"
 
-require 'securerandom'
-require 'datadog/tracing/contrib/rails/ext'
+require "securerandom"
+require "datadog/tracing/contrib/rails/ext"
 
-require 'datadog/tracing/contrib/rails/rails_helper'
+require "datadog/tracing/contrib/rails/rails_helper"
 
-RSpec.describe 'Rails cache', execute_in_fork: Rails.version.to_i >= 8 do
-  include_context 'Rails test application'
+RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
+  include_context "Rails test application"
 
   before do
-    Datadog.configuration.tracing[:active_support][:cache_service] = 'rails-cache'
+    Datadog.configuration.tracing[:active_support][:cache_service] = "rails-cache"
   end
 
   after do
@@ -21,20 +21,20 @@ RSpec.describe 'Rails cache', execute_in_fork: Rails.version.to_i >= 8 do
 
   let(:cache) { Rails.cache }
 
-  let(:key) { 'custom-key' }
+  let(:key) { "custom-key" }
   let(:multi_keys) { %w[custom-key-1 custom-key-2 custom-key-3] }
 
-  shared_examples 'an instrumented cache method' do
-    context 'disabled at integration level' do
+  shared_examples "an instrumented cache method" do
+    context "disabled at integration level" do
       before { Datadog.configuration.tracing[:active_support].enabled = false }
       after { Datadog.configuration.tracing[:active_support].reset! }
 
-      it 'does not instrument' do
+      it "does not instrument" do
         expect { subject }.to_not(change { fetch_spans })
       end
     end
 
-    context 'disabled at tracer level' do
+    context "disabled at tracer level" do
       before do
         Datadog.configure do |c|
           c.tracing.enabled = false
@@ -43,7 +43,7 @@ RSpec.describe 'Rails cache', execute_in_fork: Rails.version.to_i >= 8 do
 
       after { Datadog.configuration.tracing.reset! }
 
-      it 'does not instrument' do
+      it "does not instrument" do
         expect { subject }.to_not(change { fetch_spans })
       end
     end
@@ -55,70 +55,70 @@ RSpec.describe 'Rails cache', execute_in_fork: Rails.version.to_i >= 8 do
         expect(cache).to_not be_a(Rails.cache.class) # Sanity check that they are different
       end
 
-      it 'returns the matching backend type' do
+      it "returns the matching backend type" do
         subject
-        expect(spans[0].get_tag('rails.cache.backend')).to eq('memory_store')
+        expect(spans[0].get_tag("rails.cache.backend")).to eq("memory_store")
       end
     end
 
-    context 'with a cache not in the ActiveSupport::Cache:: namespace' do
-      let(:cache_class) { stub_const('My::CustomCache', Class.new(ActiveSupport::Cache::MemoryStore)) }
+    context "with a cache not in the ActiveSupport::Cache:: namespace" do
+      let(:cache_class) { stub_const("My::CustomCache", Class.new(ActiveSupport::Cache::MemoryStore)) }
       let(:cache) { cache_class.new }
 
-      it 'returns the matching backend type' do
+      it "returns the matching backend type" do
         subject
-        expect(spans[0].get_tag('rails.cache.backend')).to eq('custom_cache')
+        expect(spans[0].get_tag("rails.cache.backend")).to eq("custom_cache")
       end
     end
 
-    context 'with an unnamespaced cache class' do
-      let(:cache_class) { stub_const('CustomCache', Class.new(ActiveSupport::Cache::MemoryStore)) }
+    context "with an unnamespaced cache class" do
+      let(:cache_class) { stub_const("CustomCache", Class.new(ActiveSupport::Cache::MemoryStore)) }
       let(:cache) { cache_class.new }
 
-      it 'returns the matching backend type' do
+      it "returns the matching backend type" do
         subject
-        expect(spans[0].get_tag('rails.cache.backend')).to eq('custom_cache')
+        expect(spans[0].get_tag("rails.cache.backend")).to eq("custom_cache")
       end
     end
 
-    it_behaves_like 'measured span for integration', false do
+    it_behaves_like "measured span for integration", false do
       before { subject }
       let(:span) { spans[0] }
     end
   end
 
-  describe '#read' do
+  describe "#read" do
     subject(:read) { cache.read(key) }
 
     before { cache.write(key, 50) }
 
-    it_behaves_like 'an instrumented cache method'
+    it_behaves_like "an instrumented cache method"
 
     it do
       expect(read).to eq(50)
 
       expect(spans).to have(2).items
       get, set = spans
-      expect(get.name).to eq('rails.cache')
-      expect(get.type).to eq('cache')
-      expect(get.resource).to eq('GET')
-      expect(get.service).to eq('rails-cache')
-      expect(get.get_tag('rails.cache.backend')).to eq('file_store')
-      expect(get.get_tag('rails.cache.key')).to eq(key)
-      expect(set.name).to eq('rails.cache')
+      expect(get.name).to eq("rails.cache")
+      expect(get.type).to eq("cache")
+      expect(get.resource).to eq("GET")
+      expect(get.service).to eq("rails-cache")
+      expect(get.get_tag("rails.cache.backend")).to eq("file_store")
+      expect(get.get_tag("rails.cache.key")).to eq(key)
+      expect(set.name).to eq("rails.cache")
 
       expect(get.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-        .to eq('active_support')
+        .to eq("active_support")
       expect(get.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-        .to eq('cache')
+        .to eq("cache")
 
       expect(set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-        .to eq('active_support')
+        .to eq("active_support")
       expect(set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-        .to eq('cache')
+        .to eq("cache")
     end
 
-    context 'when cache_key.enabled is false' do
+    context "when cache_key.enabled is false" do
       before do
         Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
       end
@@ -128,44 +128,44 @@ RSpec.describe 'Rails cache', execute_in_fork: Rails.version.to_i >= 8 do
 
         expect(spans).to have(2).items
         get, = spans
-        expect(get.name).to eq('rails.cache')
-        expect(get.get_tag('rails.cache.key')).to be_nil
+        expect(get.name).to eq("rails.cache")
+        expect(get.get_tag("rails.cache.key")).to be_nil
       end
     end
   end
 
-  describe '#read_multi' do
+  describe "#read_multi" do
     subject(:read_multi) { cache.read_multi(*multi_keys) }
 
     before { multi_keys.each { |key| cache.write(key, 50 + key[-1].to_i) } }
 
-    it_behaves_like 'an instrumented cache method'
+    it_behaves_like "an instrumented cache method"
 
     it do
       expect(read_multi).to eq(multi_keys.zip([51, 52, 53]).to_h)
       expect(spans).to have(1 + multi_keys.size).items
       get = spans[0]
-      expect(get.name).to eq('rails.cache')
-      expect(get.type).to eq('cache')
-      expect(get.resource).to eq('MGET')
-      expect(get.service).to eq('rails-cache')
-      expect(get.get_tag('rails.cache.backend')).to eq('file_store')
-      expect(JSON.parse(get.get_tag('rails.cache.keys'))).to eq(multi_keys)
+      expect(get.name).to eq("rails.cache")
+      expect(get.type).to eq("cache")
+      expect(get.resource).to eq("MGET")
+      expect(get.service).to eq("rails-cache")
+      expect(get.get_tag("rails.cache.backend")).to eq("file_store")
+      expect(JSON.parse(get.get_tag("rails.cache.keys"))).to eq(multi_keys)
       expect(get.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-        .to eq('active_support')
+        .to eq("active_support")
       expect(get.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-        .to eq('cache')
+        .to eq("cache")
 
       spans[1..-1].each do |set|
-        expect(set.name).to eq('rails.cache')
+        expect(set.name).to eq("rails.cache")
         expect(set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-          .to eq('active_support')
+          .to eq("active_support")
         expect(set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-          .to eq('cache')
+          .to eq("cache")
       end
     end
 
-    context 'when cache_key.enabled is false' do
+    context "when cache_key.enabled is false" do
       before do
         Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
       end
@@ -174,194 +174,194 @@ RSpec.describe 'Rails cache', execute_in_fork: Rails.version.to_i >= 8 do
         expect(read_multi).to eq(multi_keys.zip([51, 52, 53]).to_h)
         expect(spans).to have(1 + multi_keys.size).items
         get = spans[0]
-        expect(get.name).to eq('rails.cache')
-        expect(get.get_tag('rails.cache.keys')).to be_nil
+        expect(get.name).to eq("rails.cache")
+        expect(get.get_tag("rails.cache.keys")).to be_nil
       end
     end
   end
 
-  describe '#write' do
+  describe "#write" do
     subject(:write) { cache.write(key, 50) }
 
-    it_behaves_like 'an instrumented cache method'
+    it_behaves_like "an instrumented cache method"
 
     it do
       write
-      expect(span.name).to eq('rails.cache')
-      expect(span.type).to eq('cache')
-      expect(span.resource).to eq('SET')
-      expect(span.service).to eq('rails-cache')
-      expect(span.get_tag('rails.cache.backend')).to eq('file_store')
-      expect(span.get_tag('rails.cache.key')).to eq(key)
+      expect(span.name).to eq("rails.cache")
+      expect(span.type).to eq("cache")
+      expect(span.resource).to eq("SET")
+      expect(span.service).to eq("rails-cache")
+      expect(span.get_tag("rails.cache.backend")).to eq("file_store")
+      expect(span.get_tag("rails.cache.key")).to eq(key)
 
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-        .to eq('active_support')
+        .to eq("active_support")
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-        .to eq('cache')
+        .to eq("cache")
     end
 
-    context 'when :cache_store config includes the backend' do
+    context "when :cache_store config includes the backend" do
       before do
-        Datadog.configuration.tracing[:active_support][:cache_store] = ['other_store', 'file_store']
+        Datadog.configuration.tracing[:active_support][:cache_store] = ["other_store", "file_store"]
       end
 
-      it 'creates a span' do
+      it "creates a span" do
         write
-        expect(span.get_tag('rails.cache.backend')).to eq('file_store')
+        expect(span.get_tag("rails.cache.backend")).to eq("file_store")
       end
 
-      context 'as a symbol' do
+      context "as a symbol" do
         before do
           Datadog.configuration.tracing[:active_support][:cache_store] = [:file_store]
         end
 
-        it 'creates a span' do
+        it "creates a span" do
           write
-          expect(span.get_tag('rails.cache.backend')).to eq('file_store')
+          expect(span.get_tag("rails.cache.backend")).to eq("file_store")
         end
       end
     end
 
-    context 'when :cache_store config does not include the backend' do
+    context "when :cache_store config does not include the backend" do
       before do
-        Datadog.configuration.tracing[:active_support][:cache_store] = ['other_store']
+        Datadog.configuration.tracing[:active_support][:cache_store] = ["other_store"]
       end
 
-      it 'creates a span for the non-excluded backend' do
+      it "creates a span for the non-excluded backend" do
         expect { write }.to_not(change { fetch_spans.size })
       end
 
-      context 'with an empty array' do
+      context "with an empty array" do
         before do
           Datadog.configuration.tracing[:active_support][:cache_store] = []
         end
 
-        it 'does not create a span' do
+        it "does not create a span" do
           expect { write }.to_not(change { fetch_spans.size })
         end
       end
     end
 
-    context 'when :cache_store config is not set' do
+    context "when :cache_store config is not set" do
       before do
         Datadog.configuration.tracing[:active_support].reset!
       end
 
-      it 'creates a span' do
+      it "creates a span" do
         write
-        expect(span.get_tag('rails.cache.backend')).to eq('file_store')
+        expect(span.get_tag("rails.cache.backend")).to eq("file_store")
       end
     end
 
-    context 'with custom cache_service' do
+    context "with custom cache_service" do
       before do
-        Datadog.configuration.tracing[:active_support][:cache_service] = 'service-cache'
+        Datadog.configuration.tracing[:active_support][:cache_service] = "service-cache"
       end
 
-      it 'uses the proper service name' do
+      it "uses the proper service name" do
         write
-        expect(span.service).to eq('service-cache')
+        expect(span.service).to eq("service-cache")
       end
     end
 
-    context 'with complex cache key' do
-      let(:key) { ['custom-key', %w[x y], user] }
-      let(:user) { double('User', cache_key: 'User:3') }
+    context "with complex cache key" do
+      let(:key) { ["custom-key", %w[x y], user] }
+      let(:user) { double("User", cache_key: "User:3") }
 
-      it 'expands key using ActiveSupport' do
+      it "expands key using ActiveSupport" do
         write
-        expect(span.get_tag('rails.cache.key')).to eq('custom-key/x/y/User:3')
+        expect(span.get_tag("rails.cache.key")).to eq("custom-key/x/y/User:3")
       end
     end
 
-    context 'when cache_key.enabled is false' do
+    context "when cache_key.enabled is false" do
       before do
         Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
       end
 
-      let(:key) { ['custom-key', %w[x y], user] }
-      let(:user) { double('User', cache_key: 'User:3') }
+      let(:key) { ["custom-key", %w[x y], user] }
+      let(:user) { double("User", cache_key: "User:3") }
 
-      it 'does not expand key using ActiveSupport when cache_key.enabled false' do
+      it "does not expand key using ActiveSupport when cache_key.enabled false" do
         write
-        expect(span.get_tag('rails.cache.key')).to be_nil
+        expect(span.get_tag("rails.cache.key")).to be_nil
       end
     end
   end
 
-  describe '#write_multi' do
+  describe "#write_multi" do
     let(:values) { multi_keys.map { |k| 50 + k[-1].to_i } }
 
     subject(:write_multi) { cache.write_multi(multi_keys.zip(values).to_h, opt_name: :opt_value) }
 
-    context 'when the method is defined' do
+    context "when the method is defined" do
       before do
         unless ::ActiveSupport::Cache::Store.public_method_defined?(:write_multi)
-          skip 'Test is not applicable to this Rails version'
+          skip "Test is not applicable to this Rails version"
         end
       end
 
-      it_behaves_like 'an instrumented cache method'
+      it_behaves_like "an instrumented cache method"
 
       it do
         write_multi
-        expect(span.name).to eq('rails.cache')
-        expect(span.type).to eq('cache')
-        expect(span.resource).to eq('MSET')
-        expect(span.service).to eq('rails-cache')
-        expect(span.get_tag('rails.cache.backend')).to eq('file_store')
-        expect(JSON.parse(span.get_tag('rails.cache.keys'))).to eq(multi_keys)
+        expect(span.name).to eq("rails.cache")
+        expect(span.type).to eq("cache")
+        expect(span.resource).to eq("MSET")
+        expect(span.service).to eq("rails-cache")
+        expect(span.get_tag("rails.cache.backend")).to eq("file_store")
+        expect(JSON.parse(span.get_tag("rails.cache.keys"))).to eq(multi_keys)
 
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-          .to eq('active_support')
+          .to eq("active_support")
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-          .to eq('cache')
+          .to eq("cache")
       end
 
-      context 'with custom cache_service' do
-        before { Datadog.configuration.tracing[:active_support][:cache_service] = 'service-cache' }
+      context "with custom cache_service" do
+        before { Datadog.configuration.tracing[:active_support][:cache_service] = "service-cache" }
 
-        it 'uses the proper service name' do
+        it "uses the proper service name" do
           write_multi
-          expect(span.service).to eq('service-cache')
+          expect(span.service).to eq("service-cache")
         end
       end
 
-      context 'with complex cache key' do
-        let(:key) { ['custom-key', %w[x y], user] }
-        let(:user) { double('User', cache_key: 'User:3') }
+      context "with complex cache key" do
+        let(:key) { ["custom-key", %w[x y], user] }
+        let(:user) { double("User", cache_key: "User:3") }
 
-        it 'expands key using ActiveSupport' do
+        it "expands key using ActiveSupport" do
           cache.write_multi(key => 0)
-          expect(span.get_tag('rails.cache.keys')).to eq('["custom-key/x/y/User:3"]')
+          expect(span.get_tag("rails.cache.keys")).to eq('["custom-key/x/y/User:3"]')
         end
       end
 
-      context 'when cache_key.enabled is false' do
+      context "when cache_key.enabled is false" do
         before do
           Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
         end
 
         it do
           write_multi
-          expect(span.name).to eq('rails.cache')
-          expect(span.type).to eq('cache')
-          expect(span.resource).to eq('MSET')
-          expect(span.service).to eq('rails-cache')
-          expect(span.get_tag('rails.cache.backend')).to eq('file_store')
-          expect(span.get_tag('rails.cache.keys')).to be_nil
+          expect(span.name).to eq("rails.cache")
+          expect(span.type).to eq("cache")
+          expect(span.resource).to eq("MSET")
+          expect(span.service).to eq("rails-cache")
+          expect(span.get_tag("rails.cache.backend")).to eq("file_store")
+          expect(span.get_tag("rails.cache.keys")).to be_nil
 
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-            .to eq('active_support')
+            .to eq("active_support")
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-            .to eq('cache')
+            .to eq("cache")
         end
       end
     end
 
-    context 'when the method is not defined' do
+    context "when the method is not defined" do
       before do
-        skip 'Test is not applicable to this Rails version' if ::ActiveSupport::Cache::Store.public_method_defined?(:fetch)
+        skip "Test is not applicable to this Rails version" if ::ActiveSupport::Cache::Store.public_method_defined?(:fetch)
       end
 
       it do
@@ -376,241 +376,241 @@ RSpec.describe 'Rails cache', execute_in_fork: Rails.version.to_i >= 8 do
     end
   end
 
-  describe '#delete' do
+  describe "#delete" do
     subject(:delete) { cache.delete(key) }
 
-    it_behaves_like 'an instrumented cache method'
+    it_behaves_like "an instrumented cache method"
 
     it do
       delete
-      expect(span.name).to eq('rails.cache')
-      expect(span.type).to eq('cache')
-      expect(span.resource).to eq('DELETE')
-      expect(span.service).to eq('rails-cache')
-      expect(span.get_tag('rails.cache.backend')).to eq('file_store')
-      expect(span.get_tag('rails.cache.key')).to eq(key)
+      expect(span.name).to eq("rails.cache")
+      expect(span.type).to eq("cache")
+      expect(span.resource).to eq("DELETE")
+      expect(span.service).to eq("rails-cache")
+      expect(span.get_tag("rails.cache.backend")).to eq("file_store")
+      expect(span.get_tag("rails.cache.key")).to eq(key)
 
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-        .to eq('active_support')
+        .to eq("active_support")
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-        .to eq('cache')
+        .to eq("cache")
     end
 
-    context 'when cache_key.enabled is false' do
+    context "when cache_key.enabled is false" do
       before do
         Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
       end
 
       it do
         delete
-        expect(span.name).to eq('rails.cache')
-        expect(span.type).to eq('cache')
-        expect(span.resource).to eq('DELETE')
-        expect(span.service).to eq('rails-cache')
-        expect(span.get_tag('rails.cache.backend')).to eq('file_store')
-        expect(span.get_tag('rails.cache.key')).to be_nil
+        expect(span.name).to eq("rails.cache")
+        expect(span.type).to eq("cache")
+        expect(span.resource).to eq("DELETE")
+        expect(span.service).to eq("rails-cache")
+        expect(span.get_tag("rails.cache.backend")).to eq("file_store")
+        expect(span.get_tag("rails.cache.key")).to be_nil
 
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-          .to eq('active_support')
+          .to eq("active_support")
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-          .to eq('cache')
+          .to eq("cache")
       end
     end
   end
 
-  describe '#fetch' do
-    subject(:fetch) { cache.fetch(key) { 'default' } }
+  describe "#fetch" do
+    subject(:fetch) { cache.fetch(key) { "default" } }
 
-    it_behaves_like 'an instrumented cache method'
+    it_behaves_like "an instrumented cache method"
 
-    context 'with a cache miss' do
-      let(:key) { 'fetch-miss-key' }
+    context "with a cache miss" do
+      let(:key) { "fetch-miss-key" }
 
-      it 'sets the cache key on both read and write spans' do
-        expect(fetch).to eq('default')
+      it "sets the cache key on both read and write spans" do
+        expect(fetch).to eq("default")
 
         expect(spans).to have(2).items
         get, set = spans
-        expect(get.resource).to eq('GET')
-        expect(get.get_tag('rails.cache.key')).to eq(key)
-        expect(set.resource).to eq('SET')
-        expect(set.get_tag('rails.cache.key')).to eq(key)
+        expect(get.resource).to eq("GET")
+        expect(get.get_tag("rails.cache.key")).to eq(key)
+        expect(set.resource).to eq("SET")
+        expect(set.get_tag("rails.cache.key")).to eq(key)
       end
     end
 
-    context 'with a cache hit' do
-      let(:key) { 'fetch-hit-key' }
+    context "with a cache hit" do
+      let(:key) { "fetch-hit-key" }
 
-      before { cache.write(key, 'cached') }
+      before { cache.write(key, "cached") }
 
-      it 'sets the cache key on the read span' do
-        expect(fetch).to eq('cached')
+      it "sets the cache key on the read span" do
+        expect(fetch).to eq("cached")
 
         expect(spans).to have(2).items
         get, _set = spans
-        expect(get.resource).to eq('GET')
-        expect(get.get_tag('rails.cache.key')).to eq(key)
+        expect(get.resource).to eq("GET")
+        expect(get.get_tag("rails.cache.key")).to eq(key)
       end
     end
 
-    context 'with exception' do
-      subject(:fetch) { cache.fetch('exception') { raise 'oops' } }
+    context "with exception" do
+      subject(:fetch) { cache.fetch("exception") { raise "oops" } }
 
       it do
         expect { fetch }.to raise_error(StandardError)
 
-        expect(span.name).to eq('rails.cache')
-        expect(span.type).to eq('cache')
-        expect(span.resource).to eq('GET')
-        expect(span.service).to eq('rails-cache')
-        expect(span.get_tag('rails.cache.backend')).to eq('file_store')
-        expect(span.get_tag('rails.cache.key')).to eq('exception')
-        expect(span.get_tag('error.type')).to eq('RuntimeError')
-        expect(span.get_tag('error.message')).to eq('oops')
+        expect(span.name).to eq("rails.cache")
+        expect(span.type).to eq("cache")
+        expect(span.resource).to eq("GET")
+        expect(span.service).to eq("rails-cache")
+        expect(span.get_tag("rails.cache.backend")).to eq("file_store")
+        expect(span.get_tag("rails.cache.key")).to eq("exception")
+        expect(span.get_tag("error.type")).to eq("RuntimeError")
+        expect(span.get_tag("error.message")).to eq("oops")
 
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-          .to eq('active_support')
+          .to eq("active_support")
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-          .to eq('cache')
+          .to eq("cache")
       end
     end
 
-    context 'when cache_key.enabled is false' do
+    context "when cache_key.enabled is false" do
       before do
         Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
       end
 
-      subject(:fetch) { cache.fetch('exception') { raise 'oops' } }
+      subject(:fetch) { cache.fetch("exception") { raise "oops" } }
 
       it do
         expect { fetch }.to raise_error(StandardError)
 
-        expect(span.name).to eq('rails.cache')
-        expect(span.type).to eq('cache')
-        expect(span.resource).to eq('GET')
-        expect(span.service).to eq('rails-cache')
-        expect(span.get_tag('rails.cache.backend')).to eq('file_store')
-        expect(span.get_tag('rails.cache.key')).to be_nil
-        expect(span.get_tag('error.type')).to eq('RuntimeError')
-        expect(span.get_tag('error.message')).to eq('oops')
+        expect(span.name).to eq("rails.cache")
+        expect(span.type).to eq("cache")
+        expect(span.resource).to eq("GET")
+        expect(span.service).to eq("rails-cache")
+        expect(span.get_tag("rails.cache.backend")).to eq("file_store")
+        expect(span.get_tag("rails.cache.key")).to be_nil
+        expect(span.get_tag("error.type")).to eq("RuntimeError")
+        expect(span.get_tag("error.message")).to eq("oops")
 
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-          .to eq('active_support')
+          .to eq("active_support")
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-          .to eq('cache')
+          .to eq("cache")
       end
     end
   end
 
-  describe '#fetch_multi' do
+  describe "#fetch_multi" do
     subject(:fetch_multi) { cache.fetch_multi(*multi_keys, expires_in: 42) { |key| 50 + key[-1].to_i } }
 
-    context 'when the method is defined' do
+    context "when the method is defined" do
       before do
         unless ::ActiveSupport::Cache::Store.public_method_defined?(:fetch_multi)
-          skip 'Test is not applicable to this Rails version'
+          skip "Test is not applicable to this Rails version"
         end
       end
 
-      it_behaves_like 'an instrumented cache method'
+      it_behaves_like "an instrumented cache method"
 
-      context 'with all keys missing' do
+      context "with all keys missing" do
         let(:multi_keys) { %w[fetch-multi-miss-1 fetch-multi-miss-2 fetch-multi-miss-3] }
 
         before do
           unless ::ActiveSupport::Cache::Store.public_method_defined?(:write_multi)
-            skip 'Test is not applicable to this Rails version'
+            skip "Test is not applicable to this Rails version"
           end
         end
 
-        it 'sets the cache keys on both read and write spans' do
+        it "sets the cache keys on both read and write spans" do
           expect(fetch_multi).to eq(multi_keys.zip([51, 52, 53]).to_h)
 
           expect(spans).to have(2).items
           mget, mset = spans
-          expect(mget.resource).to eq('MGET')
-          expect(JSON.parse(mget.get_tag('rails.cache.keys'))).to eq(multi_keys)
-          expect(mset.resource).to eq('MSET')
-          expect(JSON.parse(mset.get_tag('rails.cache.keys'))).to eq(multi_keys)
+          expect(mget.resource).to eq("MGET")
+          expect(JSON.parse(mget.get_tag("rails.cache.keys"))).to eq(multi_keys)
+          expect(mset.resource).to eq("MSET")
+          expect(JSON.parse(mset.get_tag("rails.cache.keys"))).to eq(multi_keys)
         end
       end
 
-      context 'with a subset of keys missing' do
+      context "with a subset of keys missing" do
         let(:multi_keys) { %w[fetch-multi-part-1 fetch-multi-part-2 fetch-multi-part-3] }
 
         before do
           unless ::ActiveSupport::Cache::Store.public_method_defined?(:write_multi)
-            skip 'Test is not applicable to this Rails version'
+            skip "Test is not applicable to this Rails version"
           end
 
-          cache.write('fetch-multi-part-1', 51)
+          cache.write("fetch-multi-part-1", 51)
         end
 
-        it 'does not duplicate keys on the write span' do
+        it "does not duplicate keys on the write span" do
           expect(fetch_multi).to eq(multi_keys.zip([51, 52, 53]).to_h)
 
           expect(spans).to have(3).items
           mget, mset, _set = spans
-          expect(mget.resource).to eq('MGET')
-          expect(JSON.parse(mget.get_tag('rails.cache.keys'))).to eq(multi_keys)
-          expect(mset.resource).to eq('MSET')
+          expect(mget.resource).to eq("MGET")
+          expect(JSON.parse(mget.get_tag("rails.cache.keys"))).to eq(multi_keys)
+          expect(mset.resource).to eq("MSET")
 
-          mset_keys = JSON.parse(mset.get_tag('rails.cache.keys'))
+          mset_keys = JSON.parse(mset.get_tag("rails.cache.keys"))
           expect(mset_keys).to eq(mset_keys.uniq)
-          expect(mset_keys).to include('fetch-multi-part-2', 'fetch-multi-part-3')
+          expect(mset_keys).to include("fetch-multi-part-2", "fetch-multi-part-3")
         end
       end
 
-      context 'with exception' do
-        subject(:fetch_multi) { cache.fetch_multi('exception', 'another', 'one') { raise 'oops' } }
+      context "with exception" do
+        subject(:fetch_multi) { cache.fetch_multi("exception", "another", "one") { raise "oops" } }
 
         it do
           expect { fetch_multi }.to raise_error(StandardError)
-          expect(span.name).to eq('rails.cache')
-          expect(span.type).to eq('cache')
-          expect(span.resource).to eq('MGET')
-          expect(span.service).to eq('rails-cache')
-          expect(span.get_tag('rails.cache.backend')).to eq('file_store')
-          expect(span.get_tag('rails.cache.keys')).to eq('["exception", "another", "one"]')
-          expect(span.get_tag('error.type')).to eq('RuntimeError')
-          expect(span.get_tag('error.message')).to eq('oops')
+          expect(span.name).to eq("rails.cache")
+          expect(span.type).to eq("cache")
+          expect(span.resource).to eq("MGET")
+          expect(span.service).to eq("rails-cache")
+          expect(span.get_tag("rails.cache.backend")).to eq("file_store")
+          expect(span.get_tag("rails.cache.keys")).to eq('["exception", "another", "one"]')
+          expect(span.get_tag("error.type")).to eq("RuntimeError")
+          expect(span.get_tag("error.message")).to eq("oops")
 
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-            .to eq('active_support')
+            .to eq("active_support")
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-            .to eq('cache')
+            .to eq("cache")
         end
       end
 
-      context 'with exception and when cache_key.enabled is false' do
+      context "with exception and when cache_key.enabled is false" do
         before do
           Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
         end
-        subject(:fetch_multi) { cache.fetch_multi('exception', 'another', 'one') { raise 'oops' } }
+        subject(:fetch_multi) { cache.fetch_multi("exception", "another", "one") { raise "oops" } }
 
         it do
           expect { fetch_multi }.to raise_error(StandardError)
-          expect(span.name).to eq('rails.cache')
-          expect(span.type).to eq('cache')
-          expect(span.resource).to eq('MGET')
-          expect(span.service).to eq('rails-cache')
-          expect(span.get_tag('rails.cache.backend')).to eq('file_store')
-          expect(span.get_tag('rails.cache.keys')).to be_nil
-          expect(span.get_tag('error.type')).to eq('RuntimeError')
-          expect(span.get_tag('error.message')).to eq('oops')
+          expect(span.name).to eq("rails.cache")
+          expect(span.type).to eq("cache")
+          expect(span.resource).to eq("MGET")
+          expect(span.service).to eq("rails-cache")
+          expect(span.get_tag("rails.cache.backend")).to eq("file_store")
+          expect(span.get_tag("rails.cache.keys")).to be_nil
+          expect(span.get_tag("error.type")).to eq("RuntimeError")
+          expect(span.get_tag("error.message")).to eq("oops")
 
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-            .to eq('active_support')
+            .to eq("active_support")
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-            .to eq('cache')
+            .to eq("cache")
         end
       end
     end
 
-    context 'when the method is not defined' do
+    context "when the method is not defined" do
       before do
         if ::ActiveSupport::Cache::Store.public_method_defined?(:fetch_multi)
-          skip 'Test is not applicable to this Rails version'
+          skip "Test is not applicable to this Rails version"
         end
       end
 
@@ -626,41 +626,41 @@ RSpec.describe 'Rails cache', execute_in_fork: Rails.version.to_i >= 8 do
     end
   end
 
-  context 'with very large cache key' do
-    it 'truncates key too large' do
+  context "with very large cache key" do
+    it "truncates key too large" do
       max_key_size = Datadog::Tracing::Contrib::ActiveSupport::Ext::QUANTIZE_CACHE_MAX_KEY_SIZE
-      large_key = ''.ljust(max_key_size * 2, SecureRandom.hex)
-      cache.write(large_key, 'foobar')
+      large_key = "".ljust(max_key_size * 2, SecureRandom.hex)
+      cache.write(large_key, "foobar")
 
       expect(large_key.size).to be > max_key_size
-      expect(span.name).to eq('rails.cache')
-      expect(span.get_tag('rails.cache.key')).to have(max_key_size).items
-      expect(span.get_tag('rails.cache.key')).to end_with('...')
+      expect(span.name).to eq("rails.cache")
+      expect(span.get_tag("rails.cache.key")).to have(max_key_size).items
+      expect(span.get_tag("rails.cache.key")).to end_with("...")
 
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-        .to eq('active_support')
+        .to eq("active_support")
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-        .to eq('cache')
+        .to eq("cache")
     end
   end
 
-  context 'with very large cache key and when cache_key.enabled is false' do
+  context "with very large cache key and when cache_key.enabled is false" do
     before do
       Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
     end
-    it 'truncates key too large' do
+    it "truncates key too large" do
       max_key_size = Datadog::Tracing::Contrib::ActiveSupport::Ext::QUANTIZE_CACHE_MAX_KEY_SIZE
-      large_key = ''.ljust(max_key_size * 2, SecureRandom.hex)
-      cache.write(large_key, 'foobar')
+      large_key = "".ljust(max_key_size * 2, SecureRandom.hex)
+      cache.write(large_key, "foobar")
 
       expect(large_key.size).to be > max_key_size
-      expect(span.name).to eq('rails.cache')
-      expect(span.get_tag('rails.cache.key')).to be_nil
+      expect(span.name).to eq("rails.cache")
+      expect(span.get_tag("rails.cache.key")).to be_nil
 
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-        .to eq('active_support')
+        .to eq("active_support")
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-        .to eq('cache')
+        .to eq("cache")
     end
   end
 end

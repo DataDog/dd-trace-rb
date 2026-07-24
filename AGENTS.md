@@ -4,7 +4,7 @@ This repository is the source code of a Ruby gem created by Datadog to provide D
 
 **Ruby version compatibility:** Ruby 2.5+ (including 3.x+ and 4.x+)
 
-- Launch MRI container: `docker compose run --rm tracer-3.4 /bin/bash`. Matches CI defaults. Other Ruby versions and variants in `docker-compose.yml`.
+- Launch MRI container: `docker compose run --rm tracer-4.0 /bin/bash`. Matches CI defaults. Other Ruby versions and variants in `docker-compose.yml`.
 - Install deps: `bundle install`. Run once per container/session.
 - Discover gemfiles: `bundle exec rake dependency:list`. Shows values for `BUNDLE_GEMFILE`.
 - Using alternate gemfile: `BUNDLE_GEMFILE=$(pwd)/gemfiles/<name>.gemfile`. For running matrix-specific jobs.

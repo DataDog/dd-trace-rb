@@ -1,20 +1,20 @@
 # frozen_string_literal: true
 
-require_relative '../core/environment/ext'
-require_relative '../core/environment/socket'
+require_relative "../core/environment/ext"
+require_relative "../core/environment/socket"
 
-require_relative 'correlation'
-require_relative 'event'
-require_relative 'flush'
-require_relative 'context_provider'
-require_relative 'sampling/all_sampler'
-require_relative 'sampling/rule_sampler'
-require_relative 'sampling/priority_sampler'
-require_relative 'sampling/span/sampler'
-require_relative 'span_operation'
-require_relative 'trace_digest'
-require_relative 'trace_operation'
-require_relative 'writer'
+require_relative "correlation"
+require_relative "event"
+require_relative "flush"
+require_relative "context_provider"
+require_relative "sampling/all_sampler"
+require_relative "sampling/rule_sampler"
+require_relative "sampling/priority_sampler"
+require_relative "sampling/span/sampler"
+require_relative "span_operation"
+require_relative "trace_digest"
+require_relative "trace_operation"
+require_relative "writer"
 
 module Datadog
   module Tracing

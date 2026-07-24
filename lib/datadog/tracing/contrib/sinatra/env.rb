@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'time'
+require "time"
 
-require_relative '../../metadata/ext'
-require_relative 'ext'
+require_relative "../../metadata/ext"
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -22,11 +22,11 @@ module Datadog
           end
 
           def route_path(env, use_script_names: Datadog.configuration.tracing[:sinatra][:resource_script_names])
-            return unless env['sinatra.route']
+            return unless env["sinatra.route"]
 
-            _, path = env['sinatra.route'].split(' ', 2)
+            _, path = env["sinatra.route"].split(" ", 2)
             if use_script_names
-              env['SCRIPT_NAME'].to_s + path
+              env["SCRIPT_NAME"].to_s + path
             else
               path
             end

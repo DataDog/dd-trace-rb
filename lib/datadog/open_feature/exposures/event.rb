@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require_relative '../../core/utils/time'
+require_relative "../../core/utils/time"
 
 module Datadog
   module OpenFeature
     module Exposures
       # A data model for an exposure event
       module Event
-        TARGETING_KEY_FIELD = 'targeting_key'
+        TARGETING_KEY_FIELD = "targeting_key"
         ALLOWED_FIELD_TYPES = [String, Integer, Float, TrueClass, FalseClass].freeze
 
         class << self

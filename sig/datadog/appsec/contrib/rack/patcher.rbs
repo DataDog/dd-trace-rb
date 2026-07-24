@@ -3,13 +3,11 @@ module Datadog
     module Contrib
       module Rack
         module Patcher
-          def self?.patched?: () -> bool
+          def self?.patched?: () -> bool?
 
-          def self?.target_version: () -> untyped
+          def self?.target_version: () -> Gem::Version?
 
-          def self?.logger: () -> untyped
-
-          def self?.patch: () -> untyped
+          def self?.patch: () -> void
         end
       end
     end

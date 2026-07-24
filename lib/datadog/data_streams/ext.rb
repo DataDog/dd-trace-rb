@@ -5,7 +5,7 @@ module Datadog
     # Constants for Data Streams Monitoring configuration
     # @public_api
     module Ext
-      ENV_ENABLED = 'DD_DATA_STREAMS_ENABLED'
+      ENV_ENABLED = "DD_DATA_STREAMS_ENABLED"
     end
   end
 end
