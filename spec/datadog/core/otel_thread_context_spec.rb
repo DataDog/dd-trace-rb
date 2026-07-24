@@ -7,6 +7,9 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
   describe ".set" do
     before do
       described_class.enable!
+
+      # TODO: remove when libdatadog is updated
+      skip("libdatadog built without otel-thread-ctx") unless described_class.supported?
     end
 
     around(:each) do |example|
@@ -59,55 +62,57 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
       expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
     end
 
-    it "resets the thread context when the Thread dies" do
-      Thread.new do
-        described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
-      end.join
+    context "with M:N scheduler", if: RUBY_VERSION >= "3.3" do
+      it "resets the thread context when the Thread dies" do
+        Thread.new do
+          described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+        end.join
 
-      expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
-    end
-
-    it "resets the thread context when the Thread is killed" do
-      signal_queue = Queue.new
-      t = Thread.new do
-        described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
-        signal_queue << true
-        Queue.new.pop # block the thread
+        expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
       end
 
-      signal_queue.pop # ensure we set the thread context before we kill the thread
-      t.kill
-      t.join
+      it "resets the thread context when the Thread is killed" do
+        signal_queue = Queue.new
+        t = Thread.new do
+          described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+          signal_queue << true
+          Queue.new.pop # block the thread
+        end
 
-      expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
-    end
+        signal_queue.pop # ensure we set the thread context before we kill the thread
+        t.kill
+        t.join
 
-    it "resets the thread context when the Thread dies with an exception" do
-      t = Thread.new do
-        Thread.current.report_on_exception = false
-        described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
-        raise StandardError
+        expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
       end
 
-      expect { t.join }.to raise_error(StandardError)
-      expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
-    end
+      it "resets the thread context when the Thread dies with an exception" do
+        t = Thread.new do
+          Thread.current.report_on_exception = false
+          described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+          raise StandardError
+        end
 
-    it "keeps thread context correct under the M:N scheduler", if: RUBY_VERSION >= "3.3", memcheck_valgrind_skip: true do
-      thread_count = Etc.nprocessors * 4 + 1
+        expect { t.join }.to raise_error(StandardError)
+        expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
+      end
 
-      # M:N is disabled on the main Ractor by default
-      results = Ractor.new(thread_count) do |count|
-        Array.new(count) do |i|
-          Thread.new do
-            Datadog::Core::OTelThreadContext.set(trace_id: i, span_id: i + 1, local_root_span_id: i + 2)
-            Thread.pass
-            Datadog::Core::OTelThreadContext.read&.fetch(:trace_id)
-          end
-        end.map(&:value)
-      end.take
+      it "keeps thread context correct under the M:N scheduler", memcheck_valgrind_skip: true do
+        thread_count = Etc.nprocessors * 4 + 1
 
-      expect(results).to match_array((0..(thread_count - 1)).to_a)
+        # M:N is disabled on the main Ractor by default
+        results = Ractor.new(thread_count) do |count|
+          Array.new(count) do |i|
+            Thread.new do
+              Datadog::Core::OTelThreadContext.set(trace_id: i, span_id: i + 1, local_root_span_id: i + 2)
+              Thread.pass
+              Datadog::Core::OTelThreadContext.read&.fetch(:trace_id)
+            end
+          end.map(&:value)
+        end.take
+
+        expect(results).to match_array((0..(thread_count - 1)).to_a)
+      end
     end
   end
 end
