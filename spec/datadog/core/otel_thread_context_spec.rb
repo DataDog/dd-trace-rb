@@ -4,7 +4,7 @@ require "etc"
 require "datadog/core/otel_thread_context"
 
 RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
-  describe '.set' do
+  describe ".set" do
     before do
       described_class.enable!
     end
@@ -15,12 +15,12 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
       end.join
     end
 
-    it 'sets the thread context' do
+    it "sets the thread context" do
       described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
       expect(described_class.read).to include(trace_id: 1, span_id: 2, local_root_span_id: 3)
     end
 
-    it 'updates the thread context on fiber switch' do
+    it "updates the thread context on fiber switch" do
       described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
 
       f = Fiber.new do
@@ -38,7 +38,7 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
       expect(described_class.read).to include(trace_id: 1, span_id: 2, local_root_span_id: 3)
     end
 
-    it 'updates the thread context when switching between fibers' do
+    it "updates the thread context when switching between fibers" do
       fiber_a = Fiber.new do
         described_class.set(trace_id: 100, span_id: 101, local_root_span_id: 102)
         Fiber.yield
@@ -59,7 +59,7 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
       expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
     end
 
-    it 'resets the thread context when the Thread dies' do
+    it "resets the thread context when the Thread dies" do
       Thread.new do
         described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
       end.join
@@ -67,7 +67,33 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
       expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
     end
 
-    it 'keeps thread context correct under the M:N scheduler', if: RUBY_VERSION >= '3.3' do
+    it "resets the thread context when the Thread is killed" do
+      signal_queue = Queue.new
+      t = Thread.new do
+        described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+        signal_queue << true
+        Queue.new.pop # block the thread
+      end
+
+      signal_queue.pop # ensure we set the thread context before we kill the thread
+      t.kill
+      t.join
+
+      expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
+    end
+
+    it "resets the thread context when the Thread dies with an exception" do
+      t = Thread.new do
+        Thread.current.report_on_exception = false
+        described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+        raise StandardError
+      end
+
+      expect { t.join }.to raise_error(StandardError)
+      expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
+    end
+
+    it "keeps thread context correct under the M:N scheduler", if: RUBY_VERSION >= "3.3" do
       thread_count = Etc.nprocessors * 4 + 1
 
       # M:N is disabled on the main Ractor by default
