@@ -14,12 +14,17 @@ module Datadog
       module Sequel
         # General purpose functions for Sequel
         module Utils
-          # Matches an optional Connector/J sub-protocol (e.g. the "replication" in
+          # Captures an optional Connector/J sub-protocol (e.g. "replication" in
           # jdbc:mysql:replication://...) between the vendor and the // authority.
-          JDBC_URI_PATTERN = %r{\Ajdbc:(?<vendor>[a-z][a-z0-9+.-]*)(?::[a-z][a-z0-9+.-]*)?:(?<location>//[^\r\n]*)\z}i
+          JDBC_URI_PATTERN =
+            %r{\Ajdbc:(?<vendor>[a-z][a-z0-9+.-]*)(?::(?<subprotocol>[a-z][a-z0-9+.-]*))?:(?<location>//[^\r\n]*)\z}i
           DATABASE_PROPERTY_PATTERN =
             /(?:\A|[&;])(?<key>databaseName|database|libraries)=(?<value>[^&;]+)/i
-          private_constant :JDBC_URI_PATTERN, :DATABASE_PROPERTY_PATTERN
+          # Connector/J sub-protocols that spread queries across hosts (load balancing)
+          # or route them by role (read/write splitting), so no single host identifies
+          # the peer a query reached. The database name is still meaningful.
+          HOST_AGNOSTIC_SUBPROTOCOLS = %w[loadbalance replication].freeze
+          private_constant :JDBC_URI_PATTERN, :DATABASE_PROPERTY_PATTERN, :HOST_AGNOSTIC_SUBPROTOCOLS
 
           class << self
             # Ruby database connector library
@@ -56,11 +61,12 @@ module Datadog
               return result unless match
 
               vendor = match[:vendor].downcase
+              subprotocol = match[:subprotocol]&.downcase
               location, properties = match[:location].split(";", 2)
 
-              # Failover/load-balancing drivers (e.g. MySQL/MariaDB Connector/J) list
-              # several comma-separated hosts in the authority; keep only the first so
-              # the value parses as a standard URI.
+              # Failover drivers (e.g. MySQL/MariaDB Connector/J) list several
+              # comma-separated hosts in the authority; keep only the first so the value
+              # parses as a standard URI and to recover the database name from its path.
               location = single_host_location(location)
 
               # Several JDBC vendors append properties with semicolons, outside the URI
@@ -69,6 +75,9 @@ module Datadog
 
               host = parsed.hostname
               host = nil unless valid_host?(host)
+              # Load-balancing/replication sub-protocols do not pin a query to a single
+              # host, so any one host would be a misleading peer; drop it (keep database).
+              host = nil if HOST_AGNOSTIC_SUBPROTOCOLS.include?(subprotocol)
               port = parsed.port if host
 
               database = database_from_path(parsed.path) ||
@@ -160,9 +169,6 @@ module Datadog
 
             private
 
-            # Reduces a comma-separated host list in the authority to its first host
-            # (the primary/master for Connector/J failover URLs), preserving any path,
-            # query, or user-info. Non-list authorities are returned unchanged.
             def single_host_location(location)
               return location unless location.start_with?("//")
 

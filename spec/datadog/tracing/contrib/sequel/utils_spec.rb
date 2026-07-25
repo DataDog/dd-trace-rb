@@ -152,31 +152,31 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
     context "mysql replication sub-protocol" do
       let(:uri) { "jdbc:mysql:replication://master:3306,slave1:3306,slave2:3306/orders" }
 
-      it "strips the sub-protocol and uses the first host" do
-        expect(parsed).to eq(host: "master", port: "3306", database: "orders")
+      it "keeps the database but drops the host, which does not identify the queried peer" do
+        expect(parsed).to eq(host: nil, port: nil, database: "orders")
       end
     end
 
     context "mysql loadbalance sub-protocol without ports" do
       let(:uri) { "jdbc:mysql:loadbalance://host1,host2/orders" }
 
-      it "strips the sub-protocol and uses the first host" do
-        expect(parsed).to eq(host: "host1", port: nil, database: "orders")
+      it "keeps the database but drops the load-balanced host" do
+        expect(parsed).to eq(host: nil, port: nil, database: "orders")
       end
     end
 
     context "mariadb replication sub-protocol" do
       let(:uri) { "jdbc:mariadb:replication://master:3306,slave1:3306/orders" }
 
-      it "strips the sub-protocol and uses the first host" do
-        expect(parsed).to eq(host: "master", port: "3306", database: "orders")
+      it "keeps the database but drops the host" do
+        expect(parsed).to eq(host: nil, port: nil, database: "orders")
       end
     end
 
     context "mysql aurora sub-protocol single host" do
       let(:uri) { "jdbc:mysql:aurora://cluster.example.com:3306/orders" }
 
-      it "strips the sub-protocol" do
+      it "strips the sub-protocol and keeps the single host" do
         expect(parsed).to eq(host: "cluster.example.com", port: "3306", database: "orders")
       end
     end
@@ -184,8 +184,8 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
     context "mysql address-equals authority form" do
       let(:uri) { "jdbc:mysql://address=(protocol=tcp)(host=db-host)(port=3306)/orders" }
 
-      it "returns a nil host rather than an unparseable authority string" do
-        expect(parsed[:host]).to be_nil
+      it "rejects the unparseable authority as a host but still recovers the database" do
+        expect(parsed).to eq(host: nil, port: nil, database: "orders")
       end
     end
 
