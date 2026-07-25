@@ -8,14 +8,13 @@ require_relative "../core/worker"
 require_relative "../core/workers/polling"
 require_relative "../core/ddsketch"
 require_relative "../core/buffer/cruby"
+require_relative "../core/buffer/thread_safe"
+require_relative "../core/environment/ext"
 require_relative "../core/utils/time"
 require_relative "../core/utils/fnv"
 
 module Datadog
   module DataStreams
-    # Raised when Data Streams Monitoring cannot be initialized due to missing dependencies
-    class UnsupportedError < StandardError; end
-
     # Processor for Data Streams Monitoring
     # This class is responsible for collecting and reporting pathway stats
     # Periodically (every interval, 10 seconds by default) flushes stats to the Datadog agent.
@@ -39,10 +38,7 @@ module Datadog
       # @param agent_info [Datadog::Core::Environment::AgentInfo] Agent capability information
       # @param buffer_size [Integer] Size of the lock-free event buffer for async stat collection
       #   (default: DEFAULT_BUFFER_SIZE). Higher values support more throughput but use more memory.
-      # @raise [UnsupportedError] if DDSketch is not available on this platform
       def initialize(interval:, logger:, settings:, agent_settings:, agent_info:, buffer_size: DEFAULT_BUFFER_SIZE)
-        raise UnsupportedError, "DDSketch is not supported" unless Datadog::Core::DDSketch.supported?
-
         @settings = settings
         @agent_settings = agent_settings
         @agent_info = agent_info
@@ -58,7 +54,10 @@ module Datadog
         @buckets = {}
         @consumer_stats = []
         @stats_mutex = Mutex.new
-        @event_buffer = Core::Buffer::CRuby.new(buffer_size)
+        # CRuby's Array operations are atomic under the GVL, so the lock-free buffer is
+        # safe there; other engines (JRuby, TruffleRuby) need the mutex-backed buffer.
+        buffer_class = (Core::Environment::Ext::RUBY_ENGINE == "ruby") ? Core::Buffer::CRuby : Core::Buffer::ThreadSafe
+        @event_buffer = buffer_class.new(buffer_size)
 
         super()
         self.loop_base_interval = interval
@@ -500,8 +499,8 @@ module Datadog
 
       def create_pathway_stats
         {
-          edge_latency: Datadog::Core::DDSketch.new,
-          full_pathway_latency: Datadog::Core::DDSketch.new,
+          edge_latency: Datadog::Core::DDSketch.build,
+          full_pathway_latency: Datadog::Core::DDSketch.build,
           payload_size_sum: 0,
           payload_size_count: 0
         }

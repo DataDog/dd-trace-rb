@@ -218,8 +218,8 @@ RSpec.describe Datadog::DataStreams::Processor do
         stats = pathway_stats[aggr_key]
 
         aggregate_failures do
-          expect(stats[:edge_latency]).to be_a(Datadog::Core::DDSketch)
-          expect(stats[:full_pathway_latency]).to be_a(Datadog::Core::DDSketch)
+          expect(stats[:edge_latency]).to be_a(Datadog::Core::DDSketch).or be_a(Datadog::Core::DDSketch::Pure)
+          expect(stats[:full_pathway_latency]).to be_a(Datadog::Core::DDSketch).or be_a(Datadog::Core::DDSketch::Pure)
 
           expect(stats[:edge_latency].count).to eq(3)
           expect(stats[:full_pathway_latency].count).to eq(3)
@@ -228,6 +228,25 @@ RSpec.describe Datadog::DataStreams::Processor do
           expect(stats[:edge_latency].encode).not_to be_empty
           expect(stats[:full_pathway_latency].encode).to be_a(String)
           expect(stats[:full_pathway_latency].encode).not_to be_empty
+        end
+      end
+
+      it "falls back to the pure-Ruby sketch when the native extension is unavailable" do
+        # Force the JRuby/TruffleRuby code path even on MRI so it is exercised in CI.
+        allow(Datadog::Core::DDSketch).to receive(:supported?).and_return(false)
+        allow(Datadog::Tracing).to receive(:active_span).and_return(nil)
+
+        processor.stop(true)
+        processor.set_produce_checkpoint(type: "kafka", destination: "topicA", manual_checkpoint: false)
+        processor.send(:process_events)
+
+        stats = processor.buckets.values.first[:pathway_stats].values.first
+
+        aggregate_failures do
+          expect(stats[:edge_latency]).to be_a(Datadog::Core::DDSketch::Pure)
+          expect(stats[:full_pathway_latency]).to be_a(Datadog::Core::DDSketch::Pure)
+          expect(stats[:edge_latency].encode).to be_a(String)
+          expect(stats[:edge_latency].encode.encoding).to eq(Encoding::BINARY)
         end
       end
     end

@@ -27,6 +27,7 @@ CORE_WITH_LIBDATADOG_API = [
   "spec/datadog/core/configuration/stable_config_spec.rb",
   "spec/datadog/core/feature_flags_spec.rb",
   "spec/datadog/core/ddsketch_spec.rb",
+  "spec/datadog/core/ddsketch/**/*_spec.rb",
   "spec/datadog/data_streams/**/*_spec.rb",
   "spec/datadog/open_feature_spec.rb",
   "spec/datadog/core/libdatadog_extconf_helpers_spec.rb",
@@ -48,7 +49,7 @@ DI_WITH_EXT = %w[
   spec/datadog/di/**/*_spec.rb
 ].freeze
 
-# Data Streams Monitoring (DSM) requires libdatadog_api for DDSketch
+# Data Streams Monitoring (DSM) integrations that emit checkpoints
 # Add new instrumentation libraries here as they gain DSM support
 DSM_ENABLED_LIBRARIES = [
   :kafka,
@@ -376,14 +377,15 @@ namespace :spec do
   end
 
   # Ensure DSM-enabled contrib tests compile libdatadog_api before running (MRI Ruby only)
-  # If compilation fails (e.g., new Ruby version without prebuilt extension), tests will skip via DDSketch.supported?
+  # If compilation fails (e.g., new Ruby version without prebuilt extension), DSM falls back
+  # to the pure-Ruby DDSketch (see Datadog::Core::DDSketch.build) and the tests still run.
   unless RUBY_PLATFORM == "java"
     task :compile_libdatadog_for_dsm do
       Rake::Task["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"].invoke
     rescue => e
-      # Compilation failed (likely unsupported Ruby version) - tests will skip gracefully
+      # Compilation failed (likely unsupported Ruby version) - DSM uses the pure-Ruby fallback
       puts "Warning: libdatadog_api compilation failed: #{e.class}: #{e}"
-      puts "DSM tests will be skipped for this Ruby version"
+      puts "DSM tests will run against the pure-Ruby DDSketch fallback for this Ruby version"
     end
 
     DSM_ENABLED_LIBRARIES.each do |task_name|

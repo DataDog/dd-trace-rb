@@ -3,6 +3,9 @@ module Datadog
     class DDSketch
       def self.supported?: () -> bool
 
+      # Returns a native DDSketch when available, otherwise a pure-Ruby fallback
+      def self.build: () -> (DDSketch | DDSketch::Pure)
+
       # Adds a single point to the sketch
       # @param point [::Numeric] The value to add to the sketch
       # @return [true] Always returns true on success, raises RuntimeError on failure

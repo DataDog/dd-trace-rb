@@ -3,17 +3,49 @@ require "datadog/core/ddsketch"
 require "datadog/core/ddsketch_pprof/ddsketch_pb"
 
 RSpec.describe Datadog::Core::DDSketch do
-  context "when DDSketch is not supported" do
-    before do
-      stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", "Example error loading libdatadog_api")
+  describe ".supported?" do
+    context "when the native extension loaded" do
+      before { skip("libdatadog native extension not available") unless Datadog::Core::LIBDATADOG_API_FAILURE.nil? }
+
+      it { expect(described_class.supported?).to be(true) }
     end
 
-    it "raises an error" do
+    context "when the native extension did not load" do
+      before { stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", "Example error loading libdatadog_api") }
+
+      it { expect(described_class.supported?).to be(false) }
+    end
+  end
+
+  describe ".build" do
+    context "when the native extension is available" do
+      before { skip("libdatadog native extension not available") unless described_class.supported? }
+
+      it "returns a native sketch" do
+        expect(described_class.build).to be_an_instance_of(described_class)
+      end
+    end
+
+    context "when the native extension is not available" do
+      before { stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", "Example error loading libdatadog_api") }
+
+      it "returns a pure-Ruby sketch" do
+        expect(described_class.build).to be_an_instance_of(Datadog::Core::DDSketch::Pure)
+      end
+    end
+  end
+
+  context "when DDSketch is not supported" do
+    before { stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", "Example error loading libdatadog_api") }
+
+    it "raises an error when constructed directly" do
       expect { described_class.new }.to raise_error(ArgumentError, "DDSketch is not supported: Example error loading libdatadog_api")
     end
   end
 
   context "when DDSketch is supported" do
+    before { skip("libdatadog native extension not available") unless described_class.supported? }
+
     subject(:sketch) { described_class.new }
 
     describe "#add" do

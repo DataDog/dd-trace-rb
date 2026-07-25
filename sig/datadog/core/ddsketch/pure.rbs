@@ -1,0 +1,38 @@
+module Datadog
+  module Core
+    class DDSketch
+      # Pure-Ruby DDSketch used when the native libdatadog extension is unavailable.
+      class Pure
+        RELATIVE_ACCURACY: ::Float
+        GAMMA: ::Float
+        MULTIPLIER: ::Float
+        BACKEND_SKETCH_MIN_VALUE: ::Float
+        INDEX_OFFSET: ::Float
+        MIN_INDEXABLE_VALUE: ::Float
+        MAX_BINS: ::Integer
+
+        @bins: ::Array[::Float]
+        @bin_offset: ::Integer
+        @zero_count: ::Float
+
+        def initialize: () -> void
+        def add: (::Numeric point) -> self
+        def add_with_count: (::Numeric point, ::Numeric count) -> self
+        def count: () -> ::Float
+        def encode: () -> ::String
+
+        private
+
+        def reset: () -> void
+        def invalid_point?: (::Float point) -> bool
+        def insert: (::Float point, ::Float count) -> void
+        def index: (::Float value) -> ::Integer
+        def bin_index_to_store_index: (::Integer bin_index) -> ::Integer
+        def collapse_low_bins: (::Integer bin_number) -> void
+        def serialize: () -> ::String
+        def write_varint: (::Integer value) -> ::String
+        def write_zigzag32: (::Integer value) -> ::String
+      end
+    end
+  end
+end

@@ -1,8 +1,5 @@
 module Datadog
   module DataStreams
-      class UnsupportedError < StandardError
-      end
-
       class Processor < Core::Worker
         PROPAGATION_KEY: ::String
         DEFAULT_BUFFER_SIZE: ::Integer
@@ -17,7 +14,7 @@ module Datadog
 
         @stats_mutex: ::Thread::Mutex
 
-        @event_buffer: Core::Buffer::CRuby
+        @event_buffer: Core::Buffer::CRuby | Core::Buffer::ThreadSafe
 
         @transport: Transport::Stats::Transport?
 
@@ -85,7 +82,7 @@ module Datadog
         def resolved_agent_settings: () -> Core::Configuration::AgentSettings
 
         type bucket_type = { pathway_stats: ::Hash[::Array[untyped], pathway_stats_type], latest_produce_offsets: ::Hash[::String, ::Integer], latest_commit_offsets: ::Hash[::String, ::Integer] }
-        type pathway_stats_type = { edge_latency: Core::DDSketch, full_pathway_latency: Core::DDSketch, payload_size_sum: ::Integer, payload_size_count: ::Integer }
+        type pathway_stats_type = { edge_latency: (Core::DDSketch | Core::DDSketch::Pure), full_pathway_latency: (Core::DDSketch | Core::DDSketch::Pure), payload_size_sum: ::Integer, payload_size_count: ::Integer }
         type consumer_stat_type = { topic: ::String, partition: ::Integer, offset: ::Integer, timestamp: ::Time, timestamp_sec: ::Float }
         type consumer_lag_event = { topic: ::String, partition: ::Integer, expected_offset: ::Integer, actual_offset: ::Integer, gap_size: ::Integer, timestamp_sec: ::Float }
       end
