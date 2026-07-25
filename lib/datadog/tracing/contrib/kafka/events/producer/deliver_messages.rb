@@ -17,15 +17,22 @@ module Datadog
 
               module_function
 
-              def on_start(span, _event, _id, payload)
+              def on_start(span, _event, _id, _payload)
                 super
 
+                span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER)
+              end
+
+              def on_finish(span, _event, _id, payload)
+                super
+
+                # `ruby-kafka` populates this delivery metadata inside the block, so it is only
+                # available on finish. See APMS-20161.
                 span.set_tag(Ext::TAG_ATTEMPTS, payload[:attempts]) if payload.key?(:attempts)
                 span.set_tag(Ext::TAG_MESSAGE_COUNT, payload[:message_count]) if payload.key?(:message_count)
                 if payload.key?(:delivered_message_count)
                   span.set_tag(Ext::TAG_DELIVERED_MESSAGE_COUNT, payload[:delivered_message_count])
                 end
-                span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER)
               end
 
               def span_name

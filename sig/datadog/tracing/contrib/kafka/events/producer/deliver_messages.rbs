@@ -9,7 +9,9 @@ module Datadog
 
               EVENT_NAME: "deliver_messages.producer.kafka"
 
-              def self.process: (untyped span, untyped _event, untyped _id, untyped payload) -> untyped
+              def self.on_start: (untyped span, untyped _event, untyped _id, untyped payload) -> untyped
+
+              def self.on_finish: (untyped span, untyped _event, untyped _id, untyped payload) -> untyped
 
               def self?.span_name: () -> untyped
 
