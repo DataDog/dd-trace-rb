@@ -125,11 +125,67 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
       end
     end
 
-    context "multi-host authority" do
+    context "multi-host authority with ports" do
       let(:uri) { "jdbc:postgresql://host1:5432,host2:5432/analytics" }
 
-      it "returns all-nil rather than selecting incorrect metadata" do
-        expect(parsed).to eq(host: nil, port: nil, database: nil)
+      it "uses the first host in the failover list" do
+        expect(parsed).to eq(host: "host1", port: "5432", database: "analytics")
+      end
+    end
+
+    context "multi-host authority without ports" do
+      let(:uri) { "jdbc:mysql://host1,host2,host3/orders" }
+
+      it "uses the first host in the failover list" do
+        expect(parsed).to eq(host: "host1", port: nil, database: "orders")
+      end
+    end
+
+    context "multi-host authority with user-info" do
+      let(:uri) { "jdbc:mysql://user:password@host1:3306,host2:3306/orders" }
+
+      it "uses the first host without exposing credentials" do
+        expect(parsed).to eq(host: "host1", port: "3306", database: "orders")
+      end
+    end
+
+    context "mysql replication sub-protocol" do
+      let(:uri) { "jdbc:mysql:replication://master:3306,slave1:3306,slave2:3306/orders" }
+
+      it "strips the sub-protocol and uses the first host" do
+        expect(parsed).to eq(host: "master", port: "3306", database: "orders")
+      end
+    end
+
+    context "mysql loadbalance sub-protocol without ports" do
+      let(:uri) { "jdbc:mysql:loadbalance://host1,host2/orders" }
+
+      it "strips the sub-protocol and uses the first host" do
+        expect(parsed).to eq(host: "host1", port: nil, database: "orders")
+      end
+    end
+
+    context "mariadb replication sub-protocol" do
+      let(:uri) { "jdbc:mariadb:replication://master:3306,slave1:3306/orders" }
+
+      it "strips the sub-protocol and uses the first host" do
+        expect(parsed).to eq(host: "master", port: "3306", database: "orders")
+      end
+    end
+
+    context "mysql aurora sub-protocol single host" do
+      let(:uri) { "jdbc:mysql:aurora://cluster.example.com:3306/orders" }
+
+      it "strips the sub-protocol" do
+        expect(parsed).to eq(host: "cluster.example.com", port: "3306", database: "orders")
+      end
+    end
+
+    context "mysql address-equals authority form" do
+      let(:uri) { "jdbc:mysql://address=(protocol=tcp)(host=db-host)(port=3306)/orders" }
+
+      it "returns a nil host rather than an unparseable authority string" do
+        expect(parsed[:host]).to be_nil
       end
     end
 
