@@ -278,26 +278,124 @@ RSpec.describe Datadog::Core::Metrics::Client do
       end
     end
 
-    before do
-      expect(Datadog::Statsd).to receive(:new)
-        .with(metrics.default_hostname, metrics.default_port, **options)
-        .and_return(statsd_client)
+    context "without DogStatsD transport environment variables" do
+      with_env Datadog::Core::Configuration::Ext::Metrics::ENV_DOGSTATSD_URL => nil,
+        Datadog::Core::Configuration::Ext::Metrics::ENV_DOGSTATSD_SOCKET => nil
+
+      before do
+        expect(Datadog::Statsd).to receive(:new)
+          .with(metrics.default_hostname, metrics.default_port, **options)
+          .and_return(statsd_client)
+      end
+
+      it { is_expected.to be(statsd_client) }
+
+      context "with Datadog::Statsd not loaded" do
+        before do
+          const = Datadog::Statsd
+          hide_const("Datadog::Statsd")
+
+          expect(metrics).to receive(:require).with("datadog/statsd") do
+            stub_const("Datadog::Statsd", const)
+          end
+        end
+
+        it "loads Datadog::Statsd library" do
+          is_expected.to be(statsd_client)
+        end
+      end
     end
 
-    it { is_expected.to be(statsd_client) }
-
-    context "with Datadog::Statsd not loaded" do
-      before do
-        const = Datadog::Statsd
-        hide_const("Datadog::Statsd")
-
-        expect(metrics).to receive(:require).with("datadog/statsd") do
-          stub_const("Datadog::Statsd", const)
+    context "when DD_DOGSTATSD_URL is set" do
+      around do |example|
+        ClimateControl.modify(
+          Datadog::Core::Configuration::Ext::Metrics::ENV_DOGSTATSD_URL => "unix:///var/run/datadog/dsd.socket",
+          Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST => nil,
+          Datadog::Core::Configuration::Ext::Metrics::ENV_DEFAULT_PORT => nil
+        ) do
+          example.run
         end
       end
 
-      it "loads Datadog::Statsd library" do
+      # dogstatsd-ruby resolves DD_DOGSTATSD_URL itself since 5.6; this test is
+      # run with both ~> 4.0 and latest dogstatsd-ruby.
+      if Gem::Version.new(Datadog::Statsd::VERSION) >= Gem::Version.new("5.6.0")
+        before do
+          # Build the client first: initialize itself instantiates a statsd
+          # client, and the expectation below must only observe the explicit
+          # #default_statsd_client call under test.
+          metrics
+
+          expect(Datadog::Statsd).to receive(:new)
+            .with(**options)
+            .and_return(statsd_client)
+        end
+
+        it "delegates transport resolution to dogstatsd-ruby" do
+          is_expected.to be(statsd_client)
+        end
+      else
+        before do
+          expect(Datadog::Statsd).to receive(:new)
+            .with(metrics.default_hostname, metrics.default_port, **options)
+            .and_return(statsd_client)
+        end
+
+        it "keeps the explicit host and port" do
+          is_expected.to be(statsd_client)
+        end
+      end
+    end
+
+    context "when DD_DOGSTATSD_URL and DD_AGENT_HOST are both set" do
+      around do |example|
+        ClimateControl.modify(
+          Datadog::Core::Configuration::Ext::Metrics::ENV_DOGSTATSD_URL => "unix:///var/run/datadog/dsd.socket",
+          Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST => "agent-host",
+          Datadog::Core::Configuration::Ext::Metrics::ENV_DEFAULT_PORT => nil
+        ) do
+          example.run
+        end
+      end
+
+      before do
+        expect(Datadog::Statsd).to receive(:new)
+          .with(metrics.default_hostname, metrics.default_port, **options)
+          .and_return(statsd_client)
+      end
+
+      it "keeps the explicit host and port" do
         is_expected.to be(statsd_client)
+      end
+    end
+
+    if Gem::Version.new(Datadog::Statsd::VERSION) >= Gem::Version.new("5.6.0")
+      context "when DD_DOGSTATSD_SOCKET is set" do
+        around do |example|
+          ClimateControl.modify(
+            Datadog::Core::Configuration::Ext::Metrics::ENV_DOGSTATSD_SOCKET => "/var/run/datadog/dsd.socket",
+            Datadog::Core::Configuration::Ext::Metrics::ENV_DOGSTATSD_URL => nil,
+            Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST => nil,
+            Datadog::Core::Configuration::Ext::Metrics::ENV_DEFAULT_PORT => nil
+          ) do
+            example.run
+          end
+        end
+
+        before do
+          # Build the client first: initialize itself instantiates a statsd
+          # client, and the expectation below must only observe the explicit
+          # #default_statsd_client call under test.
+          metrics
+
+          expect(Datadog::Statsd).to receive(:new)
+            .with(**options)
+            .and_return(statsd_client)
+        end
+
+        it "delegates transport resolution to dogstatsd-ruby" do
+          is_expected.to be(statsd_client)
+        end
       end
     end
   end
