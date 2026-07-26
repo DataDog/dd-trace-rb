@@ -69,7 +69,7 @@ GEM
       rake
     redis (5.4.1)
       redis-client (>= 0.22.0)
-    redis-client (0.30.0)
+    redis-client (0.30.1)
       connection_pool
     reline (0.6.3)
       io-console (~> 0.5)
