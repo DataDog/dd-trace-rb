@@ -287,6 +287,20 @@
         "default": null
       }
     ],
+    "DD_DOGSTATSD_SOCKET": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_DOGSTATSD_URL": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_DYNAMIC_INSTRUMENTATION_ENABLED": [
       {
         "version": "A",

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "set"
+require 'set'
 
 # This file is auto-generated from `supported-configurations.json` by `rake local_config_map:generate`.
 # Do not change manually! Please refer to `docs/AccessEnvironmentVariables.md` for more information.
@@ -49,6 +49,8 @@ module Datadog
           "DD_DBM_INJECT_SQL_BASEHASH",
           "DD_DBM_PROPAGATION_MODE",
           "DD_DISABLE_DATADOG_RAILS",
+          "DD_DOGSTATSD_SOCKET",
+          "DD_DOGSTATSD_URL",
           "DD_DYNAMIC_INSTRUMENTATION_ENABLED",
           "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE",
           "DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE",

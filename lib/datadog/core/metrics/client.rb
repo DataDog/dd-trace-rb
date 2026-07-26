@@ -80,7 +80,29 @@ module Datadog
             {}
           end
 
-          Datadog::Statsd.new(default_hostname, default_port, **options)
+          # DD_DOGSTATSD_URL and DD_DOGSTATSD_SOCKET can configure a UDS transport that an
+          # explicit host and port pair cannot express, but passing explicit arguments
+          # bypasses dogstatsd-ruby's environment resolution entirely — runtime metrics
+          # were silently sent to the UDP default on UDS-only setups (for example pods
+          # configured by the Datadog Admission Controller, which injects DD_DOGSTATSD_URL
+          # but not DD_AGENT_HOST). When only those variables describe the transport,
+          # delegate the resolution to dogstatsd-ruby, which understands them since 5.6.
+          if statsd_transport_from_env?
+            Datadog::Statsd.new(**options)
+          else
+            Datadog::Statsd.new(default_hostname, default_port, **options)
+          end
+        end
+
+        # Whether transport resolution should be left to dogstatsd-ruby's own environment
+        # handling (DD_DOGSTATSD_URL / DD_DOGSTATSD_SOCKET). An explicit DD_AGENT_HOST or
+        # DD_METRIC_AGENT_PORT keeps the historical host/port behavior.
+        def statsd_transport_from_env?
+          dogstatsd_version >= Gem::Version.new("5.6") &&
+            !DATADOG_ENV.key?(Configuration::Ext::Agent::ENV_DEFAULT_HOST) &&
+            !DATADOG_ENV.key?(Configuration::Ext::Metrics::ENV_DEFAULT_PORT) &&
+            (DATADOG_ENV.key?(Configuration::Ext::Metrics::ENV_DOGSTATSD_URL) ||
+              DATADOG_ENV.key?(Configuration::Ext::Metrics::ENV_DOGSTATSD_SOCKET))
         end
 
         def configure(options = {})
