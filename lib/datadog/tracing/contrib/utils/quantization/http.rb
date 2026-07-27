@@ -23,14 +23,14 @@ module Datadog
             def url(url, options = {})
               url!(url, options)
             rescue
-              placeholder = options[:placeholder] || PLACEHOLDER
+              placeholder = options[:placeholder] || PLACEHOLDER #: ::String
 
               (options[:base] == :exclude) ? placeholder : "#{base_url(url)}/#{placeholder}"
             end
 
             def base_url(url, options = {})
               if (m = RFC3986_URL_BASE.match(url))
-                m[1]
+                m[1] #: ::String
               else
                 ""
               end
@@ -60,7 +60,7 @@ module Datadog
             def query(query, options = {})
               query!(query, options)
             rescue
-              options[:placeholder] || PLACEHOLDER
+              options[:placeholder] || PLACEHOLDER #: ::String
             end
 
             def query!(query, options = {})
@@ -119,9 +119,9 @@ module Datadog
             # Scans over the query string and obfuscates sensitive data by
             # replacing matches with an opaque value
             def obfuscate_query(query, options = {})
-              options[:regex] = nil if options[:regex] == :internal
-              re = options[:regex] || OBFUSCATOR_REGEX
-              with = options[:with] || OBFUSCATOR_WITH
+              regex = (options[:regex] == :internal) ? nil : options[:regex]
+              re = regex || OBFUSCATOR_REGEX #: ::Regexp
+              with = options[:with] || OBFUSCATOR_WITH #: ::String
 
               query.gsub(re, with)
             end
