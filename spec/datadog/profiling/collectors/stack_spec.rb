@@ -937,6 +937,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       # Both show ClassWithOriginalMethod because the cache hit reuses the first activation's cme.
       # This is acceptable: define_method iseq sharing at the same stack depth is rare, and the
       # alternative (calling rb_vm_frame_method_entry on every cache hit) is too expensive.
+      # This should probably be ClassWithOriginalMethod#original twice anyway,
+      # because SubclassSharingMethodIseq#original does not exist,
+      # see https://bugs.ruby-lang.org/issues/22197.
       expect(labels).to contain_exactly(
         "ClassWithOriginalMethod#original",
         "ClassWithOriginalMethod#original",
