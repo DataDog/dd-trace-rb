@@ -11,7 +11,13 @@ module Datadog
 
           def self.tag_response_headers: (SpanOperation span, ::Rack::headers headers, Configuration::Settings configuration) -> void
 
-          def self.quantize_header_tag_urls: (::Hash[::String, untyped] | ::Array[[::String, untyped]] tags, Configuration::Settings configuration) { (::String header) -> ::String } -> ::Hash[::String, untyped]
+          # The Hash arm's value type and the return value type are untyped because
+          # the tag values originate from RequestHeaderCollection#get and
+          # CaseInsensitiveWrapper#[] (both untyped) and are rewritten through
+          # Contrib::Utils::Quantization::HTTP.url (also untyped). The
+          # DD_TRACE_HEADER_TAGS arm is HeaderTags#request_tags / #response_tags,
+          # whose return type is Array[Array[String]].
+          def self.quantize_header_tag_urls: (::Hash[::String, untyped] | ::Array[::Array[::String]] tags, Configuration::Settings configuration) { (::String header) -> ::String } -> ::Hash[::String, untyped]
 
           def self.tag_datadog_request_attribution_headers: (SpanOperation span, Core::HeaderCollection headers) -> void
         end
