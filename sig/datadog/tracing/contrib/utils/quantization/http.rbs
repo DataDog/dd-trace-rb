@@ -4,20 +4,25 @@ module Datadog
       module Utils
         module Quantization
           module HTTP
+            type option_value = ::String | ::Symbol | bool | ::Array[::String] | ::Regexp | ::Hash[::Symbol, option_value]
+            type quantize_options = ::Hash[::Symbol, option_value]
+
             PLACEHOLDER: "?"
             RFC3986_URL_BASE: ::Regexp
 
-            def self?.url: (untyped url, ?::Hash[untyped, untyped] options) -> untyped
+            def self?.url: (::String url, ?quantize_options options) -> ::String
 
-            def self?.base_url: (untyped url, ?::Hash[untyped, untyped] options) -> (untyped | "")
+            def self?.base_url: (::String url, ?quantize_options options) -> ::String
 
-            def self?.url!: (untyped url, ?::Hash[untyped, untyped] options) -> untyped
+            def self?.url!: (::String url, ?quantize_options options) -> ::String
 
-            def self?.query: (untyped query, ?::Hash[untyped, untyped] options) -> untyped
+            def self?.query: (::String query, ?quantize_options options) -> ::String
 
-            def self?.query!: (untyped query, ?::Hash[untyped, untyped] options) -> ("" | untyped)
-            def self?.collect_query: (untyped query, ?::Hash[untyped, untyped] options) { (untyped, untyped, untyped) -> untyped } -> untyped
-            def self?.obfuscate_query: (untyped query, ?::Hash[untyped, untyped] options) -> untyped
+            def self?.query!: (::String query, ?quantize_options options) -> ::String
+
+            def self?.collect_query: (::String query, ?quantize_options options) { (::String?, ::String?, ::String?) -> [::String?, ::String?] } -> ::String
+
+            def self?.obfuscate_query: (::String query, ?quantize_options options) -> ::String
 
             OBFUSCATOR_WITH: "<redacted>"
             OBFUSCATOR_REGEX: ::Regexp
