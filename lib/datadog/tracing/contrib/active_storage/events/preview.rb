@@ -37,10 +37,9 @@ module Datadog
               as_key = payload[:key]
 
               span.service = configuration[:service_name] if configuration[:service_name]
-              # preview action is not specific to a service and key cardinality is too high for a resource
-              # so just use resource prefix
+              # Preview payload provides only the key, whose cardinality is too high for a resource,
+              # so the resource stays as the span name.
               # https://edgeguides.rubyonrails.org/active_support_instrumentation.html#preview-active-storage
-              span.resource = as_key
               span.type = span_type
 
               set_analytics(span)

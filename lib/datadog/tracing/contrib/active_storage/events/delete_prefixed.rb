@@ -38,7 +38,7 @@ module Datadog
               as_service = payload[:service]
 
               span.service = configuration[:service_name] if configuration[:service_name]
-              span.resource = "#{as_service}: #{as_prefix}"
+              span.resource = as_service
               span.type = span_type
 
               set_analytics(span)

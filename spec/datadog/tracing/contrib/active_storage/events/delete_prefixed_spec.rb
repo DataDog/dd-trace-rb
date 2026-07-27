@@ -33,7 +33,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::DeletePrefixed 
 
     it "sets the span resource" do
       described_class.process(span, event, id, payload)
-      expect(span.resource).to eq("S3: tmp/uploads/")
+      expect(span.resource).to eq("S3")
     end
 
     it "sets the span type" do

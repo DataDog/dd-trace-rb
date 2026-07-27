@@ -30,9 +30,9 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Preview do
 
     include_context "Active Storage configuration"
 
-    it "sets the span resource to the key" do
+    it "keeps the span resource as the span name" do
       described_class.process(span, event, id, payload)
-      expect(span.resource).to eq("variants/abc123/preview.jpg")
+      expect(span.resource).to eq("active_storage.preview")
     end
 
     it "sets the span type" do

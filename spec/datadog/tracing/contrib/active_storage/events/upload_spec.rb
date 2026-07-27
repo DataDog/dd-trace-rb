@@ -33,7 +33,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Upload do
 
     it "sets the span resource" do
       described_class.process(span, event, id, payload)
-      expect(span.resource).to eq("Disk: test_key_123")
+      expect(span.resource).to eq("Disk")
     end
 
     it "sets the span type" do

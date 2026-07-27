@@ -219,7 +219,7 @@ RSpec.describe "ActiveStorage instrumentation", execute_in_fork: Rails.version.t
 
         span = spans.find { |s| s.name == "active_storage.upload" }
         expect(span).not_to be_nil
-        expect(span.resource).to match(/#{key}/)
+        expect(span.resource).to eq(span.get_tag("active_storage.service"))
         expect(span.type).to eq("http")
         expect(span.get_tag("active_storage.key")).to eq(key)
         expect(span.get_tag("active_storage.service")).not_to be_nil
@@ -233,7 +233,7 @@ RSpec.describe "ActiveStorage instrumentation", execute_in_fork: Rails.version.t
 
         span = spans.find { |s| s.name == "active_storage.download" }
         expect(span).not_to be_nil
-        expect(span.resource).to match(/#{key}/)
+        expect(span.resource).to eq(span.get_tag("active_storage.service"))
         expect(span.type).to eq("http")
         expect(span.get_tag("active_storage.key")).to eq(key)
         expect(span.get_tag("active_storage.service")).not_to be_nil
@@ -248,7 +248,7 @@ RSpec.describe "ActiveStorage instrumentation", execute_in_fork: Rails.version.t
         expect(result).to be true
         span = spans.find { |s| s.name == "active_storage.exist" }
         expect(span).not_to be_nil
-        expect(span.resource).to match(/#{key}/)
+        expect(span.resource).to eq(span.get_tag("active_storage.service"))
         expect(span.type).to eq("http")
         expect(span.get_tag("active_storage.key")).to eq(key)
         expect(span.get_tag("active_storage.exist")).to eq("true")
@@ -263,7 +263,7 @@ RSpec.describe "ActiveStorage instrumentation", execute_in_fork: Rails.version.t
 
         span = spans.find { |s| s.name == "active_storage.delete" }
         expect(span).not_to be_nil
-        expect(span.resource).to match(/#{key}/)
+        expect(span.resource).to eq(span.get_tag("active_storage.service"))
         expect(span.type).to eq("http")
         expect(span.get_tag("active_storage.key")).to eq(key)
         expect(span.get_tag("active_storage.service")).not_to be_nil
@@ -278,7 +278,7 @@ RSpec.describe "ActiveStorage instrumentation", execute_in_fork: Rails.version.t
 
         span = spans.find { |s| s.name == "active_storage.url" }
         expect(span).not_to be_nil
-        expect(span.resource).to match(/#{key}/)
+        expect(span.resource).to eq(span.get_tag("active_storage.service"))
         expect(span.type).to eq("http")
         expect(span.get_tag("active_storage.key")).to eq(key)
         expect(span.get_tag("active_storage.service")).not_to be_nil
@@ -296,7 +296,7 @@ RSpec.describe "ActiveStorage instrumentation", execute_in_fork: Rails.version.t
 
           span = spans.find { |s| s.name == "active_storage.download_chunk" }
           expect(span).not_to be_nil
-          expect(span.resource).to match(/#{key}/)
+          expect(span.resource).to eq(span.get_tag("active_storage.service"))
           expect(span.type).to eq("http")
           expect(span.get_tag("active_storage.key")).to eq(key)
           expect(span.get_tag("active_storage.service")).not_to be_nil

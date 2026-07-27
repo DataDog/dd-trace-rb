@@ -33,7 +33,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::StreamingDownlo
 
     it "sets the span resource" do
       described_class.process(span, event, id, payload)
-      expect(span.resource).to eq("GCS: media/stream.mp4")
+      expect(span.resource).to eq("GCS")
     end
 
     it "sets the span type" do
