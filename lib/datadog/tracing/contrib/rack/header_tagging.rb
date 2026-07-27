@@ -91,7 +91,10 @@ module Datadog
             # branches build an Array of [tag, value] pairs. Normalize so the
             # lookup and rewrite below work for both.
             tags = tags.to_h
-            quantize_options = configuration[:quantize] || {}
+            # HeaderTagging is shared across integrations (Rack, Sinatra, ...).
+            # Only Rack defines the :quantize option, so integrations without it
+            # fall back to default quantization rather than raising InvalidOptionError.
+            quantize_options = (configuration.option_defined?(:quantize) && configuration[:quantize]) || {}
 
             HEADERS_WITH_URLS.each do |header|
               tag = yield(header)

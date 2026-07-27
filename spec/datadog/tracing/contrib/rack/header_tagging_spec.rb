@@ -118,6 +118,24 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::HeaderTagging do
           expect(span_op.get_tag("http.request.headers.referer")).to eq("http://example.com/search?q")
         end
       end
+
+      context "when the integration configuration does not define :quantize (e.g. Sinatra)" do
+        # HeaderTagging is shared; only Rack defines :quantize. Reading it on an
+        # integration that doesn't define it raised InvalidOptionError and 500'd
+        # every traced request.
+        let(:configuration) do
+          settings = Class.new(Datadog::Tracing::Contrib::Configuration::Settings) do
+            option :headers, default: {}, type: :hash
+          end.new
+          settings[:headers] = {request: ["Referer"]}
+          settings
+        end
+
+        it "quantizes with default options instead of raising InvalidOptionError" do
+          expect { described_class.tag_request_headers(span_op, env, configuration) }.not_to raise_error
+          expect(span_op.get_tag("http.request.headers.referer")).to eq("http://example.com/search?q")
+        end
+      end
     end
   end
 
