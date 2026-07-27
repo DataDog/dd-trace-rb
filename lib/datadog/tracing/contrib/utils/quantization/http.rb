@@ -23,16 +23,14 @@ module Datadog
             def url(url, options = {})
               url!(url, options)
             rescue
-              placeholder = (options[:placeholder] || PLACEHOLDER).to_s
+              placeholder = options[:placeholder] || PLACEHOLDER
 
               (options[:base] == :exclude) ? placeholder : "#{base_url(url)}/#{placeholder}"
             end
 
             def base_url(url, options = {})
               if (m = RFC3986_URL_BASE.match(url))
-                # MatchData#[] is nil-typed; capture group 1 always participates on
-                # a successful match, so to_s is a no-op that yields a String.
-                m[1].to_s
+                m[1]
               else
                 ""
               end
@@ -43,10 +41,9 @@ module Datadog
 
               URI.parse(url).tap do |uri|
                 # Format the query string
-                if (query_string = uri.query)
-                  sub_options = options[:query]
-                  quantized = query(query_string, sub_options.is_a?(::Hash) ? sub_options : {})
-                  uri.query = (quantized.empty? ? nil : quantized)
+                if uri.query
+                  query = query(uri.query, options[:query])
+                  uri.query = ((!query.nil? && query.empty?) ? nil : query)
                 end
 
                 # Remove any URI fragments
@@ -63,7 +60,7 @@ module Datadog
             def query(query, options = {})
               query!(query, options)
             rescue
-              (options[:placeholder] || PLACEHOLDER).to_s
+              options[:placeholder] || PLACEHOLDER
             end
 
             def query!(query, options = {})
@@ -76,22 +73,18 @@ module Datadog
               # or if the query string is meant to include everything
               return "" if options[:exclude] == :all
 
-              show = options[:show]
-              exclude = options[:exclude]
-              obfuscate = options[:obfuscate]
-
-              unless show == :all && !(obfuscate && exclude)
+              unless options[:show] == :all && !(options[:obfuscate] && options[:exclude])
                 query = collect_query(query, uniq: true) do |key, value|
-                  if exclude.is_a?(::Array) && exclude.include?(key)
+                  if options[:exclude].include?(key)
                     [nil, nil]
                   else
-                    value = (show == :all || (show.is_a?(::Array) && show.include?(key))) ? value : nil
+                    value = (options[:show] == :all || options[:show].include?(key)) ? value : nil
                     [key, value]
                   end
                 end
               end
 
-              obfuscate.is_a?(::Hash) ? obfuscate_query(query, obfuscate) : query
+              options[:obfuscate] ? obfuscate_query(query, options[:obfuscate]) : query
             end
 
             # Iterate over each key value pair, yielding to the block given.
@@ -126,10 +119,9 @@ module Datadog
             # Scans over the query string and obfuscates sensitive data by
             # replacing matches with an opaque value
             def obfuscate_query(query, options = {})
-              regex = options[:regex]
-              re = regex.is_a?(::Regexp) ? regex : OBFUSCATOR_REGEX
-              with = options[:with]
-              with = with.is_a?(::String) ? with : OBFUSCATOR_WITH
+              options[:regex] = nil if options[:regex] == :internal
+              re = options[:regex] || OBFUSCATOR_REGEX
+              with = options[:with] || OBFUSCATOR_WITH
 
               query.gsub(re, with)
             end
