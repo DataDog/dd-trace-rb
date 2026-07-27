@@ -5,9 +5,13 @@ module Datadog
         module HeaderTagging
           DATADOG_REQUEST_ATTRIBUTION_HEADERS: ::Array[::String]
 
+          HEADERS_WITH_URLS: ::Array[::String]
+
           def self.tag_request_headers: (SpanOperation span, ::Rack::env | Header::RequestHeaderCollection env, Configuration::Settings configuration) -> void
 
           def self.tag_response_headers: (SpanOperation span, ::Rack::headers headers, Configuration::Settings configuration) -> void
+
+          def self.quantize_header_tag_urls: (::Hash[::String, untyped] | ::Array[[::String, untyped]] tags, Configuration::Settings configuration) { (::String header) -> ::String } -> ::Hash[::String, untyped]
 
           def self.tag_datadog_request_attribution_headers: (SpanOperation span, Core::HeaderCollection headers) -> void
         end

@@ -90,6 +90,35 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::HeaderTagging do
         end
       end
     end
+
+    context "when a URL-bearing request header is tagged" do
+      let(:env) { {"HTTP_REFERER" => "http://example.com/search?q=secret"} }
+
+      context "via integration header tags" do
+        before do
+          Datadog.configure do |c|
+            c.tracing.instrument :rack, headers: {request: ["Referer"]}
+          end
+
+          described_class.tag_request_headers(span_op, env, configuration)
+        end
+
+        it "quantizes the URL query string" do
+          expect(span_op.get_tag("http.request.headers.referer")).to eq("http://example.com/search?q")
+        end
+      end
+
+      context "via global header tags" do
+        before do
+          Datadog.configuration.tracing.header_tags = ["Referer"]
+          described_class.tag_request_headers(span_op, env, configuration)
+        end
+
+        it "quantizes the URL query string" do
+          expect(span_op.get_tag("http.request.headers.referer")).to eq("http://example.com/search?q")
+        end
+      end
+    end
   end
 
   describe ".tag_response_headers" do
@@ -169,6 +198,24 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::HeaderTagging do
             span_op.get_tag("http.response.headers.foo")
           }.to("bar,baz")
         end
+      end
+    end
+
+    context "when a URL-bearing response header is tagged" do
+      before do
+        Datadog.configure do |c|
+          c.tracing.instrument :rack, headers: {response: ["Location"]}
+        end
+      end
+
+      let(:headers) do
+        {"Location" => "http://example.com/callback?token=abc123"}
+      end
+
+      it "quantizes the URL query string" do
+        expect { tag_response_headers }.to change {
+          span_op.get_tag("http.response.headers.location")
+        }.to("http://example.com/callback?token")
       end
     end
   end

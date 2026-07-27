@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "header_collection"
+require_relative "../utils/quantization/http"
 
 module Datadog
   module Tracing
@@ -11,6 +12,13 @@ module Datadog
           DATADOG_REQUEST_ATTRIBUTION_HEADERS = [
             "x-datadog-endpoint-scan",
             "x-datadog-security-test"
+          ].freeze
+
+          # Headers whose values are URLs. Their values are quantized before
+          # tagging so query-string content (which may carry PII) is stripped.
+          HEADERS_WITH_URLS = %w[
+            Referer
+            Location
           ].freeze
 
           def self.tag_request_headers(span, env, configuration)
@@ -29,6 +37,10 @@ module Datadog
                   result[header_tag] = header_value
                 end
               end
+            end
+
+            tags = quantize_header_tag_urls(tags, configuration) do |header|
+              Tracing::Metadata::Ext::HTTP::RequestHeaders.to_tag(header)
             end
 
             span.set_tags(tags)
@@ -62,7 +74,33 @@ module Datadog
               end
             end
 
+            tags = quantize_header_tag_urls(tags, configuration) do |header|
+              Tracing::Metadata::Ext::HTTP::ResponseHeaders.to_tag(header)
+            end
+
             span.set_tags(tags)
+          end
+
+          # Quantizes the URL value of any tagged URL-bearing header so
+          # query-string content (which may carry PII) is stripped before the
+          # value becomes a span tag.
+          #
+          # @api private
+          private_class_method def self.quantize_header_tag_urls(tags, configuration)
+            # The whitelist branches build a Hash; the DD_TRACE_HEADER_TAGS
+            # branches build an Array of [tag, value] pairs. Normalize so the
+            # lookup and rewrite below work for both.
+            tags = tags.to_h
+            quantize_options = configuration[:quantize] || {}
+
+            HEADERS_WITH_URLS.each do |header|
+              tag = yield(header)
+              next unless tags.key?(tag)
+
+              tags[tag] = Contrib::Utils::Quantization::HTTP.url(tags[tag], quantize_options)
+            end
+
+            tags
           end
 
           # Datadog-originated requests use these headers for request attribution.
