@@ -34,7 +34,7 @@ module Datadog
             span_id: raw[:span_id].unpack1("H*").to_s.to_i(16),
             local_root_span_id: attrs[0]&.to_i(16),
             valid: raw[:valid].getbyte(0) == 1,
-            attrs: attrs
+            attrs: attrs,
           }
         end
 

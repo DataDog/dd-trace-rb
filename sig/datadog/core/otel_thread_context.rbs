@@ -32,7 +32,7 @@ module Datadog
 
       def self._native_read: () -> native_record?
 
-      def self.decode_attrs: (String raw_attrs) -> Hash[Integer, String]
+      private def self.decode_attrs: (String raw_attrs) -> Hash[Integer, String]
     end
   end
 end
