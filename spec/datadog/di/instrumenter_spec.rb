@@ -3,6 +3,7 @@ require "datadog/di/instrumenter"
 require "datadog/di/code_tracker"
 require "datadog/di/serializer"
 require "datadog/di/probe"
+require "datadog/di/capture_expression"
 require "datadog/di/proc_responder"
 require_relative "hook_line"
 require_relative "hook_method"
@@ -2105,8 +2106,19 @@ RSpec.describe Datadog::DI::Instrumenter do
           method_name: "hook_test_method", capture_snapshot: false)
       end
 
+      let(:capture_expression_probe) do
+        Datadog::DI::Probe.new(id: 1, type: :log, type_name: "HookTestClass",
+          method_name: "hook_test_method", capture_snapshot: false,
+          capture_expressions: [Datadog::DI::CaptureExpression.new(name: "x", expr: nil)])
+      end
+
       it "returns the snapshot limiter for capturing probes" do
         expect(instrumenter.global_rate_limiter_for(snapshot_probe))
+          .to be(instrumenter.global_snapshot_rate_limiter)
+      end
+
+      it "returns the snapshot limiter for capture-expression-only probes" do
+        expect(instrumenter.global_rate_limiter_for(capture_expression_probe))
           .to be(instrumenter.global_snapshot_rate_limiter)
       end
 
@@ -2140,7 +2152,9 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(HookTestClass.new.hook_test_method).to eq 42
 
           expect(observed_calls.length).to eq 0
-          expect(logger).to have_received(:debug)
+          expect(logger).to have_received(:debug) do |&block|
+            expect(block.call).to match(/global rate limit/)
+          end
         end
       end
 
@@ -2207,7 +2221,9 @@ RSpec.describe Datadog::DI::Instrumenter do
           HookLineTestClass.new.test_method
 
           expect(observed_calls).to be_empty
-          expect(logger).to have_received(:debug)
+          expect(logger).to have_received(:debug) do |&block|
+            expect(block.call).to match(/global rate limit/)
+          end
         end
       end
 
