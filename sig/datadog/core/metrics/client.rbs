@@ -40,6 +40,8 @@ module Datadog
 
         def default_statsd_client: () -> untyped
 
+        def statsd_transport_from_env?: () -> bool
+
         def configure: (?Hash[untyped, untyped] options) -> void
 
         def send_stats?: () -> bool
