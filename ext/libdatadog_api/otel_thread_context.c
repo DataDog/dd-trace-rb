@@ -162,6 +162,10 @@ static void register_ractor_local_hooks(void) {
 #endif
 
   rb_add_event_hook(on_fiber_switch, RUBY_EVENT_FIBER_SWITCH, Qnil);
+
+#ifndef RUBY_INTERNAL_THREAD_EVENT_EXITED
+  rb_add_event_hook(on_thread_end, RUBY_EVENT_THREAD_END, Qnil);
+#endif
 }
 
 static void register_global_hooks(void) {
@@ -173,8 +177,6 @@ static void register_global_hooks(void) {
 // RUBY_EVENT_THREAD_END VM trace event, since trace events are scoped to main Ractor only
 #ifdef RUBY_INTERNAL_THREAD_EVENT_EXITED
   rb_internal_thread_add_event_hook(on_thread_exited, RUBY_INTERNAL_THREAD_EVENT_EXITED, NULL);
-#else
-  rb_add_event_hook(on_thread_end, RUBY_EVENT_THREAD_END, Qnil);
 #endif
 
 #ifdef HAVE_RUBY_THREAD_STORAGE_API
