@@ -5,8 +5,8 @@ module Datadog
         type tags = ::Hash[::String, ::String]
         type traceparent_fields = [::Integer, ::Integer, ::Integer]
         type extracted_traceparent = [::Integer, ::Integer, ::Integer, ::Integer]
-        type extracted_datadog_fields = [::String?, ::Integer?, ::String?, tags?, ::String?]
-        type extracted_tracestate = [::String, ::Integer?, ::String?, ::String?, tags?, ::String?]
+        type extracted_datadog_fields = { ?sampling_priority: ::Integer?, ?origin: ::String?, ?ts_parent_id: ::String?, ?tags: tags?, ?unknown_fields: ::String? }
+        type extracted_tracestate = { ?tracestate: ::String, ?dd: extracted_datadog_fields, ?ot: Tracing::Sampling::OtelConsistentSampling::extracted_otel_fields }
 
         TRACEPARENT_KEY: "traceparent"
 
@@ -25,7 +25,7 @@ module Datadog
         def build_traceparent_string: (::Integer trace_id, ::Integer parent_id, ::Integer trace_flags) -> ::String
         def build_trace_flags: (TraceDigest digest) -> ::Integer
         def build_tracestate: (TraceDigest digest) -> ::String?
-        def append_dd: (::String tracestate, ::String field) -> bool
+        def append_to_vendor: (::String tracestate, ::String field) -> bool
         def last_dd_parent_id: (TraceDigest digest) -> ::String
         def serialize_origin: (::String value) -> ::String
         def serialize_tag_key: (::String name) -> ::String
@@ -36,7 +36,9 @@ module Datadog
         def parse_traceparent_string: (::String? traceparent) -> traceparent_fields?
 
         def parse_sampled_flag: (::Integer trace_flags) -> ::Integer
-        def extract_tracestate: (::String? tracestate) -> (::String | extracted_tracestate)?
+        def extract_tracestate: (::String? tracestate) -> extracted_tracestate
+
+        def pop_member: (::Array[::String] vendors, ::String prefix) -> ::String?
 
         def extract_datadog_fields: (::String dd_tracestate) -> extracted_datadog_fields
         def deserialize_tag_value: (::String value) -> ::String

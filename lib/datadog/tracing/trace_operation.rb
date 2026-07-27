@@ -5,6 +5,7 @@ require_relative "../core/utils"
 require_relative "event"
 require_relative "metadata/tagging"
 require_relative "sampling/ext"
+require_relative "sampling/otel_consistent_sampling"
 require_relative "span_operation"
 require_relative "trace_digest"
 require_relative "correlation"
@@ -87,6 +88,9 @@ module Datadog
         metrics: nil,
         trace_state: nil,
         trace_state_unknown_fields: nil,
+        otel_random_value: nil,
+        otel_threshold: nil,
+        otel_unknown_fields: nil,
         remote_parent: false,
         tracer: nil, # DEV-3.0: deprecated, remove in 3.0
         baggage: nil,
@@ -116,6 +120,11 @@ module Datadog
         @apm_tracing_enabled = apm_tracing_enabled
         @trace_state = trace_state
         @trace_state_unknown_fields = trace_state_unknown_fields
+        # Inbound OpenTelemetry consistent probability sampling values (`ot.rv`/`ot.th`),
+        # only present when this trace continues a remote context that carried them.
+        @otel_random_value = otel_random_value
+        @otel_threshold = otel_threshold
+        @otel_unknown_fields = otel_unknown_fields
         @baggage = baggage
 
         # Generic tags
@@ -391,6 +400,16 @@ module Datadog
         @propagated = true
         events.trace_propagated.publish(self)
 
+        otel_random_value, otel_threshold = Sampling::OtelConsistentSampling.resolve_outbound(
+          trace_id: @id,
+          sampling_priority: @sampling_priority,
+          decision_maker: get_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER),
+          applied_rate: @rule_sample_rate || @agent_sample_rate,
+          rate_limiter_rate: @rate_limiter_rate,
+          inbound_random_value: @otel_random_value,
+          inbound_threshold: @otel_threshold,
+        )
+
         TraceDigest.new(
           span_id: span_id,
           span_name: @active_span && @active_span.name,
@@ -409,6 +428,9 @@ module Datadog
           trace_service: service,
           trace_state: @trace_state,
           trace_state_unknown_fields: @trace_state_unknown_fields,
+          trace_otel_random_value: otel_random_value,
+          trace_otel_threshold: otel_threshold,
+          trace_otel_unknown_fields: @otel_unknown_fields,
           span_remote: @remote_parent && @active_span.nil?,
           baggage: (@baggage.nil? || @baggage.empty?) ? nil : @baggage
         ).freeze
@@ -446,6 +468,9 @@ module Datadog
           service: service&.dup,
           trace_state: @trace_state&.dup,
           trace_state_unknown_fields: @trace_state_unknown_fields&.dup,
+          otel_random_value: @otel_random_value,
+          otel_threshold: @otel_threshold,
+          otel_unknown_fields: @otel_unknown_fields&.dup,
           tags: meta.dup,
           metrics: metrics.dup,
           remote_parent: @remote_parent

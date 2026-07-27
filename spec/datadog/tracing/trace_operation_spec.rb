@@ -2213,6 +2213,39 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
+      context "carries OpenTelemetry consistent probability sampling values" do
+        let(:options) do
+          {
+            id: 0xfff972474538efff,
+            sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP,
+            rule_sample_rate: 0.1,
+          }
+        end
+
+        context "when DD made a probability decision" do
+          before do
+            trace_op.set_tag(
+              Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+              Datadog::Tracing::Sampling::Ext::Decision::TRACE_SAMPLING_RULE
+            )
+          end
+
+          it "derives ot.rv from the trace id and ot.th from the applied rate" do
+            expect(digest.trace_otel_random_value).to eq("ef284ace7a91e1")
+            expect(digest.trace_otel_threshold).to eq("e6666666666668")
+          end
+        end
+
+        context "when the inbound context carried values" do
+          let(:options) { super().merge(otel_random_value: "abcabcabcabcab", otel_threshold: "7") }
+
+          it "forwards the inbound values unchanged" do
+            expect(digest.trace_otel_random_value).to eq("abcabcabcabcab")
+            expect(digest.trace_otel_threshold).to eq("7")
+          end
+        end
+      end
+
       context "is measuring an operation" do
         before do
           trace_op.measure(

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../../core/utils"
+require_relative "../sampling/otel_consistent_sampling"
 require_relative "helpers"
 
 module Datadog
@@ -45,11 +46,12 @@ module Datadog
 
           return unless trace_id # Could not parse traceparent
 
-          tracestate, sampling_priority, origin, ts_parent_id, tags, unknown_fields = extract_tracestate(
-            fetcher[@tracestate_key]
-          )
+          parsed = extract_tracestate(fetcher[@tracestate_key])
+          dd = parsed[:dd] || {}
+          ot = parsed[:ot] || {}
 
-          sampling_priority = parse_priority_sampling(sampled, sampling_priority) do |decision|
+          tags = dd[:tags]
+          sampling_priority = parse_priority_sampling(sampled, dd[:sampling_priority]) do |decision|
             case decision
             when String
               tags ||= {}
@@ -61,17 +63,20 @@ module Datadog
 
           tags ||= {}
           tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] =
-            ts_parent_id || Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
+            dd[:ts_parent_id] || Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
 
           TraceDigest.new(
             span_id: parent_id,
             trace_id: trace_id,
-            trace_origin: origin,
+            trace_origin: dd[:origin],
             trace_sampling_priority: sampling_priority,
             trace_distributed_tags: tags,
             trace_flags: trace_flags,
-            trace_state: tracestate,
-            trace_state_unknown_fields: unknown_fields,
+            trace_state: parsed[:tracestate],
+            trace_state_unknown_fields: dd[:unknown_fields],
+            trace_otel_random_value: ot[:random_value],
+            trace_otel_threshold: ot[:threshold],
+            trace_otel_unknown_fields: ot[:unknown_fields],
             span_remote: true,
           )
         end
@@ -123,10 +128,10 @@ module Datadog
 
         # @see https://www.w3.org/TR/trace-context/#tracestate-header
         def build_tracestate(digest)
-          tracestate = +"dd="
-          append_dd(tracestate, last_dd_parent_id(digest))
-          append_dd(tracestate, "s:#{digest.trace_sampling_priority};") if digest.trace_sampling_priority
-          append_dd(tracestate, "o:#{serialize_origin(digest.trace_origin)};") if digest.trace_origin
+          dd_member = +"dd="
+          append_to_vendor(dd_member, last_dd_parent_id(digest))
+          append_to_vendor(dd_member, "s:#{digest.trace_sampling_priority};") if digest.trace_sampling_priority
+          append_to_vendor(dd_member, "o:#{serialize_origin(digest.trace_origin)};") if digest.trace_origin
 
           # Replacing this by safe navigation seems to have a different behaviour on Rubies <= 3.0.
           # It cause a LocalJumpError in the CI.
@@ -135,40 +140,61 @@ module Datadog
               tag = "t.#{serialize_tag_key(name)}:#{serialize_tag_value(value)};"
 
               # If tracestate size limit is exceeded, drop the remaining data.
-              break unless append_dd(tracestate, tag)
+              break unless append_to_vendor(dd_member, tag)
             end
           end
 
-          append_dd(tracestate, digest.trace_state_unknown_fields) if digest.trace_state_unknown_fields
+          append_to_vendor(dd_member, digest.trace_state_unknown_fields) if digest.trace_state_unknown_fields
+
+          # The OpenTelemetry consistent probability sampling member, assembled like `dd=`.
+          ot_member = +"ot="
+          append_to_vendor(ot_member, "rv:#{digest.trace_otel_random_value};") if digest.trace_otel_random_value
+          append_to_vendor(ot_member, "th:#{digest.trace_otel_threshold};") if digest.trace_otel_threshold
+          append_to_vendor(ot_member, digest.trace_otel_unknown_fields) if digest.trace_otel_unknown_fields
+
+          # Leading members we control and must keep leftmost so they survive truncation
+          # of crowded headers: `dd=` first, then the OpenTelemetry `ot=` member.
+          # Check for > 3 size because the empty prefixes `dd=`/`ot=` have 3 characters.
+          leading_members = []
+          if dd_member.bytesize > 3
+            dd_member.chop! # Removes trailing `;` from Datadog trace state string.
+            leading_members << dd_member
+          end
+          if ot_member.bytesize > 3
+            ot_member.chop! # Removes trailing `;` from OpenTelemetry trace state string.
+            leading_members << ot_member
+          end
+
           vendors = split_tracestate(digest.trace_state)
 
-          # Is there any Datadog-specific information to propagate.
-          # Check for > 3 size because the empty prefix `dd=` has 3 characters.
-          if tracestate.bytesize > 3
-            # Propagate upstream tracestate with `dd=...` appended to the list
-            tracestate.chop! # Removes trailing `;` from Datadog trace state string.
+          # With nothing of our own to inject, forward the upstream tracestate unchanged.
+          if leading_members.empty?
+            return unless vendors && !vendors.empty?
 
-            if vendors && !vendors.empty?
-              # Delete existing `dd=` tracestate fields, if present.
-              vendors.reject! { |v| v.start_with?("dd=") }
-
-              # Ensure the list has at most 31 elements, as we need to prepend Datadog's
-              # entry and the limit is 32 elements total.
-              vendors.first(TRACESTATE_MAX_LIST_MEMBERS - 1).each do |vendor|
-                break if tracestate.bytesize + vendor.bytesize + 1 > TRACESTATE_MAX_SIZE_LIMIT
-
-                tracestate << "," << vendor
-              end
-            end
-
-            tracestate.to_s
-          elsif vendors && !vendors.empty?
-            vendors.join(",")
+            return vendors.join(",")
           end
+
+          # We are prepending our own members, so delete any existing `dd=`/`ot=`
+          # members to avoid duplicates.
+          vendors&.reject! { |v| v.start_with?("dd=", "ot=") }
+
+          tracestate = leading_members.join(",")
+
+          if vendors && !vendors.empty?
+            # Ensure the list has at most TRACESTATE_MAX_LIST_MEMBERS entries total,
+            # reserving the leading members we prepended.
+            vendors.first(TRACESTATE_MAX_LIST_MEMBERS - leading_members.size).each do |vendor|
+              break if tracestate.bytesize + vendor.bytesize + 1 > TRACESTATE_MAX_SIZE_LIMIT
+
+              tracestate << "," << vendor
+            end
+          end
+
+          tracestate
         end
 
         # Appends a Datadog tracestate field when it fits.
-        def append_dd(tracestate, field)
+        def append_to_vendor(tracestate, field)
           return true if field.empty?
 
           # We add 1 to the limit because of the trailing semicolon, which will be removed before returning.
@@ -285,28 +311,35 @@ module Datadog
           trace_flags & TRACE_FLAGS_SAMPLED
         end
 
+        # Parses the W3C `tracestate` into the Datadog (`dd=`) and OpenTelemetry (`ot=`)
+        # members, leaving the remaining vendor members untouched.
+        #
         # @return [nil] when the tracestate is absent or has no vendor entries.
-        # @return [String] when no `dd=` entry is present, the joined vendor list.
-        # @return [Array(String, Integer, String, String, Hash, String)] when a `dd=`
-        #   entry is present: [tracestate without `dd=`, sampling_priority, origin,
-        #   ts_parent_id, tags, unknown_fields]. All elements past the first may be nil.
+        # @return [Hash] `{tracestate:, dd:, ot:}` where `tracestate` is the remaining vendor
+        #   list and `dd`/`ot` are the parsed member hashes (empty when the member is absent).
         def extract_tracestate(tracestate)
           vendors = split_tracestate(tracestate)
-          return unless vendors && !vendors.empty?
+          return {} unless vendors && !vendors.empty?
 
-          tracestate = vendors.join(",")
+          # Remove the Datadog and OpenTelemetry members here so they are re-emitted from the
+          # parsed values on injection rather than passed through as opaque vendor members.
+          dd_member = pop_member(vendors, "dd=")
+          ot_member = pop_member(vendors, "ot=")
 
-          # Find Datadog's `dd=` tracestate field.
-          idx = vendors.index { |v| v.start_with?("dd=") }
-          return tracestate unless idx
+          {
+            tracestate: vendors.join(","),
+            dd: dd_member ? extract_datadog_fields(dd_member) : {},
+            ot: ot_member ? Tracing::Sampling::OtelConsistentSampling.extract_otel_fields(ot_member) : {},
+          }
+        end
 
-          # Delete `dd=` prefix
-          dd_tracestate = vendors.delete_at(idx)
-          dd_tracestate.slice!(0..2)
+        # Removes the first vendor member with the given `prefix` (e.g. `"dd="`) and returns
+        # its value (the part after the prefix), or nil when absent.
+        def pop_member(vendors, prefix)
+          idx = vendors.index { |v| v.start_with?(prefix) }
+          return unless idx
 
-          origin, sampling_priority, ts_parent_id, tags, unknown_fields = extract_datadog_fields(dd_tracestate)
-
-          [vendors.join(","), sampling_priority, origin, ts_parent_id, tags, unknown_fields]
+          vendors.delete_at(idx).delete_prefix(prefix)
         end
 
         def extract_datadog_fields(dd_tracestate)
@@ -348,7 +381,13 @@ module Datadog
             end
           end
 
-          [origin, sampling_priority, ts_parent_id, tags, unknown_fields]
+          {
+            sampling_priority: sampling_priority,
+            origin: origin,
+            ts_parent_id: ts_parent_id,
+            tags: tags,
+            unknown_fields: unknown_fields,
+          }
         end
 
         # Restore `~` back to `=`.

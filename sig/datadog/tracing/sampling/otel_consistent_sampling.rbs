@@ -1,0 +1,42 @@
+module Datadog
+  module Tracing
+    module Sampling
+      module OtelConsistentSampling
+        type extracted_otel_fields = { random_value: ::String?, threshold: ::String?, unknown_fields: ::String? }
+
+        HEX_DIGITS: ::Integer
+        MAX_THRESHOLD: ::Integer
+        MAX_ENCODABLE_THRESHOLD: ::Integer
+        UINT64_MODULO: ::Integer
+        UINT64_MASK: ::Integer
+        VALID_THRESHOLD: ::Regexp
+        VALID_RANDOM_VALUE: ::Regexp
+        NON_PROBABILITY_DECISIONS: ::Array[::String]
+
+        def self?.resolve_outbound: (
+          trace_id: ::Integer,
+          sampling_priority: ::Integer?,
+          decision_maker: ::String?,
+          applied_rate: ::Float?,
+          rate_limiter_rate: ::Float?,
+          inbound_random_value: ::String?,
+          inbound_threshold: ::String?
+        ) -> [::String?, ::String?]
+
+        def self?.extract_otel_fields: (::String value) -> extracted_otel_fields
+
+        private
+
+        def self?.reconcile_random_value: (::Integer random_value, ::Integer threshold, bool kept) -> ::Integer
+
+        def self?.format_random_value: (::Integer random_value) -> ::String
+
+        def self?.format_threshold: (::Integer threshold) -> ::String
+
+        def self?.random_value: (::Integer trace_id) -> ::Integer
+
+        def self?.threshold: (::Float rate) -> ::Integer
+      end
+    end
+  end
+end

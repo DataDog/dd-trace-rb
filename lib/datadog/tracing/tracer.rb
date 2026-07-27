@@ -375,9 +375,11 @@ module Datadog
         hostname = Core::Environment::Socket.resolved_hostname(Datadog.configuration)
 
         if digest
-          sampling_priority = if propagate_sampling_priority?(upstream_tags: digest.trace_distributed_tags)
-            digest.trace_sampling_priority
-          end
+          # The consistent probability sampling values (`ot.rv`/`ot.th`) describe the
+          # upstream sampling decision, so they are inherited only when that decision is,
+          # otherwise a re-decided local trace makes and emits its own values.
+          propagate_sampling = propagate_sampling_priority?(upstream_tags: digest.trace_distributed_tags)
+          sampling_priority = digest.trace_sampling_priority if propagate_sampling
           TraceOperation.new(
             logger: logger,
             hostname: hostname,
@@ -392,6 +394,9 @@ module Datadog
             tags: digest.trace_distributed_tags,
             trace_state: digest.trace_state,
             trace_state_unknown_fields: digest.trace_state_unknown_fields,
+            otel_random_value: (digest.trace_otel_random_value if propagate_sampling),
+            otel_threshold: (digest.trace_otel_threshold if propagate_sampling),
+            otel_unknown_fields: (digest.trace_otel_unknown_fields if propagate_sampling),
             remote_parent: digest.span_remote,
             tracer: self,
             baggage: digest.baggage,
