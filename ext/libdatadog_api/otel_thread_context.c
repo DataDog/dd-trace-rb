@@ -14,6 +14,12 @@ static rb_ractor_local_key_t ractor_hooks_key;
 
 extern __thread void *otel_thread_ctx_v1;
 
+// Layout of the libdatadog `otel_thread_ctx_v1` record:
+// trace_id[0:16], span_id[16:24], valid@24, attrs_data_size (u16 LE)@26, attrs_data@28.
+// The record is a fixed 640-byte buffer, so the attrs region is capped at 640 - 28 bytes.
+#define OTEL_THREAD_CTX_ATTRS_OFFSET 28
+#define OTEL_THREAD_CTX_MAX_ATTRS_DATA_SIZE (640 - OTEL_THREAD_CTX_ATTRS_OFFSET)
+
 typedef struct {
   uint8_t trace_id[16];
   uint8_t span_id[8];
@@ -213,13 +219,17 @@ static VALUE native_read(VALUE _self) {
 
   const uint8_t *raw = (const uint8_t *) otel_thread_ctx_v1;
 
-  const uint16_t attrs_data_size = (uint16_t) raw[26] | ((uint16_t) raw[27] << 8);
+  uint16_t attrs_data_size = (uint16_t) raw[26] | ((uint16_t) raw[27] << 8);
+
+  // Clamp defensively: the attrs region is fixed-size, so a corrupt or torn length field
+  // must never cause an out-of-bounds read.
+  if (attrs_data_size > OTEL_THREAD_CTX_MAX_ATTRS_DATA_SIZE) attrs_data_size = OTEL_THREAD_CTX_MAX_ATTRS_DATA_SIZE;
 
   VALUE result = rb_hash_new();
   rb_hash_aset(result, ID2SYM(rb_intern("trace_id")), rb_str_new((const char *) raw, 16));
   rb_hash_aset(result, ID2SYM(rb_intern("span_id")), rb_str_new((const char *) (raw + 16), 8));
   rb_hash_aset(result, ID2SYM(rb_intern("valid")), rb_str_new((const char *) (raw + 24), 1));
-  rb_hash_aset(result, ID2SYM(rb_intern("attrs")), rb_str_new((const char *) (raw + 28), attrs_data_size));
+  rb_hash_aset(result, ID2SYM(rb_intern("attrs")), rb_str_new((const char *) (raw + OTEL_THREAD_CTX_ATTRS_OFFSET), attrs_data_size));
 
   return result;
 }
