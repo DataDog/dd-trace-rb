@@ -118,7 +118,11 @@ static void on_thread_exited(
   const rb_internal_thread_event_data_t *event_data,
   DDTRACE_UNUSED void *user_data
 ) {
+#ifdef HAVE_RUBY_THREAD_STORAGE_API
   if (rb_thread_current() != event_data->thread) return;
+#else
+  (void) event_data;
+#endif
 
   struct ddog_ThreadContextHandle *ctx = ddog_otel_thread_ctx_detach();
   if (ctx) ddog_otel_thread_ctx_free(ctx);
