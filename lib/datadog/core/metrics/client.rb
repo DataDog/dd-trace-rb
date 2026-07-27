@@ -97,6 +97,8 @@ module Datadog
         # Whether transport resolution should be left to dogstatsd-ruby's own environment
         # handling (DD_DOGSTATSD_URL / DD_DOGSTATSD_SOCKET). An explicit DD_AGENT_HOST or
         # DD_METRIC_AGENT_PORT keeps the historical host/port behavior.
+        #
+        # @return [Boolean]
         def statsd_transport_from_env?
           dogstatsd_version >= Gem::Version.new("5.6") &&
             !DATADOG_ENV.key?(Configuration::Ext::Agent::ENV_DEFAULT_HOST) &&
