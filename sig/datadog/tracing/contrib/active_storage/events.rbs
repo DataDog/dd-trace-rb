@@ -21,7 +21,7 @@ module Datadog
 
           def self?.all: () -> ::Array[event_module]
 
-          def self?.subscriptions: () -> ::Array[ActiveSupport::Notifications::Subscription]
+          def self?.subscriptions: () -> ::Array[::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription]
 
           def self?.subscribe!: () -> void
         end

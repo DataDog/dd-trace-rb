@@ -7,7 +7,7 @@ module Datadog
 
           type span = ::Datadog::Tracing::SpanOperation
           type payload = ::Hash[::Symbol, any]
-          type span_options = ({ service: ::String } | ::Hash[::Symbol, any])
+          type span_options = ::Hash[::Symbol, any]
 
           def self.included: (::Module base) -> void
           module ClassMethods

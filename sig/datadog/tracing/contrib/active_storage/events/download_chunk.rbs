@@ -7,7 +7,7 @@ module Datadog
             include ActiveStorage::Event
             extend ActiveSupport::Notifications::Event
 
-            EVENT_NAME: "service_download_chunk.active_storage"
+            EVENT_NAME: ::String
 
             def self?.event_name: () -> ::String
 

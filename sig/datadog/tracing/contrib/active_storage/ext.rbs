@@ -3,77 +3,77 @@ module Datadog
     module Contrib
       module ActiveStorage
         module Ext
-          APP: "active_storage"
+          APP: ::String
 
-          ENV_ENABLED: "DD_TRACE_ACTIVE_STORAGE_ENABLED"
+          ENV_ENABLED: ::String
 
-          ENV_ANALYTICS_ENABLED: "DD_TRACE_ACTIVE_STORAGE_ANALYTICS_ENABLED"
+          ENV_ANALYTICS_ENABLED: ::String
 
-          ENV_ANALYTICS_SAMPLE_RATE: "DD_TRACE_ACTIVE_STORAGE_ANALYTICS_SAMPLE_RATE"
+          ENV_ANALYTICS_SAMPLE_RATE: ::String
 
-          SERVICE_NAME: "active_storage"
+          SERVICE_NAME: ::String
 
-          SPAN_DELETE: "active_storage.delete"
+          SPAN_DELETE: ::String
 
-          SPAN_DELETE_PREFIXED: "active_storage.delete_prefixed"
+          SPAN_DELETE_PREFIXED: ::String
 
-          SPAN_DOWNLOAD: "active_storage.download"
+          SPAN_DOWNLOAD: ::String
 
-          SPAN_DOWNLOAD_CHUNK: "active_storage.download_chunk"
+          SPAN_DOWNLOAD_CHUNK: ::String
 
-          SPAN_EXIST: "active_storage.exist"
+          SPAN_EXIST: ::String
 
-          SPAN_PREVIEW: "active_storage.preview"
+          SPAN_PREVIEW: ::String
 
-          SPAN_STREAMING_DOWNLOAD: "active_storage.streaming_download"
+          SPAN_STREAMING_DOWNLOAD: ::String
 
-          SPAN_TRANSFORM: "active_storage.transform"
+          SPAN_TRANSFORM: ::String
 
-          SPAN_UPDATE_METADATA: "active_storage.update_metadata"
+          SPAN_UPDATE_METADATA: ::String
 
-          SPAN_UPLOAD: "active_storage.upload"
+          SPAN_UPLOAD: ::String
 
-          SPAN_URL: "active_storage.url"
+          SPAN_URL: ::String
 
-          TAG_SERVICE: "active_storage.service"
+          TAG_SERVICE: ::String
 
-          TAG_KEY: "active_storage.key"
+          TAG_KEY: ::String
 
-          TAG_PREFIX: "active_storage.prefix"
+          TAG_PREFIX: ::String
 
-          TAG_RANGE: "active_storage.range"
+          TAG_RANGE: ::String
 
-          TAG_URL: "active_storage.url"
+          TAG_URL: ::String
 
-          TAG_EXIST: "active_storage.exist"
+          TAG_EXIST: ::String
 
-          TAG_CONTENT_TYPE: "active_storage.content_type"
+          TAG_CONTENT_TYPE: ::String
 
-          TAG_DISPOSITION: "active_storage.disposition"
+          TAG_DISPOSITION: ::String
 
-          TAG_COMPONENT: "active_storage"
+          TAG_COMPONENT: ::String
 
-          TAG_OPERATION_DELETE: "delete"
+          TAG_OPERATION_DELETE: ::String
 
-          TAG_OPERATION_DELETE_PREFIXED: "delete_prefixed"
+          TAG_OPERATION_DELETE_PREFIXED: ::String
 
-          TAG_OPERATION_DOWNLOAD: "download"
+          TAG_OPERATION_DOWNLOAD: ::String
 
-          TAG_OPERATION_DOWNLOAD_CHUNK: "download_chunk"
+          TAG_OPERATION_DOWNLOAD_CHUNK: ::String
 
-          TAG_OPERATION_EXIST: "exist"
+          TAG_OPERATION_EXIST: ::String
 
-          TAG_OPERATION_PREVIEW: "preview"
+          TAG_OPERATION_PREVIEW: ::String
 
-          TAG_OPERATION_STREAMING_DOWNLOAD: "streaming_download"
+          TAG_OPERATION_STREAMING_DOWNLOAD: ::String
 
-          TAG_OPERATION_TRANSFORM: "transform"
+          TAG_OPERATION_TRANSFORM: ::String
 
-          TAG_OPERATION_UPDATE_METADATA: "update_metadata"
+          TAG_OPERATION_UPDATE_METADATA: ::String
 
-          TAG_OPERATION_UPLOAD: "upload"
+          TAG_OPERATION_UPLOAD: ::String
 
-          TAG_OPERATION_URL: "url"
+          TAG_OPERATION_URL: ::String
         end
       end
     end

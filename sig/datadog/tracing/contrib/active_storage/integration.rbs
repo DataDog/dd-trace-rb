@@ -9,7 +9,7 @@ module Datadog
 
           def self.register_as: (Symbol name, auto_patch: bool) -> void
 
-          def self.gem_name: () -> "activestorage"
+          def self.gem_name: () -> ::String
 
           def self.version: () -> ::Gem::Version?
 

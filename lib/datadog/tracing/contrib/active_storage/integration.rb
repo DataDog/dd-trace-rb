@@ -30,10 +30,7 @@ module Datadog
           end
 
           def self.compatible?
-            # Contib::Patchable#compatible? already checks that version is not nil
-            # This annotation does not work for some reason
-            # @type method version: () -> ::Gem::Version
-            super && version >= MINIMUM_VERSION # steep:ignore NoMethod
+            !!(super && version&.>=(MINIMUM_VERSION))
           end
 
           # enabled by rails integration so should only auto instrument
@@ -47,7 +44,7 @@ module Datadog
           end
 
           def patcher
-            ActiveStorage::Patcher
+            Patcher
           end
         end
       end
