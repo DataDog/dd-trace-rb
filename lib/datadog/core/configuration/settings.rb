@@ -649,7 +649,7 @@ module Datadog
             option :experimental_include_module_name do |o|
               o.type :bool
               o.env "DD_PROFILING_EXPERIMENTAL_INCLUDE_MODULE_NAME"
-              o.default false
+              o.default true
             end
           end
 
