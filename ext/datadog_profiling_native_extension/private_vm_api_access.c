@@ -725,7 +725,7 @@ VALUE invoke_location_for(VALUE thread, int *line_location) {
   if (iseq == NULL) return Qnil;
 
   *line_location = NUM2INT(rb_iseq_first_lineno(iseq));
-  return rb_iseq_path(iseq);
+  return ddtrace_iseq_path(iseq);
 }
 
 void self_test_mn_enabled(void) {
