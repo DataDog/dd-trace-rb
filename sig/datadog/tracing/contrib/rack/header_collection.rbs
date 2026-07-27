@@ -5,12 +5,12 @@ module Datadog
         module Header
           class RequestHeaderCollection < Datadog::Core::HeaderCollection
             def initialize: (::Rack::env env) -> void
-            def get: (untyped header_name) -> untyped
+            def get: (::String header_name) -> ::String?
             alias [] get
-            def key?: (untyped header_name) -> untyped
+            def key?: (::String header_name) -> bool
           end
 
-          def self.to_rack_header: (untyped name) -> ::String
+          def self.to_rack_header: (::String name) -> ::String
         end
       end
     end

@@ -7,17 +7,21 @@ module Datadog
             PLACEHOLDER: "?"
             RFC3986_URL_BASE: ::Regexp
 
-            def self?.url: (untyped url, ?::Hash[untyped, untyped] options) -> untyped
+            def self?.url: (::String url, ?::Hash[::Symbol, untyped] options) -> ::String
 
-            def self?.base_url: (untyped url, ?::Hash[untyped, untyped] options) -> (untyped | "")
+            def self?.base_url: (::String url, ?::Hash[::Symbol, untyped] options) -> ::String
 
-            def self?.url!: (untyped url, ?::Hash[untyped, untyped] options) -> untyped
+            def self?.url!: (::String url, ?::Hash[::Symbol, untyped] options) -> ::String
 
-            def self?.query: (untyped query, ?::Hash[untyped, untyped] options) -> untyped
+            def self?.query: (::String? query, ?::Hash[::Symbol, untyped] options) -> ::String?
 
-            def self?.query!: (untyped query, ?::Hash[untyped, untyped] options) -> ("" | untyped)
-            def self?.collect_query: (untyped query, ?::Hash[untyped, untyped] options) { (untyped, untyped, untyped) -> untyped } -> untyped
-            def self?.obfuscate_query: (untyped query, ?::Hash[untyped, untyped] options) -> untyped
+            def self?.query!: (::String? query, ?::Hash[::Symbol, untyped] options) -> ::String?
+            # query is passed to String#scan / String#split after a
+            # `return query unless block_given?` guard that Steep does not narrow,
+            # so the parameter stays untyped; the internal callers always pass a
+            # non-nil query string with a block.
+            def self?.collect_query: (untyped query, ?::Hash[::Symbol, untyped] options) { (::String?, ::String?, ::String?) -> [::String?, ::String?] } -> ::String
+            def self?.obfuscate_query: (untyped query, ?::Hash[::Symbol, untyped] options) -> ::String
 
             OBFUSCATOR_WITH: "<redacted>"
             OBFUSCATOR_REGEX: ::Regexp

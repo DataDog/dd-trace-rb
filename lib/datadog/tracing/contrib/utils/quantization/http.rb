@@ -30,7 +30,9 @@ module Datadog
 
             def base_url(url, options = {})
               if (m = RFC3986_URL_BASE.match(url))
-                m[1]
+                # MatchData#[] is nil-typed; capture group 1 always participates on
+                # a successful match, so to_s is a no-op that yields a String.
+                m[1].to_s
               else
                 ""
               end
