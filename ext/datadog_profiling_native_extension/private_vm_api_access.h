@@ -27,6 +27,7 @@ typedef struct {
 // not like rb_profile_frame_qualified_method_name() which differs in some cases.
 typedef struct {
   const rb_callable_method_entry_t* cme; // Needs marking, kept alive by sampling_buffer
+  const void *caching_ep; // For caching validation/invalidation only (does not need marking)
   struct {
     struct {
       const rb_iseq_t* iseq; // Needs marking, kept alive by sampling_buffer

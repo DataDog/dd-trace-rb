@@ -516,21 +516,11 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
                 continue;
             }
 
-            cme = rb_vm_frame_method_entry(cfp);
-
-            // Upstream (Ruby 4.0) does:
-            // if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
-            //   buff[i] = (VALUE)cme;
-            // } else {
-            //   buff[i] = (VALUE)cfp->iseq;
-            // }
-            // We get both the iseq and CME because we need both to format like Ruby backtraces
-
             stack_buffer[i].same_frame =
               stack_buffer[i].is_ruby_frame &&
               stack_buffer[i].as.ruby_frame.iseq == cfp->iseq &&
               stack_buffer[i].as.ruby_frame.caching_pc == cfp->pc &&
-              stack_buffer[i].cme == cme;
+              stack_buffer[i].caching_ep == cfp->ep;
 
             if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
               i++;
@@ -539,7 +529,8 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
 
             stack_buffer[i].as.ruby_frame.iseq = cfp->iseq;
             stack_buffer[i].as.ruby_frame.caching_pc = (void *) cfp->pc;
-            stack_buffer[i].cme = cme;
+            stack_buffer[i].caching_ep = cfp->ep;
+            stack_buffer[i].cme = rb_vm_frame_method_entry(cfp);
 
             // The topmost frame may not have an updated PC because the JIT
             // may not have set one.  The JIT compiler will update the PC
@@ -559,6 +550,13 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
             i++;
         }
         else {
+            if (!stack_buffer[i].is_ruby_frame &&
+                stack_buffer[i].caching_ep == cfp->ep) {
+                stack_buffer[i].same_frame = true;
+                i++;
+                continue;
+            }
+
             cme = rb_vm_frame_method_entry(cfp);
             if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
                 if (start > 0) {
@@ -566,16 +564,9 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
                     continue;
                 }
 
-                stack_buffer[i].same_frame =
-                  !stack_buffer[i].is_ruby_frame &&
-                  stack_buffer[i].cme == cme;
-
-                if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
-                  i++;
-                  continue;
-                }
-
+                stack_buffer[i].caching_ep = cfp->ep;
                 stack_buffer[i].cme = cme;
+                stack_buffer[i].same_frame = false;
                 stack_buffer[i].is_ruby_frame = false;
                 i++;
             }
