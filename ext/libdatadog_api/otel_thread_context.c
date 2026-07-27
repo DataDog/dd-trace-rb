@@ -107,9 +107,11 @@ static void on_fiber_switch(
 #ifdef RUBY_INTERNAL_THREAD_EVENT_EXITED
 static void on_thread_exited(
   DDTRACE_UNUSED rb_event_flag_t event,
-  DDTRACE_UNUSED const rb_internal_thread_event_data_t *event_data,
+  const rb_internal_thread_event_data_t *event_data,
   DDTRACE_UNUSED void *user_data
 ) {
+  if (rb_thread_current() != event_data->thread) return;
+
   struct ddog_ThreadContextHandle *ctx = ddog_otel_thread_ctx_detach();
   if (ctx) ddog_otel_thread_ctx_free(ctx);
 }
@@ -129,10 +131,10 @@ static void on_thread_end(
 #ifdef HAVE_RUBY_THREAD_STORAGE_API
 static void on_thread_resumed(
   DDTRACE_UNUSED rb_event_flag_t event,
-  const rb_internal_thread_event_data_t *event_data,
+  DDTRACE_UNUSED const rb_internal_thread_event_data_t *event_data,
   DDTRACE_UNUSED void *user_data
 ) {
-  otel_fiber_context *ctx = rb_internal_thread_specific_get(event_data->thread, otel_ctx_key);
+  otel_fiber_context *ctx = rb_internal_thread_specific_get(rb_thread_current(), otel_ctx_key);
   publish_context(ctx);
 }
 #endif
