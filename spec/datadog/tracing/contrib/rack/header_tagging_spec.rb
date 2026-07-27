@@ -4,6 +4,12 @@ require "datadog/tracing/contrib/rack/header_tagging"
 
 RSpec.describe Datadog::Tracing::Contrib::Rack::HeaderTagging do
   describe ".tag_request_headers" do
+    # Reset rack config before each test: HeaderTagging reads the shared
+    # rack :quantize option, and other specs in the same batch can leave it
+    # set to e.g. {base: :exclude}, which would strip the host from quantized
+    # URL header tags and make these assertions order-dependent.
+    before { Datadog.registry[:rack].reset_configuration! }
+
     after do
       Datadog.configuration.tracing.header_tags = []
       Datadog.registry[:rack].reset_configuration!
@@ -141,6 +147,9 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::HeaderTagging do
 
   describe ".tag_response_headers" do
     before do
+      # See the note in .tag_request_headers: clear any leaked :quantize
+      # option before configuring, so quantized URL header tags are deterministic.
+      Datadog.registry[:rack].reset_configuration!
       Datadog.configure do |c|
         c.tracing.instrument :rack, headers: {response: ["foo"]}
       end
