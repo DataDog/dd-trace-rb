@@ -149,7 +149,7 @@ static VALUE native_set(DDTRACE_UNUSED VALUE _self, VALUE trace_id, VALUE span_i
   return Qtrue;
 }
 
-static VALUE native_supported_p(VALUE _self) {
+static VALUE native_supported_p(DDTRACE_UNUSED VALUE _self) {
   return Qtrue;
 }
 
@@ -195,7 +195,7 @@ static VALUE native_set(DDTRACE_UNUSED VALUE _self, DDTRACE_UNUSED VALUE trace_i
   return Qfalse;
 }
 
-static VALUE native_supported_p(VALUE _self) {
+static VALUE native_supported_p(DDTRACE_UNUSED VALUE _self) {
   return Qfalse;
 }
 
@@ -203,7 +203,7 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
   return Qfalse;
 }
 
-static VALUE native_read(VALUE _self) {
+static VALUE native_read(DDTRACE_UNUSED VALUE _self) {
   return Qnil;
 }
 
