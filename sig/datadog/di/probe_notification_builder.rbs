@@ -50,14 +50,8 @@ module Datadog
 
       def timestamp_now: () -> Integer
 
-      def get_local_variables: (TracePoint trace_point) -> Hash[Symbol,untyped]
-
       def active_trace: () -> Datadog::Tracing::TraceSegment?
       def active_span: () -> Datadog::Tracing::SpanOperation?
-
-      def tags: () -> untyped
-
-      def serialized_tags: () -> untyped
     end
   end
 end
