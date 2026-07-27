@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../../metadata/ext'
-require_relative '../event'
-require_relative '../ext'
-require_relative '../../analytics'
+require_relative "../../../metadata/ext"
+require_relative "../event"
+require_relative "../ext"
+require_relative "../../analytics"
 
 module Datadog
   module Tracing
@@ -16,7 +16,7 @@ module Datadog
           module DownloadChunk
             include ActiveStorage::Event
 
-            EVENT_NAME = 'service_download_chunk.active_storage'
+            EVENT_NAME = "service_download_chunk.active_storage"
 
             module_function
 

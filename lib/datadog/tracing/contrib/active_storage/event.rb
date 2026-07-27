@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../active_support/notifications/event'
-require_relative '../analytics'
-require_relative '../../metadata/ext'
+require_relative "../active_support/notifications/event"
+require_relative "../analytics"
+require_relative "../../metadata/ext"
 
 module Datadog
   module Tracing
@@ -34,7 +34,7 @@ module Datadog
             end
 
             def process(_span, _event, _id, _payload)
-              raise NotImplementedError, 'Subclasses must implement #process'
+              raise NotImplementedError, "Subclasses must implement #process"
             end
 
             def on_finish(span, event, id, payload)

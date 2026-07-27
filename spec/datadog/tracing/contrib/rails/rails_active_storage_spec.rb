@@ -1,27 +1,27 @@
 # frozen_string_literal: true
 
-require 'fileutils'
-require 'tmpdir'
-require 'yaml'
+require "fileutils"
+require "tmpdir"
+require "yaml"
 
-require 'datadog/tracing/contrib/rails/rails_helper'
-require 'datadog/tracing/contrib/active_storage/integration'
+require "datadog/tracing/contrib/rails/rails_helper"
+require "datadog/tracing/contrib/active_storage/integration"
 
-RSpec.describe 'ActiveStorage instrumentation', execute_in_fork: Rails.version.to_i >= 8, skip: Gem.loaded_specs['activestorage'].nil? do
+RSpec.describe "ActiveStorage instrumentation", execute_in_fork: Rails.version.to_i >= 8, skip: Gem.loaded_specs["activestorage"].nil? do
   after do
     remove_patch!(:active_storage)
     Datadog.configuration.tracing[:active_storage].reset_options!
     reset_active_storage_test_state!
   end
 
-  include_context 'Rails test application'
+  include_context "Rails test application"
 
-  context 'with active_storage instrumentation' do
-    let(:active_storage_root) { Dir.mktmpdir('dd-trace-rb-active-storage') }
+  context "with active_storage instrumentation" do
+    let(:active_storage_root) { Dir.mktmpdir("dd-trace-rb-active-storage") }
     let(:active_storage_service_configurations) do
       {
         test: {
-          service: 'Disk',
+          service: "Disk",
           root: active_storage_root,
         },
       }
@@ -70,14 +70,14 @@ RSpec.describe 'ActiveStorage instrumentation', execute_in_fork: Rails.version.t
     end
 
     def write_active_storage_config_file
-      active_storage_config_path = File.join(active_storage_root, 'config', 'storage.yml')
+      active_storage_config_path = File.join(active_storage_root, "config", "storage.yml")
       FileUtils.mkdir_p(File.dirname(active_storage_config_path))
       File.write(
         active_storage_config_path,
         YAML.dump(
-          'test' => {
-            'service' => 'Disk',
-            'root' => active_storage_root,
+          "test" => {
+            "service" => "Disk",
+            "root" => active_storage_root,
           }
         )
       )
@@ -123,7 +123,7 @@ RSpec.describe 'ActiveStorage instrumentation', execute_in_fork: Rails.version.t
           t.string :filename, null: false
           t.string :content_type
           t.text :metadata
-          t.string :service_name, default: 'test'
+          t.string :service_name, default: "test"
           t.bigint :byte_size, null: false
           t.string :checksum
           t.datetime :created_at, null: false
@@ -132,12 +132,12 @@ RSpec.describe 'ActiveStorage instrumentation', execute_in_fork: Rails.version.t
       end
 
       if connection.column_exists?(:active_storage_blobs, :service_name)
-        service_name_column = connection.columns(:active_storage_blobs).find { |column| column.name == 'service_name' }
+        service_name_column = connection.columns(:active_storage_blobs).find { |column| column.name == "service_name" }
         if service_name_column&.default.nil?
-          connection.change_column_default :active_storage_blobs, :service_name, 'test'
+          connection.change_column_default :active_storage_blobs, :service_name, "test"
         end
       else
-        connection.add_column :active_storage_blobs, :service_name, :string, default: 'test'
+        connection.add_column :active_storage_blobs, :service_name, :string, default: "test"
       end
 
       unless connection.table_exists?(:active_storage_attachments)
@@ -150,7 +150,7 @@ RSpec.describe 'ActiveStorage instrumentation', execute_in_fork: Rails.version.t
         connection.add_index(
           :active_storage_attachments,
           %i[record_type record_id name blob_id],
-          name: 'index_active_storage_attachments_uniqueness',
+          name: "index_active_storage_attachments_uniqueness",
           unique: true
         )
       end
@@ -163,7 +163,7 @@ RSpec.describe 'ActiveStorage instrumentation', execute_in_fork: Rails.version.t
         connection.add_index(
           :active_storage_variant_records,
           %i[blob_id variation_digest],
-          name: 'index_active_storage_variant_records_uniqueness',
+          name: "index_active_storage_variant_records_uniqueness",
           unique: true
         )
       end
@@ -171,15 +171,15 @@ RSpec.describe 'ActiveStorage instrumentation', execute_in_fork: Rails.version.t
       reset_active_storage_column_information
     end
 
-    describe 'service operations' do
+    describe "service operations" do
       let(:service) { ActiveStorage::Blob.service }
-      let(:key) { 'test_key_123' }
-      let(:data) { 'test content' }
+      let(:key) { "test_key_123" }
+      let(:data) { "test content" }
       let(:url_options) do
         {
           expires_in: 5.minutes,
-          filename: ActiveStorage::Filename.new('test.txt'),
-          content_type: 'text/plain',
+          filename: ActiveStorage::Filename.new("test.txt"),
+          content_type: "text/plain",
           disposition: :inline,
         }
       end
@@ -214,142 +214,142 @@ RSpec.describe 'ActiveStorage instrumentation', execute_in_fork: Rails.version.t
         nil
       end
 
-      it 'instruments upload operations' do
+      it "instruments upload operations" do
         service.upload(key, StringIO.new(data))
 
-        span = spans.find { |s| s.name == 'active_storage.upload' }
+        span = spans.find { |s| s.name == "active_storage.upload" }
         expect(span).not_to be_nil
         expect(span.resource).to match(/#{key}/)
-        expect(span.type).to eq('http')
-        expect(span.get_tag('active_storage.key')).to eq(key)
-        expect(span.get_tag('active_storage.service')).not_to be_nil
+        expect(span.type).to eq("http")
+        expect(span.get_tag("active_storage.key")).to eq(key)
+        expect(span.get_tag("active_storage.service")).not_to be_nil
       end
 
-      it 'instruments download operations' do
+      it "instruments download operations" do
         service.upload(key, StringIO.new(data))
         clear_traces!
 
         service.download(key)
 
-        span = spans.find { |s| s.name == 'active_storage.download' }
+        span = spans.find { |s| s.name == "active_storage.download" }
         expect(span).not_to be_nil
         expect(span.resource).to match(/#{key}/)
-        expect(span.type).to eq('http')
-        expect(span.get_tag('active_storage.key')).to eq(key)
-        expect(span.get_tag('active_storage.service')).not_to be_nil
+        expect(span.type).to eq("http")
+        expect(span.get_tag("active_storage.key")).to eq(key)
+        expect(span.get_tag("active_storage.service")).not_to be_nil
       end
 
-      it 'instruments exist operations' do
+      it "instruments exist operations" do
         service.upload(key, StringIO.new(data))
         clear_traces!
 
         result = service.exist?(key)
 
         expect(result).to be true
-        span = spans.find { |s| s.name == 'active_storage.exist' }
+        span = spans.find { |s| s.name == "active_storage.exist" }
         expect(span).not_to be_nil
         expect(span.resource).to match(/#{key}/)
-        expect(span.type).to eq('http')
-        expect(span.get_tag('active_storage.key')).to eq(key)
-        expect(span.get_tag('active_storage.exist')).to eq('true')
-        expect(span.get_tag('active_storage.service')).not_to be_nil
+        expect(span.type).to eq("http")
+        expect(span.get_tag("active_storage.key")).to eq(key)
+        expect(span.get_tag("active_storage.exist")).to eq("true")
+        expect(span.get_tag("active_storage.service")).not_to be_nil
       end
 
-      it 'instruments delete operations' do
+      it "instruments delete operations" do
         service.upload(key, StringIO.new(data))
         clear_traces!
 
         service.delete(key)
 
-        span = spans.find { |s| s.name == 'active_storage.delete' }
+        span = spans.find { |s| s.name == "active_storage.delete" }
         expect(span).not_to be_nil
         expect(span.resource).to match(/#{key}/)
-        expect(span.type).to eq('http')
-        expect(span.get_tag('active_storage.key')).to eq(key)
-        expect(span.get_tag('active_storage.service')).not_to be_nil
+        expect(span.type).to eq("http")
+        expect(span.get_tag("active_storage.key")).to eq(key)
+        expect(span.get_tag("active_storage.service")).not_to be_nil
       end
 
-      it 'instruments url operations' do
+      it "instruments url operations" do
         service.upload(key, StringIO.new(data))
         clear_traces!
 
-        set_active_storage_url_context(protocol: 'http', host: 'example.com')
+        set_active_storage_url_context(protocol: "http", host: "example.com")
         service.url(key, **url_options)
 
-        span = spans.find { |s| s.name == 'active_storage.url' }
+        span = spans.find { |s| s.name == "active_storage.url" }
         expect(span).not_to be_nil
         expect(span.resource).to match(/#{key}/)
-        expect(span.type).to eq('http')
-        expect(span.get_tag('active_storage.key')).to eq(key)
-        expect(span.get_tag('active_storage.service')).not_to be_nil
-        expect(span.get_tag('active_storage.url')).not_to be_nil
+        expect(span.type).to eq("http")
+        expect(span.get_tag("active_storage.key")).to eq(key)
+        expect(span.get_tag("active_storage.service")).not_to be_nil
+        expect(span.get_tag("active_storage.url")).not_to be_nil
       ensure
         clear_active_storage_url_context
       end
 
-      context 'with download_chunk' do
-        it 'instruments download_chunk operations' do
+      context "with download_chunk" do
+        it "instruments download_chunk operations" do
           service.upload(key, StringIO.new(data))
           clear_traces!
 
           service.download_chunk(key, 0..5)
 
-          span = spans.find { |s| s.name == 'active_storage.download_chunk' }
+          span = spans.find { |s| s.name == "active_storage.download_chunk" }
           expect(span).not_to be_nil
           expect(span.resource).to match(/#{key}/)
-          expect(span.type).to eq('http')
-          expect(span.get_tag('active_storage.key')).to eq(key)
-          expect(span.get_tag('active_storage.service')).not_to be_nil
-          expect(span.get_tag('active_storage.range')).to eq('0..5')
+          expect(span.type).to eq("http")
+          expect(span.get_tag("active_storage.key")).to eq(key)
+          expect(span.get_tag("active_storage.service")).not_to be_nil
+          expect(span.get_tag("active_storage.range")).to eq("0..5")
         end
       end
 
-      context 'with custom configuration' do
+      context "with custom configuration" do
         before do
           Datadog.configure do |c|
-            c.tracing.instrument :active_storage, service_name: 'my-storage-service'
+            c.tracing.instrument :active_storage, service_name: "my-storage-service"
           end
         end
 
-        it 'uses the custom service name' do
+        it "uses the custom service name" do
           service.upload(key, StringIO.new(data))
 
-          span = spans.find { |s| s.name == 'active_storage.upload' }
+          span = spans.find { |s| s.name == "active_storage.upload" }
           expect(span).not_to be_nil
-          expect(span.service).to eq('my-storage-service')
+          expect(span.service).to eq("my-storage-service")
         end
       end
 
-      context 'with analytics enabled' do
+      context "with analytics enabled" do
         before do
           Datadog.configure do |c|
             c.tracing.instrument :active_storage, analytics_enabled: true, analytics_sample_rate: 0.5
           end
         end
 
-        it 'sets analytics tags on spans' do
+        it "sets analytics tags on spans" do
           service.upload(key, StringIO.new(data))
 
-          span = spans.find { |s| s.name == 'active_storage.upload' }
+          span = spans.find { |s| s.name == "active_storage.upload" }
           expect(span).not_to be_nil
-          expect(span.get_metric('_dd1.sr.eausr')).to eq(0.5)
+          expect(span.get_metric("_dd1.sr.eausr")).to eq(0.5)
         end
       end
     end
 
-    describe 'blob operations' do
+    describe "blob operations" do
       def create_blob
         if ActiveStorage::Blob.respond_to?(:create_and_upload!)
           ActiveStorage::Blob.create_and_upload!(
-            io: StringIO.new('test content'),
-            filename: 'test.txt',
-            content_type: 'text/plain'
+            io: StringIO.new("test content"),
+            filename: "test.txt",
+            content_type: "text/plain"
           )
         else
           ActiveStorage::Blob.create_after_upload!(
-            io: StringIO.new('test content'),
-            filename: 'test.txt',
-            content_type: 'text/plain'
+            io: StringIO.new("test content"),
+            filename: "test.txt",
+            content_type: "text/plain"
           )
         end
       end
@@ -363,51 +363,51 @@ RSpec.describe 'ActiveStorage instrumentation', execute_in_fork: Rails.version.t
         @blob = nil
       end
 
-      it 'instruments blob upload during blob creation' do
+      it "instruments blob upload during blob creation" do
         # Check for upload span
-        upload_span = spans.find { |s| s.name == 'active_storage.upload' }
+        upload_span = spans.find { |s| s.name == "active_storage.upload" }
         expect(upload_span).not_to be_nil
-        expect(upload_span.get_tag('active_storage.key')).not_to be_nil
-        expect(upload_span.get_tag('active_storage.service')).not_to be_nil
+        expect(upload_span.get_tag("active_storage.key")).not_to be_nil
+        expect(upload_span.get_tag("active_storage.service")).not_to be_nil
       end
 
-      it 'instruments blob download' do
+      it "instruments blob download" do
         clear_traces!
 
         @blob.download
 
-        download_span = spans.find { |s| s.name == 'active_storage.download' }
+        download_span = spans.find { |s| s.name == "active_storage.download" }
         expect(download_span).not_to be_nil
-        expect(download_span.get_tag('active_storage.key')).to eq(@blob.key)
+        expect(download_span.get_tag("active_storage.key")).to eq(@blob.key)
       end
 
-      it 'instruments blob deletion' do
+      it "instruments blob deletion" do
         key = @blob.key
         clear_traces!
 
         @blob.purge
 
-        delete_span = spans.find { |s| s.name == 'active_storage.delete' }
+        delete_span = spans.find { |s| s.name == "active_storage.delete" }
         expect(delete_span).not_to be_nil
-        expect(delete_span.get_tag('active_storage.key')).to eq(key)
+        expect(delete_span.get_tag("active_storage.key")).to eq(key)
       end
     end
 
-    describe 'integration disable' do
+    describe "integration disable" do
       before do
         Datadog.configure do |c|
           c.tracing.instrument :active_storage, enabled: false
         end
       end
 
-      it 'does not create spans when disabled' do
+      it "does not create spans when disabled" do
         service = ActiveStorage::Blob.service
-        key = 'test_disabled_key'
+        key = "test_disabled_key"
 
-        service.upload(key, StringIO.new('test'))
+        service.upload(key, StringIO.new("test"))
         service.delete(key)
 
-        active_storage_spans = spans.select { |s| s.name.start_with?('active_storage') }
+        active_storage_spans = spans.select { |s| s.name.start_with?("active_storage") }
         expect(active_storage_spans).to be_empty
       end
     end

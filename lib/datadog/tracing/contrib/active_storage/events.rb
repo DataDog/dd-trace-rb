@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
-require_relative 'events/delete'
-require_relative 'events/delete_prefixed'
-require_relative 'events/download'
-require_relative 'events/download_chunk'
-require_relative 'events/exist'
-require_relative 'events/preview'
-require_relative 'events/streaming_download'
-require_relative 'events/transform'
-require_relative 'events/update_metadata'
-require_relative 'events/upload'
-require_relative 'events/url'
+require_relative "events/delete"
+require_relative "events/delete_prefixed"
+require_relative "events/download"
+require_relative "events/download_chunk"
+require_relative "events/exist"
+require_relative "events/preview"
+require_relative "events/streaming_download"
+require_relative "events/transform"
+require_relative "events/update_metadata"
+require_relative "events/upload"
+require_relative "events/url"
 
 module Datadog
   module Tracing

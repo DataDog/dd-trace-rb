@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../integration'
-require_relative 'configuration/settings'
-require_relative 'patcher'
-require_relative '../../../core/contrib/rails/utils'
+require_relative "../integration"
+require_relative "configuration/settings"
+require_relative "patcher"
+require_relative "../../../core/contrib/rails/utils"
 
 module Datadog
   module Tracing
@@ -13,16 +13,16 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new('5.0.0')
+          MINIMUM_VERSION = Gem::Version.new("5.0.0")
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :active_storage, auto_patch: false
           def self.gem_name
-            'activestorage'
+            "activestorage"
           end
 
           def self.version
-            Gem.loaded_specs['activestorage']&.version
+            Gem.loaded_specs["activestorage"]&.version
           end
 
           def self.loaded?
