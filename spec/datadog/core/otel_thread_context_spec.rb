@@ -114,5 +114,28 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
         expect(results).to match_array((0..(thread_count - 1)).to_a)
       end
     end
+
+    context "inside a non-main Ractor", if: RUBY_VERSION >= "3.3", memcheck_valgrind_skip: true do
+      it "updates the thread context on fiber switch" do
+        outer, inner = Ractor.new do
+          Datadog::Core::OTelThreadContext.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+
+          fiber = Fiber.new do
+            Datadog::Core::OTelThreadContext.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
+            Fiber.yield
+            Datadog::Core::OTelThreadContext.read
+          end
+
+          fiber.resume
+          outer_after_yield = Datadog::Core::OTelThreadContext.read
+          inner_after_resume = fiber.resume
+
+          [outer_after_yield, inner_after_resume]
+        end.take
+
+        expect(outer).to include(trace_id: 1, span_id: 2, local_root_span_id: 3)
+        expect(inner).to include(trace_id: 11, span_id: 12, local_root_span_id: 13)
+      end
+    end
   end
 end

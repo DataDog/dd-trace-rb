@@ -7,6 +7,11 @@
 #ifdef HAVE_DATADOG_OTEL_THREAD_CTX_H
 #include <datadog/otel-thread-ctx.h>
 
+#ifdef HAVE_RB_RACTOR_LOCAL_STORAGE_VALUE_NEWKEY
+#include <ruby/ractor.h>
+static rb_ractor_local_key_t ractor_hooks_key;
+#endif
+
 extern __thread void *otel_thread_ctx_v1;
 
 typedef struct {
@@ -36,6 +41,9 @@ void otel_thread_context_init(VALUE core_module) {
   fiber_context_slot = rb_intern("__dd_otel_fiber_context");
 #ifdef HAVE_RUBY_THREAD_STORAGE_API
   otel_ctx_key = rb_internal_thread_specific_key_create();
+#endif
+#ifdef HAVE_RB_RACTOR_LOCAL_STORAGE_VALUE_NEWKEY
+  ractor_hooks_key = rb_ractor_local_storage_value_newkey();
 #endif
 
   VALUE otel_thread_context_module = rb_define_module_under(core_module, "OTelThreadContext");
@@ -139,7 +147,40 @@ static void on_thread_resumed(
 }
 #endif
 
+static void register_ractor_local_hooks(void) {
+#ifdef HAVE_RB_RACTOR_LOCAL_STORAGE_VALUE_NEWKEY
+  if (rb_ractor_local_storage_value(ractor_hooks_key) == Qtrue) return;
+  rb_ractor_local_storage_value_set(ractor_hooks_key, Qtrue);
+#else
+  static bool registered = false;
+  if (registered) return;
+  registered = true;
+#endif
+
+  rb_add_event_hook(on_fiber_switch, RUBY_EVENT_FIBER_SWITCH, Qnil);
+}
+
+static void register_global_hooks(void) {
+  static bool registered = false;
+  if (registered) return;
+  registered = true;
+
+// Starting with Ruby 3.2 we use internal thread EXITED hook and not
+// RUBY_EVENT_THREAD_END VM trace event, since trace events are scoped to main Ractor only
+#ifdef RUBY_INTERNAL_THREAD_EVENT_EXITED
+  rb_internal_thread_add_event_hook(on_thread_exited, RUBY_INTERNAL_THREAD_EVENT_EXITED, NULL);
+#else
+  rb_add_event_hook(on_thread_end, RUBY_EVENT_THREAD_END, Qnil);
+#endif
+
+#ifdef HAVE_RUBY_THREAD_STORAGE_API
+  rb_internal_thread_add_event_hook(on_thread_resumed, RUBY_INTERNAL_THREAD_EVENT_RESUMED, NULL);
+#endif
+}
+
 static VALUE native_set(DDTRACE_UNUSED VALUE _self, VALUE trace_id, VALUE span_id, VALUE local_root_span_id) {
+  register_ractor_local_hooks();
+
   otel_fiber_context *ctx = get_or_create_current_fiber_context();
 
   pack_id_big_endian(trace_id, ctx->trace_id, sizeof(ctx->trace_id));
@@ -156,24 +197,8 @@ static VALUE native_supported_p(DDTRACE_UNUSED VALUE _self) {
 }
 
 static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
-  static bool enabled = false;
-  if (enabled) return Qfalse;
-
-  rb_add_event_hook(on_fiber_switch, RUBY_EVENT_FIBER_SWITCH, Qnil);
-
-// Starting with Ruby 3.2 we use internal thread EXITED hook and not
-// RUBY_EVENT_THREAD_END VM trace event, since trace events are scoped to main Ractor only
-#ifdef RUBY_INTERNAL_THREAD_EVENT_EXITED
-  rb_internal_thread_add_event_hook(on_thread_exited, RUBY_INTERNAL_THREAD_EVENT_EXITED, NULL);
-#else
-  rb_add_event_hook(on_thread_end, RUBY_EVENT_THREAD_END, Qnil);
-#endif
-
-#ifdef HAVE_RUBY_THREAD_STORAGE_API
-  rb_internal_thread_add_event_hook(on_thread_resumed, RUBY_INTERNAL_THREAD_EVENT_RESUMED, NULL);
-#endif
-
-  enabled = true;
+  register_global_hooks();
+  register_ractor_local_hooks();
   return Qtrue;
 }
 
