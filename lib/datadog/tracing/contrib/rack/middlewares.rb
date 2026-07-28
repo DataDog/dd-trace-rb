@@ -157,7 +157,10 @@ module Datadog
             url = parse_url(env, original_env)
 
             if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_URL).nil?
-              options = configuration[:quantize] || {}
+              # dup so the base default below does not mutate the shared :quantize
+              # option; HeaderTagging reads the same hash and would otherwise
+              # inherit base: :exclude, stripping scheme and host from URL header tags.
+              options = (configuration[:quantize] || {}).dup
 
               # Quantization::HTTP.url base defaults to :show, but we are transitioning
               options[:base] ||= :exclude

@@ -480,6 +480,23 @@ RSpec.describe "Rack integration tests" do
           it { expect(trace.resource).to eq("GET 200") }
         end
 
+        context "with a URL-bearing request header tagged" do
+          let(:route) { "/success/" }
+          let(:rack_options) { {headers: {request: ["Referer"]}} }
+          subject(:response) { get route, {}, "HTTP_REFERER" => "http://example.com/search?q=secret" }
+
+          it_behaves_like "a rack GET 200 span"
+
+          # Regression: set_request_tags! sets base: :exclude on the shared
+          # :quantize option before header tagging reads it. If that mutation
+          # leaks, the tagged Referer drops its scheme and host (/search?q).
+          # The query string is still quantized either way.
+          it "quantizes the header URL query string while preserving scheme and host" do
+            expect(span.get_tag("http.request.headers.referer")).to eq("http://example.com/search?q")
+            expect(span).to be_root_span
+          end
+        end
+
         context "with query string parameters" do
           let(:route) { "/success?foo=bar" }
 
