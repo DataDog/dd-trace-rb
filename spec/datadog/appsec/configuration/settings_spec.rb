@@ -435,35 +435,33 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     end
 
     describe "#agentic_onboarding" do
-      subject(:agentic_onboarding) { settings.appsec.agentic_onboarding }
-
-      context "when DD_APPSEC_AGENTIC_ONBOARDING" do
+      context "when DD_APPSEC_AGENTIC_ONBOARDING is not defined" do
         around do |example|
-          ClimateControl.modify("DD_APPSEC_AGENTIC_ONBOARDING" => agentic_onboarding_env) do
+          ClimateControl.modify("DD_APPSEC_AGENTIC_ONBOARDING" => nil) do
             example.run
           end
         end
 
-        context "is not defined" do
-          let(:agentic_onboarding_env) { nil }
+        it { expect(settings.appsec.agentic_onboarding).to eq("") }
+      end
 
-          it { is_expected.to eq("") }
+      context "when DD_APPSEC_AGENTIC_ONBOARDING is defined" do
+        around do |example|
+          ClimateControl.modify("DD_APPSEC_AGENTIC_ONBOARDING" => "arbitrary-marker-value") do
+            example.run
+          end
         end
 
-        context "is defined" do
-          let(:agentic_onboarding_env) { "true" }
-
-          it { is_expected.to eq("true") }
-        end
+        it { expect(settings.appsec.agentic_onboarding).to eq("arbitrary-marker-value") }
       end
     end
 
     describe "#agentic_onboarding=" do
-      subject(:set_agentic_onboarding) { settings.appsec.agentic_onboarding = "true" }
+      subject(:set_agentic_onboarding) { settings.appsec.agentic_onboarding = "arbitrary-marker-value" }
 
       before { set_agentic_onboarding }
 
-      it { expect(settings.appsec.agentic_onboarding).to eq("true") }
+      it { expect(settings.appsec.agentic_onboarding).to eq("arbitrary-marker-value") }
     end
 
     describe "#obfuscator_key_regex" do

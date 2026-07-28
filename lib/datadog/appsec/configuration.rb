@@ -52,8 +52,9 @@ module Datadog
                 o.default false
               end
 
-              # Set by the agentic onboarding solution; no behavior, reported verbatim in
-              # configuration telemetry only (RFC-1113).
+              # NOTE: Marker set by the agentic onboarding tooling.
+              #       Has no effect here — we just report its value in telemetry,
+              #       so onboarding can be detected at runtime
               option :agentic_onboarding do |o|
                 o.type :string
                 o.env "DD_APPSEC_AGENTIC_ONBOARDING"
