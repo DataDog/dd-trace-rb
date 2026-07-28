@@ -498,8 +498,10 @@ module Datadog
           end
         end
         names
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         logger.debug { "di: failed to extract positional parameter names: #{e.class}: #{e.message}" }
+        telemetry&.report(e, description: "Error extracting positional parameter names")
         nil
       end
 
