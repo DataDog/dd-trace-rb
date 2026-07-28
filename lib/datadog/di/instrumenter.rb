@@ -467,7 +467,7 @@ module Datadog
           end
         end
         names
-      rescue StandardError => e
+      rescue => e
         logger.debug { "di: failed to extract positional parameter names: #{e.class}: #{e.message}" }
         nil
       end
