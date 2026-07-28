@@ -78,7 +78,7 @@ module Datadog
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
-      def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil)
+      def initialize(settings, serializer, logger, code_tracker: nil, correlation: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
@@ -86,6 +86,7 @@ module Datadog
         @code_tracker = code_tracker
         @global_snapshot_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_SNAPSHOT_RATE_LIMIT)
         @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
+        @correlation = correlation
 
         @lock = Mutex.new
       end
@@ -95,6 +96,7 @@ module Datadog
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :code_tracker
+      attr_reader :correlation
 
       # The code tracker is a global singleton created lazily by
       # DI.activate_tracking. When DI is enabled after boot via remote
@@ -469,6 +471,29 @@ module Datadog
 
       attr_reader :lock
 
+      # Coordinated sampling gate. Returns true when the probe hit should emit a
+      # snapshot. Delegates the decision to the correlation component so probes
+      # in one execution unit share it. Fails open: if correlation is absent, or
+      # the gate raises, fall back to the probe's own rate limiter so a
+      # correlation bug can never silence all snapshots.
+      def emit?(probe)
+        correlation = self.correlation
+        if correlation
+          begin
+            return correlation.gate(probe) == :emit
+          rescue Exception => exc # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(exc)
+            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+            logger.debug { "[di-correlation] gate error, failing open to per-probe rate limit: #{exc.class}: #{exc.message}" }
+            telemetry&.report(exc, description: "Error in DI correlation gate")
+          end
+        end
+
+        rate_limiter = probe.rate_limiter
+        rate_limiter.nil? || rate_limiter.allow?
+      end
+
       # Body of the method probe wrapper. Extracted from the define_method
       # block in #hook_method so the begin/ensure structure can use normal
       # indentation. The original method is invoked with yield, calling the
@@ -558,8 +583,7 @@ module Datadog
             end
           end
 
-          rate_limiter = probe.rate_limiter
-          admitted = continue && (rate_limiter.nil? || rate_limiter.allow?)
+          admitted = continue && emit?(probe)
           if admitted && !probe_global_rate_limiter(probe).allow?
             admitted = false
             logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
@@ -825,9 +849,9 @@ module Datadog
           end
         end
 
-        # In practice we should always have a rate limiter, but be safe
-        # and check that it is in fact set.
-        return if probe.rate_limiter && !probe.rate_limiter.allow?
+        # Coordinated sampling gate (falls back to the probe's own rate limiter
+        # when correlation is unavailable or the gate errors).
+        return unless emit?(probe)
 
         unless probe_global_rate_limiter(probe).allow?
           logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
