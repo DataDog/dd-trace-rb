@@ -457,9 +457,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     end
 
     describe "#agentic_onboarding=" do
-      subject(:set_agentic_onboarding) { settings.appsec.agentic_onboarding = "arbitrary-marker-value" }
-
-      before { set_agentic_onboarding }
+      before { settings.appsec.agentic_onboarding = "arbitrary-marker-value" }
 
       it { expect(settings.appsec.agentic_onboarding).to eq("arbitrary-marker-value") }
     end
