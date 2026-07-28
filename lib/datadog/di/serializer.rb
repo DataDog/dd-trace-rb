@@ -153,14 +153,20 @@ module Datadog
         guardrails_telemetry.capture_incomplete(reason: reason, event_type: GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT)
       end
 
-      def combine_args(args, kwargs, target_self)
-        counter = 0
-        combined = args.each_with_object({}) do |value, c|
-          counter += 1
-          # Conversion to symbol is needed here to put args ahead of
-          # kwargs when they are merged below.
-          c[:"arg#{counter}"] = value
-        end.update(kwargs)
+      # +param_names+, when provided, is the ordered list of the method's
+      # leading fixed positional parameter names (from Method#parameters).
+      # Each positional argument is keyed by its real name; an argument with
+      # no available name (generated methods, splat overflow, virtual/C
+      # methods) falls back to the positional label arg1, arg2, ...
+      def combine_args(args, kwargs, target_self, param_names = nil)
+        combined = {}
+        args.each_with_index do |value, index|
+          name = param_names && param_names[index]
+          # Symbol keys put positional args ahead of the symbol-keyed kwargs
+          # merged below.
+          combined[name || :"arg#{index + 1}"] = value
+        end
+        combined.update(kwargs)
         combined[:self] = target_self
         combined
       end
@@ -169,22 +175,23 @@ module Datadog
       # as obtained by a method probe.
       #
       # UI supports a single argument list only and does not distinguish
-      # between positional and keyword arguments. We convert positional
-      # arguments to keyword arguments ("arg1", "arg2", ...) and ensure
-      # the positional arguments are listed first.
+      # between positional and keyword arguments. Positional arguments are
+      # keyed by their real parameter names when available (see
+      # +combine_args+), falling back to "arg1", "arg2", ...; positional
+      # arguments are listed first.
       #
       # @param args [Array] positional arguments passed to the probed method
       # @param kwargs [Hash{Symbol => Object}] keyword arguments passed to the probed method
       # @param target_self [any] receiver of the probed method invocation
       # @param deadline [Float] absolute capture deadline in thread CPU clock seconds
       # @return [Hash{Symbol => Hash}] serialized arguments keyed by argument name
-      def serialize_args(args, kwargs, target_self,
+      def serialize_args(args, kwargs, target_self, param_names = nil,
         deadline:,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
         length: nil,
         collection_size: nil)
-        combined = combine_args(args, kwargs, target_self)
+        combined = combine_args(args, kwargs, target_self, param_names)
         serialize_vars(combined, depth: depth, attribute_count: attribute_count,
           length: length, collection_size: collection_size, deadline: deadline,)
       end

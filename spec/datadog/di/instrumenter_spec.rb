@@ -377,7 +377,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(observed_calls.first).to be_a(Datadog::DI::Context)
           expect(observed_calls.first.return_value).to eq 2
           expect(observed_calls.first.duration).to be_a(Float)
-          # expect(observed_calls.first.serialized_entry_args).to eq(arg1: 2)
+          # expect(observed_calls.first.serialized_entry_args).to eq(arg: 2)
         end
       end
 
@@ -405,7 +405,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first.duration).to be_a(Float)
 
             expect(observed_calls.first.serialized_entry_args).to eq(
-              arg1: {type: "Integer", value: "2"},
+              arg: {type: "Integer", value: "2"},
               self: {type: "HookTestClass", fields: {}},
             )
           end
@@ -433,7 +433,7 @@ RSpec.describe Datadog::DI::Instrumenter do
               expect(observed_calls.first.duration).to be_a(Float)
 
               expect(observed_calls.first.serialized_entry_args).to eq(
-                arg1: {type: "Integer", value: "2"},
+                arg: {type: "Integer", value: "2"},
                 self: {
                   type: "HookIvarTestClass",
                   fields: {
@@ -585,9 +585,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first.duration).to be_a(Float)
 
             expect(observed_calls.first.serialized_entry_args).to eq(
-              # TODO actual argument name not captured yet,
-              # requires method call trace point.
-              arg1: {type: "Integer", value: "41"},
+              arg: {type: "Integer", value: "41"},
               kwarg: {type: "Integer", value: "42"},
               self: {type: "HookTestClass", fields: {}},
             )
@@ -721,7 +719,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first.duration).to be_a(Float)
 
             expect(observed_calls.first.serialized_entry_args).to eq(
-              arg1: {type: "String", value: "hello"},
+              arg: {type: "String", value: "hello"},
               kwarg: {type: "Integer", value: "42"},
               self: {type: "HookTestClass", fields: {}},
             )
@@ -1191,8 +1189,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              # We use "arg1" here, actual variable name is not currently available
-              "ref('arg1') == 41"
+              "ref('arg') == 41"
             )
           end
 
@@ -1215,8 +1212,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              # We use "arg1" here, actual variable name is not currently available
-              "ref('arg1') == 42"
+              "ref('arg') == 42"
             )
           end
 
