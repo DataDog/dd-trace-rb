@@ -2282,4 +2282,70 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
   end
+
+  describe "#extract_positional_param_names" do
+    let(:target_class) do
+      Class.new do
+        def only_req(a, b)
+          [a, b]
+        end
+
+        def req_and_opt(a, b = 1)
+          [a, b]
+        end
+
+        def leading_req_then_rest(a, b, *rest)
+          [a, b, rest]
+        end
+
+        def rest_first(*rest, a)
+          [rest, a]
+        end
+
+        def kwargs_only(x:, y: 1, **opts)
+          [x, y, opts]
+        end
+
+        def block_only(&blk)
+          blk
+        end
+
+        def no_params
+          nil
+        end
+      end
+    end
+
+    def names_for(method_name)
+      instrumenter.send(:extract_positional_param_names, target_class.instance_method(method_name))
+    end
+
+    it "returns required positional names in order" do
+      expect(names_for(:only_req)).to eq([:a, :b])
+    end
+
+    it "includes optional positional parameters" do
+      expect(names_for(:req_and_opt)).to eq([:a, :b])
+    end
+
+    it "stops at a rest parameter, keeping the leading fixed positionals" do
+      expect(names_for(:leading_req_then_rest)).to eq([:a, :b])
+    end
+
+    it "stops at a leading rest parameter, dropping post-splat positionals" do
+      expect(names_for(:rest_first)).to eq([])
+    end
+
+    it "ignores keyword and keyword-splat parameters" do
+      expect(names_for(:kwargs_only)).to eq([])
+    end
+
+    it "ignores block parameters" do
+      expect(names_for(:block_only)).to eq([])
+    end
+
+    it "returns an empty array for a method with no parameters" do
+      expect(names_for(:no_params)).to eq([])
+    end
+  end
 end
