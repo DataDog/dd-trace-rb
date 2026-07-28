@@ -2,6 +2,7 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
+require_relative "correlation"
 require_relative "fatal_exceptions"
 require_relative "capture_expression_evaluator"
 
@@ -379,10 +380,17 @@ module Datadog
             thread_id: nil,
             version: 2,
           },
-          runtime_id: Core::Environment::Identity.id,
+          # Per-process identity. Distinguishes snapshots emitted before and
+          # after a restart inside the same container, which host and container
+          # tags cannot. Same value already sent in probe status diagnostics.
+          runtimeId: Core::Environment::Identity.id,
           # TODO add tests that the trace/span id is correctly propagated
           "dd.trace_id": active_trace&.id&.to_s,
           "dd.span_id": active_span&.id&.to_s,
+          # Where the trace id in this envelope came from, so a consumer knows
+          # when a join to APM is valid: "apm" (active trace), "task" (a DI
+          # task-scoped correlation unit), or "none" (independent hit).
+          trace_id_source: trace_id_source,
           ddsource: "dd_debugger",
           message: message,
           timestamp: timestamp,
@@ -437,6 +445,19 @@ module Datadog
       def active_trace
         if defined?(Datadog::Tracing)
           Datadog::Tracing.active_trace
+        end
+      end
+
+      # Mirrors {Correlation#resolve_unit}'s tier ordering using in-process
+      # reads only, so the envelope reports the same source the sampling gate
+      # keyed on for this hit.
+      def trace_id_source
+        if active_trace&.id
+          "apm"
+        elsif Thread.current[Correlation::TIER2_KEY]
+          "task"
+        else
+          "none"
         end
       end
 
