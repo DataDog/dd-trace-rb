@@ -39,7 +39,9 @@ module Datadog
               end
             end
 
-            tags = quantize_header_tag_urls(tags, configuration) do |header|
+            tags = quantize_header_tag_urls(
+              tags, configuration, Datadog.configuration.tracing.header_tags.request_headers
+            ) do |header|
               Tracing::Metadata::Ext::HTTP::RequestHeaders.to_tag(header)
             end
 
@@ -74,7 +76,9 @@ module Datadog
               end
             end
 
-            tags = quantize_header_tag_urls(tags, configuration) do |header|
+            tags = quantize_header_tag_urls(
+              tags, configuration, Datadog.configuration.tracing.header_tags.response_headers
+            ) do |header|
               Tracing::Metadata::Ext::HTTP::ResponseHeaders.to_tag(header)
             end
 
@@ -83,10 +87,12 @@ module Datadog
 
           # Quantizes the URL value of any tagged URL-bearing header so
           # query-string content (which may carry PII) is stripped before the
-          # value becomes a span tag.
+          # value becomes a span tag. Covers both the standard tag name (used by
+          # the integration whitelist and default DD_TRACE_HEADER_TAGS) and any
+          # custom tag name assigned via DD_TRACE_HEADER_TAGS ("referer:my_tag").
           #
           # @api private
-          private_class_method def self.quantize_header_tag_urls(tags, configuration)
+          private_class_method def self.quantize_header_tag_urls(tags, configuration, header_tag_names)
             # The whitelist branches build a Hash; the DD_TRACE_HEADER_TAGS
             # branches build an Array of [tag, value] pairs. Normalize so the
             # lookup and rewrite below work for both.
@@ -96,14 +102,29 @@ module Datadog
             # fall back to default quantization rather than raising InvalidOptionError.
             quantize_options = (configuration.option_defined?(:quantize) && configuration[:quantize]) || {}
 
-            HEADERS_WITH_URLS.each do |header|
-              tag = yield(header)
+            quantized_tag_names(header_tag_names) { |header| yield(header) }.each do |tag|
               next unless tags.key?(tag)
 
-              tags[tag] = Contrib::Utils::Quantization::HTTP.url(tags[tag], quantize_options)
+              value = tags[tag]
+              # The DD_TRACE_HEADER_TAGS response path does not join multi-value
+              # headers, so a Rack 3 Array can reach here; HTTP.url needs a String.
+              value = value.join(",") if value.is_a?(Array)
+              tags[tag] = Contrib::Utils::Quantization::HTTP.url(value, quantize_options)
             end
 
             tags
+          end
+
+          # Tag names that hold URL values: the standard tag name for each
+          # URL-bearing header, plus any custom name mapped from one of those
+          # headers via DD_TRACE_HEADER_TAGS ("referer:my_tag").
+          #
+          # @api private
+          private_class_method def self.quantized_tag_names(header_tag_names)
+            HEADERS_WITH_URLS.each_with_object([]) do |header, names|
+              names << yield(header)
+              header_tag_names.each { |source, tag| names << tag if source.casecmp?(header) }
+            end.uniq
           end
 
           # Datadog-originated requests use these headers for request attribution.

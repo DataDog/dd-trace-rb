@@ -125,6 +125,17 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::HeaderTagging do
         end
       end
 
+      context "via global header tags with a custom tag name" do
+        before do
+          Datadog.configuration.tracing.header_tags = ["Referer:referer_url"]
+          described_class.tag_request_headers(span_op, env, configuration)
+        end
+
+        it "quantizes the URL query string under the custom tag name" do
+          expect(span_op.get_tag("referer_url")).to eq("http://example.com/search?q")
+        end
+      end
+
       context "when the integration configuration does not define :quantize (e.g. Sinatra)" do
         # HeaderTagging is shared; only Rack defines :quantize. Reading it on an
         # integration that doesn't define it raised InvalidOptionError and 500'd
@@ -240,6 +251,28 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::HeaderTagging do
       end
 
       it "quantizes the URL query string" do
+        expect { tag_response_headers }.to change {
+          span_op.get_tag("http.response.headers.location")
+        }.to("http://example.com/callback?token")
+      end
+    end
+
+    context "when a URL-bearing response header is tagged via global header tags" do
+      before do
+        Datadog.registry[:rack].reset_configuration!
+        Datadog.configuration.tracing.header_tags = ["Location"]
+      end
+
+      after { Datadog.configuration.tracing.header_tags = [] }
+
+      # Rack 3 represents multi-value response headers as an Array; the global
+      # DD_TRACE_HEADER_TAGS path does not join them, so this exercises the
+      # Array-to-String coercion before quantization.
+      let(:headers) do
+        {"Location" => ["http://example.com/callback?token=abc123"]}
+      end
+
+      it "joins multi-value headers and quantizes the URL query string" do
         expect { tag_response_headers }.to change {
           span_op.get_tag("http.response.headers.location")
         }.to("http://example.com/callback?token")

@@ -14,6 +14,8 @@ module Datadog
           @response_headers: Hash[String, String]
 
           def initialize: (Array[String] header_tags) -> void
+          attr_reader request_headers: ::Hash[::String, ::String]
+          attr_reader response_headers: ::Hash[::String, ::String]
           def request_tags: (_CaseInsensitiveHash headers) -> Array[Array[String]]
           def response_tags: (_CaseInsensitiveHash headers) -> Array[Array[String]]
           def to_s: () -> String

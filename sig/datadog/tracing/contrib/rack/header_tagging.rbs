@@ -11,7 +11,13 @@ module Datadog
 
           def self.tag_response_headers: (SpanOperation span, ::Rack::headers headers, Configuration::Settings configuration) -> void
 
-          def self.quantize_header_tag_urls: (::Hash[::String, ::String] | ::Array[::Array[::String]] tags, Configuration::Settings configuration) { (::String header) -> ::String } -> ::Hash[::String, ::String]
+          # +tags+ values are header values: a ::String, or a Rack 3 multi-value
+          # ::Array[::String]; typed untyped as this loose header-value shape is
+          # not otherwise expressible here. +header_tag_names+ maps
+          # DD_TRACE_HEADER_TAGS source headers to their span-tag names.
+          def self.quantize_header_tag_urls: (::Hash[::String, untyped] | ::Array[::Array[untyped]] tags, Configuration::Settings configuration, ::Hash[::String, ::String] header_tag_names) { (::String header) -> ::String } -> ::Hash[::String, untyped]
+
+          def self.quantized_tag_names: (::Hash[::String, ::String] header_tag_names) { (::String header) -> ::String } -> ::Array[::String]
 
           def self.tag_datadog_request_attribution_headers: (SpanOperation span, Core::HeaderCollection headers) -> void
         end

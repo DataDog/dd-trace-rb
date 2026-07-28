@@ -40,6 +40,13 @@ module Datadog
             end
           end
 
+          # Source-header (as written in DD_TRACE_HEADER_TAGS) to span-tag-name
+          # mappings. Exposed so integrations can locate the tag names that
+          # correspond to specific source headers (e.g. to quantize URL-valued
+          # headers). Both are Hash[String, String], empty when no header tags
+          # are configured.
+          attr_reader :request_headers, :response_headers
+
           # Receives a case insensitive hash with the request headers and returns
           # a list of tag names and values that can be set in a span.
           def request_tags(headers)
