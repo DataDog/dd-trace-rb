@@ -924,6 +924,18 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           .to include("rspec").or(end_with("/ruby")).or(include("libruby"))
       end
     end
+
+    context "on a static Ruby on Linux" do
+      before do
+        unless RbConfig::CONFIG["ENABLE_SHARED"] == "no" && PlatformHelpers.linux?
+          skip("Test only runs on static Ruby builds on linux")
+        end
+      end
+
+      it "matches the actual binary" do
+        expect(described_class._native_ruby_native_filename).to eq File.readlink("/proc/self/exe")
+      end
+    end
   end
 
   def convert_reference_stack(raw_reference_stack)

@@ -8,11 +8,6 @@
 #endif
 #include <dlfcn.h>
 
-#ifdef __APPLE__
-  #include <libproc.h> // Needed for proc_pidpath, used to find the path to a static Ruby's executable
-  #include <unistd.h> // Needed for getpid
-#endif
-
 #include "datadog_ruby_common.h"
 #include "private_vm_api_access.h"
 #include "ruby_helpers.h"
@@ -669,18 +664,13 @@ static void initialize_static_ruby_actual_filename(void) {
   bool ruby_is_static = rb_eval_string("require 'rbconfig'; (RbConfig::CONFIG['ENABLE_SHARED'] == 'no')") == Qtrue;
   if (!ruby_is_static) return;
 
-  VALUE actual_filename = Qnil;
-
-  #if defined(__linux__)
-    actual_filename = rb_eval_string("File.readlink('/proc/self/exe').delete_suffix(' (deleted)') rescue nil");
-  #elif defined(__APPLE__)
-    char path_buffer[PROC_PIDPATHINFO_MAXSIZE];
-    int path_length = proc_pidpath(getpid(), path_buffer, sizeof(path_buffer));
-    if (path_length > 0) actual_filename = rb_utf8_str_new(path_buffer, path_length);
-  #endif
-
-  if (!valid_looking_path(actual_filename)) actual_filename = rb_eval_string("RbConfig.ruby");
-  if (!valid_looking_path(actual_filename)) return;
+  VALUE actual_filename = rb_eval_string("RbConfig.ruby");
+  bool valid_looking_path =
+    actual_filename != Qnil &&
+    RB_TYPE_P(actual_filename, T_STRING) &&
+    RSTRING_LEN(actual_filename) > 0 &&
+    RSTRING_PTR(actual_filename)[0] == '/';
+  if (!valid_looking_path) return;
 
   static_ruby_actual_filename = rb_obj_freeze(actual_filename);
   rb_gc_register_mark_object(static_ruby_actual_filename); // Makes this object immortal + pinned in-place (no moving)
