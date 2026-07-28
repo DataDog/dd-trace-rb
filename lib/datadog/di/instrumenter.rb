@@ -160,7 +160,7 @@ module Datadog
         end
 
         loc = target_method&.source_location
-        positional_param_names = extract_positional_param_names(target_method)
+        positional_param_names = target_method && extract_positional_param_names(target_method)
         instrumenter = self
 
         mod = Module.new do
@@ -451,14 +451,12 @@ module Datadog
       # may be nil (e.g. attr_writer-generated methods expose no parameter
       # name); #combine_args falls back to arg-N for those too.
       #
-      # Returns nil when no UnboundMethod is available (virtual or C methods),
-      # in which case all positional arguments fall back to arg-N labels.
+      # Only called with a resolved UnboundMethod; virtual and C methods have
+      # no UnboundMethod and skip this at the call site.
       #
-      # @param target_method [UnboundMethod, nil]
+      # @param target_method [UnboundMethod]
       # @return [Array<Symbol, nil>, nil]
       def extract_positional_param_names(target_method)
-        return unless target_method
-
         names = []
         target_method.parameters.each do |type, name|
           case type
