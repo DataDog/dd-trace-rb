@@ -12,6 +12,7 @@ RSpec.describe Datadog::Tracing::Sampling::OtelConsistentSampling do
     let(:rate_limiter_rate) { 1.0 }
     let(:inbound_random_value) { nil }
     let(:inbound_threshold) { nil }
+    let(:remote_parent) { false }
 
     subject(:resolve) do
       described_class.resolve_outbound(
@@ -22,6 +23,7 @@ RSpec.describe Datadog::Tracing::Sampling::OtelConsistentSampling do
         rate_limiter_rate: rate_limiter_rate,
         inbound_random_value: inbound_random_value,
         inbound_threshold: inbound_threshold,
+        remote_parent: remote_parent,
       )
     end
 
@@ -163,6 +165,17 @@ RSpec.describe Datadog::Tracing::Sampling::OtelConsistentSampling do
       let(:rate_limiter_rate) { nil }
 
       it "erases the threshold but preserves the random value" do
+        expect(resolve).to eq([nil, nil])
+      end
+    end
+
+    context "when the trace was continued from a remote parent without OTEP 235 support" do
+      # DD does not make its own probability decision here — it follows the inbound
+      # sampling decision (traceparent sampled bit / X-Datadog-* headers). Even with a
+      # local rate available, it must not fabricate `(rv, th)` the origin never sent.
+      let(:remote_parent) { true }
+
+      it "emits nothing" do
         expect(resolve).to eq([nil, nil])
       end
     end

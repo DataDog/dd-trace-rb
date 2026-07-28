@@ -408,6 +408,7 @@ module Datadog
           rate_limiter_rate: @rate_limiter_rate,
           inbound_random_value: @otel_random_value,
           inbound_threshold: @otel_threshold,
+          remote_parent: @remote_parent,
         )
 
         TraceDigest.new(

@@ -2244,6 +2244,18 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             expect(digest.trace_otel_threshold).to eq("7")
           end
         end
+
+        context "when the trace was continued from a remote parent without OTEP 235 support" do
+          # DD did not make its own probability decision here — it follows the inbound
+          # sampling decision (traceparent sampled bit / X-Datadog-* headers). Even with a
+          # local rate available, it must not fabricate ot values the origin never sent.
+          let(:options) { super().merge(remote_parent: true) }
+
+          it "emits no ot values" do
+            expect(digest.trace_otel_random_value).to be_nil
+            expect(digest.trace_otel_threshold).to be_nil
+          end
+        end
       end
 
       context "is measuring an operation" do

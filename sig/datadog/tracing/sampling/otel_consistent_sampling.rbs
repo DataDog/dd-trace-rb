@@ -20,7 +20,8 @@ module Datadog
           applied_rate: ::Float?,
           rate_limiter_rate: ::Float?,
           inbound_random_value: ::String?,
-          inbound_threshold: ::String?
+          inbound_threshold: ::String?,
+          remote_parent: bool
         ) -> [::String?, ::String?]
 
         def self?.extract_otel_fields: (::String value) -> extracted_otel_fields
