@@ -1,7 +1,7 @@
 #!/bin/sh
 here="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 hooks="$(dirname -- "$here")"
-compiled="$hooks/.compiled/require-skill"
+compiled="$hooks/compiled/require-skill"
 
 if [ -x "$compiled" ]; then
     exec "$compiled" "$@"
