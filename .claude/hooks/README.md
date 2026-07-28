@@ -48,11 +48,12 @@ can be compiled ahead of time into a standalone native binary with [Spinel],
 which starts roughly thirty times faster. Build one like this:
 
 ```sh
-ruby compile.rb <name>
+ruby compile.rb <name>   # one hook (name, name.rb, or a path all work)
+ruby compile.rb          # every hook in this directory
 ```
 
-The result lands in `.compiled/<name>`, and the shim prefers it automatically.
-Binaries are architecture- and OS-specific, so `.compiled/` is gitignored —
+The result lands in `compiled/<name>`, and the shim prefers it automatically.
+Binaries are architecture- and OS-specific, so `compiled/` is gitignored —
 everyone builds their own, and plain Ruby remains the portable fallback.
 
 Spinel only supports a subset of Ruby, so mind the gaps. `Hash#dig`, for one,
