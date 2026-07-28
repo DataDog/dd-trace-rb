@@ -1,13 +1,17 @@
 require "spec_helper"
+require "support/otel_thread_context_test_helpers"
 
 require "etc"
 require "datadog/core/otel_thread_context"
 
 RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
   describe ".set" do
-    before do
+    before(:all) do
+      described_class.singleton_class.include(OTelThreadContextTestHelpers)
       described_class.enable!
+    end
 
+    before do
       # TODO: remove when libdatadog is updated
       skip("libdatadog built without otel-thread-ctx") unless described_class.supported?
     end
