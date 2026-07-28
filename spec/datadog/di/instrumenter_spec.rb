@@ -608,6 +608,50 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    context "positional args with a splat parameter" do
+      let(:probe_args) do
+        {type_name: "HookTestClass", method_name: "method_with_splat",
+         capture_snapshot: true}
+      end
+
+      it "names the leading fixed positionals and falls back to arg-N for splat values" do
+        hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        expect(HookTestClass.new.method_with_splat(1, 2, 3)).to eq [1, [2, 3]]
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first.serialized_entry_args).to eq(
+          first: {type: "Integer", value: "1"},
+          arg2: {type: "Integer", value: "2"},
+          arg3: {type: "Integer", value: "3"},
+          self: {type: "HookTestClass", fields: {}},
+        )
+      end
+    end
+
+    context "when method is virtual (defined via method_missing) with snapshot capture" do
+      let(:probe_args) do
+        {type_name: "YieldingMethodMissingHookTestClass", method_name: "yielding",
+         capture_snapshot: true}
+      end
+
+      it "captures positional args as arg-N because no parameter names are available" do
+        hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        expect(YieldingMethodMissingHookTestClass.new.yielding("hello") { |_| }).to eq [["hello"], {}]
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first.serialized_entry_args).to eq(
+          arg1: {type: "String", value: "hello"},
+          self: {type: "YieldingMethodMissingHookTestClass", fields: {}},
+        )
+      end
+    end
+
     context "empty hash as last argument" do
       let(:probe_args) do
         {type_name: "HookTestClass", method_name: "positional_and_squashed"}
