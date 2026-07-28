@@ -71,6 +71,15 @@ module ReleasePrep
     File.write(CHANGELOG_FILE, content.sub(pattern, replacement))
   end
 
+  # Clean up individual unreleased changelog entries, as fast castle will have already used them to prepare the release draft
+  def delete_changelog_fragments
+    Dir.glob("changelog/unreleased-*.md").sort.each do |fragment|
+      puts "Deleting #{fragment}:"
+      puts File.read(fragment).lines.map { |line| "  #{line}" }.join
+      File.delete(fragment)
+    end
+  end
+
   def fail!(message)
     abort "::error::#{message}"
   end
@@ -103,5 +112,7 @@ namespace :release_prep do
 
     # `version:bump` also asserts the resulting gemspec matches the version.
     Rake::Task["version:bump"].invoke(version)
+
+    ReleasePrep.delete_changelog_fragments
   end
 end
