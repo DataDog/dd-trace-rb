@@ -84,7 +84,7 @@ module Datadog
 
       attr_reader lock: Mutex
 
-      def extract_positional_param_names: (UnboundMethod? target_method) -> ::Array[::Symbol?]?
+      def extract_positional_param_names: (UnboundMethod target_method) -> ::Array[::Symbol?]?
 
       def line_trace_point_callback: (Probe probe, RubyVM::InstructionSequence? iseq, untyped responder, TracePoint tp) -> void
 
