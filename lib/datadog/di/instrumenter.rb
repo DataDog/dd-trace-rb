@@ -85,11 +85,12 @@ module Datadog
       # @param logger [DI::Logger] logger for instrumenter diagnostics
       # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical rate-limit skip metric
       # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
+      # @param correlation [Correlation, nil] coordinated-sampling gate
       # @param code_tracker [CodeTracker, nil] code tracker for line probe installation
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component instrumenter errors are reported through
       # @return [void]
       def initialize(settings, serializer, logger, guardrails_telemetry:, capture_expression_evaluator:,
-        code_tracker: nil, telemetry: nil)
+        correlation: nil, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
@@ -99,6 +100,7 @@ module Datadog
         @code_tracker = code_tracker
         @global_snapshot_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_SNAPSHOT_RATE_LIMIT)
         @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
+        @correlation = correlation
 
         @lock = Mutex.new
       end
@@ -114,6 +116,7 @@ module Datadog
       # @return [CaptureExpressionEvaluator]
       attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
+      attr_reader :correlation
 
       # The code tracker is a global singleton created lazily by
       # DI.activate_tracking. When DI is enabled after boot via remote
@@ -500,6 +503,29 @@ module Datadog
 
       attr_reader :lock
 
+      # Coordinated sampling gate. Returns true when the probe hit should emit a
+      # snapshot. Delegates the decision to the correlation component so probes
+      # in one execution unit share it. Fails open: if correlation is absent, or
+      # the gate raises, fall back to the probe's own rate limiter so a
+      # correlation bug can never silence all snapshots.
+      def emit?(probe)
+        correlation = self.correlation
+        if correlation
+          begin
+            return correlation.gate(probe) == :emit
+          rescue Exception => exc # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(exc)
+            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+            logger.debug { "[di-correlation] gate error, failing open to per-probe rate limit: #{exc.class}: #{exc.message}" }
+            telemetry&.report(exc, description: "Error in DI correlation gate")
+          end
+        end
+
+        rate_limiter = probe.rate_limiter
+        rate_limiter.nil? || rate_limiter.allow?
+      end
+
       # Body of the method probe wrapper. Extracted from the define_method
       # block in #hook_method so the begin/ensure structure can use normal
       # indentation. The original method is invoked with yield, calling the
@@ -589,12 +615,7 @@ module Datadog
             end
           end
 
-          rate_limiter = probe.rate_limiter
-          admitted = continue
-          if continue && rate_limiter && !rate_limiter.allow?
-            admitted = false
-            record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE, probe)
-          end
+          admitted = continue && emit?(probe)
           if admitted && !probe_global_rate_limiter(probe).allow?
             admitted = false
             record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL, probe)
@@ -868,12 +889,9 @@ module Datadog
           end
         end
 
-        # In practice we should always have a rate limiter, but be safe
-        # and check that it is in fact set.
-        if probe.rate_limiter && !probe.rate_limiter.allow?
-          record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE, probe)
-          return
-        end
+        # Coordinated sampling gate (falls back to the probe's own rate limiter
+        # when correlation is unavailable or the gate errors).
+        return unless emit?(probe)
 
         unless probe_global_rate_limiter(probe).allow?
           record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL, probe)
