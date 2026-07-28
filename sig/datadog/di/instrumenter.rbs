@@ -104,7 +104,7 @@ module Datadog
 
       def global_rate_limit_allows?: (Probe probe) -> bool
 
-      def extract_positional_param_names: (UnboundMethod? target_method) -> ::Array[::Symbol?]?
+      def extract_positional_param_names: (UnboundMethod target_method) -> ::Array[::Symbol?]?
 
       def line_trace_point_callback: (Probe probe, RubyVM::InstructionSequence? iseq, untyped responder, TracePoint tp) -> void
 
