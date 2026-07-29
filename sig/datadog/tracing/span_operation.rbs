@@ -156,13 +156,13 @@ module Datadog
 
       attr_reader events: untyped
 
-      attr_reader parent: untyped
+      attr_reader parent: SpanOperation?
 
       attr_reader span: untyped
 
       def build_span: () -> untyped
 
-      def parent=: (untyped parent) -> untyped
+      def parent=: (SpanOperation? parent) -> void
 
       def duration_marker: () -> untyped
 
