@@ -46,7 +46,7 @@ RSpec.describe "Correlation integration" do
   end
 
   after do
-    component.correlation.end_unit
+    Datadog::DI::ExecutionUnit.close
     component.shutdown!
   end
 
@@ -172,7 +172,7 @@ RSpec.describe "Correlation integration" do
       probe_manager.add_probe(method_probe("p-beta", "beta", rate_limit: 5000))
 
       obj = CorrelationIntegrationTestClass.new
-      component.correlation.with_unit("task-1") do
+      Datadog::DI::ExecutionUnit.bracket("task-1") do
         obj.alpha
         obj.beta
       end
@@ -202,7 +202,7 @@ RSpec.describe "Correlation integration" do
 
     it "still emits when the gate raises" do
       probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
-      allow(component.correlation).to receive(:gate).and_raise("gate boom")
+      allow(component.correlation).to receive(:emit?).and_raise("gate boom")
 
       CorrelationIntegrationTestClass.new.inner
       flush

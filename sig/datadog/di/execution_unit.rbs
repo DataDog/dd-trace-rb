@@ -1,0 +1,29 @@
+module Datadog
+  module DI
+    class ExecutionUnit
+      TASK_KEY: Symbol
+
+      @key: untyped
+
+      @scope: untyped
+
+      @source: Symbol
+
+      def self.current: () -> ExecutionUnit
+
+      def self.bracket: [T] (?String? id) { () -> T } -> T
+
+      def self.open: (?String? id) -> String
+
+      def self.close: () -> void
+
+      def initialize: (untyped key, untyped scope, Symbol source) -> void
+
+      attr_reader key: untyped
+
+      attr_reader scope: untyped
+
+      attr_reader source: Symbol
+    end
+  end
+end
