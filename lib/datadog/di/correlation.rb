@@ -15,8 +15,8 @@ module Datadog
     # - Tier 2 — a task-scoped correlation id set at unit-of-work boundaries
     #   (see {#with_unit}) and read from fiber-local storage.
     # - Neither — with no unit to coordinate across, each probe hit is decided
-    #   by its own rate limiter (the pre-coordination behavior); the
-    #   per-probe-per-span cap applies to just the one hit.
+    #   by its own rate limiter; the per-probe-per-span cap applies to just
+    #   the one hit.
     #
     # The first probe in a unit consults its rate limiter; the outcome is cached
     # and inherited by siblings, then a per-probe-per-span cap admits each once.
