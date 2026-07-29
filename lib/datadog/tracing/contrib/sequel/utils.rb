@@ -137,9 +137,19 @@ module Datadog
               if is_jdbc
                 parsed = parse_jdbc_uri(conn)
 
+                # JNDI/DataSource-managed connections keep only a lookup name in opts (e.g.
+                # "jdbc:jndi:..."), so nothing can be parsed from it. Recover the real driver URL
+                # from the live connection's JDBC metadata, the same way Sequel resolves JNDI. This
+                # stays a fallback rather than the primary source: it requires a connection checkout
+                # and some drivers report no URL, whereas the opts URL is free and already present
+                # for direct connections (and non-JDBC adapters have no such metadata at all).
+                if parsed[:host].nil? && parsed[:database].nil? && (resolved = jdbc_connection_url(db))
+                  parsed = parse_jdbc_uri(resolved)
+                end
+
                 # Sequel's JDBC adapter connects with the URL and ignores separate
                 # :host/:port options, unlike native adapters where those options take precedence.
-                if !parsed[:host].nil? || !parsed[:port].nil? || !parsed[:database].nil?
+                if parsed[:host] || parsed[:port] || parsed[:database]
                   host = parsed[:host]
                   port = parsed[:port]
                 end
@@ -150,6 +160,28 @@ module Datadog
             end
 
             private
+
+            # Resolves the real JDBC connection URL from the live connection's metadata
+            # (java.sql.DatabaseMetaData#getURL), for JNDI/DataSource connections whose opts hold
+            # only a lookup name. Memoized on the Database since the URL is stable for its lifetime,
+            # and rescued so tracing degrades gracefully -- returns nil when the connection object
+            # exposes no JDBC metadata, the driver reports no URL, or the connection can't be reached.
+            def jdbc_connection_url(db)
+              return db.instance_variable_get(:@datadog_jdbc_url) if db.instance_variable_defined?(:@datadog_jdbc_url)
+
+              url =
+                begin
+                  db.synchronize do |conn|
+                    conn.get_meta_data.get_url if conn.respond_to?(:get_meta_data)
+                  end
+                rescue => e
+                  Datadog.logger.debug { "Sequel: unable to resolve JDBC URL from connection metadata (#{e.class}: #{e.message})" }
+                  nil
+                end
+
+              db.instance_variable_set(:@datadog_jdbc_url, url)
+              url
+            end
 
             def database_from_path(path)
               return unless path&.start_with?("/")

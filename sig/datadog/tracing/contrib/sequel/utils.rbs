@@ -31,6 +31,8 @@ module Datadog
 
           private
 
+          def self.jdbc_connection_url: (untyped db) -> String?
+
           def self.database_from_path: (String? path) -> String?
 
           def self.database_from_properties: (String? properties) -> String?
