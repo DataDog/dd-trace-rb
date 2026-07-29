@@ -2,7 +2,7 @@
 
 require_relative "../core/utils/time"
 require_relative "../ruby_version"
-require_relative "execution_unit"
+require_relative "sampling_unit"
 require_relative "fatal_exceptions"
 require_relative "capture_expression_evaluator"
 
@@ -443,13 +443,13 @@ module Datadog
 
       # Coordinated sampling gate. Returns true when the probe hit should emit a
       # snapshot. Delegates the decision to the correlation component so probes
-      # in one execution unit share it. Fails open: if correlation is absent or
+      # in one sampling unit share it. Fails open: if correlation is absent or
       # the gate raises, fall back to the probe's own rate limiter.
       def emit?(probe)
         correlation = self.correlation
         if correlation
           begin
-            return correlation.emit?(probe, ExecutionUnit.current)
+            return correlation.emit?(probe, SamplingUnit.current)
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions

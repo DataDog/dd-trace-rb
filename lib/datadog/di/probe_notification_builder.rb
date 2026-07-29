@@ -2,7 +2,7 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
-require_relative "execution_unit"
+require_relative "sampling_unit"
 require_relative "fatal_exceptions"
 require_relative "capture_expression_evaluator"
 
@@ -388,8 +388,8 @@ module Datadog
           "dd.trace_id": active_trace&.id&.to_s,
           "dd.span_id": active_span&.id&.to_s,
           # Where the trace id in this envelope came from, so a consumer knows
-          # when a join to APM is valid: "apm" (active trace), "task" (a DI
-          # task-scoped correlation unit), or "none" (independent hit).
+          # when a join to APM is valid: "apm" (active trace) or "none" (no
+          # active trace; the hit was not correlated).
           trace_id_source: trace_id_source,
           ddsource: "dd_debugger",
           message: message,
@@ -448,9 +448,9 @@ module Datadog
         end
       end
 
-      # Reports the execution-unit source the sampling gate used for this hit.
+      # Reports the sampling-unit source the sampling gate used for this hit.
       def trace_id_source
-        ExecutionUnit.current.source.to_s
+        SamplingUnit.current.source.to_s
       end
 
       def active_span

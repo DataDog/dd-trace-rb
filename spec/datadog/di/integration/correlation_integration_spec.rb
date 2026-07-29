@@ -119,8 +119,8 @@ RSpec.describe "Correlation integration" do
       expect(snapshots.map { |s| s[:trace_id_source] }.uniq).to eq(["apm"])
     end
 
-    it "drops every probe in the unit when the decision is DROP" do
-      # rate_limit 0: the deciding probe's limiter denies, so the whole unit
+    it "drops every probe in the sampling unit when the decision is DROP" do
+      # rate_limit 0: the deciding probe's limiter denies, so the whole sampling unit
       # drops regardless of which probe fires first.
       probe_manager.add_probe(method_probe("p-alpha", "alpha", rate_limit: 0))
       probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 0))
@@ -166,7 +166,7 @@ RSpec.describe "Correlation integration" do
   context "no active trace" do
     before { stub_no_trace }
 
-    it "makes an independent decision outside any unit boundary" do
+    it "makes an independent decision outside any sampling unit" do
       probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
 
       CorrelationIntegrationTestClass.new.inner
