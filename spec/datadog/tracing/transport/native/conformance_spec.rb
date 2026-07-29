@@ -256,6 +256,11 @@ RSpec.describe "Native transport wire-level conformance" do
           "ai_guard" => {
             "messages" => ["hello", nil],
             "score" => 0.75,
+            :enabled => false,
+            "negative" => -9_223_372_036_854_775_808,
+            "unsigned" => 18_446_744_073_709_551_615,
+            "binary" => "\x00\xff".b,
+            "transcoded" => (+"caf\xe9").force_encoding(Encoding::ISO_8859_1),
           },
         },
       }])
@@ -270,6 +275,11 @@ RSpec.describe "Native transport wire-level conformance" do
       expect(MessagePack.unpack(metastruct["ai_guard"])).to eq(
         "messages" => ["hello", nil],
         "score" => 0.75,
+        "enabled" => false,
+        "negative" => -9_223_372_036_854_775_808,
+        "unsigned" => 18_446_744_073_709_551_615,
+        "binary" => "\x00\xff".b,
+        "transcoded" => "café",
       )
     end
 

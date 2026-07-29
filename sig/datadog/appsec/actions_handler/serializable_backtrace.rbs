@@ -10,6 +10,7 @@ module Datadog
         @locations: ::Array[::Thread::Backtrace::Location]
 
         def initialize: (locations: ::Array[::Thread::Backtrace::Location], stack_id: ::String) -> void
+        def to_h: -> ::Hash[::String, ::String | ::Array[::Hash[::String, ::Integer | ::String?]]]
 
         private def build_serializable_locations_map: -> ::Hash[Integer, ::Thread::Backtrace::Location]
       end
