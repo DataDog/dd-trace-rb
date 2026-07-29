@@ -23,9 +23,9 @@ module Datadog
       attr_accessor baggage: untyped
       attr_reader active_span_count: untyped
       attr_reader active_span: untyped
-      attr_reader id: untyped
+      attr_reader id: Integer
       attr_reader max_length: untyped
-      attr_reader parent_span_id: untyped
+      attr_reader parent_span_id: Integer?
       attr_reader trace_state: untyped
       attr_reader trace_state_unknown_fields: untyped
       attr_writer name: untyped
@@ -38,11 +38,11 @@ module Datadog
         ?agent_sample_rate: untyped?,
         ?events: untyped?,
         ?hostname: untyped?,
-        ?id: untyped?,
+        ?id: Integer?,
         ?max_length: untyped,
         ?name: untyped?,
         ?origin: untyped?,
-        ?parent_span_id: untyped?,
+        ?parent_span_id: Integer?,
         ?span_links: ::Array[SpanLink]?,
         ?rate_limiter_rate: untyped?,
         ?resource: untyped?,

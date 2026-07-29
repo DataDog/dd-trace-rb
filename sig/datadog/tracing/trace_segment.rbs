@@ -1,9 +1,9 @@
 module Datadog
   module Tracing
     class TraceSegment
-      @id: untyped
+      @id: Integer?
 
-      @root_span_id: untyped
+      @root_span_id: Integer?
 
       @spans: untyped
       @meta: untyped
@@ -47,7 +47,7 @@ module Datadog
 
       TAG_SERVICE: "service"
 
-      attr_reader id: untyped
+      attr_reader id: Integer?
 
       attr_reader spans: untyped
 
@@ -82,7 +82,7 @@ module Datadog
       attr_reader profiling_enabled: untyped
 
       attr_reader apm_tracing_enabled: untyped
-      def initialize: (untyped spans, ?agent_sample_rate: untyped?, ?hostname: untyped?, ?id: untyped?, ?lang: untyped?, ?name: untyped?, ?origin: untyped?, ?process_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?root_span_id: untyped?, ?rule_sample_rate: untyped?, ?runtime_id: untyped?, ?sample_rate: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?tags: untyped?, ?metrics: untyped?, ?profiling_enabled: untyped?, ?apm_tracing_enabled: untyped?) -> void
+      def initialize: (untyped spans, ?agent_sample_rate: untyped?, ?hostname: untyped?, ?id: Integer?, ?lang: untyped?, ?name: untyped?, ?origin: untyped?, ?process_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?root_span_id: Integer?, ?rule_sample_rate: untyped?, ?runtime_id: untyped?, ?sample_rate: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?tags: untyped?, ?metrics: untyped?, ?profiling_enabled: untyped?, ?apm_tracing_enabled: untyped?) -> void
 
       def any?: () -> untyped
 
@@ -99,7 +99,7 @@ module Datadog
       def sampled?: () -> untyped
       def high_order_tid: () -> untyped
 
-      attr_reader root_span_id: untyped
+      attr_reader root_span_id: Integer?
 
       attr_reader meta: untyped
 

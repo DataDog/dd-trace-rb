@@ -21,11 +21,11 @@ module Datadog
 
       attr_reader end_time: ::Time?
 
-      attr_reader id: untyped
+      attr_reader id: Integer
 
       attr_reader name: untyped
 
-      attr_reader parent_id: untyped
+      attr_reader parent_id: Integer
 
       attr_reader resource: untyped
 
@@ -33,7 +33,7 @@ module Datadog
 
       attr_reader start_time: ::Time?
 
-      attr_reader trace_id: untyped
+      attr_reader trace_id: Integer
 
       attr_reader type: untyped
 
