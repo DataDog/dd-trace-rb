@@ -134,7 +134,7 @@ RSpec.describe Datadog::DI::Correlation do
 
       it "does not cache decisions across independent hits" do
         # Same probe, its limiter admits twice: both independent hits emit
-        # (no unit to coordinate, cap degenerates to the single hit).
+        # (no unit to coordinate).
         probe = probe_double("a", allow: 2)
         expect(correlation.gate(probe)).to eq(:emit)
         expect(correlation.gate(probe)).to eq(:emit)
