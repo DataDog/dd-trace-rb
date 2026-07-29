@@ -51,9 +51,19 @@ static ID at_duration_id;
 static ID at_status_id;
 static ID at_meta_id;
 static ID at_metrics_id;
+static ID at_links_id;
 
 /* Method IDs for time / integer operations */
 static ID id_duration_method;
+static ID id_to_hash;
+
+/* Canonical SpanLink#to_hash field IDs */
+static ID link_trace_id_id;
+static ID link_trace_id_high_id;
+static ID link_span_id_id;
+static ID link_attributes_id;
+static ID link_tracestate_id;
+static ID link_flags_id;
 
 /* Response class (loaded from Ruby) */
 static VALUE response_class       = Qnil;
@@ -305,6 +315,27 @@ static int metrics_iter_cb(VALUE key, VALUE value, VALUE arg) {
   return ST_CONTINUE;
 }
 
+typedef struct {
+  ddog_TracerSpanLinkAttribute *attributes;
+  size_t                        offset;
+} link_attribute_ctx;
+
+static int validate_link_attribute_cb(VALUE key, VALUE value,
+                                      DDTRACE_UNUSED VALUE arg) {
+  ENFORCE_TYPE(key, T_STRING);
+  ENFORCE_TYPE(value, T_STRING);
+  return ST_CONTINUE;
+}
+
+static int fill_link_attribute_cb(VALUE key, VALUE value, VALUE arg) {
+  link_attribute_ctx *ctx = (link_attribute_ctx *)arg;
+  ctx->attributes[ctx->offset++] = (ddog_TracerSpanLinkAttribute){
+    .key = {.ptr = RSTRING_PTR(key), .len = RSTRING_LEN(key)},
+    .value = {.ptr = RSTRING_PTR(value), .len = RSTRING_LEN(value)},
+  };
+  return ST_CONTINUE;
+}
+
 /*
  * Emit a warning while a raw ddog_TracerSpan is held.
  *
@@ -340,6 +371,44 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
   VALUE rb_trace_id  = rb_ivar_get(span, at_trace_id_id);
   VALUE rb_status    = rb_ivar_get(span, at_status_id);
 
+  /* Normalize all links through the canonical Ruby wire representation before
+   * allocating Rust state. This preserves SpanLink#to_hash semantics and makes
+   * a Ruby-side failure atomic for the complete span conversion. */
+  VALUE rb_links = rb_ivar_get(span, at_links_id);
+  ENFORCE_TYPE(rb_links, T_ARRAY);
+  long link_count = RARRAY_LEN(rb_links);
+  VALUE normalized_links = rb_ary_new_capa(link_count);
+  size_t attribute_count = 0;
+
+  for (long i = 0; i < link_count; i++) {
+    VALUE link = rb_funcall(rb_ary_entry(rb_links, i), id_to_hash, 0);
+    ENFORCE_TYPE(link, T_HASH);
+
+    VALUE link_trace_id = rb_hash_aref(link, ID2SYM(link_trace_id_id));
+    VALUE link_trace_id_high = rb_hash_aref(link, ID2SYM(link_trace_id_high_id));
+    VALUE link_span_id = rb_hash_aref(link, ID2SYM(link_span_id_id));
+    VALUE link_attributes = rb_hash_aref(link, ID2SYM(link_attributes_id));
+    VALUE link_tracestate = rb_hash_aref(link, ID2SYM(link_tracestate_id));
+    VALUE link_flags = rb_hash_aref(link, ID2SYM(link_flags_id));
+
+    NUM2ULL(link_trace_id);
+    if (link_trace_id_high != Qnil) NUM2ULL(link_trace_id_high);
+    NUM2ULL(link_span_id);
+    NUM2UINT(link_flags);
+    if (link_tracestate != Qnil) ENFORCE_TYPE(link_tracestate, T_STRING);
+    if (link_attributes != Qnil) {
+      ENFORCE_TYPE(link_attributes, T_HASH);
+      rb_hash_foreach(link_attributes, validate_link_attribute_cb, Qnil);
+      size_t count = (size_t)RHASH_SIZE(link_attributes);
+      if (count > SIZE_MAX - attribute_count) {
+        raise_error(rb_eArgError, "Span link attribute count is too large");
+      }
+      attribute_count += count;
+    }
+
+    rb_ary_push(normalized_links, link);
+  }
+
   /* 2. Convert scalars */
   ddog_CharSlice name_s     = char_slice_from_ruby_string(rb_name);
   ddog_CharSlice service_s  = nullable_char_slice(rb_service);
@@ -369,7 +438,51 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
     if (dur != Qnil) duration_ns = (int64_t)(NUM2DBL(dur) * 1e9);
   }
 
-  /* 3. Create Rust span */
+  /* 3. Build the borrowed FFI link batch. One allocation keeps cleanup
+   * straightforward if Rust span creation or link conversion fails. */
+  if (attribute_count > SIZE_MAX / sizeof(ddog_TracerSpanLinkAttribute)) {
+    raise_error(rb_eArgError, "Span link attribute count is too large");
+  }
+  size_t attributes_size = attribute_count * sizeof(ddog_TracerSpanLinkAttribute);
+  if ((size_t)link_count > (SIZE_MAX - attributes_size) /
+      sizeof(ddog_TracerSpanLink)) {
+    raise_error(rb_eArgError, "Span link count is too large");
+  }
+  size_t links_size = (size_t)link_count * sizeof(ddog_TracerSpanLink);
+  void *link_storage = ruby_xcalloc(1, links_size + attributes_size);
+  ddog_TracerSpanLink *native_links = (ddog_TracerSpanLink *)link_storage;
+  ddog_TracerSpanLinkAttribute *native_attributes =
+      (ddog_TracerSpanLinkAttribute *)((char *)link_storage + links_size);
+  link_attribute_ctx attribute_ctx = {
+    .attributes = native_attributes,
+    .offset = 0,
+  };
+
+  for (long i = 0; i < link_count; i++) {
+    VALUE link = rb_ary_entry(normalized_links, i);
+    VALUE link_trace_id_high = rb_hash_aref(link, ID2SYM(link_trace_id_high_id));
+    VALUE link_attributes = rb_hash_aref(link, ID2SYM(link_attributes_id));
+    VALUE link_tracestate = rb_hash_aref(link, ID2SYM(link_tracestate_id));
+    size_t first_attribute = attribute_ctx.offset;
+    if (link_attributes != Qnil) {
+      rb_hash_foreach(link_attributes, fill_link_attribute_cb,
+                      (VALUE)&attribute_ctx);
+    }
+
+    native_links[i] = (ddog_TracerSpanLink){
+      .trace_id_low = NUM2ULL(rb_hash_aref(link, ID2SYM(link_trace_id_id))),
+      .trace_id_high = link_trace_id_high == Qnil ? 0 : NUM2ULL(link_trace_id_high),
+      .span_id = NUM2ULL(rb_hash_aref(link, ID2SYM(link_span_id_id))),
+      .attributes = {
+        .ptr = native_attributes + first_attribute,
+        .len = attribute_ctx.offset - first_attribute,
+      },
+      .tracestate = nullable_char_slice(link_tracestate),
+      .flags = NUM2UINT(rb_hash_aref(link, ID2SYM(link_flags_id))),
+    };
+  }
+
+  /* 4. Create Rust span */
   ddog_TracerSpanFields fields = {
     .service        = service_s,
     .name           = name_s,
@@ -386,9 +499,23 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
 
   ddog_TracerSpan *rust_span = NULL;
   ddog_TraceExporterError *err = ddog_tracer_span_new(&rust_span, &fields);
+  if (err != NULL) {
+    ruby_xfree(link_storage);
+  }
   check_exporter_error("Failed to create TracerSpan", err);
 
-  /* 4. Populate meta and metrics */
+  ddog_Slice_TracerSpanLink links_slice = {
+    .ptr = native_links,
+    .len = (size_t)link_count,
+  };
+  err = ddog_tracer_span_set_links(rust_span, links_slice);
+  ruby_xfree(link_storage);
+  if (err != NULL) {
+    ddog_tracer_span_free(rust_span);
+    check_exporter_error("Failed to set span links", err);
+  }
+
+  /* 5. Populate meta and metrics */
   hash_iter_ctx ctx = {.span = rust_span, .error = NULL, .skipped = 0};
 
   VALUE rb_meta = rb_ivar_get(span, at_meta_id);
@@ -957,9 +1084,19 @@ void trace_exporter_init(VALUE tracing_module) {
   at_status_id     = rb_intern("@status");
   at_meta_id       = rb_intern("@meta");
   at_metrics_id    = rb_intern("@metrics");
+  at_links_id      = rb_intern("@links");
 
   /* Methods */
   id_duration_method = rb_intern("duration");
+  id_to_hash = rb_intern("to_hash");
+
+  /* SpanLink#to_hash fields */
+  link_trace_id_id = rb_intern("trace_id");
+  link_trace_id_high_id = rb_intern("trace_id_high");
+  link_span_id_id = rb_intern("span_id");
+  link_attributes_id = rb_intern("attributes");
+  link_tracestate_id = rb_intern("tracestate");
+  link_flags_id = rb_intern("flags");
 
   /* Response.new */
   id_new = rb_intern("new");

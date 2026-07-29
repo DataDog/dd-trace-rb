@@ -2,6 +2,8 @@
 
 require "datadog/tracing/transport/native"
 require "datadog/tracing/span"
+require "datadog/tracing/span_link"
+require "datadog/tracing/trace_digest"
 require "datadog/tracing/trace_segment"
 require "datadog/tracing/transport/trace_formatter"
 require "socket"
@@ -157,6 +159,7 @@ RSpec.describe "Native transport wire-level conformance" do
       ).tap do |span|
         (attrs[:meta] || {}).each { |k, v| span.set_tag(k, v) }
         (attrs[:metrics] || {}).each { |k, v| span.set_metric(k, v) }
+        span.links.concat(attrs[:links] || [])
       end
     end
     Datadog::Tracing::TraceSegment.new(spans, id: trace_id, root_span_id: spans.first.id)
@@ -262,6 +265,53 @@ RSpec.describe "Native transport wire-level conformance" do
       # The wire format trace_id field is 64-bit (low half only);
       # high bits go into meta as _dd.p.tid
       expect(decoded.first.first["trace_id"]).to eq(low)
+    end
+  end
+
+  describe "span links" do
+    it "preserves complete canonical values and link order on the wire" do
+      first = Datadog::Tracing::SpanLink.new(
+        Datadog::Tracing::TraceDigest.new(
+          trace_id: (0x1234 << 64) | 0x5678,
+          span_id: 0x9abc,
+          trace_sampling_priority: 1,
+          trace_state: "vendor=value"
+        ),
+        attributes: {"operation" => "receive", "batch" => [1, true]}
+      )
+      second = Datadog::Tracing::SpanLink.new(
+        Datadog::Tracing::TraceDigest.new(
+          trace_id: 22,
+          span_id: 33,
+          trace_sampling_priority: 0
+        )
+      )
+      trace = make_trace([{name: "consumer", links: [first, second]}])
+
+      links = send_and_decode([trace]).first.first["span_links"]
+
+      expect(links).to eq(
+        [
+          {
+            "trace_id" => 0x5678,
+            "trace_id_high" => 0x1234,
+            "span_id" => 0x9abc,
+            "attributes" => {
+              "operation" => "receive",
+              "batch.0" => "1",
+              "batch.1" => "true",
+            },
+            "tracestate" => "vendor=value",
+            "flags" => 0x8000_0001,
+          },
+          {
+            "trace_id" => 22,
+            "trace_id_high" => 0,
+            "span_id" => 33,
+            "flags" => 0x8000_0000,
+          },
+        ]
+      )
     end
   end
 

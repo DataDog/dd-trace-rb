@@ -405,7 +405,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       end
     end
 
-    context "with span fields the native exporter does not yet support" do
+    context "with span fields handled specially by the native exporter" do
       def trace_with(&block)
         trace = make_trace_segment("web.request")
         block.call(trace.spans.first)
@@ -420,10 +420,13 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         expect(transport.send_traces([trace]).first.ok?).to be true
       end
 
-      it "warns when a span carries span links" do
-        trace = trace_with { |span| span.links << double("span link") }
+      it "does not warn when a span carries span links" do
+        link = Datadog::Tracing::SpanLink.new(
+          Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2)
+        )
+        trace = trace_with { |span| span.links << link }
 
-        expect(logger).to receive(:warn).once
+        expect(logger).to_not receive(:warn)
 
         expect(transport.send_traces([trace]).first.ok?).to be true
       end
