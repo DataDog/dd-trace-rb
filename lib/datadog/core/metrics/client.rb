@@ -95,19 +95,6 @@ module Datadog
           end
         end
 
-        # Whether transport resolution should be left to dogstatsd-ruby's own environment
-        # handling (DD_DOGSTATSD_URL / DD_DOGSTATSD_SOCKET). An explicit DD_AGENT_HOST or
-        # DD_METRIC_AGENT_PORT keeps the historical host/port behavior.
-        #
-        # @return [Boolean]
-        def statsd_transport_from_env?
-          dogstatsd_version >= Gem::Version.new("5.6") &&
-            !DATADOG_ENV.key?(Configuration::Ext::Agent::ENV_DEFAULT_HOST) &&
-            !DATADOG_ENV.key?(Configuration::Ext::Metrics::ENV_DEFAULT_PORT) &&
-            (DATADOG_ENV.key?(Configuration::Ext::Metrics::ENV_DOGSTATSD_URL) ||
-              DATADOG_ENV.key?(Configuration::Ext::Metrics::ENV_DOGSTATSD_SOCKET))
-        end
-
         def configure(options = {})
           @statsd = options[:statsd] if options.key?(:statsd)
           self.enabled = options[:enabled] if options.key?(:enabled)
@@ -193,6 +180,19 @@ module Datadog
         end
 
         private
+
+        # Whether transport resolution should be left to dogstatsd-ruby's own environment
+        # handling (DD_DOGSTATSD_URL / DD_DOGSTATSD_SOCKET). An explicit DD_AGENT_HOST or
+        # DD_METRIC_AGENT_PORT keeps the historical host/port behavior.
+        #
+        # @return [Boolean]
+        def statsd_transport_from_env?
+          dogstatsd_version >= Gem::Version.new("5.6") &&
+            !DATADOG_ENV.key?(Configuration::Ext::Agent::ENV_DEFAULT_HOST) &&
+            !DATADOG_ENV.key?(Configuration::Ext::Metrics::ENV_DEFAULT_PORT) &&
+            (DATADOG_ENV.key?(Configuration::Ext::Metrics::ENV_DOGSTATSD_URL) ||
+              DATADOG_ENV.key?(Configuration::Ext::Metrics::ENV_DOGSTATSD_SOCKET))
+        end
 
         def dogstatsd_version
           return @dogstatsd_version if instance_variable_defined?(:@dogstatsd_version)

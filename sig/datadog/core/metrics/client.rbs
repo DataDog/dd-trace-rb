@@ -40,8 +40,6 @@ module Datadog
 
         def default_statsd_client: () -> untyped
 
-        def statsd_transport_from_env?: () -> bool
-
         def configure: (?Hash[untyped, untyped] options) -> void
 
         def send_stats?: () -> bool
@@ -61,6 +59,8 @@ module Datadog
         def close: () -> (untyped | nil)
 
         private
+
+        def statsd_transport_from_env?: () -> bool
 
         def dogstatsd_version: () -> Gem::Version?
 
