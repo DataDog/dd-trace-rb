@@ -38,7 +38,9 @@ module Datadog
         end
 
         def self.run_at_fork_blocks(stage)
-          blocks_for(stage).each(&:call)
+          # A callback may deregister itself while it runs. Iterate a snapshot
+          # so every callback selected for this stage still gets its turn.
+          blocks_for(stage).dup.each(&:call)
         end
 
         # Registers a block to run at the given fork +stage+ (+:before+,
@@ -87,16 +89,15 @@ module Datadog
               end
             end
 
-            # Run pre-fork callbacks in the parent, just before forking.
-            AtForkMonkeyPatch.run_at_fork_blocks(:before)
-
-            # Start fork
-            # If a block is provided, use the wrapped version.
             begin
+              # Run pre-fork callbacks in the parent, just before forking.
+              AtForkMonkeyPatch.run_at_fork_blocks(:before)
+
+              # Start fork. If a block is provided, use the wrapped version.
               result = child_block.nil? ? super : super(&child_block)
             rescue Exception # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
-              # The fork failed and we are still in the parent; run `:parent` to
-              # restore any state the `:before` blocks set up, then re-raise.
+              # The fork or a before-fork callback failed and we are still in
+              # the parent. Restore any state set up by earlier callbacks.
               AtForkMonkeyPatch.run_at_fork_blocks(:parent)
               raise
             end
@@ -120,15 +121,12 @@ module Datadog
           # Hook provided by Ruby 3.1+ for observability libraries that want to know about fork, see
           # https://github.com/ruby/ruby/pull/5017 and https://bugs.ruby-lang.org/issues/17795
           def _fork
-            AtForkMonkeyPatch.run_at_fork_blocks(:before)
-
             begin
+              AtForkMonkeyPatch.run_at_fork_blocks(:before)
               pid = super
             rescue Exception # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
-              # The fork failed, so no child was created and we are still in the
-              # parent. The `:before` blocks already ran (and may hold resources,
-              # e.g. a locked mutex); run the `:parent` blocks so that state is
-              # restored, then re-raise.
+              # The fork or a before-fork callback failed, so no child was
+              # created. Restore state set up by any earlier callbacks.
               AtForkMonkeyPatch.run_at_fork_blocks(:parent)
               raise
             end
@@ -146,13 +144,12 @@ module Datadog
           # keeps executing code in the child process, killing off the parent, thus effectively replacing it.
           # This is not covered by `_fork` and thus we have some extra code for it.
           def daemon(*args)
-            AtForkMonkeyPatch.run_at_fork_blocks(:before)
-
             begin
+              AtForkMonkeyPatch.run_at_fork_blocks(:before)
               result = super
             rescue Exception # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
-              # `daemon` failed, so the original process survives; run `:parent`
-              # to restore state the `:before` blocks set up, then re-raise.
+              # `daemon` or a before-fork callback failed, so the original
+              # process survives. Restore state set up by earlier callbacks.
               AtForkMonkeyPatch.run_at_fork_blocks(:parent)
               raise
             end

@@ -187,6 +187,23 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
             end
           end
         end
+
+        context "when a later before callback raises" do
+          include_context "at_fork callbacks"
+
+          it "runs parent cleanup and does not fork" do
+            error = RuntimeError.new("before failed")
+            described_module = Datadog::Core::Utils::AtForkMonkeyPatch
+            described_module.at_fork(:before) { raise error }
+
+            expect(before_fork).to receive(:call).ordered
+            expect(parent).to receive(:call).ordered
+            expect(child).to_not receive(:call)
+            expect(Kernel).to_not receive(:fork)
+
+            expect { fork_class.fork }.to raise_error(error)
+          end
+        end
       end
     end
   end
@@ -248,6 +265,17 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       it "passes any arguments to Process.daemon and returns its results" do
         expect(process_module.daemon(:arg1, :arg2)).to eq([:arg1, :arg2])
       end
+
+      it "runs parent cleanup when a later before callback raises" do
+        error = RuntimeError.new("before failed")
+        Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:before) { raise error }
+
+        expect(before_callback).to receive(:call).ordered
+        expect(parent_callback).to receive(:call).ordered
+        expect(child_callback).to_not receive(:call)
+
+        expect { process_module.daemon }.to raise_error(error)
+      end
     end
 
     describe "_fork" do
@@ -301,6 +329,19 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
           expect { process_module._fork }.to raise_error(Errno::EAGAIN)
         end
       end
+
+      context "when a later before callback raises" do
+        it "runs parent cleanup and does not run child callbacks" do
+          error = RuntimeError.new("before failed")
+          Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:before) { raise error }
+
+          expect(before_callback).to receive(:call).ordered
+          expect(parent_callback).to receive(:call).ordered
+          expect(child_callback).to_not receive(:call)
+
+          expect { process_module._fork }.to raise_error(error)
+        end
+      end
     end
   end
 
@@ -334,6 +375,20 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
 
       described_class.run_at_fork_blocks(:child)
       expect(calls).to eq(%i[before child])
+    end
+
+    it "runs every selected callback when one deregisters itself" do
+      calls = []
+      first = nil
+      first = described_class.at_fork(:parent) do
+        calls << :first
+        described_class.remove_at_fork(:parent, first)
+      end
+      described_class.at_fork(:parent) { calls << :second }
+
+      described_class.run_at_fork_blocks(:parent)
+
+      expect(calls).to eq(%i[first second])
     end
 
     it "raises ArgumentError for an unknown stage when registering" do

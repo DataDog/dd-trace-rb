@@ -370,6 +370,31 @@ RSpec.describe "Native transport fork safety and cancellation" do
     ensure
       AtForkRegistryHelpers.restore(saved_at_fork) if saved_at_fork
     end
+
+    it "restores the parent when a later global before-fork hook raises" do
+      error = RuntimeError.new("later before-fork hook failed")
+      fork_called = Queue.new
+      Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:before) { raise error }
+
+      allow(exporter).to receive(:_native_before_fork).and_call_original
+      allow(exporter).to receive(:_native_after_fork_in_parent).and_call_original
+
+      process_module = Module.new do
+        define_singleton_method(:_fork) do
+          fork_called << true
+          1234
+        end
+      end
+      process_module.singleton_class.prepend(
+        Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch
+      )
+
+      expect { process_module._fork }.to raise_error(error)
+      expect(fork_called).to be_empty
+      expect(exporter).to have_received(:_native_before_fork).once
+      expect(exporter).to have_received(:_native_after_fork_in_parent).once
+      expect(transport.send_traces([build_trace(name: "after-before-failure.op")]).first.ok?).to be(true)
+    end
   end
 
   # ===========================================================================

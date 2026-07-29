@@ -69,7 +69,7 @@ module Datadog
             # @send_mutex, this is held for the complete fork lifecycle so the
             # matching parent/child hooks cannot be deregistered mid-fork.
             @fork_mutex = Mutex.new
-            @fork_state = {closed: false, pending: 0}
+            @fork_state = {closed: false, pending: 0, forking: false, finalize: false}
 
             url = agent_settings.url
             tracer_version = tracer_version_string
@@ -156,6 +156,7 @@ module Datadog
             send_mutex = @send_mutex
             fork_mutex = @fork_mutex
             fork_state = @fork_state
+            remove_fork_hooks = nil
             before_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:before) do
               # Announce before blocking: close may already hold @fork_mutex
               # while it waits for a send, and must yield to this hook rather
@@ -171,6 +172,7 @@ module Datadog
                 fork_mutex.unlock
                 next
               end
+              fork_state[:forking] = true
 
               begin
                 # Pause the runtime first (safe to run concurrently with an
@@ -196,6 +198,8 @@ module Datadog
               # between `_native_before_fork` and the lock). Released even if the
               # native call raised, so a failure can't leave the mutex locked.
               send_mutex.unlock if send_mutex.owned?
+              fork_state[:forking] = false
+              remove_fork_hooks.call if fork_state[:finalize]
               fork_mutex.unlock if fork_mutex.owned?
             end
             child_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
@@ -207,10 +211,13 @@ module Datadog
               # lone survivor in the child); the guard only covers `:before`
               # being interrupted mid-lock.
               send_mutex.unlock if send_mutex.owned?
+              fork_state[:forking] = false
+              remove_fork_hooks.call if fork_state[:finalize]
               fork_mutex.unlock if fork_mutex.owned?
             end
 
             @fork_hooks = {before: before_hook, parent: parent_hook, child: child_hook}
+            remove_fork_hooks = self.class.send(:fork_hooks_remover, @fork_hooks, fork_state)
 
             # Fallback so a dropped (un-#close'd) transport doesn't leak its
             # global fork hooks (and, through them, the exporter/runtime). The
@@ -220,7 +227,7 @@ module Datadog
             # never run.
             ObjectSpace.define_finalizer(
               self,
-              self.class.send(:finalizer_for, @fork_hooks, fork_mutex, fork_state)
+              self.class.send(:finalizer_for, fork_mutex, fork_state, remove_fork_hooks)
             )
           end
 
@@ -281,8 +288,33 @@ module Datadog
           # (which would keep the instance reachable and prevent the finalizer
           # from ever running). Removing the hooks unpins the exporter captured
           # by those closures, allowing it (and its runtime) to be freed.
-          def self.finalizer_for(fork_hooks, fork_mutex, fork_state)
+          def self.fork_hooks_remover(fork_hooks, fork_state)
             proc do
+              fork_state[:closed] = true
+              fork_state[:finalize] = false
+              fork_hooks.each do |stage, block|
+                Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
+              end
+            end
+          end
+          private_class_method :fork_hooks_remover
+
+          def self.finalizer_for(fork_mutex, fork_state, remove_fork_hooks)
+            proc do
+              # Mutex is not reentrant. A finalizer can run at a safe point on
+              # the owning thread, so either remove directly or let the active
+              # fork's completion callback restore state before removing.
+              if fork_mutex.owned?
+                if fork_state[:forking]
+                  # The matching parent/child callback must restore the runtime
+                  # and release both locks before deregistering its own hooks.
+                  fork_state[:finalize] = true
+                else
+                  remove_fork_hooks.call
+                end
+                next
+              end
+
               loop do
                 fork_mutex.lock
                 break if fork_state[:pending] == 0
@@ -292,10 +324,7 @@ module Datadog
               end
 
               begin
-                fork_state[:closed] = true
-                fork_hooks.each do |stage, block|
-                  Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
-                end
+                remove_fork_hooks.call
               ensure
                 fork_mutex.unlock if fork_mutex.owned?
               end

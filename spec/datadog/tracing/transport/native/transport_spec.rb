@@ -273,6 +273,18 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
     end
 
     describe "finalizer fallback" do
+      def build_finalizer(transport)
+        hooks = transport.instance_variable_get(:@fork_hooks)
+        fork_state = transport.instance_variable_get(:@fork_state)
+        remove_fork_hooks = transport_class.send(:fork_hooks_remover, hooks, fork_state)
+        transport_class.send(
+          :finalizer_for,
+          transport.instance_variable_get(:@fork_mutex),
+          fork_state,
+          remove_fork_hooks
+        )
+      end
+
       it "registers a finalizer on the transport at construction" do
         # The finalizer guards against a transport that is dropped without
         # #close: it must still deregister the global fork hooks.
@@ -285,13 +297,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         # keep that object reachable, so it would never fire. Building it in a
         # class method guarantees its binding receiver is the class, not an
         # instance.
-        hooks = transport.instance_variable_get(:@fork_hooks)
-        finalizer = transport_class.send(
-          :finalizer_for,
-          hooks,
-          transport.instance_variable_get(:@fork_mutex),
-          transport.instance_variable_get(:@fork_state)
-        )
+        finalizer = build_finalizer(transport)
 
         expect(finalizer.binding.receiver).to be(transport_class)
         expect(finalizer.binding.receiver).to_not be(transport)
@@ -299,12 +305,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
 
       it "removes all the hooks when the finalizer runs" do
         hooks = transport.instance_variable_get(:@fork_hooks)
-        finalizer = transport_class.send(
-          :finalizer_for,
-          hooks,
-          transport.instance_variable_get(:@fork_mutex),
-          transport.instance_variable_get(:@fork_state)
-        )
+        finalizer = build_finalizer(transport)
 
         # Assert the hooks are registered first, so the post-run absence check
         # cannot pass vacuously.
@@ -319,6 +320,44 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         hooks.each do |stage, block|
           expect(registry_contains?(stage, block)).to be(false)
         end
+      end
+
+      it "removes hooks without relocking a lifecycle mutex owned outside a fork" do
+        hooks = transport.instance_variable_get(:@fork_hooks)
+        fork_mutex = transport.instance_variable_get(:@fork_mutex)
+        finalizer = build_finalizer(transport)
+        fork_mutex.lock
+
+        expect { Timeout.timeout(1) { finalizer.call(transport.object_id) } }.to_not raise_error
+
+        hooks.each do |stage, block|
+          expect(registry_contains?(stage, block)).to be(false)
+        end
+      ensure
+        fork_mutex&.unlock if fork_mutex&.owned?
+      end
+
+      it "defers hook removal to the completion callback during a fork lifecycle" do
+        hooks = transport.instance_variable_get(:@fork_hooks)
+        fork_mutex = transport.instance_variable_get(:@fork_mutex)
+        finalizer = build_finalizer(transport)
+
+        hooks[:before].call
+        expect(fork_mutex).to be_owned
+
+        expect { Timeout.timeout(1) { finalizer.call(transport.object_id) } }.to_not raise_error
+        hooks.each do |stage, block|
+          expect(registry_contains?(stage, block)).to be(true)
+        end
+
+        hooks[:parent].call
+
+        expect(fork_mutex).to_not be_owned
+        hooks.each do |stage, block|
+          expect(registry_contains?(stage, block)).to be(false)
+        end
+      ensure
+        hooks&.dig(:parent)&.call if fork_mutex&.owned?
       end
     end
 
