@@ -710,9 +710,6 @@ RSpec.describe "Kafka patcher" do
     end
   end
 
-  # Regression test for APMS-20161. For connection and producer events, `ruby-kafka` populates the
-  # notification payload inside the instrumented block, so payload-derived tags must be read on
-  # finish. These tests mutate the payload from within the block to mirror that timing.
   describe "payload populated inside the instrumented block" do
     describe "connection.request" do
       let(:api) { "api" }

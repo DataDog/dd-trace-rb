@@ -26,8 +26,6 @@ module Datadog
               def on_finish(span, _event, _id, payload)
                 super
 
-                # `ruby-kafka` populates these counts inside the block, so they are only available on
-                # finish. See APMS-20161.
                 span.set_tag(Ext::TAG_MESSAGE_COUNT, payload[:message_count]) if payload.key?(:message_count)
                 span.set_tag(Ext::TAG_SENT_MESSAGE_COUNT, payload[:sent_message_count]) if payload.key?(:sent_message_count)
               end

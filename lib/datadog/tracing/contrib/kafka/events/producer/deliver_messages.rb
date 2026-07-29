@@ -26,8 +26,6 @@ module Datadog
               def on_finish(span, _event, _id, payload)
                 super
 
-                # `ruby-kafka` populates this delivery metadata inside the block, so it is only
-                # available on finish. See APMS-20161.
                 span.set_tag(Ext::TAG_ATTEMPTS, payload[:attempts]) if payload.key?(:attempts)
                 span.set_tag(Ext::TAG_MESSAGE_COUNT, payload[:message_count]) if payload.key?(:message_count)
                 if payload.key?(:delivered_message_count)
