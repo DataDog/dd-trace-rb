@@ -10,9 +10,6 @@
 #   Wire as a PreToolUse hook; reads the tool payload JSON on stdin
 #   ruby require-skill.rb write-rbs 'sig/.*\.rbs$|vendor/rbs/.*\.rbs$'
 #
-#   Run the inline test suite
-#   TEST=1 ruby require-skill.rb
-#
 # Emits a PreToolUse "deny" decision (exit 0 + JSON) when the skill is absent
 
 require "json"
@@ -80,71 +77,5 @@ class Runner
   end
 end
 
-Runner.new(ARGV).run($stdin.read) unless ENV["TEST"] == "1"
-
-# ==============================================================================
-# Tests — run with: TEST=1 ruby require-skill.rb
-# ==============================================================================
-
-require "tempfile"
-require "test/unit"
-
-class SkillTest < Test::Unit::TestCase
-  def skill
-    Skill.new("write-rbs")
-  end
-
-  def transcript(contents)
-    file = Tempfile.new("transcript")
-    file.write(contents)
-    file.close
-    yield file.path
-  ensure
-    file&.unlink
-  end
-
-  def skill_event(name)
-    JSON.generate(
-      "message" => {
-        "content" => [
-          {"type" => "tool_use", "name" => "Skill", "input" => {"skill" => name}},
-        ],
-      },
-    ) + "\n"
-  end
-
-  def test_loaded_when_skill_invoked
-    transcript(skill_event("write-rbs")) do |path|
-      assert skill.loaded?(path)
-    end
-  end
-
-  def test_not_loaded_when_absent
-    transcript("nothing relevant here\n") do |path|
-      refute skill.loaded?(path)
-    end
-  end
-
-  def test_mention_in_prose_does_not_satisfy_requirement
-    transcript(%({"message":{"content":[{"type":"text","text":"use the write-rbs skill"}]}}\n)) do |path|
-      refute skill.loaded?(path)
-    end
-  end
-
-  def test_prefixed_skill_name_does_not_satisfy_requirement
-    transcript(skill_event("something-write-rbs")) do |path|
-      refute skill.loaded?(path)
-    end
-  end
-
-  def test_suffixed_skill_name_does_not_satisfy_requirement
-    transcript(skill_event("write-rbs-something")) do |path|
-      refute skill.loaded?(path)
-    end
-  end
-
-  def test_not_loaded_when_transcript_missing
-    refute skill.loaded?("/no/such")
-    refute skill.loaded?(nil)
-  end
-end
+# NOTE: Skip when required by the sidecar test, which drives Runner itself
+Runner.new(ARGV).run($stdin.read) unless $PROGRAM_NAME.end_with?(".test.rb")
