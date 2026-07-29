@@ -2,18 +2,18 @@
 
 module Datadog
   module DI
-    # Owns the execution unit that groups related Live Debugger probe hits: the
+    # Owns the sampling unit that groups related Live Debugger probe hits: the
     # active APM trace, or the individual hit when no trace is active.
     #
-    # The unit is resolved from existing tracer context only (the active trace
-    # and span). No new context mechanism is introduced; when no trace is
-    # active the hit is not correlated.
+    # The sampling unit is resolved from existing tracer context only (the
+    # active trace and span). No new context mechanism is introduced; when no
+    # trace is active the hit is not correlated.
     #
     # @api private
-    class ExecutionUnit
-      # Resolves the unit enclosing the current probe hit.
+    class SamplingUnit
+      # Resolves the sampling unit enclosing the current probe hit.
       #
-      # @return [ExecutionUnit]
+      # @return [SamplingUnit]
       def self.current
         if defined?(Datadog::Tracing)
           trace = Datadog::Tracing.active_trace
@@ -26,7 +26,8 @@ module Datadog
         new(nil, nil, :none)
       end
 
-      # Holds one resolved unit; callers obtain instances from {.current}.
+      # Holds one resolved sampling unit; callers obtain instances from
+      # {.current}.
       #
       # @param key [String, Integer, nil] groups hits that share one decision
       # @param scope [String, Integer, nil] bounds a probe's repeat emissions
@@ -37,13 +38,13 @@ module Datadog
         @source = source
       end
 
-      # Identifies the unit whose hits share one emit-or-drop decision.
+      # Identifies the sampling unit whose hits share one emit-or-drop decision.
       attr_reader :key
 
-      # Bounds how often a single probe emits inside the unit.
+      # Bounds how often a single probe emits inside the sampling unit.
       attr_reader :scope
 
-      # Origin of the unit: :apm or :none.
+      # Origin of the sampling unit: :apm or :none.
       attr_reader :source
     end
   end
