@@ -89,7 +89,7 @@ module Datadog
           settings: settings, serializer: serializer, logger: logger,
           guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
         )
-        @correlation = Correlation.new(settings, logger, telemetry: telemetry)
+        @correlation = Correlation.new
         @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker,
           correlation: correlation, telemetry: telemetry,
           guardrails_telemetry: guardrails_telemetry,

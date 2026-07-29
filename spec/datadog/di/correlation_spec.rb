@@ -5,10 +5,7 @@ require "datadog/di/execution_unit"
 RSpec.describe Datadog::DI::Correlation do
   di_test
 
-  let(:settings) { double("settings") }
-  let(:logger) { double("logger").tap { |l| allow(l).to receive(:debug) } }
-
-  subject(:correlation) { described_class.new(settings, logger, max_entries: max_entries) }
+  subject(:correlation) { described_class.new(max_entries: max_entries) }
 
   let(:max_entries) { 4096 }
 

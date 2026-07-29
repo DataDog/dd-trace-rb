@@ -14,24 +14,15 @@ module Datadog
       # when the bound is exceeded.
       DEFAULT_MAX_ENTRIES = 4096
 
-      # @param settings [Datadog::Core::Configuration::Settings]
-      # @param logger [Datadog::DI::Logger]
-      # @param telemetry [Datadog::Core::Telemetry::Component, nil]
+      # Builds a sampler bounded to +max_entries+ retained units and scopes.
+      #
       # @param max_entries [Integer] bound for the decision and scope maps
-      def initialize(settings, logger, telemetry: nil, max_entries: DEFAULT_MAX_ENTRIES)
-        @settings = settings
-        @logger = logger
-        @telemetry = telemetry
+      def initialize(max_entries: DEFAULT_MAX_ENTRIES)
         @max_entries = max_entries
         @lock = Mutex.new
         @unit_decisions = {}
         @cap_scopes = {}
       end
-
-      attr_reader :settings
-      attr_reader :logger
-      attr_reader :telemetry
-      attr_reader :max_entries
 
       # Decides whether this probe hit emits a snapshot.
       #
