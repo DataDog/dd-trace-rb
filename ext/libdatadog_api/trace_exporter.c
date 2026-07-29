@@ -3,6 +3,7 @@
 #include <ruby/thread.h>
 #include <limits.h>
 #include <stdbool.h>
+#include <string.h>
 #include <datadog/data-pipeline.h>
 #include <datadog/shared-runtime.h>
 
@@ -318,8 +319,9 @@ typedef struct {
   size_t len;
   size_t capacity;
   st_table *active;
-  VALUE keepalive;
-  ddog_TracerEncodedValue *blob;
+  uint8_t **scratch;
+  size_t scratch_len;
+  size_t scratch_capacity;
 } structured_value_ctx;
 
 static ddog_TracerValueToken *append_structured_value_token(
@@ -337,6 +339,36 @@ static ddog_TracerValueToken *append_structured_value_token(
   *token = (ddog_TracerValueToken){0};
   token->kind = kind;
   return token;
+}
+
+static const uint8_t *copy_structured_value_bytes(
+    structured_value_ctx *ctx, VALUE string, size_t len) {
+  if (len == 0) return (const uint8_t *)"";
+
+  if (ctx->scratch_len == ctx->scratch_capacity) {
+    size_t capacity = ctx->scratch_capacity == 0 ? 8 : ctx->scratch_capacity * 2;
+    if (capacity < ctx->scratch_capacity || capacity > SIZE_MAX / sizeof(*ctx->scratch)) {
+      rb_raise(rb_eNoMemError, "meta_struct scratch buffer is too large");
+    }
+    REALLOC_N(ctx->scratch, uint8_t *, capacity);
+    ctx->scratch_capacity = capacity;
+  }
+
+  uint8_t *copy = ruby_xmalloc(len);
+  ctx->scratch[ctx->scratch_len++] = copy;
+  /* ruby_xmalloc may trigger GC, so retrieve the Ruby buffer only after it
+   * returns and do not call Ruby again before the copy completes. */
+  memcpy(copy, RSTRING_PTR(string), len);
+  return copy;
+}
+
+static void free_structured_value_ctx(structured_value_ctx *ctx) {
+  if (ctx->active != NULL) st_free_table(ctx->active);
+  for (size_t i = 0; i < ctx->scratch_len; i++) {
+    ruby_xfree(ctx->scratch[i]);
+  }
+  ruby_xfree(ctx->scratch);
+  ruby_xfree(ctx->tokens);
 }
 
 static VALUE resolve_serializable_backtrace_class(void) {
@@ -417,12 +449,12 @@ static void append_structured_value(VALUE value, unsigned int depth,
     bool binary = RB_TYPE_P(value, T_STRING) &&
         rb_enc_get_index(value) == rb_ascii8bit_encindex();
     VALUE string = binary ? value : utf8_string(value);
-    rb_ary_push(ctx->keepalive, string);
+    size_t len = (size_t)RSTRING_LEN(string);
     ddog_TracerValueToken *token = append_structured_value_token(
         ctx, binary ? DDOG_TRACER_VALUE_BINARY : DDOG_TRACER_VALUE_STRING);
     token->bytes = (ddog_ByteSlice){
-      .ptr = (const uint8_t *)RSTRING_PTR(string),
-      .len = RSTRING_LEN(string),
+      .ptr = copy_structured_value_bytes(ctx, string, len),
+      .len = len,
     };
     return;
   }
@@ -465,60 +497,48 @@ static void append_structured_value(VALUE value, unsigned int depth,
 }
 
 typedef struct {
-  structured_value_ctx encoder;
-  VALUE value;
-} encode_structured_value_ctx;
+  const uint8_t *key;
+  size_t key_len;
+  structured_value_ctx value;
+} prepared_metastruct_entry;
 
-static VALUE encode_structured_value_body(VALUE arg) {
-  encode_structured_value_ctx *ctx = (encode_structured_value_ctx *)arg;
-  append_structured_value(ctx->value, 0, &ctx->encoder);
+typedef struct {
+  prepared_metastruct_entry *entries;
+  size_t len;
+  size_t capacity;
+} prepared_metastruct;
 
-  ddog_Slice_TracerValueToken tokens = {
-    .ptr = ctx->encoder.tokens,
-    .len = ctx->encoder.len,
-  };
-  ddog_TraceExporterError *err =
-      ddog_tracer_encode_value(tokens, &ctx->encoder.blob);
-  check_exporter_error("Failed to encode span meta_struct value", err);
-
-  ddog_ByteSlice bytes = ddog_tracer_encoded_value_as_slice(ctx->encoder.blob);
-  return rb_str_new((const char *)bytes.ptr, bytes.len);
+static void free_prepared_metastruct(prepared_metastruct *prepared) {
+  for (size_t i = 0; i < prepared->len; i++) {
+    free_structured_value_ctx(&prepared->entries[i].value);
+  }
+  ruby_xfree(prepared->entries);
+  *prepared = (prepared_metastruct){0};
 }
 
-static VALUE free_structured_value_ctx(VALUE arg) {
-  encode_structured_value_ctx *ctx = (encode_structured_value_ctx *)arg;
-  if (ctx->encoder.blob != NULL) {
-    ddog_tracer_encoded_value_free(ctx->encoder.blob);
+static prepared_metastruct_entry *append_prepared_metastruct_entry(
+    prepared_metastruct *prepared) {
+  if (prepared->len == prepared->capacity) {
+    size_t capacity = prepared->capacity == 0 ? 4 : prepared->capacity * 2;
+    if (capacity < prepared->capacity || capacity > SIZE_MAX / sizeof(*prepared->entries)) {
+      rb_raise(rb_eNoMemError, "meta_struct entry buffer is too large");
+    }
+    REALLOC_N(prepared->entries, prepared_metastruct_entry, capacity);
+    prepared->capacity = capacity;
   }
-  if (ctx->encoder.active != NULL) {
-    st_free_table(ctx->encoder.active);
-  }
-  ruby_xfree(ctx->encoder.tokens);
-  return Qnil;
-}
 
-static VALUE encode_structured_value(VALUE value) {
-  encode_structured_value_ctx ctx = {
-    .encoder = {
-      .tokens = NULL,
-      .len = 0,
-      .capacity = 0,
-      .active = st_init_numtable(),
-      .keepalive = rb_ary_new(),
-      .blob = NULL,
-    },
-    .value = value,
-  };
-  return rb_ensure(encode_structured_value_body, (VALUE)&ctx,
-                   free_structured_value_ctx, (VALUE)&ctx);
+  prepared_metastruct_entry *entry = &prepared->entries[prepared->len++];
+  *entry = (prepared_metastruct_entry){0};
+  entry->value.active = st_init_numtable();
+  return entry;
 }
 
 typedef struct {
-  VALUE encoded;
-} metastruct_encode_ctx;
+  prepared_metastruct *prepared;
+} metastruct_prepare_ctx;
 
-static int encode_metastruct_iter_cb(VALUE key, VALUE value, VALUE arg) {
-  metastruct_encode_ctx *ctx = (metastruct_encode_ctx *)arg;
+static int prepare_metastruct_iter_cb(VALUE key, VALUE value, VALUE arg) {
+  metastruct_prepare_ctx *ctx = (metastruct_prepare_ctx *)arg;
 
   if (RB_TYPE_P(key, T_SYMBOL)) {
     key = rb_sym2str(key);
@@ -528,48 +548,78 @@ static int encode_metastruct_iter_cb(VALUE key, VALUE value, VALUE arg) {
   }
 
   key = utf8_string(key);
-  VALUE blob = encode_structured_value(value);
-  rb_hash_aset(ctx->encoded, key, blob);
+  prepared_metastruct_entry *entry =
+      append_prepared_metastruct_entry(ctx->prepared);
+  entry->key_len = (size_t)RSTRING_LEN(key);
+  entry->key = copy_structured_value_bytes(
+      &entry->value, key, entry->key_len);
+  append_structured_value(value, 0, &entry->value);
 
   return ST_CONTINUE;
 }
 
-/*
- * Encode each meta_struct value before allocating the Rust span. Validation,
- * transcoding, and allocation can raise, so doing that work first avoids
- * holding an unowned Rust allocation across a Ruby non-local exit.
- */
-static VALUE encode_metastruct(VALUE span) {
-  VALUE metastruct = rb_ivar_get(span, at_metastruct_id);
+typedef struct {
+  VALUE span;
+  prepared_metastruct *prepared;
+} prepare_metastruct_call;
+
+static VALUE prepare_metastruct_body(VALUE arg) {
+  prepare_metastruct_call *call = (prepare_metastruct_call *)arg;
+  VALUE metastruct = rb_ivar_get(call->span, at_metastruct_id);
   if (metastruct == Qnil) return Qnil;
 
   VALUE values = rb_funcall(metastruct, id_to_h, 0);
   Check_Type(values, T_HASH);
   if (RHASH_SIZE(values) == 0) return Qnil;
 
-  metastruct_encode_ctx ctx = {.encoded = rb_hash_new()};
-  rb_hash_foreach(values, encode_metastruct_iter_cb, (VALUE)&ctx);
-
-  return ctx.encoded;
+  metastruct_prepare_ctx ctx = {.prepared = call->prepared};
+  rb_hash_foreach(values, prepare_metastruct_iter_cb, (VALUE)&ctx);
+  return Qnil;
 }
 
-static int meta_struct_iter_cb(VALUE key, VALUE value, VALUE arg) {
-  hash_iter_ctx *ctx = (hash_iter_ctx *)arg;
-
-  ddog_CharSlice ks = {.ptr = RSTRING_PTR(key), .len = RSTRING_LEN(key)};
-  ddog_ByteSlice vs = {
-    .ptr = (const uint8_t *)RSTRING_PTR(value),
-    .len = RSTRING_LEN(value),
-  };
-
-  ddog_TraceExporterError *err =
-      ddog_tracer_span_set_meta_struct_blob(ctx->span, ks, vs);
-  if (err != NULL) {
-    ctx->error = err;
-    return ST_STOP;
+/* Prepare stable token storage before allocating the Rust span. Any Ruby
+ * callback or non-local exit is contained here, where deterministic cleanup
+ * does not need to account for Rust span ownership. */
+static void prepare_metastruct(VALUE span, prepared_metastruct *prepared) {
+  prepare_metastruct_call call = {.span = span, .prepared = prepared};
+  int state = 0;
+  rb_protect(prepare_metastruct_body, (VALUE)&call, &state);
+  if (state) {
+    free_prepared_metastruct(prepared);
+    rb_jump_tag(state);
   }
+}
 
-  return ST_CONTINUE;
+static void set_prepared_metastruct(
+    ddog_TracerSpan *span, prepared_metastruct *prepared) {
+  for (size_t i = 0; i < prepared->len; i++) {
+    prepared_metastruct_entry *entry = &prepared->entries[i];
+    ddog_Slice_TracerValueToken tokens = {
+      .ptr = entry->value.tokens,
+      .len = entry->value.len,
+    };
+    ddog_TracerEncodedValue *blob = NULL;
+    ddog_TraceExporterError *err = ddog_tracer_encode_value(tokens, &blob);
+    if (err != NULL) {
+      free_prepared_metastruct(prepared);
+      ddog_tracer_span_free(span);
+      check_exporter_error("Failed to encode span meta_struct value", err);
+    }
+
+    ddog_ByteSlice value = ddog_tracer_encoded_value_as_slice(blob);
+    ddog_CharSlice key = {
+      .ptr = (const char *)entry->key,
+      .len = entry->key_len,
+    };
+    err = ddog_tracer_span_set_meta_struct_blob(span, key, value);
+    ddog_tracer_encoded_value_free(blob);
+    if (err != NULL) {
+      free_prepared_metastruct(prepared);
+      ddog_tracer_span_free(span);
+      check_exporter_error("Failed to set span meta_struct", err);
+    }
+  }
+  free_prepared_metastruct(prepared);
 }
 
 /*
@@ -607,16 +657,12 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
   VALUE rb_trace_id  = rb_ivar_get(span, at_trace_id_id);
   VALUE rb_status    = rb_ivar_get(span, at_status_id);
 
-  /* Structured-value validation can call Ruby code and must happen before the
-   * Rust span allocation is created. */
-  VALUE rb_metastruct = encode_metastruct(span);
+  ENFORCE_TYPE(rb_name, T_STRING);
+  if (rb_service != Qnil) ENFORCE_TYPE(rb_service, T_STRING);
+  if (rb_resource != Qnil) ENFORCE_TYPE(rb_resource, T_STRING);
+  if (rb_type != Qnil) ENFORCE_TYPE(rb_type, T_STRING);
 
-  /* 2. Convert scalars */
-  ddog_CharSlice name_s     = char_slice_from_ruby_string(rb_name);
-  ddog_CharSlice service_s  = nullable_char_slice(rb_service);
-  ddog_CharSlice resource_s = nullable_char_slice(rb_resource);
-  ddog_CharSlice type_s     = nullable_char_slice(rb_type);
-
+  /* 2. Convert scalars that may call Ruby. */
   uint64_t span_id   = NUM2ULL(rb_span_id);
   uint64_t parent_id = NUM2ULL(rb_parent_id);
   int32_t  error_val = NUM2INT(rb_status);
@@ -640,7 +686,18 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
     if (dur != Qnil) duration_ns = (int64_t)(NUM2DBL(dur) * 1e9);
   }
 
-  /* 3. Create Rust span */
+  /* Structured-value normalisation can call Ruby code. Snapshot it before
+   * borrowing scalar string pointers or allocating the Rust span. */
+  prepared_metastruct metastruct = {0};
+  prepare_metastruct(span, &metastruct);
+
+  /* No Ruby calls may occur between borrowing these pointers and span_new. */
+  ddog_CharSlice name_s     = char_slice_from_ruby_string(rb_name);
+  ddog_CharSlice service_s  = nullable_char_slice(rb_service);
+  ddog_CharSlice resource_s = nullable_char_slice(rb_resource);
+  ddog_CharSlice type_s     = nullable_char_slice(rb_type);
+
+  /* 3. Create Rust span and immediately consume the stable prepared values. */
   ddog_TracerSpanFields fields = {
     .service        = service_s,
     .name           = name_s,
@@ -657,7 +714,9 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
 
   ddog_TracerSpan *rust_span = NULL;
   ddog_TraceExporterError *err = ddog_tracer_span_new(&rust_span, &fields);
+  if (err != NULL) free_prepared_metastruct(&metastruct);
   check_exporter_error("Failed to create TracerSpan", err);
+  set_prepared_metastruct(rust_span, &metastruct);
 
   /* 4. Populate meta and metrics */
   hash_iter_ctx ctx = {.span = rust_span, .error = NULL, .skipped = 0};
@@ -688,14 +747,6 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
       log_warning_owning_span(rust_span, rb_sprintf(
           "Native trace exporter: skipped %ld non-numeric metrics entries",
           ctx.skipped));
-    }
-  }
-
-  if (rb_metastruct != Qnil) {
-    rb_hash_foreach(rb_metastruct, meta_struct_iter_cb, (VALUE)&ctx);
-    if (ctx.error != NULL) {
-      ddog_tracer_span_free(rust_span);
-      check_exporter_error("Failed to set span meta_struct", ctx.error);
     }
   }
 

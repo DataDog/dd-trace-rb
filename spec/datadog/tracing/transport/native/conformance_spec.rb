@@ -305,6 +305,36 @@ RSpec.describe "Native transport wire-level conformance" do
         include("file" => __FILE__, "line" => an_instance_of(Integer)),
       )
     end
+
+    it "snapshots string bytes before later Ruby normalisation mutates or relocates them" do
+      text = +"original text"
+      binary = +"\x00\xff".b
+      relocated = +"short"
+      backtrace = Datadog::AppSec::ActionsHandler::SerializableBacktrace.new(
+        locations: [],
+        stack_id: "stack-1",
+      )
+      backtrace.define_singleton_method(:to_h) do
+        text.setbyte(0, "X".ord)
+        binary.setbyte(0, 0x7f)
+        relocated.replace("relocated " * 100)
+        {"id" => "stack-1", "language" => "ruby", "frames" => []}
+      end
+      trace = make_trace([{
+        name: "op",
+        metastruct: {"mutation" => [text, binary, relocated, backtrace]},
+      }])
+
+      decoded = send_and_decode([trace])
+      values = MessagePack.unpack(decoded.first.first["meta_struct"]["mutation"])
+
+      expect(values).to eq([
+        "original text",
+        "\x00\xff".b,
+        "short",
+        {"id" => "stack-1", "language" => "ruby", "frames" => []},
+      ])
+    end
   end
 
   describe "trace ID" do
