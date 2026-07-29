@@ -3,12 +3,6 @@ module Datadog
     class Correlation
       DEFAULT_MAX_ENTRIES: Integer
 
-      @settings: Datadog::Core::Configuration::Settings
-
-      @logger: DI::Logger
-
-      @telemetry: Core::Telemetry::Component?
-
       @max_entries: Integer
 
       @lock: ::Thread::Mutex
@@ -17,15 +11,7 @@ module Datadog
 
       @cap_scopes: Hash[untyped, Set[untyped]]
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, DI::Logger logger, ?telemetry: Core::Telemetry::Component?, ?max_entries: Integer) -> void
-
-      attr_reader settings: Datadog::Core::Configuration::Settings
-
-      attr_reader logger: DI::Logger
-
-      attr_reader telemetry: Core::Telemetry::Component?
-
-      attr_reader max_entries: Integer
+      def initialize: (?max_entries: Integer) -> void
 
       def emit?: (Probe probe, ExecutionUnit unit) -> bool
 

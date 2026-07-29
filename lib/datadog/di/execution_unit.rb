@@ -64,6 +64,8 @@ module Datadog
         Thread.current[TASK_KEY] = nil
       end
 
+      # Holds one resolved unit; callers obtain instances from {.current}.
+      #
       # @param key [String, Integer, nil] groups hits that share one decision
       # @param scope [String, Integer, nil] bounds a probe's repeat emissions
       # @param source [Symbol] :apm, :task, or :none

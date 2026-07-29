@@ -75,7 +75,7 @@ module Datadog
         @code_tracker = code_tracker
         @redactor = Redactor.new(settings)
         @serializer = Serializer.new(settings, redactor, telemetry: telemetry)
-        @correlation = Correlation.new(settings, logger, telemetry: telemetry)
+        @correlation = Correlation.new
         @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, correlation: correlation, telemetry: telemetry)
         @probe_repository = ProbeRepository.new
         @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer, logger, telemetry: telemetry)
