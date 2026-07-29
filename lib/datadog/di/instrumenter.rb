@@ -3,6 +3,7 @@
 require_relative "../core/rate_limiter"
 require_relative "../core/utils/time"
 require_relative "../ruby_version"
+require_relative "execution_unit"
 require_relative "fatal_exceptions"
 require_relative "capture_expression_evaluator"
 
@@ -479,7 +480,7 @@ module Datadog
         correlation = self.correlation
         if correlation
           begin
-            return correlation.gate(probe) == :emit
+            return correlation.emit?(probe, ExecutionUnit.current)
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
