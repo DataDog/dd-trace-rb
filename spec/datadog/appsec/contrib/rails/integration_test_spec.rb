@@ -44,7 +44,7 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
     {
       version: "2.2",
       metadata: {
-        rules_version: "1.4.1"
+        rules_version: "1.4.1",
       },
       rules: [
         {
@@ -53,27 +53,27 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
           tags: {
             type: "sql_injection",
             crs_id: "942100",
-            category: "attack_attempt"
+            category: "attack_attempt",
           },
           conditions: [
             {
               parameters: {
                 inputs: [
                   {
-                    address: "server.request.query"
+                    address: "server.request.query",
                   },
                   {
-                    address: "server.request.body"
+                    address: "server.request.body",
                   },
                   {
-                    address: "server.request.path_params"
+                    address: "server.request.path_params",
                   },
                   {
-                    address: "grpc.server.request.message"
+                    address: "grpc.server.request.message",
                   },
-                ]
+                ],
               },
-              operator: "is_sqli"
+              operator: "is_sqli",
             },
           ],
           transformers: [
@@ -81,7 +81,7 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
           ],
           on_match: [
             "block",
-          ]
+          ],
         },
       ],
       processors: [
@@ -97,12 +97,12 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
                     address: "waf.context.processor",
                     key_path: [
                       "extract-schema",
-                    ]
+                    ],
                   },
                 ],
                 type: "boolean",
-                value: true
-              }
+                value: true,
+              },
             },
           ],
           parameters: {
@@ -110,33 +110,33 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
               {
                 inputs: [
                   {
-                    address: "server.request.query"
+                    address: "server.request.query",
                   },
                 ],
-                output: "_dd.appsec.s.req.query"
+                output: "_dd.appsec.s.req.query",
               },
               {
                 inputs: [
                   {
-                    address: "server.request.body"
+                    address: "server.request.body",
                   },
                 ],
-                output: "_dd.appsec.s.req.body"
+                output: "_dd.appsec.s.req.body",
               },
               {
                 inputs: [
                   {
-                    address: "server.request.path_params"
+                    address: "server.request.path_params",
                   },
                 ],
-                output: "_dd.appsec.s.req.params"
+                output: "_dd.appsec.s.req.params",
               },
-            ]
+            ],
           },
           evaluate: false,
-          output: true
+          output: true,
         },
-      ]
+      ],
     }
   end
 
@@ -291,7 +291,7 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
         context "with an event-triggering request in route parameter" do
           let(:routes) do
             {
-              "/success/:id" => "test#success"
+              "/success/:id" => "test#success",
             }
           end
 
@@ -476,7 +476,7 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
             {
               "CONTENT_TYPE" => "multipart/form-data; boundary=#{Rack::Test::MULTIPART_BOUNDARY}",
               "HTTP_TRANSFER_ENCODING" => "chunked",
-              :input => unknown_length_input
+              :input => unknown_length_input,
             }
           end
 

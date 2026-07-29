@@ -54,7 +54,7 @@ RSpec.describe Datadog::DI::ProbeBuilder do
       let(:rc_probe_spec) do
         {"id" => "3ecfd456-2d7c-4359-a51f-d4cc44141ffe",
          "type" => "LOG_PROBE",
-         "where" => {"sourceFile" => "aaa.rb", "lines" => [4321]},}
+         "where" => {"sourceFile" => "aaa.rb", "lines" => [4321]}}
       end
 
       describe ".max_capture_depth" do
@@ -149,11 +149,11 @@ RSpec.describe Datadog::DI::ProbeBuilder do
            "json" => {
              "contains" => [
                {
-                 "ref" => "value"
+                 "ref" => "value",
                },
                "StringLiteral",
-             ]
-           }
+             ],
+           },
          },
          "tags" => [],
          "template" => "In aaa, line 1",

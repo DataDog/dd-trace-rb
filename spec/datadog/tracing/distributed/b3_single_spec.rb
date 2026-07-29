@@ -120,7 +120,7 @@ RSpec.shared_examples "B3 Single distributed format" do
         context "with parent_id" do
           let(:data) do
             {
-              prepare_key[b3_single_header] => "abcdef-fedcba-1-4e20"
+              prepare_key[b3_single_header] => "abcdef-fedcba-1-4e20",
             }
           end
 

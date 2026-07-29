@@ -51,7 +51,7 @@ RSpec.describe "Sinatra integration tests" do
     {
       version: "2.2",
       metadata: {
-        rules_version: "1.4.1"
+        rules_version: "1.4.1",
       },
       rules: [
         {
@@ -60,27 +60,27 @@ RSpec.describe "Sinatra integration tests" do
           tags: {
             type: "sql_injection",
             crs_id: "942100",
-            category: "attack_attempt"
+            category: "attack_attempt",
           },
           conditions: [
             {
               parameters: {
                 inputs: [
                   {
-                    address: "server.request.query"
+                    address: "server.request.query",
                   },
                   {
-                    address: "server.request.body"
+                    address: "server.request.body",
                   },
                   {
-                    address: "server.request.path_params"
+                    address: "server.request.path_params",
                   },
                   {
-                    address: "grpc.server.request.message"
+                    address: "grpc.server.request.message",
                   },
-                ]
+                ],
               },
-              operator: "is_sqli"
+              operator: "is_sqli",
             },
           ],
           transformers: [
@@ -88,7 +88,7 @@ RSpec.describe "Sinatra integration tests" do
           ],
           on_match: [
             "block",
-          ]
+          ],
         },
       ],
       processors: [
@@ -104,12 +104,12 @@ RSpec.describe "Sinatra integration tests" do
                     address: "waf.context.processor",
                     key_path: [
                       "extract-schema",
-                    ]
+                    ],
                   },
                 ],
                 type: "boolean",
-                value: true
-              }
+                value: true,
+              },
             },
           ],
           parameters: {
@@ -117,33 +117,33 @@ RSpec.describe "Sinatra integration tests" do
               {
                 inputs: [
                   {
-                    address: "server.request.query"
+                    address: "server.request.query",
                   },
                 ],
-                output: "_dd.appsec.s.req.query"
+                output: "_dd.appsec.s.req.query",
               },
               {
                 inputs: [
                   {
-                    address: "server.request.body"
+                    address: "server.request.body",
                   },
                 ],
-                output: "_dd.appsec.s.req.body"
+                output: "_dd.appsec.s.req.body",
               },
               {
                 inputs: [
                   {
-                    address: "server.request.path_params"
+                    address: "server.request.path_params",
                   },
                 ],
-                output: "_dd.appsec.s.req.params"
+                output: "_dd.appsec.s.req.params",
               },
-            ]
+            ],
           },
           evaluate: false,
-          output: true
+          output: true,
         },
-      ]
+      ],
     }
   end
 

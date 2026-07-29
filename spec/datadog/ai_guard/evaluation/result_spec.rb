@@ -28,8 +28,8 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
               "location" => {
                 "start_index" => 0,
                 "end_index_exclusive" => 26,
-                "path" => "messages[0].content[0].text"
-              }
+                "path" => "messages[0].content[0].text",
+              },
             },
             {
               "rule_display_name" => "Email Address",
@@ -39,14 +39,14 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
               "location" => {
                 "start_index" => 30,
                 "end_index_exclusive" => 46,
-                "path" => "messages[0].content[0].text"
-              }
+                "path" => "messages[0].content[0].text",
+              },
             },
           ],
           "tag_probs" => {"some" => 0.95, "tags" => 0.1},
-          "is_blocking_enabled" => is_blocking_enabled
-        }
-      }
+          "is_blocking_enabled" => is_blocking_enabled,
+        },
+      },
     }
   end
 
@@ -87,9 +87,9 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
               "reason" => "Some reason",
               "tags" => ["some", "tags"],
               "tag_probs" => {"some" => 0.95, "tags" => 0.1},
-              "is_blocking_enabled" => is_blocking_enabled
-            }
-          }
+              "is_blocking_enabled" => is_blocking_enabled,
+            },
+          },
         }
       end
 

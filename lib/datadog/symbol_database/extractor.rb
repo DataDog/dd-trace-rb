@@ -616,7 +616,7 @@ module Datadog
           language_specifics: {
             visibility: method_visibility(klass, method_name),
             method_type: method_type.to_s,
-            arity: method.arity
+            arity: method.arity,
           },
           symbols: extract_method_parameters(method)
         )
@@ -905,7 +905,7 @@ module Datadog
           current[:children][part] ||= {
             name: fqn, type: resolve_scope_type(fqn),
             children: {}, methods: [], mod: nil,
-            source_file: file_path, fqn: fqn
+            source_file: file_path, fqn: fqn,
           }
           current = current[:children][part]
         end
@@ -924,7 +924,7 @@ module Datadog
             type: (Class === mod) ? "CLASS" : "MODULE",
             children: {}, methods: [],
             mod: mod, source_file: file_path,
-            fqn: mod_name
+            fqn: mod_name,
           }
           current[:children][leaf_name] = leaf
         end
@@ -1043,7 +1043,7 @@ module Datadog
           language_specifics: {
             visibility: klass ? method_visibility(klass, method_name) : "public", # steep:ignore
             method_type: "instance",
-            arity: method.arity
+            arity: method.arity,
           },
           symbols: extract_method_parameters(method)
         )

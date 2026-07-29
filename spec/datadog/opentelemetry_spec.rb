@@ -936,7 +936,7 @@ RSpec.describe Datadog::OpenTelemetry do
         context "with TraceContext headers" do
           let(:carrier) do
             {
-              "traceparent" => "00-11111111111111111111111111111111-2222222222222222-01"
+              "traceparent" => "00-11111111111111111111111111111111-2222222222222222-01",
             }
           end
 

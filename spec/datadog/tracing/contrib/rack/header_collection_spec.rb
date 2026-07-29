@@ -8,7 +8,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection 
     context "when header exists in env" do
       let(:env) do
         {
-          "HTTP_X_FORWARDED_FOR" => "me"
+          "HTTP_X_FORWARDED_FOR" => "me",
         }
       end
 
@@ -24,7 +24,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection 
     context "when header does not exists in env" do
       let(:env) do
         {
-          "HTTP_USER_AGENT" => "test"
+          "HTTP_USER_AGENT" => "test",
         }
       end
 
@@ -37,7 +37,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection 
       let(:env) do
         {
           "CONTENT_TYPE" => "application/json",
-          "CONTENT_LENGTH" => "120"
+          "CONTENT_LENGTH" => "120",
         }
       end
 

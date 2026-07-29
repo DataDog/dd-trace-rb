@@ -41,7 +41,7 @@ RSpec.describe "ActiveRecord SQL Injection" do
             tags: {
               type: "sql_injection",
               category: "exploit",
-              module: "rasp"
+              module: "rasp",
             },
             conditions: [
               {
@@ -49,13 +49,13 @@ RSpec.describe "ActiveRecord SQL Injection" do
                 parameters: {
                   resource: [{address: "server.db.statement"}],
                   params: [{address: "server.request.query"}],
-                  db_type: [{address: "server.db.system"}]
-                }
+                  db_type: [{address: "server.db.system"}],
+                },
               },
             ],
-            on_match: ["block"]
+            on_match: ["block"],
           },
-        ]
+        ],
       }
 
       c.remote.enabled = false
