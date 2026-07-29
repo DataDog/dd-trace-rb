@@ -8,47 +8,26 @@ module Datadog
   module DI
     # Coordinated sampling for Live Debugger snapshots.
     #
-    # Independent per-probe sampling fragments chains of related snapshots: the
-    # system can emit one probe's snapshot while dropping a sibling, parent, or
-    # child probe that would explain it. Correlation makes a single emit/drop
-    # decision per logical execution unit and shares it across every probe that
-    # fires within that unit, so a surviving unit carries a complete chain.
-    #
-    # The execution unit is resolved, in priority order, from in-process reads
-    # only (never a tracer context-propagation mechanism):
+    # The execution unit is resolved, in priority order
     #
     # - Tier 1 — the active APM trace. The unit key is the trace id; the cap
     #   scope is the active span id.
     # - Tier 2 — a task-scoped correlation id set at unit-of-work boundaries
     #   (see {#with_unit}) and read from fiber-local storage.
-    # - Neither — the hit makes an independent decision (pre-coordination
-    #   behavior) and the cap degenerates to the single hit.
+    # - Neither — with no unit to coordinate across, each probe hit is decided
+    #   by its own rate limiter (the pre-coordination behavior); the
+    #   per-probe-per-span cap applies to just the one hit.
     #
-    # The decision itself reuses the probe's existing rate limiter: the first
-    # probe to fire in a unit consults its limiter, and the outcome is cached on
-    # the unit and inherited by every sibling probe. This coordinates chains
-    # without introducing a new sampling-rate contract on the wire or in
-    # configuration; the rate limiter that already bounds a probe's volume also
-    # seeds the unit's decision. Within an emitting unit, a per-probe-per-span
-    # cap bounds each probe to one snapshot so a probe inside a high-iteration
-    # loop cannot starve sibling probes.
-    #
-    # The gate is invoked at the top of the probe-hit path, before any capture
-    # work, so a dropped probe costs one lookup and no expression evaluation,
-    # value extraction, or stack walk.
+    # The first probe in a unit consults its rate limiter; the outcome is cached
+    # and inherited by siblings, then a per-probe-per-span cap admits each once.
     #
     # @api private
     class Correlation
       # Fiber-local storage key for the tier-2 task-scoped correlation id.
-      # In MRI +Thread.current[]+ is fiber-local, so concurrent fibers in one
-      # thread get isolated slots. Thread-local storage is deliberately not
-      # used — fiber granularity is the correct grain.
       TIER2_KEY = :__dd_di_correlation__
 
-      # Upper bound on retained execution units and cap scopes. The component
-      # does not own trace or task lifetimes, so it retains decision and cap
-      # state in bounded least-recently-used maps and evicts the oldest entry
-      # when the bound is exceeded. An evicted unit's cap resets.
+      # Upper bound on retained execution units and cap scopes; the oldest
+      # entry is evicted when the bound is exceeded.
       DEFAULT_MAX_ENTRIES = 4096
 
       # @param settings [Datadog::Core::Configuration::Settings]
@@ -74,10 +53,8 @@ module Datadog
       attr_reader :telemetry
       attr_reader :max_entries
 
-      # Total number of gate decisions made since the component was built.
       attr_reader :decisions_made
 
-      # Monotonic-ish wall clock of the most recent gate decision, or nil.
       attr_reader :last_decision_at
 
       # Decides whether a probe hit should emit a snapshot, coordinating the

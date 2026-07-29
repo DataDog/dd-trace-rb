@@ -380,9 +380,9 @@ module Datadog
             thread_id: nil,
             version: 2,
           },
-          # Per-process identity. Distinguishes snapshots emitted before and
-          # after a restart inside the same container, which host and container
-          # tags cannot. Same value already sent in probe status diagnostics.
+          # Per-process identity, distinguishing snapshots emitted before and
+          # after a restart inside the same container. Same value already sent
+          # in probe status diagnostics.
           runtimeId: Core::Environment::Identity.id,
           # TODO add tests that the trace/span id is correctly propagated
           "dd.trace_id": active_trace&.id&.to_s,
@@ -448,9 +448,8 @@ module Datadog
         end
       end
 
-      # Mirrors {Correlation#resolve_unit}'s tier ordering using in-process
-      # reads only, so the envelope reports the same source the sampling gate
-      # keyed on for this hit.
+      # Mirrors {Correlation#resolve_unit}'s tier ordering so the envelope
+      # reports the same source the sampling gate used for this hit.
       def trace_id_source
         if active_trace&.id
           "apm"
