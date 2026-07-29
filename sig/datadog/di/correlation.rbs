@@ -17,6 +17,14 @@ module Datadog
 
       private
 
+      attr_reader lock: ::Thread::Mutex
+
+      attr_reader unit_decisions: Hash[untyped, bool]
+
+      attr_reader cap_scopes: Hash[untyped, Set[untyped]]
+
+      attr_reader max_entries: Integer
+
       def per_probe: (Probe probe) -> bool
 
       def unit_decision: (untyped key) { () -> bool } -> bool
