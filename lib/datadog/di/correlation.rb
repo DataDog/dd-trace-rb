@@ -24,9 +24,7 @@ module Datadog
         @telemetry = telemetry
         @max_entries = max_entries
         @lock = Mutex.new
-        # unit key => decision (true/false)
         @unit_decisions = {}
-        # unit scope => Set[probe id]
         @cap_scopes = {}
       end
 
