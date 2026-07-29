@@ -321,9 +321,12 @@ RSpec.describe Datadog::Core::Metrics::Client do
       # run with both ~> 4.0 and latest dogstatsd-ruby.
       if Gem::Version.new(Datadog::Statsd::VERSION) >= Gem::Version.new("5.6.0")
         before do
-          # Build the client first: initialize itself instantiates a statsd
-          # client, and the expectation below must only observe the explicit
+          # Client#initialize also instantiates a statsd client. Stub that call so
+          # it returns a double instead of opening a real env-based (UDS) transport,
+          # and so the expectation below only observes the explicit
           # #default_statsd_client call under test.
+          allow(Datadog::Statsd).to receive(:new).and_return(statsd_client)
+          allow(statsd_client).to receive(:close)
           metrics
 
           expect(Datadog::Statsd).to receive(:new)
@@ -383,9 +386,12 @@ RSpec.describe Datadog::Core::Metrics::Client do
         end
 
         before do
-          # Build the client first: initialize itself instantiates a statsd
-          # client, and the expectation below must only observe the explicit
+          # Client#initialize also instantiates a statsd client. Stub that call so
+          # it returns a double instead of opening a real env-based (UDS) transport,
+          # and so the expectation below only observes the explicit
           # #default_statsd_client call under test.
+          allow(Datadog::Statsd).to receive(:new).and_return(statsd_client)
+          allow(statsd_client).to receive(:close)
           metrics
 
           expect(Datadog::Statsd).to receive(:new)
