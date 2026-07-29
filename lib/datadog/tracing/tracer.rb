@@ -631,7 +631,7 @@ module Datadog
 
           ai_guard_bit = upstream_tags[Tracing::Metadata::Ext::Distributed::TAG_TRACE_SOURCE].to_i(16) &
             Datadog::AIGuard::Ext::PRODUCT_BIT
-          return Datadog.configuration.respond_to?(:ai_guard) && Datadog.configuration.ai_guard.enabled if ai_guard_bit != 0
+          return ai_guard_enabled if ai_guard_bit != 0
         end
 
         false
@@ -644,6 +644,10 @@ module Datadog
 
       def appsec_enabled
         @appsec_enabled ||= Datadog.configuration.appsec.enabled
+      end
+
+      def ai_guard_enabled
+        @ai_guard_enabled ||= Datadog.configuration.respond_to?(:ai_guard) && Datadog.configuration.ai_guard.enabled
       end
 
       # Due to APM Tracing (the product) and Tracing (the transport) being intertwined, we cannot completely disabled APM
