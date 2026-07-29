@@ -4,9 +4,6 @@ require "datadog/di/execution_unit"
 RSpec.describe Datadog::DI::ExecutionUnit do
   di_test
 
-  before { described_class.close }
-  after { described_class.close }
-
   def stub_active_trace(trace_id, span_id: nil)
     trace = double("trace", id: trace_id)
     span = span_id && double("span", id: span_id)
@@ -36,19 +33,7 @@ RSpec.describe Datadog::DI::ExecutionUnit do
       end
     end
 
-    context "with a task unit and no active trace" do
-      before { stub_no_trace }
-
-      it "keys and scopes on the task id, sources task" do
-        described_class.open("task-1")
-        u = described_class.current
-        expect(u.key).to eq("task-1")
-        expect(u.scope).to eq("task-1")
-        expect(u.source).to eq(:task)
-      end
-    end
-
-    context "with neither" do
+    context "with no active trace" do
       before { stub_no_trace }
 
       it "has a nil key and scope, sources none" do
@@ -57,43 +42,6 @@ RSpec.describe Datadog::DI::ExecutionUnit do
         expect(u.scope).to be_nil
         expect(u.source).to eq(:none)
       end
-    end
-  end
-
-  describe ".bracket" do
-    before { stub_no_trace }
-
-    it "scopes a task id for the block and restores the previous value" do
-      expect(described_class.current.source).to eq(:none)
-      described_class.bracket("task-x") do
-        expect(described_class.current.key).to eq("task-x")
-      end
-      expect(described_class.current.source).to eq(:none)
-    end
-
-    it "generates a UUID when no id is given" do
-      described_class.bracket do
-        expect(described_class.current.key).to match(/\A[0-9a-f-]{36}\z/)
-      end
-    end
-
-    it "restores the previous value even when the block raises" do
-      described_class.open("outer")
-      expect do
-        described_class.bracket("inner") { raise "boom" }
-      end.to raise_error("boom")
-      expect(described_class.current.key).to eq("outer")
-    end
-  end
-
-  describe ".open / .close" do
-    before { stub_no_trace }
-
-    it "opens a task unit and closes it on the current fiber" do
-      described_class.open("task-1")
-      expect(described_class.current.key).to eq("task-1")
-      described_class.close
-      expect(described_class.current.source).to eq(:none)
     end
   end
 end

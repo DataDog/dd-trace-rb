@@ -46,7 +46,6 @@ RSpec.describe "Correlation integration" do
   end
 
   after do
-    Datadog::DI::ExecutionUnit.close
     component.shutdown!
   end
 
@@ -164,25 +163,8 @@ RSpec.describe "Correlation integration" do
     end
   end
 
-  context "tier 2 (task context, no active trace)" do
+  context "no active trace" do
     before { stub_no_trace }
-
-    it "shares one decision across probes inside a unit boundary" do
-      probe_manager.add_probe(method_probe("p-alpha", "alpha", rate_limit: 5000))
-      probe_manager.add_probe(method_probe("p-beta", "beta", rate_limit: 5000))
-
-      obj = CorrelationIntegrationTestClass.new
-      Datadog::DI::ExecutionUnit.bracket("task-1") do
-        obj.alpha
-        obj.beta
-      end
-      flush
-
-      # alpha and beta each also fire inner; inner is not probed here, so only
-      # the two method probes emit, both marked source "task".
-      expect(snapshots.size).to eq(2)
-      expect(snapshots.map { |s| s[:trace_id_source] }.uniq).to eq(["task"])
-    end
 
     it "makes an independent decision outside any unit boundary" do
       probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
