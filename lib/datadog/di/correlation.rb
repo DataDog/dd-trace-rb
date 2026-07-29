@@ -32,7 +32,7 @@ module Datadog
       def emit?(probe, unit)
         return per_probe(probe) if unit.key.nil?
 
-        @lock.synchronize do
+        lock.synchronize do
           return false unless unit_decision(unit.key) { per_probe(probe) }
 
           cap_admit(unit.scope, probe.id)
@@ -40,6 +40,18 @@ module Datadog
       end
 
       private
+
+      # Serializes access to the decision and scope maps.
+      attr_reader :lock
+
+      # Cached emit-or-drop decision, keyed by unit.
+      attr_reader :unit_decisions
+
+      # Probe ids already emitted, keyed by scope.
+      attr_reader :cap_scopes
+
+      # This sampler's retention bound for units and scopes.
+      attr_reader :max_entries
 
       # Consults the probe's rate limiter, consuming a token; a probe with no
       # limiter is permitted. Called once per unit, so sibling probes inherit
@@ -52,30 +64,30 @@ module Datadog
       # Returns the cached decision for the unit, computing and storing it on
       # first use. Must hold @lock.
       def unit_decision(key)
-        existing = @unit_decisions[key]
+        existing = unit_decisions[key]
         unless existing.nil?
           # Refresh recency: reinsert so the key moves to the end.
-          @unit_decisions.delete(key)
-          @unit_decisions[key] = existing
+          unit_decisions.delete(key)
+          unit_decisions[key] = existing
           return existing
         end
 
         value = yield
-        @unit_decisions[key] = value
-        evict(@unit_decisions)
+        unit_decisions[key] = value
+        evict(unit_decisions)
         value
       end
 
       # Records the first emit of the probe within the scope. Returns true when
       # newly admitted, false when the probe already emitted in this scope.
-      # Must hold @lock.
+      # Must hold the lock.
       def cap_admit(scope, probe_id)
-        probes = @cap_scopes.delete(scope)
+        probes = cap_scopes.delete(scope)
         if probes
-          @cap_scopes[scope] = probes
+          cap_scopes[scope] = probes
         else
-          probes = (@cap_scopes[scope] = Set.new)
-          evict(@cap_scopes)
+          probes = (cap_scopes[scope] = Set.new)
+          evict(cap_scopes)
         end
         return false if probes.include?(probe_id)
 
@@ -86,7 +98,7 @@ module Datadog
       # Evicts the oldest entry when the map exceeds the bound. Ruby hashes
       # preserve insertion order, so the first key is the oldest.
       def evict(map)
-        return unless map.size > @max_entries
+        return unless map.size > max_entries
 
         oldest = map.first
         map.delete(oldest.first) if oldest
