@@ -20,9 +20,6 @@ module Datadog
           return false unless response
 
           @native_events_supported = response.span_events == true
-        rescue => e
-          logger.debug { "Failed to determine native span events support: #{e.class} #{e.message}" }
-          false
         end
       end
     end

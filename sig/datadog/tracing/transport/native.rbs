@@ -45,6 +45,7 @@ module Datadog
           private
 
           def prepare_span_events!: (Array[Array[Datadog::Tracing::Span]] chunks) -> bool
+          def native_events_supported_with_fallback?: () -> bool
           def warn_unsupported_fields!: (Array[Array[Datadog::Tracing::Span]] chunks) -> void
           def tracer_version_string: () -> String
         end

@@ -377,14 +377,16 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       it "uses typed events when the explicit override enables them" do
         Datadog.configuration.tracing.native_span_events = true
         expect(agent_info).to_not receive(:fetch)
+        trace = trace_with_event
+        trace.spans.first.meta["events"] = "existing"
 
-        expect(transport.send_traces([trace_with_event]).first).to be_ok
+        expect(transport.send_traces([trace]).first).to be_ok
 
         expect(sent_span.fetch("span_events").first).to include(
           "name" => "manual",
           "time_unix_nano" => 123
         )
-        expect(sent_span.fetch("meta", {})).to_not have_key("events")
+        expect(sent_span.dig("meta", "events")).to eq("existing")
       end
 
       it "uses only legacy meta when the explicit override disables typed events" do

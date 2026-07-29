@@ -432,29 +432,39 @@ static int metrics_iter_cb(VALUE key, VALUE value, VALUE arg) {
   return ST_CONTINUE;
 }
 
-/*
- * Emit a warning while a raw ddog_TracerSpan is held.
- *
- * log_warning calls into Ruby (Datadog.logger.warn), which can raise or be
- * interrupted. A non-local exit here would leak rust_span (it is not yet
- * owned by any chunk), so run the call under rb_protect and, on a pending
- * jump, free rust_span before re-raising with rb_jump_tag.
- */
-static void log_warning_owning_span(ddog_TracerSpan *rust_span, VALUE message) {
-  int state = 0;
-  rb_protect(log_warning, message, &state);
-  if (state) {
-    ddog_tracer_span_free(rust_span);
-    rb_jump_tag(state);
-  }
-}
+typedef struct {
+  VALUE span;
+  VALUE normalized_events;
+  void *allocation;
+  void *array_scratch;
+  ddog_TracerSpanEvent **events;
+  long event_count;
+  size_t max_array_length;
+  ddog_TracerSpan *rust_span;
+} span_conversion_ctx;
 
-static void free_native_events(ddog_TracerSpanEvent **events, long count) {
-  if (events == NULL) return;
-  for (long i = 0; i < count; i++) {
-    if (events[i] != NULL) ddog_tracer_span_event_free(events[i]);
+typedef union {
+  ddog_CharSlice string;
+  bool boolean;
+  int64_t integer;
+  double double_value;
+} span_event_array_scratch;
+
+typedef struct {
+  char padding;
+  span_event_array_scratch value;
+} span_event_array_scratch_alignment;
+
+static VALUE cleanup_span_conversion(VALUE arg) {
+  span_conversion_ctx *ctx = (span_conversion_ctx *)arg;
+  if (ctx->events != NULL) {
+    for (long i = 0; i < ctx->event_count; i++) {
+      if (ctx->events[i] != NULL) ddog_tracer_span_event_free(ctx->events[i]);
+    }
   }
-  ruby_xfree(events);
+  if (ctx->rust_span != NULL) ddog_tracer_span_free(ctx->rust_span);
+  if (ctx->allocation != NULL) ruby_xfree(ctx->allocation);
+  return Qnil;
 }
 
 static ddog_TraceExporterError *set_native_event_attribute(
@@ -539,37 +549,23 @@ static ddog_TraceExporterError *set_native_event_attribute(
   }
 }
 
-static ddog_TracerSpanEvent **build_native_events(
-    VALUE normalized,
-    void *scratch) {
-  long count = RARRAY_LEN(normalized);
-  if (count == 0) return NULL;
-  ddog_TracerSpanEvent **events = ruby_xcalloc((size_t)count, sizeof(ddog_TracerSpanEvent *));
-
-  for (long i = 0; i < count; i++) {
-    VALUE source = rb_ary_entry(normalized, i);
+static void build_native_events(span_conversion_ctx *ctx) {
+  for (long i = 0; i < ctx->event_count; i++) {
+    VALUE source = rb_ary_entry(ctx->normalized_events, i);
     ddog_TraceExporterError *err = ddog_tracer_span_event_new(
-        &events[i],
+        &ctx->events[i],
         char_slice_from_ruby_string(rb_ary_entry(source, 0)),
         NUM2ULL(rb_ary_entry(source, 1)));
-    if (err != NULL) {
-      free_native_events(events, count);
-      check_exporter_error("Failed to create span event", err);
-    }
+    check_exporter_error("Failed to create span event", err);
 
     VALUE pairs = rb_ary_entry(source, 2);
     for (long j = 0; j < RARRAY_LEN(pairs); j++) {
       VALUE pair = rb_ary_entry(pairs, j);
       err = set_native_event_attribute(
-          events[i], rb_ary_entry(pair, 0), rb_ary_entry(pair, 1), scratch);
-      if (err != NULL) {
-        free_native_events(events, count);
-        check_exporter_error("Failed to set span event attribute", err);
-      }
+          ctx->events[i], rb_ary_entry(pair, 0), rb_ary_entry(pair, 1), ctx->array_scratch);
+      check_exporter_error("Failed to set span event attribute", err);
     }
   }
-
-  return events;
 }
 
 /* ========================================================================
@@ -579,23 +575,34 @@ static ddog_TracerSpanEvent **build_native_events(
  * to the caller (either wrap it in TypedData or push it into trace chunks).
  * ======================================================================== */
 
-static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span, VALUE native_events) {
-  size_t max_array_length = 0;
-  VALUE normalized_events = Qnil;
-  if (native_events == Qtrue) {
-    normalized_events = normalize_span_events(span, &max_array_length);
+static VALUE build_rust_span(VALUE arg) {
+  span_conversion_ctx *conversion = (span_conversion_ctx *)arg;
+  VALUE span = conversion->span;
+
+  if ((size_t)conversion->event_count > SIZE_MAX / sizeof(ddog_TracerSpanEvent *)) {
+    rb_raise(rb_eNoMemError, "span event conversion allocation is too large");
+  }
+  size_t event_pointers_size = (size_t)conversion->event_count * sizeof(ddog_TracerSpanEvent *);
+  size_t scratch_alignment = offsetof(span_event_array_scratch_alignment, value);
+  if (event_pointers_size > SIZE_MAX - (scratch_alignment - 1)) {
+    rb_raise(rb_eNoMemError, "span event conversion allocation is too large");
+  }
+  size_t scratch_offset = event_pointers_size == 0
+      ? 0
+      : ((event_pointers_size + scratch_alignment - 1) / scratch_alignment) * scratch_alignment;
+  if (conversion->max_array_length > (SIZE_MAX - scratch_offset) / sizeof(span_event_array_scratch)) {
+    rb_raise(rb_eNoMemError, "span event conversion allocation is too large");
+  }
+  /* One allocation means no second Ruby allocation can non-locally exit and
+   * strand the first. rb_ensure owns it from the moment this call returns. */
+  size_t allocation_size = scratch_offset + conversion->max_array_length * sizeof(span_event_array_scratch);
+  if (allocation_size > 0) {
+    conversion->allocation = ruby_xcalloc(1, allocation_size);
+    conversion->events = (ddog_TracerSpanEvent **)conversion->allocation;
+    conversion->array_scratch = (char *)conversion->allocation + scratch_offset;
   }
 
-  size_t scratch_element_size = sizeof(ddog_CharSlice);
-  if (sizeof(int64_t) > scratch_element_size) scratch_element_size = sizeof(int64_t);
-  if (sizeof(double) > scratch_element_size) scratch_element_size = sizeof(double);
-  void *event_scratch = max_array_length > 0
-      ? ruby_xcalloc(max_array_length, scratch_element_size)
-      : NULL;
-  ddog_TracerSpanEvent **rust_events = normalized_events == Qnil
-      ? NULL
-      : build_native_events(normalized_events, event_scratch);
-  long rust_event_count = normalized_events == Qnil ? 0 : RARRAY_LEN(normalized_events);
+  build_native_events(conversion);
 
   /* 1. Read Ruby ivars */
   VALUE rb_name      = rb_ivar_get(span, at_name_id);
@@ -651,39 +658,24 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span, VALUE native_event
     .error          = error_val,
   };
 
-  ddog_TracerSpan *rust_span = NULL;
-  ddog_TraceExporterError *err = ddog_tracer_span_new(&rust_span, &fields);
-  if (err != NULL) {
-    ruby_xfree(event_scratch);
-    free_native_events(rust_events, rust_event_count);
-    check_exporter_error("Failed to create TracerSpan", err);
-  }
+  ddog_TraceExporterError *err = ddog_tracer_span_new(&conversion->rust_span, &fields);
+  check_exporter_error("Failed to create TracerSpan", err);
 
-  for (long i = 0; i < rust_event_count; i++) {
-    err = ddog_tracer_span_add_event(rust_span, rust_events[i]);
-    rust_events[i] = NULL; /* add_event consumes the event on every path. */
-    if (err != NULL) {
-      ruby_xfree(event_scratch);
-      free_native_events(rust_events, rust_event_count);
-      ddog_tracer_span_free(rust_span);
-      check_exporter_error("Failed to attach span event", err);
-    }
+  for (long i = 0; i < conversion->event_count; i++) {
+    err = ddog_tracer_span_add_event(conversion->rust_span, conversion->events[i]);
+    conversion->events[i] = NULL; /* add_event consumes the event on every path. */
+    check_exporter_error("Failed to attach span event", err);
   }
-  ruby_xfree(event_scratch);
-  free_native_events(rust_events, rust_event_count);
 
   /* 4. Populate meta and metrics */
-  hash_iter_ctx ctx = {.span = rust_span, .error = NULL, .skipped = 0};
+  hash_iter_ctx ctx = {.span = conversion->rust_span, .error = NULL, .skipped = 0};
 
   VALUE rb_meta = rb_ivar_get(span, at_meta_id);
   if (RB_TYPE_P(rb_meta, T_HASH) && RHASH_SIZE(rb_meta) > 0) {
     rb_hash_foreach(rb_meta, meta_iter_cb, (VALUE)&ctx);
-    if (ctx.error != NULL) {
-      ddog_tracer_span_free(rust_span);
-      check_exporter_error("Failed to set span meta", ctx.error);
-    }
+    check_exporter_error("Failed to set span meta", ctx.error);
     if (ctx.skipped > 0) {
-      log_warning_owning_span(rust_span, rb_sprintf(
+      log_warning(rb_sprintf(
           "Native trace exporter: skipped %ld non-string meta entries",
           ctx.skipped));
       ctx.skipped = 0;
@@ -693,18 +685,34 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span, VALUE native_event
   VALUE rb_metrics = rb_ivar_get(span, at_metrics_id);
   if (RB_TYPE_P(rb_metrics, T_HASH) && RHASH_SIZE(rb_metrics) > 0) {
     rb_hash_foreach(rb_metrics, metrics_iter_cb, (VALUE)&ctx);
-    if (ctx.error != NULL) {
-      ddog_tracer_span_free(rust_span);
-      check_exporter_error("Failed to set span metric", ctx.error);
-    }
+    check_exporter_error("Failed to set span metric", ctx.error);
     if (ctx.skipped > 0) {
-      log_warning_owning_span(rust_span, rb_sprintf(
+      log_warning(rb_sprintf(
           "Native trace exporter: skipped %ld non-numeric metrics entries",
           ctx.skipped));
     }
   }
 
-  return rust_span;
+  ddog_TracerSpan *rust_span = conversion->rust_span;
+  conversion->rust_span = NULL;
+  return (VALUE)rust_span;
+}
+
+static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span, VALUE native_events) {
+  span_conversion_ctx ctx = {
+    .span = span,
+    .normalized_events = Qnil,
+  };
+  if (native_events == Qtrue) {
+    ctx.normalized_events = normalize_span_events(span, &ctx.max_array_length);
+    ctx.event_count = RARRAY_LEN(ctx.normalized_events);
+  }
+
+  VALUE result = rb_ensure(
+      build_rust_span, (VALUE)&ctx,
+      cleanup_span_conversion, (VALUE)&ctx);
+  RB_GC_GUARD(ctx.normalized_events);
+  return (ddog_TracerSpan *)result;
 }
 
 /* ========================================================================

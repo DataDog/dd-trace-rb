@@ -6,7 +6,6 @@ module Datadog
 
         private
 
-        def logger: () -> Datadog::Core::Logger
         def native_events_supported?: () -> bool
       end
     end

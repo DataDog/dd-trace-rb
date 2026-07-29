@@ -235,6 +235,24 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
         "string_value" => "StandardError"
       )
     end
+
+    it "exports empty arrays" do
+      span = make_span
+      span.events = [Datadog::Tracing::SpanEvent.new(
+        "empty",
+        time_unix_nano: 123,
+        attributes: {"values" => []}
+      )]
+
+      responses = exporter._native_send_traces([[span]], true)
+
+      expect(responses.first.ok?).to be true
+      payload = MessagePack.unpack(mock_agent.requests.last.fetch(:body))
+      expect(payload.dig(0, 0, "span_events", 0, "attributes", "values")).to eq(
+        "type" => 4,
+        "array_value" => {"values" => []}
+      )
+    end
   end
 
   describe "when the agent returns an error" do

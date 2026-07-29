@@ -283,21 +283,26 @@ module Datadog
           private
 
           def prepare_span_events!(chunks)
-            native_events_supported = native_events_supported?
+            native_events_supported = native_events_supported_with_fallback?
 
             chunks.each do |spans|
               spans.each do |span|
                 next if span.events.empty?
 
-                if native_events_supported
-                  span.meta.delete("events")
-                else
+                unless native_events_supported
                   span.set_tag("events", span.events.map(&:to_hash).to_json)
                 end
               end
             end
 
             native_events_supported
+          end
+
+          def native_events_supported_with_fallback?
+            native_events_supported?
+          rescue => e
+            logger.debug { "Failed to determine native span events support: #{e.class} #{e.message}" }
+            false
           end
 
           # Warn, at most once per transport, when a batch contains span fields
