@@ -474,8 +474,7 @@ module Datadog
       # Coordinated sampling gate. Returns true when the probe hit should emit a
       # snapshot. Delegates the decision to the correlation component so probes
       # in one execution unit share it. Fails open: if correlation is absent or
-      # the gate raises, fall back to the probe's own rate limiter (the
-      # pre-coordination behavior).
+      # the gate raises, fall back to the probe's own rate limiter.
       def emit?(probe)
         correlation = self.correlation
         if correlation
