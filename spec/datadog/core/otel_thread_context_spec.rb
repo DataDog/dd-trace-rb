@@ -12,8 +12,7 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
     end
 
     before do
-      # TODO: remove when libdatadog is updated
-      skip("libdatadog built without otel-thread-ctx") unless described_class.supported?
+      fail("libdatadog built without otel-thread-ctx") unless described_class.supported?
     end
 
     around(:each) do |example|
@@ -23,8 +22,15 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
     end
 
     it "sets the thread context" do
-      described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
-      expect(described_class.read).to include(trace_id: 1, span_id: 2, local_root_span_id: 3)
+      trace_id = 0xf0e1_d2c3_b4a5_9687_7869_5a4b_3c2d_1e0f
+      span_id = 0xfedc_ba98_7654_3210
+      local_root_span_id = 0xefcd_ab89_6745_2301
+
+      described_class.set(trace_id: trace_id, span_id: span_id, local_root_span_id: local_root_span_id)
+
+      expect(described_class.read).to include(
+        trace_id: trace_id, span_id: span_id, local_root_span_id: local_root_span_id
+      )
     end
 
     it "updates the thread context on fiber switch" do
