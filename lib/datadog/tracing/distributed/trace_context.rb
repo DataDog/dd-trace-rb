@@ -41,9 +41,11 @@ module Datadog
         def extract(data)
           fetcher = @fetcher.new(data)
 
-          trace_id, parent_id, sampled, trace_flags = extract_traceparent(fetcher[@traceparent_key])
+          traceparent_fields = extract_traceparent(fetcher[@traceparent_key])
 
-          return unless trace_id # Could not parse traceparent
+          return unless traceparent_fields # Could not parse traceparent
+
+          trace_id, parent_id, sampled, trace_flags = traceparent_fields
 
           tracestate, sampling_priority, origin, ts_parent_id, tags, unknown_fields = extract_tracestate(
             fetcher[@tracestate_key]
@@ -52,8 +54,7 @@ module Datadog
           sampling_priority = parse_priority_sampling(sampled, sampling_priority) do |decision|
             case decision
             when String
-              tags ||= {}
-              tags[Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER] = decision
+              (tags ||= {})[Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER] = decision
             when :drop
               tags&.delete(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
             end
@@ -80,8 +81,11 @@ module Datadog
 
         # @see https://www.w3.org/TR/trace-context/#traceparent-header
         def build_traceparent(digest)
+          trace_id = digest.trace_id
+          return unless trace_id
+
           build_traceparent_string(
-            digest.trace_id,
+            trace_id,
             digest.span_id || 0, # Fall back to zero (invalid) if not present
             build_trace_flags(digest)
           )
@@ -269,7 +273,11 @@ module Datadog
 
           return unless version && trace_id && parent_id && trace_flags
           return if version.size != 2 || trace_id.size != 32 || parent_id.size != 16 || trace_flags.size != 2
-          return if version[0] < "0" || version[0] > "f" || version[1] < "0" || version[1] > "f"
+
+          # `version.size == 2` above guarantees both chars are present; the nil checks narrow the type.
+          v0 = version[0]
+          v1 = version[1]
+          return if v0.nil? || v1.nil? || v0 < "0" || v0 > "f" || v1 < "0" || v1 > "f"
 
           return if version == INVALID_VERSION
 
@@ -286,10 +294,10 @@ module Datadog
         end
 
         # @return [nil] when the tracestate is absent or has no vendor entries.
-        # @return [String] when no `dd=` entry is present, the joined vendor list.
-        # @return [Array(String, Integer, String, String, Hash, String)] when a `dd=`
-        #   entry is present: [tracestate without `dd=`, sampling_priority, origin,
-        #   ts_parent_id, tags, unknown_fields]. All elements past the first may be nil.
+        # @return [Array(String, Integer, String, String, Hash, String)]
+        #   [tracestate without `dd=`, sampling_priority, origin, ts_parent_id, tags,
+        #   unknown_fields]. All elements past the first may be nil; when no `dd=` entry is
+        #   present only the first element (the joined vendor list) is populated.
         def extract_tracestate(tracestate)
           vendors = split_tracestate(tracestate)
           return unless vendors && !vendors.empty?
@@ -298,7 +306,7 @@ module Datadog
 
           # Find Datadog's `dd=` tracestate field.
           idx = vendors.index { |v| v.start_with?("dd=") }
-          return tracestate unless idx
+          return [tracestate, nil, nil, nil, nil, nil] unless idx
 
           # Delete `dd=` prefix
           dd_tracestate = vendors.delete_at(idx)
@@ -310,10 +318,15 @@ module Datadog
         end
 
         def extract_datadog_fields(dd_tracestate)
+          # @type var sampling_priority: ::Integer?
           sampling_priority = nil
+          # @type var origin: ::String?
           origin = nil
+          # @type var ts_parent_id: ::String?
           ts_parent_id = nil
+          # @type var tags: ::Hash[::String, ::String]?
           tags = nil
+          # @type var unknown_fields: ::String?
           unknown_fields = nil
 
           # DEV: Since Ruby 2.6 `split` can receive a block, so `each` can be removed then.
@@ -331,20 +344,23 @@ module Datadog
             when "p"
               ts_parent_id = value
             when /^t\./
+              # A regex match guarantees `key` is a non-nil String; the guard narrows the type.
+              next unless key
               key.slice!(0..1) # Delete `t.` prefix
 
               # Ignore the high order 64 bit trace id propagation tag to avoid confusion,
               # the single source of truth is from traceparent
               next if key == Tracing::Metadata::Ext::Distributed::TID
 
+              # Skip a malformed `t.` tag that carries no value.
+              next unless value
               value = deserialize_tag_value(value)
 
-              tags ||= {}
-              tags["#{Tracing::Metadata::Ext::Distributed::TAGS_PREFIX}#{key}"] = value
+              (tags ||= {})["#{Tracing::Metadata::Ext::Distributed::TAGS_PREFIX}#{key}"] = value
             else
-              unknown_fields ||= +""
-              unknown_fields << pair
-              unknown_fields << ";"
+              uf = (unknown_fields ||= +"")
+              uf << pair
+              uf << ";"
             end
           end
 

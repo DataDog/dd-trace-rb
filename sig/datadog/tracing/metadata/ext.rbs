@@ -34,7 +34,11 @@ module Datadog
           TAG_KNUTH_SAMPLING_RATE: ::String
           TAG_ORIGIN: ::String
           TAG_SAMPLING_PRIORITY: ::String
+          TAG_DD_PARENT_ID: ::String
+          DD_PARENT_ID_DEFAULT: ::String
           TAGS_PREFIX: ::String
+          TID: ::String
+          TAG_TID: ::String
         end
 
         module Errors

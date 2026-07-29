@@ -519,7 +519,6 @@ target :datadog do
   ignore "lib/datadog/tracing/distributed/datadog.rb"
   ignore "lib/datadog/tracing/distributed/datadog_tags_codec.rb"
   ignore "lib/datadog/tracing/distributed/propagation.rb"
-  ignore "lib/datadog/tracing/distributed/trace_context.rb"
   ignore "lib/datadog/tracing/event.rb"
   ignore "lib/datadog/tracing/metadata/errors.rb"
   ignore "lib/datadog/tracing/metadata/ext.rb"

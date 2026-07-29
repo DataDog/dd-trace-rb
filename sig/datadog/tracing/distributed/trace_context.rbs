@@ -14,14 +14,18 @@ module Datadog
 
         SPEC_VERSION: "00"
 
-        def initialize: (fetcher: untyped, ?traceparent_key: untyped, ?tracestate_key: untyped) -> void
+        @fetcher: singleton(Distributed::Fetcher)
+        @traceparent_key: ::String
+        @tracestate_key: ::String
+
+        def initialize: (fetcher: singleton(Distributed::Fetcher), ?traceparent_key: ::String, ?tracestate_key: ::String) -> void
 
         def inject!: (TraceDigest? digest, untyped data) -> (nil | untyped)
 
         def extract: (untyped data) -> TraceDigest?
 
         private
-        def build_traceparent: (TraceDigest digest) -> ::String
+        def build_traceparent: (TraceDigest digest) -> ::String?
         def build_traceparent_string: (::Integer trace_id, ::Integer parent_id, ::Integer trace_flags) -> ::String
         def build_trace_flags: (TraceDigest digest) -> ::Integer
         def build_tracestate: (TraceDigest digest) -> ::String?
@@ -36,7 +40,7 @@ module Datadog
         def parse_traceparent_string: (::String? traceparent) -> traceparent_fields?
 
         def parse_sampled_flag: (::Integer trace_flags) -> ::Integer
-        def extract_tracestate: (::String? tracestate) -> (::String | extracted_tracestate)?
+        def extract_tracestate: (::String? tracestate) -> extracted_tracestate?
 
         def extract_datadog_fields: (::String dd_tracestate) -> extracted_datadog_fields
         def deserialize_tag_value: (::String value) -> ::String
