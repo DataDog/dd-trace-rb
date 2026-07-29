@@ -8,7 +8,7 @@ module Datadog
 
         @span_id: String
 
-        @trace_id: String
+        @trace_id: Integer
 
         @version: String
 
@@ -35,18 +35,18 @@ module Datadog
         attr_reader span_id: String
 
         attr_reader version: String
-        def initialize: (?env: untyped?, ?service: untyped?, ?span_id: untyped?, ?trace_id: untyped?, ?version: untyped?) -> void
+        def initialize: (?env: untyped?, ?service: untyped?, ?span_id: Integer?, ?trace_id: Integer?, ?version: untyped?) -> void
 
         def to_h: () -> untyped
         def to_log_format: () -> untyped
 
-        def trace_id: () -> untyped
+        def trace_id: () -> String
       end
-      def self?.identifier_from_digest: (untyped digest) -> untyped
+      def self?.identifier_from_digest: (TraceDigest? digest) -> Identifier
 
-      def self?.format_trace_id: (untyped trace_id) -> untyped
+      def self?.format_trace_id: (::Integer trace_id) -> ::String
 
-      def self?.format_trace_id_128: (untyped trace_id) -> untyped
+      def self?.format_trace_id_128: (::Integer trace_id) -> ::String
     end
   end
 end
