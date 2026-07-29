@@ -352,13 +352,13 @@ module Datadog
           # have direct ownership of it.
           old_statsd = [
             runtime_metrics.metrics.statsd,
-            health_metrics.statsd
+            health_metrics.statsd,
           ].compact.uniq
 
           new_statsd = if replacement
             [
               replacement.runtime_metrics.metrics.statsd,
-              replacement.health_metrics.statsd
+              replacement.health_metrics.statsd,
             ].compact.uniq
           else
             []

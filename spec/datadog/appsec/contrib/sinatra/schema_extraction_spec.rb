@@ -47,10 +47,10 @@ RSpec.describe "Schema extraction for API security in Sinatra" do
                   params: [{address: "server.request.query"}],
                   db_type: [{address: "server.db.system"}]
                 }
-              }
+              },
             ],
             on_match: ["block"]
-          }
+          },
         ],
         processors: [
           {
@@ -64,12 +64,12 @@ RSpec.describe "Schema extraction for API security in Sinatra" do
                     {
                       address: "waf.context.processor",
                       key_path: ["extract-schema"]
-                    }
+                    },
                   ],
                   type: "boolean",
                   value: true
                 }
-              }
+              },
             ],
             parameters: {
               mappings: [
@@ -92,7 +92,7 @@ RSpec.describe "Schema extraction for API security in Sinatra" do
                 {
                   inputs: [{address: "server.response.body"}],
                   output: "_dd.appsec.s.res.body"
-                }
+                },
               ]
             },
             evaluate: false,
@@ -109,12 +109,12 @@ RSpec.describe "Schema extraction for API security in Sinatra" do
                     {
                       address: "waf.context.processor",
                       key_path: ["extract-schema"]
-                    }
+                    },
                   ],
                   type: "boolean",
                   value: true
                 }
-              }
+              },
             ],
             parameters: {
               mappings: [
@@ -125,7 +125,7 @@ RSpec.describe "Schema extraction for API security in Sinatra" do
                 {
                   inputs: [{address: "server.response.headers.no_cookies"}],
                   output: "_dd.appsec.s.res.headers"
-                }
+                },
               ]
             },
             evaluate: false,

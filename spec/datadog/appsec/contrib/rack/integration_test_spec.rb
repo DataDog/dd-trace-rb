@@ -62,18 +62,18 @@ RSpec.describe "Rack integration tests" do
                   },
                   {
                     address: "grpc.server.request.message"
-                  }
+                  },
                 ]
               },
               operator: "is_sqli"
-            }
+            },
           ],
           transformers: [
-            "removeNulls"
+            "removeNulls",
           ],
           on_match: [
             "block",
-            "extract_schema"
+            "extract_schema",
           ]
         },
       ],
@@ -89,14 +89,14 @@ RSpec.describe "Rack integration tests" do
                   {
                     address: "waf.context.processor",
                     key_path: [
-                      "extract-schema"
+                      "extract-schema",
                     ]
-                  }
+                  },
                 ],
                 type: "boolean",
                 value: true
               }
-            }
+            },
           ],
           parameters: {
             mappings: [
@@ -104,7 +104,7 @@ RSpec.describe "Rack integration tests" do
                 inputs: [
                   {
                     address: "server.request.query"
-                  }
+                  },
                 ],
                 output: "_dd.appsec.s.req.query"
               },
@@ -112,7 +112,7 @@ RSpec.describe "Rack integration tests" do
                 inputs: [
                   {
                     address: "server.request.body"
-                  }
+                  },
                 ],
                 output: "_dd.appsec.s.req.body"
               },
@@ -120,7 +120,7 @@ RSpec.describe "Rack integration tests" do
                 inputs: [
                   {
                     address: "server.request.path_params"
-                  }
+                  },
                 ],
                 output: "_dd.appsec.s.req.params"
               },
@@ -155,7 +155,7 @@ RSpec.describe "Rack integration tests" do
                 inputs: [
                   {
                     address: "server.response.status"
-                  }
+                  },
                 ],
                 regex: "^404$",
                 options: {
@@ -169,18 +169,18 @@ RSpec.describe "Rack integration tests" do
                 inputs: [
                   {
                     address: "server.request.uri.raw"
-                  }
+                  },
                 ],
                 regex: 'readme\\.[\\.a-z0-9]+$',
                 options: {
                   case_sensitive: false
                 }
               }
-            }
+            },
           ],
           transformers: [],
           on_match: [
-            "block"
+            "block",
           ]
         },
       ],
@@ -196,14 +196,14 @@ RSpec.describe "Rack integration tests" do
                   {
                     address: "waf.context.processor",
                     key_path: [
-                      "extract-schema"
+                      "extract-schema",
                     ]
-                  }
+                  },
                 ],
                 type: "boolean",
                 value: true
               }
-            }
+            },
           ],
           parameters: {
             mappings: [
@@ -211,10 +211,10 @@ RSpec.describe "Rack integration tests" do
                 inputs: [
                   {
                     address: "server.request.uri.raw"
-                  }
+                  },
                 ],
                 output: "_dd.appsec.s.req.uri.raw"
-              }
+              },
             ]
           },
           evaluate: false,
@@ -292,7 +292,7 @@ RSpec.describe "Rack integration tests" do
     let(:middlewares) do
       [
         Datadog::Tracing::Contrib::Rack::TraceMiddleware,
-        Datadog::AppSec::Contrib::Rack::RequestMiddleware
+        Datadog::AppSec::Contrib::Rack::RequestMiddleware,
       ]
     end
 

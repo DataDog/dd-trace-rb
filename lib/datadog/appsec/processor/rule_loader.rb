@@ -83,11 +83,11 @@ module Datadog
                     "inputs" => [
                       {
                         "address" => "http.client_ip"
-                      }
+                      },
                     ],
                     "list" => pass
                   }
-                }
+                },
               ],
               "id" => SecureRandom.uuid,
             }
@@ -100,11 +100,11 @@ module Datadog
                     "inputs" => [
                       {
                         "address" => "http.client_ip"
-                      }
+                      },
                     ],
                     "list" => monitor
                   }
-                }
+                },
               ],
               "id" => SecureRandom.uuid,
               "on_match" => "monitor"

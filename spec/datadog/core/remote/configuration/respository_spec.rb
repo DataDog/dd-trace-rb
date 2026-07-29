@@ -30,13 +30,13 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
                 inputs: [
                   {
                     address: "http.client_ip"
-                  }
+                  },
                 ],
                 list: [
-                  "4.4.4.4"
+                  "4.4.4.4",
                 ]
               }
-            }
+            },
           ],
           id: "874459ae-137f-4c99-9c54-109b1a117b86"
         },
@@ -48,14 +48,14 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
                 inputs: [
                   {
                     address: "server.request.uri.raw"
-                  }
+                  },
                 ],
                 options: {
                   case_sensitive: false
                 },
                 regex: "^/waf"
               }
-            }
+            },
           ],
           id: "d1390949-cf1a-408d-bc3f-043d0689d89e"
         },
@@ -64,7 +64,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
           rules_target: [
             {
               rule_id: "ua0-600-55x"
-            }
+            },
           ]
         },
         {
@@ -75,16 +75,16 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
                 inputs: [
                   {
                     address: "http.client_ip"
-                  }
+                  },
                 ],
                 list: [
-                  "8.8.8.8"
+                  "8.8.8.8",
                 ]
               }
-            }
+            },
           ],
           id: "081e1fbe-c73b-4ad2-bb83-4752354271bc"
-        }
+        },
       ],
       rules_override: []
     }
@@ -294,11 +294,11 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
                 {
                   algorithm: :sha256,
                   hash: content.hexdigest(:sha256)
-                }
+                },
               ],
               length: 645,
               path: "datadog/603646/ASM/exclusion_filters/config"
-            }
+            },
           ]
         end
 
@@ -330,11 +330,11 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
                   {
                     algorithm: :sha256,
                     hash: new_content.hexdigest(:sha256)
-                  }
+                  },
                 ],
                 length: new_content_string_io_content.length,
                 path: "datadog/603646/ASM/exclusion_filters/config"
-              }
+              },
             ]
 
             expect(repository.state.cached_target_files).to_not eq(expected_cached_target_files)
@@ -370,7 +370,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
       context "with changes" do
         let(:expected_config_states) do
           [
-            {id: path.config_id, product: path.product, version: 1, apply_error: nil, apply_state: 1}
+            {id: path.config_id, product: path.product, version: 1, apply_error: nil, apply_state: 1},
           ]
         end
 
@@ -397,7 +397,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
             end
 
             expected_updated_config_states = [
-              {id: path.config_id, product: path.product, version: 2, apply_error: nil, apply_state: 1}
+              {id: path.config_id, product: path.product, version: 2, apply_error: nil, apply_state: 1},
             ]
 
             expect(repository.state.config_states).to_not eq(expected_config_states)

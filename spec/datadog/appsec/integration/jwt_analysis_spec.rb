@@ -24,7 +24,7 @@ RSpec.describe "Blocking with deny and pass list configuration" do
             {
               "parameters" => {"inputs" => [{"address" => "server.request.query"}]},
               "operator" => "is_sqli"
-            }
+            },
           ],
           "transformers" => ["removeNulls"],
           "on_match" => ["block"]
@@ -48,11 +48,11 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                   {
                     "address" => "server.request.jwt",
                     "key_path" => ["payload", "exp"]
-                  }
+                  },
                 ]
               },
               "operator" => "!exists"
-            }
+            },
           ],
           "transformers" => [],
           "output" => {
@@ -60,7 +60,7 @@ RSpec.describe "Blocking with deny and pass list configuration" do
             "keep" => true,
             "attributes" => {"_dd.appsec.api.jwt.no_expiry" => {"value" => 1}}
           }
-        }
+        },
       ],
       "processors" => [
         {
@@ -74,10 +74,10 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                   {
                     "address" => "server.request.headers.no_cookies",
                     "key_path" => ["authorization"]
-                  }
+                  },
                 ],
                 "output" => "server.request.jwt"
-              }
+              },
             ]
           },
           "evaluate" => true,
@@ -94,28 +94,28 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                   {
                     "address" => "waf.context.processor",
                     "key_path" => ["extract-schema"]
-                  }
+                  },
                 ],
                 "type" => "boolean",
                 "value" => true
               }
-            }
+            },
           ],
           "parameters" => {
             "mappings" => [
               {
                 "inputs" => [{"address" => "server.request.jwt"}],
                 "output" => "_dd.appsec.s.req.jwt"
-              }
+              },
             ],
             "scanners" => [
               {"tags" => {"category" => "credentials"}},
-              {"tags" => {"category" => "pii"}}
+              {"tags" => {"category" => "pii"}},
             ]
           },
           "evaluate" => false,
           "output" => true
-        }
+        },
       ]
     }
   end

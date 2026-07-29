@@ -148,7 +148,7 @@ RSpec.describe Datadog::Core::Utils::Network do
             "",
             "dd",
             "02001:0000:1234:0000:0000:C1C0:ABCD:0876",
-            "2001:0000:1234:0000:00001:C1C0:ABCD:0876"
+            "2001:0000:1234:0000:00001:C1C0:ABCD:0876",
           ]
 
         ips.each do |ip|

@@ -22,7 +22,7 @@ RSpec.describe Datadog::AppSec::Remote do
       it "returns capabilities" do
         expect(described_class.capabilities).to eq([
           4, 128, 16, 32, 64, 8, 256, 512, 1024, 65_536, 131_072, 8_388_608, 2_097_152, 2_147_483_648,
-          4_294_967_296, 8_589_934_592, 17_179_869_184, 34_359_738_368, 8_796_093_022_208
+          4_294_967_296, 8_589_934_592, 17_179_869_184, 34_359_738_368, 8_796_093_022_208,
         ])
       end
     end
@@ -98,18 +98,18 @@ RSpec.describe Datadog::AppSec::Remote do
                       inputs: [
                         {
                           address: "http.client_ip"
-                        }
+                        },
                       ],
                       data: "blocked_ips"
                     },
                     operator: "ip_match"
-                  }
+                  },
                 ],
                 transformers: [],
                 on_match: [
-                  "block"
+                  "block",
                 ]
-              }
+              },
             ]
           }.to_json
         end
@@ -202,10 +202,10 @@ RSpec.describe Datadog::AppSec::Remote do
                         params: [{address: "server.request.query"}],
                         db_type: [{address: "server.db.system"}]
                       }
-                    }
+                    },
                   ],
                   on_match: ["block-sqli"]
-                }
+                },
               ],
               actions: [
                 {
@@ -216,7 +216,7 @@ RSpec.describe Datadog::AppSec::Remote do
                     grpc_status_code: "42",
                     type: "auto"
                   }
-                }
+                },
               ]
             }.to_json
           end
@@ -282,7 +282,7 @@ RSpec.describe Datadog::AppSec::Remote do
             expect(call_order).to eq([
               [:remove, "datadog/603646/ASM_DD/v1/config"],
               [:add, "datadog/603646/ASM_DD/v2/config"],
-              [:remove, "ASM_DD/default"]
+              [:remove, "ASM_DD/default"],
             ])
           end
         end

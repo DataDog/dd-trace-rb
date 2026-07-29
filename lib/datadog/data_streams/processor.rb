@@ -186,7 +186,7 @@ module Datadog
 
         bucket[:latest_produce_offsets][partition_key] = [
           event[:offset],
-          bucket[:latest_produce_offsets][partition_key] || 0
+          bucket[:latest_produce_offsets][partition_key] || 0,
         ].max
       end
 
@@ -479,7 +479,7 @@ module Datadog
             "Tags" => [
               "type:kafka_commit",
               "topic:#{stat[:topic]}",
-              "partition:#{stat[:partition]}"
+              "partition:#{stat[:partition]}",
             ],
             "Value" => stat[:offset]
           }

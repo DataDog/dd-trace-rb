@@ -70,17 +70,17 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
                   },
                   {
                     address: "grpc.server.request.message"
-                  }
+                  },
                 ]
               },
               operator: "is_sqli"
-            }
+            },
           ],
           transformers: [
-            "removeNulls"
+            "removeNulls",
           ],
           on_match: [
-            "block"
+            "block",
           ]
         },
       ],
@@ -96,14 +96,14 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
                   {
                     address: "waf.context.processor",
                     key_path: [
-                      "extract-schema"
+                      "extract-schema",
                     ]
-                  }
+                  },
                 ],
                 type: "boolean",
                 value: true
               }
-            }
+            },
           ],
           parameters: {
             mappings: [
@@ -111,7 +111,7 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
                 inputs: [
                   {
                     address: "server.request.query"
-                  }
+                  },
                 ],
                 output: "_dd.appsec.s.req.query"
               },
@@ -119,7 +119,7 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
                 inputs: [
                   {
                     address: "server.request.body"
-                  }
+                  },
                 ],
                 output: "_dd.appsec.s.req.body"
               },
@@ -127,7 +127,7 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
                 inputs: [
                   {
                     address: "server.request.path_params"
-                  }
+                  },
                 ],
                 output: "_dd.appsec.s.req.params"
               },
@@ -518,7 +518,7 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
         let(:middlewares) do
           [
             Datadog::Tracing::Contrib::Rack::TraceMiddleware,
-            Datadog::AppSec::Contrib::Rack::RequestMiddleware
+            Datadog::AppSec::Contrib::Rack::RequestMiddleware,
           ]
         end
 

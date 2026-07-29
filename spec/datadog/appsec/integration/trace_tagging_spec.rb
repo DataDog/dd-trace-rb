@@ -27,15 +27,15 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                   {
                     "address" => "server.request.headers.no_cookies",
                     "key_path" => ["user-agent"]
-                  }
+                  },
                 ],
                 "regex" => '^Arachni\/v'
               },
               "operator" => "match_regex"
-            }
+            },
           ],
           "on_match" => ["block"]
-        }
+        },
       ],
       "rules_compat" => [
         {
@@ -49,12 +49,12 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                   {
                     "address" => "server.request.headers.no_cookies",
                     "key_path" => ["user-agent"]
-                  }
+                  },
                 ],
                 "regex" => '^TraceTagging\/v1'
               },
               "operator" => "match_regex"
-            }
+            },
           ],
           "output" => {
             "event" => false,
@@ -80,12 +80,12 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                   {
                     "address" => "server.request.headers.no_cookies",
                     "key_path" => ["user-agent"]
-                  }
+                  },
                 ],
                 "regex" => '^TraceTagging\/v2'
               },
               "operator" => "match_regex"
-            }
+            },
           ],
           "output" => {
             "event" => false,
@@ -111,12 +111,12 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                   {
                     "address" => "server.request.headers.no_cookies",
                     "key_path" => ["user-agent"]
-                  }
+                  },
                 ],
                 "regex" => '^TraceTagging\/v3'
               },
               "operator" => "match_regex"
-            }
+            },
           ],
           "output" => {
             "event" => true,
@@ -142,12 +142,12 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                   {
                     "address" => "server.request.headers.no_cookies",
                     "key_path" => ["user-agent"]
-                  }
+                  },
                 ],
                 "regex" => '^TraceTagging\/v4'
               },
               "operator" => "match_regex"
-            }
+            },
           ],
           "output" => {
             "event" => true,
@@ -161,7 +161,7 @@ RSpec.describe "Blocking with deny and pass list configuration" do
             }
           },
           "on_match" => []
-        }
+        },
       ],
       "processors" => []
     }

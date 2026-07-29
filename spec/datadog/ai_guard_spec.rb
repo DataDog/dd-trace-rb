@@ -62,7 +62,7 @@ RSpec.describe Datadog::AIGuard do
 
       let(:messages) do
         [
-          Datadog::AIGuard::Evaluation::Message.new(role: :system, content: "Hello")
+          Datadog::AIGuard::Evaluation::Message.new(role: :system, content: "Hello"),
         ]
       end
 
@@ -149,7 +149,7 @@ RSpec.describe Datadog::AIGuard do
 
       let(:messages) do
         [
-          Datadog::AIGuard::Evaluation::Message.new(role: :system, content: "Hello")
+          Datadog::AIGuard::Evaluation::Message.new(role: :system, content: "Hello"),
         ]
       end
 

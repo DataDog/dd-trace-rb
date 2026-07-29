@@ -291,7 +291,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
           operation_name: "http.request",
           method: "GET",
           path: "/event/:id"
-        }
+        },
       ]
     end
 

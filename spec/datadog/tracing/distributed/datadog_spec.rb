@@ -464,7 +464,7 @@ RSpec.shared_examples "Datadog distributed format" do
         [
           (1 << 64).to_s,
           "0",
-          "-1"
+          "-1",
         ].each do |invalid_trace_id|
           context "when given invalid trace_id: #{invalid_trace_id}" do
             let(:data) do
@@ -481,7 +481,7 @@ RSpec.shared_examples "Datadog distributed format" do
         [
           (1 << 64).to_s,
           "0",
-          "-1"
+          "-1",
         ].each do |invalid_span_id|
           context "when given invalid span_id: #{invalid_span_id}" do
             let(:data) do
