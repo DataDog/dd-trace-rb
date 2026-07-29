@@ -157,7 +157,7 @@ module Datadog
             fork_mutex = @fork_mutex
             fork_state = @fork_state
             remove_fork_hooks = nil
-            before_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:before) do
+            before_hook = proc do
               # Announce before blocking: close may already hold @fork_mutex
               # while it waits for a send, and must yield to this hook rather
               # than deregistering its matching parent/child hooks.
@@ -187,7 +187,7 @@ module Datadog
                 send_mutex.lock
               end
             end
-            parent_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:parent) do
+            parent_hook = proc do
               exporter._native_after_fork_in_parent if fork_mutex.owned?
             rescue => e
               Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e.class}: #{e.message}" }
@@ -202,7 +202,9 @@ module Datadog
               remove_fork_hooks.call if fork_state[:finalize]
               fork_mutex.unlock if fork_mutex.owned?
             end
-            child_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
+            child_hook = proc do
+              # Other threads waiting to fork do not survive into the child.
+              fork_state[:pending] = 0
               exporter._native_after_fork_in_child if fork_mutex.owned?
             rescue => e
               Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e.class}: #{e.message}" }
@@ -216,7 +218,11 @@ module Datadog
               fork_mutex.unlock if fork_mutex.owned?
             end
 
-            @fork_hooks = {before: before_hook, parent: parent_hook, child: child_hook}
+            @fork_hooks = Core::Utils::AtForkMonkeyPatch.at_fork_blocks(
+              before: before_hook,
+              parent: parent_hook,
+              child: child_hook
+            )
             remove_fork_hooks = self.class.send(:fork_hooks_remover, @fork_hooks, fork_state)
 
             # Fallback so a dropped (un-#close'd) transport doesn't leak its
@@ -235,22 +241,30 @@ module Datadog
           # native exporter so its runtime can shut down. Idempotent: safe to
           # call multiple times and safe to call after the finalizer has run.
           def close
+            fork_locked = false
+            send_locked = false
+
             # Acquire both locks only when no before-fork hook is already
             # waiting. A hook can announce itself while we wait for an active
             # send, so check again after acquiring @send_mutex.
             loop do
               @fork_mutex.lock
+              fork_locked = true
               if @fork_state[:pending] > 0
                 @fork_mutex.unlock
+                fork_locked = false
                 Thread.pass
                 next
               end
 
               @send_mutex.lock
+              send_locked = true
               break if @fork_state[:pending] == 0
 
               @send_mutex.unlock
+              send_locked = false
               @fork_mutex.unlock
+              fork_locked = false
               Thread.pass
             end
 
@@ -277,8 +291,8 @@ module Datadog
 
             nil
           ensure
-            @send_mutex.unlock if @send_mutex.owned?
-            @fork_mutex.unlock if @fork_mutex.owned?
+            @send_mutex.unlock if send_locked && @send_mutex.owned?
+            @fork_mutex.unlock if fork_locked && @fork_mutex.owned?
           end
 
           # Builds the finalizer proc for a transport's fork hooks.

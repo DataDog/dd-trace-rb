@@ -230,6 +230,43 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         closer&.join(5)
       end
 
+      it "does not release fork locks owned before a reentrant close" do
+        hooks = transport.instance_variable_get(:@fork_hooks)
+        exporter = transport.instance_variable_get(:@exporter)
+        fork_mutex = transport.instance_variable_get(:@fork_mutex)
+        send_mutex = transport.instance_variable_get(:@send_mutex)
+        allow(exporter).to receive(:_native_after_fork_in_parent).and_call_original
+
+        hooks[:before].call
+
+        expect { transport.close }.to raise_error(ThreadError)
+        expect(fork_mutex).to be_owned
+        expect(send_mutex).to be_owned
+
+        hooks[:parent].call
+
+        expect(exporter).to have_received(:_native_after_fork_in_parent).once
+        expect(fork_mutex).to_not be_owned
+        expect(send_mutex).to_not be_owned
+        expect(transport.send_traces([make_trace_segment("after-reentrant-close")]).first).to be_ok
+      ensure
+        hooks&.dig(:parent)&.call if fork_mutex&.owned?
+      end
+
+      it "releases its lifecycle lock but retains a pre-owned send lock" do
+        fork_mutex = transport.instance_variable_get(:@fork_mutex)
+        send_mutex = transport.instance_variable_get(:@send_mutex)
+        send_mutex.lock
+
+        expect { transport.close }.to raise_error(ThreadError)
+
+        expect(fork_mutex).to_not be_owned
+        expect(send_mutex).to be_owned
+        expect(transport.instance_variable_get(:@exporter)).to_not be_nil
+      ensure
+        send_mutex&.unlock if send_mutex&.owned?
+      end
+
       it "stops the exporter native fork hooks from firing on a later fork" do
         exporter = transport.instance_variable_get(:@exporter)
         # If our hooks were still registered, running the blocks would invoke

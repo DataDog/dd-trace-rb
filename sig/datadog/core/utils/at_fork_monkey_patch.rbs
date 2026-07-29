@@ -9,11 +9,15 @@ module Datadog
 
         def self.apply!: () -> (false | true)
 
-        def self.run_at_fork_blocks: (Symbol stage) -> void
+        def self.run_at_fork_blocks: (Symbol stage, ?Hash[Symbol, Array[Proc]] snapshot) -> void
 
         def self.at_fork: (Symbol stage) { () -> untyped } -> Proc
 
+        def self.at_fork_blocks: (before: Proc, parent: Proc, child: Proc) -> Hash[Symbol, Proc]
+
         def self.remove_at_fork: (Symbol stage, Proc block) -> void
+
+        def self.snapshot_at_fork_blocks: () -> Hash[Symbol, Array[Proc]]
 
         module KernelMonkeyPatch
           def fork: () ?{ () -> untyped } -> untyped

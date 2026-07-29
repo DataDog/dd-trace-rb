@@ -293,6 +293,28 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
         it "returns the result from _fork" do
           expect(process_module._fork).to be _fork_result
         end
+
+        it "uses one callback snapshot for the complete fork lifecycle" do
+          calls = []
+          registered = false
+          at_fork = Datadog::Core::Utils::AtForkMonkeyPatch
+          at_fork.at_fork(:before) do
+            next if registered
+
+            registered = true
+            at_fork.at_fork_blocks(
+              before: proc { calls << :late_before },
+              parent: proc { calls << :late_parent },
+              child: proc { calls << :late_child }
+            )
+          end
+
+          process_module._fork
+          expect(calls).to eq([])
+
+          process_module._fork
+          expect(calls).to eq(%i[late_before late_child])
+        end
       end
 
       context "in the parent process" do
@@ -361,6 +383,51 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
         described_class.run_at_fork_blocks(stage)
 
         expect(calls).to eq(%i[first second])
+      end
+    end
+
+    %i[parent child].each do |stage|
+      it "runs every #{stage} callback before re-raising the first failure" do
+        calls = []
+        error = RuntimeError.new("first #{stage} failed")
+        described_class.at_fork(stage) do
+          calls << :first
+          raise error
+        end
+        described_class.at_fork(stage) do
+          calls << :second
+          raise "second #{stage} failed"
+        end
+
+        expect { described_class.run_at_fork_blocks(stage) }.to raise_error(error)
+        expect(calls).to eq(%i[first second])
+      end
+    end
+
+    it "stops before callbacks at the first failure" do
+      calls = []
+      described_class.at_fork(:before) do
+        calls << :first
+        raise "before failed"
+      end
+      described_class.at_fork(:before) { calls << :second }
+
+      expect { described_class.run_at_fork_blocks(:before) }.to raise_error("before failed")
+      expect(calls).to eq([:first])
+    end
+
+    it "registers a callback triplet together" do
+      blocks = {
+        before: proc {},
+        parent: proc {},
+        child: proc {},
+      }
+
+      expect(described_class.at_fork_blocks(**blocks)).to eq(blocks)
+
+      snapshot = described_class.snapshot_at_fork_blocks
+      blocks.each do |stage, block|
+        expect(snapshot.fetch(stage)).to include(block)
       end
     end
 

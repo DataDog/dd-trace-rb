@@ -344,12 +344,51 @@ RSpec.describe "Native transport fork safety and cancellation" do
       expect(transport.send_traces([build_trace]).first.ok?).to be(true)
     end
 
+    it "discards pending fork waiters that vanished in the child" do
+      hooks = transport.instance_variable_get(:@fork_hooks)
+      fork_state = transport.instance_variable_get(:@fork_state)
+      waiter = nil
+      Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:before) do
+        waiter = Thread.new do
+          hooks[:before].call
+          hooks[:parent].call
+        end
+        Timeout.timeout(5) { Thread.pass until fork_state[:pending] > 0 }
+      end
+
+      read_io, write_io = IO.pipe
+      pid = fork do
+        read_io.close
+        result = begin
+          Timeout.timeout(5) { transport.close }
+          "OK"
+        rescue => e
+          "RAISED:#{e.class}:#{e.message}"
+        end
+        write_io.write(result)
+        write_io.close
+        exit!(0)
+      end
+      write_io.close
+
+      child_result = Timeout.timeout(10) { read_io.read }
+      read_io.close
+      _, status = Process.wait2(pid)
+      expect(waiter.join(10)).to be(waiter)
+
+      expect(child_result).to eq("OK")
+      expect(status.success?).to be(true)
+      expect(transport.send_traces([build_trace(name: "parent-after-pending-fork.op")]).first.ok?).to be(true)
+    ensure
+      waiter&.join(10)
+      read_io&.close unless read_io&.closed?
+      write_io&.close unless write_io&.closed?
+    end
+
     it "restores the parent and unlocks sends when fork fails" do
       hooks = transport.instance_variable_get(:@fork_hooks)
       saved_at_fork = AtForkRegistryHelpers.snapshot_and_clear
-      hooks.each do |stage, block|
-        Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(stage, &block)
-      end
+      Datadog::Core::Utils::AtForkMonkeyPatch.at_fork_blocks(**hooks)
 
       allow(exporter).to receive(:_native_before_fork).and_call_original
       allow(exporter).to receive(:_native_after_fork_in_parent).and_call_original
