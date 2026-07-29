@@ -6,7 +6,7 @@ module Datadog
 
         @service: String
 
-        @span_id: String
+        @span_id: Integer
 
         @trace_id: Integer
 
@@ -32,13 +32,13 @@ module Datadog
 
         attr_reader service: String
 
-        attr_reader span_id: String
-
         attr_reader version: String
         def initialize: (?env: untyped?, ?service: untyped?, ?span_id: Integer?, ?trace_id: Integer?, ?version: untyped?) -> void
 
         def to_h: () -> untyped
         def to_log_format: () -> untyped
+
+        def span_id: () -> String
 
         def trace_id: () -> String
       end

@@ -23,7 +23,6 @@ module Datadog
         attr_reader \
           :env,
           :service,
-          :span_id,
           :version
 
         # @!visibility private
@@ -37,7 +36,7 @@ module Datadog
           # Dup and freeze strings so they aren't modified by reference.
           @env = env || Datadog.configuration.env
           @service = service || Datadog.configuration.service
-          @span_id = (span_id || 0).to_s
+          @span_id = span_id || 0
           @trace_id = trace_id || 0
           @version = version || Datadog.configuration.version
         end
@@ -70,6 +69,10 @@ module Datadog
             attributes << "#{LOG_ATTR_SOURCE}=#{Core::Logging::Ext::DD_SOURCE}"
             attributes.join(" ")
           end
+        end
+
+        def span_id
+          @span_id.to_s
         end
 
         def trace_id
