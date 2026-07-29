@@ -69,42 +69,36 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
       expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
     end
 
-    context "with M:N scheduler", if: RUBY_VERSION >= "3.3" do
-      it "resets the thread context when the Thread dies" do
-        Thread.new do
-          described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
-        end.join
+    # This example is for the Valgrind memcheck run.
+    it "releases the thread context when a Thread exits", if: RUBY_VERSION >= "3.3" do
+      Thread.new do
+        described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+      end.join
 
-        expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
+      signal_queue = Queue.new
+      killed = Thread.new do
+        described_class.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
+        signal_queue << true
+        Queue.new.pop
       end
 
-      it "resets the thread context when the Thread is killed" do
-        signal_queue = Queue.new
-        t = Thread.new do
-          described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
-          signal_queue << true
-          Queue.new.pop # block the thread
-        end
+      signal_queue.pop # ensure we set the thread context before we kill the thread
+      killed.kill
+      killed.join
 
-        signal_queue.pop # ensure we set the thread context before we kill the thread
-        t.kill
-        t.join
-
-        expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
+      failed = Thread.new do
+        Thread.current.report_on_exception = false
+        described_class.set(trace_id: 21, span_id: 22, local_root_span_id: 23)
+        raise StandardError
       end
 
-      it "resets the thread context when the Thread dies with an exception" do
-        t = Thread.new do
-          Thread.current.report_on_exception = false
-          described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
-          raise StandardError
-        end
+      expect { failed.join }.to raise_error(StandardError)
 
-        expect { t.join }.to raise_error(StandardError)
-        expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
-      end
+      expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
+    end
 
-      it "keeps thread context correct under the M:N scheduler", memcheck_valgrind_skip: true do
+    context "inside a non-main Ractor", if: RUBY_VERSION >= "3.3", memcheck_valgrind_skip: true do
+      it "keeps thread context correct under the M:N scheduler" do
         thread_count = Etc.nprocessors * 4 + 1
 
         # M:N is disabled on the main Ractor by default
@@ -120,9 +114,7 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
 
         expect(results).to match_array((0..(thread_count - 1)).to_a)
       end
-    end
 
-    context "inside a non-main Ractor", if: RUBY_VERSION >= "3.3", memcheck_valgrind_skip: true do
       it "updates the thread context on fiber switch" do
         outer, inner = Ractor.new do
           Datadog::Core::OTelThreadContext.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
