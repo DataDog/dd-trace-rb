@@ -5,13 +5,14 @@ around tool calls — here, one Ruby file per hook.
 
 ## Writing a hook
 
-Keep it to a single file. Logic and tests live together, with the tests tucked
-behind a `TEST=1` guard so they never run when Claude Code invokes the hook:
+A hook is two files: `<name>.rb` holds the runtime, `<name>.test.rb` holds its
+tests. The runtime stays pure so it compiles cleanly; the test file
+`require_relative`s it and drives it. Requiring the runtime runs the whole file,
+so the last line guards against firing when the test loads it:
 
 ```ruby
-Runner.new(ARGV).run($stdin.read) unless ENV["TEST"] == "1"
-
-# tests below — only loaded when TEST=1
+# runs as a hook or a compiled binary, but not when required by the test
+Runner.new(ARGV).run($stdin.read) unless $PROGRAM_NAME.end_with?(".test.rb")
 ```
 
 Run the hook the way Claude Code does, with the payload as JSON on stdin:
@@ -20,15 +21,19 @@ Run the hook the way Claude Code does, with the payload as JSON on stdin:
 ruby <name>.rb <args>
 ```
 
-And run its tests by flipping the guard:
+## Testing
 
 ```sh
-TEST=1 ruby <name>.rb
+make test               # every hook's tests (unit + smoke), under CRuby
+ruby <name>.test.rb     # a single hook
 ```
 
-A hook should stay small, so inline tests are the default. If one ever grows
-complex enough that the tests get in the way, pull them into their own file —
-but reach for that only when the single file genuinely stops paying off.
+Each test file carries two suites. The **unit** suite exercises the hook's logic
+in process. The **smoke** suite runs the hook end to end as a subprocess against
+a set of scenarios, once per available runner: CRuby always, and the compiled
+binary when one is present. CRuby is the oracle — the binary must match it byte
+for byte, so a miscompile shows up as a divergence. With no binary built, smoke
+runs CRuby only and says so.
 
 ## Shims
 
@@ -45,11 +50,12 @@ present:
 
 Ruby's cold start is slow for something that fires on every tool call, so a hook
 can be compiled ahead of time into a standalone native binary with [Spinel],
-which starts roughly thirty times faster. Build one like this:
+which starts roughly thirty times faster. Spinel is not on `PATH` by default;
+build it once, then compile:
 
 ```sh
-ruby compile.rb <name>   # one hook (name, name.rb, or a path all work)
-ruby compile.rb          # every hook in this directory
+make bootstrap   # fetch + build Spinel into ~/.cache/spinel (one-time)
+make compile     # every hook -> compiled/<name>
 ```
 
 The result lands in `compiled/<name>`, and the shim prefers it automatically.
@@ -57,9 +63,10 @@ Binaries are architecture- and OS-specific, so `compiled/` is gitignored —
 everyone builds their own, and plain Ruby remains the portable fallback.
 
 Spinel only supports a subset of Ruby, so mind the gaps. `Hash#dig`, for one,
-is unsupported — reach for `Hash#fetch` instead. After changing a hook,
-recompile and re-run its tests against the binary to confirm the native path
-still behaves like CRuby.
+is unsupported — reach for `Hash#fetch` instead. Because the binary is
+architecture-specific and compiled separately from CRuby, re-verify after any
+hook change: `make compile && make test`. The smoke suite then diffs the fresh
+binary against CRuby and fails on any divergence.
 
 ## Links
 
