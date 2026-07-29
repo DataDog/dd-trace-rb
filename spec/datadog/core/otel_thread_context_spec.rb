@@ -30,18 +30,20 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
     it "updates the thread context on fiber switch" do
       described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
 
-      f = Fiber.new do
+      fiber = Fiber.new do
         described_class.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
 
         Fiber.yield
 
-        expect(described_class.read).to include(trace_id: 11, span_id: 12, local_root_span_id: 13)
+        described_class.read
       end
 
-      f.resume
+      fiber.resume
       expect(described_class.read).to include(trace_id: 1, span_id: 2, local_root_span_id: 3)
 
-      f.resume
+      fiber_context = fiber.resume
+      expect(fiber_context).to include(trace_id: 11, span_id: 12, local_root_span_id: 13)
+
       expect(described_class.read).to include(trace_id: 1, span_id: 2, local_root_span_id: 3)
     end
 
@@ -49,19 +51,20 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
       fiber_a = Fiber.new do
         described_class.set(trace_id: 100, span_id: 101, local_root_span_id: 102)
         Fiber.yield
-        expect(described_class.read).to include(trace_id: 100, span_id: 101, local_root_span_id: 102)
+        described_class.read
       end
 
       fiber_b = Fiber.new do
         described_class.set(trace_id: 200, span_id: 201, local_root_span_id: 202)
         Fiber.yield
-        expect(described_class.read).to include(trace_id: 200, span_id: 201, local_root_span_id: 202)
+        described_class.read
       end
 
       fiber_a.resume
       fiber_b.resume
-      fiber_a.resume
-      fiber_b.resume
+
+      expect(fiber_a.resume).to include(trace_id: 100, span_id: 101, local_root_span_id: 102)
+      expect(fiber_b.resume).to include(trace_id: 200, span_id: 201, local_root_span_id: 202)
 
       expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
     end
