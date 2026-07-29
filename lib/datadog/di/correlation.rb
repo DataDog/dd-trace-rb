@@ -5,37 +5,38 @@ require "set"
 module Datadog
   module DI
     # Decides whether a Live Debugger probe hit emits a snapshot, sharing one
-    # decision across every hit in the same execution unit and bounding how
+    # decision across every hit in the same sampling unit and bounding how
     # often a single probe emits within it.
     #
     # @api private
     class Correlation
-      # Upper bound on retained units and scopes; the oldest entry is evicted
-      # when the bound is exceeded.
+      # Upper bound on retained sampling units and scopes; the oldest entry is
+      # evicted when the bound is exceeded.
       DEFAULT_MAX_ENTRIES = 4096
 
-      # Builds a sampler bounded to +max_entries+ retained units and scopes.
+      # Builds a sampler bounded to +max_entries+ retained sampling units and
+      # scopes.
       #
       # @param max_entries [Integer] bound for the decision and scope maps
       def initialize(max_entries: DEFAULT_MAX_ENTRIES)
         @max_entries = max_entries
         @lock = Mutex.new
-        @unit_decisions = {}
+        @sampling_unit_decisions = {}
         @cap_scopes = {}
       end
 
       # Decides whether this probe hit emits a snapshot.
       #
       # @param probe [Datadog::DI::Probe]
-      # @param unit [Datadog::DI::ExecutionUnit]
+      # @param sampling_unit [Datadog::DI::SamplingUnit]
       # @return [Boolean]
-      def emit?(probe, unit)
-        key = unit.key
+      def emit?(probe, sampling_unit)
+        key = sampling_unit.key
         return per_probe(probe) if key.nil?
 
-        scope = unit.scope || key
+        scope = sampling_unit.scope || key
         lock.synchronize do
-          return false unless unit_decision(key) { per_probe(probe) }
+          return false unless sampling_unit_decision(key) { per_probe(probe) }
 
           cap_admit(scope, probe.id)
         end
@@ -46,37 +47,37 @@ module Datadog
       # Serializes access to the decision and scope maps.
       attr_reader :lock
 
-      # Cached emit-or-drop decision, keyed by unit.
-      attr_reader :unit_decisions
+      # Cached emit-or-drop decision, keyed by sampling unit.
+      attr_reader :sampling_unit_decisions
 
       # Probe ids already emitted, keyed by scope.
       attr_reader :cap_scopes
 
-      # This sampler's retention bound for units and scopes.
+      # This sampler's retention bound for sampling units and scopes.
       attr_reader :max_entries
 
       # Consults the probe's rate limiter, consuming a token; a probe with no
-      # limiter is permitted. Called once per unit, so sibling probes inherit
-      # the cached decision.
+      # limiter is permitted. Called once per sampling unit, so sibling probes
+      # inherit the cached decision.
       def per_probe(probe)
         limiter = probe.rate_limiter
         limiter.nil? || limiter.allow?
       end
 
-      # Returns the cached decision for the unit, computing and storing it on
-      # first use. Must hold @lock.
-      def unit_decision(key)
-        existing = unit_decisions[key]
+      # Returns the cached decision for the sampling unit, computing and storing
+      # it on first use. Must hold @lock.
+      def sampling_unit_decision(key)
+        existing = sampling_unit_decisions[key]
         unless existing.nil?
           # Refresh recency: reinsert so the key moves to the end.
-          unit_decisions.delete(key)
-          unit_decisions[key] = existing
+          sampling_unit_decisions.delete(key)
+          sampling_unit_decisions[key] = existing
           return existing
         end
 
         value = yield
-        unit_decisions[key] = value
-        evict(unit_decisions)
+        sampling_unit_decisions[key] = value
+        evict(sampling_unit_decisions)
         value
       end
 

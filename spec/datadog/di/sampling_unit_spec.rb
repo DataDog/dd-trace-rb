@@ -1,7 +1,7 @@
 require "datadog/di/spec_helper"
-require "datadog/di/execution_unit"
+require "datadog/di/sampling_unit"
 
-RSpec.describe Datadog::DI::ExecutionUnit do
+RSpec.describe Datadog::DI::SamplingUnit do
   di_test
 
   def stub_active_trace(trace_id, span_id: nil)

@@ -1,13 +1,13 @@
 module Datadog
   module DI
-    class ExecutionUnit
+    class SamplingUnit
       @key: Integer?
 
       @scope: Integer?
 
       @source: Symbol
 
-      def self.current: () -> ExecutionUnit
+      def self.current: () -> SamplingUnit
 
       def initialize: (Integer? key, Integer? scope, Symbol source) -> void
 
