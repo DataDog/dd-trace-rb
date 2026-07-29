@@ -428,16 +428,16 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         expect(transport.send_traces([trace]).first.ok?).to be true
       end
 
-      it "warns when a span carries meta_struct" do
-        trace = trace_with { |span| span.metastruct["_dd.stack"] = {} }
-
-        expect(logger).to receive(:warn).once
-
-        expect(transport.send_traces([trace]).first.ok?).to be true
-      end
-
       it "does not warn for a span with only scalar fields, meta, and metrics" do
         trace = make_trace_segment("web.request")
+
+        expect(logger).to_not receive(:warn)
+
+        transport.send_traces([trace])
+      end
+
+      it "does not warn when a span carries meta_struct" do
+        trace = trace_with { |span| span.metastruct["_dd.stack"] = {} }
 
         expect(logger).to_not receive(:warn)
 
