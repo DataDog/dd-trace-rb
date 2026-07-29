@@ -410,21 +410,24 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             end
           end
 
-          it 'includes "local root span id" and "span id" labels in the samples' do
+          it 'includes "span id" label in the samples' do
             expect(@t1_span_id).to_not be @t1_local_root_span_id
 
             sample
 
-            expect(t1_sample.labels).to include(
-              "local root span id": @t1_local_root_span_id.to_i,
-              "span id": @t1_span_id.to_i,
-            )
+            expect(t1_sample.labels).to include("span id": @t1_span_id.to_i)
           end
 
           it 'does not include the "trace endpoint" label' do
             sample
 
             expect(t1_sample.labels).to_not include("trace endpoint": anything)
+          end
+
+          it 'does not include the "local root span id" label' do
+            sample
+
+            expect(t1_sample.labels).to_not include("local root span id": anything)
           end
 
           shared_examples_for "samples with code hotspots information" do
@@ -437,13 +440,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             context "when endpoint_collection_enabled is false" do
               let(:endpoint_collection_enabled) { false }
 
-              it 'still includes "local root span id" and "span id" labels in the samples' do
+              it 'still includes the "span id" label in the samples' do
                 sample
 
-                expect(t1_sample.labels).to include(
-                  "local root span id": @t1_local_root_span_id.to_i,
-                  "span id": @t1_span_id.to_i,
-                )
+                expect(t1_sample.labels).to include("span id": @t1_span_id.to_i)
               end
 
               it 'does not include the "trace endpoint" label' do
@@ -1592,12 +1592,15 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         after { Datadog::Tracing.shutdown! }
 
-        it 'gathers the "local root span id", "span id" and "trace endpoint"' do
+        it 'gathers the "span id" and "trace endpoint"' do
           expect(sample_for_thread(samples, t1).labels).to include(
-            "local root span id": @t1_local_root_span_id.to_i,
             "span id": @t1_span_id.to_i,
             "trace endpoint": "trace_resource",
           )
+        end
+
+        it 'does not include the "local root span id" label' do
+          expect(sample_for_thread(samples, t1).labels).to_not include("local root span id": anything)
         end
       end
     end

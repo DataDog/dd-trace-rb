@@ -793,6 +793,13 @@ static void *call_serialize_without_gvl(void *call_args) {
   build_heap_profile_without_gvl(args->state, args->slot);
   args->heap_profile_build_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - serialize_no_gvl_start_time_ns;
 
+  ddog_prof_Profile_Result omit_result = ddog_prof_Profile_set_omit_local_root_span_id_when_serializing(&args->slot->profile, true);
+  if (omit_result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
+    char error_msg[MAX_RAISE_MESSAGE_SIZE];
+    read_ddogerr_string_and_drop(&omit_result.err, error_msg, MAX_RAISE_MESSAGE_SIZE);
+    grab_gvl_and_raise(rb_eRuntimeError, "Failed to set_omit on profile: %s", error_msg);
+  }
+
   // Note: The profile gets reset by the serialize call
   args->result = ddog_prof_Profile_serialize(&args->slot->profile, &args->slot->start_timestamp, &args->finish_timestamp);
   args->advance_gen_result = ddog_prof_ManagedStringStorage_advance_gen(args->state->string_storage);
