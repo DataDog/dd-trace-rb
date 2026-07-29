@@ -4,7 +4,7 @@
 #include "datadog_ruby_common.h"
 #include "otel_thread_context.h"
 
-#ifdef HAVE_DATADOG_OTEL_THREAD_CTX_H
+#ifdef __linux__
   #include <datadog/otel-thread-ctx.h>
   extern __thread const uint8_t *otel_thread_ctx_v1;
 
@@ -39,7 +39,7 @@ static VALUE native_enable(VALUE _self);
 static VALUE native_read(VALUE _self);
 
 void otel_thread_context_init(VALUE core_module) {
-  #ifdef HAVE_DATADOG_OTEL_THREAD_CTX_H
+  #ifdef __linux__
     fiber_context_slot = rb_intern("__dd_otel_fiber_context");
 
     #ifdef HAVE_RUBY_THREAD_STORAGE_API
@@ -66,7 +66,7 @@ void otel_thread_context_init(VALUE core_module) {
   #endif
 }
 
-#ifdef HAVE_DATADOG_OTEL_THREAD_CTX_H
+#ifdef __linux__
   static void publish_context(const otel_fiber_context *ctx) {
     if (ctx) {
       ddog_otel_thread_ctx_update(&ctx->trace_id, &ctx->span_id, &ctx->local_root_span_id);
@@ -169,7 +169,7 @@ void otel_thread_context_init(VALUE core_module) {
 #endif
 
 static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
-  #ifdef HAVE_DATADOG_OTEL_THREAD_CTX_H
+  #ifdef __linux__
     static bool enabled = false;
     if (enabled) return Qtrue;
     enabled = true;
@@ -197,7 +197,7 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
 }
 
 static VALUE native_supported_p(DDTRACE_UNUSED VALUE _self) {
-  #ifdef HAVE_DATADOG_OTEL_THREAD_CTX_H
+  #ifdef __linux__
     return Qtrue;
   #else
     return Qfalse;
@@ -210,7 +210,7 @@ static VALUE native_set(
     DDTRACE_UNUSED VALUE span_id,
     DDTRACE_UNUSED VALUE local_root_span_id
   ) {
-  #ifdef HAVE_DATADOG_OTEL_THREAD_CTX_H
+  #ifdef __linux__
     register_ractor_local_hooks();
 
     otel_fiber_context *ctx = get_or_create_current_fiber_context();
@@ -228,7 +228,7 @@ static VALUE native_set(
 }
 
 static VALUE native_read(DDTRACE_UNUSED VALUE _self) {
-  #ifdef HAVE_DATADOG_OTEL_THREAD_CTX_H
+  #ifdef __linux__
     const uint8_t *raw = otel_thread_ctx_v1;
     if (!raw) return Qnil;
 
