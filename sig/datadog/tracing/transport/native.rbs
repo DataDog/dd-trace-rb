@@ -19,7 +19,7 @@ module Datadog
             service: String?,
             version: String?
           ) -> TraceExporter
-          def _native_send_traces: (Array[Array[Datadog::Tracing::Span]] chunks) -> Array[Response]
+          def _native_send_traces: (Array[Array[Datadog::Tracing::Span]] chunks, bool native_events_supported) -> Array[Response]
           def _native_before_fork: () -> void
           def _native_after_fork_in_parent: () -> void
           def _native_after_fork_in_child: () -> void
@@ -27,6 +27,7 @@ module Datadog
 
         class Transport
           include Statistics
+          include SpanEvents
 
           @logger: Datadog::Core::Logger
           @exporter: TraceExporter?
@@ -43,6 +44,7 @@ module Datadog
 
           private
 
+          def prepare_span_events!: (Array[Array[Datadog::Tracing::Span]] chunks) -> bool
           def warn_unsupported_fields!: (Array[Array[Datadog::Tracing::Span]] chunks) -> void
           def tracer_version_string: () -> String
         end
