@@ -1,8 +1,6 @@
 module Datadog
   module DI
     class Correlation
-      TIER2_KEY: Symbol
-
       DEFAULT_MAX_ENTRIES: Integer
 
       @settings: Datadog::Core::Configuration::Settings
@@ -15,13 +13,9 @@ module Datadog
 
       @lock: ::Thread::Mutex
 
-      @unit_decisions: Hash[untyped, Symbol]
+      @unit_decisions: Hash[untyped, bool]
 
       @cap_scopes: Hash[untyped, Set[untyped]]
-
-      @decisions_made: Integer
-
-      @last_decision_at: ::Time?
 
       def initialize: (Datadog::Core::Configuration::Settings settings, DI::Logger logger, ?telemetry: Core::Telemetry::Component?, ?max_entries: Integer) -> void
 
@@ -33,33 +27,17 @@ module Datadog
 
       attr_reader max_entries: Integer
 
-      attr_reader decisions_made: Integer
-
-      attr_reader last_decision_at: ::Time?
-
-      def gate: (Probe probe) -> Symbol
-
-      def with_unit: [T] (?String? id) { () -> T } -> T
-
-      def begin_unit: (?String? id) -> String
-
-      def end_unit: () -> void
+      def emit?: (Probe probe, ExecutionUnit unit) -> bool
 
       private
 
-      def resolve_unit: () -> [ untyped, untyped, Symbol ]
-
-      def decide: (Probe probe, untyped unit_key, untyped cap_scope) -> [ Symbol, Symbol ]
-
       def per_probe: (Probe probe) -> bool
 
-      def unit_decision: (untyped unit_key) { () -> Symbol } -> Symbol
+      def unit_decision: (untyped key) { () -> bool } -> bool
 
-      def cap_admit: (untyped cap_scope, untyped probe_id) -> bool
+      def cap_admit: (untyped scope, untyped probe_id) -> bool
 
       def evict: (Hash[untyped, untyped] map) -> void
-
-      def truncate: (untyped value) -> String
     end
   end
 end

@@ -2,7 +2,7 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
-require_relative "correlation"
+require_relative "execution_unit"
 require_relative "fatal_exceptions"
 require_relative "capture_expression_evaluator"
 
@@ -448,16 +448,9 @@ module Datadog
         end
       end
 
-      # Mirrors {Correlation#resolve_unit}'s tier ordering so the envelope
-      # reports the same source the sampling gate used for this hit.
+      # Reports the execution-unit source the sampling gate used for this hit.
       def trace_id_source
-        if active_trace&.id
-          "apm"
-        elsif Thread.current[Correlation::TIER2_KEY]
-          "task"
-        else
-          "none"
-        end
+        ExecutionUnit.current.source.to_s
       end
 
       def active_span
