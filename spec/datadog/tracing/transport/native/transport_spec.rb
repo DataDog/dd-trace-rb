@@ -8,6 +8,7 @@ require "datadog/tracing/transport/trace_formatter"
 require "datadog/core/utils/at_fork_monkey_patch"
 require "socket"
 require "json"
+require "timeout"
 
 RSpec.describe Datadog::Tracing::Transport::Native::Transport do
   before do
@@ -197,6 +198,38 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
           .to(be_nil)
       end
 
+      it "waits for an in-flight send before closing" do
+        exporter = transport.instance_variable_get(:@exporter)
+        send_started = Queue.new
+        release_send = Queue.new
+
+        allow(exporter).to receive(:_native_send_traces) do
+          send_started << true
+          release_send.pop
+          []
+        end
+
+        sender = Thread.new { transport.send_traces([make_trace_segment("web.request")]) }
+        send_started.pop
+        closer = Thread.new { transport.close }
+
+        Timeout.timeout(5) do
+          Thread.pass until closer.status == "sleep" || !closer.alive?
+        end
+
+        expect(closer).to be_alive
+        expect(transport.instance_variable_get(:@exporter)).to be(exporter)
+
+        release_send << true
+        expect(sender.join(5)).to be(sender)
+        expect(closer.join(5)).to be(closer)
+        expect(transport.instance_variable_get(:@exporter)).to be_nil
+      ensure
+        release_send << true if release_send&.empty?
+        sender&.join(5)
+        closer&.join(5)
+      end
+
       it "stops the exporter native fork hooks from firing on a later fork" do
         exporter = transport.instance_variable_get(:@exporter)
         # If our hooks were still registered, running the blocks would invoke
@@ -253,7 +286,12 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         # class method guarantees its binding receiver is the class, not an
         # instance.
         hooks = transport.instance_variable_get(:@fork_hooks)
-        finalizer = transport_class.send(:finalizer_for, hooks)
+        finalizer = transport_class.send(
+          :finalizer_for,
+          hooks,
+          transport.instance_variable_get(:@fork_mutex),
+          transport.instance_variable_get(:@fork_state)
+        )
 
         expect(finalizer.binding.receiver).to be(transport_class)
         expect(finalizer.binding.receiver).to_not be(transport)
@@ -261,7 +299,12 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
 
       it "removes all the hooks when the finalizer runs" do
         hooks = transport.instance_variable_get(:@fork_hooks)
-        finalizer = transport_class.send(:finalizer_for, hooks)
+        finalizer = transport_class.send(
+          :finalizer_for,
+          hooks,
+          transport.instance_variable_get(:@fork_mutex),
+          transport.instance_variable_get(:@fork_state)
+        )
 
         # Assert the hooks are registered first, so the post-run absence check
         # cannot pass vacuously.

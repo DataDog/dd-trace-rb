@@ -65,6 +65,12 @@ module Datadog
             # fork-safety note below.
             @send_mutex = Mutex.new
 
+            # Serializes fork-hook execution with close/finalization. Unlike
+            # @send_mutex, this is held for the complete fork lifecycle so the
+            # matching parent/child hooks cannot be deregistered mid-fork.
+            @fork_mutex = Mutex.new
+            @fork_state = {closed: false, pending: 0}
+
             url = agent_settings.url
             tracer_version = tracer_version_string
             language = Core::Environment::Ext::LANG
@@ -106,8 +112,16 @@ module Datadog
             # also tears down and replaces the runtime, so it must not run while
             # a send is still using that runtime.
             #
-            # `@send_mutex` serializes sends (see #send_traces) and is held
-            # across the fork. The `:before` hook first calls
+            # `@fork_mutex` prevents close/finalization from deregistering the
+            # completion hooks after `:before` has started. The `:before` hook
+            # locks it first, then calls `_native_before_fork`, and finally
+            # locks `@send_mutex`, which serializes sends and is held across the
+            # fork. This lock order is also used by #close; sends only acquire
+            # `@send_mutex`, so there is no inverse path.
+            #
+            # `_native_before_fork` must run before locking `@send_mutex` to
+            # pause the runtime before waiting for an in-flight send to drain.
+            # The hook first calls
             # `_native_before_fork` to pause the runtime, THEN locks the mutex.
             # This ordering minimizes the serialized section and is safe to run
             # concurrently with an in-flight send: `block_on` (used by
@@ -137,24 +151,42 @@ module Datadog
             # the closures keep the exporter -- and its runtime threads -- alive
             # forever, and every later fork runs them against every
             # historically-created exporter. The closures intentionally capture
-            # only the `exporter`/`send_mutex` locals (NOT `self`), so the
-            # Transport stays GC-eligible and its finalizer can fire even when
-            # #close was not called explicitly.
+            # only locals (NOT `self`), so the Transport stays GC-eligible and
+            # its finalizer can fire even when #close was not called explicitly.
             send_mutex = @send_mutex
+            fork_mutex = @fork_mutex
+            fork_state = @fork_state
             before_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:before) do
-              # Pause the runtime first (safe to run concurrently with an
-              # in-flight send), then drain by locking the mutex. The lock must
-              # happen even if `_native_before_fork` raises, so the in-flight
-              # send has returned (dropping the runtime's last `Arc`) before the
-              # fork. Held across the fork; released in :parent/:child.
-              exporter._native_before_fork
-            rescue => e
-              Datadog.logger.warn { "Native transport before-fork preparation failed; traces may not be sent to Datadog: #{e.class}: #{e.message}" }
-            ensure
-              send_mutex.lock
+              # Announce before blocking: close may already hold @fork_mutex
+              # while it waits for a send, and must yield to this hook rather
+              # than deregistering its matching parent/child hooks.
+              fork_state[:pending] += 1
+              begin
+                fork_mutex.lock
+              ensure
+                fork_state[:pending] -= 1
+              end
+
+              if fork_state[:closed]
+                fork_mutex.unlock
+                next
+              end
+
+              begin
+                # Pause the runtime first (safe to run concurrently with an
+                # in-flight send), then drain by locking the mutex. The lock
+                # must happen even if `_native_before_fork` raises, so the
+                # in-flight send has returned before the fork. Held across the
+                # fork; released in :parent/:child.
+                exporter._native_before_fork
+              rescue => e
+                Datadog.logger.warn { "Native transport before-fork preparation failed; traces may not be sent to Datadog: #{e.class}: #{e.message}" }
+              ensure
+                send_mutex.lock
+              end
             end
             parent_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:parent) do
-              exporter._native_after_fork_in_parent
+              exporter._native_after_fork_in_parent if fork_mutex.owned?
             rescue => e
               Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e.class}: #{e.message}" }
             ensure
@@ -164,9 +196,10 @@ module Datadog
               # between `_native_before_fork` and the lock). Released even if the
               # native call raised, so a failure can't leave the mutex locked.
               send_mutex.unlock if send_mutex.owned?
+              fork_mutex.unlock if fork_mutex.owned?
             end
             child_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
-              exporter._native_after_fork_in_child
+              exporter._native_after_fork_in_child if fork_mutex.owned?
             rescue => e
               Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e.class}: #{e.message}" }
             ensure
@@ -174,6 +207,7 @@ module Datadog
               # lone survivor in the child); the guard only covers `:before`
               # being interrupted mid-lock.
               send_mutex.unlock if send_mutex.owned?
+              fork_mutex.unlock if fork_mutex.owned?
             end
 
             @fork_hooks = {before: before_hook, parent: parent_hook, child: child_hook}
@@ -184,34 +218,60 @@ module Datadog
             # stage->block handles, never `self` -- a finalizer that closed over
             # the object it is attached to would keep that object reachable and
             # never run.
-            ObjectSpace.define_finalizer(self, self.class.send(:finalizer_for, @fork_hooks))
+            ObjectSpace.define_finalizer(
+              self,
+              self.class.send(:finalizer_for, @fork_hooks, fork_mutex, fork_state)
+            )
           end
 
           # Deregister this transport's process-global fork hooks and release the
           # native exporter so its runtime can shut down. Idempotent: safe to
           # call multiple times and safe to call after the finalizer has run.
           def close
+            # Acquire both locks only when no before-fork hook is already
+            # waiting. A hook can announce itself while we wait for an active
+            # send, so check again after acquiring @send_mutex.
+            loop do
+              @fork_mutex.lock
+              if @fork_state[:pending] > 0
+                @fork_mutex.unlock
+                Thread.pass
+                next
+              end
+
+              @send_mutex.lock
+              break if @fork_state[:pending] == 0
+
+              @send_mutex.unlock
+              @fork_mutex.unlock
+              Thread.pass
+            end
+
             fork_hooks = @fork_hooks
-            @fork_hooks = nil
             return if fork_hooks.nil?
+
+            @fork_state[:closed] = true
+            @fork_hooks = nil
 
             fork_hooks.each do |stage, block|
               Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
             end
 
-            # Drop our reference to the exporter so that, once the hooks above no
-            # longer pin it, it can be collected and its runtime shut down
+            # Drop our reference to the exporter so that, once the hooks above
+            # no longer pin it, it can be collected and its runtime shut down
             # cleanly in this (parent) process.
             @exporter = nil
 
             # The finalizer only exists to deregister the hooks for a transport
             # dropped without #close. We have just done that, so remove it;
-            # otherwise its captured hook blocks keep the exporter (and its
-            # runtime threads) alive until this still-reachable transport is
-            # itself collected.
+            # otherwise its captured hook blocks keep the exporter alive until
+            # this transport is itself collected.
             ObjectSpace.undefine_finalizer(self)
 
             nil
+          ensure
+            @send_mutex.unlock if @send_mutex.owned?
+            @fork_mutex.unlock if @fork_mutex.owned?
           end
 
           # Builds the finalizer proc for a transport's fork hooks.
@@ -221,10 +281,23 @@ module Datadog
           # (which would keep the instance reachable and prevent the finalizer
           # from ever running). Removing the hooks unpins the exporter captured
           # by those closures, allowing it (and its runtime) to be freed.
-          def self.finalizer_for(fork_hooks)
+          def self.finalizer_for(fork_hooks, fork_mutex, fork_state)
             proc do
-              fork_hooks.each do |stage, block|
-                Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
+              loop do
+                fork_mutex.lock
+                break if fork_state[:pending] == 0
+
+                fork_mutex.unlock
+                Thread.pass
+              end
+
+              begin
+                fork_state[:closed] = true
+                fork_hooks.each do |stage, block|
+                  Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
+                end
+              ensure
+                fork_mutex.unlock if fork_mutex.owned?
               end
             end
           end
@@ -239,12 +312,6 @@ module Datadog
           # @return [Array<Response>] one response per batch sent
           def send_traces(traces)
             return [] if traces.empty?
-
-            # A closed transport has released its exporter; there is nothing to
-            # send through. Raising here is caught below and surfaced as an
-            # InternalErrorResponse, matching the other failure paths.
-            exporter = @exporter
-            raise "Native transport has been closed" if exporter.nil?
 
             # Apply trace-level tags to root spans (same as the HTTP transport)
             traces.each { |trace| TraceFormatter.format!(trace) }
@@ -263,7 +330,14 @@ module Datadog
             # (and `_native_before_fork` cannot tear down the runtime mid-send).
             # `Mutex#synchronize` releases on exception / `rb_jump_tag` via its
             # ensure, so interrupt propagation stays correct.
-            responses = @send_mutex.synchronize { exporter._native_send_traces(chunks) }
+            responses = @send_mutex.synchronize do
+              # Resolve the exporter under the same lock used by #close, so
+              # close either drains this send or prevents it from starting.
+              exporter = @exporter
+              raise "Native transport has been closed" if exporter.nil?
+
+              exporter._native_send_traces(chunks)
+            end
 
             # Update statistics from the response
             responses.each { |response| update_stats_from_response!(response) }
