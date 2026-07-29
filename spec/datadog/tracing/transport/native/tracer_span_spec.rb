@@ -137,6 +137,31 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
           .to raise_error(RuntimeError, /Failed to set span links/)
         GC.start
       end
+
+      it "cleans up partial snapshots when a hash default proc raises" do
+        calls = []
+        canonical = {
+          trace_id: 1,
+          trace_id_high: 0,
+          span_id: 2,
+          attributes: {"copied" => "value"},
+          flags: 0,
+        }
+        canonical.default_proc = proc do |_hash, key|
+          calls << key
+          raise "default proc failed"
+        end
+        stateful_link = double("span link", to_hash: canonical)
+        span = make_ruby_span
+        span.links << stateful_link
+
+        20.times do
+          expect { tracer_span_class._native_from_span(span) }
+            .to raise_error(RuntimeError, "default proc failed")
+        end
+        expect(calls).to eq([:tracestate] * 20)
+        GC.start
+      end
     end
 
     context "with non-string meta values (mixed hash)" do

@@ -313,6 +313,47 @@ RSpec.describe "Native transport wire-level conformance" do
         ]
       )
     end
+
+    it "snapshots stateful canonical hashes exactly once" do
+      calls = []
+      attributes = {"operation" => +"receive"}
+      canonical = {
+        trace_id: 1,
+        span_id: 2,
+        flags: 0,
+      }
+      canonical.default_proc = proc do |hash, key|
+        calls << key
+        case key
+        when :trace_id_high
+          hash[:trace_id] = 10
+          3
+        when :attributes
+          hash[:span_id] = 20
+          attributes
+        when :tracestate
+          attributes["operation"].replace("mutated")
+          hash[:flags] = 0x8000_0001
+          "vendor=value"
+        else
+          raise "unexpected default key: #{key}"
+        end
+      end
+      stateful_link = double("span link", to_hash: canonical)
+      trace = make_trace([{name: "consumer", links: [stateful_link]}])
+
+      link = send_and_decode([trace]).first.first["span_links"].first
+
+      expect(calls).to eq([:trace_id_high, :attributes, :tracestate])
+      expect(link).to eq(
+        "trace_id" => 1,
+        "trace_id_high" => 3,
+        "span_id" => 2,
+        "attributes" => {"operation" => "receive"},
+        "tracestate" => "vendor=value",
+        "flags" => 0x8000_0001
+      )
+    end
   end
 
   describe "multiple spans in one trace" do
