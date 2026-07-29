@@ -9,9 +9,9 @@ module Datadog
 
         def initialize: (fetcher: untyped, ?key: untyped) -> void
 
-        def inject!: (untyped digest, untyped env) -> (nil | untyped)
+        def inject!: (TraceDigest? digest, untyped env) -> (nil | untyped)
 
-        def extract: (untyped env) -> (nil | untyped)
+        def extract: (untyped env) -> TraceDigest?
       end
     end
   end

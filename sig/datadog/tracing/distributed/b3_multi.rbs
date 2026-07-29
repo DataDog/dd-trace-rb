@@ -15,9 +15,9 @@ module Datadog
 
         def initialize: (fetcher: untyped, ?trace_id_key: untyped, ?span_id_key: untyped, ?sampled_key: untyped) -> void
 
-        def inject!: (untyped digest, ?::Hash[untyped, untyped] data) -> (nil | untyped)
+        def inject!: (TraceDigest? digest, ?::Hash[untyped, untyped] data) -> (nil | untyped)
 
-        def extract: (untyped data) -> (nil | untyped)
+        def extract: (untyped data) -> TraceDigest?
       end
     end
   end

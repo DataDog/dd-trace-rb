@@ -16,9 +16,9 @@ module Datadog
 
         def initialize: (fetcher: untyped, ?traceparent_key: untyped, ?tracestate_key: untyped) -> void
 
-        def inject!: (untyped digest, untyped data) -> (nil | untyped)
+        def inject!: (TraceDigest? digest, untyped data) -> (nil | untyped)
 
-        def extract: (untyped data) -> (nil | untyped)
+        def extract: (untyped data) -> TraceDigest?
 
         private
         def build_traceparent: (TraceDigest digest) -> ::String
