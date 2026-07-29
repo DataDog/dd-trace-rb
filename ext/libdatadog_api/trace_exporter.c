@@ -63,6 +63,7 @@ static ID link_trace_id_id;
 static ID link_trace_id_high_id;
 static ID link_span_id_id;
 static ID link_attributes_id;
+static ID link_dropped_attributes_count_id;
 static ID link_tracestate_id;
 static ID link_flags_id;
 
@@ -332,6 +333,7 @@ typedef struct {
   uint64_t              span_id;
   owned_link_attribute *attributes;
   size_t                attribute_count;
+  uint32_t              dropped_attributes_count;
   owned_link_string     tracestate;
   uint32_t              flags;
 } owned_span_link;
@@ -454,6 +456,11 @@ static VALUE prepare_span_links_snapshot(VALUE arg) {
       }
     }
 
+    VALUE dropped_attributes_count =
+        rb_hash_aref(canonical, ID2SYM(link_dropped_attributes_count_id));
+    link->dropped_attributes_count =
+        dropped_attributes_count == Qnil ? 0 : NUM2UINT(dropped_attributes_count);
+
     VALUE tracestate = rb_hash_aref(canonical, ID2SYM(link_tracestate_id));
     if (tracestate != Qnil) {
       snapshot_link_string(tracestate, &link->tracestate);
@@ -498,6 +505,7 @@ static VALUE prepare_span_links_snapshot(VALUE arg) {
         .ptr = ffi_attributes + first_attribute,
         .len = link->attribute_count,
       },
+      .dropped_attributes_count = link->dropped_attributes_count,
       .tracestate = snapshot_char_slice(&link->tracestate),
       .flags = link->flags,
     };
@@ -541,11 +549,13 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
   VALUE rb_trace_id  = rb_ivar_get(span, at_trace_id_id);
   VALUE rb_status    = rb_ivar_get(span, at_status_id);
 
-  /* 2. Convert scalars */
-  ddog_CharSlice name_s     = char_slice_from_ruby_string(rb_name);
-  ddog_CharSlice service_s  = nullable_char_slice(rb_service);
-  ddog_CharSlice resource_s = nullable_char_slice(rb_resource);
-  ddog_CharSlice type_s     = nullable_char_slice(rb_type);
+  /* 2. Validate and convert scalar values without borrowing string pointers.
+   * Link normalization below can call arbitrary Ruby code that mutates these
+   * strings and invalidates any prior RSTRING_PTR. */
+  ENFORCE_TYPE(rb_name, T_STRING);
+  if (rb_service != Qnil) ENFORCE_TYPE(rb_service, T_STRING);
+  if (rb_resource != Qnil) ENFORCE_TYPE(rb_resource, T_STRING);
+  if (rb_type != Qnil) ENFORCE_TYPE(rb_type, T_STRING);
 
   uint64_t span_id   = NUM2ULL(rb_span_id);
   uint64_t parent_id = NUM2ULL(rb_parent_id);
@@ -584,6 +594,21 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
     free_span_links_snapshot(&links_snapshot);
     rb_jump_tag(snapshot_state);
   }
+
+  /* No Ruby callbacks occur between borrowing these pointers and the FFI call. */
+  ddog_CharSlice name_s = {
+    .ptr = RSTRING_PTR(rb_name),
+    .len = RSTRING_LEN(rb_name),
+  };
+  ddog_CharSlice service_s = rb_service == Qnil ?
+      (ddog_CharSlice){.ptr = "", .len = 0} :
+      (ddog_CharSlice){.ptr = RSTRING_PTR(rb_service), .len = RSTRING_LEN(rb_service)};
+  ddog_CharSlice resource_s = rb_resource == Qnil ?
+      (ddog_CharSlice){.ptr = "", .len = 0} :
+      (ddog_CharSlice){.ptr = RSTRING_PTR(rb_resource), .len = RSTRING_LEN(rb_resource)};
+  ddog_CharSlice type_s = rb_type == Qnil ?
+      (ddog_CharSlice){.ptr = "", .len = 0} :
+      (ddog_CharSlice){.ptr = RSTRING_PTR(rb_type), .len = RSTRING_LEN(rb_type)};
 
   /* 4. Create Rust span */
   ddog_TracerSpanFields fields = {
@@ -1198,6 +1223,7 @@ void trace_exporter_init(VALUE tracing_module) {
   link_trace_id_high_id = rb_intern("trace_id_high");
   link_span_id_id = rb_intern("span_id");
   link_attributes_id = rb_intern("attributes");
+  link_dropped_attributes_count_id = rb_intern("dropped_attributes_count");
   link_tracestate_id = rb_intern("tracestate");
   link_flags_id = rb_intern("flags");
 

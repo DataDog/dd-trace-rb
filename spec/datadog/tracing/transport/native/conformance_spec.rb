@@ -320,6 +320,7 @@ RSpec.describe "Native transport wire-level conformance" do
       canonical = {
         trace_id: 1,
         span_id: 2,
+        dropped_attributes_count: 0,
         flags: 0,
       }
       canonical.default_proc = proc do |hash, key|
@@ -352,6 +353,52 @@ RSpec.describe "Native transport wire-level conformance" do
         "attributes" => {"operation" => "receive"},
         "tracestate" => "vendor=value",
         "flags" => 0x8000_0001
+      )
+    end
+
+    it "preserves canonical dropped attributes counts" do
+      canonical = {
+        trace_id: 1,
+        span_id: 2,
+        dropped_attributes_count: 9,
+        flags: 0,
+      }
+      trace = make_trace([{
+        name: "consumer",
+        links: [double("span link", to_hash: canonical)],
+      }])
+
+      link = send_and_decode([trace]).first.first["span_links"].first
+
+      expect(link["dropped_attributes_count"]).to eq(9)
+    end
+
+    it "normalizes links before borrowing scalar string pointers" do
+      trace = nil
+      stateful_link = double("span link")
+      allow(stateful_link).to receive(:to_hash) do
+        span = trace.spans.first
+        span.name.replace("n" * 512)
+        span.service.replace("s" * 512)
+        span.resource.replace("r" * 512)
+        span.type.replace("t" * 512)
+        {trace_id: 1, span_id: 2, flags: 0}
+      end
+      trace = make_trace([{
+        name: +"name",
+        service: +"service",
+        resource: +"resource",
+        type: +"type",
+        links: [stateful_link],
+      }])
+
+      span = send_and_decode([trace]).first.first
+
+      expect(span).to include(
+        "name" => "n" * 512,
+        "service" => "s" * 512,
+        "resource" => "r" * 512,
+        "type" => "t" * 512
       )
     end
   end
