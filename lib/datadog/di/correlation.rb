@@ -30,12 +30,14 @@ module Datadog
       # @param unit [Datadog::DI::ExecutionUnit]
       # @return [Boolean]
       def emit?(probe, unit)
-        return per_probe(probe) if unit.key.nil?
+        key = unit.key
+        return per_probe(probe) if key.nil?
 
+        scope = unit.scope || key
         lock.synchronize do
-          return false unless unit_decision(unit.key) { per_probe(probe) }
+          return false unless unit_decision(key) { per_probe(probe) }
 
-          cap_admit(unit.scope, probe.id)
+          cap_admit(scope, probe.id)
         end
       end
 

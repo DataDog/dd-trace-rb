@@ -1,19 +1,19 @@
 module Datadog
   module DI
     class ExecutionUnit
-      @key: untyped
+      @key: Integer?
 
-      @scope: untyped
+      @scope: Integer?
 
       @source: Symbol
 
       def self.current: () -> ExecutionUnit
 
-      def initialize: (untyped key, untyped scope, Symbol source) -> void
+      def initialize: (Integer? key, Integer? scope, Symbol source) -> void
 
-      attr_reader key: untyped
+      attr_reader key: Integer?
 
-      attr_reader scope: untyped
+      attr_reader scope: Integer?
 
       attr_reader source: Symbol
     end

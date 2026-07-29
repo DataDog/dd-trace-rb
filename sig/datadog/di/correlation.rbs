@@ -7,9 +7,9 @@ module Datadog
 
       @lock: ::Thread::Mutex
 
-      @unit_decisions: Hash[untyped, bool]
+      @unit_decisions: Hash[Integer, bool]
 
-      @cap_scopes: Hash[untyped, Set[untyped]]
+      @cap_scopes: Hash[Integer, Set[String]]
 
       def initialize: (?max_entries: Integer) -> void
 
@@ -19,19 +19,19 @@ module Datadog
 
       attr_reader lock: ::Thread::Mutex
 
-      attr_reader unit_decisions: Hash[untyped, bool]
+      attr_reader unit_decisions: Hash[Integer, bool]
 
-      attr_reader cap_scopes: Hash[untyped, Set[untyped]]
+      attr_reader cap_scopes: Hash[Integer, Set[String]]
 
       attr_reader max_entries: Integer
 
       def per_probe: (Probe probe) -> bool
 
-      def unit_decision: (untyped key) { () -> bool } -> bool
+      def unit_decision: (Integer key) { () -> bool } -> bool
 
-      def cap_admit: (untyped scope, untyped probe_id) -> bool
+      def cap_admit: (Integer scope, String probe_id) -> bool
 
-      def evict: (Hash[untyped, untyped] map) -> void
+      def evict: [K, V] (Hash[K, V] map) -> void
     end
   end
 end
