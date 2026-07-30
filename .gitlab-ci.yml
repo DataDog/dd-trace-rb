@@ -173,7 +173,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: a724f5b01554f65b27c4dca10bd0a27d28453bd6 # Automated: Updated by .github/workflows/update-system-tests.yml.
+    SYSTEM_TESTS_REF: 2f668bca9175d14accbd08dc74c5589187f61e6b # Automated: Updated by .github/workflows/update-system-tests.yml.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 

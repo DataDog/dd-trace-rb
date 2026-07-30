@@ -116,6 +116,13 @@
         "sensitive": true
       }
     ],
+    "DD_APPSEC_AGENTIC_ONBOARDING": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": ""
+      }
+    ],
     "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING": [
       {
         "version": "A",

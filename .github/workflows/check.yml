@@ -20,7 +20,7 @@ jobs:
     name: build
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g47f47df86aeb379fb8b31dc6ad91a91bb3c97516
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -28,7 +28,7 @@ jobs:
       lockfile: ${{ steps.bundle-cache.outputs.lockfile }}
       cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Prepare bundle cache
@@ -40,12 +40,12 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g47f47df86aeb379fb8b31dc6ad91a91bb3c97516
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Restore bundle cache
@@ -61,12 +61,12 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g47f47df86aeb379fb8b31dc6ad91a91bb3c97516
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Restore bundle cache
@@ -81,12 +81,12 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g47f47df86aeb379fb8b31dc6ad91a91bb3c97516
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Restore bundle cache
@@ -112,12 +112,12 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g47f47df86aeb379fb8b31dc6ad91a91bb3c97516
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Restore bundle cache
@@ -132,12 +132,12 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g47f47df86aeb379fb8b31dc6ad91a91bb3c97516
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Restore bundle cache
@@ -152,7 +152,7 @@ jobs:
     runs-on: ubuntu-24.04
     container: semgrep/semgrep:1.169.0 # PENDING: Possible to be rate limited.
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - run: |
@@ -170,7 +170,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Get GitHub Token via dd-octo-sts
@@ -190,7 +190,7 @@ jobs:
     name: actionlint
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Run actionlint
@@ -202,7 +202,7 @@ jobs:
     name: yaml-lint
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - run: pip install yamllint
