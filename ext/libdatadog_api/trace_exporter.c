@@ -101,7 +101,7 @@ static void tracer_span_dfree(void *ptr) {
  */
 typedef struct {
   ddog_TraceExporter       *exporter;
-  const ddog_SharedRuntime *runtime;
+  const ddog_ForkSafeRuntime *runtime;
 } trace_exporter_t;
 
 static const rb_data_type_t trace_exporter_typed_data = {
@@ -526,7 +526,7 @@ static VALUE _native_exporter_new(
    * own handle in the wrapper to drive fork-safety hooks and to free it when
    * the exporter is collected.
    */
-  const ddog_SharedRuntime *runtime = NULL;
+  const ddog_ForkSafeRuntime *runtime = NULL;
   ddog_SharedRuntimeFFIError *rt_err = ddog_shared_runtime_new(&runtime);
   if (rt_err != NULL) {
     ddog_trace_exporter_config_free(config);
@@ -534,13 +534,13 @@ static VALUE _native_exporter_new(
   }
 
   /*
-   * Const asymmetry: ddog_shared_runtime_new yields a `const ddog_SharedRuntime *`
+   * Const asymmetry: ddog_shared_runtime_new yields a `const ddog_ForkSafeRuntime *`
    * but the setter takes a non-const pointer.  The setter only clones the Arc,
    * so casting away const here is safe.
    */
   {
     ddog_TraceExporterError *attach_err = ddog_trace_exporter_config_set_shared_runtime(
-        config, (ddog_SharedRuntime *)runtime);
+        config, (ddog_ForkSafeRuntime *)runtime);
     if (attach_err != NULL) {
       ddog_trace_exporter_config_free(config);
       ddog_shared_runtime_free(runtime);
