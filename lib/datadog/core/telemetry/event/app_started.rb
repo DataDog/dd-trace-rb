@@ -267,12 +267,6 @@ module Datadog
             parent_setting = settings.dig(*split_option)
             parent_setting.send(:resolve_option, option_name.to_sym)
           end
-
-          def implements_to_s?(value)
-            value.method(:to_s).owner != Kernel
-          rescue NameError
-            false
-          end
         end
       end
     end

@@ -12,7 +12,7 @@ module Datadog
         end
         class TracingSamplingRate < SimpleOption
           def initialize: () -> void
-          def call: (Numeric? tracing_sampling_rate) -> Datadog::Core::Telemetry::Event::telemetry_value
+          def call: ((Integer | Float)? tracing_sampling_rate) -> Datadog::Core::Telemetry::Event::telemetry_value
 
           def configuration_object: () -> Core::Configuration::Options::InstanceMethods
         end

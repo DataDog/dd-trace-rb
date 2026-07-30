@@ -76,6 +76,10 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingHeaderTags do
 
       expect(option.call(new_value)).to eq("h1:t1,h2:")
     end
+
+    it "does not mutate the remote configuration value" do
+      expect { option.call(new_value) }.not_to change { new_value }
+    end
   end
 end
 
