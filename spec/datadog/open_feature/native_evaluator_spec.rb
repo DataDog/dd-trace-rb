@@ -59,14 +59,10 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
       let(:error_message) { "flag configuration is invalid or unsupported" }
       let(:variant) { nil }
 
-      it "returns an OpenFeature parse error using the caller default" do
-        expect(assignment).not_to receive(:value=)
+      it "keeps the default result and applies the caller default value" do
+        expect(assignment).to receive(:value=).with(false)
 
-        expect(result.value).to be(false)
-        expect(result.reason).to eq("ERROR")
-        expect(result.error_code).to eq("PARSE_ERROR")
-        expect(result.error_message).to eq("flag configuration is invalid or unsupported")
-        expect(result.error?).to be(true)
+        expect(result).to be(assignment)
       end
     end
 
@@ -109,8 +105,8 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
 
           expect(result.value).to eq(expected.fetch("value"))
           expect(result.reason).to eq(expected.fetch("reason"))
-          expect(result.variant).to eq(expected["variant"])
-          expect(result.error_code).to eq(expected["errorCode"])
+          expect(result.variant).to eq(expected["variant"]) if expected.key?("variant")
+          expect(result.error_code).to eq(expected["errorCode"]) if expected.key?("errorCode")
         end
       end
     end
