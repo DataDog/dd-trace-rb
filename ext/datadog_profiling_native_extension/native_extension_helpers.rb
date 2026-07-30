@@ -10,7 +10,7 @@ module Datadog
       ENV_FAIL_INSTALL_IF_MISSING_EXTENSION = "DD_PROFILING_FAIL_INSTALL_IF_MISSING_EXTENSION"
 
       # The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on datadog-ruby_core_source
-      CAN_USE_MJIT_HEADER = RUBY_VERSION.start_with?("2.7", "3.0.", "3.1.", "3.2.")
+      CAN_USE_MJIT_HEADER = RUBY_VERSION.start_with?("3.0.", "3.1.", "3.2.")
 
       def self.fail_install_if_missing_extension?
         ENV[ENV_FAIL_INSTALL_IF_MISSING_EXTENSION].to_s.strip.downcase == "true"
