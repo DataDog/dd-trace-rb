@@ -30,6 +30,13 @@
     #include <iseq.h>
   #pragma GCC diagnostic pop
 
+  #ifndef NO_INTERNAL_CLASS_HEADER_INCLUDE
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wunused-parameter"
+      #include <internal/class.h>
+    #pragma GCC diagnostic pop
+  #endif
+
   #include <ruby.h>
 
   #ifndef NO_RACTOR_HEADER_INCLUDE
@@ -889,7 +896,8 @@ static bool location_cfunc_p(const rb_callable_method_entry_t *cme) {
   }
 }
 
-static bool RCLASS_SINGLETON_P(VALUE klass) {
+// RCLASS_SINGLETON_P() is only defined on Ruby 3.4+, so we have a copy for older versions
+static bool ddtrace_RCLASS_SINGLETON_P(VALUE klass) {
   return RB_TYPE_P(klass, T_CLASS) && FL_TEST_RAW(klass, FL_SINGLETON);
 }
 
@@ -902,7 +910,7 @@ static VALUE get_class_attached_object(VALUE klass) {
 }
 
 static bool is_metaclass(VALUE mod, VALUE* attached) {
-  if (RCLASS_SINGLETON_P(mod)) {
+  if (ddtrace_RCLASS_SINGLETON_P(mod)) {
     VALUE attached_object = get_class_attached_object(mod);
     if (RB_TYPE_P(attached_object, T_CLASS) || RB_TYPE_P(attached_object, T_MODULE)) {
       *attached = attached_object;
@@ -920,13 +928,17 @@ static VALUE alloc_free_rb_mod_name(VALUE mod) {
 #endif
 }
 
-// Ruby 3.3+ has a `permanent_classpath` flag on rb_classext_struct, but internal/class.h
-// has some transitive dependencies not currently shipped by datadog-ruby_core_source (constant.h, vm_sync.h).
-// TODO: include all dependencies of internal/class.h in datadog-ruby_core_source.
-// Checking for '#' in the name is equivalent: non-permanent names contain '#' from
-// `#<Module:0x...>` or `#<Class:0x...>` prefixes.
-static bool has_permanent_classpath(VALUE mod_name) {
+// Ruby 3.3+ has a `permanent_classpath` flag on rb_classext_struct.
+// Checking for '#' in the name is equivalent on older Rubies:
+// non-permanent names contain '#' from `#<Module:0x...>` or `#<Class:0x...>` prefixes.
+static bool has_permanent_classpath(DDTRACE_UNUSED VALUE mod, DDTRACE_UNUSED VALUE mod_name) {
+#if defined(RCLASS_PERMANENT_CLASSPATH_P) // 4.0+
+  return RCLASS_PERMANENT_CLASSPATH_P(mod);
+#elif defined(HAVE_PERMANENT_CLASSPATH) // 3.3 - 3.4
+  return RCLASS_EXT(mod)->permanent_classpath;
+#else // 3.2 and older
   return memchr(RSTRING_PTR(mod_name), '#', RSTRING_LEN(mod_name)) == NULL;
+#endif
 }
 
 #define ONLY_METHOD_NAME ((ssize_t) -1)
@@ -946,7 +958,7 @@ static ssize_t rb_gen_method_name(VALUE owner, VALUE method_name, char *buf, siz
 
   // Exclude non-permanent names (e.g. `#<Module:0x0123>::Foo`) which break flamegraph aggregation
   // since they contain addresses that differ across processes/runs.
-  if (NIL_P(mod_name) || !has_permanent_classpath(mod_name)) {
+  if (NIL_P(mod_name) || !has_permanent_classpath(mod, mod_name)) {
     return ONLY_METHOD_NAME;
   }
 
