@@ -9,9 +9,9 @@ module Datadog
 
               EVENT_NAME: "send_messages.producer.kafka"
 
-              def self.on_start: (untyped span, untyped _event, untyped _id, untyped payload) -> untyped
+              def self?.on_start: (Tracing::SpanOperation span, String _event, String _id, ::Hash[Symbol, any] _payload) -> void
 
-              def self.on_finish: (untyped span, untyped _event, untyped _id, untyped payload) -> untyped
+              def self?.on_finish: (Tracing::SpanOperation span, String _event, String _id, ::Hash[Symbol, any] payload) -> void
 
               def self?.span_name: () -> untyped
 
