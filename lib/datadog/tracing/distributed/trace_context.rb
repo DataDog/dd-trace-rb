@@ -162,7 +162,13 @@ module Datadog
           end
           if ot_member.bytesize > 3
             ot_member.chop! # Removes trailing `;` from OpenTelemetry trace state string.
-            leading_members << ot_member
+
+            # `dd=` and `ot=` are each individually capped at TRACESTATE_VALUE_SIZE_LIMIT bytes,
+            # but together (plus the separating comma) they could still exceed
+            # TRACESTATE_MAX_SIZE_LIMIT. Rather than partially truncate `ot=` into a mangled
+            # member, drop it entirely, mirroring how some OTel SDKs drop an oversized tracestate.
+            combined_size = leading_members.sum(&:bytesize) + leading_members.size + ot_member.bytesize
+            leading_members << ot_member if combined_size <= TRACESTATE_MAX_SIZE_LIMIT
           end
 
           vendors = split_tracestate(digest.trace_state)
