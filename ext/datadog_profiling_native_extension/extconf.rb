@@ -304,7 +304,9 @@ else
       proc do
         headers_available =
           have_header("vm_core.h") &&
-          have_header("iseq.h") &&
+          # `have_header("iseq.h")` doesn't work on 3.1; anyway we know the header exists since we ship it and
+          # we do test the gem with the exact same headers
+          (RUBY_VERSION.start_with?("3.1") || have_header("iseq.h")) &&
           (RUBY_VERSION < "3.3" || have_header("ractor_core.h"))
 
         if headers_available
