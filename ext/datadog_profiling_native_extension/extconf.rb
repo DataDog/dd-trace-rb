@@ -167,7 +167,7 @@ $defs << "-DNO_POSTPONED_TRIGGER" if RUBY_VERSION < "3.3"
 $defs << "-DNO_MN_THREADS_AVAILABLE" if RUBY_VERSION < "3.3"
 
 # On older Rubies, we did not need to include the ractor header (this was built into the MJIT header)
-$defs << "-DNO_RACTOR_HEADER_INCLUDE" if RUBY_VERSION < "3.3"
+$defs << "-DNO_RACTOR_HEADER_INCLUDE" if RUBY_VERSION < "3"
 
 # On older Rubies, some of the Ractor internal APIs were directly accessible
 $defs << "-DUSE_RACTOR_INTERNAL_APIS_DIRECTLY" if RUBY_VERSION < "3.3"
