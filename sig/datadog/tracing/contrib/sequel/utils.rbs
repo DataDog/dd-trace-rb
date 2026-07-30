@@ -19,7 +19,7 @@ module Datadog
 
           private
 
-          def self.jdbc_connection_url: (::Sequel::Database db) -> String?
+          def self.jdbc_metadata_from_connection: (::Sequel::Database db) -> { host: String?, port: String?, database: String? }?
 
           def self.database_from_path: (String? path) -> String?
 

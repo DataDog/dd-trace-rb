@@ -138,13 +138,13 @@ module Datadog
                 parsed = parse_jdbc_uri(conn)
 
                 # JNDI/DataSource-managed connections keep only a lookup name in opts (e.g.
-                # "jdbc:jndi:..."), so nothing can be parsed from it. Recover the real driver URL
-                # from the live connection's JDBC metadata, the same way Sequel resolves JNDI. This
-                # stays a fallback rather than the primary source: it requires a connection checkout
-                # and some drivers report no URL, whereas the opts URL is free and already present
-                # for direct connections (and non-JDBC adapters have no such metadata at all).
-                if parsed[:host].nil? && parsed[:database].nil? && (resolved = jdbc_connection_url(db))
-                  parsed = parse_jdbc_uri(resolved)
+                # "jdbc:jndi:..."), so nothing can be parsed from it. Recover the endpoint from the
+                # live connection's JDBC metadata, the same way Sequel resolves JNDI. This stays a
+                # fallback rather than the primary source: it requires a connection checkout and
+                # some drivers report no URL, whereas the opts URL is free and already present for
+                # direct connections (and non-JDBC adapters have no such metadata at all).
+                if parsed[:host].nil? && parsed[:port].nil? && parsed[:database].nil?
+                  parsed = jdbc_metadata_from_connection(db) || parsed
                 end
 
                 # Sequel's JDBC adapter connects with the URL and ignores separate
@@ -161,13 +161,18 @@ module Datadog
 
             private
 
-            # Resolves the real JDBC connection URL from the live connection's metadata
+            # Resolves host/port/database from the live connection's JDBC metadata
             # (java.sql.DatabaseMetaData#getURL), for JNDI/DataSource connections whose opts hold
-            # only a lookup name. Memoized on the Database since the URL is stable for its lifetime,
-            # and rescued so tracing degrades gracefully -- returns nil when the connection object
-            # exposes no JDBC metadata, the driver reports no URL, or the connection can't be reached.
-            def jdbc_connection_url(db)
-              return db.instance_variable_get(:@datadog_jdbc_url) if db.instance_variable_defined?(:@datadog_jdbc_url)
+            # only a lookup name. Returns the parsed metadata, or nil when it can't be resolved.
+            #
+            # Only *parsed, credential-free* metadata is memoized -- the raw URL (which can carry a
+            # user/password) is used transiently and never stored or logged. A completed lookup that
+            # yields no usable URL is a permanent property of the connection, so it is cached to avoid
+            # re-checking out a connection on every query. A raised error is treated as transient
+            # (pool checkout timeout, dropped connection, ...) and left uncached, so a later query
+            # can retry once connectivity recovers.
+            def jdbc_metadata_from_connection(db)
+              return db.instance_variable_get(:@datadog_jdbc_metadata) if db.instance_variable_defined?(:@datadog_jdbc_metadata)
 
               url =
                 begin
@@ -175,12 +180,13 @@ module Datadog
                     conn.get_meta_data.get_url if conn.respond_to?(:get_meta_data)
                   end
                 rescue => e
-                  Datadog.logger.debug { "Sequel: unable to resolve JDBC URL from connection metadata (#{e.class}: #{e.message})" }
-                  nil
+                  Datadog.logger.debug { "Sequel: unable to resolve JDBC connection metadata (#{e.class})" }
+                  return nil
                 end
 
-              db.instance_variable_set(:@datadog_jdbc_url, url)
-              url
+              metadata = url && parse_jdbc_uri(url)
+              db.instance_variable_set(:@datadog_jdbc_metadata, metadata)
+              metadata
             end
 
             def database_from_path(path)

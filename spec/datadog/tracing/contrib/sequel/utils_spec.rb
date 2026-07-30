@@ -255,27 +255,47 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
         described_class.connection_metadata(db)
         expect(db).to have_received(:synchronize).once
       end
-    end
 
-    context "when the JDBC driver reports no URL from metadata" do
-      let(:opts) { {uri: "jdbc:jndi:java:comp/env/jdbc/ycs"} }
+      it "memoizes only parsed, credential-free metadata (never the raw URL)" do
+        described_class.connection_metadata(db)
 
-      before { allow(db).to receive(:synchronize).and_return(nil) }
-
-      it "returns empty metadata without raising" do
-        expect { metadata }.not_to raise_error
-        expect(metadata).to eq(host: nil, port: nil, database: nil)
+        cached = db.instance_variable_get(:@datadog_jdbc_metadata)
+        expect(cached).to eq(host: "prod-host", port: "3111", database: "yds")
+        expect(cached.to_s).not_to include("password")
+        expect(cached.to_s).not_to include("jdbc:")
       end
     end
 
-    context "when resolving connection metadata raises" do
+    context "when the JDBC driver reports no URL (permanent)" do
       let(:opts) { {uri: "jdbc:jndi:java:comp/env/jdbc/ycs"} }
+      let(:metadata_obj) { double("java.sql.DatabaseMetaData", get_url: nil) }
+      let(:connection) { double("java.sql.Connection", get_meta_data: metadata_obj) }
 
-      before { allow(db).to receive(:synchronize).and_raise(StandardError, "connection unavailable") }
+      before { allow(db).to receive(:synchronize) { |&blk| blk.call(connection) } }
 
-      it "swallows the error and returns empty metadata" do
-        expect { metadata }.not_to raise_error
+      it "returns empty metadata and caches it (no re-checkout per query)" do
         expect(metadata).to eq(host: nil, port: nil, database: nil)
+        described_class.connection_metadata(db)
+        expect(db).to have_received(:synchronize).once
+      end
+    end
+
+    context "when metadata resolution fails transiently" do
+      let(:opts) { {uri: "jdbc:jndi:java:comp/env/jdbc/ycs"} }
+      let(:metadata_obj) { double("java.sql.DatabaseMetaData", get_url: "jdbc:mariadb://prod-host:3111/yds") }
+      let(:connection) { double("java.sql.Connection", get_meta_data: metadata_obj) }
+
+      it "does not cache the failure and recovers on a later call" do
+        calls = 0
+        allow(db).to receive(:synchronize) do |&blk|
+          calls += 1
+          raise "pool checkout timeout" if calls == 1
+          blk.call(connection)
+        end
+
+        expect(described_class.connection_metadata(db)).to eq(host: nil, port: nil, database: nil)
+        expect(described_class.connection_metadata(db)).to eq(host: "prod-host", port: "3111", database: "yds")
+        expect(db).to have_received(:synchronize).twice
       end
     end
   end
