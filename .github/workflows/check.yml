@@ -180,11 +180,12 @@ jobs:
           scope: DataDog/dd-trace-rb
           policy: self.check
       - name: Run zizmor
-        uses: docker://ghcr.io/zizmorcore/zizmor:1.26.1
+        uses: zizmorcore/zizmor-action@6fc4b006235f201fdab3722e17240ab420d580e5 # v0.6.1
         with:
-          args: --min-severity low .
-        env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          version: 1.26.1
+          min-severity: low
+          advanced-security: false
+          token: ${{ steps.generate-token.outputs.token }}
 
   actionlint:
     name: actionlint
@@ -194,9 +195,14 @@ jobs:
         with:
           persist-credentials: false
       - name: Run actionlint
-        uses: docker://rhysd/actionlint:1.7.8
-        with:
-          args: -color
+        env:
+          ACTIONLINT_IMAGE: rhysd/actionlint@sha256:96d4a8c87dbbfb3bdd324f8fdc285fc3df5261e2decc619a4dd7e8ee52bbfd46 # 1.7.8
+        run: |
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/repo:ro" \
+            --workdir /repo \
+            "$ACTIONLINT_IMAGE" \
+            -color
 
   yaml-lint:
     name: yaml-lint
