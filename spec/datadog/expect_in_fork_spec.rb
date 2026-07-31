@@ -1,4 +1,4 @@
-require 'spec_helper'
+require "spec_helper"
 
 RSpec.describe "SynchronizationHelpers#expect_in_fork" do
   it "works" do

@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require_relative '../../../../tracing'
-require_relative '../../../metadata/ext'
-require_relative '../event'
-require_relative '../ext'
-require_relative '../../analytics'
-require_relative '../../utils/database'
-require_relative '../../../../core/telemetry/logger'
+require_relative "../../../../tracing"
+require_relative "../../../metadata/ext"
+require_relative "../event"
+require_relative "../ext"
+require_relative "../../analytics"
+require_relative "../../utils/database"
+require_relative "../../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -17,8 +17,8 @@ module Datadog
           module SQL
             include ActiveRecord::Event
 
-            EVENT_NAME = 'sql.active_record'
-            PAYLOAD_CACHE = 'CACHE'
+            EVENT_NAME = "sql.active_record"
+            PAYLOAD_CACHE = "CACHE"
 
             module_function
 

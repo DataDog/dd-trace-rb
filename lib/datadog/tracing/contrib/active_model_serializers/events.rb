@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'events/render'
-require_relative 'events/serialize'
+require_relative "events/render"
+require_relative "events/serialize"
 
 module Datadog
   module Tracing

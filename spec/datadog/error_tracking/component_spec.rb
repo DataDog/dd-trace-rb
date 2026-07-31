@@ -1,5 +1,5 @@
-require 'datadog/error_tracking/spec_helper'
-require 'datadog/error_tracking/component'
+require "datadog/error_tracking/spec_helper"
+require "datadog/error_tracking/component"
 
 RSpec.describe Datadog::ErrorTracking::Component do
   error_tracking_test
@@ -9,22 +9,22 @@ RSpec.describe Datadog::ErrorTracking::Component do
   let(:logger) { Logger.new($stdout) }
   let(:settings) { Datadog::Core::Configuration::Settings.new }
 
-  describe '.build_errortracking_component' do
-    context 'when ErrorTracking is deactivated' do
-      it 'returns nil' do
+  describe ".build_errortracking_component" do
+    context "when ErrorTracking is deactivated" do
+      it "returns nil" do
         expect(described_class.build(settings, tracer, logger)).to be_nil
       end
     end
 
-    context 'when a wrong argument is passed' do
-      before { settings.error_tracking.handled_errors = 'foo' }
-      it 'returns nil' do
+    context "when a wrong argument is passed" do
+      before { settings.error_tracking.handled_errors = "foo" }
+      it "returns nil" do
         expect(described_class.build(settings, tracer, logger)).to be_nil
       end
     end
 
-    shared_examples 'it creates and starts a component' do
-      it 'creates a properly configured component and starts it' do
+    shared_examples "it creates and starts a component" do
+      it "creates a properly configured component and starts it" do
         result = described_class.build(settings, tracer, logger)
 
         expect(result).to be_a(described_class)
@@ -37,28 +37,28 @@ RSpec.describe Datadog::ErrorTracking::Component do
       end
     end
 
-    context 'when handled_errors is provided' do
-      before { settings.error_tracking.handled_errors = 'all' }
-      include_examples 'it creates and starts a component'
+    context "when handled_errors is provided" do
+      before { settings.error_tracking.handled_errors = "all" }
+      include_examples "it creates and starts a component"
     end
 
-    context 'when handled_errors_include is provided' do
-      before { settings.error_tracking.handled_errors_include = ['rails'] }
-      include_examples 'it creates and starts a component'
+    context "when handled_errors_include is provided" do
+      before { settings.error_tracking.handled_errors_include = ["rails"] }
+      include_examples "it creates and starts a component"
     end
 
-    context 'when all required parameters are provided' do
+    context "when all required parameters are provided" do
       before do
-        settings.error_tracking.handled_errors_include = ['rails']
-        settings.error_tracking.handled_errors = 'user'
+        settings.error_tracking.handled_errors_include = ["rails"]
+        settings.error_tracking.handled_errors = "user"
       end
-      include_examples 'it creates and starts a component'
+      include_examples "it creates and starts a component"
     end
   end
 
-  describe 'use ErrorTracking component global feature' do
+  describe "use ErrorTracking component global feature" do
     before do
-      settings.error_tracking.handled_errors = 'all'
+      settings.error_tracking.handled_errors = "all"
       @errortracker = described_class.build(settings, tracer, logger)
       tracer.enabled = true
     end
@@ -68,74 +68,74 @@ RSpec.describe Datadog::ErrorTracking::Component do
       @errortracker.shutdown!
     end
 
-    shared_examples 'span event validation' do
-      it 'has the expected span events' do
+    shared_examples "span event validation" do
+      it "has the expected span events" do
         expect(spans.count).to eq(expected_exceptions.count)
         expected_exceptions.each_with_index do |events_per_span, i|
           expect(spans[i].events.length).to eq(events_per_span.length)
           unless events_per_span.empty?
-            expect(spans[i].get_tag(Datadog::ErrorTracking::Ext::SPAN_EVENTS_HAS_EXCEPTION)).to eq('true')
+            expect(spans[i].get_tag(Datadog::ErrorTracking::Ext::SPAN_EVENTS_HAS_EXCEPTION)).to eq("true")
           end
           events_per_span.each_with_index do |event, j|
-            expect(spans[i].events[j].attributes['exception.type']).to eq(event[:type])
-            expect(spans[i].events[j].attributes['exception.message']).to eq(event[:message])
+            expect(spans[i].events[j].attributes["exception.type"]).to eq(event[:type])
+            expect(spans[i].events[j].attributes["exception.message"]).to eq(event[:message])
           end
         end
       end
     end
 
     # standard:disable Lint/UselessRescue
-    context 'with a simple begin-rescue block' do
+    context "with a simple begin-rescue block" do
       let(:expected_exceptions) do
-        [[{type: 'RuntimeError', message: 'this is an exception'}]]
+        [[{type: "RuntimeError", message: "this is an exception"}]]
       end
 
       before do
-        tracer.trace('operation') do
-          raise 'this is an exception'
+        tracer.trace("operation") do
+          raise "this is an exception"
         rescue
           # do nothing
         end
       end
 
-      include_examples 'span event validation'
+      include_examples "span event validation"
     end
 
-    context 'with multiple begin-rescue blocks' do
+    context "with multiple begin-rescue blocks" do
       let(:expected_exceptions) do
         [[
-          {type: 'RuntimeError', message: 'this is an exception'},
-          {type: 'StandardError', message: 'this is another exception'}
+          {type: "RuntimeError", message: "this is an exception"},
+          {type: "StandardError", message: "this is another exception"}
         ]]
       end
 
       before do
-        tracer.trace('operation') do
+        tracer.trace("operation") do
           begin
-            raise 'this is an exception'
+            raise "this is an exception"
           rescue
             # do nothing
           end
           begin
-            raise StandardError, 'this is another exception'
+            raise StandardError, "this is another exception"
           rescue
             # do nothing
           end
         end
       end
 
-      include_examples 'span event validation'
+      include_examples "span event validation"
     end
 
-    context 'when an exception is handled multiple times' do
+    context "when an exception is handled multiple times" do
       let(:expected_exceptions) do
-        [[{type: 'RuntimeError', message: 'this is an exception'}]]
+        [[{type: "RuntimeError", message: "this is an exception"}]]
       end
 
       before do
-        tracer.trace('operation') do
+        tracer.trace("operation") do
           begin
-            raise 'this is an exception'
+            raise "this is an exception"
           rescue => e
             raise e
           end
@@ -144,21 +144,21 @@ RSpec.describe Datadog::ErrorTracking::Component do
         end
       end
 
-      include_examples 'span event validation'
+      include_examples "span event validation"
     end
 
-    context 'when an exception is handled multiple times with different types' do
+    context "when an exception is handled multiple times with different types" do
       let(:expected_exceptions) do
         [[
-          {type: 'RuntimeError', message: 'this is an exception'},
-          {type: 'KeyError', message: 'this is an exception'}
+          {type: "RuntimeError", message: "this is an exception"},
+          {type: "KeyError", message: "this is an exception"}
         ]]
       end
 
       before do
-        tracer.trace('operation') do
+        tracer.trace("operation") do
           begin
-            raise 'this is an exception'
+            raise "this is an exception"
           rescue => e
             raise KeyError, e
           end
@@ -167,18 +167,18 @@ RSpec.describe Datadog::ErrorTracking::Component do
         end
       end
 
-      include_examples 'span event validation'
+      include_examples "span event validation"
     end
 
-    context 'when an exception is handled then raised' do
+    context "when an exception is handled then raised" do
       let(:expected_exceptions) do
         [[]]
       end
 
       before do
-        tracer.trace('operation') do |span|
+        tracer.trace("operation") do |span|
           @span_op = span
-          raise 'this is an exception'
+          raise "this is an exception"
         rescue
           raise
         end
@@ -186,35 +186,35 @@ RSpec.describe Datadog::ErrorTracking::Component do
         # do nothing
       end
 
-      include_examples 'span event validation'
+      include_examples "span event validation"
     end
 
-    context 'when number of span events is over limit' do
+    context "when number of span events is over limit" do
       let(:expected_exceptions) do
-        [Array.new(100, {type: 'RuntimeError', message: 'this is an exception'})]
+        [Array.new(100, {type: "RuntimeError", message: "this is an exception"})]
       end
 
       before do
-        tracer.trace('operation') do
+        tracer.trace("operation") do
           101.times do
-            raise 'this is an exception'
+            raise "this is an exception"
           rescue
             # do nothing
           end
         end
       end
 
-      include_examples 'span event validation'
+      include_examples "span event validation"
     end
 
-    context 'when an exception is handled in the parent_span' do
+    context "when an exception is handled in the parent_span" do
       let(:expected_exceptions) do
-        [[], [{type: 'RuntimeError', message: 'this is an exception'}]]
+        [[], [{type: "RuntimeError", message: "this is an exception"}]]
       end
 
       before do
         def parent_span
-          tracer.trace('parent_span') do
+          tracer.trace("parent_span") do
             child_span
           rescue
             # do nothing
@@ -222,8 +222,8 @@ RSpec.describe Datadog::ErrorTracking::Component do
         end
 
         def child_span
-          tracer.trace('child_span') do
-            raise 'this is an exception'
+          tracer.trace("child_span") do
+            raise "this is an exception"
           rescue => e
             raise e
           end
@@ -232,28 +232,28 @@ RSpec.describe Datadog::ErrorTracking::Component do
         parent_span
       end
 
-      it 'has the correct span names' do
+      it "has the correct span names" do
         expect(spans).to have(2).items
-        expect(spans[0].name).to eq('child_span')
-        expect(spans[1].name).to eq('parent_span')
+        expect(spans[0].name).to eq("child_span")
+        expect(spans[1].name).to eq("parent_span")
       end
 
-      include_examples 'span event validation'
+      include_examples "span event validation"
     end
     # standard:enable Lint/UselessRescue
   end
 
-  shared_examples 'error tracking behavior' do |instrument_setting = nil, handled_errors_include = [], expected_errors = []|
+  shared_examples "error tracking behavior" do |instrument_setting = nil, handled_errors_include = [], expected_errors = []|
     before(:all) do
-      @gem_root_dir = File.expand_path('../../fixtures/gems/mock-gem-2.1.1', __dir__)
-      @gem_lib_dir = File.join(@gem_root_dir, 'lib')
+      @gem_root_dir = File.expand_path("../../fixtures/gems/mock-gem-2.1.1", __dir__)
+      @gem_lib_dir = File.join(@gem_root_dir, "lib")
       $LOAD_PATH.unshift(@gem_lib_dir) unless $LOAD_PATH.include?(@gem_lib_dir)
 
       # Create and register the mock gem specification
       mock_gemspec = Gem::Specification.new do |s|
-        s.name = 'mock-gem'
-        s.version = '2.1.1'
-        s.loaded_from = File.join(@gem_root_dir, 'mock-gem.gemspec')
+        s.name = "mock-gem"
+        s.version = "2.1.1"
+        s.loaded_from = File.join(@gem_root_dir, "mock-gem.gemspec")
         s.full_gem_path = @gem_root_dir
       end
       Gem::Specification.add_spec(mock_gemspec)
@@ -272,22 +272,22 @@ RSpec.describe Datadog::ErrorTracking::Component do
       @errortracker = described_class.build(settings, tracer, logger)
 
       # Require the mock gem files
-      require 'mock_gem'
+      require "mock_gem"
 
       # Require all the test modules
-      require_relative '../error_tracking/lib1'
-      require_relative '../error_tracking/lib2'
-      require_relative '../error_tracking/sublib/sublib1'
-      require_relative '../error_tracking/sublib/sublib2'
+      require_relative "../error_tracking/lib1"
+      require_relative "../error_tracking/lib2"
+      require_relative "../error_tracking/sublib/sublib1"
+      require_relative "../error_tracking/sublib/sublib2"
 
       tracer.enabled = true
     end
 
     after do
       $LOADED_FEATURES.reject! do |path|
-        path.include?('spec/datadog/error_tracking/lib') ||
-          path.include?('spec/datadog/error_tracking/sublib') ||
-          path.include?('mock_gem')
+        path.include?("spec/datadog/error_tracking/lib") ||
+          path.include?("spec/datadog/error_tracking/sublib") ||
+          path.include?("mock_gem")
       end
       Object.send(:remove_const, :MockGem) if defined?(MockGem)
       Object.send(:remove_const, :Lib1) if defined?(Lib1)
@@ -299,10 +299,10 @@ RSpec.describe Datadog::ErrorTracking::Component do
       tracer.shutdown!
     end
 
-    it 'tracks errors according to settings' do
-      tracer.trace('operation') do
+    it "tracks errors according to settings" do
+      tracer.trace("operation") do
         begin
-          raise 'user code error'
+          raise "user code error"
         rescue
           # do nothing
         end
@@ -318,7 +318,7 @@ RSpec.describe Datadog::ErrorTracking::Component do
       if expected_errors.any?
         span = spans[0]
         expect(span.events.length).to eq(expected_errors.length)
-        event_messages = span.events.map { |e| e.attributes['exception.message'] }
+        event_messages = span.events.map { |e| e.attributes["exception.message"] }
         expected_errors.each do |error|
           expect(event_messages).to include(error)
         end
@@ -326,86 +326,86 @@ RSpec.describe Datadog::ErrorTracking::Component do
     end
   end
 
-  describe 'use ErrorTracking component with different settings' do
-    context 'when tracking user code only' do
-      include_examples 'error tracking behavior',
-        'user',
+  describe "use ErrorTracking component with different settings" do
+    context "when tracking user code only" do
+      include_examples "error tracking behavior",
+        "user",
         [],
-        ['user code error', 'lib1 error', 'lib2 error', 'sublib1 error', 'sublib2 error']
+        ["user code error", "lib1 error", "lib2 error", "sublib1 error", "sublib2 error"]
     end
 
-    context 'when tracking third_party code' do
-      include_examples 'error tracking behavior', 'third_party', [], ['mock_gem client error', 'mock_gem utils error']
+    context "when tracking third_party code" do
+      include_examples "error tracking behavior", "third_party", [], ["mock_gem client error", "mock_gem utils error"]
     end
 
-    context 'when tracking all code' do
-      include_examples 'error tracking behavior',
-        'all',
+    context "when tracking all code" do
+      include_examples "error tracking behavior",
+        "all",
         [],
-        ['mock_gem client error', 'mock_gem utils error', 'user code error', 'lib1 error', 'lib2 error', 'sublib1 error',
-          'sublib2 error']
+        ["mock_gem client error", "mock_gem utils error", "user code error", "lib1 error", "lib2 error", "sublib1 error",
+          "sublib2 error"]
     end
   end
 
-  describe 'use ErrorTracking component with module-specific settings' do
+  describe "use ErrorTracking component with module-specific settings" do
     context "when instrumenting ['lib1']" do
-      include_examples 'error tracking behavior', nil, ['lib1'], ['lib1 error']
+      include_examples "error tracking behavior", nil, ["lib1"], ["lib1 error"]
     end
 
     context "when instrumenting ['lib1'] with absolute exact path" do
-      absolute_path = File.expand_path('./spec/datadog/error_tracking/lib1')
-      include_examples 'error tracking behavior', nil, [absolute_path], ['lib1 error']
+      absolute_path = File.expand_path("./spec/datadog/error_tracking/lib1")
+      include_examples "error tracking behavior", nil, [absolute_path], ["lib1 error"]
     end
 
     context "when instrumenting ['lib1'] with absolute exact path and .rb" do
-      absolute_path = File.expand_path('./spec/datadog/error_tracking/lib1.rb')
-      include_examples 'error tracking behavior', nil, [absolute_path], ['lib1 error']
+      absolute_path = File.expand_path("./spec/datadog/error_tracking/lib1.rb")
+      include_examples "error tracking behavior", nil, [absolute_path], ["lib1 error"]
     end
 
     context "when instrumenting ['lib1'] with abs path " do
-      absolute_path = File.expand_path('./spec/datadog/error_tracking/sublib')
-      include_examples 'error tracking behavior',
+      absolute_path = File.expand_path("./spec/datadog/error_tracking/sublib")
+      include_examples "error tracking behavior",
         nil,
         [absolute_path],
-        ['sublib1 error', 'sublib2 error']
+        ["sublib1 error", "sublib2 error"]
     end
 
     context "when instrumenting ['lib1'] with rel path" do
-      include_examples 'error tracking behavior', nil, ['./spec/datadog/error_tracking/lib1'], ['lib1 error']
+      include_examples "error tracking behavior", nil, ["./spec/datadog/error_tracking/lib1"], ["lib1 error"]
     end
 
     context "when instrumenting ['sublib']" do
-      include_examples 'error tracking behavior', nil, ['sublib'], ['sublib1 error', 'sublib2 error']
+      include_examples "error tracking behavior", nil, ["sublib"], ["sublib1 error", "sublib2 error"]
     end
 
     context "when instrumenting ['sublib1', 'lib1']" do
-      include_examples 'error tracking behavior', nil, ['sublib1', 'lib1.rb'], ['sublib1 error', 'lib1 error']
+      include_examples "error tracking behavior", nil, ["sublib1", "lib1.rb"], ["sublib1 error", "lib1 error"]
     end
 
     context "when instrumenting ['sublib', 'lib1']" do
-      include_examples 'error tracking behavior',
+      include_examples "error tracking behavior",
         nil,
-        ['error_tracking/sublib', 'lib1'],
-        ['lib1 error', 'sublib1 error', 'sublib2 error']
+        ["error_tracking/sublib", "lib1"],
+        ["lib1 error", "sublib1 error", "sublib2 error"]
     end
   end
 
-  describe 'use ErrorTracking component with gem-specific settings' do
+  describe "use ErrorTracking component with gem-specific settings" do
     context "when instrumenting ['mock_gem/client']" do
-      include_examples 'error tracking behavior', nil, ['mock_gem/client'], ['mock_gem client error']
+      include_examples "error tracking behavior", nil, ["mock_gem/client"], ["mock_gem client error"]
     end
 
     context "when instrumenting ['mock_gem']" do
-      include_examples 'error tracking behavior', nil, ['mock_gem'], ['mock_gem client error', 'mock_gem utils error']
+      include_examples "error tracking behavior", nil, ["mock_gem"], ["mock_gem client error", "mock_gem utils error"]
     end
   end
 
-  describe 'use ErrorTracking component with combined user and module settings' do
+  describe "use ErrorTracking component with combined user and module settings" do
     context "when tracking user code and instrumenting ['mock_gem/client']" do
-      include_examples 'error tracking behavior',
-        'user',
-        ['mock_gem/client'],
-        ['user code error', 'lib1 error', 'lib2 error', 'sublib1 error', 'sublib2 error', 'mock_gem client error']
+      include_examples "error tracking behavior",
+        "user",
+        ["mock_gem/client"],
+        ["user code error", "lib1 error", "lib2 error", "sublib1 error", "sublib2 error", "mock_gem client error"]
     end
   end
 end

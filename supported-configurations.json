@@ -116,6 +116,13 @@
         "sensitive": true
       }
     ],
+    "DD_APPSEC_AGENTIC_ONBOARDING": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": ""
+      }
+    ],
     "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING": [
       {
         "version": "A",
@@ -372,6 +379,13 @@
       }
     ],
     "DD_EXPERIMENTAL_FLAGGING_PROVIDER_SPAN_ENRICHMENT_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED": [
       {
         "version": "A",
         "type": "boolean",

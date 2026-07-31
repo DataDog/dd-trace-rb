@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'sql_comment/comment'
-require_relative 'sql_comment/ext'
+require_relative "sql_comment/comment"
+require_relative "sql_comment/ext"
 
-require_relative '../../distributed/trace_context'
+require_relative "../../distributed/trace_context"
 
 module Datadog
   module Tracing
@@ -66,8 +66,8 @@ module Datadog
                   Tracing::Distributed::TraceContext.new(fetcher: nil).send(:build_traceparent, trace_op.to_digest)
               else
                 Datadog.logger.warn(
-                  'Sql comment propagation with `full` mode is aborted, because tracing is disabled. ' \
-                  'Please set `Datadog.configuration.tracing.enabled = true` to continue.'
+                  "Sql comment propagation with `full` mode is aborted, because tracing is disabled. " \
+                  "Please set `Datadog.configuration.tracing.enabled = true` to continue."
                 )
               end
             end

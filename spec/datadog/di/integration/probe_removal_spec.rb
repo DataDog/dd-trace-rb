@@ -1,6 +1,6 @@
-require 'spec_helper'
-require 'datadog/di/spec_helper'
-require 'datadog/di'
+require "spec_helper"
+require "datadog/di/spec_helper"
+require "datadog/di"
 
 # Target class for the method probe used below. Loaded before the probe
 # arrives so the probe installs immediately on the first RC poll.
@@ -10,7 +10,7 @@ class ProbeRemovalSpecTargetClass
   end
 end
 
-RSpec.describe 'DI probe removal via remote config' do
+RSpec.describe "DI probe removal via remote config" do
   di_test
   deactivate_code_tracking
 
@@ -60,12 +60,12 @@ RSpec.describe 'DI probe removal via remote config' do
   let(:client) { Datadog::Core::Remote::Client.new(transport, capabilities, settings: settings, logger: logger) }
 
   let(:probe_spec) do
-    {id: 'test-probe-removal', name: 'bar', type: 'LOG_PROBE',
-     where: {typeName: 'ProbeRemovalSpecTargetClass', methodName: 'target_method'},}
+    {id: "test-probe-removal", name: "bar", type: "LOG_PROBE",
+     where: {typeName: "ProbeRemovalSpecTargetClass", methodName: "target_method"},}
   end
 
   let(:probe_configs) do
-    {'datadog/2/LIVE_DEBUGGING/foo/bar' => probe_spec}
+    {"datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec}
   end
 
   let(:response_with_probe) do
@@ -97,7 +97,7 @@ RSpec.describe 'DI probe removal via remote config' do
     component.probe_notifier_worker.flush
   end
 
-  it 'removes the probe and unhooks instrumentation when it disappears from RC' do
+  it "removes the probe and unhooks instrumentation when it disappears from RC" do
     install_probe
 
     installed = component.probe_manager.probe_repository.installed_probes
@@ -114,7 +114,7 @@ RSpec.describe 'DI probe removal via remote config' do
     expect(Datadog::DI.instrumented_count).to eq 0
   end
 
-  it 'captures a snapshot while the probe is installed' do
+  it "captures a snapshot while the probe is installed" do
     install_probe
 
     ProbeRemovalSpecTargetClass.new.target_method
@@ -123,7 +123,7 @@ RSpec.describe 'DI probe removal via remote config' do
     expect(input_transport).to have_received(:send_input).at_least(:once)
   end
 
-  it 'stops capturing snapshots after the probe is removed' do
+  it "stops capturing snapshots after the probe is removed" do
     install_probe
     remove_probe
 

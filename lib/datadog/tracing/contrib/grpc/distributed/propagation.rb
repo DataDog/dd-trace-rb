@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require_relative 'fetcher'
-require_relative '../../../distributed/b3_multi'
-require_relative '../../../distributed/b3_single'
-require_relative '../../../distributed/propagation_policy'
-require_relative '../../../distributed/datadog'
-require_relative '../../../distributed/none'
-require_relative '../../../distributed/propagation'
-require_relative '../../../distributed/trace_context'
+require_relative "fetcher"
+require_relative "../../../distributed/b3_multi"
+require_relative "../../../distributed/b3_single"
+require_relative "../../../distributed/propagation_policy"
+require_relative "../../../distributed/datadog"
+require_relative "../../../distributed/none"
+require_relative "../../../distributed/propagation"
+require_relative "../../../distributed/trace_context"
 
 module Datadog
   module Tracing

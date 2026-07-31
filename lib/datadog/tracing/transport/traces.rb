@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require_relative '../../core/chunker'
-require_relative '../../core/transport/parcel'
-require_relative '../../core/transport/request'
-require_relative '../../core/transport/transport'
-require_relative '../../core/utils/enumerable_compat'
-require_relative 'http/client'
-require_relative 'serializable_trace'
-require_relative 'trace_formatter'
+require_relative "../../core/chunker"
+require_relative "../../core/transport/parcel"
+require_relative "../../core/transport/request"
+require_relative "../../core/transport/transport"
+require_relative "../../core/utils/enumerable_compat"
+require_relative "http/client"
+require_relative "serializable_trace"
+require_relative "trace_formatter"
 
 module Datadog
   module Tracing

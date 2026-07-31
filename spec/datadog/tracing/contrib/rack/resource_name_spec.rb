@@ -1,11 +1,11 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'rack/test'
+require "datadog/tracing/contrib/support/spec_helper"
+require "rack/test"
 
-require 'rack'
-require 'datadog'
-require 'datadog/tracing/contrib/rack/middlewares'
+require "rack"
+require "datadog"
+require "datadog/tracing/contrib/rack/middlewares"
 
-RSpec.describe 'Rack integration with other middleware' do
+RSpec.describe "Rack integration with other middleware" do
   include Rack::Test::Methods
 
   let(:rack_options) do
@@ -30,7 +30,7 @@ RSpec.describe 'Rack integration with other middleware' do
     Datadog.registry[:rack].reset_configuration!
   end
 
-  shared_context 'app with middleware' do
+  shared_context "app with middleware" do
     let(:app) do
       auth_mw = auth_middleware
       bottom_mw = bottom_middleware
@@ -44,14 +44,14 @@ RSpec.describe 'Rack integration with other middleware' do
 
     let(:auth_middleware) do
       stub_const(
-        'AuthMiddleware',
+        "AuthMiddleware",
         Class.new do
           def initialize(app)
             @app = app
           end
 
           def call(env)
-            return [401, {}, []] if env['HTTP_AUTH_TOKEN'] != '1234'
+            return [401, {}, []] if env["HTTP_AUTH_TOKEN"] != "1234"
 
             @app.call(env)
           end
@@ -61,7 +61,7 @@ RSpec.describe 'Rack integration with other middleware' do
 
     let(:bottom_middleware) do
       stub_const(
-        'BottomMiddleware',
+        "BottomMiddleware",
         Class.new do
           def call(_)
             [200, {}, []]
@@ -71,27 +71,27 @@ RSpec.describe 'Rack integration with other middleware' do
     end
   end
 
-  context 'which receives an incoming HTTP request' do
-    subject(:response) { get '/', {}, headers }
+  context "which receives an incoming HTTP request" do
+    subject(:response) { get "/", {}, headers }
 
     let(:headers) { {} }
 
-    include_context 'app with middleware'
+    include_context "app with middleware"
 
-    context 'which runs the full stack' do
-      let(:headers) { {'HTTP_AUTH_TOKEN' => '1234'} }
+    context "which runs the full stack" do
+      let(:headers) { {"HTTP_AUTH_TOKEN" => "1234"} }
 
-      it 'creates a span with the bottom middleware as a resource name' do
+      it "creates a span with the bottom middleware as a resource name" do
         is_expected.to be_ok
         expect(spans).to have(1).items
         expect(span.resource).to match(/BottomMiddleware#GET/)
       end
     end
 
-    context 'which stops part way down the stack' do
-      let(:headers) { {'HTTP_AUTH_TOKEN' => 'foobar'} }
+    context "which stops part way down the stack" do
+      let(:headers) { {"HTTP_AUTH_TOKEN" => "foobar"} }
 
-      it 'creates a span with the deepest middleware reached as a resource name' do
+      it "creates a span with the deepest middleware reached as a resource name" do
         expect(response.status).to eq(401)
         expect(spans).to have(1).items
         expect(span.resource).to match(/AuthMiddleware#GET/)

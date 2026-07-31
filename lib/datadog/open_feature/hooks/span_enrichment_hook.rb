@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'span_enrichment_hook/codec'
-require_relative 'span_enrichment_hook/span_enrichment_state'
-require_relative 'span_enrichment_hook/span_enrichment_state_store'
+require_relative "span_enrichment_hook/codec"
+require_relative "span_enrichment_hook/span_enrichment_state"
+require_relative "span_enrichment_hook/span_enrichment_state_store"
 
 module Datadog
   module OpenFeature
@@ -52,9 +52,9 @@ module Datadog
         MAX_DEFAULTS = 5
         MAX_DEFAULT_VALUE_LENGTH = 64
 
-        TAG_FLAGS_ENC = 'ffe_flags_enc'
-        TAG_SUBJECTS_ENC = 'ffe_subjects_enc'
-        TAG_RUNTIME_DEFAULTS = 'ffe_runtime_defaults'
+        TAG_FLAGS_ENC = "ffe_flags_enc"
+        TAG_SUBJECTS_ENC = "ffe_subjects_enc"
+        TAG_RUNTIME_DEFAULTS = "ffe_runtime_defaults"
 
         def initialize(span_enrichment_state_store, logger:)
           @store = span_enrichment_state_store

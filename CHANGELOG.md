@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [2.39.0] - 2026-07-22
+
+### Added
+
+* Tracing: Integrations: Add database name and host to Sequel spans and infer `peer.service` so datastore dependencies appear in the service map. ([#6072][])
+
+### Fixed
+
+* AppSec: Fix error in `devise` contrib for non-standard Warden session serialization. ([#6064][])
+* Dynamic Instrumentation: Fix dynamic instrumentation line probes failing to install when dynamic instrumentation is enabled remotely after application startup. ([#6050][])
+* Profiling: Fix crash when trying to sample during GC compaction ([#6056][])
+* Tracing: Integrations: Fix an `ArgumentError` (and the resulting `Kafka::BufferOverflow`) raised by the Kafka producer integration on Ruby 2.5 and 2.6. ([#6060][])
+
 ## [2.38.0] - 2026-07-16
 
 ### Added
@@ -3703,7 +3716,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.38.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.39.0...master
+[2.39.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.38.0...v2.39.0
 [2.38.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.37.0...v2.38.0
 [2.37.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.36.0...v2.37.0
 [2.36.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.35.0...v2.36.0
@@ -5504,6 +5518,11 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#6022]: https://github.com/DataDog/dd-trace-rb/issues/6022
 [#6023]: https://github.com/DataDog/dd-trace-rb/issues/6023
 [#6047]: https://github.com/DataDog/dd-trace-rb/issues/6047
+[#6050]: https://github.com/DataDog/dd-trace-rb/issues/6050
+[#6056]: https://github.com/DataDog/dd-trace-rb/issues/6056
+[#6060]: https://github.com/DataDog/dd-trace-rb/issues/6060
+[#6064]: https://github.com/DataDog/dd-trace-rb/issues/6064
+[#6072]: https://github.com/DataDog/dd-trace-rb/issues/6072
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot

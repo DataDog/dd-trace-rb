@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative '../tag_normalizer'
+require_relative "ext"
+require_relative "../tag_normalizer"
 
 module Datadog
   module Core
@@ -14,7 +14,7 @@ module Datadog
         # Includes svc.user or svc.auto based on whether the service was explicitly configured.
         # @return [String]
         def self.serialized
-          tags.join(',').freeze
+          tags.join(",").freeze
         end
 
         # Returns an array of normalized key:value pair strings.

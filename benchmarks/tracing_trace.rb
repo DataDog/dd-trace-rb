@@ -1,9 +1,9 @@
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require_relative 'benchmarks_helper'
+require_relative "benchmarks_helper"
 
 class TracingTraceBenchmark
   module NoopWriter
@@ -45,7 +45,7 @@ class TracingTraceBenchmark
       trace(x, 10)
       trace(x, 100)
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
@@ -73,13 +73,13 @@ class TracingTraceBenchmark
       trace(x, 10)
       trace(x, 100)
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
 
   def benchmark_to_digest
-    Datadog::Tracing.trace('op.name') do |span, trace|
+    Datadog::Tracing.trace("op.name") do |span, trace|
       Benchmark.ips do |x|
         x.config(**benchmark_time)
 
@@ -87,14 +87,14 @@ class TracingTraceBenchmark
           trace.to_digest
         end
 
-        x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+        x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
         x.compare!
       end
     end
   end
 
   def benchmark_log_correlation
-    Datadog::Tracing.trace('op.name') do |span, trace|
+    Datadog::Tracing.trace("op.name") do |span, trace|
       Benchmark.ips do |x|
         x.config(**benchmark_time)
 
@@ -102,14 +102,14 @@ class TracingTraceBenchmark
           Datadog::Tracing.log_correlation
         end
 
-        x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+        x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
         x.compare!
       end
     end
   end
 
   def benchmark_to_digest_continue
-    Datadog::Tracing.trace('op.name') do |span, trace|
+    Datadog::Tracing.trace("op.name") do |span, trace|
       Benchmark.ips do |x|
         x.config(**benchmark_time)
 
@@ -118,7 +118,7 @@ class TracingTraceBenchmark
           Datadog::Tracing.continue_trace!(digest)
         end
 
-        x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+        x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
         x.compare!
       end
     end
@@ -129,13 +129,13 @@ class TracingTraceBenchmark
       if defined?(c.tracing.distributed_tracing.propagation_extract_style)
         # Required to run benchmarks against ddtrace 1.x.
         # Can be removed when 2.0 is merged to master.
-        c.tracing.distributed_tracing.propagation_style = ['datadog']
+        c.tracing.distributed_tracing.propagation_style = ["datadog"]
       else
-        c.tracing.propagation_style = ['datadog']
+        c.tracing.propagation_style = ["datadog"]
       end
     end
 
-    Datadog::Tracing.trace('op.name') do |span, trace|
+    Datadog::Tracing.trace("op.name") do |span, trace|
       injected_trace_digest = trace.to_digest
       Benchmark.ips do |x|
         x.config(**benchmark_time)
@@ -147,7 +147,7 @@ class TracingTraceBenchmark
           raise unless extracted_trace_digest
         end
 
-        x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+        x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
         x.compare!
       end
     end
@@ -155,10 +155,10 @@ class TracingTraceBenchmark
 
   def benchmark_propagation_trace_context
     Datadog.configure do |c|
-      c.tracing.propagation_style = ['tracecontext']
+      c.tracing.propagation_style = ["tracecontext"]
     end
 
-    Datadog::Tracing.trace('op.name') do |span, trace|
+    Datadog::Tracing.trace("op.name") do |span, trace|
       injected_trace_digest = trace.to_digest
       Benchmark.ips do |x|
         x.config(**benchmark_time)
@@ -170,7 +170,7 @@ class TracingTraceBenchmark
           raise unless extracted_trace_digest
         end
 
-        x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+        x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
         x.compare!
       end
     end

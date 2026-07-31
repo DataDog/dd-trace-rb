@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'counter_sampler'
-require_relative 'metrics'
-require_relative 'security_event'
+require_relative "counter_sampler"
+require_relative "metrics"
+require_relative "security_event"
 
 module Datadog
   module AppSec
@@ -34,8 +34,8 @@ module Datadog
 
       class << self
         def activate(context)
-          raise ArgumentError, 'not a Datadog::AppSec::Context' unless context.instance_of?(Context)
-          raise ActiveContextError, 'another context is active, nested contexts are not supported' if active
+          raise ArgumentError, "not a Datadog::AppSec::Context" unless context.instance_of?(Context)
+          raise ActiveContextError, "another context is active, nested contexts are not supported" if active
 
           Thread.current[Ext::ACTIVE_CONTEXT_KEY] = context
         end
@@ -103,7 +103,7 @@ module Datadog
       end
 
       def extract_schema!
-        persistent_data = {'waf.context.processor' => {'extract-schema' => true}}
+        persistent_data = {"waf.context.processor" => {"extract-schema" => true}}
         waf_result = run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
         security_event = AppSec::SecurityEvent.new(waf_result, trace: trace, span: span)
 

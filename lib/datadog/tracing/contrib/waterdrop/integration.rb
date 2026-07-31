@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../integration'
-require_relative 'configuration/settings'
-require_relative 'patcher'
+require_relative "../integration"
+require_relative "configuration/settings"
+require_relative "patcher"
 
 module Datadog
   module Tracing
@@ -13,12 +13,12 @@ module Datadog
           include Contrib::Integration
 
           # WaterDrop added class-level instrumentation in version 2.8.8.rc1
-          MINIMUM_VERSION = Gem::Version.new('2.8.8.rc1')
+          MINIMUM_VERSION = Gem::Version.new("2.8.8.rc1")
 
           register_as :waterdrop, auto_patch: false
 
           def self.version
-            Gem.loaded_specs['waterdrop']&.version
+            Gem.loaded_specs["waterdrop"]&.version
           end
 
           def self.loaded?

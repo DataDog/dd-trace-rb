@@ -1,31 +1,31 @@
-require 'shellwords'
-require 'open3'
+require "shellwords"
+require "open3"
 
 REQUIRES = [
-  {require: 'datadog', check: 'Datadog::Core'},
-  {require: 'datadog/appsec', check: 'Datadog::AppSec'},
-  {require: 'datadog/ai_guard', check: 'Datadog::AIGuard'},
-  {require: 'datadog/core', check: 'Datadog::Core'},
-  {require: 'datadog/data_streams', check: 'Datadog::DataStreams'},
-  {require: 'datadog/error_tracking', check: 'Datadog::ErrorTracking'},
-  {require: 'datadog/di', check: 'Datadog::DI',
-   env: {DD_DYNAMIC_INSTRUMENTATION_ENABLED: 'false'},
-   condition: -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' }},
+  {require: "datadog", check: "Datadog::Core"},
+  {require: "datadog/appsec", check: "Datadog::AppSec"},
+  {require: "datadog/ai_guard", check: "Datadog::AIGuard"},
+  {require: "datadog/core", check: "Datadog::Core"},
+  {require: "datadog/data_streams", check: "Datadog::DataStreams"},
+  {require: "datadog/error_tracking", check: "Datadog::ErrorTracking"},
+  {require: "datadog/di", check: "Datadog::DI",
+   env: {DD_DYNAMIC_INSTRUMENTATION_ENABLED: "false"},
+   condition: -> { RUBY_VERSION >= "2.6" && RUBY_ENGINE != "jruby" }},
   # DI initializes itsef when it's loaded and the environment variable
   # instructs DI to be enabled, therefore needs separate tests with the
   # environment variable being enabled and disabled.
-  {require: 'datadog/di', check: 'Datadog::DI',
-   env: {DD_DYNAMIC_INSTRUMENTATION_ENABLED: 'true'},
-   condition: -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' }},
-  {require: 'datadog/di/preload', check: 'Datadog::DI::CodeTracker',
-   condition: -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' }},
-  {require: 'datadog/kit', check: 'Datadog::Kit'},
-  {require: 'datadog/profiling', check: 'Datadog::Profiling'},
-  {require: 'datadog/tracing', check: 'Datadog::Tracing'},
-  {require: 'datadog/open_feature', check: 'Datadog::OpenFeature'},
+  {require: "datadog/di", check: "Datadog::DI",
+   env: {DD_DYNAMIC_INSTRUMENTATION_ENABLED: "true"},
+   condition: -> { RUBY_VERSION >= "2.6" && RUBY_ENGINE != "jruby" }},
+  {require: "datadog/di/preload", check: "Datadog::DI::CodeTracker",
+   condition: -> { RUBY_VERSION >= "2.6" && RUBY_ENGINE != "jruby" }},
+  {require: "datadog/kit", check: "Datadog::Kit"},
+  {require: "datadog/profiling", check: "Datadog::Profiling"},
+  {require: "datadog/tracing", check: "Datadog::Tracing"},
+  {require: "datadog/open_feature", check: "Datadog::OpenFeature"},
 ].freeze
 
-RSpec.describe 'loading of products' do
+RSpec.describe "loading of products" do
   REQUIRES.each do |spec|
     req = spec.fetch(:require)
 
@@ -55,17 +55,17 @@ RSpec.describe 'loading of products' do
 
       if (condition = spec[:condition])
         before do
-          skip 'condition is false' unless condition.call
+          skip "condition is false" unless condition.call
         end
       end
 
-      it 'loads successfully by itself' do
+      it "loads successfully by itself" do
         rv = system("ruby -e #{Shellwords.shellescape(code)}")
         expect(rv).to be true
       end
 
-      it 'produces no output' do
-        out, status = Open3.capture2e('ruby', '-w', stdin_data: code)
+      it "produces no output" do
+        out, status = Open3.capture2e("ruby", "-w", stdin_data: code)
         raise("Test script failed with exit status #{status.exitstatus}:\n#{out}") unless status.success?
         raise("Test script produced unexpected output: #{out}") unless out.empty?
       end
@@ -73,7 +73,7 @@ RSpec.describe 'loading of products' do
   end
 end
 
-RSpec.describe 'load core only and configure library with no settings' do
+RSpec.describe "load core only and configure library with no settings" do
   let(:code) do
     <<-E
       if defined?(Datadog)
@@ -89,13 +89,13 @@ RSpec.describe 'load core only and configure library with no settings' do
     E
   end
 
-  it 'configures successfully' do
+  it "configures successfully" do
     rv = system("ruby -e #{Shellwords.shellescape(code)}")
     expect(rv).to be true
   end
 end
 
-RSpec.describe 'load datadog and enable dynamic instrumentation' do
+RSpec.describe "load datadog and enable dynamic instrumentation" do
   let(:code) do
     <<-E
       if defined?(Datadog)
@@ -114,7 +114,7 @@ RSpec.describe 'load datadog and enable dynamic instrumentation' do
 
   # DI is not available in all environments, however asking for it to be
   # turned on should not produce exceptions.
-  it 'configures successfully' do
+  it "configures successfully" do
     rv = system("ruby -e #{Shellwords.shellescape(code)}")
     expect(rv).to be true
   end

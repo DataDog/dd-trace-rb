@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../core/encoding'
-require_relative '../../core/transport/http'
-require_relative 'http/endpoint'
-require_relative '../transport'
+require_relative "../../core/encoding"
+require_relative "../../core/transport/http"
+require_relative "http/endpoint"
+require_relative "../transport"
 
 module Datadog
   module SymbolDatabase
@@ -14,7 +14,7 @@ module Datadog
         # Multipart form-data is dispatched via `env.form` from the
         # `Symbols::Client` subclass.
         SYMBOLS_ENDPOINT = API::Endpoint.new(
-          '/symdb/v1/input',
+          "/symdb/v1/input",
           Datadog::Core::Encoding::JSONEncoder,
         )
 
@@ -34,7 +34,7 @@ module Datadog
             agent_settings: agent_settings,
             headers: headers,
           ) do |transport|
-            transport.api 'symbols', SYMBOLS_ENDPOINT, default: true
+            transport.api "symbols", SYMBOLS_ENDPOINT, default: true
 
             yield(transport) if block_given?
           end.to_transport(SymbolDatabase::Transport::Symbols::Transport)

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'ext'
-require_relative 'quantize'
-require_relative 'tags'
+require_relative "../patcher"
+require_relative "ext"
+require_relative "quantize"
+require_relative "tags"
 
 module Datadog
   module Tracing
@@ -69,7 +69,7 @@ module Datadog
                 commands.map { |c| Contrib::Redis::Quantize.get_verb(c) }
               end
 
-              list.empty? ? '(none)' : list.join("\n")
+              list.empty? ? "(none)" : list.join("\n")
             end
           end
 

@@ -1,4 +1,4 @@
-require 'webrick'
+require "webrick"
 
 module HttpServerHelpers
   module ClassMethods

@@ -1,25 +1,25 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'benchmark/ips'
-require 'datadog'
-require 'mysql2'
+require "benchmark/ips"
+require "datadog"
+require "mysql2"
 
-RSpec.describe 'SQL comment propagation', order: :defined do
-  before { skip('Benchmark results not currently captured in CI') if ENV.key?('CI') }
+RSpec.describe "SQL comment propagation", order: :defined do
+  before { skip("Benchmark results not currently captured in CI") if ENV.key?("CI") }
 
-  describe 'with `mysql2' do
-    let(:host) { ENV.fetch('TEST_MYSQL_HOST') { '127.0.0.1' } }
-    let(:port) { ENV.fetch('TEST_MYSQL_PORT') { '3306' } }
-    let(:database) { ENV.fetch('TEST_MYSQL_DB') { 'mysql' } }
-    let(:username) { ENV.fetch('TEST_MYSQL_USER') { 'root' } }
-    let(:password) { ENV.fetch('TEST_MYSQL_PASSWORD') { 'root' } }
+  describe "with `mysql2" do
+    let(:host) { ENV.fetch("TEST_MYSQL_HOST") { "127.0.0.1" } }
+    let(:port) { ENV.fetch("TEST_MYSQL_PORT") { "3306" } }
+    let(:database) { ENV.fetch("TEST_MYSQL_DB") { "mysql" } }
+    let(:username) { ENV.fetch("TEST_MYSQL_USER") { "root" } }
+    let(:password) { ENV.fetch("TEST_MYSQL_PASSWORD") { "root" } }
 
-    context 'benchmark' do
+    context "benchmark" do
       before do
         Datadog.configure do |c|
-          c.env = 'production'
-          c.service = 'myservice'
-          c.version = '1.0.0'
+          c.env = "production"
+          c.service = "myservice"
+          c.version = "1.0.0"
           c.tracing.instrument :mysql2
         end
       end
@@ -33,10 +33,10 @@ RSpec.describe 'SQL comment propagation', order: :defined do
           password: password
         }
       end
-      let(:sql_statement) { 'SELECT 1;' }
+      let(:sql_statement) { "SELECT 1;" }
 
-      context 'without db connection' do
-        context 'SELECT 1' do
+      context "without db connection" do
+        context "SELECT 1" do
           it do
             mock_client = Class.new do
               include Datadog::Tracing::Contrib::Mysql2::Instrumentation
@@ -54,19 +54,19 @@ RSpec.describe 'SQL comment propagation', order: :defined do
 
             mock_disabled_client = Class.new(mock_client) do
               def comment_propagation
-                'disabled'
+                "disabled"
               end
             end
 
             mock_service_client = Class.new(mock_client) do
               def comment_propagation
-                'service'
+                "service"
               end
             end
 
             mock_full_client = Class.new(mock_client) do
               def comment_propagation
-                'full'
+                "full"
               end
             end
 
@@ -81,9 +81,9 @@ RSpec.describe 'SQL comment propagation', order: :defined do
             sleep 1
 
             Benchmark.ips do |x|
-              x.report('disabled') { client_1.query(sql_statement) }
-              x.report('service') { client_2.query(sql_statement) }
-              x.report('full') { client_3.query(sql_statement) }
+              x.report("disabled") { client_1.query(sql_statement) }
+              x.report("service") { client_2.query(sql_statement) }
+              x.report("full") { client_3.query(sql_statement) }
 
               x.compare!
             end
@@ -91,8 +91,8 @@ RSpec.describe 'SQL comment propagation', order: :defined do
         end
       end
 
-      context 'with db connection' do
-        context 'SELECT 1' do
+      context "with db connection" do
+        context "SELECT 1" do
           it do
             test_client = Class.new(Mysql2::Client) do
               def query(sql, options = {})
@@ -102,19 +102,19 @@ RSpec.describe 'SQL comment propagation', order: :defined do
 
             test_disabled_client = Class.new(test_client) do
               def comment_propagation
-                'disabled'
+                "disabled"
               end
             end
 
             test_service_client = Class.new(test_client) do
               def comment_propagation
-                'service'
+                "service"
               end
             end
 
             test_full_client = Class.new(test_client) do
               def comment_propagation
-                'full'
+                "full"
               end
             end
 
@@ -129,9 +129,9 @@ RSpec.describe 'SQL comment propagation', order: :defined do
             sleep 1
 
             Benchmark.ips do |x|
-              x.report('disabled') { client_1.query(sql_statement) }
-              x.report('service') { client_2.query(sql_statement) }
-              x.report('full') { client_3.query(sql_statement) }
+              x.report("disabled") { client_1.query(sql_statement) }
+              x.report("service") { client_2.query(sql_statement) }
+              x.report("full") { client_3.query(sql_statement) }
 
               x.compare!
             end

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'event'
-require_relative 'events/broadcast'
-require_relative 'events/perform_action'
-require_relative 'events/transmit'
+require_relative "event"
+require_relative "events/broadcast"
+require_relative "events/perform_action"
+require_relative "events/transmit"
 
 module Datadog
   module Tracing

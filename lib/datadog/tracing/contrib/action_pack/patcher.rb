@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'action_controller/patcher'
-require_relative 'action_dispatch/patcher'
+require_relative "../patcher"
+require_relative "action_controller/patcher"
+require_relative "action_dispatch/patcher"
 
 module Datadog
   module Tracing

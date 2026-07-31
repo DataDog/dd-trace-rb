@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require "spec_helper"
 
-require 'ostruct'
-require 'datadog/core/utils/base64_codec'
-require 'datadog/core/remote/transport/http'
-require 'datadog/core/remote/transport/http/negotiation'
-require 'datadog/core/remote/transport/negotiation'
+require "ostruct"
+require "datadog/core/utils/base64_codec"
+require "datadog/core/remote/transport/http"
+require "datadog/core/remote/transport/http/negotiation"
+require "datadog/core/remote/transport/negotiation"
 
 RSpec.describe Datadog::Core::Remote::Transport::HTTP do
-  shared_context 'HTTP connection stub' do
+  shared_context "HTTP connection stub" do
     before do
       request_class = case request_verb
       when :get then ::Net::HTTP::Get
@@ -36,15 +36,15 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
   let(:http_connection) { instance_double(::Net::HTTP) }
   let(:logger) { logger_allowing_debug }
 
-  describe '.root' do
+  describe ".root" do
     subject(:transport) { described_class.root(agent_settings: test_agent_settings, logger: logger, &client_options) }
 
     let(:client_options) { proc { |_client| } }
 
     it { is_expected.to be_a(Datadog::Core::Remote::Transport::Negotiation::Transport) }
 
-    describe '#send_info' do
-      include_context 'HTTP connection stub'
+    describe "#send_info" do
+      include_context "HTTP connection stub"
 
       subject(:response) { transport.send_info }
 
@@ -54,13 +54,13 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
       let(:response_body) do
         JSON.dump(
           {
-            version: '42',
+            version: "42",
             endpoints: [
-              '/info',
-              '/v0/path',
+              "/info",
+              "/v0/path",
             ],
             config: {
-              max_request_bytes: '1234',
+              max_request_bytes: "1234",
             }
           }
         )
@@ -69,29 +69,29 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
       it { is_expected.to be_a(Datadog::Core::Remote::Transport::HTTP::Negotiation::Response) }
 
       it { is_expected.to be_ok }
-      it { is_expected.to have_attributes(version: '42') }
-      it { is_expected.to have_attributes(endpoints: ['/info', '/v0/path']) }
-      it { is_expected.to have_attributes(config: {max_request_bytes: '1234'}) }
+      it { is_expected.to have_attributes(version: "42") }
+      it { is_expected.to have_attributes(endpoints: ["/info", "/v0/path"]) }
+      it { is_expected.to have_attributes(config: {max_request_bytes: "1234"}) }
 
-      it { expect(transport.client.instance.headers).to_not include('Datadog-Client-Computed-Stats') }
+      it { expect(transport.client.instance.headers).to_not include("Datadog-Client-Computed-Stats") }
 
-      context 'with APM disabled' do
+      context "with APM disabled" do
         before { expect(Datadog.configuration.apm.tracing).to receive(:enabled).and_return(false) }
 
-        it { expect(transport.client.instance.headers['Datadog-Client-Computed-Stats']).to eq('yes') }
+        it { expect(transport.client.instance.headers["Datadog-Client-Computed-Stats"]).to eq("yes") }
       end
     end
   end
 
-  describe '.v7' do
+  describe ".v7" do
     subject(:transport) { described_class.v7(agent_settings: test_agent_settings, logger: logger, &client_options) }
 
     let(:client_options) { proc { |_client| } }
 
     it { is_expected.to be_a(Datadog::Core::Remote::Transport::Config::Transport) }
 
-    describe '#send_config' do
-      include_context 'HTTP connection stub'
+    describe "#send_config" do
+      include_context "HTTP connection stub"
 
       let(:state) do
         OpenStruct.new(
@@ -100,8 +100,8 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
             targets_version: 0,           # from scratch, so zero
             config_states: [],            # from scratch, so empty
             has_error: false,             # from scratch, so false
-            error: '',                    # from scratch, so blank
-            opaque_backend_state: '',     # from scratch, so blank
+            error: "",                    # from scratch, so blank
+            opaque_backend_state: "",     # from scratch, so blank
           }
         )
       end
@@ -115,10 +115,10 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
       let(:capabilities_binary) do
         capabilities
           .to_s(16)
-          .tap { |s| s.size.odd? && s.prepend('0') }
+          .tap { |s| s.size.odd? && s.prepend("0") }
           .scan(/\h\h/)
           .map { |e| e.to_i(16) }
-          .pack('C*')
+          .pack("C*")
       end
 
       let(:payload) do
@@ -171,14 +171,14 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
             targets: jencode.call(
               {
                 signed: {
-                  expires: '2022-09-22T09:01:04Z',
+                  expires: "2022-09-22T09:01:04Z",
                   targets: {
-                    'datadog/42/PRODUCT/foo/config' => {
-                      hashes: {sha256: 'd0b425e00e15a0d36b9b361f02bab63563aed6cb4665083905386c55d5b679fa'},
+                    "datadog/42/PRODUCT/foo/config" => {
+                      hashes: {sha256: "d0b425e00e15a0d36b9b361f02bab63563aed6cb4665083905386c55d5b679fa"},
                       length: 8,
                     },
-                    'employee/PRODUCT/bar/config' => {
-                      hashes: {sha256: 'dab741b6289e7dccc1ed42330cae1accc2b755ce8079c2cd5d4b5366c9f769a6'},
+                    "employee/PRODUCT/bar/config" => {
+                      hashes: {sha256: "dab741b6289e7dccc1ed42330cae1accc2b755ce8079c2cd5d4b5366c9f769a6"},
                       length: 8,
                     },
                   }
@@ -187,17 +187,17 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
             ),
             target_files: [
               {
-                path: 'datadog/42/PRODUCT/foo/config',
-                raw: encode.call('content1'),
+                path: "datadog/42/PRODUCT/foo/config",
+                raw: encode.call("content1"),
               },
               {
-                path: 'employee/PRODUCT/bar/config',
-                raw: encode.call('content2'),
+                path: "employee/PRODUCT/bar/config",
+                raw: encode.call("content2"),
               },
             ],
             client_configs: [
-              'datadog/42/PRODUCT/foo/config',
-              'employee/PRODUCT/bar/config',
+              "datadog/42/PRODUCT/foo/config",
+              "employee/PRODUCT/bar/config",
             ],
           }
         )
@@ -212,16 +212,16 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
       it { is_expected.to have_attributes(targets: be_a(Hash)) }
       it { is_expected.to have_attributes(target_files: be_a(Array)) }
 
-      it { expect(transport.client.instance.headers).to_not include('Datadog-Client-Computed-Stats') }
+      it { expect(transport.client.instance.headers).to_not include("Datadog-Client-Computed-Stats") }
 
-      context 'with APM disabled' do
+      context "with APM disabled" do
         before { expect(Datadog.configuration.apm.tracing).to receive(:enabled).and_return(false) }
 
-        it { expect(transport.client.instance.headers['Datadog-Client-Computed-Stats']).to eq('yes') }
+        it { expect(transport.client.instance.headers["Datadog-Client-Computed-Stats"]).to eq("yes") }
       end
 
-      context 'with a network error' do
-        it 'raises a transport error' do
+      context "with a network error" do
+        it "raises a transport error" do
           expect(http_connection).to receive(:request).and_raise(IOError)
 
           expect(logger).to receive(:debug).with(/IOError/)

@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
-require_relative '../../core/transport/parcel'
-require_relative '../../core/transport/request'
-require_relative '../../core/transport/transport'
-require_relative 'http/diagnostics'
+require_relative "../../core/transport/parcel"
+require_relative "../../core/transport/request"
+require_relative "../../core/transport/transport"
+require_relative "http/diagnostics"
 
 module Datadog
   module DI

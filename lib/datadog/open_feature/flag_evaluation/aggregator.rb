@@ -18,11 +18,11 @@ module Datadog
         MAX_CONTEXT_DEPTH = 32
 
         # Type tags so values of different Ruby types never collide in the canonical key.
-        CTX_TAG_STRING = 's'
-        CTX_TAG_BOOL = 'b'
-        CTX_TAG_INTEGER = 'i'
-        CTX_TAG_FLOAT = 'f'
-        CTX_TAG_OTHER = 'o'
+        CTX_TAG_STRING = "s"
+        CTX_TAG_BOOL = "b"
+        CTX_TAG_INTEGER = "i"
+        CTX_TAG_FLOAT = "f"
+        CTX_TAG_OTHER = "o"
 
         EVAL_SCALE_TARGET_FLAGS = 2_500
         EVAL_SCALE_FULL_BUCKETS_PER_FLAG = 50
@@ -176,9 +176,9 @@ module Datadog
         #                8-byte big-endian value length + value bytes.
         # No hash digest — the key IS the full encoding (collision-free, no FNV).
         def canonical_context_key(attrs)
-          return '' if attrs.nil? || attrs.empty?
+          return "" if attrs.nil? || attrs.empty?
 
-          buffer = String.new('', encoding: Encoding::BINARY)
+          buffer = String.new("", encoding: Encoding::BINARY)
           attrs.keys.sort.each do |key|
             value = attrs[key]
             buffer << length_delimited(key.to_s)
@@ -233,7 +233,7 @@ module Datadog
           bytes = string.encode(Encoding::BINARY, invalid: :replace, undef: :replace)
           byte_length = bytes.bytesize
           # Build 8-byte big-endian length
-          length_bytes = String.new('', encoding: Encoding::BINARY)
+          length_bytes = String.new("", encoding: Encoding::BINARY)
           8.times do |index|
             length_bytes.prepend(((byte_length >> (8 * index)) & 0xFF).chr(Encoding::BINARY))
           end

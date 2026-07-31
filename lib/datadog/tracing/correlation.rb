@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'utils'
-require_relative '../core/logging/ext'
+require_relative "utils"
+require_relative "../core/logging/ext"
 
 module Datadog
   module Tracing
@@ -13,12 +13,12 @@ module Datadog
       # Represents current trace state with key identifiers
       # @public_api
       class Identifier
-        LOG_ATTR_ENV = 'dd.env'
-        LOG_ATTR_SERVICE = 'dd.service'
-        LOG_ATTR_SPAN_ID = 'dd.span_id'
-        LOG_ATTR_TRACE_ID = 'dd.trace_id'
-        LOG_ATTR_VERSION = 'dd.version'
-        LOG_ATTR_SOURCE = 'ddsource'
+        LOG_ATTR_ENV = "dd.env"
+        LOG_ATTR_SERVICE = "dd.service"
+        LOG_ATTR_SPAN_ID = "dd.span_id"
+        LOG_ATTR_TRACE_ID = "dd.trace_id"
+        LOG_ATTR_VERSION = "dd.version"
+        LOG_ATTR_SOURCE = "ddsource"
 
         attr_reader \
           :env,
@@ -68,7 +68,7 @@ module Datadog
             attributes << "#{LOG_ATTR_TRACE_ID}=#{trace_id}"
             attributes << "#{LOG_ATTR_SPAN_ID}=#{span_id}"
             attributes << "#{LOG_ATTR_SOURCE}=#{Core::Logging::Ext::DD_SOURCE}"
-            attributes.join(' ')
+            attributes.join(" ")
           end
         end
 
@@ -103,7 +103,7 @@ module Datadog
 
       def format_trace_id_128(trace_id)
         if !Tracing::Utils::TraceId.to_high_order(trace_id).zero?
-          Kernel.format('%032x', trace_id)
+          Kernel.format("%032x", trace_id)
         else
           Tracing::Utils::TraceId.to_low_order(trace_id).to_s
         end

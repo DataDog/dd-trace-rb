@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative '../core/utils/time'
-require 'open_feature/sdk'
+require_relative "ext"
+require_relative "../core/utils/time"
+require "open_feature/sdk"
 
 module Datadog
   module OpenFeature
@@ -58,7 +58,7 @@ module Datadog
     #   # => 'Welcome back!'
     #   ```
     class Provider
-      NAME = 'Datadog Feature Flagging Provider'
+      NAME = "Datadog Feature Flagging Provider"
 
       attr_reader :metadata
 
@@ -178,7 +178,7 @@ module Datadog
 
         # Eval-time stamped at provider entry; the EVP hook reads 'dd.eval.timestamp_ms' for
         # accurate first/last_evaluation bounds (it falls back to hook-fire time when absent).
-        metadata['dd.eval.timestamp_ms'] = eval_time_ms
+        metadata["dd.eval.timestamp_ms"] = eval_time_ms
 
         metadata
       end
@@ -218,7 +218,7 @@ module Datadog
           error_code: Ext::PROVIDER_FATAL,
           error_message: "Datadog's OpenFeature component must be configured",
           reason: Ext::ERROR,
-          flag_metadata: {'dd.eval.timestamp_ms' => eval_time_ms}
+          flag_metadata: {"dd.eval.timestamp_ms" => eval_time_ms}
         )
       end
     end

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'ext'
-require_relative 'events'
-require_relative 'instrumentation'
+require_relative "../patcher"
+require_relative "ext"
+require_relative "events"
+require_relative "instrumentation"
 
 module Datadog
   module Tracing

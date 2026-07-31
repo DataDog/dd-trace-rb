@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative 'resolution_details'
+require_relative "ext"
+require_relative "resolution_details"
 
 module Datadog
   module OpenFeature
@@ -17,7 +17,7 @@ module Datadog
           log?: false,
           error?: true,
           error_code: Ext::PROVIDER_NOT_READY,
-          error_message: 'Waiting for flags configuration',
+          error_message: "Waiting for flags configuration",
           reason: Ext::ERROR
         )
       end

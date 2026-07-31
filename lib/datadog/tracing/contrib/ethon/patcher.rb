@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
+require_relative "../patcher"
 
 module Datadog
   module Tracing
@@ -17,8 +17,8 @@ module Datadog
           end
 
           def patch
-            require_relative 'easy_patch'
-            require_relative 'multi_patch'
+            require_relative "easy_patch"
+            require_relative "multi_patch"
 
             ::Ethon::Easy.include(EasyPatch)
             ::Ethon::Multi.include(MultiPatch)

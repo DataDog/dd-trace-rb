@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../metadata/ext'
+require_relative "../../../metadata/ext"
 
 module Datadog
   module Tracing
@@ -9,10 +9,10 @@ module Datadog
         module ActionDispatch
           # Instrumentation for ActionDispatch components
           module Instrumentation
-            SCRIPT_NAME_KEY = 'SCRIPT_NAME'
-            FORMAT_SUFFIX = '(.:format)'
+            SCRIPT_NAME_KEY = "SCRIPT_NAME"
+            FORMAT_SUFFIX = "(.:format)"
             # NOTE: Rails 8.1.1+ natively provides the same object via 'action_dispatch.route'.
-            DATADOG_RAILS_ROUTE_ENV_KEY = 'datadog.action_dispatch.route'
+            DATADOG_RAILS_ROUTE_ENV_KEY = "datadog.action_dispatch.route"
 
             module_function
 

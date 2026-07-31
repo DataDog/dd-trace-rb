@@ -23,7 +23,7 @@ For a list of available integrations, and their supported version ranges, refer 
 | delayed_job              | 4.1.11              | 4.1.13              |
 | elasticsearch            | 7.17.11             | 9.4.3               |
 | ethon                    | 0.15.0              | 0.18.0              |
-| excon                    | 0.109.0             | 1.5.0               |
+| excon                    | 0.109.0             | 1.6.0               |
 | faraday                  | 0.14.0              | 2.14.3              |
 | grape                    | 1.7.0               | 3.1.1               |
 | graphql                  | 1.13.21             | 2.3.22              |
@@ -58,7 +58,7 @@ For a list of available integrations, and their supported version ranges, refer 
 | sidekiq                  | 5.2.8               | 8.0.7               |
 | sinatra                  | 2.2.4               | 4.1.1               |
 | sneakers                 | 2.12.0              | 2.12.0              |
-| stripe                   | 5.15.0              | 19.3.0              |
+| stripe                   | 5.15.0              | 19.3.1              |
 | sucker_punch             | 3.1.0               | 3.2.0               |
 | trilogy                  | 2.6.0               | 2.9.0               |
-| waterdrop                | 2.6.14              | 2.10.2              |
+| waterdrop                | 2.6.14              | 2.10.3              |

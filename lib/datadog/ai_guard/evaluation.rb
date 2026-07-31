@@ -15,6 +15,7 @@ module Datadog
               Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
               Tracing::Sampling::Ext::Decision::AI_GUARD
             )
+            trace.set_distributed_source(Ext::PRODUCT_BIT)
             trace.set_tag(Ext::EVENT_TAG, true)
             trace.set_tag(Ext::TRACE_EXECUTED_TAG, "1")
 

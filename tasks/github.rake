@@ -1,18 +1,18 @@
-require 'json'
-require_relative 'appraisal_conversion'
+require "json"
+require_relative "appraisal_conversion"
 
 # rubocop:disable Metrics/BlockLength
 namespace :github do
   task :generate_batches do
-    matrix = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
+    matrix = eval(File.read("Matrixfile")).freeze # rubocop:disable Security/Eval
 
     # TODO: These are the execptions, find a way to describe those service dependencies in CI using a more generic mechansim.
     misc_candidates = [
-      'mongodb',
-      'elasticsearch',
-      'opensearch',
-      'presto',
-      'dalli',
+      "mongodb",
+      "elasticsearch",
+      "opensearch",
+      "presto",
+      "dalli",
     ]
 
     ruby_version = RUBY_VERSION[0..2]
@@ -29,7 +29,7 @@ namespace :github do
         gemfile = begin
           AppraisalConversion.to_bundle_gemfile(group)
         rescue
-          'Gemfile'
+          "Gemfile"
         end
 
         task = {task: key, group: group, gemfile: gemfile}
@@ -47,15 +47,15 @@ namespace :github do
 
     tasks_per_job = (matching_tasks.size.to_f / batch_count).ceil
 
-    batched_matrix = {'include' => []}
+    batched_matrix = {"include" => []}
 
     matching_tasks.each_slice(tasks_per_job).with_index do |task_group, index|
-      batched_matrix['include'] << {'batch' => index.to_s, 'tasks' => task_group}
+      batched_matrix["include"] << {"batch" => index.to_s, "tasks" => task_group}
     end
 
     data = {
       batches: batched_matrix,
-      misc: {'include' => [{'batch' => "0", 'tasks' => misc_tasks}]}
+      misc: {"include" => [{"batch" => "0", "tasks" => misc_tasks}]}
     }
 
     # Output the JSON
@@ -63,15 +63,15 @@ namespace :github do
   end
 
   task :generate_batch_summary do
-    batches_json = ENV['batches_json']
-    raise 'batches_json environment variable not set' unless batches_json
+    batches_json = ENV["batches_json"]
+    raise "batches_json environment variable not set" unless batches_json
 
     data = JSON.parse(batches_json)
-    summary = ENV['GITHUB_STEP_SUMMARY']
+    summary = ENV["GITHUB_STEP_SUMMARY"]
 
-    File.open(summary, 'a') do |f|
-      data['include'].each do |batch|
-        rows = batch['tasks'].map do |t|
+    File.open(summary, "a") do |f|
+      data["include"].each do |batch|
+        rows = batch["tasks"].map do |t|
           "* #{t["task"]} (#{t["group"]})"
         end
 
@@ -87,11 +87,11 @@ namespace :github do
   end
 
   task :run_batch_build do
-    tasks = JSON.parse(ENV['BATCHED_TASKS'] || {})
+    tasks = JSON.parse(ENV["BATCHED_TASKS"] || {})
 
     tasks.each do |task|
-      env = {'BUNDLE_GEMFILE' => task['gemfile']}
-      cmd = 'bundle check || bundle install'
+      env = {"BUNDLE_GEMFILE" => task["gemfile"]}
+      cmd = "bundle check || bundle install"
       # Retry mechanism to improve reliability in Github Actions,
       # since network issues can cause `bundle install` to fail.
       with_retry do
@@ -101,12 +101,12 @@ namespace :github do
   end
 
   task :run_batch_tests do
-    tasks = JSON.parse(ENV['BATCHED_TASKS'] || {})
+    tasks = JSON.parse(ENV["BATCHED_TASKS"] || {})
 
-    rng = Random.new(ENV['CI_TEST_SEED'].to_i)
+    rng = Random.new(ENV["CI_TEST_SEED"].to_i)
 
     tasks.each do |task|
-      env = {'BUNDLE_GEMFILE' => task['gemfile']}
+      env = {"BUNDLE_GEMFILE" => task["gemfile"]}
       cmd = "bundle exec rake spec:#{task["task"]}'[--seed #{rng.rand(0xFFFF)}]'"
 
       Bundler.with_unbundled_env { sh(env, cmd) }

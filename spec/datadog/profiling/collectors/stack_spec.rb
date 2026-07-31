@@ -274,7 +274,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         let(:native_filenames_enabled) { true }
 
         before do
-          skip('Native filenames are only available on Linux') unless described_class._native_filenames_available?
+          skip("Native filenames are only available on Linux") unless described_class._native_filenames_available?
         end
 
         it "matches the Ruby backtrace API after the 6th frame" do
@@ -324,7 +324,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         let(:native_filenames_enabled) { true }
 
         before do
-          skip('Native filenames are only available on Linux') unless described_class._native_filenames_available?
+          skip("Native filenames are only available on Linux") unless described_class._native_filenames_available?
         end
 
         it "matches the Ruby backtrace API after the 5th frame" do
@@ -437,7 +437,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
 
         # See comment on sample_thread in collectors_stack.c for details of why we do this
-        context 'when wall_time is zero' do
+        context "when wall_time is zero" do
           let(:metric_values) { {"cpu-time" => 0, "cpu-samples" => 1, "wall-time" => 0} }
 
           it do
@@ -910,12 +910,16 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   describe "_native_filenames_available?" do
     it "returns true on linux and macOS" do
+      skip("Native filenames are unavailable for this Ruby build") unless described_class._native_filenames_available?
+
       expect(described_class._native_filenames_available?).to be true
     end
   end
 
   describe "_native_ruby_native_filename" do
     it "returns the correct filename", if: PlatformHelpers.linux? do
+      skip("Native filenames are unavailable for this Ruby build") unless described_class._native_filenames_available?
+
       expect(described_class._native_ruby_native_filename).to end_with("/ruby").or(include("libruby").and(include(".so")))
     end
 

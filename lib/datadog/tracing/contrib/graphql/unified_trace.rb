@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'graphql'
+require "graphql"
 
 module Datadog
   module Tracing
@@ -34,66 +34,66 @@ module Datadog
               @message_key = Tracing::Metadata::Ext::Errors::ATTRIBUTE_MESSAGE
               @type_key = Tracing::Metadata::Ext::Errors::ATTRIBUTE_TYPE
               @stacktrace_key = Tracing::Metadata::Ext::Errors::ATTRIBUTE_STACKTRACE
-              @locations_key = 'graphql.error.locations'
-              @path_key = 'graphql.error.path'
-              @extensions_key = 'graphql.error.extensions.'
+              @locations_key = "graphql.error.locations"
+              @path_key = "graphql.error.path"
+              @extensions_key = "graphql.error.extensions."
             else
               @event_name = Ext::EVENT_QUERY_ERROR
-              @message_key = 'message'
-              @type_key = 'type'
-              @stacktrace_key = 'stacktrace'
-              @locations_key = 'locations'
-              @path_key = 'path'
-              @extensions_key = 'extensions.'
+              @message_key = "message"
+              @type_key = "type"
+              @stacktrace_key = "stacktrace"
+              @locations_key = "locations"
+              @path_key = "path"
+              @extensions_key = "extensions."
             end
           end
 
           private :load_error_event_attributes
 
           def lex(*args, query_string:, **kwargs)
-            trace(proc { super }, 'lex', query_string, query_string: query_string)
+            trace(proc { super }, "lex", query_string, query_string: query_string)
           end
 
           def parse(*args, query_string:, **kwargs)
-            trace(proc { super }, 'parse', query_string, query_string: query_string) do |span|
-              span.set_tag('graphql.source', query_string)
+            trace(proc { super }, "parse", query_string, query_string: query_string) do |span|
+              span.set_tag("graphql.source", query_string)
             end
           end
 
           def validate(*args, query:, validate:, **kwargs)
-            trace(proc { super }, 'validate', query.selected_operation_name, query: query, validate: validate) do |span|
-              span.set_tag('graphql.source', query.query_string)
+            trace(proc { super }, "validate", query.selected_operation_name, query: query, validate: validate) do |span|
+              span.set_tag("graphql.source", query.query_string)
             end
           end
 
           def analyze_multiplex(*args, multiplex:, **kwargs)
-            trace(proc { super }, 'analyze_multiplex', multiplex_resource(multiplex), multiplex: multiplex)
+            trace(proc { super }, "analyze_multiplex", multiplex_resource(multiplex), multiplex: multiplex)
           end
 
           def analyze_query(*args, query:, **kwargs)
-            trace(proc { super }, 'analyze', query.query_string, query: query)
+            trace(proc { super }, "analyze", query.query_string, query: query)
           end
 
           def execute_multiplex(*args, multiplex:, **kwargs)
-            trace(proc { super }, 'execute_multiplex', multiplex_resource(multiplex), multiplex: multiplex) do |span|
-              span.set_tag('graphql.source', "Multiplex[#{multiplex.queries.map(&:query_string).join(", ")}]")
+            trace(proc { super }, "execute_multiplex", multiplex_resource(multiplex), multiplex: multiplex) do |span|
+              span.set_tag("graphql.source", "Multiplex[#{multiplex.queries.map(&:query_string).join(", ")}]")
             end
           end
 
           def execute_query(*args, query:, **kwargs)
             trace(
               proc { super },
-              'execute',
+              "execute",
               operation_resource(query.selected_operation),
               lambda { |span|
                 # Ensure this span can be aggregated by in the Datadog App, and generates RED metrics.
                 span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
 
-                span.set_tag('graphql.source', query.query_string)
-                span.set_tag('graphql.operation.type', query.selected_operation&.operation_type)
+                span.set_tag("graphql.source", query.query_string)
+                span.set_tag("graphql.operation.type", query.selected_operation&.operation_type)
                 if query.selected_operation_name
                   span.set_tag(
-                    'graphql.operation.name',
+                    "graphql.operation.name",
                     query.selected_operation_name
                   )
                 end
@@ -112,7 +112,7 @@ module Datadog
             else
               multiplex_resource(multiplex)
             end
-            trace(proc { super }, 'execute_lazy', resource, query: query, multiplex: multiplex)
+            trace(proc { super }, "execute_lazy", resource, query: query, multiplex: multiplex)
           end
 
           def execute_field_span(callable, span_key, **kwargs)
@@ -131,11 +131,11 @@ module Datadog
           end
 
           def execute_field(*args, **kwargs)
-            execute_field_span(proc { super }, 'resolve', **kwargs)
+            execute_field_span(proc { super }, "resolve", **kwargs)
           end
 
           def execute_field_lazy(*args, **kwargs)
-            execute_field_span(proc { super }, 'resolve_lazy', **kwargs)
+            execute_field_span(proc { super }, "resolve_lazy", **kwargs)
           end
 
           def authorized_span(callable, span_key, **kwargs)
@@ -144,11 +144,11 @@ module Datadog
           end
 
           def authorized(*args, **kwargs)
-            authorized_span(proc { super }, 'authorized', **kwargs)
+            authorized_span(proc { super }, "authorized", **kwargs)
           end
 
           def authorized_lazy(*args, **kwargs)
-            authorized_span(proc { super }, 'authorized_lazy', **kwargs)
+            authorized_span(proc { super }, "authorized_lazy", **kwargs)
           end
 
           def resolve_type_span(callable, span_key, **kwargs)
@@ -157,11 +157,11 @@ module Datadog
           end
 
           def resolve_type(*args, **kwargs)
-            resolve_type_span(proc { super }, 'resolve_type', **kwargs)
+            resolve_type_span(proc { super }, "resolve_type", **kwargs)
           end
 
           def resolve_type_lazy(*args, **kwargs)
-            resolve_type_span(proc { super }, 'resolve_type_lazy', **kwargs)
+            resolve_type_span(proc { super }, "resolve_type_lazy", **kwargs)
           end
 
           def platform_field_key(field, *args, **kwargs)
@@ -210,7 +210,7 @@ module Datadog
           def trace(callable, trace_key, resource, before = nil, after = nil, **kwargs, &before_block)
             Tracing.trace(
               "graphql.#{trace_key}",
-              type: 'graphql',
+              type: "graphql",
               resource: resource,
               service: @service_name
             ) do |span|
@@ -220,7 +220,7 @@ module Datadog
               end
 
               # A sanity check for us.
-              raise 'Please provide either `before` or a block, but not both' if before && before_block
+              raise "Please provide either `before` or a block, but not both" if before && before_block
 
               if (before_callable = before || before_block)
                 before_callable.call(span)
@@ -239,7 +239,7 @@ module Datadog
           def multiplex_resource(multiplex)
             return nil unless multiplex
 
-            operations = multiplex.queries.map(&:selected_operation_name).compact.join(', ')
+            operations = multiplex.queries.map(&:selected_operation_name).compact.join(", ")
             if operations.empty?
               first_query = multiplex.queries.first
               fallback_transaction_name(first_query && first_query.context)
@@ -252,7 +252,7 @@ module Datadog
             if operation&.name
               "#{operation.operation_type} #{operation.name}"
             else
-              'anonymous'
+              "anonymous"
             end
           end
 
@@ -288,10 +288,10 @@ module Datadog
                 attributes: attributes.merge!(
                   @type_key => parsed_error.type,
                   @stacktrace_key => parsed_error.backtrace,
-                  @message_key => graphql_error['message'],
+                  @message_key => graphql_error["message"],
                   @locations_key =>
-                    Datadog::Tracing::Contrib::GraphQL::UnifiedTrace.serialize_error_locations(graphql_error['locations']),
-                  @path_key => graphql_error['path'],
+                    Datadog::Tracing::Contrib::GraphQL::UnifiedTrace.serialize_error_locations(graphql_error["locations"]),
+                  @path_key => graphql_error["path"],
                 )
               )
             end

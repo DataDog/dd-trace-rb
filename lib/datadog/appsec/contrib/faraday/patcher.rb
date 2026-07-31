@@ -17,9 +17,9 @@ module Datadog
           end
 
           def patch
-            require_relative 'ssrf_detection_middleware'
-            require_relative 'connection_patch'
-            require_relative 'rack_builder_patch'
+            require_relative "ssrf_detection_middleware"
+            require_relative "connection_patch"
+            require_relative "rack_builder_patch"
 
             ::Faraday::Middleware.register_middleware(datadog_appsec: SSRFDetectionMiddleware)
             configure_default_faraday_connection
@@ -28,7 +28,7 @@ module Datadog
           end
 
           def configure_default_faraday_connection
-            if target_version&.>= Gem::Version.new('1.0.0')
+            if target_version&.>= Gem::Version.new("1.0.0")
               # Patch the default connection (e.g. +Faraday.get+)
               ::Faraday.default_connection.use(:datadog_appsec)
 

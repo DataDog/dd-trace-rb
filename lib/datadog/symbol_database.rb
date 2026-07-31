@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'ruby_version'
+require_relative "ruby_version"
 
 module Datadog
   # Namespace for Datadog symbol database upload.
@@ -65,7 +65,7 @@ module Datadog
     # does not).
     # @return [Boolean]
     def self.supported_runtime?
-      RUBY_ENGINE == 'ruby' && RubyVersion.is?('>= 2.7')
+      RUBY_ENGINE == "ruby" && RubyVersion.is?(">= 2.7")
     end
   end
 end

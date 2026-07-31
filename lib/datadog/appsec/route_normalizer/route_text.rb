@@ -21,7 +21,7 @@ module Datadog
         #  169 => %A9   (UTF-8 continuation byte)
         BYTE_ENCODING_TABLE = Array.new(256) do |byte|
           char = byte.chr
-          char.match?(DISALLOWED_CHARS) ? -('%%%02X' % byte) : -char
+          char.match?(DISALLOWED_CHARS) ? -("%%%02X" % byte) : -char
         end.freeze
 
         # Max bytes one input byte expands to as percent-encoded `%XX`
@@ -48,8 +48,8 @@ module Datadog
         # NOTE: Defensive only — this can never happen. {String#each_byte} yields
         #       integers in 0-255 and {BYTE_ENCODING_TABLE} has an entry for every one
         rescue IndexError => e
-          AppSec.telemetry&.report(e, description: 'AppSec: Route text byte outside 0-255 escape table')
-          '~invalid~'
+          AppSec.telemetry&.report(e, description: "AppSec: Route text byte outside 0-255 escape table")
+          "~invalid~"
         end
       end
     end

@@ -21,7 +21,7 @@ module Datadog
                       pending_messages.each do |message|
                         message.headers ||= {}
                         Datadog::DataStreams.set_produce_checkpoint(
-                          type: 'kafka',
+                          type: "kafka",
                           destination: message.topic,
                           auto_instrumentation: true
                         ) do |key, value|
@@ -43,7 +43,7 @@ module Datadog
                     messages.each do |message|
                       message[:headers] ||= {}
                       Datadog::DataStreams.set_produce_checkpoint(
-                        type: 'kafka',
+                        type: "kafka",
                         destination: message[:topic],
                         auto_instrumentation: true
                       ) do |key, value|
