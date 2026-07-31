@@ -1,4 +1,4 @@
-require_relative "security_capabilities"
+require_relative "lockfile"
 
 if Gem.loaded_specs.key?("bundler-audit")
   require_relative "dependency_auditing"
@@ -21,7 +21,7 @@ if Gem.loaded_specs.key?("bundler-audit")
       abort("Could not refresh the ruby-advisory-db (needs git + network)") if updated == false
       database = Bundler::Audit::Database.new
 
-      lockfiles = SecurityCapabilities.audit_eligible_lockfiles
+      lockfiles = Dir.glob("gemfiles/*.gemfile.lock").select { |path| Lockfile.new(path).audit_eligible? }.sort
       ignore = DependencyAuditing.load_ignore_list
 
       puts "Auditing #{lockfiles.size} lockfiles (high/critical only)..."

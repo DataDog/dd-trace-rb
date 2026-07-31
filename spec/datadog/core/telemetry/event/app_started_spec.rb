@@ -42,6 +42,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       # ['tracing.writer_options.flush_interval', 456], # not reported by default
       # ['logger.instance', 'MyLogger'], # not reported by default
       ["DD_APPSEC_ENABLED", false],
+      ["DD_APPSEC_AGENTIC_ONBOARDING", ""],
       # ['DD_APPSEC_SCA_ENABLED', false], # not reported by default
       ["DD_APM_TRACING_ENABLED", true]
     ].freeze
