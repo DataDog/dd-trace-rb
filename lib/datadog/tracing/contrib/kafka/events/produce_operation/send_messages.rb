@@ -17,12 +17,17 @@ module Datadog
 
               module_function
 
-              def on_start(span, _event, _id, payload)
+              def on_start(span, _event, _id, _payload)
+                super
+
+                span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER)
+              end
+
+              def on_finish(span, _event, _id, payload)
                 super
 
                 span.set_tag(Ext::TAG_MESSAGE_COUNT, payload[:message_count]) if payload.key?(:message_count)
                 span.set_tag(Ext::TAG_SENT_MESSAGE_COUNT, payload[:sent_message_count]) if payload.key?(:sent_message_count)
-                span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER)
               end
 
               def span_name

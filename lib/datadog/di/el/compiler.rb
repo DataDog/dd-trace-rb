@@ -71,10 +71,11 @@ module Datadog
         def compile_partial(ast, regexps)
           case ast
           when Hash
-            if ast.length != 1
+            entry = ast.first
+            if ast.length != 1 || entry.nil?
               raise DI::Error::InvalidExpression, "Expected hash of length 1: #{ast}"
             end
-            op, target = ast.first
+            op, target = entry
             case op
             when "ref"
               unless String === target
@@ -158,6 +159,9 @@ module Datadog
               operator = OPERATORS.fetch(op)
               "(#{compile_partial(first, regexps)}) #{operator} (#{compile_partial(second, regexps)})"
             when "any", "all", "filter"
+              unless Array === target && target.length == 2
+                raise DI::Error::InvalidExpression, "Improper #{op} syntax"
+              end
               "#{op}(#{compile_partial(target.first, regexps)}) { |current_item, current_key, current_value| #{compile_partial(target.last, regexps)} }"
             else
               raise DI::Error::InvalidExpression, "Unknown operation: #{op}"
