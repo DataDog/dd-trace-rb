@@ -173,6 +173,14 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
       end
     end
 
+    context "mysql replication sub-protocol with a single host" do
+      let(:uri) { "jdbc:mysql:replication://master:3306/orders" }
+
+      it "keeps the unambiguous single host" do
+        expect(parsed).to eq(host: "master", port: "3306", database: "orders")
+      end
+    end
+
     context "mysql aurora sub-protocol single host" do
       let(:uri) { "jdbc:mysql:aurora://cluster.example.com:3306/orders" }
 

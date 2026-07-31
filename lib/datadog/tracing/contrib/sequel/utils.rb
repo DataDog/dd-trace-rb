@@ -67,7 +67,7 @@ module Datadog
               # Failover drivers (e.g. MySQL/MariaDB Connector/J) list several
               # comma-separated hosts in the authority; keep only the first so the value
               # parses as a standard URI and to recover the database name from its path.
-              location = single_host_location(location)
+              location, multiple_hosts = single_host_location(location)
 
               # Several JDBC vendors append properties with semicolons, outside the URI
               # grammar. Parse the URI-compatible location separately from those properties.
@@ -75,9 +75,10 @@ module Datadog
 
               host = parsed.hostname
               host = nil unless valid_host?(host)
-              # Load-balancing/replication sub-protocols do not pin a query to a single
-              # host, so any one host would be a misleading peer; drop it (keep database).
-              host = nil if HOST_AGNOSTIC_SUBPROTOCOLS.include?(subprotocol)
+              # With multiple hosts, load-balancing/replication sub-protocols do not pin a
+              # query to a single host, so any one host would be a misleading peer; drop it
+              # (keep database). A single host is unambiguous regardless of sub-protocol.
+              host = nil if multiple_hosts && HOST_AGNOSTIC_SUBPROTOCOLS.include?(subprotocol)
               port = parsed.port if host
 
               database = database_from_path(parsed.path) ||
@@ -170,19 +171,19 @@ module Datadog
             private
 
             def single_host_location(location)
-              return location unless location.start_with?("//")
+              return [location, false] unless location.start_with?("//")
 
               authority_end = location.index(%r{[/?#]}, 2)
               authority = authority_end ? location[2...authority_end] : location[2..-1]
               remainder = authority_end ? location[authority_end..-1] : ""
 
-              return location unless authority.include?(",")
+              return [location, false] unless authority.include?(",")
 
               userinfo, separator, hosts = authority.rpartition("@")
               first_host = hosts.split(",", 2).first
               authority = separator.empty? ? first_host : "#{userinfo}#{separator}#{first_host}"
 
-              "//#{authority}#{remainder}"
+              ["//#{authority}#{remainder}", true]
             end
 
             # Rejects authority values that are not plausible hostnames or IP addresses
