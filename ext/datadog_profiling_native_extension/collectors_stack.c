@@ -33,7 +33,7 @@ static void set_file_info_for_cfunc(
   st_table *native_filenames_cache
 );
 static const char *get_or_compute_native_filename(void *function, st_table *native_filenames_cache);
-static void initialize_static_ruby_actual_filename(void);
+static void initialize_static_ruby_actual_filename(VALUE profiling_module);
 static void add_truncated_frames_placeholder(ddog_prof_Location *locations);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
@@ -70,12 +70,11 @@ void collectors_stack_init(VALUE profiling_module) {
   // like a reasonable trade-off to force callers to always figure that out.
   st_table *temporary_cache = st_init_numtable();
   const char *native_filename = get_or_compute_native_filename(rb_ary_new, temporary_cache);
-  if (native_filename != NULL && native_filename[0] != '\0') {
+  if (native_filename[0] != '\0') {
     ruby_native_filename = native_filename;
+    initialize_static_ruby_actual_filename(profiling_module);
   }
   st_free_table(temporary_cache);
-
-  if (native_filename != NULL) initialize_static_ruby_actual_filename();
 }
 
 static VALUE _native_ruby_native_filename(DDTRACE_UNUSED VALUE self) {
@@ -470,6 +469,8 @@ static void set_file_info_for_cfunc(
 // Caching this information is safe because there's no API in Ruby to "unrequire" a native extension. Thus, if we see a
 // frame on the **Ruby** stack with a given `function`, then that `function` was registered with the Ruby VM and
 // belongs to a Ruby extension, so a lot of other bad things would happen if it was dlclosed.
+//
+// Returns "" if not found. Never returns NULL.
 static const char *get_or_compute_native_filename(void *function, st_table *native_filenames_cache) {
   const char *cached_filename = NULL;
   st_lookup(native_filenames_cache, (st_data_t) function, (st_data_t *) &cached_filename);
@@ -660,20 +661,13 @@ void sampling_buffer_mark(sampling_buffer *buffer) {
 
 // On a static Ruby without libruby.so the `ruby_native_filename` returned from `dladdr` is in practice `argv[0]`
 // (e.g. can be rspec, rake, etc), so here we find the actual Ruby binary to use instead
-static void initialize_static_ruby_actual_filename(void) {
-  bool ruby_is_static = rb_eval_string("require 'rbconfig'; (RbConfig::CONFIG['ENABLE_SHARED'] == 'no')") == Qtrue;
-  if (!ruby_is_static) return;
-
-  VALUE actual_filename = rb_eval_string("RbConfig.ruby");
-  bool valid_looking_path =
-    actual_filename != Qnil &&
-    RB_TYPE_P(actual_filename, T_STRING) &&
-    RSTRING_LEN(actual_filename) > 0 &&
-    RSTRING_PTR(actual_filename)[0] == '/';
-  if (!valid_looking_path) return;
-
-  static_ruby_actual_filename = rb_obj_freeze(actual_filename);
-  rb_gc_register_mark_object(static_ruby_actual_filename); // Makes this object immortal + pinned in-place (no moving)
+static void initialize_static_ruby_actual_filename(VALUE profiling_module) {
+  static_ruby_actual_filename = rb_const_get(profiling_module, rb_intern("STATIC_RUBY_PATH"));
+  if (NIL_P(static_ruby_actual_filename)) {
+    return;
+  }
+  // Makes this object immortal + pinned in-place (no moving)
+  rb_gc_register_mark_object(static_ruby_actual_filename);
 }
 
 static VALUE _native_set_file_info_for_cfunc(DDTRACE_UNUSED VALUE self, VALUE new_static_ruby_actual_filename) {
