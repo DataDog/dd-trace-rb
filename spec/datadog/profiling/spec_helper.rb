@@ -16,7 +16,7 @@ module ProfileHelpers
       end
     end
   end
-  Frame = Struct.new(:base_label, :path, :lineno)
+  Frame = Struct.new(:label, :path, :lineno)
 
   def skip_if_profiling_not_supported
     skip_if_libdatadog_not_supported
