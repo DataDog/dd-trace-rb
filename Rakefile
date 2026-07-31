@@ -403,6 +403,7 @@ namespace :spec do
       :faraday,
       :excon,
       :rest_client,
+      :aws_lambda,
       :integration
     ]
 
@@ -432,7 +433,8 @@ namespace :spec do
       :graphql,
       :faraday,
       :excon,
-      :rest_client
+      :rest_client,
+      :aws_lambda
     ].each do |contrib|
       desc "" # "Explicitly hiding from `rake -T`"
       RSpec::Core::RakeTask.new(contrib) do |t, args|
