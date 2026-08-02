@@ -42,7 +42,7 @@ GEM
     google-protobuf (3.25.8)
     hashdiff (1.2.1)
     io-console (0.8.2)
-    json (2.21.1)
+    json (2.21.2)
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
@@ -210,7 +210,7 @@ CHECKSUMS
   google-protobuf (3.25.8) sha256=102c8500502e224a5daa7447bdd2c458a25a6c7b0bf5d8496a559ada131952b7
   hashdiff (1.2.1) sha256=9c079dbc513dfc8833ab59c0c2d8f230fa28499cc5efb4b8dd276cf931457cd1
   io-console (0.8.2) sha256=d6e3ae7a7cc7574f4b8893b4fca2162e57a825b223a177b7afa236c5ef9814cc
-  json (2.21.1) sha256=13a43df75d95641443f5702dff350f237164a9d811ff0f2c2800d4d980220583
+  json (2.21.2) sha256=1f1d3b7cf2b3ba1a69beca0bb6db13d5438b80bff3cd54cdaaa620b9b07c1c6a
   json-schema (6.2.0) sha256=e8bff46ed845a22c1ab2bd0d7eccf831c01fe23bb3920caa4c74db4306813666
   karafka-core (2.5.7) sha256=709f9499b013371f0ec0dd1f7f47451dfe8e8d3b60d85510dfd3abebf2e37bcb
   karafka-rdkafka (0.23.0) sha256=ad98a8a3302abae7ba482a83df2da8370da58bf11f419bdad3f167f45ae38d3a
