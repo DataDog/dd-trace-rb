@@ -58,6 +58,10 @@ jobs:
             echo "::error::Invalid commit SHA: must be 40 lowercase hex characters"
             exit 1
           fi
+          if [[ "$RAW_IS_PREVIEW" != "true" && "$RAW_IS_PREVIEW" != "false" ]]; then
+            echo "::error::Invalid is_preview value: must be 'true' or 'false'"
+            exit 1
+          fi
           echo "commit=${RAW_COMMIT}" >> "$GITHUB_OUTPUT"
           echo "is_preview=${RAW_IS_PREVIEW}" >> "$GITHUB_OUTPUT"
 
@@ -95,7 +99,10 @@ jobs:
           sign-commits: true
           add-paths: |
             .github/
+            .gitlab/
             docker-compose.yml
+            integration/images/
+            tools/yard.gemfile
           body: |
             _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/update-images.yml)_
             The PR pins images-rb images to commit [${{ steps.inputs.outputs.commit }}](https://github.com/DataDog/images-rb/commit/${{ steps.inputs.outputs.commit }})
@@ -126,7 +133,10 @@ jobs:
           sign-commits: true
           add-paths: |
             .github/
+            .gitlab/
             docker-compose.yml
+            integration/images/
+            tools/yard.gemfile
           body: |
             _This is an auto-generated PREVIEW PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/update-images.yml)_
             This previews the effect of pinning images-rb images to commit [${{ steps.inputs.outputs.commit }}](https://github.com/DataDog/images-rb/commit/${{ steps.inputs.outputs.commit }}), which has not yet merged to images-rb's default branch.
