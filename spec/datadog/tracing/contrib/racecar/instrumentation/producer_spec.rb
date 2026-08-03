@@ -1,20 +1,20 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/core'
-require 'datadog/core/ddsketch'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/core"
+require "datadog/core/ddsketch"
 
-require 'spec/support/thread_helpers'
+require "spec/support/thread_helpers"
 
 # FFI::Function background native thread
 ThreadHelpers.with_leaky_thread_creation(:racecar) do
-  require 'racecar'
+  require "racecar"
 end
 
-require 'racecar/cli'
-require 'active_support'
-require 'datadog'
-require 'datadog/tracing/contrib/racecar/instrumentation/producer'
+require "racecar/cli"
+require "active_support"
+require "datadog"
+require "datadog/tracing/contrib/racecar/instrumentation/producer"
 
 RSpec.describe Datadog::Tracing::Contrib::Racecar::Instrumentation::Producer do
   let(:propagation_key) { Datadog::DataStreams::Processor::PROPAGATION_KEY }
@@ -35,7 +35,7 @@ RSpec.describe Datadog::Tracing::Contrib::Racecar::Instrumentation::Producer do
 
   let(:data_streams_enabled) { true }
 
-  describe 'producing a message from a consumer' do
+  describe "producing a message from a consumer" do
     before do
       skip_if_libdatadog_not_supported
     end
@@ -55,12 +55,12 @@ RSpec.describe Datadog::Tracing::Contrib::Racecar::Instrumentation::Producer do
           @delivery_handles = []
           @instrumenter = ::Racecar::NullInstrumenter
 
-          send(:produce, 'payload', topic: 'out_topic', headers: headers)
+          send(:produce, "payload", topic: "out_topic", headers: headers)
         end
       end
     end
 
-    it 'injects pathway context into the message headers' do
+    it "injects pathway context into the message headers" do
       consumer = consumer_class.new
       consumer.produce_test
 
@@ -76,19 +76,19 @@ RSpec.describe Datadog::Tracing::Contrib::Racecar::Instrumentation::Producer do
       expect(decoded_ctx.hash).to be > 0
     end
 
-    it 'preserves caller-provided headers' do
+    it "preserves caller-provided headers" do
       consumer = consumer_class.new
-      consumer.produce_test(headers: {'custom' => 'value'})
+      consumer.produce_test(headers: {"custom" => "value"})
 
       headers = consumer.captured[:headers]
-      expect(headers['custom']).to eq('value')
+      expect(headers["custom"]).to eq("value")
       expect(headers[propagation_key]).to be_a(String)
     end
 
-    context 'when Data Streams Monitoring is disabled' do
+    context "when Data Streams Monitoring is disabled" do
       let(:data_streams_enabled) { false }
 
-      it 'does not inject DSM headers when producing' do
+      it "does not inject DSM headers when producing" do
         consumer = consumer_class.new
         consumer.produce_test
 
@@ -98,12 +98,12 @@ RSpec.describe Datadog::Tracing::Contrib::Racecar::Instrumentation::Producer do
     end
   end
 
-  describe 'producing a message from the standalone producer' do
+  describe "producing a message from the standalone producer" do
     before do
       skip_if_libdatadog_not_supported
       # The standalone Racecar::Producer was introduced after the minimum
       # supported version, so it is not present in every tested version.
-      skip('Racecar::Producer is not available in this version') unless defined?(::Racecar::Producer)
+      skip("Racecar::Producer is not available in this version") unless defined?(::Racecar::Producer)
     end
 
     let(:producer_class) do
@@ -127,9 +127,9 @@ RSpec.describe Datadog::Tracing::Contrib::Racecar::Instrumentation::Producer do
       end
     end
 
-    it 'injects pathway context when producing asynchronously' do
+    it "injects pathway context when producing asynchronously" do
       producer = producer_class.new
-      producer.produce_async(value: 'payload', topic: 'out_topic')
+      producer.produce_async(value: "payload", topic: "out_topic")
 
       headers = producer.captured[:headers]
       expect(headers).to be_a(Hash)

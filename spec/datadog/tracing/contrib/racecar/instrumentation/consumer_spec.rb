@@ -1,27 +1,27 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/core'
-require 'datadog/core/ddsketch'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/core"
+require "datadog/core/ddsketch"
 
-require 'spec/support/thread_helpers'
+require "spec/support/thread_helpers"
 
 # FFI::Function background native thread
 ThreadHelpers.with_leaky_thread_creation(:racecar) do
-  require 'racecar'
+  require "racecar"
 end
 
-require 'racecar/cli'
-require 'active_support'
-require 'datadog'
-require 'datadog/tracing/contrib/racecar/instrumentation/consumer'
+require "racecar/cli"
+require "active_support"
+require "datadog"
+require "datadog/tracing/contrib/racecar/instrumentation/consumer"
 
 RSpec.describe Datadog::Tracing::Contrib::Racecar::Instrumentation::Consumer do
   let(:propagation_key) { Datadog::DataStreams::Processor::PROPAGATION_KEY }
 
   # Stand-in for a single rdkafka message: only the attributes the
   # instrumentation reads.
-  def build_message(topic: 'test_topic', partition: 0, offset: 100, headers: {})
+  def build_message(topic: "test_topic", partition: 0, offset: 100, headers: {})
     instance_double(
       Rdkafka::Consumer::Message,
       topic: topic,
@@ -71,26 +71,26 @@ RSpec.describe Datadog::Tracing::Contrib::Racecar::Instrumentation::Consumer do
 
   let(:runner) { runner_class.new }
 
-  describe 'consuming a single message' do
+  describe "consuming a single message" do
     before do
       skip_if_libdatadog_not_supported
     end
 
     subject(:consume) { runner.process(message) }
 
-    context 'with a pathway context in the message headers' do
+    context "with a pathway context in the message headers" do
       let(:message) do
-        build_message(headers: {propagation_key => 'upstream-context'})
+        build_message(headers: {propagation_key => "upstream-context"})
       end
 
-      it 'sets a consume checkpoint for the topic' do
+      it "sets a consume checkpoint for the topic" do
         expect(Datadog::DataStreams).to receive(:set_consume_checkpoint)
-          .with(type: 'kafka', source: 'test_topic', auto_instrumentation: true)
+          .with(type: "kafka", source: "test_topic", auto_instrumentation: true)
 
         consume
       end
 
-      it 'extracts the upstream pathway context from the message headers' do
+      it "extracts the upstream pathway context from the message headers" do
         extracted = nil
         allow(Datadog::DataStreams).to receive(:set_consume_checkpoint) do |**_kwargs, &block|
           extracted = block.call(propagation_key)
@@ -98,28 +98,28 @@ RSpec.describe Datadog::Tracing::Contrib::Racecar::Instrumentation::Consumer do
 
         consume
 
-        expect(extracted).to eq('upstream-context')
+        expect(extracted).to eq("upstream-context")
       end
 
-      it 'tracks the consumed offset for consumer lag' do
-        expect(Datadog::DataStreams).to receive(:track_kafka_consume).with('test_topic', 0, 100)
+      it "tracks the consumed offset for consumer lag" do
+        expect(Datadog::DataStreams).to receive(:track_kafka_consume).with("test_topic", 0, 100)
 
         consume
       end
 
-      it 'still processes the message' do
+      it "still processes the message" do
         consume
 
         expect(runner.processed).to eq([message])
       end
     end
 
-    context 'with symbol-keyed headers (rdkafka <= 0.12)' do
+    context "with symbol-keyed headers (rdkafka <= 0.12)" do
       let(:message) do
-        build_message(headers: {propagation_key.to_sym => 'upstream-context'})
+        build_message(headers: {propagation_key.to_sym => "upstream-context"})
       end
 
-      it 'extracts the upstream pathway context regardless of key type' do
+      it "extracts the upstream pathway context regardless of key type" do
         extracted = nil
         allow(Datadog::DataStreams).to receive(:set_consume_checkpoint) do |**_kwargs, &block|
           extracted = block.call(propagation_key)
@@ -127,50 +127,50 @@ RSpec.describe Datadog::Tracing::Contrib::Racecar::Instrumentation::Consumer do
 
         consume
 
-        expect(extracted).to eq('upstream-context')
+        expect(extracted).to eq("upstream-context")
       end
     end
 
-    context 'without a pathway context in the headers' do
+    context "without a pathway context in the headers" do
       let(:message) { build_message(headers: {}) }
 
-      it 'still sets a consume checkpoint without raising' do
+      it "still sets a consume checkpoint without raising" do
         expect(Datadog::DataStreams).to receive(:set_consume_checkpoint)
-          .with(type: 'kafka', source: 'test_topic', auto_instrumentation: true)
+          .with(type: "kafka", source: "test_topic", auto_instrumentation: true)
 
         expect { consume }.not_to raise_error
       end
     end
 
-    context 'with nil headers' do
+    context "with nil headers" do
       let(:message) { build_message(headers: nil) }
 
-      it 'sets a consume checkpoint without raising' do
+      it "sets a consume checkpoint without raising" do
         expect(Datadog::DataStreams).to receive(:set_consume_checkpoint)
-          .with(type: 'kafka', source: 'test_topic', auto_instrumentation: true)
+          .with(type: "kafka", source: "test_topic", auto_instrumentation: true)
 
         expect { consume }.not_to raise_error
       end
     end
 
-    context 'when setting the checkpoint raises' do
-      let(:message) { build_message(headers: {propagation_key => 'upstream-context'}) }
+    context "when setting the checkpoint raises" do
+      let(:message) { build_message(headers: {propagation_key => "upstream-context"}) }
 
       before do
-        allow(Datadog::DataStreams).to receive(:set_consume_checkpoint).and_raise('boom')
+        allow(Datadog::DataStreams).to receive(:set_consume_checkpoint).and_raise("boom")
       end
 
-      it 'does not disrupt message processing' do
+      it "does not disrupt message processing" do
         expect { consume }.not_to raise_error
         expect(runner.processed).to eq([message])
       end
     end
 
-    context 'when Data Streams Monitoring is disabled' do
+    context "when Data Streams Monitoring is disabled" do
       let(:data_streams_enabled) { false }
-      let(:message) { build_message(headers: {propagation_key => 'upstream-context'}) }
+      let(:message) { build_message(headers: {propagation_key => "upstream-context"}) }
 
-      it 'does not set a checkpoint but still processes the message' do
+      it "does not set a checkpoint but still processes the message" do
         expect(Datadog::DataStreams).not_to receive(:set_consume_checkpoint)
 
         expect { consume }.not_to raise_error
@@ -179,7 +179,7 @@ RSpec.describe Datadog::Tracing::Contrib::Racecar::Instrumentation::Consumer do
     end
   end
 
-  describe 'consuming a batch' do
+  describe "consuming a batch" do
     before do
       skip_if_libdatadog_not_supported
     end
@@ -190,21 +190,21 @@ RSpec.describe Datadog::Tracing::Contrib::Racecar::Instrumentation::Consumer do
     # keep its own upstream context (N:1 fan-in).
     let(:messages) do
       [
-        build_message(topic: 'source_a', partition: 0, offset: 100, headers: {propagation_key => 'ctx-a'}),
-        build_message(topic: 'source_b', partition: 1, offset: 200, headers: {propagation_key => 'ctx-b'}),
+        build_message(topic: "source_a", partition: 0, offset: 100, headers: {propagation_key => "ctx-a"}),
+        build_message(topic: "source_b", partition: 1, offset: 200, headers: {propagation_key => "ctx-b"}),
       ]
     end
 
-    it 'sets a consume checkpoint per message, preserving each source' do
+    it "sets a consume checkpoint per message, preserving each source" do
       expect(Datadog::DataStreams).to receive(:set_consume_checkpoint)
-        .with(type: 'kafka', source: 'source_a', auto_instrumentation: true).ordered
+        .with(type: "kafka", source: "source_a", auto_instrumentation: true).ordered
       expect(Datadog::DataStreams).to receive(:set_consume_checkpoint)
-        .with(type: 'kafka', source: 'source_b', auto_instrumentation: true).ordered
+        .with(type: "kafka", source: "source_b", auto_instrumentation: true).ordered
 
       consume_batch
     end
 
-    it 'extracts each message\'s own upstream pathway context' do
+    it "extracts each message's own upstream pathway context" do
       extracted = []
       allow(Datadog::DataStreams).to receive(:set_consume_checkpoint) do |**_kwargs, &block|
         extracted << block.call(propagation_key)
@@ -212,17 +212,17 @@ RSpec.describe Datadog::Tracing::Contrib::Racecar::Instrumentation::Consumer do
 
       consume_batch
 
-      expect(extracted).to eq(['ctx-a', 'ctx-b'])
+      expect(extracted).to eq(["ctx-a", "ctx-b"])
     end
 
-    it 'tracks the consumed offset for every message' do
-      expect(Datadog::DataStreams).to receive(:track_kafka_consume).with('source_a', 0, 100)
-      expect(Datadog::DataStreams).to receive(:track_kafka_consume).with('source_b', 1, 200)
+    it "tracks the consumed offset for every message" do
+      expect(Datadog::DataStreams).to receive(:track_kafka_consume).with("source_a", 0, 100)
+      expect(Datadog::DataStreams).to receive(:track_kafka_consume).with("source_b", 1, 200)
 
       consume_batch
     end
 
-    it 'still processes the batch' do
+    it "still processes the batch" do
       consume_batch
 
       expect(runner.processed).to eq(messages)
