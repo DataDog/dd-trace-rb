@@ -398,6 +398,7 @@ module Datadog
             otel_threshold: (digest.trace_otel_threshold if propagate_sampling),
             otel_unknown_fields: digest.trace_otel_unknown_fields,
             remote_parent: digest.span_remote,
+            distributed_sampling_priority: !!sampling_priority,
             tracer: self,
             baggage: digest.baggage,
             auto_finish: auto_finish

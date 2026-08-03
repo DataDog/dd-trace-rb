@@ -64,8 +64,9 @@ module Datadog
         # @param rate_limiter_rate [Float, nil] set only when a rule kept-by-probability
         # @param inbound_random_value [String, nil] head-set randomness to preserve
         # @param inbound_threshold [String, nil] threshold decided upstream
-        # @param remote_parent [Boolean] whether the trace was continued from an upstream
-        #   distributed context (i.e. this span is not the trace's origin)
+        # @param distributed_sampling_priority [Boolean] whether a sampling priority was
+        #   already assigned to this trace from an upstream distributed context, i.e. a
+        #   decision was already made and should be preserved rather than re-decided
         # @return [Array(String?, String?)] `[random_value, threshold]` hex strings to emit
         def resolve_outbound(
           trace_id:,
@@ -75,7 +76,7 @@ module Datadog
           rate_limiter_rate:,
           inbound_random_value:,
           inbound_threshold:,
-          remote_parent:
+          distributed_sampling_priority:
         )
           # A non-probability force-keep (manual, ASM, AI Guard) is not a probability
           # decision, so erase the threshold: leaving `th` would let a downstream collector
@@ -100,11 +101,12 @@ module Datadog
           # (the trace id's 56 least-significant bits) themselves.
           return [inbound_random_value, inbound_threshold] if inbound_threshold || inbound_random_value
 
-          # Only the root span may derive a fresh `(rv, th)` from its local sampling decision.
-          # When the trace was continued from an upstream context that sent no `ot` fields
-          # (e.g. an older OpenTelemetry or Datadog SDK), fabricating values here would
-          # advertise a decision the origin never made, so emit nothing. Same if no rate is applied.
-          return [nil, nil] if remote_parent || !applied_rate
+          # Only a trace that is making its own probability decision may derive a fresh
+          # `(rv, th)`. When a sampling priority was already assigned upstream (e.g. an
+          # older OpenTelemetry or Datadog SDK that sent no `ot` fields), DD is following
+          # that decision, not making its own, so fabricating values here would advertise a
+          # decision the origin never made: emit nothing. Same if no rate is applied.
+          return [nil, nil] if distributed_sampling_priority || !applied_rate
 
           th = threshold(applied_rate)
           # Datadog is deriving the random value: reconcile the 64-bit keep/drop decision

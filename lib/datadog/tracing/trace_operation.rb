@@ -92,6 +92,7 @@ module Datadog
         otel_threshold: nil,
         otel_unknown_fields: nil,
         remote_parent: false,
+        distributed_sampling_priority: false,
         tracer: nil, # DEV-3.0: deprecated, remove in 3.0
         baggage: nil,
         auto_finish: true
@@ -104,6 +105,7 @@ module Datadog
         @parent_span_id = parent_span_id
         @sampled = sampled.nil? || sampled
         @remote_parent = remote_parent
+        @distributed_sampling_priority = distributed_sampling_priority
         @span_links = span_links
         # Tags
         @agent_sample_rate = agent_sample_rate
@@ -408,7 +410,7 @@ module Datadog
           rate_limiter_rate: @rate_limiter_rate,
           inbound_random_value: @otel_random_value,
           inbound_threshold: @otel_threshold,
-          remote_parent: @remote_parent,
+          distributed_sampling_priority: @distributed_sampling_priority,
         )
 
         TraceDigest.new(
@@ -474,7 +476,8 @@ module Datadog
           otel_unknown_fields: @otel_unknown_fields&.dup,
           tags: meta.dup,
           metrics: metrics.dup,
-          remote_parent: @remote_parent
+          remote_parent: @remote_parent,
+          distributed_sampling_priority: @distributed_sampling_priority
         )
       end
 
