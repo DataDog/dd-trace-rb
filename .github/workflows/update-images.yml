@@ -1,0 +1,120 @@
+name: Update Images
+
+# To run this workflow manually, use the following command:
+#  `gh workflow run "Update Images" -f commit=<40-char-sha>`
+#
+# with additional arguments:
+#  `gh workflow run "Update Images" -f commit=<40-char-sha> -f is_preview=true`
+
+on: # yamllint disable-line rule:truthy
+  repository_dispatch:
+    types: [images-updated]
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: images-rb commit SHA to pin to (40-char hex)
+        required: true
+        type: string
+      is_preview:
+        description: Open a draft preview PR instead of updating the standard PR
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.client_payload.commit || github.event.inputs.commit }}
+  cancel-in-progress: true
+
+# Default permissions for all jobs
+permissions: {}
+
+jobs:
+  update-images:
+    name: "Update Images"
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Determine trigger inputs
+        id: inputs
+        run: |
+          COMMIT="${{ github.event.client_payload.commit || github.event.inputs.commit }}"
+          IS_PREVIEW="${{ github.event.client_payload.is_preview || github.event.inputs.is_preview || 'false' }}"
+          echo "commit=${COMMIT}" >> "$GITHUB_OUTPUT"
+          echo "is_preview=${IS_PREVIEW}" >> "$GITHUB_OUTPUT"
+
+      - name: Pin images
+        run: bundle exec rake "images:pin[${{ steps.inputs.outputs.commit }}]"
+
+      - run: git diff --color=always
+
+      - name: Get GitHub Token via dd-octo-sts
+        id: generate-token
+        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        with:
+          scope: DataDog/dd-trace-rb
+          policy: self.update-images
+
+      # There appers to be a race condition; wait it out a bit
+      # See: https://datadoghq.atlassian.net/browse/APMLP-1305
+      - name: Wait for token propagation
+        run: sleep 30
+
+      - name: Create Pull Request (standard)
+        if: ${{ steps.inputs.outputs.is_preview != 'true' }}
+        id: cpr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          branch: auto-generate/update-images
+          title: '[🤖] Update images-rb pin'
+          base: master
+          labels: dev/internal
+          commit-message: "[🤖] Update images-rb pin: ${{github.server_url}}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          delete-branch: true
+          sign-commits: true
+          body: |
+            _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/update-images.yml)_
+            The PR pins images-rb images to commit [${{ steps.inputs.outputs.commit }}](https://github.com/DataDog/images-rb/commit/${{ steps.inputs.outputs.commit }})
+
+            You can trigger this workflow manually from [here](https://github.com/DataDog/dd-trace-rb/actions/workflows/update-images.yml).
+
+            **Trigger Information:**
+            - Event: ${{ github.event_name }}
+            - Triggered by: ${{ github.event.client_payload.triggered_by || 'Manual' }}
+            - Source commit: [${{ steps.inputs.outputs.commit }}](https://github.com/DataDog/images-rb/commit/${{ steps.inputs.outputs.commit }})
+            - Source run: ${{ github.event.client_payload.source_run_url || 'N/A' }}
+
+            Please review the changes and merge when ready.
+
+      - name: Create Pull Request (preview)
+        if: ${{ steps.inputs.outputs.is_preview == 'true' }}
+        id: cpr-preview
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          branch: auto-generate/update-images-preview-${{ steps.inputs.outputs.commit }}
+          title: '[🤖] [Preview] Update images-rb pin to ${{ steps.inputs.outputs.commit }}'
+          base: master
+          labels: dev/internal, preview
+          draft: true
+          commit-message: "[🤖] [Preview] Update images-rb pin: ${{github.server_url}}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          delete-branch: true
+          sign-commits: true
+          body: |
+            _This is an auto-generated PREVIEW PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/update-images.yml)_
+            This previews the effect of pinning images-rb images to commit [${{ steps.inputs.outputs.commit }}](https://github.com/DataDog/images-rb/commit/${{ steps.inputs.outputs.commit }}), which has not yet merged to images-rb's default branch.
+
+            **This PR's CI may fail if the source images-rb branch/PR has not published a commit-tagged image** (e.g. fork PRs without package-publish permission). This is expected for unpublished previews.
+
+            **Trigger Information:**
+            - Event: ${{ github.event_name }}
+            - Triggered by: ${{ github.event.client_payload.triggered_by || 'Manual' }}
+            - Source commit: [${{ steps.inputs.outputs.commit }}](https://github.com/DataDog/images-rb/commit/${{ steps.inputs.outputs.commit }})
+            - Source run: ${{ github.event.client_payload.source_run_url || 'N/A' }}
+
+            Do not merge — this is for validation only, unless you intend to pin ahead of the images-rb merge.
