@@ -8,9 +8,9 @@ module Datadog
       MAX_PROCESS_VALUE_BYTE_SIZE: ::Integer
       VALID_ASCII_TAG: ::Regexp
 
-      def self.normalize: (untyped original_value, ?remove_digit_start_char: bool) -> ::String
+      def self.normalize: (any original_value, ?remove_digit_start_char: bool) -> ::String
 
-      def self.normalize_process_value: (untyped value) -> ::String
+      def self.normalize_process_value: (any value) -> ::String
     end
   end
 end

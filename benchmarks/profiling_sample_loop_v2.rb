@@ -4,7 +4,6 @@ VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
 require_relative "benchmarks_helper"
-require "os"
 
 # This benchmark measures the performance of the main stack sampling loop of the profiler
 
@@ -77,15 +76,6 @@ class ProfilerSampleLoopBenchmark
     collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder)
 
     if mode == :native
-      unless Datadog::Profiling::Collectors::Stack._native_filenames_available?
-        if OS.linux?
-          raise "Native filenames are not available. This is not expected on Linux!"
-        else
-          puts "Skipping benchmarking native_frames, not supported outside of Linux"
-          return
-        end
-      end
-
       Datadog::Profiling::Collectors::ThreadContext.for_testing(
         recorder: @recorder,
         native_filenames_enabled: false

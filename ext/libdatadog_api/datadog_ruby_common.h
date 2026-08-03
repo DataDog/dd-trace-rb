@@ -5,6 +5,13 @@
 #include <ruby.h>
 #include <datadog/common.h>
 
+// All recommended backward compatible macros for keyword argument functions can be found here:
+// https://github.com/ruby/ruby/blob/master/doc/extension.rdoc#defining-backward-compatible-macros-for-keyword-argument-functions
+#ifndef RB_PASS_KEYWORDS
+/* Only define macros on Ruby <2.7 */
+#define rb_funcallv_kw(o, m, c, v, kw) rb_funcallv(o, m, c, v)
+#endif
+
 // Must be called once during initialization
 void datadog_ruby_common_init(void);
 

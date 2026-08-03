@@ -39,8 +39,9 @@ RSpec.describe Datadog::DI::EL do
           let(:ast) { spec.fetch("ast") }
           let(:expected) { spec.fetch("compiled") }
 
-          let(:compiled) { compiler.compile(ast) }
-          let(:expr) { Datadog::DI::EL::Expression.new("(expression)", compiled) }
+          let(:compile_result) { compiler.compile(ast) }
+          let(:compiled) { compile_result.first }
+          let(:expr) { Datadog::DI::EL::Expression.new("(expression)", *compile_result) }
 
           let(:evaluated) do
             expr.evaluate(context)

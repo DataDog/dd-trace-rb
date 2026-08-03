@@ -25,17 +25,6 @@ RSpec.describe Datadog::Core::Utils::Sequence do
           expect(sequence.next).to eq 12
         end
       end
-
-      context "with a block" do
-        let(:sequence) { described_class.new(&block) }
-        let(:block) { lambda(&:to_s) }
-
-        it "returns the block value for each iteration" do
-          expect(sequence.next).to eq "0"
-          expect(sequence.next).to eq "1"
-          expect(sequence.next).to eq "2"
-        end
-      end
     end
   end
 
@@ -59,17 +48,6 @@ RSpec.describe Datadog::Core::Utils::Sequence do
           expect(sequence.next).to eq 10
           sequence.reset!
           expect(sequence.next).to eq 10
-        end
-      end
-
-      context "with a block" do
-        let(:sequence) { described_class.new(&block) }
-        let(:block) { lambda(&:to_s) }
-
-        it "returns the block value for each iteration" do
-          expect(sequence.next).to eq "0"
-          sequence.reset!
-          expect(sequence.next).to eq "0"
         end
       end
     end

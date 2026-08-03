@@ -11,7 +11,9 @@ module Datadog
 
         def self.run_at_fork_blocks: (Symbol stage) -> void
 
-        def self.at_fork: (Symbol stage) { () -> untyped } -> true
+        def self.at_fork: (Symbol stage) { () -> untyped } -> Proc
+
+        def self.remove_at_fork: (Symbol stage, Proc block) -> void
 
         module KernelMonkeyPatch
           def fork: () ?{ () -> untyped } -> untyped

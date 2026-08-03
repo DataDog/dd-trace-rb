@@ -52,6 +52,15 @@ module Datadog
                 o.default false
               end
 
+              # NOTE: Marker set by the agentic onboarding tooling.
+              #       Has no effect here — we just report its value in telemetry,
+              #       so onboarding can be detected at runtime
+              option :agentic_onboarding do |o|
+                o.type :string
+                o.env "DD_APPSEC_AGENTIC_ONBOARDING"
+                o.default ""
+              end
+
               define_method(:instrument) do |integration_name|
                 if enabled
                   registered_integration = Datadog::AppSec::Contrib::Integration.registry[integration_name]

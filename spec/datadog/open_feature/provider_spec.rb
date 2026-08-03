@@ -343,14 +343,8 @@ RSpec.describe Datadog::OpenFeature::Provider do
   # Provider stamps 'dd.eval.timestamp_ms' into flag metadata at eval entry, which the
   # EVP hook reads for first/last_evaluation.
   context "eval-time metadata stamping" do
-    # Override the configurable time provider (no Timecop dependency). The provider lambda runs
-    # with self == Datadog::Core::Utils::Time, so capture the frozen value in a local closure.
-    around do |example|
-      frozen = Time.at(1_700_000_000)
-      Datadog::Core::Utils::Time.now_provider = -> { frozen }
-      example.run
-    ensure
-      Datadog::Core::Utils::Time.now_provider = -> { Time.now }
+    before do
+      allow(Datadog::Core::Utils::Time).to receive(:now).and_return(Time.at(1_700_000_000))
     end
 
     it "exposes the stamped timestamp on the success-path ResolutionDetails metadata" do
