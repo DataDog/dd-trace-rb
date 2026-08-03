@@ -76,7 +76,10 @@ module Datadog
           def hello_auth_command?(command_args)
             return false unless command_args.is_a?(Array) && !command_args.empty?
 
-            command_args.first.to_s.upcase == "HELLO" && command_args.any? { |arg| arg.to_s.upcase == "AUTH" }
+            # `redis-client` always emits this as `["HELLO", "3", "AUTH", username, password]` — check
+            # the fixed "AUTH" keyword position only, never the username/password values themselves,
+            # since those are untrusted, possibly-binary bulk strings that `#upcase` can raise on.
+            command_args.first.to_s.upcase == "HELLO" && command_args[2].to_s.upcase == "AUTH"
           end
 
           # Identifies protocol-level connection bootstrap commands (`HELLO`, `CLIENT SETINFO`,

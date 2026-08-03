@@ -160,12 +160,24 @@ RSpec.describe Datadog::Tracing::Contrib::Redis::Quantize do
 
           it { is_expected.to eq("AUTH ?") }
         end
+
+        context "RESP3 HELLO handshake with a binary, invalid-UTF-8 password" do
+          let(:args) { ["HELLO", "3", "AUTH", "data", +"\xFF\xFE".force_encoding(Encoding::UTF_8)] }
+
+          it { is_expected.to eq("AUTH ?") }
+        end
       end
 
       context "RESP3 HELLO handshake without AUTH" do
         let(:args) { %w[HELLO 3] }
 
         it { is_expected.to eq("HELLO 3") }
+      end
+
+      context "RESP3 HELLO handshake with a binary, invalid-UTF-8 SETNAME clientname and no AUTH" do
+        let(:args) { ["HELLO", "3", "SETNAME", +"\xFF\xFE".force_encoding(Encoding::UTF_8)] }
+
+        it { expect { output }.not_to raise_error }
       end
     end
   end
