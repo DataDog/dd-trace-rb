@@ -154,6 +154,18 @@ RSpec.describe Datadog::Tracing::Contrib::Redis::Quantize do
             it { is_expected.to eq("AUTH ?") }
           end
         end
+
+        context "RESP3 HELLO handshake with embedded AUTH" do
+          let(:args) { %w[HELLO 3 AUTH data dog] }
+
+          it { is_expected.to eq("AUTH ?") }
+        end
+      end
+
+      context "RESP3 HELLO handshake without AUTH" do
+        let(:args) { %w[HELLO 3] }
+
+        it { is_expected.to eq("HELLO 3") }
       end
     end
   end
@@ -191,6 +203,18 @@ RSpec.describe Datadog::Tracing::Contrib::Redis::Quantize do
 
         it { is_expected.to eq("ACL HELP") }
       end
+
+      context "given a RESP3 HELLO handshake with embedded AUTH" do
+        let(:args) { %w[HELLO 3 AUTH data dog] }
+
+        it { is_expected.to eq("AUTH") }
+      end
+
+      context "given a RESP3 HELLO handshake without AUTH" do
+        let(:args) { %w[HELLO 3] }
+
+        it { is_expected.to eq("HELLO") }
+      end
     end
 
     context "nested array" do
@@ -223,6 +247,64 @@ RSpec.describe Datadog::Tracing::Contrib::Redis::Quantize do
 
         it { is_expected.to eq("ACL HELP") }
       end
+    end
+  end
+
+  describe "#connection_setup_command?" do
+    subject(:output) { described_class.connection_setup_command?(args) }
+
+    context "given HELLO" do
+      let(:args) { %w[HELLO 3] }
+
+      it { is_expected.to eq(true) }
+    end
+
+    context "given lowercase hello" do
+      let(:args) { %w[hello 3] }
+
+      it { is_expected.to eq(true) }
+    end
+
+    context "given CLIENT SETINFO" do
+      let(:args) { %w[CLIENT SETINFO LIB-NAME redis-rb] }
+
+      it { is_expected.to eq(true) }
+    end
+
+    context "given CLIENT SETNAME" do
+      let(:args) { %w[CLIENT SETNAME my-connection] }
+
+      it { is_expected.to eq(true) }
+    end
+
+    context "given lowercase client setinfo" do
+      let(:args) { %w[client setinfo lib-name redis-rb] }
+
+      it { is_expected.to eq(true) }
+    end
+
+    context "given a HELLO handshake with embedded AUTH" do
+      let(:args) { %w[HELLO 3 AUTH data dog] }
+
+      it { is_expected.to eq(false) }
+    end
+
+    context "given CLIENT with an unrelated subcommand" do
+      let(:args) { %w[CLIENT LIST] }
+
+      it { is_expected.to eq(false) }
+    end
+
+    context "given a nested array" do
+      let(:args) { [%w[HELLO 3]] }
+
+      it { is_expected.to eq(true) }
+    end
+
+    context "given an unrelated command" do
+      let(:args) { %w[SET KEY VALUE] }
+
+      it { is_expected.to eq(false) }
     end
   end
 end
