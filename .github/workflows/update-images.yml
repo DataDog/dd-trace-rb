@@ -34,21 +34,37 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       id-token: write
+    env:
+      BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+      BUNDLE_FROZEN: "true"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@a30dfa457ad68707b8b910ac3a244714b61c0626 # v1.320.0
+        with:
+          ruby-version: "4.0.1"
+          bundler-cache: true
+
       - name: Determine trigger inputs
         id: inputs
+        env:
+          RAW_COMMIT: ${{ github.event.client_payload.commit || github.event.inputs.commit }}
+          RAW_IS_PREVIEW: ${{ github.event.client_payload.is_preview || github.event.inputs.is_preview || 'false' }}
         run: |
-          COMMIT="${{ github.event.client_payload.commit || github.event.inputs.commit }}"
-          IS_PREVIEW="${{ github.event.client_payload.is_preview || github.event.inputs.is_preview || 'false' }}"
-          echo "commit=${COMMIT}" >> "$GITHUB_OUTPUT"
-          echo "is_preview=${IS_PREVIEW}" >> "$GITHUB_OUTPUT"
+          if ! [[ "$RAW_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Invalid commit SHA: must be 40 lowercase hex characters"
+            exit 1
+          fi
+          echo "commit=${RAW_COMMIT}" >> "$GITHUB_OUTPUT"
+          echo "is_preview=${RAW_IS_PREVIEW}" >> "$GITHUB_OUTPUT"
 
       - name: Pin images
-        run: bundle exec rake "images:pin[${{ steps.inputs.outputs.commit }}]"
+        env:
+          COMMIT: ${{ steps.inputs.outputs.commit }}
+        run: bundle exec rake "images:pin[$COMMIT]"
 
       - run: git diff --color=always
 
@@ -77,6 +93,9 @@ jobs:
           commit-message: "[🤖] Update images-rb pin: ${{github.server_url}}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           delete-branch: true
           sign-commits: true
+          add-paths: |
+            .github/
+            docker-compose.yml
           body: |
             _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/update-images.yml)_
             The PR pins images-rb images to commit [${{ steps.inputs.outputs.commit }}](https://github.com/DataDog/images-rb/commit/${{ steps.inputs.outputs.commit }})
@@ -105,6 +124,9 @@ jobs:
           commit-message: "[🤖] [Preview] Update images-rb pin: ${{github.server_url}}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           delete-branch: true
           sign-commits: true
+          add-paths: |
+            .github/
+            docker-compose.yml
           body: |
             _This is an auto-generated PREVIEW PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/update-images.yml)_
             This previews the effect of pinning images-rb images to commit [${{ steps.inputs.outputs.commit }}](https://github.com/DataDog/images-rb/commit/${{ steps.inputs.outputs.commit }}), which has not yet merged to images-rb's default branch.
