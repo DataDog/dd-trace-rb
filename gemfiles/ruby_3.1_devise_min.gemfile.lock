@@ -112,7 +112,7 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.1.0)
     minitest (5.25.5)
-    msgpack (1.8.3)
+    msgpack (1.8.4)
     nokogiri (1.18.5-aarch64-linux-gnu)
       racc (~> 1.4)
     nokogiri (1.18.5-aarch64-linux-musl)
@@ -311,7 +311,7 @@ CHECKSUMS
   memory_profiler (0.9.14) sha256=de558cf6525d8d56d2c0ea465b1664517fbe45560f892dc7a898d3b8c2863b12
   method_source (1.1.0) sha256=181301c9c45b731b4769bc81e8860e72f9161ad7d66dd99103c9ab84f560f5c5
   minitest (5.25.5) sha256=391b6c6cb43a4802bfb7c93af1ebe2ac66a210293f4a3fb7db36f2fc7dc2c756
-  msgpack (1.8.3) sha256=8bda4a6428d3244e50d6bd55854d354edbada88a4e1f4f5731a39a0f86bee6a1
+  msgpack (1.8.4) sha256=4411c22d350dd1c20250f7eada3cca2695438c2f769cf0782f0cd065d90a3e7b
   nokogiri (1.18.5-aarch64-linux-gnu) sha256=3f12540863e45db38236257be30a8605cd1d2d074c38a63c6f1307fd968a477c
   nokogiri (1.18.5-aarch64-linux-musl) sha256=296a9e346d9a816526ee0944b5df26e947d91ec09225897bf2fc14561e8861ca
   nokogiri (1.18.5-arm-linux-gnu) sha256=25fc71081c671fc4e983eac76ad1b3c8ee2707c467dcdb96a066f749f978eaba

@@ -66,7 +66,7 @@ GEM
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    msgpack (1.8.3)
+    msgpack (1.8.4)
     mutex_m (0.3.0)
     os (1.1.4)
     ostruct (0.6.3)
@@ -82,7 +82,7 @@ GEM
     rake (13.4.2)
     rake-compiler (1.3.1)
       rake
-    rbs (4.0.3)
+    rbs (4.1.1)
       logger
       prism (>= 1.6.0)
       tsort
@@ -119,7 +119,7 @@ GEM
       simplecov_json_formatter (~> 0.1)
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
-    stripe (19.3.1)
+    stripe (19.4.0)
       bigdecimal
       logger
     tsort (0.2.0)
@@ -207,7 +207,7 @@ CHECKSUMS
   logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
   memory_profiler (0.9.14) sha256=de558cf6525d8d56d2c0ea465b1664517fbe45560f892dc7a898d3b8c2863b12
   method_source (1.1.0) sha256=181301c9c45b731b4769bc81e8860e72f9161ad7d66dd99103c9ab84f560f5c5
-  msgpack (1.8.3) sha256=8bda4a6428d3244e50d6bd55854d354edbada88a4e1f4f5731a39a0f86bee6a1
+  msgpack (1.8.4) sha256=4411c22d350dd1c20250f7eada3cca2695438c2f769cf0782f0cd065d90a3e7b
   mutex_m (0.3.0) sha256=cfcb04ac16b69c4813777022fdceda24e9f798e48092a2b817eb4c0a782b0751
   os (1.1.4) sha256=57816d6a334e7bd6aed048f4b0308226c5fb027433b67d90a9ab435f35108d3f
   ostruct (0.6.3) sha256=95a2ed4a4bd1d190784e666b47b2d3f078e4a9efda2fccf18f84ddc6538ed912
@@ -218,7 +218,7 @@ CHECKSUMS
   public_suffix (7.0.5) sha256=1a8bb08f1bbea19228d3bed6e5ed908d1cb4f7c2726d18bd9cadf60bc676f623
   rake (13.4.2) sha256=cb825b2bd5f1f8e91ca37bddb4b9aaf345551b4731da62949be002fa89283701
   rake-compiler (1.3.1) sha256=6b351612b6e2d73ddd5563ee799bb58685176e05363db6758504bd11573d670a
-  rbs (4.0.3) sha256=5a7bf70e2628549d9a1f44eae447b2cfe55968a9c60cfff52693a4bdcc020e14
+  rbs (4.1.1) sha256=1bf118f2f95d1cd3956357645d495152b661e0257e57781d18ceecd461622b9e
   rdoc (8.0.0) sha256=03bf8c08a9639658855a0cfd77c0abca8325c227693f7f33f82957811348c469
   reline (0.6.3) sha256=1198b04973565b36ec0f11542ab3f5cfeeec34823f4e54cebde90968092b1835
   rexml (3.4.4) sha256=19e0a2c3425dfbf2d4fc1189747bdb2f849b6c5e74180401b15734bc97b5d142
@@ -233,7 +233,7 @@ CHECKSUMS
   simplecov (0.22.0) sha256=fe2622c7834ff23b98066bb0a854284b2729a569ac659f82621fc22ef36213a5
   simplecov-html (0.13.2) sha256=bd0b8e54e7c2d7685927e8d6286466359b6f16b18cb0df47b508e8d73c777246
   simplecov_json_formatter (0.1.4) sha256=529418fbe8de1713ac2b2d612aa3daa56d316975d307244399fa4838c601b428
-  stripe (19.3.1) sha256=db738acb9df95dcf84f683886556fa8d7ae409d34a92ab8130bbf773828bbb1d
+  stripe (19.4.0) sha256=848807275094285e102aa2c9eeff38f4d5a5e2a293027bf5a2fea8cda38f7cc5
   tsort (0.2.0) sha256=9650a793f6859a43b6641671278f79cfead60ac714148aabe4e3f0060480089f
   warning (1.6.0) sha256=a49cdfae19fb77d19afff2efbe45f8ab759e9cd25b4e4ce2c79dbaf46bdb6c9e
   webmock (3.26.2) sha256=774556f2ea6371846cca68c01769b2eac0d134492d21f6d0ab5dd643965a4c90

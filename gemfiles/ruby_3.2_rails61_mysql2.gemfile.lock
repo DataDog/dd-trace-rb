@@ -151,7 +151,7 @@ GEM
     method_source (1.1.0)
     mini_mime (1.1.2)
     minitest (5.17.0)
-    msgpack (1.8.3)
+    msgpack (1.8.4)
     mysql2 (0.5.5)
     net-imap (0.3.4)
       date
@@ -214,7 +214,7 @@ GEM
     rake (13.4.2)
     rake-compiler (1.3.1)
       rake
-    rbs (4.0.3)
+    rbs (4.1.1)
       logger
       prism (>= 1.6.0)
       tsort
@@ -378,7 +378,7 @@ CHECKSUMS
   method_source (1.1.0) sha256=181301c9c45b731b4769bc81e8860e72f9161ad7d66dd99103c9ab84f560f5c5
   mini_mime (1.1.2) sha256=a54aec0cc7438a03a850adb00daca2bdb60747f839e28186994df057cea87151
   minitest (5.17.0) sha256=c0dfaa3e99ed5ee3500c92bb114cf9d0d3c1e6995e162dd7b49970a9f0315ece
-  msgpack (1.8.3) sha256=8bda4a6428d3244e50d6bd55854d354edbada88a4e1f4f5731a39a0f86bee6a1
+  msgpack (1.8.4) sha256=4411c22d350dd1c20250f7eada3cca2695438c2f769cf0782f0cd065d90a3e7b
   mysql2 (0.5.5) sha256=76d11f8590a821060b8465e82eb0b2965767acee876991c4981c365c82905bbe
   net-imap (0.3.4) sha256=a82a59e2a429433dc54cae5a8b2979ffe49da8c66085740811bfa337dc3729b5
   net-pop (0.1.2) sha256=848b4e982013c15b2f0382792268763b748cce91c9e91e36b0f27ed26420dff3
@@ -404,7 +404,7 @@ CHECKSUMS
   railties (6.1.7.2) sha256=5390d8aade88fb7452de6798c2385b21cff74219e49989b6b1b484e387b3a356
   rake (13.4.2) sha256=cb825b2bd5f1f8e91ca37bddb4b9aaf345551b4731da62949be002fa89283701
   rake-compiler (1.3.1) sha256=6b351612b6e2d73ddd5563ee799bb58685176e05363db6758504bd11573d670a
-  rbs (4.0.3) sha256=5a7bf70e2628549d9a1f44eae447b2cfe55968a9c60cfff52693a4bdcc020e14
+  rbs (4.1.1) sha256=1bf118f2f95d1cd3956357645d495152b661e0257e57781d18ceecd461622b9e
   rdoc (8.0.0) sha256=03bf8c08a9639658855a0cfd77c0abca8325c227693f7f33f82957811348c469
   reline (0.6.3) sha256=1198b04973565b36ec0f11542ab3f5cfeeec34823f4e54cebde90968092b1835
   request_store (1.5.1) sha256=07a204d161590789f2b1d27f9f0eadcdecd6d868cb2f03240250e1bc747df78e
