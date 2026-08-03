@@ -4,27 +4,17 @@ module Datadog
       module Racecar
         module Instrumentation
           module Consumer
-            # The subset of a consumed Kafka message the instrumentation reads.
-            interface _Message
-              def topic: () -> ::String
+            def self.set_consume_checkpoint: (Rdkafka::Consumer::Message message) -> void
 
-              def partition: () -> ::Integer
-
-              def offset: () -> ::Integer
-
-              def headers: () -> ::Hash[(::String | ::Symbol), ::String]?
-            end
-
-            def self.set_consume_checkpoint: (_Message message) -> void
-
+            # `headers` is typed defensively: rdkafka < 0.13 returned Symbol keys.
             def self.header_value: (::Hash[(::String | ::Symbol), ::String]? headers, ::String key) -> ::String?
 
             def self.prepended: (Module base) -> void
 
             module InstanceMethods
-              def process: (_Message message) -> void
+              def process: (Rdkafka::Consumer::Message message) -> void
 
-              def process_batch: (::Array[_Message] messages) -> void
+              def process_batch: (::Array[Rdkafka::Consumer::Message] messages) -> void
             end
           end
         end
