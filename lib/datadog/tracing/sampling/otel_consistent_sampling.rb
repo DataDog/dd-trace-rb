@@ -120,9 +120,7 @@ module Datadog
         # `rv`/`th` are kept as their raw hex strings so they are forwarded byte-for-byte;
         # other sub-keys are preserved (with a trailing `;`) for pass-through.
         #
-        # Malformed `rv`/`th` are ignored. A random value is only meaningful alongside a
-        # threshold, so a malformed threshold also discards the random value even when it is
-        # itself well-formed.
+        # Malformed `rv`/`th` are each ignored independently
         #
         # @param value [String] the `ot=` member value
         # @return [Hash] `{random_value:, threshold:, unknown_fields:}`, each value may be nil

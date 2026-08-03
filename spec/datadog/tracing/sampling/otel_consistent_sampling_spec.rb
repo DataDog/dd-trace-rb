@@ -62,6 +62,15 @@ RSpec.describe Datadog::Tracing::Sampling::OtelConsistentSampling do
       end
     end
 
+    context "when the rate limiter drops a purely local decision with no inbound values" do
+      let(:rate_limiter_rate) { 0.5 }
+      let(:sampling_priority) { -1 }
+
+      it "emits no random value and no threshold" do
+        expect(resolve).to eq([nil, nil])
+      end
+    end
+
     context "when only an inbound random value is present" do
       # This can happen when a trace is rate-limited or manually kept by a decision maker.
       let(:inbound_random_value) { "abcabcabcabcab" }

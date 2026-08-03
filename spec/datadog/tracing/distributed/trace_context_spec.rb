@@ -396,6 +396,24 @@ RSpec.shared_examples "Trace Context distributed format" do
             expect(members.length).to eq(32)
           end
         end
+
+        context "when `dd=` and `ot=` together would exceed the 512-byte tracestate limit" do
+          let(:options) do
+            {
+              trace_sampling_priority: 1,
+              trace_state_unknown_fields: "u:#{"x" * 247};",
+              trace_otel_random_value: "e" * 14,
+              trace_otel_threshold: "f" * 14,
+              trace_otel_unknown_fields: "u:#{"y" * 215};",
+            }
+          end
+
+          it "drops `ot=` entirely rather than truncating it, keeping `dd=`" do
+            expect(tracestate).to start_with("dd=")
+            expect(tracestate).not_to include("ot=")
+            expect(tracestate.bytesize).to be <= 512
+          end
+        end
       end
 
       context "with span_id nil" do
