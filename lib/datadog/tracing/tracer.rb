@@ -396,7 +396,7 @@ module Datadog
             trace_state_unknown_fields: digest.trace_state_unknown_fields,
             otel_random_value: (digest.trace_otel_random_value if propagate_sampling),
             otel_threshold: (digest.trace_otel_threshold if propagate_sampling),
-            otel_unknown_fields: (digest.trace_otel_unknown_fields if propagate_sampling),
+            otel_unknown_fields: digest.trace_otel_unknown_fields,
             remote_parent: digest.span_remote,
             tracer: self,
             baggage: digest.baggage,
