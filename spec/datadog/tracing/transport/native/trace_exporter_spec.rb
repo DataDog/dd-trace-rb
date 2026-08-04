@@ -67,6 +67,23 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter" do
       end
     end
 
+    context "with invalid UTF-8 configuration" do
+      it "rejects the config before creating a shared runtime" do
+        invalid = "\xFF".b.force_encoding(Encoding::UTF_8)
+
+        20.times do
+          expect {
+            trace_exporter_class._native_new(
+              url: "http://127.0.0.1:8126",
+              tracer_version: nil, language: nil, language_version: nil,
+              language_interpreter: nil, hostname: nil, env: nil,
+              service: nil, version: invalid,
+            )
+          }.to raise_error(RuntimeError, /version/)
+        end
+      end
+    end
+
     it "cannot be allocated directly" do
       expect { trace_exporter_class.new }.to raise_error(TypeError)
     end
