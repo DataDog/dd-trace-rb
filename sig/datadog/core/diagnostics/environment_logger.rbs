@@ -37,7 +37,7 @@ module Datadog
         def self.otlp_logs_export_enabled: () -> bool
 
         private
-        def self.opentelemetry_settings: () -> untyped
+        def self.opentelemetry_settings: () -> Datadog::OpenTelemetry::Configuration::Settings::_OpenTelemetry?
         def self.hash_serializer: (untyped h) -> untyped
       end
     end
