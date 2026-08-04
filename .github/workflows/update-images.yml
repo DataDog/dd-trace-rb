@@ -3,7 +3,7 @@ name: Update Images
 # When a change merges into images-rb's `main`, its build publishes a new
 # commit-tagged image. Once that build succeeds, images-rb sends this repo a
 # `repository_dispatch` event carrying the merged commit's SHA, which starts
-# this workflow. images-rb's "Notify dd-trace-rb" workflow can also be
+# this workflow. images-rb's "Notify Consumers" workflow can also be
 # triggered manually from any branch, before merging into `main`, to send the
 # same dispatch ahead of time.
 #
