@@ -147,10 +147,13 @@ module Datadog
           append_to_vendor(dd_member, digest.trace_state_unknown_fields) if digest.trace_state_unknown_fields
 
           # The OpenTelemetry consistent probability sampling member, assembled like `dd=`.
-          ot_member = +"ot="
-          append_to_vendor(ot_member, "rv:#{digest.trace_otel_random_value};") if digest.trace_otel_random_value
-          append_to_vendor(ot_member, "th:#{digest.trace_otel_threshold};") if digest.trace_otel_threshold
-          append_to_vendor(ot_member, digest.trace_otel_unknown_fields) if digest.trace_otel_unknown_fields
+          # Skip allocating it entirely when there is nothing OTel-related to emit.
+          if digest.trace_otel_random_value || digest.trace_otel_threshold || digest.trace_otel_unknown_fields
+            ot_member = +"ot="
+            append_to_vendor(ot_member, "rv:#{digest.trace_otel_random_value};") if digest.trace_otel_random_value
+            append_to_vendor(ot_member, "th:#{digest.trace_otel_threshold};") if digest.trace_otel_threshold
+            append_to_vendor(ot_member, digest.trace_otel_unknown_fields) if digest.trace_otel_unknown_fields
+          end
 
           # Leading members we control and must keep leftmost so they survive truncation
           # of crowded headers: `dd=` first, then the OpenTelemetry `ot=` member.
@@ -160,7 +163,7 @@ module Datadog
             dd_member.chop! # Removes trailing `;` from Datadog trace state string.
             leading_members << dd_member
           end
-          if ot_member.bytesize > 3
+          if ot_member && ot_member.bytesize > 3
             ot_member.chop! # Removes trailing `;` from OpenTelemetry trace state string.
 
             # `dd=` and `ot=` are each individually capped at TRACESTATE_VALUE_SIZE_LIMIT bytes,

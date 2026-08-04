@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "set"
+
 require_relative "ext"
 require_relative "rate_sampler"
 
@@ -43,7 +45,8 @@ module Datadog
 
         # Decision makers that are NOT probability decisions: when one of these is the
         # effective decision maker, the trace was force-kept and no threshold applies.
-        NON_PROBABILITY_DECISIONS = [
+        # A Set avoids a linear Array#include? scan on every call.
+        NON_PROBABILITY_DECISIONS = Set[
           Ext::Decision::MANUAL,
           Ext::Decision::ASM,
           Ext::Decision::AI_GUARD,
@@ -210,9 +213,20 @@ module Datadog
         end
 
         # Formats a threshold as hex with trailing zero nibbles trimmed (never empty).
+        #
+        # A short `th` is implicitly right-padded with zero nibbles by readers back up to
+        # 14 digits, so leading zero nibbles (the high bits of the 56-bit value) must be
+        # kept even though they'd normally be dropped by plain hex conversion; only
+        # trailing zero nibbles (the low bits) can be omitted.
+        #
+        # Computed with integer/bitwise ops instead of the previous `format` + regex
+        # trailing-zero trim, since this runs on every trace that derives a fresh
+        # threshold.
         def format_threshold(threshold)
-          hex = format("%014x", threshold).sub(/0+\z/, "")
-          hex.empty? ? "0" : hex
+          return "0" if threshold.zero?
+
+          trailing_nibbles = ((threshold & -threshold).bit_length - 1) / 4
+          (threshold >> (trailing_nibbles * 4)).to_s(16).rjust(14 - trailing_nibbles, "0")
         end
 
         private_class_method :random_value, :threshold, :reconcile_random_value,

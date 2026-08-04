@@ -402,6 +402,8 @@ module Datadog
         @propagated = true
         events.trace_propagated.publish(self)
 
+        # Snapshotted here (not deferred to injection) because the sampling decision is
+        # mutable trace state that must match the rest of this frozen TraceDigest.
         otel_random_value, otel_threshold = Sampling::OtelConsistentSampling.resolve_outbound(
           trace_id: @id,
           sampling_priority: @sampling_priority,
