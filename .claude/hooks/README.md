@@ -68,6 +68,18 @@ architecture-specific and compiled separately from CRuby, re-verify after any
 hook change: `make compile && make test`. The smoke suite then diffs the fresh
 binary against CRuby and fails on any divergence.
 
+## Hooks in this repo
+
+### require-skill
+
+Loads a required skill before Claude edits a matching path, so the skill's
+guidance is in context first. It matches the `Edit` and `Write` tools, where
+Claude hand-authors file content. It deliberately does not match `Bash`: shell
+tools like `sed`, `cp`, `mv`, and `tee` transform or copy existing bytes rather
+than author new content, so there is nothing for the skill to guide, and reliably
+detecting a write to a guarded path inside an arbitrary command line is not
+feasible.
+
 ## Links
 
 The [Claude Code hooks guide][hooks] covers the payload shape and decision

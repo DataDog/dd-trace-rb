@@ -1,53 +1,70 @@
 # Steep annotations
 
-Use an inline `# @type` annotation when the Ruby is already correct but Steep
-cannot infer the type — a rebound `self`, or a local the checker narrows wrong
+Reach for these when the Ruby is correct but Steep cannot infer a type – never to
+reshape working code or loosen a signature. There are two forms plus a last
+resort: a trailing **assertion**, an above-the-line **annotation**, and
+`steep:ignore`
 
 ## Rules
 
-- SHOULD reach for an annotation only when the code is correct and uninferrable —
-  NEVER reshape working Ruby or loosen a signature to satisfy the checker
-- MUST pin `self` with `# @type self: Type` inside a `class_eval` / `instance_eval`
-  / DSL block Steep cannot follow
-- MUST pin a mis-narrowed local or instance variable with `# @type var x: Type` /
-  `# @type ivar @x: Type`, to its real type — never `untyped`
-- SHOULD keep the annotation and a one-line reason at the top of the block it
-  governs
-- `steep:ignore` is the last resort — SHOULD scope it to the specific diagnostic
-  (`steep:ignore NoMethod`), never bare, and bracket a run with
+- SHOULD reach for one only when the code is correct and uninferrable – NEVER
+  reshape working Ruby or loosen a signature to satisfy the checker
+- A **type assertion** trails an expression as `#: Type` – it narrows a value
+  Steep infers too widely, most often an empty literal that has no element type
+  to infer; NEVER assert to `untyped`
+- An **annotation** sits on its own `# @type` line above the code it governs:
+  `# @type self: Type` for a `class_eval` / `instance_eval` / DSL block Steep
+  cannot follow, and `# @type var x: Type` / `# @type ivar @x: Type` for a local,
+  block parameter, or instance variable Steep infers wrong; pin the real type,
+  NEVER `untyped`
+- `steep:ignore` is the last resort – SHOULD scope it to the specific diagnostic
+  (`steep:ignore NoMethod`), NEVER bare, and bracket a run with
   `steep:ignore:start` / `steep:ignore:end`
 
 ## Examples
 
-Steep does not update `self` for a DSL block — name it, don't silence the errors:
+Assert an empty literal – it has no element type to infer:
 
 ```ruby
-# Good — self is the settings context inside the block
+# Good – later pushes are checked against the element type
+metrics = [] #: Array[String]
+
+# Bad – bare [] infers Array[untyped]; every push goes unchecked
+metrics = []
+```
+
+Annotate `self` for a DSL block Steep does not follow:
+
+```ruby
+# Good – self is the settings context inside the block
 # @type self: Configuration::Options::_Settings
 apply_defaults { |name| set(name, defaults[name]) }
 
-# Bad — suppresses the resulting errors instead of typing self
-apply_defaults { |name| set(name, defaults[name]) } # steep:ignore NoMethod
+# Bad – no self annotation; Steep resolves set/defaults on the wrong type and flags them
+apply_defaults { |name| set(name, defaults[name]) }
 ```
 
-Pin a narrowed variable to its real type, not `untyped`:
+Annotate a block parameter Steep infers too widely – an assertion cannot trail it:
 
 ```ruby
-# Good — the rescue binds a nilable Exception the checker widened
-# @type var e: Exception?
-e = last_error
+# Good – names the block parameter to its real type
+on_failure_proc: ->(log_failure: true) do
+  # @type var log_failure: bool
+  component_failed(:worker, log_failure: log_failure)
+end
 
-# Bad — untyped pins nothing and disables checking on e
-# @type var e: untyped
-e = last_error
+# Bad – no annotation; log_failure stays untyped and the call goes unchecked
+on_failure_proc: ->(log_failure: true) do
+  component_failed(:worker, log_failure: log_failure)
+end
 ```
 
 When an escape hatch is unavoidable, scope it to the one diagnostic:
 
 ```ruby
-# Good — only the NoMethod error on this line is ignored
+# Good – only the NoMethod error on this line is ignored
 value = raw.dynamic_call # steep:ignore NoMethod
 
-# Bad — a bare ignore hides every present and future error on the line
+# Bad – a bare ignore hides every present and future error on the line
 value = raw.dynamic_call # steep:ignore
 ```
