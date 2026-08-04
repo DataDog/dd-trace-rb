@@ -18,7 +18,7 @@ For a list of available integrations, and their supported version ranges, refer 
 | active_record            | 4.2.11.3            | 8.1.3               |
 | active_support           | 4.2.11.3            | 8.1.3               |
 | aws                      | 3.1.0               | 3.3.0               |
-| concurrent_ruby          | 1.3.7               | 1.3.7               |
+| concurrent_ruby          | 1.3.8               | 1.3.8               |
 | dalli                    | 2.7.11              | 5.0.5               |
 | delayed_job              | 4.1.11              | 4.1.13              |
 | elasticsearch            | 7.17.11             | 9.4.3               |
@@ -38,7 +38,7 @@ For a list of available integrations, and their supported version ranges, refer 
 | kicks                    | 3.0.0               | 3.2.0               |
 | lograge                  | 0.12.0              | 0.14.0              |
 | makara                   | 0.5.1               | 0.5.1               |
-| mongo                    | 2.11.0              | 2.24.1              |
+| mongo                    | 2.11.0              | 2.25.0              |
 | mysql2                   | 0.5.5               | 0.5.7               |
 | opensearch               | 2.1.0               | 3.4.0               |
 | pg                       | 0.21.0              | 1.6.2               |
