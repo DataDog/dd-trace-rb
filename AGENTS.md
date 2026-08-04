@@ -94,6 +94,13 @@ tracing libraries.
   dd-trace-js, dd-trace-php, auto_inject, httpd-datadog, nginx-datadog,
   inject-browser-sdk (listed in `libdatadog-build/campaigner-config.yml`).
 
+## images-rb pin updates
+
+`.github/workflows/update-images.yml` receives a `repository_dispatch` from
+images-rb (after its `main` builds successfully) and opens a PR pinning this
+repo to the new images. Requires an external cross-repo dd-octo-sts grant
+(images-rb -> dd-trace-rb); no local trigger otherwise.
+
 # Guidelines
 
 ## ⚠️ Ask First
