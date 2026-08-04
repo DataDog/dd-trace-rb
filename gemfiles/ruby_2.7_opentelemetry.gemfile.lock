@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.40.0)
+    datadog (2.41.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.4)
       libdatadog (~> 36.0.0.1.0)
