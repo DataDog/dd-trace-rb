@@ -10,7 +10,7 @@ domain meaning worth naming
 - MUST define the alias where the value is produced, not where it is consumed
 - MUST name the alias after the domain concept, NEVER after its representation
   (`struct`, `structure`, `hash`)
-- NEVER alias a single-use shape — inline it, and promote only on reuse or domain
+- NEVER alias a single-use shape – inline it, and promote only on reuse or domain
   meaning
 - SHOULD layer aliases when a value is a union of already-named types
 
@@ -19,14 +19,14 @@ domain meaning worth naming
 Bind every signature to one name, so the shape can't drift apart:
 
 ```rbs
-# Good — one shape, one name
+# Good – one shape, one name
 type tags = Hash[String, String]
 
 def fixed_tags: () -> tags
 
 def merge_tags: (tags base, tags extra) -> tags
 
-# Bad — copy-pasted shape, already drifting (Symbol values crept in)
+# Bad – copy-pasted shape, already drifting (Symbol values crept in)
 def fixed_tags: () -> Hash[String, String]
 
 def merge_tags: (Hash[String, String] base, Hash[String, Symbol] extra) -> Hash[String, String]
@@ -35,20 +35,20 @@ def merge_tags: (Hash[String, String] base, Hash[String, Symbol] extra) -> Hash[
 Name it for what it means, not how it's built:
 
 ```rbs
-# Good — the domain concept
+# Good – the domain concept
 type dependency = Hash[Symbol, String]
 
-# Bad — leaks the representation, breaks encapsulation
+# Bad – leaks the representation, breaks encapsulation
 type struct = Hash[Symbol, String]
 ```
 
-Don't alias a shape used once — the indirection buys nothing:
+Don't alias a shape used once – the indirection buys nothing:
 
 ```rbs
-# Good — used once, inline it
+# Good – used once, inline it
 def id: () -> Integer
 
-# Bad — an alias with a single use
+# Bad – an alias with a single use
 type id = Integer
 
 def id: () -> id

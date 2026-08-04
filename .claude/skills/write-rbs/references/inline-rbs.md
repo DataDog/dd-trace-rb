@@ -1,51 +1,67 @@
 # Inline RBS
 
-Use a trailing `# :` in the `.rb` file — either as a one-off cast to narrow a
-single expression, or as a file's whole signature in place of `sig/`
+Inline RBS keeps a file's types in the `.rb` itself as comments the rbs-inline
+transpiler reads, in place of a separate `sig/*.rbs`. It has two comment
+syntaxes: methods take `# @rbs`, attributes take a trailing `#:`.
 
 ## Rules
 
-- Standalone `sig/` is the repo default — inline mode is opt-in per file via
-  `inline: true` in the `Steepfile`; without that line a file's `# :` signatures
-  go unchecked
+- Standalone `sig/` is the repo default – inline mode is opt-in per file via
+  `inline: true` in the `Steepfile`; without that line the comments go unchecked
+- A file is EITHER `sig/`-mode OR `inline: true`, NEVER both – pick one per file
 - SHOULD keep a file inline only when it is small and self-contained; otherwise
   mirror it in `sig/`
-- NEVER split one file across both an inline `# :` signature and a `sig/` `.rbs` —
-  pick one per file
-- MUST write an inline method signature with types only, no argument names —
-  `# : (Time, Time) -> bool`
-- A trailing `# : Type` also narrows one expression Steep infers too widely, even
-  in a `sig/`-checked file — SHOULD prefer it over reshaping correct code
+- MUST type every method with `# @rbs` – one `# @rbs <param>:` line per parameter
+  plus a `# @rbs return:` line; NEVER mix in the compact `#: (...) -> ...` method-type form
+- ALWAYS give a `# @rbs return:` line, `void` included – NEVER leave the return implicit
+- Attributes have no `# @rbs` form – MUST type them with a trailing `#: Type`, their
+  only inline syntax
 
 ## Examples
 
-Cast a single expression to the type Steep cannot infer:
+Every method annotates its return, `void` included:
 
 ```ruby
-# Good — narrows the widened expression to what it really is
-uri = URI(endpoint) # : URI::HTTP
-
-# Bad — casting to untyped discards the type instead of narrowing it
-uri = URI(endpoint) # : untyped
-```
-
-Annotate an empty literal — it has no element type to infer:
-
-```ruby
-# Good — later pushes are checked against the element type
-metrics = [] # : Array[[String, Numeric]]
-
-# Bad — bare [] infers Array[untyped]; every push goes unchecked
-metrics = []
-```
-
-In an `inline: true` file, the `# :` carries the whole signature:
-
-```ruby
-attr_reader :start # : Time
-
-# : (Time, Time) -> bool
-def duration_below_threshold?(start, finish)
-  (finish - start) < minimum_duration_seconds
+# Good
+# @rbs name: String
+# @rbs return: void
+def name=(name)
+  @name = name
 end
+
+# Bad – return left implicit
+# @rbs name: String
+def name=(name)
+  @name = name
+end
+```
+
+One style per method – don't mix the compact method-type with `# @rbs`:
+
+```ruby
+# Good – every parameter and the return in `# @rbs` form
+# @rbs key: String
+# @rbs value: String
+# @rbs return: void
+def set_tag(key, value)
+  tags[key] = value
+end
+
+# Bad – per-param `# @rbs` mixed with a compact `#:` method-type on the same method
+# @rbs key: String
+#: (String, String) -> void
+def set_tag(key, value)
+  tags[key] = value
+end
+```
+
+Readers take a trailing `#:` – there is no `# @rbs` form for them:
+
+```ruby
+# Good
+attr_reader :name #: String
+
+# Bad – no `# @rbs` attribute form exists
+# @rbs name: String
+attr_reader :name
 ```
