@@ -1,20 +1,15 @@
 name: Update Images
 
-# To run this workflow manually, use the following command:
-#  `gh workflow run "Update Images" -f commit=<40-char-sha>`
+# This workflow is only triggered by images-rb's "Notify dd-trace-rb" workflow
+# via repository_dispatch. If that link is broken, fall back to running
+# `rake images:pin[<commit-sha>]` locally and opening a PR by hand.
 
 on: # yamllint disable-line rule:truthy
   repository_dispatch:
     types: [images-updated]
-  workflow_dispatch:
-    inputs:
-      commit:
-        description: images-rb commit SHA to pin to (40-char hex)
-        required: true
-        type: string
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.client_payload.commit || github.event.inputs.commit }}
+  group: ${{ github.workflow }}-${{ github.event.client_payload.commit }}
   cancel-in-progress: true
 
 # Default permissions for all jobs
@@ -43,7 +38,7 @@ jobs:
       - name: Determine trigger inputs
         id: inputs
         env:
-          RAW_COMMIT: ${{ github.event.client_payload.commit || github.event.inputs.commit }}
+          RAW_COMMIT: ${{ github.event.client_payload.commit }}
         run: |
           if ! [[ "$RAW_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
             echo "::error::Invalid commit SHA: must be 40 lowercase hex characters"
@@ -92,12 +87,9 @@ jobs:
             _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/update-images.yml)_
             The PR pins images-rb images to commit [${{ steps.inputs.outputs.commit }}](https://github.com/DataDog/images-rb/commit/${{ steps.inputs.outputs.commit }})
 
-            You can trigger this workflow manually from [here](https://github.com/DataDog/dd-trace-rb/actions/workflows/update-images.yml).
-
             **Trigger Information:**
-            - Event: ${{ github.event_name }}
-            - Triggered by: ${{ github.event.client_payload.triggered_by || 'Manual' }}
+            - Triggered by: ${{ github.event.client_payload.triggered_by }}
             - Source commit: [${{ steps.inputs.outputs.commit }}](https://github.com/DataDog/images-rb/commit/${{ steps.inputs.outputs.commit }})
-            - Source run: ${{ github.event.client_payload.source_run_url || 'N/A' }}
+            - Source run: ${{ github.event.client_payload.source_run_url }}
 
             Please review the changes and merge when ready.
