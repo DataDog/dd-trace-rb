@@ -1,8 +1,16 @@
 name: Update Images
 
-# This workflow is only triggered by images-rb's "Notify dd-trace-rb" workflow
-# via repository_dispatch. If that link is broken, fall back to running
-# `rake images:pin[<commit-sha>]` locally and opening a PR by hand.
+# This workflow only starts via repository_dispatch (event_type: images-updated),
+# sent by images-rb's "Notify dd-trace-rb" workflow. There is no workflow_dispatch
+# here -- it cannot be run directly from this repo's Actions tab. Two scenarios
+# reach it:
+#   1. images-rb merges to `main` and its build succeeds -> notify-dd-trace-rb.yml
+#      fires automatically and dispatches the merged commit's SHA.
+#   2. Someone manually re-runs images-rb's "Notify dd-trace-rb" workflow (its own
+#      workflow_dispatch) to re-trigger a pin update, e.g. after a transient failure.
+# If the cross-repo dispatch link itself is broken (e.g. the dd-octo-sts grant is
+# missing), fall back to running `rake images:pin[<commit-sha>]` locally and
+# opening a PR by hand -- the same process this automation replaces.
 
 on: # yamllint disable-line rule:truthy
   repository_dispatch:
