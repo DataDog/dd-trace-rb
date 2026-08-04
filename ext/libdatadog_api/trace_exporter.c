@@ -63,7 +63,6 @@ static ID link_trace_id_id;
 static ID link_trace_id_high_id;
 static ID link_span_id_id;
 static ID link_attributes_id;
-static ID link_dropped_attributes_count_id;
 static ID link_tracestate_id;
 static ID link_flags_id;
 
@@ -333,7 +332,6 @@ typedef struct {
   uint64_t              span_id;
   owned_link_attribute *attributes;
   size_t                attribute_count;
-  uint32_t              dropped_attributes_count;
   owned_link_string     tracestate;
   uint32_t              flags;
 } owned_span_link;
@@ -456,11 +454,6 @@ static VALUE prepare_span_links_snapshot(VALUE arg) {
       }
     }
 
-    VALUE dropped_attributes_count =
-        rb_hash_aref(canonical, ID2SYM(link_dropped_attributes_count_id));
-    link->dropped_attributes_count =
-        dropped_attributes_count == Qnil ? 0 : NUM2UINT(dropped_attributes_count);
-
     VALUE tracestate = rb_hash_aref(canonical, ID2SYM(link_tracestate_id));
     if (tracestate != Qnil) {
       snapshot_link_string(tracestate, &link->tracestate);
@@ -505,7 +498,6 @@ static VALUE prepare_span_links_snapshot(VALUE arg) {
         .ptr = ffi_attributes + first_attribute,
         .len = link->attribute_count,
       },
-      .dropped_attributes_count = link->dropped_attributes_count,
       .tracestate = snapshot_char_slice(&link->tracestate),
       .flags = link->flags,
     };
@@ -1223,7 +1215,6 @@ void trace_exporter_init(VALUE tracing_module) {
   link_trace_id_high_id = rb_intern("trace_id_high");
   link_span_id_id = rb_intern("span_id");
   link_attributes_id = rb_intern("attributes");
-  link_dropped_attributes_count_id = rb_intern("dropped_attributes_count");
   link_tracestate_id = rb_intern("tracestate");
   link_flags_id = rb_intern("flags");
 

@@ -320,7 +320,6 @@ RSpec.describe "Native transport wire-level conformance" do
       canonical = {
         trace_id: 1,
         span_id: 2,
-        dropped_attributes_count: 0,
         flags: 0,
       }
       canonical.default_proc = proc do |hash, key|
@@ -354,23 +353,6 @@ RSpec.describe "Native transport wire-level conformance" do
         "tracestate" => "vendor=value",
         "flags" => 0x8000_0001
       )
-    end
-
-    it "preserves canonical dropped attributes counts" do
-      canonical = {
-        trace_id: 1,
-        span_id: 2,
-        dropped_attributes_count: 9,
-        flags: 0,
-      }
-      trace = make_trace([{
-        name: "consumer",
-        links: [double("span link", to_hash: canonical)],
-      }])
-
-      link = send_and_decode([trace]).first.first["span_links"].first
-
-      expect(link["dropped_attributes_count"]).to eq(9)
     end
 
     it "normalizes links before borrowing scalar string pointers" do

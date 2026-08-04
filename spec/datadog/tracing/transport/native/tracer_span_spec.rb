@@ -145,7 +145,6 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
           trace_id_high: 0,
           span_id: 2,
           attributes: {"copied" => "value"},
-          dropped_attributes_count: 0,
           flags: 0,
         }
         canonical.default_proc = proc do |_hash, key|
