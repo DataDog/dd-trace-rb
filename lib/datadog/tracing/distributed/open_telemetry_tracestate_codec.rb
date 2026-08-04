@@ -2,13 +2,14 @@
 
 require "set"
 
-require_relative "ext"
-require_relative "rate_sampler"
+require_relative "../sampling/ext"
+require_relative "../sampling/rate_sampler"
 
 module Datadog
   module Tracing
-    module Sampling
-      # OpenTelemetry consistent probability sampling (OTEP 235).
+    module Distributed
+      # Encodes and decodes the `ot=` tracestate member: OpenTelemetry consistent
+      # probability sampling (OTEP 235).
       #
       # Re-expresses Datadog's Knuth-hash sampling decision as the OTel `(rv, th)` pair
       # carried in the `ot=` member of the W3C `tracestate` header:
@@ -24,7 +25,7 @@ module Datadog
       #
       # @api private
       # @see https://opentelemetry.io/docs/specs/otel/trace/tracestate-probability-sampling/
-      module OtelConsistentSampling
+      module OpenTelemetryTracestateCodec
         # 2^56, the range of both `rv` and `th`.
         MAX_THRESHOLD = 1 << 56
 
@@ -47,9 +48,9 @@ module Datadog
         # effective decision maker, the trace was force-kept and no threshold applies.
         # A Set avoids a linear Array#include? scan on every call.
         NON_PROBABILITY_DECISIONS = Set[
-          Ext::Decision::MANUAL,
-          Ext::Decision::ASM,
-          Ext::Decision::AI_GUARD,
+          Sampling::Ext::Decision::MANUAL,
+          Sampling::Ext::Decision::ASM,
+          Sampling::Ext::Decision::AI_GUARD,
         ].freeze
 
         module_function
@@ -88,7 +89,7 @@ module Datadog
           # so keep it for consistent per-hop sampling downstream.
           return [inbound_random_value, nil] if NON_PROBABILITY_DECISIONS.include?(decision_maker)
 
-          trace_kept = sampling_priority && sampling_priority >= Ext::Priority::AUTO_KEEP
+          trace_kept = sampling_priority && sampling_priority >= Sampling::Ext::Priority::AUTO_KEEP
           # The rate limiter rate is always set on the trace when the trace is sampled
           # by a probabilistic rule, which means that if there is the rate limiter rate,
           # the trace should be kept EXCEPT if the rate limiter dropped the trace.
@@ -167,7 +168,7 @@ module Datadog
         # @param trace_id [Integer] the (up to 128-bit) trace id
         # @return [Integer] a 56-bit random value
         def random_value(trace_id)
-          h = (trace_id * RateSampler::KNUTH_FACTOR) % UINT64_MODULO
+          h = (trace_id * Sampling::RateSampler::KNUTH_FACTOR) % UINT64_MODULO
           (~h & UINT64_MASK) >> 8
         end
 

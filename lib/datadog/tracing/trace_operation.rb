@@ -5,7 +5,7 @@ require_relative "../core/utils"
 require_relative "event"
 require_relative "metadata/tagging"
 require_relative "sampling/ext"
-require_relative "sampling/otel_consistent_sampling"
+require_relative "distributed/open_telemetry_tracestate_codec"
 require_relative "span_operation"
 require_relative "trace_digest"
 require_relative "correlation"
@@ -404,7 +404,7 @@ module Datadog
 
         # Snapshotted here (not deferred to injection) because the sampling decision is
         # mutable trace state that must match the rest of this frozen TraceDigest.
-        otel_random_value, otel_threshold = Sampling::OtelConsistentSampling.resolve_outbound(
+        otel_random_value, otel_threshold = Distributed::OpenTelemetryTracestateCodec.resolve_outbound(
           trace_id: @id,
           sampling_priority: @sampling_priority,
           decision_maker: get_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER),

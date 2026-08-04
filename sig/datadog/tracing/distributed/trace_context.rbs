@@ -6,7 +6,7 @@ module Datadog
         type traceparent_fields = [::Integer, ::Integer, ::Integer]
         type extracted_traceparent = [::Integer, ::Integer, ::Integer, ::Integer]
         type extracted_datadog_fields = { ?sampling_priority: ::Integer?, ?origin: ::String?, ?ts_parent_id: ::String?, ?tags: tags?, ?unknown_fields: ::String? }
-        type extracted_tracestate = { ?tracestate: ::String, ?dd: extracted_datadog_fields, ?ot: Tracing::Sampling::OtelConsistentSampling::extracted_otel_fields }
+        type extracted_tracestate = { ?tracestate: ::String, ?dd: extracted_datadog_fields, ?ot: OpenTelemetryTracestateCodec::extracted_otel_fields }
 
         TRACEPARENT_KEY: "traceparent"
 
@@ -38,7 +38,7 @@ module Datadog
         def parse_sampled_flag: (::Integer trace_flags) -> ::Integer
         def extract_tracestate: (::String? tracestate) -> extracted_tracestate
 
-        def pop_member: (::Array[::String] vendors, ::String prefix) -> ::String?
+        def pop_vendor: (::Array[::String] vendors, ::String prefix) -> ::String?
 
         def extract_datadog_fields: (::String dd_tracestate) -> extracted_datadog_fields
         def deserialize_tag_value: (::String value) -> ::String
@@ -47,7 +47,7 @@ module Datadog
         def split_tracestate: (::String? tracestate) -> ::Array[::String]?
         TRACEPARENT_MAX_SIZE_LIMIT: 512
         TRACESTATE_MAX_SIZE_LIMIT: 512
-        TRACESTATE_MAX_LIST_MEMBERS: 32
+        TRACESTATE_MAX_LIST_VENDORS: 32
         INVALID_VERSION: "ff"
         DEFAULT_TRACE_FLAGS: 0
         TRACE_FLAGS_SAMPLED: 1

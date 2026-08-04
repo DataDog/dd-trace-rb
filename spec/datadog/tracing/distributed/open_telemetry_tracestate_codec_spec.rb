@@ -1,9 +1,9 @@
 require "spec_helper"
 
 require "datadog/tracing/sampling/ext"
-require "datadog/tracing/sampling/otel_consistent_sampling"
+require "datadog/tracing/distributed/open_telemetry_tracestate_codec"
 
-RSpec.describe Datadog::Tracing::Sampling::OtelConsistentSampling do
+RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
   describe ".resolve_outbound" do
     let(:trace_id) { 0xfff972474538efff }
     let(:sampling_priority) { 2 }

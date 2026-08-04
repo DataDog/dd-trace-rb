@@ -1,17 +1,16 @@
 module Datadog
   module Tracing
-    module Sampling
-      module OtelConsistentSampling
+    module Distributed
+      module OpenTelemetryTracestateCodec
         type extracted_otel_fields = { random_value: ::String?, threshold: ::String?, unknown_fields: ::String? }
 
-        HEX_DIGITS: ::Integer
         MAX_THRESHOLD: ::Integer
         MAX_ENCODABLE_THRESHOLD: ::Integer
         UINT64_MODULO: ::Integer
         UINT64_MASK: ::Integer
         VALID_THRESHOLD: ::Regexp
         VALID_RANDOM_VALUE: ::Regexp
-        NON_PROBABILITY_DECISIONS: ::Array[::String]
+        NON_PROBABILITY_DECISIONS: ::Set[::String]
 
         def self?.resolve_outbound: (
           trace_id: ::Integer,
