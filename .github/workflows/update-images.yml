@@ -35,20 +35,9 @@ jobs:
           ruby-version: "4.0.1"
           bundler-cache: true
 
-      - name: Determine trigger inputs
-        id: inputs
-        env:
-          RAW_COMMIT: ${{ github.event.client_payload.commit }}
-        run: |
-          if ! [[ "$RAW_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error::Invalid commit SHA: must be 40 lowercase hex characters"
-            exit 1
-          fi
-          echo "commit=${RAW_COMMIT}" >> "$GITHUB_OUTPUT"
-
       - name: Pin images
         env:
-          COMMIT: ${{ steps.inputs.outputs.commit }}
+          COMMIT: ${{ github.event.client_payload.commit }}
         run: bundle exec rake "images:pin[$COMMIT]"
 
       - run: git diff --color=always
@@ -85,11 +74,11 @@ jobs:
             tools/yard.gemfile
           body: |
             _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/update-images.yml)_
-            The PR pins images-rb images to commit [${{ steps.inputs.outputs.commit }}](https://github.com/DataDog/images-rb/commit/${{ steps.inputs.outputs.commit }})
+            The PR pins images-rb images to commit [${{ github.event.client_payload.commit }}](https://github.com/DataDog/images-rb/commit/${{ github.event.client_payload.commit }})
 
             **Trigger Information:**
             - Triggered by: ${{ github.event.client_payload.triggered_by }}
-            - Source commit: [${{ steps.inputs.outputs.commit }}](https://github.com/DataDog/images-rb/commit/${{ steps.inputs.outputs.commit }})
+            - Source commit: [${{ github.event.client_payload.commit }}](https://github.com/DataDog/images-rb/commit/${{ github.event.client_payload.commit }})
             - Source run: ${{ github.event.client_payload.source_run_url }}
 
             Please review the changes and merge when ready.
