@@ -50,6 +50,13 @@ module Datadog
       # return a safe stub rather than tear the process down.
       SERIALIZABLE_FATAL_EXCEPTION_CLASSES = [SystemExit, SignalException].freeze
 
+      # Placeholder emitted by #serialize_value_for_message in place of a value
+      # whose identifier or type matches the redaction configuration. This
+      # mirrors, for the human-readable log-probe message path, the
+      # notCapturedReason: "redactedIdent"/"redactedType" gating that
+      # #serialize_value applies on the snapshot path.
+      REDACTED_VALUE_FOR_MESSAGE = "[redacted]"
+
       # Third-party library integration / custom serializers.
       #
       # Dynamic instrumentation has limited payload sizes, and for efficiency
@@ -378,6 +385,11 @@ module Datadog
       def serialize_value_for_message(value, depth = 1)
         # This method is more verbose than "normal" Ruby code to avoid
         # array allocations.
+
+        # Redact by type before interpolating any of the value's contents,
+        # matching the redact_type? gating in #serialize_value.
+        return REDACTED_VALUE_FOR_MESSAGE if redactor.redact_type?(value)
+
         case value
         when NilClass
           "nil"
@@ -413,7 +425,15 @@ module Datadog
             truncated = true
           end
           serialized = keys.map do |key|
-            "#{serialize_value_for_message(key, depth - 1)} => #{serialize_value_for_message(value[key], depth - 1)}"
+            # Redact the value (not the key) when the key matches a redacted
+            # identifier, matching the redact_identifier? gating that
+            # #serialize_value applies to hash entries via the name argument.
+            serialized_value = if redactor.redact_identifier?(key)
+              REDACTED_VALUE_FOR_MESSAGE
+            else
+              serialize_value_for_message(value[key], depth - 1)
+            end
+            "#{serialize_value_for_message(key, depth - 1)} => #{serialized_value}"
           end
           if truncated
             serialized[serialized.length] = serialized[serialized.length - 1]
@@ -435,7 +455,17 @@ module Datadog
           serialized = vars.map do |var|
             # +var+ here is always the instance variable name which is a
             # symbol, we do not need to run it through our serializer.
-            "#{var}=#{serialize_value_for_message(value.send(:instance_variable_get, var), depth - 1)}"
+            #
+            # Redact the value when the instance variable name matches a
+            # redacted identifier, matching the redact_identifier? gating that
+            # #serialize_value applies to instance variables via the name
+            # argument.
+            serialized_value = if redactor.redact_identifier?(var)
+              REDACTED_VALUE_FOR_MESSAGE
+            else
+              serialize_value_for_message(value.send(:instance_variable_get, var), depth - 1)
+            end
+            "#{var}=#{serialized_value}"
           end
           if truncated
             serialized << serialized.last

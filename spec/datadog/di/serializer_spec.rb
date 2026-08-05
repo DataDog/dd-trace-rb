@@ -533,6 +533,17 @@ RSpec.describe Datadog::DI::Serializer do
       ["object with array field", DISerializerSpecFields.new(a: 1, b: [2]), "#<DISerializerSpecFields @a=1 @b=...>"],
       ["object with hash field", DISerializerSpecFields.new(a: 1, b: {x: 2}), "#<DISerializerSpecFields @a=1 @b=...>"],
       ["when serialization fails", DISerializerSpecBrokenHash.new, "#<DISerializerSpecBrokenHash: serialization error>"],
+      # Redaction — mirrors the redact_type?/redact_identifier? gating that
+      # #serialize_value applies on the snapshot path (INV-R7-001).
+      ["hash with redacted symbol key", {password: "hunter2"}, "{:password => [redacted]}"],
+      ["hash with redacted string key", {"session-key" => 42}, "{session-key => [redacted]}"],
+      ["hash with non-redacted key", {name: "alice"}, "{:name => alice}"],
+      ["hash value of redacted type", {value: DISerializerSpecSensitiveType.new}, "{:value => [redacted]}"],
+      ["object with redacted and non-redacted fields", DISerializerSpecFields.new(name: "alice", password: "hunter2"), "#<DISerializerSpecFields @name=alice @password=[redacted]>"],
+      ["object with redacted instance variable", DISerializerSpecRedactedInstanceVariable.new(42), "#<DISerializerSpecRedactedInstanceVariable @session=[redacted]>"],
+      ["value of redacted type", DISerializerSpecSensitiveType.new, "[redacted]"],
+      ["value of redacted wildcard type", DISerializerSpecWildCardClass.new, "[redacted]"],
+      ["array with element of redacted type", [1, DISerializerSpecSensitiveType.new], "[1, [redacted]]"],
     ].each do |desc, input, expected_output|
       context desc do
         let(:actual) do
