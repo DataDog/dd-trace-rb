@@ -428,7 +428,7 @@ module Datadog
             truncated = true
           end
           serialized = keys.map do |key|
-            serialized_value = if redactor.redact_identifier?(key)
+            serialized_value = if (String === key || Symbol === key) && redactor.redact_identifier?(key)
               REDACTED_VALUE_FOR_MESSAGE
             else
               serialize_value_for_message(value[key], depth - 1)

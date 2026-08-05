@@ -63,6 +63,12 @@ class DISerializerSpecBrokenHash < Hash
   end
 end
 
+class DISerializerSpecRaisingToSKey
+  def to_s
+    raise "#to_s must not be called on a non-String/Symbol hash key"
+  end
+end
+
 class DISerializerSpecFields
   def initialize(**fields)
     fields.each do |k, v|
@@ -537,6 +543,7 @@ RSpec.describe Datadog::DI::Serializer do
       ["hash with redacted symbol key", {password: "hunter2"}, "{:password => [redacted]}"],
       ["hash with redacted string key", {"session-key" => 42}, "{session-key => [redacted]}"],
       ["hash with non-redacted key", {name: "alice"}, "{:name => alice}"],
+      ["hash with non-string/symbol key does not invoke key#to_s", {DISerializerSpecRaisingToSKey.new => "value"}, "{... => value}"],
       ["hash value of redacted type", {value: DISerializerSpecSensitiveType.new}, "{:value => [redacted]}"],
       ["object with redacted and non-redacted fields", DISerializerSpecFields.new(name: "alice", password: "hunter2"), "#<DISerializerSpecFields @name=alice @password=[redacted]>"],
       ["object with redacted instance variable", DISerializerSpecRedactedInstanceVariable.new(42), "#<DISerializerSpecRedactedInstanceVariable @session=[redacted]>"],
