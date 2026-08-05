@@ -580,11 +580,13 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
   span_links_snapshot links_snapshot = {
     .rb_links = rb_links,
   };
-  int snapshot_state = 0;
-  rb_protect(prepare_span_links_snapshot, (VALUE)&links_snapshot, &snapshot_state);
-  if (snapshot_state) {
-    free_span_links_snapshot(&links_snapshot);
-    rb_jump_tag(snapshot_state);
+  if (RARRAY_LEN(rb_links) > 0) {
+    int snapshot_state = 0;
+    rb_protect(prepare_span_links_snapshot, (VALUE)&links_snapshot, &snapshot_state);
+    if (snapshot_state) {
+      free_span_links_snapshot(&links_snapshot);
+      rb_jump_tag(snapshot_state);
+    }
   }
 
   /* No Ruby callbacks occur between borrowing these pointers and the FFI call. */
@@ -624,18 +626,20 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
   }
   check_exporter_error("Failed to create TracerSpan", err);
 
-  ddog_Slice_TracerSpanLink links_slice = {
-    .ptr = links_snapshot.ffi_links,
-    .len = links_snapshot.link_count,
-  };
-  /* libdatadog validates link strings as UTF-8, matching the native meta
-   * setters. A validation error rejects this span conversion and therefore the
-   * complete batch; send_traces reports it as an InternalErrorResponse. */
-  err = ddog_tracer_span_set_links(rust_span, links_slice);
-  free_span_links_snapshot(&links_snapshot);
-  if (err != NULL) {
-    ddog_tracer_span_free(rust_span);
-    check_exporter_error("Failed to set span links", err);
+  if (links_snapshot.link_count > 0) {
+    ddog_Slice_TracerSpanLink links_slice = {
+      .ptr = links_snapshot.ffi_links,
+      .len = links_snapshot.link_count,
+    };
+    /* libdatadog validates link strings as UTF-8, matching the native meta
+     * setters. A validation error rejects this span conversion and therefore the
+     * complete batch; send_traces reports it as an InternalErrorResponse. */
+    err = ddog_tracer_span_set_links(rust_span, links_slice);
+    free_span_links_snapshot(&links_snapshot);
+    if (err != NULL) {
+      ddog_tracer_span_free(rust_span);
+      check_exporter_error("Failed to set span links", err);
+    }
   }
 
   /* 5. Populate meta and metrics */
