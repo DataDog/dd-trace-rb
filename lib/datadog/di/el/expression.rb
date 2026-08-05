@@ -16,7 +16,7 @@ module Datadog
         #   expression directly references at its top level (see
         #   Compiler#redaction_identifier); nil when it is not a direct
         #   reference.
-        def initialize(dsl_expr, compiled_expr, regexps = [], redaction_identifier: nil)
+        def initialize(dsl_expr, compiled_expr, regexps: [], redaction_identifier: nil)
           unless String === compiled_expr
             raise ArgumentError, "compiled_expr must be a string"
           end

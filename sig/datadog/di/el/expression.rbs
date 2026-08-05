@@ -8,7 +8,7 @@ module Datadog
 
         @redaction_identifier: ::String?
 
-        def initialize: (::String dsl_expr, ::String compiled_expr, ?::Array[::Regexp] regexps, ?redaction_identifier: ::String?) -> void
+        def initialize: (::String dsl_expr, ::String compiled_expr, ?regexps: ::Array[::Regexp], ?redaction_identifier: ::String?) -> void
 
         attr_reader dsl_expr: String
 

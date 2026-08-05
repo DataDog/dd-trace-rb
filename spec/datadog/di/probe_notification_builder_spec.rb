@@ -678,10 +678,12 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       let(:compiler) { Datadog::DI::EL::Compiler.new }
 
       let(:template_segments) do
+        hello_compiled, hello_regexps = compiler.compile("ref" => "hello")
+        world_compiled, world_regexps = compiler.compile("ref" => "world")
         [
-          Datadog::DI::EL::Expression.new("(expression)", *compiler.compile("ref" => "hello")),
+          Datadog::DI::EL::Expression.new("(expression)", hello_compiled, regexps: hello_regexps),
           " ",
-          Datadog::DI::EL::Expression.new("(expression)", *compiler.compile("ref" => "world")),
+          Datadog::DI::EL::Expression.new("(expression)", world_compiled, regexps: world_regexps),
         ]
       end
 
@@ -713,11 +715,13 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         compiler = Datadog::DI::EL::Compiler.new
         password_ast = {"ref" => "password"}
         user_ast = {"ref" => "user"}
+        password_compiled, password_regexps = compiler.compile(password_ast)
+        user_compiled, user_regexps = compiler.compile(user_ast)
         [
-          Datadog::DI::EL::Expression.new("(expression)", *compiler.compile(password_ast),
+          Datadog::DI::EL::Expression.new("(expression)", password_compiled, regexps: password_regexps,
             redaction_identifier: compiler.redaction_identifier(password_ast)),
           " ",
-          Datadog::DI::EL::Expression.new("(expression)", *compiler.compile(user_ast),
+          Datadog::DI::EL::Expression.new("(expression)", user_compiled, regexps: user_regexps,
             redaction_identifier: compiler.redaction_identifier(user_ast)),
         ]
       end
@@ -742,7 +746,8 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
   describe "#build_snapshot with capture_expressions" do
     let(:compiled_expr) do
-      Datadog::DI::EL::Expression.new("x", *Datadog::DI::EL::Compiler.new.compile({"ref" => "x"}))
+      compiled, regexps = Datadog::DI::EL::Compiler.new.compile({"ref" => "x"})
+      Datadog::DI::EL::Expression.new("x", compiled, regexps: regexps)
     end
 
     let(:capture_expression) do
@@ -909,7 +914,8 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
     context "evaluation error in a capture expression" do
       let(:failing_expr) do
-        Datadog::DI::EL::Expression.new("len(badvar)", *Datadog::DI::EL::Compiler.new.compile({"len" => {"ref" => "badvar"}}))
+        compiled, regexps = Datadog::DI::EL::Compiler.new.compile({"len" => {"ref" => "badvar"}})
+        Datadog::DI::EL::Expression.new("len(badvar)", compiled, regexps: regexps)
       end
 
       let(:probe) do
