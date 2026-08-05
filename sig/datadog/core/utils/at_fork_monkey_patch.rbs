@@ -3,6 +3,8 @@ module Datadog
   module Core
     module Utils
       module AtForkMonkeyPatch
+        @at_fork_blocks: Hash[Symbol, Array[Callback]]
+
         class Callback
           attr_reader block: Proc
           attr_reader group: Object?
