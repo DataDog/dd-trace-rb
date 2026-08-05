@@ -8,6 +8,8 @@
 #ifndef PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
   #include <ruby/thread_native.h>
   #include <ruby/vm.h>
+  typedef struct RubyCME rb_callable_method_entry_t;
+  typedef struct RubyISEQ rb_iseq_t;
 #endif
 
 #include "extconf.h"
@@ -20,18 +22,17 @@ typedef struct {
 
 // If a sample is kept around for later use, some of its fields need marking. Remember to
 // update the marking code in `sampling_buffer_mark` if new fields are added.
+// This is very similar to rb_backtrace_location_t (cme, iseq, pc) on purpose:
+// we want to show frames like Ruby backtraces,
+// not like rb_profile_frame_qualified_method_name() which differs in some cases.
 typedef struct {
-  union {
+  const rb_callable_method_entry_t* cme; // Needs marking, kept alive by sampling_buffer
+  struct {
     struct {
-      VALUE iseq; // Needs marking if kept around
+      const rb_iseq_t* iseq; // Needs marking, kept alive by sampling_buffer
       void *caching_pc; // For caching validation/invalidation only (does not need marking)
       int line;
     } ruby_frame;
-    struct {
-      VALUE caching_cme; // For caching validation/invalidation only (does not need marking)
-      ID method_id;
-      void *function;
-    } native_frame;
   } as;
   bool is_ruby_frame : 1;
   bool same_frame : 1;
@@ -48,8 +49,9 @@ VALUE thread_name_for(VALUE thread);
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *stack_buffer);
 
 size_t sizeof_rb_iseq_t(void);
-VALUE ddtrace_iseq_base_label(const void *iseq);
-VALUE ddtrace_iseq_path(const void *iseq);
+size_t sizeof_rb_callable_method_entry_t(void);
+VALUE ddtrace_iseq_base_label(const rb_iseq_t *iseq);
+VALUE ddtrace_iseq_path(const rb_iseq_t *iseq);
 
 // Returns true if the current thread belongs to the main Ractor or if Ruby has no Ractor support
 bool ddtrace_rb_ractor_main_p(void);
@@ -84,4 +86,8 @@ VALUE current_fiber_for(VALUE thread);
 
 void self_test_current_fiber_for(void);
 
-bool pathobj_is_null(VALUE iseq);
+ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq, char *buf, size_t buf_size);
+VALUE ddtrace_location_base_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq);
+void* ddtrace_cme_cfunc_func(const rb_callable_method_entry_t *cme);
+const char *ddtrace_cme_original_method_name(const rb_callable_method_entry_t *cme);
+

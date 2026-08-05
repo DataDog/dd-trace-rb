@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.40.0.dev)
+    datadog (2.41.0.dev)
       cgi
-      datadog-ruby_core_source (~> 3.5, >= 3.5.3)
-      libdatadog (~> 36.0.0.1.0)
+      datadog-ruby_core_source (~> 3.5, >= 3.5.4)
+      libdatadog (~> 38.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -56,7 +56,7 @@ GEM
       bigdecimal
       rexml
     crass (1.0.6)
-    datadog-ruby_core_source (3.5.3)
+    datadog-ruby_core_source (3.5.4)
     diff-lcs (1.6.2)
     digest-crc (0.6.5)
       rake (>= 12.0.0, < 14.0.0)
@@ -101,10 +101,10 @@ GEM
       bigdecimal (>= 3.1, < 5)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
-    libdatadog (36.0.0.1.0)
-    libdatadog (36.0.0.1.0-aarch64-linux)
-    libdatadog (36.0.0.1.0-arm64-darwin)
-    libdatadog (36.0.0.1.0-x86_64-linux)
+    libdatadog (38.0.0.1.0)
+    libdatadog (38.0.0.1.0-aarch64-linux)
+    libdatadog (38.0.0.1.0-arm64-darwin)
+    libdatadog (38.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.2-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-arm64-darwin)
