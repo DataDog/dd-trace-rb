@@ -17,7 +17,11 @@ module Datadog
             hostname: String?,
             env: String?,
             service: String?,
-            version: String?
+            version: String?,
+            ?otlp_endpoint: String?,
+            ?otlp_headers: Hash[String, String]?,
+            ?otlp_timeout_millis: Integer?,
+            ?otlp_protocol: String?
           ) -> TraceExporter
           def _native_send_traces: (Array[Array[Datadog::Tracing::Span]] chunks) -> Array[Response]
           def _native_before_fork: () -> void
@@ -33,10 +37,18 @@ module Datadog
           @send_mutex: Thread::Mutex
           @fork_hooks: Hash[Symbol, Proc]?
           @unsupported_fields_warned: bool
+          @otlp_enabled: bool
 
           attr_reader logger: Datadog::Core::Logger
 
-          def initialize: (agent_settings: Datadog::Core::Configuration::AgentSettings, logger: Datadog::Core::Logger) -> void
+          def initialize: (
+            agent_settings: Datadog::Core::Configuration::AgentSettings,
+            logger: Datadog::Core::Logger,
+            ?otlp_endpoint: String?,
+            ?otlp_headers: Hash[String, String]?,
+            ?otlp_timeout_millis: Integer?,
+            ?otlp_protocol: String?
+          ) -> void
           def self.finalizer_for: (Hash[Symbol, Proc] fork_hooks) -> Proc
           def close: () -> void
           def send_traces: (Array[Datadog::Tracing::TraceSegment] traces) -> Array[Response | InternalErrorResponse]

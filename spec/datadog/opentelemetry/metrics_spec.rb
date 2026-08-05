@@ -308,18 +308,18 @@ RSpec.describe "OpenTelemetry Metrics Integration", ruby: ">= 3.1" do
       expect(headers["other-config-value"]).to eq("test-value")
     end
 
-    it "returns empty hash when headers are malformed" do
+    it "ignores malformed headers" do
       setup_metrics(
         "OTEL_EXPORTER_OTLP_METRICS_HEADERS" => "api-key=secret123,malformed"
       )
-      expect(metrics_settings.headers).to eq({})
+      expect(metrics_settings.headers).to eq("api-key" => "secret123")
     end
 
-    it "returns empty hash when header has empty key or value" do
+    it "ignores headers with an empty key or value" do
       setup_metrics(
         "OTEL_EXPORTER_OTLP_METRICS_HEADERS" => "api-key=secret123,=value"
       )
-      expect(metrics_settings.headers).to eq({})
+      expect(metrics_settings.headers).to eq("api-key" => "secret123")
     end
 
     it "uses OTLP exporter when configured" do

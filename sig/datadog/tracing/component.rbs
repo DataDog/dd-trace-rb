@@ -3,13 +3,27 @@ module Datadog
     module Component
       WRITER_RECORD_ENVIRONMENT_INFORMATION_ONLY_ONCE: Core::Utils::OnlyOnce
 
-      def build_tracer: (untyped settings, untyped agent_settings) -> untyped
+      def build_tracer: (
+        Datadog::Core::Configuration::Settings settings,
+        Datadog::Core::Configuration::AgentSettings agent_settings,
+        logger: Datadog::Core::Logger
+      ) -> untyped
 
-      def build_trace_flush: (untyped settings) -> untyped
+      def build_trace_flush: (Datadog::Core::Configuration::Settings settings) -> Datadog::Tracing::Flush::Base
       def build_sampler: (untyped settings) -> untyped
 
       def ensure_priority_sampling: (untyped sampler, untyped settings) -> untyped
-      def build_writer: (untyped settings, untyped agent_settings, ?Hash[Symbol, untyped] options) -> untyped
+      def build_writer: (
+        Datadog::Core::Configuration::Settings settings,
+        Datadog::Core::Configuration::AgentSettings agent_settings,
+        ?Hash[Symbol, untyped] options
+      ) -> untyped
+      def otlp_writer_enabled?: (Datadog::Core::Configuration::Settings settings) -> bool
+      def build_native_transport: (
+        Datadog::Core::Configuration::AgentSettings agent_settings,
+        ?otlp_options: Datadog::Tracing::Configuration::OTLP::transport_options?,
+        ?fallback_to_http: bool
+      ) -> Datadog::Tracing::Transport::Native::Transport?
 
       def subscribe_to_writer_events!: (untyped writer, untyped sampler, untyped test_mode) -> (nil | untyped)
 

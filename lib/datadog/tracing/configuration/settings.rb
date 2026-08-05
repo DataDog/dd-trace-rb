@@ -5,6 +5,7 @@ require_relative "../../core/environment/variable_helpers"
 require_relative "../contrib/status_range_matcher"
 require_relative "../contrib/status_range_env_parser"
 require_relative "http"
+require_relative "otlp"
 
 module Datadog
   module Tracing
@@ -166,7 +167,7 @@ module Datadog
                   if ["none", "false", "0"].include?(value)
                     false
                   # Tracing is enabled when DD_TRACE_ENABLED is true or 1
-                  elsif ["true", "1"].include?(value)
+                  elsif ["true", "1", Tracing::Configuration::Ext::OTLP::EXPORTER_OTLP].include?(value)
                     true
                   else
                     Datadog.logger.warn("Unsupported value for exporting datadog traces: #{value}. Traces will be sent to Datadog.")
@@ -496,6 +497,47 @@ module Datadog
                 o.env Configuration::Ext::ENV_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED
                 o.default false
                 o.type :bool
+              end
+
+              # OpenTelemetry trace-export settings consumed by the native transport.
+              settings :otlp do
+                option :exporter do |o|
+                  o.type :string, nilable: true
+                  o.env Configuration::Ext::OTLP::ENV_EXPORTER
+                  o.default nil
+                end
+
+                option :agent_protocol_version do |o|
+                  o.type :string, nilable: true
+                  o.env Configuration::Ext::OTLP::ENV_AGENT_PROTOCOL_VERSION
+                  o.default nil
+                end
+
+                option :endpoint do |o|
+                  o.type :string, nilable: true
+                  o.env Configuration::Ext::OTLP::ENV_ENDPOINT
+                  o.default nil
+                end
+
+                option :headers do |o|
+                  o.skip_telemetry true
+                  o.type :hash, nilable: true
+                  o.env Configuration::Ext::OTLP::ENV_HEADERS
+                  o.default nil
+                  o.env_parser(&Configuration::OTLP.method(:parse_headers))
+                end
+
+                option :timeout_millis do |o|
+                  o.type :int, nilable: true
+                  o.env Configuration::Ext::OTLP::ENV_TIMEOUT
+                  o.default nil
+                end
+
+                option :protocol do |o|
+                  o.type :string, nilable: true
+                  o.env Configuration::Ext::OTLP::ENV_PROTOCOL
+                  o.default nil
+                end
               end
 
               # A custom writer instance.

@@ -15,7 +15,7 @@ RSpec.describe "Native transport configuration" do
       end
     end
     let(:agent_settings) do
-      double("agent_settings", url: "http://127.0.0.1:8126")
+      double("agent_settings", url: "http://127.0.0.1:8126", hostname: "127.0.0.1")
     end
     let(:logger) { Logger.new(File::NULL) }
 
@@ -77,6 +77,55 @@ RSpec.describe "Native transport configuration" do
         writer = build_writer
         transport = writer.instance_variable_get(:@transport)
         expect(transport).not_to be_a(Datadog::Tracing::Transport::Native::Transport)
+      end
+    end
+
+    context "when OTLP trace export is selected" do
+      let(:native_transport_enabled) { false }
+
+      before do
+        settings.tracing.otlp.exporter = "otlp"
+      end
+
+      it "builds a native transport with resolved OTLP options" do
+        expect(Datadog::Tracing::Transport::Native::Transport).to receive(:new).with(
+          agent_settings: agent_settings,
+          logger: logger,
+          otlp_endpoint: "http://127.0.0.1:4318/v1/traces",
+          otlp_headers: {},
+          otlp_timeout_millis: 10_000,
+          otlp_protocol: "grpc"
+        ).and_return(:native_transport)
+        expect(Datadog::Tracing::Writer).to receive(:new).with(
+          agent_settings: agent_settings,
+          transport: :native_transport
+        ).and_return(:writer)
+
+        expect(build_writer).to eq(:writer)
+      end
+
+      it "raises instead of falling back when native support is unavailable" do
+        allow(Datadog::Tracing::Transport::Native).to receive(:supported?).and_return(false)
+        stub_const("Datadog::Tracing::Transport::Native::UNSUPPORTED_REASON", "test: not available")
+        expect(Datadog::Tracing::Writer).to_not receive(:new)
+
+        expect { build_writer }.to raise_error(ArgumentError, /not available/)
+      end
+
+      it "does not override a custom writer" do
+        custom_writer = Object.new
+        settings.tracing.writer = custom_writer
+        expect(Datadog::Tracing::Transport::Native::Transport).to_not receive(:new)
+
+        expect(build_writer).to equal(custom_writer)
+      end
+
+      it "is disabled by DD_TRACE_AGENT_PROTOCOL_VERSION" do
+        settings.tracing.otlp.agent_protocol_version = "v0.5"
+        expect(Datadog::Tracing::Transport::Native::Transport).to_not receive(:new)
+
+        transport = build_writer.transport
+        expect(transport).to_not be_a(Datadog::Tracing::Transport::Native::Transport)
       end
     end
   end

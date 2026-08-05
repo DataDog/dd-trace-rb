@@ -30,9 +30,11 @@ module Datadog
 
           def timeout_millis: () -> ::Integer
 
-          def headers: () -> ::Hash[untyped, untyped]
+          def headers: () -> ::Hash[::String, ::String]
 
           def endpoint: () -> ::String?
+
+          def using_default?: (::Symbol option_name) -> bool
 
           def public_send: (::Symbol option_name) -> any
         end
