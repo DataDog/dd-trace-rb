@@ -65,11 +65,9 @@ module Datadog
             # fork-safety note below.
             @send_mutex = Mutex.new
 
-            # Serializes fork-hook execution with close/finalization. Unlike
-            # @send_mutex, this is held for the complete fork lifecycle so the
-            # matching parent/child hooks cannot be deregistered mid-fork.
+            # Serializes concurrent fork-hook lifecycles. Unlike @send_mutex,
+            # this is held across the fork through the matching completion hook.
             @fork_mutex = Mutex.new
-            @fork_state = {closed: false, pending: 0, forking: false, finalize: false}
 
             url = agent_settings.url
             tracer_version = tracer_version_string
@@ -112,12 +110,11 @@ module Datadog
             # also tears down and replaces the runtime, so it must not run while
             # a send is still using that runtime.
             #
-            # `@fork_mutex` prevents close/finalization from deregistering the
-            # completion hooks after `:before` has started. The `:before` hook
-            # locks it first, then calls `_native_before_fork`, and finally
-            # locks `@send_mutex`, which serializes sends and is held across the
-            # fork. This lock order is also used by #close; sends only acquire
-            # `@send_mutex`, so there is no inverse path.
+            # `@fork_mutex` serializes concurrent forks for this exporter. The
+            # `:before` hook locks it first, then calls `_native_before_fork`,
+            # and finally locks `@send_mutex`, which serializes sends and is
+            # held across the fork. Sends and #close only acquire @send_mutex,
+            # so there is no lock-order inversion.
             #
             # `_native_before_fork` must run before locking `@send_mutex` to
             # pause the runtime before waiting for an in-flight send to drain.
@@ -155,24 +152,8 @@ module Datadog
             # its finalizer can fire even when #close was not called explicitly.
             send_mutex = @send_mutex
             fork_mutex = @fork_mutex
-            fork_state = @fork_state
-            remove_fork_hooks = nil
             before_hook = proc do
-              # Announce before blocking: close may already hold @fork_mutex
-              # while it waits for a send, and must yield to this hook rather
-              # than deregistering its matching parent/child hooks.
-              fork_state[:pending] += 1
-              begin
-                fork_mutex.lock
-              ensure
-                fork_state[:pending] -= 1
-              end
-
-              if fork_state[:closed]
-                fork_mutex.unlock
-                next
-              end
-              fork_state[:forking] = true
+              fork_mutex.lock
 
               begin
                 # Pause the runtime first (safe to run concurrently with an
@@ -198,13 +179,9 @@ module Datadog
               # between `_native_before_fork` and the lock). Released even if the
               # native call raised, so a failure can't leave the mutex locked.
               send_mutex.unlock if send_mutex.owned?
-              fork_state[:forking] = false
-              remove_fork_hooks.call if fork_state[:finalize]
               fork_mutex.unlock if fork_mutex.owned?
             end
             child_hook = proc do
-              # Other threads waiting to fork do not survive into the child.
-              fork_state[:pending] = 0
               exporter._native_after_fork_in_child if fork_mutex.owned?
             rescue => e
               Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e.class}: #{e.message}" }
@@ -213,8 +190,6 @@ module Datadog
               # lone survivor in the child); the guard only covers `:before`
               # being interrupted mid-lock.
               send_mutex.unlock if send_mutex.owned?
-              fork_state[:forking] = false
-              remove_fork_hooks.call if fork_state[:finalize]
               fork_mutex.unlock if fork_mutex.owned?
             end
 
@@ -223,17 +198,18 @@ module Datadog
               parent: parent_hook,
               child: child_hook
             )
-            remove_fork_hooks = self.class.send(:fork_hooks_remover, @fork_hooks, fork_state)
+            remove_fork_hooks = self.class.send(:fork_hooks_remover, @fork_hooks)
 
             # Fallback so a dropped (un-#close'd) transport doesn't leak its
             # global fork hooks (and, through them, the exporter/runtime). The
-            # finalizer proc is built by a class method capturing ONLY the
+            # removal proc is built by a class method capturing ONLY the
             # stage->block handles, never `self` -- a finalizer that closed over
             # the object it is attached to would keep that object reachable and
-            # never run.
+            # never run. A fork that already copied these callbacks still owns
+            # them through its matching completion stage.
             ObjectSpace.define_finalizer(
               self,
-              self.class.send(:finalizer_for, fork_mutex, fork_state, remove_fork_hooks)
+              remove_fork_hooks
             )
           end
 
@@ -241,47 +217,18 @@ module Datadog
           # native exporter so its runtime can shut down. Idempotent: safe to
           # call multiple times and safe to call after the finalizer has run.
           def close
-            fork_locked = false
-            send_locked = false
+            fork_hooks = @send_mutex.synchronize do
+              hooks = @fork_hooks
+              return if hooks.nil?
 
-            # Acquire both locks only when no before-fork hook is already
-            # waiting. A hook can announce itself while we wait for an active
-            # send, so check again after acquiring @send_mutex.
-            loop do
-              @fork_mutex.lock
-              fork_locked = true
-              if @fork_state[:pending] > 0
-                @fork_mutex.unlock
-                fork_locked = false
-                Thread.pass
-                next
-              end
-
-              @send_mutex.lock
-              send_locked = true
-              break if @fork_state[:pending] == 0
-
-              @send_mutex.unlock
-              send_locked = false
-              @fork_mutex.unlock
-              fork_locked = false
-              Thread.pass
+              @fork_hooks = nil
+              @exporter = nil
+              hooks
             end
-
-            fork_hooks = @fork_hooks
-            return if fork_hooks.nil?
-
-            @fork_state[:closed] = true
-            @fork_hooks = nil
 
             fork_hooks.each do |stage, block|
               Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
             end
-
-            # Drop our reference to the exporter so that, once the hooks above
-            # no longer pin it, it can be collected and its runtime shut down
-            # cleanly in this (parent) process.
-            @exporter = nil
 
             # The finalizer only exists to deregister the hooks for a transport
             # dropped without #close. We have just done that, so remove it;
@@ -290,61 +237,23 @@ module Datadog
             ObjectSpace.undefine_finalizer(self)
 
             nil
-          ensure
-            @send_mutex.unlock if send_locked && @send_mutex.owned?
-            @fork_mutex.unlock if fork_locked && @fork_mutex.owned?
           end
 
-          # Builds the finalizer proc for a transport's fork hooks.
+          # Builds the proc that deregisters a transport's fork hooks.
           #
           # Defined as a class method so the proc closes over ONLY the
           # stage->block handles passed in and never over a Transport instance
           # (which would keep the instance reachable and prevent the finalizer
           # from ever running). Removing the hooks unpins the exporter captured
           # by those closures, allowing it (and its runtime) to be freed.
-          def self.fork_hooks_remover(fork_hooks, fork_state)
+          def self.fork_hooks_remover(fork_hooks)
             proc do
-              fork_state[:closed] = true
-              fork_state[:finalize] = false
               fork_hooks.each do |stage, block|
                 Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
               end
             end
           end
           private_class_method :fork_hooks_remover
-
-          def self.finalizer_for(fork_mutex, fork_state, remove_fork_hooks)
-            proc do
-              # Mutex is not reentrant. A finalizer can run at a safe point on
-              # the owning thread, so either remove directly or let the active
-              # fork's completion callback restore state before removing.
-              if fork_mutex.owned?
-                if fork_state[:forking]
-                  # The matching parent/child callback must restore the runtime
-                  # and release both locks before deregistering its own hooks.
-                  fork_state[:finalize] = true
-                else
-                  remove_fork_hooks.call
-                end
-                next
-              end
-
-              loop do
-                fork_mutex.lock
-                break if fork_state[:pending] == 0
-
-                fork_mutex.unlock
-                Thread.pass
-              end
-
-              begin
-                remove_fork_hooks.call
-              ensure
-                fork_mutex.unlock if fork_mutex.owned?
-              end
-            end
-          end
-          private_class_method :finalizer_for
 
           # Send a list of traces to the agent.
           #

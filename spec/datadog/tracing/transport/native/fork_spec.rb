@@ -344,47 +344,6 @@ RSpec.describe "Native transport fork safety and cancellation" do
       expect(transport.send_traces([build_trace]).first.ok?).to be(true)
     end
 
-    it "discards pending fork waiters that vanished in the child" do
-      hooks = transport.instance_variable_get(:@fork_hooks)
-      fork_state = transport.instance_variable_get(:@fork_state)
-      waiter = nil
-      Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:before) do
-        waiter = Thread.new do
-          hooks[:before].call
-          hooks[:parent].call
-        end
-        Timeout.timeout(5) { Thread.pass until fork_state[:pending] > 0 }
-      end
-
-      read_io, write_io = IO.pipe
-      pid = fork do
-        read_io.close
-        result = begin
-          Timeout.timeout(5) { transport.close }
-          "OK"
-        rescue => e
-          "RAISED:#{e.class}:#{e.message}"
-        end
-        write_io.write(result)
-        write_io.close
-        exit!(0)
-      end
-      write_io.close
-
-      child_result = Timeout.timeout(10) { read_io.read }
-      read_io.close
-      _, status = Process.wait2(pid)
-      expect(waiter.join(10)).to be(waiter)
-
-      expect(child_result).to eq("OK")
-      expect(status.success?).to be(true)
-      expect(transport.send_traces([build_trace(name: "parent-after-pending-fork.op")]).first.ok?).to be(true)
-    ensure
-      waiter&.join(10)
-      read_io&.close unless read_io&.closed?
-      write_io&.close unless write_io&.closed?
-    end
-
     it "restores the parent and unlocks sends when fork fails" do
       hooks = transport.instance_variable_get(:@fork_hooks)
       saved_at_fork = AtForkRegistryHelpers.snapshot_and_clear
@@ -606,25 +565,35 @@ RSpec.describe "Native transport fork safety and cancellation" do
       end
       expect(closer).to be_alive
 
-      # Start the fork only after close is waiting for the send. Its before hook
-      # announces itself before waiting for the lifecycle mutex, forcing close
-      # to yield rather than removing the matching parent/child hooks.
+      # Start the fork only after close is waiting for the send. The fork keeps
+      # its callback snapshot even if close deregisters the global hooks first.
+      fork_prepared = Queue.new
+      exporter = transport.instance_variable_get(:@exporter)
+      allow(exporter).to receive(:_native_before_fork).and_wrap_original do |method|
+        result = method.call
+        fork_prepared << true
+        result
+      end
       read_io, write_io = IO.pipe
       forker = Thread.new do
         pid = fork do
           read_io.close
           response = transport.send_traces([build_trace(name: "child-after-close-race.op")]).first
-          write_io.write(response.ok? ? "OK" : "NOT_OK:#{response.inspect}")
+          result = if response.ok?
+            "OK"
+          elsif response.internal_error?
+            "CLOSED"
+          else
+            "NOT_OK:#{response.inspect}"
+          end
+          write_io.write(result)
           write_io.close
           exit!(0)
         end
         fork_result << pid
       end
 
-      Timeout.timeout(5) do
-        fork_state = transport.instance_variable_get(:@fork_state)
-        Thread.pass until fork_state[:pending] > 0
-      end
+      Timeout.timeout(5) { fork_prepared.pop }
 
       mock_agent.release
       expect(sender.join(10)).to be(sender)
@@ -637,7 +606,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
       _, status = Process.wait2(fork_result.pop)
 
       expect(sender_result.pop.first.ok?).to be(true)
-      expect(child_result).to eq("OK")
+      expect(child_result).to match(/\A(?:OK|CLOSED)\z/)
       expect(status.success?).to be(true)
       expect(transport.send_traces([build_trace(name: "parent-after-close.op")]).first).to be_internal_error
     ensure

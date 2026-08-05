@@ -312,14 +312,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
     describe "finalizer fallback" do
       def build_finalizer(transport)
         hooks = transport.instance_variable_get(:@fork_hooks)
-        fork_state = transport.instance_variable_get(:@fork_state)
-        remove_fork_hooks = transport_class.send(:fork_hooks_remover, hooks, fork_state)
-        transport_class.send(
-          :finalizer_for,
-          transport.instance_variable_get(:@fork_mutex),
-          fork_state,
-          remove_fork_hooks
-        )
+        transport_class.send(:fork_hooks_remover, hooks)
       end
 
       it "registers a finalizer on the transport at construction" do
@@ -359,7 +352,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         end
       end
 
-      it "removes hooks without relocking a lifecycle mutex owned outside a fork" do
+      it "removes hooks while a lifecycle mutex is owned outside a fork" do
         hooks = transport.instance_variable_get(:@fork_hooks)
         fork_mutex = transport.instance_variable_get(:@fork_mutex)
         finalizer = build_finalizer(transport)
@@ -374,22 +367,27 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         fork_mutex&.unlock if fork_mutex&.owned?
       end
 
-      it "defers hook removal to the completion callback during a fork lifecycle" do
+      it "keeps snapshotted completion callbacks alive after removing their hooks" do
         hooks = transport.instance_variable_get(:@fork_hooks)
+        exporter = transport.instance_variable_get(:@exporter)
         fork_mutex = transport.instance_variable_get(:@fork_mutex)
+        send_mutex = transport.instance_variable_get(:@send_mutex)
         finalizer = build_finalizer(transport)
+        allow(exporter).to receive(:_native_after_fork_in_parent).and_call_original
 
         hooks[:before].call
         expect(fork_mutex).to be_owned
 
         expect { Timeout.timeout(1) { finalizer.call(transport.object_id) } }.to_not raise_error
         hooks.each do |stage, block|
-          expect(registry_contains?(stage, block)).to be(true)
+          expect(registry_contains?(stage, block)).to be(false)
         end
 
         hooks[:parent].call
 
+        expect(exporter).to have_received(:_native_after_fork_in_parent).once
         expect(fork_mutex).to_not be_owned
+        expect(send_mutex).to_not be_owned
         hooks.each do |stage, block|
           expect(registry_contains?(stage, block)).to be(false)
         end
