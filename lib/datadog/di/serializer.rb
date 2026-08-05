@@ -386,8 +386,6 @@ module Datadog
         # This method is more verbose than "normal" Ruby code to avoid
         # array allocations.
 
-        # Redact by type before interpolating any of the value's contents,
-        # matching the redact_type? gating in #serialize_value.
         return REDACTED_VALUE_FOR_MESSAGE if redactor.redact_type?(value)
 
         case value
@@ -425,9 +423,6 @@ module Datadog
             truncated = true
           end
           serialized = keys.map do |key|
-            # Redact the value when the key matches a redacted
-            # identifier, matching the redact_identifier? gating that
-            # #serialize_value applies to hash entries via the name argument.
             serialized_value = if redactor.redact_identifier?(key)
               REDACTED_VALUE_FOR_MESSAGE
             else
@@ -455,11 +450,6 @@ module Datadog
           serialized = vars.map do |var|
             # +var+ here is always the instance variable name which is a
             # symbol, we do not need to run it through our serializer.
-            #
-            # Redact the value when the instance variable name matches a
-            # redacted identifier, matching the redact_identifier? gating that
-            # #serialize_value applies to instance variables via the name
-            # argument.
             serialized_value = if redactor.redact_identifier?(var)
               REDACTED_VALUE_FOR_MESSAGE
             else

@@ -533,8 +533,7 @@ RSpec.describe Datadog::DI::Serializer do
       ["object with array field", DISerializerSpecFields.new(a: 1, b: [2]), "#<DISerializerSpecFields @a=1 @b=...>"],
       ["object with hash field", DISerializerSpecFields.new(a: 1, b: {x: 2}), "#<DISerializerSpecFields @a=1 @b=...>"],
       ["when serialization fails", DISerializerSpecBrokenHash.new, "#<DISerializerSpecBrokenHash: serialization error>"],
-      # Redaction — mirrors the redact_type?/redact_identifier? gating that
-      # #serialize_value applies on the snapshot path (INV-R7-001).
+      # Redaction
       ["hash with redacted symbol key", {password: "hunter2"}, "{:password => [redacted]}"],
       ["hash with redacted string key", {"session-key" => 42}, "{session-key => [redacted]}"],
       ["hash with non-redacted key", {name: "alice"}, "{:name => alice}"],
