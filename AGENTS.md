@@ -98,8 +98,10 @@ tracing libraries.
 
 `.github/workflows/update-images.yml` receives a `repository_dispatch` from
 images-rb (after its `main` builds successfully) and opens a PR pinning this
-repo to the new images. Requires an external cross-repo dd-octo-sts grant
-(images-rb -> dd-trace-rb); no local trigger otherwise.
+repo to the new images. images-rb authenticates via the
+`images-rb.notify-consumers` dd-octo-sts trust policy
+(`.github/chainguard/images-rb.notify-consumers.sts.yaml`), an in-repo file --
+no external grant needed. No local trigger otherwise.
 
 # Guidelines
 
