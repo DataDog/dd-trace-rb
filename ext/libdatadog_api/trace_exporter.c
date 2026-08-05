@@ -628,6 +628,9 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
     .ptr = links_snapshot.ffi_links,
     .len = links_snapshot.link_count,
   };
+  /* libdatadog validates link strings as UTF-8, matching the native meta
+   * setters. A validation error rejects this span conversion and therefore the
+   * complete batch; send_traces reports it as an InternalErrorResponse. */
   err = ddog_tracer_span_set_links(rust_span, links_slice);
   free_span_links_snapshot(&links_snapshot);
   if (err != NULL) {

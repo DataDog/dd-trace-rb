@@ -269,7 +269,9 @@ RSpec.describe "Native transport wire-level conformance" do
   end
 
   describe "span links" do
-    it "preserves complete canonical values and link order on the wire" do
+    # dropped_attributes_count remains deferred until the Agent protocol
+    # allocates a span-link field for it.
+    it "preserves supported canonical values and link order on the wire" do
       first = Datadog::Tracing::SpanLink.new(
         Datadog::Tracing::TraceDigest.new(
           trace_id: (0x1234 << 64) | 0x5678,
