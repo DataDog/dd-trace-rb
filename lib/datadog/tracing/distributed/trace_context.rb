@@ -447,7 +447,7 @@ module Datadog
         # We MUST NOT propagate partial vendors, but we SHOULD try
         # to parse as much of the tracestate as possible.
         def split_tracestate(tracestate)
-          return unless tracestate
+          return if tracestate.nil? || tracestate.empty?
 
           remove_last_vendor = false
           if tracestate.bytesize > TRACESTATE_MAX_SIZE_LIMIT

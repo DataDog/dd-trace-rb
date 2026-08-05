@@ -116,8 +116,7 @@ module Datadog
           # Only a trace that is making its own probability decision may derive a fresh
           # `(rv, th)`. When a sampling priority was already assigned upstream (e.g. an
           # older OpenTelemetry or Datadog SDK that sent no `ot` fields), DD is following
-          # that decision, not making its own, so fabricating values here would advertise a
-          # decision the origin never made: emit nothing. Same if no rate is applied.
+          # that decision, not making its own: emit nothing. Same if no rate is applied.
           return [nil, nil] if distributed_sampling_priority || !applied_rate
 
           th = threshold(applied_rate)
