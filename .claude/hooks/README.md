@@ -7,8 +7,8 @@ around tool calls — here, one Ruby file per hook.
 
 A hook is two files: `<name>.rb` holds the runtime, `<name>.test.rb` holds its
 tests. The runtime stays pure so it compiles cleanly; the test file
-`require_relative`s it and drives it. Requiring the runtime runs the whole file,
-so the last line guards against firing when the test loads it:
+`require_relative`s it and drives it. Loading it that way would run the hook, so
+its last line guards against firing under the test:
 
 ```ruby
 # runs as a hook or a compiled binary, but not when required by the test
@@ -37,10 +37,11 @@ runs CRuby only and says so.
 
 ## Shims
 
-`settings.json` never points at a Ruby file directly. It points at a shim in
+`settings.json` — the repo's Claude Code config, where hooks are one of the
+things you wire up — never points at a Ruby file directly. It points at a shim in
 `shims/`, which runs the compiled binary when one exists and falls back to plain
-Ruby otherwise. That keeps the wiring stable whether or not a native build is
-present:
+Ruby otherwise. That keeps the wiring stable whether or not a native build
+(below) is present:
 
 ```sh
 "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/shims/<name>\" <args>"
@@ -62,11 +63,11 @@ The result lands in `compiled/<name>`, and the shim prefers it automatically.
 Binaries are architecture- and OS-specific, so `compiled/` is gitignored —
 everyone builds their own, and plain Ruby remains the portable fallback.
 
-Spinel only supports a subset of Ruby, so mind the gaps. `Hash#dig`, for one,
-is unsupported — reach for `Hash#fetch` instead. Because the binary is
-architecture-specific and compiled separately from CRuby, re-verify after any
-hook change: `make compile && make test`. The smoke suite then diffs the fresh
-binary against CRuby and fails on any divergence.
+Spinel only supports a subset of Ruby, so mind the gaps (see [Spinel] for what
+compiles). Because the binary is architecture-specific and compiled separately
+from CRuby, re-verify after any hook change: `make compile && make test`. The
+smoke suite then diffs the fresh binary against CRuby and fails on any
+divergence.
 
 ## Hooks in this repo
 
