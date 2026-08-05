@@ -60,7 +60,16 @@ RSpec.describe Datadog::AIGuard::Evaluation do
 
       trace = traces.first
       expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
-      expect(trace.send(:sampling_decision_maker)).to eq("-13")
+      expect(trace.sampling_decision_maker).to eq("-13")
+    end
+
+    it "sets distributed source on the trace with AI Guard product bit" do
+      described_class.perform([
+        Datadog::AIGuard.message(role: :user, content: "Some content")
+      ])
+
+      trace = traces.first
+      expect(trace.send(:meta).fetch("_dd.p.ts")).to eq("20")
     end
 
     it "sets ai_guard.event tag on the trace with AI Guard evaluations" do

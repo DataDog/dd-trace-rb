@@ -7,7 +7,12 @@ module Datadog
       #
       # @api private
       class Expression
-        def initialize(dsl_expr, compiled_expr)
+        # @param dsl_expr [String] human-readable DSL form, kept for debugging.
+        # @param compiled_expr [String] Ruby source produced by Compiler#compile.
+        # @param regexps [Array<Regexp>] precompiled `matches` regexps (see
+        #   Compiler#precompile_regexp), the second element returned by
+        #   Compiler#compile.
+        def initialize(dsl_expr, compiled_expr, regexps = [])
           unless String === compiled_expr
             raise ArgumentError, "compiled_expr must be a string"
           end
@@ -23,7 +28,10 @@ module Datadog
               end
             RUBY
           end
-          @evaluator = cls.new
+          # cls inherits Evaluator#initialize(regexps), but Steep types
+          # Class#new as () -> untyped and cannot see that initializer
+          # through this dynamically created subclass.
+          @evaluator = cls.new(regexps) # steep:ignore UnexpectedPositionalArgument
         end
 
         attr_reader :dsl_expr

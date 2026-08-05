@@ -104,7 +104,28 @@ module Datadog
           return writer
         end
 
+        if settings.tracing.native_transport && (transport = build_native_transport(agent_settings))
+          options = options.merge(transport: transport)
+        end
+
         Tracing::Writer.new(agent_settings: agent_settings, **options)
+      end
+
+      def build_native_transport(agent_settings)
+        require_relative "transport/native"
+
+        unless Transport::Native.supported?
+          Datadog.logger.warn(
+            "Native transport requested but not available: #{Transport::Native::UNSUPPORTED_REASON}. " \
+            "Falling back to default HTTP transport."
+          )
+          return nil
+        end
+
+        Transport::Native::Transport.new(
+          agent_settings: agent_settings,
+          logger: Datadog.logger
+        )
       end
 
       def subscribe_to_writer_events!(writer, sampler_delegator, test_mode)

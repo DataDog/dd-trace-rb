@@ -18,6 +18,7 @@ AllCops:
     - lib/datadog/**/vendor/**/*
     - lib/datadog/profiling/ext/exec_monkey_patch.rb
     - vendor/bundle/**/*
+    - "*.rb" # test files at the root
   NewCops: disable
   SuggestExtensions: false
 

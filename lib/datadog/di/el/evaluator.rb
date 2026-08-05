@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+require_relative "../../ruby_version"
+
+require "timeout" if Datadog::RubyVersion.is?("< 3.2")
+
 module Datadog
   module DI
     module EL
@@ -7,6 +11,20 @@ module Datadog
       #
       # @api private
       class Evaluator
+        # Maximum wall-clock time allowed for evaluating a single `matches`
+        # operator.
+        MATCHES_TIMEOUT_SECONDS = 0.5
+
+        # @param regexps [Array<Regexp>] Regexps precompiled from literal
+        #   `matches` patterns, looked up by index by #matches_compiled.
+        #    Empty when the expression has no `matches` pattern with
+        #    a direct regular expression argument.
+        def initialize(regexps = [])
+          @regexps = regexps
+        end
+
+        attr_reader :regexps
+
         def ref(var)
           @context.fetch(var)
         end
@@ -48,10 +66,72 @@ module Datadog
           end
         end
 
-        def matches(haystack, needle)
-          re = Regexp.compile(needle)
-          !!(haystack =~ re)
+        # Build a Regexp from a pattern string. On Ruby 3.2+ the per-match
+        # timeout (MATCHES_TIMEOUT_SECONDS) is baked into the compiled
+        # Regexp via the in-engine `timeout:` keyword, which interrupts the
+        # matcher at every backtrack step and reliably bounds matcher
+        # runtime regardless of pattern shape. On older Rubies the Regexp
+        # carries no timeout; the bound is applied at match time by
+        # #bounded_match? instead.
+        #
+        # @param needle [String] regexp source.
+        # @return [Regexp] compiled regexp, with baked-in timeout on Ruby 3.2+.
+        if Datadog::RubyVersion.is?(">= 3.2")
+          def self.compile_regexp(needle)
+            Regexp.new(needle, timeout: MATCHES_TIMEOUT_SECONDS)
+          end
+        else
+          def self.compile_regexp(needle)
+            Regexp.compile(needle)
+          end
         end
+
+        # Match +haystack+ against a regexp whose needle is computed at
+        # evaluation time, so the Regexp cannot be precompiled. Literal needles are
+        # precompiled by the Compiler and dispatched to #matches_compiled.
+        #
+        # @param haystack [String] string to match against.
+        # @param needle [String] regexp source.
+        # @return [Boolean] whether the haystack matches the regexp.
+        # @raise [Regexp::TimeoutError] (Ruby 3.2+) regexp engine exceeded MATCHES_TIMEOUT_SECONDS.
+        # @raise [Timeout::Error] (Ruby < 3.2) Timeout.timeout fired.
+        def matches(haystack, needle)
+          bounded_match?(Evaluator.compile_regexp(needle), haystack)
+        end
+
+        # Match +haystack+ against a Regexp precompiled at expression-compile
+        # time, looked up by index in +regexps+.
+        #
+        # @param haystack [String] string to match against.
+        # @param index [Integer] position of the precompiled Regexp in +regexps+.
+        # @return [Boolean] whether the haystack matches the regexp.
+        # @raise [Regexp::TimeoutError] (Ruby 3.2+) regexp engine exceeded MATCHES_TIMEOUT_SECONDS.
+        # @raise [Timeout::Error] (Ruby < 3.2) Timeout.timeout fired.
+        def matches_compiled(haystack, index)
+          bounded_match?(regexps.fetch(index), haystack)
+        end
+
+        # Match +haystack+ against +re+, bounded at MATCHES_TIMEOUT_SECONDS
+        # wall-clock.
+        #
+        # @param re [Regexp] regexp to match against.
+        # @param haystack [String] string to match against.
+        # @return [Boolean] whether the haystack matches the regexp.
+        if Datadog::RubyVersion.is?(">= 3.2")
+          def bounded_match?(re, haystack)
+            # Uses Regexp#match? rather than =~ so that the
+            # thread-local match data ($~, $1, ...) is not mutated as a side
+            # effect of DI expression evaluation.
+            re.match?(haystack)
+          end
+        else
+          def bounded_match?(re, haystack)
+            Timeout.timeout(MATCHES_TIMEOUT_SECONDS) do
+              re.match?(haystack)
+            end
+          end
+        end
+        private :bounded_match?
 
         def getmember(object, field)
           object.instance_variable_get("@#{field}")

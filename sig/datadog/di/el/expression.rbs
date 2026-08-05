@@ -6,13 +6,13 @@ module Datadog
 
         @evaluator: Evaluator
 
-        def initialize: (String dsl_expr, String compiled_expr) -> void
+        def initialize: (::String dsl_expr, ::String compiled_expr, ?::Array[::Regexp] regexps) -> void
 
         attr_reader dsl_expr: String
 
         attr_reader evaluator: Evaluator
 
-        def evaluate: (Context context) -> untyped
+        def evaluate: (Context context) -> any
 
         def satisfied?: (Context context) -> bool
       end

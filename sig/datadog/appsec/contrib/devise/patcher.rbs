@@ -5,7 +5,7 @@ module Datadog
         module Patcher
           GUARD_ONCE_PER_APP: ::Hash[any, ::Datadog::Core::Utils::OnlyOnce]
 
-          def self?.patched?: () -> bool?
+          def self?.patched?: () -> bool
 
           def self?.target_version: () -> ::Gem::Version?
 

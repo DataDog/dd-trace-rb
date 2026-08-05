@@ -21,15 +21,15 @@ The trace library uses Docker Compose to create a Ruby environment to develop an
 
 To start a development environment, choose a target Ruby version.
 Some of the development tooling is only defined for the recent MRI versions,
-therefore we suggest using Ruby 3.4 unless you specifically need a different
+therefore we suggest using Ruby 4.0 unless you specifically need a different
 version. Run the following:
 
 ```bash
 # In the root directory of the project...
 cd ~/dd-trace-rb
 
-# Create and start a Ruby 3.4 test environment with its dependencies
-docker compose run --rm tracer-3.4 /bin/bash
+# Create and start a Ruby 4.0 test environment with its dependencies
+docker compose run --rm tracer-4.0 /bin/bash
 
 # Then inside the container (e.g. `root@2a73c6d8673e:/app`)...
 # Install the library dependencies

@@ -4,6 +4,8 @@ module Datadog
   module AIGuard
     # AI Guard specific constants
     module Ext
+      PRODUCT_BIT = 0x20
+
       SPAN_NAME = "ai_guard"
       TARGET_TAG = "ai_guard.target"
       TOOL_NAME_TAG = "ai_guard.tool_name"

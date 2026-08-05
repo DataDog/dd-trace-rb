@@ -4,7 +4,7 @@ require "datadog/core/telemetry/metric"
 
 RSpec.describe Datadog::Core::Telemetry::Metric do
   let(:now) { 123123 }
-  before { allow(Time).to receive(:now).and_return(now, now + 1, now + 2, now + 3) }
+  before { allow(Datadog::Core::Utils::Time).to receive(:now).and_return(now, now + 1, now + 2, now + 3) }
 
   describe Datadog::Core::Telemetry::Metric::Count do
     subject(:metric) { described_class.new(name, tags: tags) }
@@ -70,7 +70,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
     end
 
     it "all metrics to be the same" do
-      allow(Time).to receive(:now).and_return(double(to_i: 123))
+      allow(Datadog::Core::Utils::Time).to receive(:now).and_return(double(to_i: 123))
 
       metrics = [
         described_class.new("name", tags: {tag: "val"}).tap { |m| m.track(1) },
@@ -81,7 +81,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
     end
 
     it "all metrics to be the different" do
-      allow(Time).to receive(:now).and_return(double(to_i: 123))
+      allow(Datadog::Core::Utils::Time).to receive(:now).and_return(double(to_i: 123))
 
       metrics = [
         described_class.new("name", tags: {tag: "val"}).tap { |m| m.track(1) },
@@ -91,7 +91,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
         described_class.new("name", tags: {tag: "val"}).tap { |m| m.track(2) },
       ]
 
-      allow(Time).to receive(:now).and_return(double(to_i: 456))
+      allow(Datadog::Core::Utils::Time).to receive(:now).and_return(double(to_i: 456))
 
       metrics << described_class.new("name", tags: {tag: "val"}).tap { |m| m.track(1) }
 
@@ -166,7 +166,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
     end
 
     it "all metrics to be the same" do
-      allow(Time).to receive(:now).and_return(double(to_i: 123))
+      allow(Datadog::Core::Utils::Time).to receive(:now).and_return(double(to_i: 123))
 
       metrics = [
         described_class.new("name", tags: {tag: "val"}, interval: 2).tap { |m| m.track(1) },
@@ -177,7 +177,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
     end
 
     it "all metrics to be the different" do
-      allow(Time).to receive(:now).and_return(double(to_i: 123))
+      allow(Datadog::Core::Utils::Time).to receive(:now).and_return(double(to_i: 123))
 
       metrics = [
         described_class.new("name", tags: {tag: "val"}, interval: 2).tap { |m| m.track(1) },
@@ -188,7 +188,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
         described_class.new("name", tags: {tag: "val"}, interval: 3).tap { |m| m.track(1) },
       ]
 
-      allow(Time).to receive(:now).and_return(double(to_i: 456))
+      allow(Datadog::Core::Utils::Time).to receive(:now).and_return(double(to_i: 456))
 
       metrics << described_class.new("name", tags: {tag: "val"}, interval: 2).tap { |m| m.track(1) }
 
@@ -273,7 +273,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
     end
 
     it "all metrics to be the same" do
-      allow(Time).to receive(:now).and_return(double(to_i: 123))
+      allow(Datadog::Core::Utils::Time).to receive(:now).and_return(double(to_i: 123))
 
       metrics = [
         described_class.new("name", tags: {tag: "val"}, interval: 2).tap { |m| m.track(1) },
@@ -284,7 +284,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
     end
 
     it "all metrics to be the different" do
-      allow(Time).to receive(:now).and_return(double(to_i: 123))
+      allow(Datadog::Core::Utils::Time).to receive(:now).and_return(double(to_i: 123))
 
       metrics = [
         described_class.new("name", tags: {tag: "val"}, interval: 2).tap { |m| m.track(1) },
@@ -295,7 +295,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
         described_class.new("name", tags: {tag: "val"}, interval: 3).tap { |m| m.track(1) },
       ]
 
-      allow(Time).to receive(:now).and_return(double(to_i: 456))
+      allow(Datadog::Core::Utils::Time).to receive(:now).and_return(double(to_i: 456))
 
       metrics << described_class.new("name", tags: {tag: "val"}, interval: 2).tap { |m| m.track(1) }
 
