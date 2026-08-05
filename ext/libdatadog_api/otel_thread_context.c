@@ -1,0 +1,255 @@
+#include <ruby.h>
+#include <ruby/thread.h>
+
+#include "datadog_ruby_common.h"
+#include "otel_thread_context.h"
+
+#ifdef __linux__
+  #include <datadog/otel-thread-ctx.h>
+  extern __thread const uint8_t *otel_thread_ctx_v1;
+
+  #ifdef HAVE_RB_RACTOR_LOCAL_STORAGE_VALUE_NEWKEY
+    #include <ruby/ractor.h>
+    static rb_ractor_local_key_t ractor_hooks_key;
+  #endif
+
+  #ifdef HAVE_RUBY_THREAD_STORAGE_API
+    static rb_internal_thread_specific_key_t otel_ctx_key;
+  #endif
+
+  static ID fiber_context_slot;
+  static const int BIG_ENDIAN_PACK_FLAGS = INTEGER_PACK_MSWORD_FIRST | INTEGER_PACK_BIG_ENDIAN;
+
+  typedef struct {
+    uint8_t trace_id[16];
+    uint8_t span_id[8];
+    uint8_t local_root_span_id[8];
+  } otel_fiber_context;
+
+  static const rb_data_type_t otel_fiber_context_t = {
+    .wrap_struct_name = "Datadog::Core::OTelThreadContext fiber-local context",
+    .function = {.dfree = RUBY_TYPED_DEFAULT_FREE},
+    .flags = RUBY_TYPED_FREE_IMMEDIATELY,
+  };
+#endif
+
+static VALUE native_set(VALUE _self, VALUE trace_id, VALUE span_id, VALUE local_root_span_id);
+static VALUE native_supported_p(VALUE _self);
+static VALUE native_enable(VALUE _self);
+static VALUE native_read(VALUE _self);
+
+void otel_thread_context_init(VALUE core_module) {
+  #ifdef __linux__
+    fiber_context_slot = rb_intern("__dd_otel_fiber_context");
+
+    #ifdef HAVE_RUBY_THREAD_STORAGE_API
+      otel_ctx_key = rb_internal_thread_specific_key_create();
+    #endif
+
+    #ifdef HAVE_RB_RACTOR_LOCAL_STORAGE_VALUE_NEWKEY
+      ractor_hooks_key = rb_ractor_local_storage_value_newkey();
+    #endif
+  #endif
+
+  VALUE otel_thread_context_module = rb_define_module_under(core_module, "OTelThreadContext");
+
+  rb_define_singleton_method(otel_thread_context_module, "_native_enable", native_enable, 0);
+
+  #ifdef HAVE_RB_EXT_RACTOR_SAFE
+    rb_ext_ractor_safe(true);
+  #endif
+  rb_define_singleton_method(otel_thread_context_module, "_native_set", native_set, 3);
+  rb_define_singleton_method(otel_thread_context_module, "_native_supported?", native_supported_p, 0);
+  rb_define_singleton_method(otel_thread_context_module, "_native_read", native_read, 0);
+  #ifdef HAVE_RB_EXT_RACTOR_SAFE
+    rb_ext_ractor_safe(false);
+  #endif
+}
+
+#ifdef __linux__
+  static void publish_context(const otel_fiber_context *ctx) {
+    if (ctx) {
+      ddog_otel_thread_ctx_update(&ctx->trace_id, &ctx->span_id, &ctx->local_root_span_id);
+    } else {
+      static const uint8_t zero_trace_id[16] = {0};
+      static const uint8_t zero_span_id[8] = {0};
+
+      ddog_otel_thread_ctx_update(&zero_trace_id, &zero_span_id, &zero_span_id);
+    }
+  }
+
+  static otel_fiber_context *get_fiber_context_for(VALUE thread) {
+    VALUE existing_ctx = rb_thread_local_aref(thread, fiber_context_slot);
+    if (NIL_P(existing_ctx)) return NULL;
+
+    otel_fiber_context *ctx;
+    TypedData_Get_Struct(existing_ctx, otel_fiber_context, &otel_fiber_context_t, ctx);
+    return ctx;
+  }
+
+  static otel_fiber_context *get_or_create_current_fiber_context(void) {
+    otel_fiber_context *ctx = get_fiber_context_for(rb_thread_current());
+    if (ctx) {
+      #ifdef HAVE_RUBY_THREAD_STORAGE_API
+        rb_internal_thread_specific_set(rb_thread_current(), otel_ctx_key, ctx);
+      #endif
+      return ctx;
+    }
+
+    VALUE obj = TypedData_Make_Struct(rb_cObject, otel_fiber_context, &otel_fiber_context_t, ctx);
+    rb_thread_local_aset(rb_thread_current(), fiber_context_slot, obj);
+
+    #ifdef HAVE_RUBY_THREAD_STORAGE_API
+      rb_internal_thread_specific_set(rb_thread_current(), otel_ctx_key, ctx);
+    #endif
+    return ctx;
+  }
+
+  #ifdef RUBY_INTERNAL_THREAD_EVENT_EXITED
+    static void on_thread_exited(
+      DDTRACE_UNUSED rb_event_flag_t event,
+      const rb_internal_thread_event_data_t *event_data,
+      DDTRACE_UNUSED void *user_data
+    ) {
+      #ifdef HAVE_RUBY_THREAD_STORAGE_API
+        if (rb_thread_current() != event_data->thread) return;
+      #else
+        (void) event_data;
+      #endif
+
+      struct ddog_ThreadContextHandle *ctx = ddog_otel_thread_ctx_detach();
+      if (ctx) ddog_otel_thread_ctx_free(ctx);
+    }
+  #else
+    static void on_thread_end(
+      DDTRACE_UNUSED rb_event_flag_t evflag,
+      DDTRACE_UNUSED VALUE data,
+      DDTRACE_UNUSED VALUE self,
+      DDTRACE_UNUSED ID mid,
+      DDTRACE_UNUSED VALUE klass
+    ) {
+      struct ddog_ThreadContextHandle *ctx = ddog_otel_thread_ctx_detach();
+      if (ctx) ddog_otel_thread_ctx_free(ctx);
+    }
+  #endif
+
+  #ifdef HAVE_RUBY_THREAD_STORAGE_API
+    static void on_thread_resumed(
+      DDTRACE_UNUSED rb_event_flag_t event,
+      DDTRACE_UNUSED const rb_internal_thread_event_data_t *event_data,
+      DDTRACE_UNUSED void *user_data
+    ) {
+      otel_fiber_context *ctx = rb_internal_thread_specific_get(rb_thread_current(), otel_ctx_key);
+      publish_context(ctx);
+    }
+  #endif
+
+  static void on_fiber_switch(
+    DDTRACE_UNUSED rb_event_flag_t evflag,
+    DDTRACE_UNUSED VALUE data,
+    DDTRACE_UNUSED VALUE self,
+    DDTRACE_UNUSED ID mid,
+    DDTRACE_UNUSED VALUE klass
+  ) {
+    publish_context(get_or_create_current_fiber_context());
+  }
+
+  static void register_ractor_local_hooks(void) {
+    #ifdef HAVE_RB_RACTOR_LOCAL_STORAGE_VALUE_NEWKEY
+      if (rb_ractor_local_storage_value(ractor_hooks_key) == Qtrue) return;
+      rb_ractor_local_storage_value_set(ractor_hooks_key, Qtrue);
+    #else
+      static bool registered = false;
+      if (registered) return;
+      registered = true;
+    #endif
+
+    rb_add_event_hook(on_fiber_switch, RUBY_EVENT_FIBER_SWITCH, Qnil);
+  }
+#endif
+
+static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
+  #ifdef __linux__
+    static bool enabled = false;
+    if (enabled) return Qtrue;
+    enabled = true;
+
+    // Starting with Ruby 3.2 we use internal thread EXITED hook and not
+    // RUBY_EVENT_THREAD_END VM trace event, since trace events are scoped to main Ractor.
+    #ifdef RUBY_INTERNAL_THREAD_EVENT_EXITED
+      rb_internal_thread_add_event_hook(on_thread_exited, RUBY_INTERNAL_THREAD_EVENT_EXITED, NULL);
+    #else
+      rb_add_event_hook(on_thread_end, RUBY_EVENT_THREAD_END, Qnil);
+    #endif
+
+    // Under M:N, a Ruby thread migrates between OS threads.
+    // We use thread storage to store a pointer to the OTel thread context record.
+    #ifdef HAVE_RUBY_THREAD_STORAGE_API
+      rb_internal_thread_add_event_hook(on_thread_resumed, RUBY_INTERNAL_THREAD_EVENT_RESUMED, NULL);
+    #endif
+
+    register_ractor_local_hooks();
+
+    return Qtrue;
+  #else
+    return Qfalse;
+  #endif
+}
+
+static VALUE native_supported_p(DDTRACE_UNUSED VALUE _self) {
+  #ifdef __linux__
+    return Qtrue;
+  #else
+    return Qfalse;
+  #endif
+}
+
+static VALUE native_set(
+    DDTRACE_UNUSED VALUE _self,
+    DDTRACE_UNUSED VALUE trace_id,
+    DDTRACE_UNUSED VALUE span_id,
+    DDTRACE_UNUSED VALUE local_root_span_id
+  ) {
+  #ifdef __linux__
+    register_ractor_local_hooks();
+
+    otel_fiber_context *ctx = get_or_create_current_fiber_context();
+
+    rb_integer_pack(trace_id, ctx->trace_id, sizeof(ctx->trace_id), 1, 0, BIG_ENDIAN_PACK_FLAGS);
+    rb_integer_pack(span_id, ctx->span_id, sizeof(ctx->span_id), 1, 0, BIG_ENDIAN_PACK_FLAGS);
+    rb_integer_pack(local_root_span_id, ctx->local_root_span_id, sizeof(ctx->local_root_span_id), 1, 0, BIG_ENDIAN_PACK_FLAGS);
+
+    publish_context(ctx);
+
+    return Qtrue;
+  #else
+    return Qfalse;
+  #endif
+}
+
+static VALUE native_read(DDTRACE_UNUSED VALUE _self) {
+  #ifdef __linux__
+    const uint8_t *raw = otel_thread_ctx_v1;
+    if (!raw) return Qnil;
+
+    uint16_t attrs_data_size = (uint16_t) raw[26] | ((uint16_t) raw[27] << 8);
+
+    if (attrs_data_size > ddog_MAX_ATTRS_DATA_SIZE) {
+      raise_error(
+        rb_eRuntimeError,
+        "Invalid OTel thread context record: attrs_data_size (%d) exceeds maximum (%d)",
+        attrs_data_size, ddog_MAX_ATTRS_DATA_SIZE
+      );
+    }
+
+    VALUE result = rb_hash_new();
+    rb_hash_aset(result, ID2SYM(rb_intern("trace_id")), rb_str_new((const char *) raw, 16));
+    rb_hash_aset(result, ID2SYM(rb_intern("span_id")), rb_str_new((const char *) (raw + 16), 8));
+    rb_hash_aset(result, ID2SYM(rb_intern("valid")), rb_str_new((const char *) (raw + 24), 1));
+    rb_hash_aset(result, ID2SYM(rb_intern("attrs")), rb_str_new((const char *) (raw + 28), attrs_data_size));
+
+    return result;
+  #else
+    return Qnil;
+  #endif
+}

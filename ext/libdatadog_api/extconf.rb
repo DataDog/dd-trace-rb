@@ -97,6 +97,9 @@ Datadog::LibdatadogExtconfHelpers.add_libdatadog_version_define
 EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".freeze
 
 have_func("rb_iseq_type")
+have_func("rb_ractor_local_storage_value_newkey", "ruby/ractor.h")
+
+$defs << "-DHAVE_RUBY_THREAD_STORAGE_API" if RUBY_VERSION >= "3.3"
 
 create_makefile(EXTENSION_NAME)
 
