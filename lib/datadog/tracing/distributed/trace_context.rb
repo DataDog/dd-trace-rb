@@ -354,7 +354,7 @@ module Datadog
           ot_vendor = pop_vendor(vendors, "ot=")
 
           ExtractedTracestate.new(
-            vendors.join(","),
+            vendors.empty? ? nil : vendors.join(","),
             extract_datadog_fields(dd_vendor),
             OpenTelemetryTracestateCodec.extract_otel_fields(ot_vendor),
           )
