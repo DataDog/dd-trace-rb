@@ -99,13 +99,13 @@ static void tracer_span_dfree(void *ptr) {
 }
 
 /*
- * The TraceExporter wrapper owns both the Rust exporter and the SharedRuntime
+ * The TraceExporter wrapper owns both the Rust exporter and the ForkSafeRuntime
  * that drives its background workers.  Fork-safety hooks operate on the
  * runtime, while send/receive operate on the exporter.
  */
 typedef struct {
-  ddog_TraceExporter       *exporter;
-  const ddog_SharedRuntime *runtime;
+  ddog_TraceExporter        *exporter;
+  const ddog_ForkSafeRuntime *runtime;
 } trace_exporter_t;
 
 static const rb_data_type_t trace_exporter_typed_data = {
@@ -178,6 +178,11 @@ static inline void check_shared_runtime_error(const char *context,
 typedef ddog_TraceExporterError *(*config_setter_fn)(
     ddog_TraceExporterConfig *, ddog_CharSlice);
 
+typedef struct {
+  ddog_TraceExporterConfig *config;
+  ddog_TraceExporterError  *error;
+} otlp_header_iter_ctx;
+
 /*
  * Set a single string-valued config field. `rb_val` MUST be a Ruby String
  * (or nil, which is skipped): it is passed to char_slice_from_ruby_string,
@@ -196,6 +201,43 @@ static inline void set_config_field(
   if (err) {
     ddog_trace_exporter_config_free(config);
     check_exporter_error(label, err);
+  }
+}
+
+static int validate_otlp_header_cb(VALUE key, VALUE value, VALUE arg) {
+  (void)arg;
+  ENFORCE_TYPE(key, T_STRING);
+  ENFORCE_TYPE(value, T_STRING);
+  return ST_CONTINUE;
+}
+
+static int set_otlp_header_cb(VALUE key, VALUE value, VALUE arg) {
+  otlp_header_iter_ctx *ctx = (otlp_header_iter_ctx *)arg;
+  ctx->error = ddog_trace_exporter_config_add_otlp_header(
+      ctx->config,
+      char_slice_from_ruby_string(key),
+      char_slice_from_ruby_string(value));
+  return ctx->error == NULL ? ST_CONTINUE : ST_STOP;
+}
+
+static inline void set_otlp_protocol(
+    ddog_TraceExporterConfig *config,
+    VALUE rb_protocol) {
+  if (rb_protocol == Qnil) return;
+
+  ddog_TraceExporterError *err = ddog_trace_exporter_config_set_otlp_protocol(
+      config, char_slice_from_ruby_string(rb_protocol));
+
+  if (err != NULL &&
+      err->code == DDOG_TRACE_EXPORTER_ERROR_CODE_INVALID_ARGUMENT) {
+    ddog_trace_exporter_error_free(err);
+    ddog_CharSlice protobuf = {.ptr = "http/protobuf", .len = 13};
+    err = ddog_trace_exporter_config_set_otlp_protocol(config, protobuf);
+  }
+
+  if (err != NULL) {
+    ddog_trace_exporter_config_free(config);
+    check_exporter_error("otlp_protocol", err);
   }
 }
 
@@ -486,7 +528,8 @@ static VALUE create_ok_response(long trace_count, VALUE payload) {
  *   TraceExporter._native_new(
  *     url:, tracer_version: nil, language: nil, language_version: nil,
  *     language_interpreter: nil, hostname: nil, env: nil,
- *     service: nil, version: nil) -> TraceExporter
+ *     service: nil, version: nil, otlp_endpoint: nil, otlp_headers: nil,
+ *     otlp_timeout_millis: nil, otlp_protocol: nil) -> TraceExporter
  *
  * +url+ is required (String).  All other arguments may be nil.
  * ======================================================================== */
@@ -507,6 +550,11 @@ static VALUE _native_exporter_new(
   VALUE rb_env                  = rb_hash_fetch(options, ID2SYM(rb_intern("env")));
   VALUE rb_service              = rb_hash_fetch(options, ID2SYM(rb_intern("service")));
   VALUE rb_version              = rb_hash_fetch(options, ID2SYM(rb_intern("version")));
+  VALUE rb_otlp_endpoint        = rb_hash_lookup2(options, ID2SYM(rb_intern("otlp_endpoint")), Qnil);
+  VALUE rb_otlp_headers         = rb_hash_lookup2(options, ID2SYM(rb_intern("otlp_headers")), Qnil);
+  VALUE rb_otlp_timeout_millis  = rb_hash_lookup2(options, ID2SYM(rb_intern("otlp_timeout_millis")), Qnil);
+  VALUE rb_otlp_protocol        = rb_hash_lookup2(options, ID2SYM(rb_intern("otlp_protocol")), Qnil);
+  uint64_t otlp_timeout_millis  = 0;
 
   /* Phase 1: validate types (may raise, no Rust resources yet) */
   ENFORCE_TYPE(rb_url, T_STRING);
@@ -518,6 +566,22 @@ static VALUE _native_exporter_new(
   if (rb_env                  != Qnil) ENFORCE_TYPE(rb_env,                  T_STRING);
   if (rb_service              != Qnil) ENFORCE_TYPE(rb_service,              T_STRING);
   if (rb_version              != Qnil) ENFORCE_TYPE(rb_version,              T_STRING);
+  if (rb_otlp_endpoint        != Qnil) ENFORCE_TYPE(rb_otlp_endpoint,        T_STRING);
+  if (rb_otlp_headers         != Qnil) ENFORCE_TYPE(rb_otlp_headers,         T_HASH);
+  if (rb_otlp_timeout_millis  != Qnil && !RB_INTEGER_TYPE_P(rb_otlp_timeout_millis)) {
+    raise_unexpected_type(rb_otlp_timeout_millis, "rb_otlp_timeout_millis", "Integer",
+                          __FILE__, __LINE__, __func__);
+  }
+  if (rb_otlp_timeout_millis != Qnil) {
+    if (RTEST(rb_funcall(rb_otlp_timeout_millis, rb_intern("<"), 1, INT2FIX(0)))) {
+      raise_error(rb_eArgError, "otlp_timeout_millis must be non-negative");
+    }
+    otlp_timeout_millis = NUM2ULL(rb_otlp_timeout_millis);
+  }
+  if (rb_otlp_protocol        != Qnil) ENFORCE_TYPE(rb_otlp_protocol,        T_STRING);
+  if (rb_otlp_headers         != Qnil) {
+    rb_hash_foreach(rb_otlp_headers, validate_otlp_header_cb, Qnil);
+  }
 
   /* Phase 2: configure before creating the separately-owned runtime. */
   ddog_TraceExporterConfig *config = NULL;
@@ -533,31 +597,57 @@ static VALUE _native_exporter_new(
   set_config_field(config, ddog_trace_exporter_config_set_service,           rb_service,               "service");
   set_config_field(config, ddog_trace_exporter_config_set_version,           rb_version,               "version");
 
+  if (rb_otlp_endpoint != Qnil) {
+    set_config_field(config, ddog_trace_exporter_config_set_otlp_endpoint,
+                     rb_otlp_endpoint, "otlp_endpoint");
+
+    if (rb_otlp_headers != Qnil) {
+      otlp_header_iter_ctx header_ctx = {.config = config, .error = NULL};
+      rb_hash_foreach(rb_otlp_headers, set_otlp_header_cb, (VALUE)&header_ctx);
+      if (header_ctx.error != NULL) {
+        ddog_trace_exporter_config_free(config);
+        check_exporter_error("otlp_headers", header_ctx.error);
+      }
+    }
+
+    if (rb_otlp_timeout_millis != Qnil) {
+      ddog_TraceExporterError *timeout_err =
+          ddog_trace_exporter_config_set_connection_timeout(
+              config, otlp_timeout_millis);
+      if (timeout_err != NULL) {
+        ddog_trace_exporter_config_free(config);
+        check_exporter_error("otlp_timeout_millis", timeout_err);
+      }
+    }
+
+    set_otlp_protocol(config, rb_otlp_protocol);
+  }
+
   /*
-   * Create a SharedRuntime and attach it to the config before building the
+   * Create a ForkSafeRuntime and attach it to the config before building the
    * exporter.  The exporter holds a clone of the runtime's Arc; we keep our
    * own handle in the wrapper to drive fork-safety hooks and to free it when
    * the exporter is collected.
    */
-  const ddog_SharedRuntime *runtime = NULL;
+  const ddog_ForkSafeRuntime *runtime = NULL;
   ddog_SharedRuntimeFFIError *rt_err = ddog_shared_runtime_new(&runtime);
   if (rt_err != NULL) {
     ddog_trace_exporter_config_free(config);
-    check_shared_runtime_error("Failed to create SharedRuntime", rt_err);
+    check_shared_runtime_error("Failed to create ForkSafeRuntime", rt_err);
   }
 
   /*
-   * Const asymmetry: ddog_shared_runtime_new yields a `const ddog_SharedRuntime *`
+   * Const asymmetry: ddog_shared_runtime_new yields a `const ddog_ForkSafeRuntime *`
    * but the setter takes a non-const pointer.  The setter only clones the Arc,
    * so casting away const here is safe.
    */
   {
     ddog_TraceExporterError *attach_err = ddog_trace_exporter_config_set_shared_runtime(
-        config, (ddog_SharedRuntime *)runtime);
+        config, (ddog_ForkSafeRuntime *)runtime);
     if (attach_err != NULL) {
       ddog_trace_exporter_config_free(config);
       ddog_shared_runtime_free(runtime);
-      check_exporter_error("Failed to attach SharedRuntime to config", attach_err);
+      check_exporter_error("Failed to attach ForkSafeRuntime to config", attach_err);
     }
   }
 

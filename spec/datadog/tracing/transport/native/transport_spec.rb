@@ -451,6 +451,29 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
           transport.send_traces([trace_with { |span| span.events << double("span event") }])
         end
       end
+
+      context "when exporting over OTLP" do
+        let(:transport) do
+          transport_class.new(
+            agent_settings: agent_settings,
+            logger: logger,
+            otlp_endpoint: "http://127.0.0.1:#{mock_agent.port}/v1/traces",
+            otlp_headers: {},
+            otlp_timeout_millis: 1_000,
+            otlp_protocol: "http/json"
+          ).tap { |t| built_transports << t }
+        end
+
+        it "explains how to select the default transport" do
+          trace = trace_with { |span| span.events << double("span event") }
+
+          expect(logger).to receive(:warn).once do |&message|
+            expect(message.call).to include("Unset OTEL_TRACES_EXPORTER")
+          end
+
+          transport.send_traces([trace])
+        end
+      end
     end
   end
 

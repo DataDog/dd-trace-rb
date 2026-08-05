@@ -330,10 +330,12 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           it { is_expected.to be false }
         end
 
-        context "is set to unsupported value" do
+        context "is set to otlp" do
           let(:dd_enable) { nil }
           let(:otel_exporter) { "otlp" }
-          it "the default value is used" do
+
+          it "keeps tracing enabled without warning" do
+            expect(Datadog.logger).to_not receive(:warn)
             is_expected.to be true
           end
         end

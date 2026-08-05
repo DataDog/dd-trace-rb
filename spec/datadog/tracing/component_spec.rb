@@ -12,6 +12,57 @@ require "datadog/tracing/tracer"
 require "datadog/tracing/writer"
 
 RSpec.describe Datadog::Tracing::Component do
+  describe "::build_trace_flush" do
+    subject(:trace_flush) { described_class.build_trace_flush(settings) }
+
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+    context "when OTLP trace export and partial flushing are enabled" do
+      before do
+        settings.tracing.otlp.exporter = "otlp"
+        settings.tracing.partial_flush.enabled = true
+      end
+
+      it { is_expected.to be_a(Datadog::Tracing::Flush::Finished) }
+    end
+
+    context "when a custom writer overrides OTLP trace export" do
+      before do
+        settings.tracing.otlp.exporter = "otlp"
+        settings.tracing.writer = Object.new
+        settings.tracing.partial_flush.enabled = true
+        settings.tracing.partial_flush.min_spans_threshold = 7
+      end
+
+      it do
+        is_expected.to be_a(Datadog::Tracing::Flush::Partial)
+          .and have_attributes(min_spans_for_partial: 7)
+      end
+    end
+
+    context "when synchronous test mode overrides OTLP trace export" do
+      before do
+        settings.tracing.otlp.exporter = "otlp"
+        settings.tracing.test_mode.enabled = true
+        settings.tracing.test_mode.async = false
+        settings.tracing.partial_flush.enabled = true
+      end
+
+      it { is_expected.to be_a(Datadog::Tracing::Flush::Partial) }
+    end
+
+    context "when asynchronous test mode uses OTLP trace export" do
+      before do
+        settings.tracing.otlp.exporter = "otlp"
+        settings.tracing.test_mode.enabled = true
+        settings.tracing.test_mode.async = true
+        settings.tracing.partial_flush.enabled = true
+      end
+
+      it { is_expected.to be_a(Datadog::Tracing::Flush::Finished) }
+    end
+  end
+
   describe "::build_tracer" do
     subject(:build_tracer) { described_class.build_tracer(settings, agent_settings, logger: logger) }
 

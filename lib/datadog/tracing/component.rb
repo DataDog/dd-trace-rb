@@ -7,6 +7,7 @@ require_relative "sampling/span/rule_parser"
 require_relative "sampling/span/sampler"
 require_relative "diagnostics/environment_logger"
 require_relative "contrib/component"
+require_relative "configuration/otlp"
 
 module Datadog
   module Tracing
@@ -51,7 +52,9 @@ module Datadog
       end
 
       def build_trace_flush(settings)
-        if settings.tracing.partial_flush.enabled
+        if otlp_writer_enabled?(settings)
+          Tracing::Flush::Finished.new
+        elsif settings.tracing.partial_flush.enabled
           Tracing::Flush::Partial.new(
             min_spans_before_partial_flush: settings.tracing.partial_flush.min_spans_threshold
           )
@@ -104,27 +107,51 @@ module Datadog
           return writer
         end
 
-        if settings.tracing.native_transport && (transport = build_native_transport(agent_settings))
+        otlp_settings = settings.tracing.otlp
+        if otlp_writer_enabled?(settings)
+          transport = build_native_transport(
+            agent_settings,
+            otlp_options: Configuration::OTLP.transport_options(
+              otlp_settings,
+              settings.opentelemetry.exporter,
+              agent_settings
+            ),
+            fallback_to_http: false
+          )
+          options = options.merge(transport: transport)
+        elsif settings.tracing.native_transport && (transport = build_native_transport(agent_settings))
           options = options.merge(transport: transport)
         end
 
         Tracing::Writer.new(agent_settings: agent_settings, **options)
       end
 
-      def build_native_transport(agent_settings)
+      def otlp_writer_enabled?(settings)
+        return false unless settings.tracing.writer.nil? && Configuration::OTLP.enabled?(settings.tracing.otlp)
+        return true unless settings.tracing.test_mode.enabled
+
+        settings.tracing.test_mode.async
+      end
+
+      def build_native_transport(agent_settings, otlp_options: nil, fallback_to_http: true)
         require_relative "transport/native"
 
         unless Transport::Native.supported?
+          message = "Native transport requested but not available: #{Transport::Native::UNSUPPORTED_REASON}."
+          unless fallback_to_http
+            raise ArgumentError, "#{message} OTLP trace export requires the native transport."
+          end
+
           Datadog.logger.warn(
-            "Native transport requested but not available: #{Transport::Native::UNSUPPORTED_REASON}. " \
-            "Falling back to default HTTP transport."
+            "#{message} Falling back to default HTTP transport."
           )
           return nil
         end
 
         Transport::Native::Transport.new(
           agent_settings: agent_settings,
-          logger: Datadog.logger
+          logger: Datadog.logger,
+          **(otlp_options || {})
         )
       end
 

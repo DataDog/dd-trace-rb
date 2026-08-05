@@ -10,6 +10,20 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter" do
   let(:native_module) { Datadog::Tracing::Transport::Native }
   let(:trace_exporter_class) { native_module::TraceExporter }
 
+  def exporter_options(overrides = {})
+    {
+      url: "http://127.0.0.1:8126",
+      tracer_version: "1.0.0",
+      language: "ruby",
+      language_version: RUBY_VERSION,
+      language_interpreter: RUBY_ENGINE,
+      hostname: "testhost",
+      env: "test",
+      service: "testsvc",
+      version: "1.0",
+    }.merge(overrides)
+  end
+
   describe "._native_new" do
     context "with all string arguments" do
       it "creates an exporter" do
@@ -37,6 +51,78 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter" do
           service: nil, version: nil,
         )
         expect(exporter).to be_a(trace_exporter_class)
+      end
+    end
+
+    context "with OTLP arguments" do
+      it "creates an HTTP/protobuf exporter" do
+        exporter = trace_exporter_class._native_new(**exporter_options(
+          otlp_endpoint: "http://127.0.0.1:4318/v1/traces",
+          otlp_headers: {"authorization" => "Bearer test"},
+          otlp_timeout_millis: 2500,
+          otlp_protocol: "http/protobuf"
+        ))
+
+        expect(exporter).to be_a(trace_exporter_class)
+      end
+
+      it "falls back to HTTP/protobuf when the current libdatadog rejects grpc" do
+        exporter = trace_exporter_class._native_new(**exporter_options(
+          otlp_endpoint: "http://127.0.0.1:4318/v1/traces",
+          otlp_headers: {},
+          otlp_timeout_millis: 10_000,
+          otlp_protocol: "grpc"
+        ))
+
+        expect(exporter).to be_a(trace_exporter_class)
+      end
+
+      {
+        otlp_endpoint: 123,
+        otlp_headers: [],
+        otlp_timeout_millis: "2500",
+        otlp_protocol: :grpc,
+      }.each do |keyword, invalid_value|
+        it "rejects a nonconforming #{keyword}" do
+          expect {
+            trace_exporter_class._native_new(**exporter_options(keyword => invalid_value))
+          }.to raise_error(TypeError)
+        end
+      end
+
+      it "rejects non-string header keys and values" do
+        expect {
+          trace_exporter_class._native_new(**exporter_options(
+            otlp_headers: {authorization: "Bearer test"}
+          ))
+        }.to raise_error(TypeError)
+
+        expect {
+          trace_exporter_class._native_new(**exporter_options(
+            otlp_headers: {"authorization" => 123}
+          ))
+        }.to raise_error(TypeError)
+      end
+
+      it "rejects a negative timeout" do
+        expect {
+          trace_exporter_class._native_new(**exporter_options(
+            otlp_timeout_millis: -1
+          ))
+        }.to raise_error(ArgumentError, /non-negative/)
+      end
+
+      it "rejects invalid UTF-8 headers without leaking runtime handles" do
+        invalid = "\xFF".b.force_encoding(Encoding::UTF_8)
+
+        20.times do
+          expect {
+            trace_exporter_class._native_new(**exporter_options(
+              otlp_endpoint: "http://127.0.0.1:4318/v1/traces",
+              otlp_headers: {"authorization" => invalid}
+            ))
+          }.to raise_error(RuntimeError, /otlp_headers/)
+        end
       end
     end
 

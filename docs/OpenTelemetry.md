@@ -123,9 +123,41 @@ There are a few limitations to OpenTelemetry Tracing when the APM integration is
 | `OpenTelemetry.logger`                                                                                     | Special     | `OpenTelemetry.logger` is set to the same object as `Datadog.logger`.             | Configure through [Custom logging](#custom-logging). |   |
 | Trace/span [ID generators](https://opentelemetry.io/docs/reference/specification/trace/sdk/#id-generators) | Special     | ID generation is performed by `datadog`.                                          | N/A                                                  |   |
 
+## Exporting Datadog traces over OTLP
+
+Set `OTEL_TRACES_EXPORTER=otlp` before loading `datadog` to export Datadog APM spans through
+OTLP instead of the Datadog trace protocol. This path uses the native libdatadog transport and
+supports OTLP over HTTP with JSON or protobuf payloads.
+
+```shell
+OTEL_TRACES_EXPORTER=otlp \
+OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=http/protobuf \
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces \
+bundle exec ruby app.rb
+```
+
+The trace-specific OTLP settings take precedence over their general counterparts:
+
+- `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, or `OTEL_EXPORTER_OTLP_ENDPOINT` with `/v1/traces` appended
+- `OTEL_EXPORTER_OTLP_TRACES_HEADERS`, then `OTEL_EXPORTER_OTLP_HEADERS`
+- `OTEL_EXPORTER_OTLP_TRACES_TIMEOUT`, then `OTEL_EXPORTER_OTLP_TIMEOUT`, in milliseconds
+- `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL`, then `OTEL_EXPORTER_OTLP_PROTOCOL`
+
+The supported protocols are `http/json` and `http/protobuf`. gRPC is not supported yet. An unset,
+`grpc`, or unrecognized protocol falls back to `http/protobuf` with the current libdatadog version.
+Without an endpoint setting, the exporter sends to `http://<agent-host>:4318/v1/traces`.
+
+A custom Datadog writer takes precedence over `OTEL_TRACES_EXPORTER`. Setting
+`DD_TRACE_AGENT_PROTOCOL_VERSION` also keeps the Datadog Agent trace protocol selected.
+
+OTLP trace export requires a platform supported by the libdatadog native extension. Startup fails
+instead of sending traces to a different destination when native support is unavailable. The
+exporter does not receive Datadog Agent sampling-rate updates, so client sampling remains in
+control. Partial flushing is disabled so libdatadog receives complete local traces. Span links,
+span events, and structured metadata have the same limitations as the native Datadog trace
+transport.
+
 ## Exporting OpenTelemetry-only traces
 
 You can send OpenTelemetry traces directly to the Datadog agent (without `datadog`) by using [OTLP](https://open-telemetry.github.io/opentelemetry-ruby/opentelemetry-exporter-otlp/latest).
 Check out our documentation on [OTLP ingest in the Datadog Agent](https://docs.datadoghq.com/tracing/setup_overview/open_standards/#otlp-ingest-in-datadog-agent) for details.
-
-Datadog APM spans will not be sent through the OTLP exporter.

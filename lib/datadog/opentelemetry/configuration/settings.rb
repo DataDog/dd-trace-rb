@@ -39,17 +39,16 @@ module Datadog
             header_items = value.split(",")
             header_items.each do |key_value|
               key, header_value = key_value.split("=", 2)
-              # If header is malformed, return an empty hash
               if key.nil? || header_value.nil?
                 Datadog.logger.warn("#{env_var_name} has malformed header: #{key_value.inspect}")
-                return {}
+                next
               end
 
               key.strip!
               header_value.strip!
               if key.empty? || header_value.empty?
                 Datadog.logger.warn("#{env_var_name} has empty key or value in: #{key_value.inspect}")
-                return {}
+                next
               end
 
               headers[key] = header_value
@@ -64,7 +63,6 @@ module Datadog
               settings :exporter do
                 option :protocol do |o|
                   o.type :string
-                  o.setter(&Settings.normalize_protocol("OTEL_EXPORTER_OTLP_PROTOCOL"))
                   o.env "OTEL_EXPORTER_OTLP_PROTOCOL"
                   o.default "http/protobuf"
                 end

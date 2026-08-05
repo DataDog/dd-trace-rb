@@ -1,0 +1,42 @@
+module Datadog
+  module Tracing
+    module Configuration
+      module OTLP
+        interface _Settings
+          def exporter: () -> String?
+          def agent_protocol_version: () -> String?
+          def endpoint: () -> String?
+          def headers: () -> Hash[String, String]?
+          def timeout_millis: () -> Integer?
+          def protocol: () -> String?
+        end
+
+        type transport_options = {
+          otlp_endpoint: String,
+          otlp_headers: Hash[String, String],
+          otlp_timeout_millis: Integer,
+          otlp_protocol: String
+        }
+
+        def self?.enabled?: (_Settings settings) -> bool
+        def self?.transport_options: (
+          _Settings settings,
+          Datadog::OpenTelemetry::Configuration::Settings::_Exporter exporter_settings,
+          Datadog::Core::Configuration::AgentSettings agent_settings
+        ) -> transport_options
+        def self?.parse_headers: (String? value) -> Hash[String, String]
+
+        private
+
+        def self?.endpoint: (
+          _Settings settings,
+          Datadog::OpenTelemetry::Configuration::Settings::_Exporter exporter_settings,
+          Datadog::Core::Configuration::AgentSettings agent_settings
+        ) -> String
+        def self?.general_protocol: (
+          Datadog::OpenTelemetry::Configuration::Settings::_Exporter exporter_settings
+        ) -> String
+      end
+    end
+  end
+end

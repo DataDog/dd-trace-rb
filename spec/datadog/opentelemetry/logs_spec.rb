@@ -272,8 +272,8 @@ RSpec.describe "OpenTelemetry Logs Integration", ruby: ">= 3.1" do
           "OTEL_EXPORTER_OTLP_LOGS_HEADERS" => "api-key=secret123,malformed"
         }
       end
-      it "returns an empty headers hash" do
-        expect(logs_settings.headers).to eq({})
+      it "ignores the malformed header" do
+        expect(logs_settings.headers).to eq("api-key" => "secret123")
       end
     end
 

@@ -50,12 +50,20 @@ module Datadog
           # @param agent_settings [Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings]
           #   Agent connection settings (provides +#url+).
           # @param logger [Logger]
-          def initialize(agent_settings:, logger:)
+          def initialize(
+            agent_settings:,
+            logger:,
+            otlp_endpoint: nil,
+            otlp_headers: nil,
+            otlp_timeout_millis: nil,
+            otlp_protocol: nil
+          )
             unless Native.supported?
               raise "Native transport is not supported: #{UNSUPPORTED_REASON}"
             end
 
             @logger = logger
+            @otlp_enabled = !otlp_endpoint.nil?
 
             # Guards the one-shot warning about span fields the native exporter
             # does not yet convert (see #warn_unsupported_fields!).
@@ -79,17 +87,35 @@ module Datadog
             service = Datadog.configuration.service
             version = Datadog.configuration.version
 
-            exporter = Native::TraceExporter._native_new(
-              url: url,
-              tracer_version: tracer_version,
-              language: language,
-              language_version: language_version,
-              language_interpreter: language_interpreter,
-              hostname: hostname,
-              env: env,
-              service: service,
-              version: version
-            )
+            exporter = if @otlp_enabled
+              Native::TraceExporter._native_new(
+                url: url,
+                tracer_version: tracer_version,
+                language: language,
+                language_version: language_version,
+                language_interpreter: language_interpreter,
+                hostname: hostname,
+                env: env,
+                service: service,
+                version: version,
+                otlp_endpoint: otlp_endpoint,
+                otlp_headers: otlp_headers,
+                otlp_timeout_millis: otlp_timeout_millis,
+                otlp_protocol: otlp_protocol
+              )
+            else
+              Native::TraceExporter._native_new(
+                url: url,
+                tracer_version: tracer_version,
+                language: language,
+                language_version: language_version,
+                language_interpreter: language_interpreter,
+                hostname: hostname,
+                env: env,
+                service: service,
+                version: version
+              )
+            end
             @exporter = exporter
 
             # Fork safety: the native exporter owns a long-lived tokio runtime
@@ -297,9 +323,15 @@ module Datadog
 
             @unsupported_fields_warned = true
             fields = unsupported.uniq.join(", ")
+            remediation = if @otlp_enabled
+              "Unset OTEL_TRACES_EXPORTER and DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED " \
+                "to use the default transport if you rely on these."
+            else
+              "Unset DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED to use the default transport if you rely on these."
+            end
             logger.warn do
-              "Native transport does not yet support: #{fields}. This data will not be sent to Datadog. " \
-                "Unset DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED to use the default transport if you rely on these."
+              "Native transport does not yet support: #{fields}. This data will not be sent to Datadog. " +
+                remediation
             end
           end
 
