@@ -3,7 +3,7 @@ module Datadog
     module Telemetry
       module Event
         class AppClientConfigurationChange < Base
-          type configuration_changes = Array[[String, untyped]] | Hash[String, untyped]
+          type configuration_changes = Array[[String, any]] | Hash[String, any]
 
           @changes: configuration_changes
           @origin: String
@@ -28,7 +28,7 @@ module Datadog
 
           private
 
-          def configuration_entry: (String name, untyped value, String origin, Integer seq_id) -> telemetry_configuration
+          def configuration_entry: (String name, any value, String origin, Integer seq_id) -> telemetry_configuration
         end
       end
     end
