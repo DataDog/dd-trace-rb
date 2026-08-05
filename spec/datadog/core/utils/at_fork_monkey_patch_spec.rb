@@ -377,6 +377,24 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
           expect { process_module._fork }.to raise_error(error)
         end
 
+        it "cleans up only callback triplets whose before stage started" do
+          calls = []
+          error = RuntimeError.new("before failed")
+          at_fork = Datadog::Core::Utils::AtForkMonkeyPatch
+          at_fork.at_fork_blocks(
+            before: proc { calls << :started_before; raise error },
+            parent: proc { calls << :started_parent },
+            child: proc { calls << :started_child }
+          )
+          at_fork.at_fork_blocks(
+            before: proc { calls << :skipped_before },
+            parent: proc { calls << :skipped_parent },
+            child: proc { calls << :skipped_child }
+          )
+
+          expect { process_module._fork }.to raise_error(error)
+          expect(calls).to eq(%i[started_before started_parent])
+        end
       end
     end
   end

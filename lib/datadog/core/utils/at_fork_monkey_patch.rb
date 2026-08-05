@@ -7,10 +7,11 @@ module Datadog
       # is used to restart observability after the VM forks (e.g. in multiprocess Ruby apps).
       module AtForkMonkeyPatch
         class Callback
-          attr_reader :block
+          attr_reader :block, :group
 
-          def initialize(block)
+          def initialize(block, group = nil)
             @block = block
+            @group = group
             freeze
           end
         end
@@ -55,12 +56,19 @@ module Datadog
         # Runs the callbacks copied for one fork lifecycle. Before callbacks
         # stop at the first failure; parent and child callbacks all run before
         # the first failure is re-raised.
-        def self.run_at_fork_blocks(stage, snapshot: nil)
+        def self.run_at_fork_blocks(stage, snapshot: nil, started: nil)
           callbacks = blocks_for(snapshot || snapshot_at_fork_blocks, stage)
-          return callbacks.each { |callback| callback.block.call } if stage == :before
+          if stage == :before
+            return callbacks.each do |callback|
+              started[callback.group] = true if started && callback.group
+              callback.block.call
+            end
+          end
 
           error = nil
           callbacks.each do |callback|
+            next if started && callback.group && !started.key?(callback.group)
+
             callback.block.call
           rescue Exception => e # rubocop:disable Lint/RescueException -- finish cleanup, then re-raise the first failure
             error ||= e
@@ -68,8 +76,8 @@ module Datadog
           raise error if error
         end
 
-        def self.run_parent_cleanup(snapshot, fork_error)
-          run_at_fork_blocks(:parent, snapshot: snapshot)
+        def self.run_parent_cleanup(snapshot, started, fork_error)
+          run_at_fork_blocks(:parent, snapshot: snapshot, started: started)
         rescue Exception => cleanup_error # rubocop:disable Lint/RescueException -- preserve the original fork failure
           Datadog.logger.warn do
             "Parent at-fork cleanup failed while handling #{fork_error.class}: " \
@@ -100,12 +108,13 @@ module Datadog
         # to the snapshots taken by fork dispatch.
         def self.at_fork_blocks(before:, parent:, child:)
           blocks = {before: before, parent: parent, child: child}
+          group = Object.new.freeze
           AT_FORK_REGISTRY_MUTEX.synchronize do
             current = @at_fork_blocks
             @at_fork_blocks = {
-              before: (current.fetch(:before) + [Callback.new(before)]).freeze,
-              parent: (current.fetch(:parent) + [Callback.new(parent)]).freeze,
-              child: (current.fetch(:child) + [Callback.new(child)]).freeze,
+              before: (current.fetch(:before) + [Callback.new(before, group)]).freeze,
+              parent: (current.fetch(:parent) + [Callback.new(parent, group)]).freeze,
+              child: (current.fetch(:child) + [Callback.new(child, group)]).freeze,
             }.freeze
           end
           blocks
@@ -151,6 +160,7 @@ module Datadog
         module KernelMonkeyPatch
           def fork
             snapshot = AtForkMonkeyPatch.snapshot_at_fork_blocks
+            started = {}
 
             # If a block is provided, it must be wrapped to trigger callbacks.
             child_block = if block_given?
@@ -164,14 +174,14 @@ module Datadog
 
             begin
               # Run pre-fork callbacks in the parent, just before forking.
-              AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot: snapshot)
+              AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot: snapshot, started: started)
 
               # Start fork. If a block is provided, use the wrapped version.
               result = child_block.nil? ? super : super(&child_block)
             rescue Exception => e # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
               # The fork or a before-fork callback failed and we are still in
               # the parent. Restore any state set up by earlier callbacks.
-              AtForkMonkeyPatch.send(:run_parent_cleanup, snapshot, e)
+              AtForkMonkeyPatch.send(:run_parent_cleanup, snapshot, started, e)
               raise
             end
 
@@ -195,13 +205,14 @@ module Datadog
           # https://github.com/ruby/ruby/pull/5017 and https://bugs.ruby-lang.org/issues/17795
           def _fork
             snapshot = AtForkMonkeyPatch.snapshot_at_fork_blocks
+            started = {}
             begin
-              AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot: snapshot)
+              AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot: snapshot, started: started)
               pid = super
             rescue Exception => e # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
               # The fork or a before-fork callback failed, so no child was
               # created. Restore state set up by any earlier callbacks.
-              AtForkMonkeyPatch.send(:run_parent_cleanup, snapshot, e)
+              AtForkMonkeyPatch.send(:run_parent_cleanup, snapshot, started, e)
               raise
             end
 
@@ -219,13 +230,14 @@ module Datadog
           # This is not covered by `_fork` and thus we have some extra code for it.
           def daemon(*args)
             snapshot = AtForkMonkeyPatch.snapshot_at_fork_blocks
+            started = {}
             begin
-              AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot: snapshot)
+              AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot: snapshot, started: started)
               result = super
             rescue Exception => e # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
               # `daemon` or a before-fork callback failed, so the original
               # process survives. Restore state set up by earlier callbacks.
-              AtForkMonkeyPatch.send(:run_parent_cleanup, snapshot, e)
+              AtForkMonkeyPatch.send(:run_parent_cleanup, snapshot, started, e)
               raise
             end
 
