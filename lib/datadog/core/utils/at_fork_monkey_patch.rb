@@ -40,6 +40,9 @@ module Datadog
           true
         end
 
+        # Runs the callbacks copied for one fork lifecycle. Before callbacks
+        # stop at the first failure; parent and child callbacks all run before
+        # the first failure is re-raised.
         def self.run_at_fork_blocks(stage, snapshot = nil)
           blocks_for(stage) # Validate the stage before consulting a snapshot.
           blocks = snapshot ? snapshot.fetch(stage) : snapshot_at_fork_blocks.fetch(stage)
@@ -53,6 +56,16 @@ module Datadog
           end
           raise error if error
         end
+
+        def self.run_parent_cleanup(snapshot, fork_error)
+          run_at_fork_blocks(:parent, snapshot)
+        rescue Exception => cleanup_error # rubocop:disable Lint/RescueException -- preserve the original fork failure
+          Datadog.logger.warn do
+            "Parent at-fork cleanup failed while handling #{fork_error.class}: " \
+              "#{cleanup_error.class}: #{cleanup_error.message}"
+          end
+        end
+        private_class_method :run_parent_cleanup
 
         # Registers a block to run at the given fork +stage+ (+:before+,
         # +:parent+, or +:child+).
@@ -130,10 +143,10 @@ module Datadog
 
               # Start fork. If a block is provided, use the wrapped version.
               result = child_block.nil? ? super : super(&child_block)
-            rescue Exception # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
+            rescue Exception => e # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
               # The fork or a before-fork callback failed and we are still in
               # the parent. Restore any state set up by earlier callbacks.
-              AtForkMonkeyPatch.run_at_fork_blocks(:parent, snapshot)
+              AtForkMonkeyPatch.send(:run_parent_cleanup, snapshot, e)
               raise
             end
 
@@ -160,10 +173,10 @@ module Datadog
             begin
               AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot)
               pid = super
-            rescue Exception # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
+            rescue Exception => e # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
               # The fork or a before-fork callback failed, so no child was
               # created. Restore state set up by any earlier callbacks.
-              AtForkMonkeyPatch.run_at_fork_blocks(:parent, snapshot)
+              AtForkMonkeyPatch.send(:run_parent_cleanup, snapshot, e)
               raise
             end
 
@@ -184,10 +197,10 @@ module Datadog
             begin
               AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot)
               result = super
-            rescue Exception # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
+            rescue Exception => e # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
               # `daemon` or a before-fork callback failed, so the original
               # process survives. Restore state set up by earlier callbacks.
-              AtForkMonkeyPatch.run_at_fork_blocks(:parent, snapshot)
+              AtForkMonkeyPatch.send(:run_parent_cleanup, snapshot, e)
               raise
             end
 

@@ -350,6 +350,16 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
 
           expect { process_module._fork }.to raise_error(Errno::EAGAIN)
         end
+
+        it "does not replace the fork failure when parent cleanup also fails" do
+          cleanup_error = RuntimeError.new("parent cleanup failed")
+          allow(parent_callback).to receive(:call).and_raise(cleanup_error)
+          expect(Datadog.logger).to receive(:warn) do |&message|
+            expect(message.call).to include("Parent at-fork cleanup failed", "RuntimeError: parent cleanup failed")
+          end
+
+          expect { process_module._fork }.to raise_error(Errno::EAGAIN)
+        end
       end
 
       context "when a later before callback raises" do
