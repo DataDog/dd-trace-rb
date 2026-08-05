@@ -441,6 +441,7 @@ typedef struct {
   long event_count;
   size_t max_array_length;
   ddog_TracerSpan *rust_span;
+  ddog_TracerSpan *result_span;
 } span_conversion_ctx;
 
 typedef union {
@@ -582,9 +583,9 @@ static void build_native_events(span_conversion_ctx *ctx) {
  * to the caller (either wrap it in TypedData or push it into trace chunks).
  * ======================================================================== */
 
-/* rb_ensure body for span conversion. On success, returns the Rust span and
- * removes it from the cleanup context; every earlier exit remains owned by the
- * cleanup callback. */
+/* rb_ensure body for span conversion. On success, moves the Rust span to the
+ * result field and removes it from cleanup ownership; every earlier exit
+ * remains owned by the cleanup callback. */
 static VALUE build_rust_span(VALUE arg) {
   span_conversion_ctx *conversion = (span_conversion_ctx *)arg;
   VALUE span = conversion->span;
@@ -703,9 +704,9 @@ static VALUE build_rust_span(VALUE arg) {
     }
   }
 
-  ddog_TracerSpan *rust_span = conversion->rust_span;
+  conversion->result_span = conversion->rust_span;
   conversion->rust_span = NULL;
-  return (VALUE)rust_span;
+  return Qnil;
 }
 
 static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span, VALUE native_events) {
@@ -718,11 +719,11 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span, VALUE native_event
     ctx.event_count = RARRAY_LEN(ctx.normalized_events);
   }
 
-  VALUE result = rb_ensure(
+  rb_ensure(
       build_rust_span, (VALUE)&ctx,
       cleanup_span_conversion, (VALUE)&ctx);
   RB_GC_GUARD(ctx.normalized_events);
-  return (ddog_TracerSpan *)result;
+  return ctx.result_span;
 }
 
 /* ========================================================================
