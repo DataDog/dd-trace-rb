@@ -3,8 +3,8 @@ PATH
   specs:
     datadog (2.41.0.dev)
       cgi
-      datadog-ruby_core_source (~> 3.5, >= 3.5.3)
-      libdatadog (~> 36.0.0.1.0)
+      datadog-ruby_core_source (~> 3.5, >= 3.5.4)
+      libdatadog (~> 38.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -13,7 +13,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     cgi (0.5.1)
-    datadog-ruby_core_source (3.5.3)
+    datadog-ruby_core_source (3.5.4)
     ffi (1.17.4)
     ffi (1.17.4-aarch64-linux-gnu)
     ffi (1.17.4-aarch64-linux-musl)
@@ -25,10 +25,10 @@ GEM
     ffi (1.17.4-x86_64-darwin)
     ffi (1.17.4-x86_64-linux-gnu)
     ffi (1.17.4-x86_64-linux-musl)
-    libdatadog (36.0.0.1.0)
-    libdatadog (36.0.0.1.0-aarch64-linux)
-    libdatadog (36.0.0.1.0-arm64-darwin)
-    libdatadog (36.0.0.1.0-x86_64-linux)
+    libdatadog (38.0.0.1.0)
+    libdatadog (38.0.0.1.0-aarch64-linux)
+    libdatadog (38.0.0.1.0-arm64-darwin)
+    libdatadog (38.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.2)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-aarch64-linux)
