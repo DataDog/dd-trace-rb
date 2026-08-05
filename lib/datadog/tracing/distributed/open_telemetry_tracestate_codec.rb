@@ -28,21 +28,26 @@ module Datadog
       module OpenTelemetryTracestateCodec
         # 2^56, the range of both `rv` and `th`.
         MAX_THRESHOLD = 1 << 56
+        private_constant :MAX_THRESHOLD
 
         # Largest emittable threshold. `th == MAX_THRESHOLD` would mean "never sample",
         # which is not expressible as a probability, so we clamp to one below.
         MAX_ENCODABLE_THRESHOLD = MAX_THRESHOLD - 1
+        private_constant :MAX_ENCODABLE_THRESHOLD
 
         UINT64_MODULO = 1 << 64
         UINT64_MASK = UINT64_MODULO - 1
+        private_constant :UINT64_MODULO, :UINT64_MASK
 
         # A well-formed threshold is 1 to 14 lowercase hex digits (a 56-bit value, trailing
         # zero nibbles trimmed).
         VALID_THRESHOLD = /\A[0-9a-f]{1,14}\z/
+        private_constant :VALID_THRESHOLD
 
         # A well-formed random value is exactly 14 lowercase hex digits (a zero-padded 56-bit
         # value).
         VALID_RANDOM_VALUE = /\A[0-9a-f]{14}\z/
+        private_constant :VALID_RANDOM_VALUE
 
         # Decision makers that are NOT probability decisions: when one of these is the
         # effective decision maker, the trace was force-kept and no threshold applies.
@@ -52,6 +57,7 @@ module Datadog
           Sampling::Ext::Decision::ASM,
           Sampling::Ext::Decision::AI_GUARD,
         ].freeze
+        private_constant :NON_PROBABILITY_DECISIONS
 
         module_function
 
@@ -171,6 +177,7 @@ module Datadog
           h = (trace_id * Sampling::RateSampler::KNUTH_FACTOR) % UINT64_MODULO
           (~h & UINT64_MASK) >> 8
         end
+        private_class_method :random_value
 
         # Converts an applied sample rate into a 56-bit rejection threshold.
         #
@@ -186,6 +193,7 @@ module Datadog
 
           th
         end
+        private_class_method :threshold
 
         # Reconciles Datadog's 64-bit keep/drop decision with the 56-bit threshold it emits.
         #
@@ -207,11 +215,13 @@ module Datadog
             random_value
           end
         end
+        private_class_method :reconcile_random_value
 
         # Formats a random value as a zero-padded 14-digit hex string.
         def format_random_value(random_value)
           format("%014x", random_value)
         end
+        private_class_method :format_random_value
 
         # Formats a threshold as hex with trailing zero nibbles trimmed (never empty).
         #
@@ -229,9 +239,7 @@ module Datadog
           trailing_nibbles = ((threshold & -threshold).bit_length - 1) / 4
           (threshold >> (trailing_nibbles * 4)).to_s(16).rjust(14 - trailing_nibbles, "0")
         end
-
-        private_class_method :random_value, :threshold, :reconcile_random_value,
-          :format_random_value, :format_threshold
+        private_class_method :format_threshold
       end
     end
   end
