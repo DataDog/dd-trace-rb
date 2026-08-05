@@ -15,6 +15,9 @@ module Datadog
         AT_FORK_CHILD_BLOCKS = [] # rubocop:disable Style/MutableConstant -- Used to store blocks to run, mutable by design.
         private_constant :AT_FORK_CHILD_BLOCKS
 
+        # Keeps callback registration and removal atomic with the per-fork copy.
+        # Ruby mutexes cannot be acquired from signal traps, so calling fork
+        # directly from a Ruby signal handler is unsupported by this patch.
         AT_FORK_REGISTRY_MUTEX = Mutex.new
         private_constant :AT_FORK_REGISTRY_MUTEX
 
@@ -100,8 +103,8 @@ module Datadog
           nil
         end
 
-        # Captures all stages under one lock. Registrations made after this
-        # point apply only to the next fork lifecycle.
+        # Returns one per-fork copy of the blocks registered for every stage.
+        # Registrations made after the copy apply only to the next lifecycle.
         def self.snapshot_at_fork_blocks
           AT_FORK_REGISTRY_MUTEX.synchronize do
             {

@@ -147,8 +147,8 @@ module Datadog
             # hooks when it goes away (see #close and the finalizer): otherwise
             # the closures keep the exporter -- and its runtime threads -- alive
             # forever, and every later fork runs them against every
-            # historically-created exporter. The closures intentionally capture
-            # only locals (NOT `self`), so the Transport stays GC-eligible and
+            # historically-created exporter. The closures intentionally close
+            # over only locals (NOT `self`), so the Transport stays GC-eligible and
             # its finalizer can fire even when #close was not called explicitly.
             send_mutex = @send_mutex
             fork_mutex = @fork_mutex
@@ -157,8 +157,8 @@ module Datadog
 
               begin
                 # Pause the runtime first (safe to run concurrently with an
-                # in-flight send), then drain by locking the mutex. The lock
-                # must happen even if `_native_before_fork` raises, so the
+                # in-flight send), then wait for it to drain by acquiring the
+                # mutex. The lock must happen even if `_native_before_fork` raises, so the
                 # in-flight send has returned before the fork. Held across the
                 # fork; released in :parent/:child.
                 exporter._native_before_fork
@@ -232,7 +232,7 @@ module Datadog
 
             # The finalizer only exists to deregister the hooks for a transport
             # dropped without #close. We have just done that, so remove it;
-            # otherwise its captured hook blocks keep the exporter alive until
+            # otherwise its closed-over hook blocks keep the exporter alive until
             # this transport is itself collected.
             ObjectSpace.undefine_finalizer(self)
 
