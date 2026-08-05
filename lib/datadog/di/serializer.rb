@@ -425,7 +425,7 @@ module Datadog
             truncated = true
           end
           serialized = keys.map do |key|
-            # Redact the value (not the key) when the key matches a redacted
+            # Redact the value when the key matches a redacted
             # identifier, matching the redact_identifier? gating that
             # #serialize_value applies to hash entries via the name argument.
             serialized_value = if redactor.redact_identifier?(key)
