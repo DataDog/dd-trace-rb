@@ -2,12 +2,15 @@ issuer: https://token.actions.githubusercontent.com
 
 # The caller is images-rb's notify-consumers.yml, not dd-trace-rb itself --
 # this policy grants images-rb permission to dispatch into this repo.
-subject_pattern: "repo:DataDog/images-rb:ref:refs/heads/main"
+# notify-consumers.yml's workflow_dispatch trigger can be run manually from
+# any branch (to send an early pin-update dispatch before merging to main),
+# so the ref is not restricted to main.
+subject_pattern: "repo:DataDog/images-rb:ref:refs/heads/.+"
 
 claim_pattern:
   event_name: workflow_run|workflow_dispatch
   repository: DataDog/images-rb
-  job_workflow_ref: DataDog/images-rb/\.github/workflows/notify-consumers\.yml@refs/heads/main
+  job_workflow_ref: DataDog/images-rb/\.github/workflows/notify-consumers\.yml@refs/heads/.+
 
 permissions:
   contents: write
