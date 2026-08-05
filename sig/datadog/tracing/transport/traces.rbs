@@ -43,7 +43,6 @@ module Datadog
         end
         class Transport < Core::Transport::Transport
           include SpanEvents
-          @native_events_supported: bool
 
           def send_traces: (Array[Tracing::TraceOperation] traces) -> untyped
 

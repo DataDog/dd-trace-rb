@@ -301,6 +301,9 @@ module Datadog
           def native_events_supported_with_fallback?
             native_events_supported?
           rescue => e
+            # Unlike the HTTP transport, native can preserve this batch by
+            # encoding events as legacy JSON metadata. Do not cache the failure
+            # so a later agent response can enable typed events.
             logger.debug { "Failed to determine native span events support: #{e.class} #{e.message}" }
             false
           end

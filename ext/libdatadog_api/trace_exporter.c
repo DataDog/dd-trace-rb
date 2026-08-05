@@ -455,6 +455,9 @@ typedef struct {
   span_event_array_scratch value;
 } span_event_array_scratch_alignment;
 
+/* Release every resource still owned by a conversion context. Event pointers
+ * are cleared as libdatadog consumes them, and rust_span is detached only when
+ * conversion succeeds. */
 static VALUE cleanup_span_conversion(VALUE arg) {
   span_conversion_ctx *ctx = (span_conversion_ctx *)arg;
   if (ctx->events != NULL) {
@@ -467,6 +470,8 @@ static VALUE cleanup_span_conversion(VALUE arg) {
   return Qnil;
 }
 
+/* Attach one normalized Ruby attribute to an event. Array setters borrow the
+ * shared scratch storage only for the duration of the FFI call. */
 static ddog_TraceExporterError *set_native_event_attribute(
     ddog_TracerSpanEvent *event,
     VALUE key,
@@ -549,6 +554,8 @@ static ddog_TraceExporterError *set_native_event_attribute(
   }
 }
 
+/* Build every normalized event before constructing its owning span. The
+ * conversion context retains each event until add_event consumes it. */
 static void build_native_events(span_conversion_ctx *ctx) {
   for (long i = 0; i < ctx->event_count; i++) {
     VALUE source = rb_ary_entry(ctx->normalized_events, i);
@@ -575,6 +582,9 @@ static void build_native_events(span_conversion_ctx *ctx) {
  * to the caller (either wrap it in TypedData or push it into trace chunks).
  * ======================================================================== */
 
+/* rb_ensure body for span conversion. On success, returns the Rust span and
+ * removes it from the cleanup context; every earlier exit remains owned by the
+ * cleanup callback. */
 static VALUE build_rust_span(VALUE arg) {
   span_conversion_ctx *conversion = (span_conversion_ctx *)arg;
   VALUE span = conversion->span;

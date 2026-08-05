@@ -427,6 +427,20 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         expect(sent_span).to_not have_key("span_events")
         expect(sent_span.dig("meta", "events")).to be_a(String)
       end
+
+      it "retries after a failed capability fetch" do
+        allow(agent_info).to receive(:fetch).and_invoke(
+          proc { raise "agent unavailable" },
+          proc { double("agent info", span_events: true) }
+        )
+
+        expect(transport.send_traces([trace_with_event]).first).to be_ok
+        expect(sent_span).to_not have_key("span_events")
+
+        expect(transport.send_traces([trace_with_event]).first).to be_ok
+        expect(sent_span).to have_key("span_events")
+        expect(agent_info).to have_received(:fetch).twice
+      end
     end
 
     context "when an exception occurs" do

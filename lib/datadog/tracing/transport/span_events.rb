@@ -7,6 +7,9 @@ module Datadog
       module SpanEvents
         private
 
+        # Queries whether the agent accepts typed span events, which selects
+        # between the typed field and legacy JSON metadata. Only successful
+        # capability responses are cached so a later flush can recover.
         def native_events_supported?
           return @native_events_supported if defined?(@native_events_supported)
 
