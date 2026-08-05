@@ -382,11 +382,16 @@ module Datadog
       #
       # We also use the Ruby-like syntax for symbols, which don't exist
       # in other languages.
-      def serialize_value_for_message(value, depth = 1)
+      #
+      # +name+, when given, is the identifier the template expression
+      # references at its top level; a redacted identifier yields the
+      # redaction placeholder, mirroring #serialize_value on the snapshot path.
+      def serialize_value_for_message(value, depth = 1, name: nil)
         # This method is more verbose than "normal" Ruby code to avoid
         # array allocations.
 
         return REDACTED_VALUE_FOR_MESSAGE if redactor.redact_type?(value)
+        return REDACTED_VALUE_FOR_MESSAGE if name && redactor.redact_identifier?(name)
 
         case value
         when NilClass

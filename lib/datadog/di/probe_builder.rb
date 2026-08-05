@@ -152,8 +152,9 @@ module Datadog
               unless dsl = segment["dsl"]
                 raise ArgumentError, "Missing dsl for json in segment: #{segment}"
               end
-              compiled, regexps = EL::Compiler.new.compile(ast)
-              EL::Expression.new(dsl, compiled, regexps)
+              compiler = EL::Compiler.new
+              compiled, regexps = compiler.compile(ast)
+              EL::Expression.new(dsl, compiled, regexps, redaction_identifier: compiler.redaction_identifier(ast))
             else
               # TODO report to telemetry?
             end

@@ -556,6 +556,25 @@ RSpec.describe Datadog::DI::Serializer do
     end
   end
 
+  describe "#serialize_value_for_message with a name" do
+    [
+      ["redacted identifier", "hunter2", "password", "[redacted]"],
+      ["redacted instance variable identifier", "hunter2", "@password", "[redacted]"],
+      ["non-redacted identifier", "alice", "name", "alice"],
+      ["nil name", "alice", nil, "alice"],
+    ].each do |desc, input, name, expected_output|
+      context desc do
+        let(:actual) do
+          serializer.serialize_value_for_message(input, name: name)
+        end
+
+        it "produces expected output" do
+          expect(actual).to eq(expected_output)
+        end
+      end
+    end
+  end
+
   describe ".register" do
     with_di_registry_change
 

@@ -707,6 +707,37 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         expect(builder.send(:evaluate_template, template_segments, context)).to eq([expected, []])
       end
     end
+
+    context "when a segment references a redacted identifier" do
+      let(:template_segments) do
+        compiler = Datadog::DI::EL::Compiler.new
+        password_ast = {"ref" => "password"}
+        user_ast = {"ref" => "user"}
+        [
+          Datadog::DI::EL::Expression.new("(expression)", *compiler.compile(password_ast),
+            redaction_identifier: compiler.redaction_identifier(password_ast)),
+          " ",
+          Datadog::DI::EL::Expression.new("(expression)", *compiler.compile(user_ast),
+            redaction_identifier: compiler.redaction_identifier(user_ast)),
+        ]
+      end
+
+      let(:vars) do
+        {password: "hunter2", user: "alice"}
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          settings: settings, serializer: serializer,
+          locals: vars,
+          probe: probe
+        )
+      end
+
+      it "redacts the referenced value in the rendered message" do
+        expect(builder.send(:evaluate_template, template_segments, context)).to eq(["[redacted] alice", []])
+      end
+    end
   end
 
   describe "#build_snapshot with capture_expressions" do
