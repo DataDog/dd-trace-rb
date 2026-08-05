@@ -121,6 +121,16 @@ RSpec.describe Datadog::Tracing::Configuration::OTLP do
       )[:otlp_headers]).to eq("first" => "one", "second" => "two")
     end
 
+    it "does not include malformed general header contents in warnings" do
+      messages = []
+      allow(Datadog.logger).to receive(:warn) { |message| messages << message }
+
+      resolve("OTEL_EXPORTER_OTLP_HEADERS" => "first=one,super-secret-token")
+
+      expect(messages).not_to be_empty
+      expect(messages.join).not_to include("super-secret-token")
+    end
+
     it "uses trace-specific timeout and protocol" do
       expect(resolve(
         "OTEL_EXPORTER_OTLP_TIMEOUT" => "9000",

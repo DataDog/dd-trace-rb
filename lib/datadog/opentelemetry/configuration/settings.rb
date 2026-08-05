@@ -40,14 +40,14 @@ module Datadog
             header_items.each do |key_value|
               key, header_value = key_value.split("=", 2)
               if key.nil? || header_value.nil?
-                Datadog.logger.warn("#{env_var_name} has malformed header: #{key_value.inspect}")
+                Datadog.logger.warn("#{env_var_name} has a malformed header")
                 next
               end
 
               key.strip!
               header_value.strip!
               if key.empty? || header_value.empty?
-                Datadog.logger.warn("#{env_var_name} has empty key or value in: #{key_value.inspect}")
+                Datadog.logger.warn("#{env_var_name} has a header with an empty key or value")
                 next
               end
 
