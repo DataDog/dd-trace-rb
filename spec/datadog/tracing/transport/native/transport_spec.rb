@@ -152,8 +152,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
     let(:at_fork) { Datadog::Core::Utils::AtForkMonkeyPatch }
 
     def registry(stage)
-      const = {before: :AT_FORK_BEFORE_BLOCKS, parent: :AT_FORK_PARENT_BLOCKS, child: :AT_FORK_CHILD_BLOCKS}.fetch(stage)
-      at_fork.const_get(const)
+      at_fork.snapshot_at_fork_blocks.fetch(stage).map(&:block)
     end
 
     # Identity membership check. We must NOT use RSpec's `include(block)` here:

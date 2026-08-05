@@ -214,24 +214,18 @@ RSpec.describe "Native transport fork safety and cancellation" do
   module AtForkRegistryHelpers # rubocop:disable Lint/ConstantDefinitionInBlock
     module_function
 
-    STAGES = {
-      before: :AT_FORK_BEFORE_BLOCKS,
-      parent: :AT_FORK_PARENT_BLOCKS,
-      child: :AT_FORK_CHILD_BLOCKS,
-    }.freeze
-
     def snapshot_and_clear
-      STAGES.each_with_object({}) do |(stage, const), saved|
-        array = Datadog::Core::Utils::AtForkMonkeyPatch.const_get(const)
-        saved[stage] = array.dup
-        array.clear
-      end
+      registry = Datadog::Core::Utils::AtForkMonkeyPatch
+      snapshot = registry.snapshot_at_fork_blocks
+      registry.send(
+        :replace_at_fork_blocks,
+        {before: [].freeze, parent: [].freeze, child: [].freeze}.freeze
+      )
+      snapshot
     end
 
     def restore(saved)
-      STAGES.each do |stage, const|
-        Datadog::Core::Utils::AtForkMonkeyPatch.const_get(const).replace(saved[stage])
-      end
+      Datadog::Core::Utils::AtForkMonkeyPatch.send(:replace_at_fork_blocks, saved)
     end
   end
 

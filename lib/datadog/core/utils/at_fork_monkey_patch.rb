@@ -6,18 +6,27 @@ module Datadog
       # Monkey patches `Kernel#fork` and similar functions, adding an `at_fork` callback mechanism which
       # is used to restart observability after the VM forks (e.g. in multiprocess Ruby apps).
       module AtForkMonkeyPatch
-        AT_FORK_BEFORE_BLOCKS = [] # rubocop:disable Style/MutableConstant -- Used to store blocks to run, mutable by design.
-        private_constant :AT_FORK_BEFORE_BLOCKS
+        class Callback
+          attr_reader :block
 
-        AT_FORK_PARENT_BLOCKS = [] # rubocop:disable Style/MutableConstant -- Used to store blocks to run, mutable by design.
-        private_constant :AT_FORK_PARENT_BLOCKS
+          def initialize(block)
+            @block = block
+            freeze
+          end
+        end
+        private_constant :Callback
 
-        AT_FORK_CHILD_BLOCKS = [] # rubocop:disable Style/MutableConstant -- Used to store blocks to run, mutable by design.
-        private_constant :AT_FORK_CHILD_BLOCKS
+        EMPTY_AT_FORK_BLOCKS = {
+          before: [].freeze,
+          parent: [].freeze,
+          child: [].freeze,
+        }.freeze
+        private_constant :EMPTY_AT_FORK_BLOCKS
 
-        # Keeps callback registration and removal atomic with the per-fork copy.
-        # Ruby mutexes cannot be acquired from signal traps, so calling fork
-        # directly from a Ruby signal handler is unsupported by this patch.
+        @at_fork_blocks = EMPTY_AT_FORK_BLOCKS
+
+        # Serializes copy-on-write registry updates. Fork dispatch only reads the
+        # latest immutable registry reference and never acquires this mutex.
         AT_FORK_REGISTRY_MUTEX = Mutex.new
         private_constant :AT_FORK_REGISTRY_MUTEX
 
@@ -46,14 +55,13 @@ module Datadog
         # Runs the callbacks copied for one fork lifecycle. Before callbacks
         # stop at the first failure; parent and child callbacks all run before
         # the first failure is re-raised.
-        def self.run_at_fork_blocks(stage, snapshot = nil)
-          blocks_for(stage) # Validate the stage before consulting a snapshot.
-          blocks = snapshot ? snapshot.fetch(stage) : snapshot_at_fork_blocks.fetch(stage)
-          return blocks.each(&:call) if stage == :before
+        def self.run_at_fork_blocks(stage, snapshot: nil)
+          callbacks = blocks_for(snapshot || snapshot_at_fork_blocks, stage)
+          return callbacks.each { |callback| callback.block.call } if stage == :before
 
           error = nil
-          blocks.each do |block|
-            block.call
+          callbacks.each do |callback|
+            callback.block.call
           rescue Exception => e # rubocop:disable Lint/RescueException -- finish cleanup, then re-raise the first failure
             error ||= e
           end
@@ -61,7 +69,7 @@ module Datadog
         end
 
         def self.run_parent_cleanup(snapshot, fork_error)
-          run_at_fork_blocks(:parent, snapshot)
+          run_at_fork_blocks(:parent, snapshot: snapshot)
         rescue Exception => cleanup_error # rubocop:disable Lint/RescueException -- preserve the original fork failure
           Datadog.logger.warn do
             "Parent at-fork cleanup failed while handling #{fork_error.class}: " \
@@ -78,7 +86,12 @@ module Datadog
         def self.at_fork(stage, &block)
           raise(ArgumentError, "Missing block argument") unless block
 
-          AT_FORK_REGISTRY_MUTEX.synchronize { blocks_for(stage) << block }
+          AT_FORK_REGISTRY_MUTEX.synchronize do
+            current = @at_fork_blocks
+            @at_fork_blocks = current.merge(
+              stage => (blocks_for(current, stage) + [Callback.new(block)]).freeze
+            ).freeze
+          end
 
           block
         end
@@ -88,7 +101,12 @@ module Datadog
         def self.at_fork_blocks(before:, parent:, child:)
           blocks = {before: before, parent: parent, child: child}
           AT_FORK_REGISTRY_MUTEX.synchronize do
-            blocks.each { |stage, block| blocks_for(stage) << block }
+            current = @at_fork_blocks
+            @at_fork_blocks = {
+              before: (current.fetch(:before) + [Callback.new(before)]).freeze,
+              parent: (current.fetch(:parent) + [Callback.new(parent)]).freeze,
+              child: (current.fetch(:child) + [Callback.new(child)]).freeze,
+            }.freeze
           end
           blocks
         end
@@ -98,28 +116,32 @@ module Datadog
         # registered (or was already removed). Raises +ArgumentError+ for an
         # unknown stage, matching the {.at_fork} contract.
         def self.remove_at_fork(stage, block)
-          AT_FORK_REGISTRY_MUTEX.synchronize { blocks_for(stage).delete(block) }
+          AT_FORK_REGISTRY_MUTEX.synchronize do
+            current = @at_fork_blocks
+            callbacks = blocks_for(current, stage)
+            @at_fork_blocks = current.merge(
+              stage => callbacks.reject { |callback| callback.block.equal?(block) }.freeze
+            ).freeze
+          end
 
           nil
         end
 
-        # Returns one per-fork copy of the blocks registered for every stage.
-        # Registrations made after the copy apply only to the next lifecycle.
+        # Returns the immutable callback registry for one fork lifecycle.
+        # Copy-on-write updates publish a new reference, so registrations made
+        # afterwards apply only to the next lifecycle without locking this read.
         def self.snapshot_at_fork_blocks
-          AT_FORK_REGISTRY_MUTEX.synchronize do
-            {
-              before: AT_FORK_BEFORE_BLOCKS.dup,
-              parent: AT_FORK_PARENT_BLOCKS.dup,
-              child: AT_FORK_CHILD_BLOCKS.dup,
-            }
-          end
+          @at_fork_blocks
         end
 
-        def self.blocks_for(stage)
+        def self.replace_at_fork_blocks(snapshot)
+          AT_FORK_REGISTRY_MUTEX.synchronize { @at_fork_blocks = snapshot }
+        end
+        private_class_method :replace_at_fork_blocks
+
+        def self.blocks_for(snapshot, stage)
           case stage
-          when :before then AT_FORK_BEFORE_BLOCKS
-          when :parent then AT_FORK_PARENT_BLOCKS
-          when :child then AT_FORK_CHILD_BLOCKS
+          when :before, :parent, :child then snapshot.fetch(stage)
           else raise(ArgumentError, "Unsupported stage #{stage}")
           end
         end
@@ -133,7 +155,7 @@ module Datadog
             # If a block is provided, it must be wrapped to trigger callbacks.
             child_block = if block_given?
               proc do
-                AtForkMonkeyPatch.run_at_fork_blocks(:child, snapshot)
+                AtForkMonkeyPatch.run_at_fork_blocks(:child, snapshot: snapshot)
 
                 # Invoke original block
                 yield
@@ -142,7 +164,7 @@ module Datadog
 
             begin
               # Run pre-fork callbacks in the parent, just before forking.
-              AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot)
+              AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot: snapshot)
 
               # Start fork. If a block is provided, use the wrapped version.
               result = child_block.nil? ? super : super(&child_block)
@@ -158,9 +180,9 @@ module Datadog
             # If we're in the parent, result = pid: trigger parent callbacks.
             # (If it gets called with a block, it only returns on the parent)
             if result.nil?
-              AtForkMonkeyPatch.run_at_fork_blocks(:child, snapshot)
+              AtForkMonkeyPatch.run_at_fork_blocks(:child, snapshot: snapshot)
             else
-              AtForkMonkeyPatch.run_at_fork_blocks(:parent, snapshot)
+              AtForkMonkeyPatch.run_at_fork_blocks(:parent, snapshot: snapshot)
             end
 
             result
@@ -174,7 +196,7 @@ module Datadog
           def _fork
             snapshot = AtForkMonkeyPatch.snapshot_at_fork_blocks
             begin
-              AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot)
+              AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot: snapshot)
               pid = super
             rescue Exception => e # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
               # The fork or a before-fork callback failed, so no child was
@@ -184,9 +206,9 @@ module Datadog
             end
 
             if pid == 0
-              AtForkMonkeyPatch.run_at_fork_blocks(:child, snapshot)
+              AtForkMonkeyPatch.run_at_fork_blocks(:child, snapshot: snapshot)
             else
-              AtForkMonkeyPatch.run_at_fork_blocks(:parent, snapshot)
+              AtForkMonkeyPatch.run_at_fork_blocks(:parent, snapshot: snapshot)
             end
 
             pid
@@ -198,7 +220,7 @@ module Datadog
           def daemon(*args)
             snapshot = AtForkMonkeyPatch.snapshot_at_fork_blocks
             begin
-              AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot)
+              AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot: snapshot)
               result = super
             rescue Exception => e # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
               # `daemon` or a before-fork callback failed, so the original
@@ -209,7 +231,7 @@ module Datadog
 
             # `daemon` kills the parent, so there is no surviving parent to run
             # `:parent` callbacks in; only the child continues executing.
-            AtForkMonkeyPatch.run_at_fork_blocks(:child, snapshot)
+            AtForkMonkeyPatch.run_at_fork_blocks(:child, snapshot: snapshot)
 
             result
           end

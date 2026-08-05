@@ -3,15 +3,19 @@ module Datadog
   module Core
     module Utils
       module AtForkMonkeyPatch
-        AT_FORK_CHILD_BLOCKS: ::Array[untyped]
+        class Callback
+          attr_reader block: Proc
+
+          def initialize: (Proc block) -> void
+        end
 
         def self.supported?: () -> (false | true)
 
         def self.apply!: () -> (false | true)
 
-        def self.run_at_fork_blocks: (Symbol stage, ?Hash[Symbol, Array[Proc]] snapshot) -> void
+        def self.run_at_fork_blocks: (Symbol stage, ?snapshot: Hash[Symbol, Array[Callback]]) -> void
 
-        def self.run_parent_cleanup: (Hash[Symbol, Array[Proc]] snapshot, Exception fork_error) -> void
+        def self.run_parent_cleanup: (Hash[Symbol, Array[Callback]] snapshot, Exception fork_error) -> void
 
         def self.at_fork: (Symbol stage) { () -> untyped } -> Proc
 
@@ -19,7 +23,9 @@ module Datadog
 
         def self.remove_at_fork: (Symbol stage, Proc block) -> void
 
-        def self.snapshot_at_fork_blocks: () -> Hash[Symbol, Array[Proc]]
+        def self.snapshot_at_fork_blocks: () -> Hash[Symbol, Array[Callback]]
+
+        def self.replace_at_fork_blocks: (Hash[Symbol, Array[Callback]] snapshot) -> void
 
         module KernelMonkeyPatch
           def fork: () ?{ () -> untyped } -> untyped

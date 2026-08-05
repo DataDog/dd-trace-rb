@@ -1,7 +1,15 @@
 require "datadog/core/utils/at_fork_monkey_patch"
+require "timeout"
 
 RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
   before { skip "Forking not supported" unless Datadog::Core::Utils::AtForkMonkeyPatch.supported? } # rubocop:disable RSpec/DescribedClass
+
+  def clear_at_fork_blocks
+    Datadog::Core::Utils::AtForkMonkeyPatch.send(
+      :replace_at_fork_blocks,
+      {before: [].freeze, parent: [].freeze, child: [].freeze}.freeze
+    )
+  end
 
   describe "::apply!" do
     subject(:apply!) { described_class.apply! }
@@ -117,9 +125,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       end
 
       after do
-        Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_BEFORE_BLOCKS).clear
-        Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_PARENT_BLOCKS).clear
-        Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
+        clear_at_fork_blocks
       end
     end
 
@@ -233,9 +239,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     end
 
     after do
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_BEFORE_BLOCKS).clear
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_PARENT_BLOCKS).clear
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
+      clear_at_fork_blocks
     end
 
     describe ".daemon" do
@@ -252,8 +256,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       it "runs the before callback before the child callback" do
         calls = []
         described_class_blocks = Datadog::Core::Utils::AtForkMonkeyPatch
-        described_class_blocks.const_get(:AT_FORK_BEFORE_BLOCKS).clear
-        described_class_blocks.const_get(:AT_FORK_CHILD_BLOCKS).clear
+        clear_at_fork_blocks
         described_class_blocks.at_fork(:before) { calls << :before }
         described_class_blocks.at_fork(:child) { calls << :child }
 
@@ -373,15 +376,14 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
 
           expect { process_module._fork }.to raise_error(error)
         end
+
       end
     end
   end
 
   describe "::at_fork and ::run_at_fork_blocks" do
     after do
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_BEFORE_BLOCKS).clear
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_PARENT_BLOCKS).clear
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
+      clear_at_fork_blocks
     end
 
     %i[before parent child].each do |stage|
@@ -437,8 +439,44 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
 
       snapshot = described_class.snapshot_at_fork_blocks
       blocks.each do |stage, block|
-        expect(snapshot.fetch(stage)).to include(block)
+        expect(snapshot.fetch(stage).map(&:block)).to include(block)
       end
+    end
+
+    it "publishes a new immutable registry without changing an active snapshot" do
+      described_class.at_fork(:before) {}
+      snapshot = described_class.snapshot_at_fork_blocks
+
+      described_class.at_fork(:before) {}
+
+      expect(snapshot).to be_frozen
+      expect(snapshot.fetch(:before)).to be_frozen
+      expect(snapshot.fetch(:before).length).to eq(1)
+      expect(described_class.snapshot_at_fork_blocks.fetch(:before).length).to eq(2)
+    end
+
+    it "dispatches an empty fork lifecycle from a signal trap without locking" do
+      at_fork = described_class
+      clear_at_fork_blocks
+      process_module = Module.new do
+        define_singleton_method(:_fork) { 1234 }
+      end
+      process_module.singleton_class.prepend(at_fork::ProcessMonkeyPatch)
+      result = nil
+      error = nil
+      previous_handler = Signal.trap("USR1") do
+        result = process_module._fork
+      rescue => e
+        error = e
+      end
+
+      Process.kill("USR1", Process.pid)
+      Timeout.timeout(1) { Thread.pass until result || error }
+
+      expect(error).to be_nil
+      expect(result).to eq(1234)
+    ensure
+      Signal.trap("USR1", previous_handler) if previous_handler
     end
 
     it "keeps the stages independent" do
@@ -488,9 +526,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
 
   describe "::remove_at_fork" do
     after do
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_BEFORE_BLOCKS).clear
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_PARENT_BLOCKS).clear
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
+      clear_at_fork_blocks
     end
 
     %i[before parent child].each do |stage|
