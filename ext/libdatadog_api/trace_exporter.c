@@ -540,6 +540,9 @@ typedef struct {
 static int prepare_metastruct_iter_cb(VALUE key, VALUE value, VALUE arg) {
   metastruct_prepare_ctx *ctx = (metastruct_prepare_ctx *)arg;
 
+  /* The agent meta_struct contract requires string keys. Accept symbols as a
+   * Ruby convenience, but do not encode other key types differently from the
+   * native tracer implementations. */
   if (RB_TYPE_P(key, T_SYMBOL)) {
     key = rb_sym2str(key);
   } else if (!RB_TYPE_P(key, T_STRING)) {
