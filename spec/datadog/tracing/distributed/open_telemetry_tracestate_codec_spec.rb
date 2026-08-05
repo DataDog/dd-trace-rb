@@ -194,15 +194,17 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
     let(:otel_fields) { "rv:f972474538efff;th:8" }
     subject(:extract_otel_fields) { described_class.extract_otel_fields(otel_fields) }
 
+    let(:extracted_otel_fields_class) { described_class.const_get(:ExtractedOtelFields) }
+
     it "parses the random value and threshold as raw hex strings" do
-      is_expected.to eq(random_value: "f972474538efff", threshold: "8", unknown_fields: nil)
+      is_expected.to eq(extracted_otel_fields_class.new(random_value: "f972474538efff", threshold: "8", unknown_fields: nil))
     end
 
     context "with unknown sub-keys" do
       let(:otel_fields) { "th:8;future:x;more:y" }
 
       it "preserves unknown sub-keys with a trailing semicolon" do
-        is_expected.to eq(random_value: nil, threshold: "8", unknown_fields: "future:x;more:y;")
+        is_expected.to eq(extracted_otel_fields_class.new(random_value: nil, threshold: "8", unknown_fields: "future:x;more:y;"))
       end
     end
 
@@ -210,7 +212,7 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
       let(:otel_fields) { "th:e6666666666668" }
 
       it "parses a threshold with no random value (implicit random value case)" do
-        is_expected.to eq(random_value: nil, threshold: "e6666666666668", unknown_fields: nil)
+        is_expected.to eq(extracted_otel_fields_class.new(random_value: nil, threshold: "e6666666666668", unknown_fields: nil))
       end
     end
 
@@ -224,7 +226,7 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
         let(:otel_fields) { "rv:f972474538efff;#{member}" }
 
         it "ignores #{member} while keeping a valid random value" do
-          is_expected.to eq(random_value: "f972474538efff", threshold: nil, unknown_fields: nil)
+          is_expected.to eq(extracted_otel_fields_class.new(random_value: "f972474538efff", threshold: nil, unknown_fields: nil))
         end
       end
     end
@@ -239,7 +241,7 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
         let(:otel_fields) { "#{member};th:8" }
 
         it "ignores #{member} but keeps a valid threshold" do
-          is_expected.to eq(random_value: nil, threshold: "8", unknown_fields: nil)
+          is_expected.to eq(extracted_otel_fields_class.new(random_value: nil, threshold: "8", unknown_fields: nil))
         end
       end
     end

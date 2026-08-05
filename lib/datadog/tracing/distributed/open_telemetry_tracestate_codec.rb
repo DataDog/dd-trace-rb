@@ -59,6 +59,8 @@ module Datadog
         ].freeze
         private_constant :NON_PROBABILITY_DECISIONS
 
+        ExtractedOtelFields = Struct.new(:random_value, :threshold, :unknown_fields)
+
         module_function
 
         # Resolves the wire values (`rv`, `th`) to emit given the local sampling decision.
@@ -132,9 +134,11 @@ module Datadog
         #
         # Malformed `rv`/`th` are each ignored independently
         #
-        # @param value [String] the `ot=` member value
-        # @return [Hash] `{random_value:, threshold:, unknown_fields:}`, each value may be nil
+        # @param value [String?] the `ot=` member value
+        # @return [ExtractedOtelFields] each field may be nil
         def extract_otel_fields(value)
+          return ExtractedOtelFields.new unless value
+
           # @type var random_value: ::String?
           # @type var threshold: ::String?
           # @type var unknown: ::Array[::String]
@@ -157,11 +161,11 @@ module Datadog
           threshold = nil if threshold && !VALID_THRESHOLD.match?(threshold)
           random_value = nil if random_value && !VALID_RANDOM_VALUE.match?(random_value)
 
-          {
-            random_value: random_value,
-            threshold: threshold,
-            unknown_fields: unknown.empty? ? nil : "#{unknown.join(";")};",
-          }
+          ExtractedOtelFields.new(
+            random_value,
+            threshold,
+            unknown.empty? ? nil : "#{unknown.join(";")};",
+          )
         end
 
         # Derives the 56-bit OTel random value from a Datadog trace id.

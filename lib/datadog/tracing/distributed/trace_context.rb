@@ -47,11 +47,11 @@ module Datadog
           return unless trace_id # Could not parse traceparent
 
           parsed = extract_tracestate(fetcher[@tracestate_key])
-          dd = parsed[:dd] || {}
-          ot = parsed[:ot] || {}
+          dd = parsed.dd
+          ot = parsed.ot
 
-          tags = dd[:tags]
-          sampling_priority = parse_priority_sampling(sampled, dd[:sampling_priority]) do |decision|
+          tags = dd.tags
+          sampling_priority = parse_priority_sampling(sampled, dd.sampling_priority) do |decision|
             case decision
             when String
               tags ||= {}
@@ -63,20 +63,20 @@ module Datadog
 
           tags ||= {}
           tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] =
-            dd[:ts_parent_id] || Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
+            dd.ts_parent_id || Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
 
           TraceDigest.new(
             span_id: parent_id,
             trace_id: trace_id,
-            trace_origin: dd[:origin],
+            trace_origin: dd.origin,
             trace_sampling_priority: sampling_priority,
             trace_distributed_tags: tags,
             trace_flags: trace_flags,
-            trace_state: parsed[:tracestate],
-            trace_state_unknown_fields: dd[:unknown_fields],
-            trace_otel_random_value: ot[:random_value],
-            trace_otel_threshold: ot[:threshold],
-            trace_otel_unknown_fields: ot[:unknown_fields],
+            trace_state: parsed.tracestate,
+            trace_state_unknown_fields: dd.unknown_fields,
+            trace_otel_random_value: ot.random_value,
+            trace_otel_threshold: ot.threshold,
+            trace_otel_unknown_fields: ot.unknown_fields,
             span_remote: true,
           )
         end
@@ -344,23 +344,20 @@ module Datadog
         # Parses the W3C `tracestate` into the Datadog (`dd=`) and OpenTelemetry (`ot=`)
         # vendors, leaving the remaining vendors untouched.
         #
-        # @return [nil] when the tracestate is absent or has no vendor entries.
-        # @return [Hash] `{tracestate:, dd:, ot:}` where `tracestate` is the remaining vendor
-        #   list and `dd`/`ot` are the parsed vendor hashes (empty when the vendor is absent).
+        # @return [ExtractedTracestate]
         def extract_tracestate(tracestate)
-          vendors = split_tracestate(tracestate)
-          return {} unless vendors && !vendors.empty?
+          vendors = split_tracestate(tracestate) || []
 
           # Remove the Datadog and OpenTelemetry vendors here so they are re-emitted from the
           # parsed values on injection rather than passed through as opaque vendors.
           dd_vendor = pop_vendor(vendors, "dd=")
           ot_vendor = pop_vendor(vendors, "ot=")
 
-          {
-            tracestate: vendors.join(","),
-            dd: dd_vendor ? extract_datadog_fields(dd_vendor) : {},
-            ot: ot_vendor ? OpenTelemetryTracestateCodec.extract_otel_fields(ot_vendor) : {},
-          }
+          ExtractedTracestate.new(
+            vendors.join(","),
+            extract_datadog_fields(dd_vendor),
+            OpenTelemetryTracestateCodec.extract_otel_fields(ot_vendor),
+          )
         end
 
         # Removes the first vendor with the given `prefix` (e.g. `"dd="`) and returns
@@ -373,6 +370,8 @@ module Datadog
         end
 
         def extract_datadog_fields(dd_tracestate)
+          return ExtractedDatadogFields.new unless dd_tracestate
+
           sampling_priority = nil
           origin = nil
           ts_parent_id = nil
@@ -411,13 +410,7 @@ module Datadog
             end
           end
 
-          {
-            sampling_priority: sampling_priority,
-            origin: origin,
-            ts_parent_id: ts_parent_id,
-            tags: tags,
-            unknown_fields: unknown_fields,
-          }
+          ExtractedDatadogFields.new(sampling_priority, origin, ts_parent_id, tags, unknown_fields)
         end
 
         # Restore `~` back to `=`.
@@ -482,6 +475,12 @@ module Datadog
           vendors.pop while vendors.last == ""
           vendors
         end
+
+        ExtractedTracestate = Struct.new(:tracestate, :dd, :ot)
+        private_constant :ExtractedTracestate
+
+        ExtractedDatadogFields = Struct.new(:sampling_priority, :origin, :ts_parent_id, :tags, :unknown_fields)
+        private_constant :ExtractedDatadogFields
 
         TRACEPARENT_MAX_SIZE_LIMIT = 512
         private_constant :TRACEPARENT_MAX_SIZE_LIMIT

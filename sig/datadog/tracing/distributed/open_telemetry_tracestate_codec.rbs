@@ -2,7 +2,15 @@ module Datadog
   module Tracing
     module Distributed
       module OpenTelemetryTracestateCodec
-        type extracted_otel_fields = { random_value: ::String?, threshold: ::String?, unknown_fields: ::String? }
+        class ExtractedOtelFields < ::Struct[[::String?, ::String?, ::String?]]
+          def self.new: (?::String? random_value, ?::String? threshold, ?::String? unknown_fields) -> ExtractedOtelFields
+
+          attr_accessor random_value: ::String?
+
+          attr_accessor threshold: ::String?
+
+          attr_accessor unknown_fields: ::String?
+        end
 
         MAX_THRESHOLD: ::Integer
         MAX_ENCODABLE_THRESHOLD: ::Integer
@@ -23,7 +31,7 @@ module Datadog
           distributed_sampling_priority: bool
         ) -> [::String?, ::String?]
 
-        def self?.extract_otel_fields: (::String value) -> extracted_otel_fields
+        def self?.extract_otel_fields: (::String? value) -> ExtractedOtelFields
 
         private
 
