@@ -320,6 +320,9 @@ typedef struct {
 static int encode_metastruct_iter_cb(VALUE key, VALUE value, VALUE arg) {
   metastruct_encode_ctx *ctx = (metastruct_encode_ctx *)arg;
 
+  /* The agent meta_struct contract requires string keys. Accept symbols as a
+   * Ruby convenience, but do not encode other key types differently from the
+   * native tracer implementations. */
   if (RB_TYPE_P(key, T_SYMBOL)) {
     key = rb_sym2str(key);
   } else if (!RB_TYPE_P(key, T_STRING)) {
@@ -366,6 +369,8 @@ static VALUE encode_metastruct(VALUE span) {
 static int meta_struct_iter_cb(VALUE key, VALUE value, VALUE arg) {
   hash_iter_ctx *ctx = (hash_iter_ctx *)arg;
 
+  /* libdatadog copies both slices before returning and retains no pointer into
+   * the Ruby-owned key or encoded value storage. */
   ddog_CharSlice ks = {.ptr = RSTRING_PTR(key), .len = RSTRING_LEN(key)};
   ddog_ByteSlice vs = {
     .ptr = (const uint8_t *)RSTRING_PTR(value),
@@ -502,6 +507,7 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
   }
 
   if (rb_metastruct != Qnil) {
+    ctx.skipped = 0;
     rb_hash_foreach(rb_metastruct, meta_struct_iter_cb, (VALUE)&ctx);
     if (ctx.error != NULL) {
       ddog_tracer_span_free(rust_span);

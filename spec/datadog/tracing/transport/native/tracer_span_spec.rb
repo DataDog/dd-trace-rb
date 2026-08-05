@@ -145,6 +145,16 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         expect { tracer_span_class._native_from_span(span) }.not_to raise_error
       end
 
+      it "skips keys outside the agent string-key contract" do
+        span = make_ruby_span
+        span.set_metastruct_tag(123, {ignored: true})
+
+        expect(Datadog.logger).to receive(:warn)
+          .with(/skipped 1 meta_struct entries with non-string keys/)
+
+        expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
+      end
+
       it "supports zero-argument custom MessagePack encoders" do
         value = Object.new
         def value.to_msgpack
