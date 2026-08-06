@@ -409,8 +409,9 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
         calls = []
         described_class.at_fork(stage) { calls << :first }
         described_class.at_fork(stage) { calls << :second }
+        snapshot = described_class.snapshot_at_fork_blocks
 
-        described_class.run_at_fork_blocks(stage)
+        described_class.run_at_fork_blocks(stage, snapshot: snapshot)
 
         expect(calls).to eq(%i[first second])
       end
@@ -428,8 +429,9 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
           calls << :second
           raise "second #{stage} failed"
         end
+        snapshot = described_class.snapshot_at_fork_blocks
 
-        expect { described_class.run_at_fork_blocks(stage) }.to raise_error(error)
+        expect { described_class.run_at_fork_blocks(stage, snapshot: snapshot) }.to raise_error(error)
         expect(calls).to eq(%i[first second])
       end
     end
@@ -441,8 +443,9 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
         raise "before failed"
       end
       described_class.at_fork(:before) { calls << :second }
+      snapshot = described_class.snapshot_at_fork_blocks
 
-      expect { described_class.run_at_fork_blocks(:before) }.to raise_error("before failed")
+      expect { described_class.run_at_fork_blocks(:before, snapshot: snapshot) }.to raise_error("before failed")
       expect(calls).to eq([:first])
     end
 
@@ -502,11 +505,12 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       described_class.at_fork(:before) { calls << :before }
       described_class.at_fork(:parent) { calls << :parent }
       described_class.at_fork(:child) { calls << :child }
+      snapshot = described_class.snapshot_at_fork_blocks
 
-      described_class.run_at_fork_blocks(:before)
+      described_class.run_at_fork_blocks(:before, snapshot: snapshot)
       expect(calls).to eq(%i[before])
 
-      described_class.run_at_fork_blocks(:child)
+      described_class.run_at_fork_blocks(:child, snapshot: snapshot)
       expect(calls).to eq(%i[before child])
     end
 
@@ -518,8 +522,9 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
         described_class.remove_at_fork(:parent, first)
       end
       described_class.at_fork(:parent) { calls << :second }
+      snapshot = described_class.snapshot_at_fork_blocks
 
-      described_class.run_at_fork_blocks(:parent)
+      described_class.run_at_fork_blocks(:parent, snapshot: snapshot)
 
       expect(calls).to eq(%i[first second])
     end
@@ -529,7 +534,10 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     end
 
     it "raises ArgumentError for an unknown stage when running" do
-      expect { described_class.run_at_fork_blocks(:nonsense) }.to raise_error(ArgumentError, /Unsupported stage nonsense/)
+      snapshot = described_class.snapshot_at_fork_blocks
+
+      expect { described_class.run_at_fork_blocks(:nonsense, snapshot: snapshot) }
+        .to raise_error(ArgumentError, /Unsupported stage nonsense/)
     end
 
     it "raises ArgumentError when no block is given" do
@@ -554,7 +562,8 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
         removed = described_class.at_fork(stage) { calls << :removed }
 
         described_class.remove_at_fork(stage, removed)
-        described_class.run_at_fork_blocks(stage)
+        snapshot = described_class.snapshot_at_fork_blocks
+        described_class.run_at_fork_blocks(stage, snapshot: snapshot)
 
         expect(calls).to eq(%i[kept])
         # The handle returned by at_fork is the one that was removed.
@@ -570,7 +579,8 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
 
       expect { described_class.remove_at_fork(:child, never_registered) }.to_not raise_error
 
-      described_class.run_at_fork_blocks(:child)
+      snapshot = described_class.snapshot_at_fork_blocks
+      described_class.run_at_fork_blocks(:child, snapshot: snapshot)
       expect(calls).to eq(%i[kept])
     end
 
@@ -581,7 +591,8 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       described_class.remove_at_fork(:child, block)
       expect { described_class.remove_at_fork(:child, block) }.to_not raise_error
 
-      described_class.run_at_fork_blocks(:child)
+      snapshot = described_class.snapshot_at_fork_blocks
+      described_class.run_at_fork_blocks(:child, snapshot: snapshot)
       expect(calls).to eq([])
     end
 

@@ -16,7 +16,7 @@ module Datadog
 
         def self.apply!: () -> (false | true)
 
-        def self.run_at_fork_blocks: (Symbol stage, ?snapshot: Hash[Symbol, Array[Callback]], ?started: Hash[Object, bool]) -> void
+        def self.run_at_fork_blocks: (Symbol stage, snapshot: Hash[Symbol, Array[Callback]], ?started: Hash[Object, bool]) -> void
 
         def self.run_parent_cleanup: (Hash[Symbol, Array[Callback]] snapshot, Hash[Object, bool] started, Exception fork_error) -> void
 

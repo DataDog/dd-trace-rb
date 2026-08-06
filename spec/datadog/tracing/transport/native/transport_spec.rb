@@ -275,10 +275,11 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         allow(exporter).to receive(:_native_after_fork_in_child)
 
         transport.close
+        snapshot = at_fork.snapshot_at_fork_blocks
 
-        at_fork.run_at_fork_blocks(:before)
-        at_fork.run_at_fork_blocks(:parent)
-        at_fork.run_at_fork_blocks(:child)
+        at_fork.run_at_fork_blocks(:before, snapshot: snapshot)
+        at_fork.run_at_fork_blocks(:parent, snapshot: snapshot)
+        at_fork.run_at_fork_blocks(:child, snapshot: snapshot)
 
         expect(exporter).to_not have_received(:_native_before_fork)
         expect(exporter).to_not have_received(:_native_after_fork_in_parent)

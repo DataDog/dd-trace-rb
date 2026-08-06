@@ -56,8 +56,8 @@ module Datadog
         # Runs the callbacks copied for one fork lifecycle. Before callbacks
         # stop at the first failure; parent and child callbacks all run before
         # the first failure is re-raised.
-        def self.run_at_fork_blocks(stage, snapshot: nil, started: nil)
-          callbacks = blocks_for(snapshot || snapshot_at_fork_blocks, stage)
+        def self.run_at_fork_blocks(stage, snapshot:, started: nil)
+          callbacks = blocks_for(snapshot, stage)
           if stage == :before
             return callbacks.each do |callback|
               started[callback.group] = true if started && callback.group
