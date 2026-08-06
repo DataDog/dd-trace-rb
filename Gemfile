@@ -12,3 +12,6 @@
 # (as `gemspec path: '..'`). That allows those files to be loaded directly via
 # `BUNDLE_GEMFILE=gemfiles/ruby-X.Y.gemfile` and still resolve datadog.gemspec.
 eval_gemfile("gemfiles/#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION.split(".").take(2).join(".")}.gemfile")
+
+# TODO: Remove this before merging and after releasing the branch
+gem 'datadog-ruby_core_source', github: 'DataDog/datadog-ruby_core_source', branch: 'ivoanjo/import-missing-rubies'

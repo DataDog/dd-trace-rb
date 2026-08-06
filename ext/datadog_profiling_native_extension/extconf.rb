@@ -167,7 +167,7 @@ $defs << "-DNO_POSTPONED_TRIGGER" if RUBY_VERSION < "3.3"
 $defs << "-DNO_MN_THREADS_AVAILABLE" if RUBY_VERSION < "3.3"
 
 # On older Rubies, we did not need to include the ractor header (this was built into the MJIT header)
-$defs << "-DNO_RACTOR_HEADER_INCLUDE" if RUBY_VERSION < "3.3"
+$defs << "-DNO_RACTOR_HEADER_INCLUDE" if RUBY_VERSION < "3"
 
 # On older Rubies, some of the Ractor internal APIs were directly accessible
 $defs << "-DUSE_RACTOR_INTERNAL_APIS_DIRECTLY" if RUBY_VERSION < "3.3"
@@ -309,7 +309,9 @@ else
       proc do
         headers_available =
           have_header("vm_core.h") &&
-          have_header("iseq.h") &&
+          # `have_header("iseq.h")` doesn't work on 3.1; anyway we know the header exists since we ship it and
+          # we do test the gem with the exact same headers
+          (RUBY_VERSION.start_with?("3.1") || have_header("iseq.h")) &&
           (RUBY_VERSION < "3.3" || have_header("ractor_core.h"))
 
         if headers_available
