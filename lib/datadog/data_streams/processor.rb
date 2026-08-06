@@ -62,7 +62,24 @@ module Datadog
 
         super()
         self.loop_base_interval = interval
+        # Without this, a preload-then-fork deployment model (e.g. Puma cluster mode with
+        # preload_app!, or Sidekiq Enterprise's sidekiqswarm with SIDEKIQ_PRELOAD_APP) leaves
+        # every forked child with a dead flush thread: Ruby threads don't survive fork, and the
+        # default FORK_POLICY_STOP means #perform would otherwise just mark the worker stopped
+        # instead of restarting it. See #restart_flush_thread.
+        self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
 
+        perform
+      end
+
+      # Restarts the flush thread if a fork has been detected since this processor was
+      # created. Called by Components#after_fork. Safe to call even when no fork occurred:
+      # #perform (via Workers::Async::Thread) only restarts the worker when +forked?+ is true.
+      #
+      # Deliberately not named +after_fork+: Workers::Async::Thread already defines a
+      # protected +after_fork+ template method that #perform's internal restart path
+      # (+restart_after_fork+) calls on every restart -- overriding it here would recurse.
+      def restart_flush_thread
         perform
       end
 

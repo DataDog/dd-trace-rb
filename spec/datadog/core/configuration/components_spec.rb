@@ -784,6 +784,20 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       expect { after_fork }.not_to raise_error
     end
+
+    it "dispatches restart_flush_thread to the data_streams processor when present" do
+      data_streams = instance_double(Datadog::DataStreams::Processor)
+      allow(components).to receive(:data_streams).and_return(data_streams)
+      expect(data_streams).to receive(:restart_flush_thread)
+
+      after_fork
+    end
+
+    it "does not raise when data_streams is nil" do
+      allow(components).to receive(:data_streams).and_return(nil)
+
+      expect { after_fork }.not_to raise_error
+    end
   end
 
   describe "#state" do

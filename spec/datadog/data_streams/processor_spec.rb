@@ -43,6 +43,32 @@ RSpec.describe Datadog::DataStreams::Processor do
         expect(processor.loop_base_interval).to eq(5.0)
       end
     end
+
+    it "sets fork_policy to restart, so the flush thread is recreated after a fork" do
+      expect(processor.fork_policy).to eq(Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART)
+    end
+  end
+
+  describe "#restart_flush_thread" do
+    it "re-invokes #perform" do
+      expect(processor).to receive(:perform)
+
+      processor.restart_flush_thread
+    end
+
+    it "restarts the flush thread across a real fork" do
+      skip "Fork not supported on current platform" unless Process.respond_to?(:fork)
+
+      processor # eagerly build, so the worker is started in the parent before forking
+
+      expect_in_fork do
+        expect(processor.running?).to be false # the parent's thread does not survive the fork
+
+        processor.restart_flush_thread
+
+        expect(processor.running?).to be true
+      end
+    end
   end
 
   describe "public checkpoint API" do
