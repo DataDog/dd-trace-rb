@@ -8,6 +8,7 @@ RSpec.describe "Tracing benchmarks" do
   benchmarks_to_validate = %w[
     tracing_trace
     tracing_transport
+    tracing_transport_distributed_e2e
     tracing_transport_e2e
   ]
 

@@ -31,6 +31,9 @@
       di_instrument.rb
       library_gem_loading.rb
 
+  - &tracing_distributed >-
+      tracing_transport_distributed_e2e.rb
+
 .execution:
   variables:
     # Benchmark execution settings
@@ -45,8 +48,13 @@
     # '<GROUP>' in 'BENCHMARKS_<GROUP>' matches '<GROUP>' in 'parallel:matrix'.
     BENCHMARKS_profiling: *profiling
     BENCHMARKS_other: *other
+    BENCHMARKS_tracing_distributed: *tracing_distributed
 
   parallel:
     matrix:
       - GROUP: profiling
       - GROUP: other
+      # The distributed benchmark runs a client, two services, and a mock agent.
+      - GROUP: tracing_distributed
+        REPETITIONS: "10"
+        CPUS_PER_BENCHMARK: "4"
