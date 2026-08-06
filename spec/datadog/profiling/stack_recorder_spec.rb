@@ -342,23 +342,15 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
         expect(samples).to have(6).items # Samples are guaranteed unique since each sample call is on a different line
 
+        # (Omitting the state makes the next asserts easier)
         labels_without_state = proc { |labels| labels.reject { |key| key == :state } }
 
-        # Other samples have not been changed
-        expect(samples.select { |it| labels_without_state.call(it.labels).empty? }).to have(2).items
-        expect(
-          samples.select do |it|
-            labels_without_state.call(it.labels) == {"local root span id": 456}
-          end
-        ).to have(2).items
+        # Samples without endpoint have not been changed
+        expect(samples.select { |it| labels_without_state.call(it.labels).empty? }).to have(4).items
 
         # Matching samples taken before and after recording the endpoint have been changed
-        expect(
-          samples.select do |it|
-            labels_without_state.call(it.labels) ==
-              {"local root span id": 123, "trace endpoint": "recorded-endpoint"}
-          end
-        ).to have(2).items
+        expected_label = {"trace endpoint": "recorded-endpoint"}
+        expect(samples.select { |it| labels_without_state.call(it.labels) == expected_label }).to have(2).items
       end
     end
 
