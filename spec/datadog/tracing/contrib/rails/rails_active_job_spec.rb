@@ -41,7 +41,7 @@ RSpec.describe "ActiveJob", execute_in_fork: Rails.version.to_i >= 8 do
             raise JobRetryError if test_retry
             raise JobDiscardError if test_discard
           end
-        end
+        end,
       )
       ExampleJob.discard_on(JobDiscardError) if ExampleJob.respond_to?(:discard_on)
       ExampleJob.retry_on(JobRetryError, attempts: 2, wait: 2) { nil } if ExampleJob.respond_to?(:retry_on)
@@ -228,7 +228,7 @@ RSpec.describe "ActiveJob", execute_in_fork: Rails.version.to_i >= 8 do
           expect(Datadog::DataStreams).to have_received(:set_produce_checkpoint).with(
             type: "active_job",
             destination: "mice",
-            auto_instrumentation: true
+            auto_instrumentation: true,
           )
           expect(job_data).to include(pathway_key => "pathway-context")
         end
@@ -246,7 +246,7 @@ RSpec.describe "ActiveJob", execute_in_fork: Rails.version.to_i >= 8 do
           expect(Datadog::DataStreams).to have_received(:set_consume_checkpoint).with(
             type: "active_job",
             source: "mice",
-            auto_instrumentation: true
+            auto_instrumentation: true,
           )
           expect(extracted).to eq("pathway-context")
         end
@@ -363,7 +363,7 @@ RSpec.describe "ActiveJob", execute_in_fork: Rails.version.to_i >= 8 do
 
             def perform
             end
-          end
+          end,
         )
       end
 
@@ -388,7 +388,7 @@ RSpec.describe "ActiveJob", execute_in_fork: Rails.version.to_i >= 8 do
           Class.new(ActiveJob::Base) do
             def perform
             end
-          end
+          end,
         )
       end
 

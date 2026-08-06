@@ -26,9 +26,10 @@ AllCops:
 # "**/**" ignore list (Layout/LeadingCommentSpace has an extra reason
 # there) so it stays clear which tool is, or is not, enforcing each cop.
 
-# Keep method-call commas disabled while their style remains under discussion.
+# Require a comma in multiline method calls. This avoids a comma immediately
+# before a closing parenthesis when the final argument shares a line.
 Style/TrailingCommaInArguments:
-  Enabled: false
+  EnforcedStyleForMultiline: comma
 
 # Require a comma in array and hash literals when the closing delimiter is on
 # its own line.

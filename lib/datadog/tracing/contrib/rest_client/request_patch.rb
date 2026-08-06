@@ -27,7 +27,7 @@ module Datadog
               datadog_trace_request(uri) do |_span, trace|
                 if Tracing::Distributed::PropagationPolicy.enabled?(
                   global_config: datadog_configuration,
-                  trace: trace
+                  trace: trace,
                 )
                   Contrib::HTTP.inject(trace, processed_headers)
                 end
@@ -43,7 +43,7 @@ module Datadog
               if datadog_configuration[:peer_service]
                 span.set_tag(
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                  datadog_configuration[:peer_service]
+                  datadog_configuration[:peer_service],
                 )
               end
 
@@ -63,8 +63,8 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, uri.port)
               span.set_tags(
                 Datadog.configuration.tracing.header_tags.request_tags(
-                  Core::Utils::Hash::CaseInsensitiveWrapper.new(processed_headers)
-                )
+                  Core::Utils::Hash::CaseInsensitiveWrapper.new(processed_headers),
+                ),
               )
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
@@ -74,7 +74,7 @@ module Datadog
               span = Tracing.trace(
                 Ext::SPAN_REQUEST,
                 service: datadog_configuration[:split_by_domain] ? uri.host : datadog_configuration[:service_name],
-                type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+                type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND,
               )
 
               trace = Tracing.active_trace
@@ -89,8 +89,8 @@ module Datadog
 
                   span.set_tags(
                     Datadog.configuration.tracing.header_tags.response_tags(
-                      Core::Utils::Hash::CaseInsensitiveWrapper.new(response.net_http_res.to_hash)
-                    )
+                      Core::Utils::Hash::CaseInsensitiveWrapper.new(response.net_http_res.to_hash),
+                    ),
                   )
                 end
               end

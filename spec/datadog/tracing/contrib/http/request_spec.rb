@@ -331,7 +331,7 @@ RSpec.describe "net/http requests" do
           ].none? do |header|
             req.headers.key?(header.split("-").map(&:capitalize).join("-"))
           end
-        }
+        },
       )
     end
 

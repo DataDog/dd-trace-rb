@@ -14,7 +14,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
       run_waf: waf_result,
       events: [],
       trace: instance_double(Datadog::Tracing::TraceOperation),
-      span: instance_double(Datadog::Tracing::SpanOperation)
+      span: instance_double(Datadog::Tracing::SpanOperation),
     )
   end
 
@@ -24,7 +24,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
       match?: false,
       attributes: [],
       actions: {},
-      keep?: false
+      keep?: false,
     )
   end
 
@@ -41,7 +41,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
         env: {Datadog::AppSec::Ext::CONTEXT_KEY => context},
         route_params: {id: "1"},
         parsed_body: {"name" => "john"},
-        request: instance_double(ActionDispatch::Request)
+        request: instance_double(ActionDispatch::Request),
       )
     end
 

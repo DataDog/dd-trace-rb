@@ -17,7 +17,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
     it "has the correct default properties" do
       is_expected.to have_attributes(
         out: out,
-        encoder: encoder
+        encoder: encoder,
       )
     end
   end

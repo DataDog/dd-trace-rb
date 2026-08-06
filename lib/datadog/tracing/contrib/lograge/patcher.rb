@@ -33,7 +33,7 @@ module Datadog
                   "Either: 1. Disable tagged logging in your Rails configuration " \
                   "`config.logger = ActiveSupport::Logger.new(STDOUT); " \
                   "config.active_job.logger = ActiveSupport::Logger.new(STDOUT)` " \
-                  "or 2. Use the `semantic_logger` gem instead of `lograge`."
+                  "or 2. Use the `semantic_logger` gem instead of `lograge`.",
               )
             end
 

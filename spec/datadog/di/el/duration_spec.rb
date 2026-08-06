@@ -12,7 +12,7 @@ RSpec.describe "DI EL @duration" do
   let(:context) do
     Datadog::DI::Context.new(
       probe: nil, settings: nil, serializer: nil,
-      duration: duration,
+      duration: duration
     )
   end
 

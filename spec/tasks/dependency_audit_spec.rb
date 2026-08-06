@@ -44,12 +44,12 @@ if Gem.loaded_specs.key?("bundler-audit")
 
       it "excludes advisories listed in ignore" do
         all = described_class.findings(
-          ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: [],
+          ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: []
         )
         ignored_id = all.first.id
 
         remaining = described_class.findings(
-          ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: [ignored_id],
+          ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: [ignored_id]
         )
 
         expect(remaining.map(&:id)).not_to include(ignored_id)

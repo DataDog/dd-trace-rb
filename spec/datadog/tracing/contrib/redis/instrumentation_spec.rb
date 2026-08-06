@@ -83,7 +83,7 @@ RSpec.describe "Redis instrumentation test" do
           raw_command: "SELECT #{test_database}",
           host: test_host,
           port: test_port,
-          db: test_database
+          db: test_database,
         )
 
         expect(span).to be_a_redis_span.with(
@@ -92,7 +92,7 @@ RSpec.describe "Redis instrumentation test" do
           raw_command: "SET abc 123",
           host: test_host,
           port: test_port,
-          db: test_database
+          db: test_database,
         )
 
         expect(span.get_tag("span.kind")).to eq("client")
@@ -133,7 +133,7 @@ RSpec.describe "Redis instrumentation test" do
           raw_command: "SELECT #{test_database}",
           host: test_host,
           port: test_port,
-          db: test_database
+          db: test_database,
         )
 
         expect(span).to be_a_redis_span.with(
@@ -142,7 +142,7 @@ RSpec.describe "Redis instrumentation test" do
           raw_command: "SET abc 123",
           host: test_host,
           port: test_port,
-          db: test_database
+          db: test_database,
         )
 
         expect(span.get_tag("span.kind")).to eq("client")

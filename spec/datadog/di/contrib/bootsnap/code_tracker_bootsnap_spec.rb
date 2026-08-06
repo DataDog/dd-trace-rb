@@ -168,7 +168,7 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
       probe = Datadog::DI::Probe.new(
         id: "bootsnap-test-1", type: :log,
         file: "bootsnap_test_class.rb", line_no: 22,
-        capture_snapshot: false,
+        capture_snapshot: false
       )
 
       expect(diagnostics_transport).to receive(:send_diagnostics)
@@ -188,7 +188,7 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
       probe = Datadog::DI::Probe.new(
         id: "bootsnap-test-2", type: :log,
         file: "bootsnap_test_class.rb", line_no: 22,
-        capture_snapshot: false,
+        capture_snapshot: false
       )
 
       expect(diagnostics_transport).to receive(:send_diagnostics)
@@ -206,7 +206,7 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
       probe = Datadog::DI::Probe.new(
         id: "bootsnap-test-3", type: :log,
         file: "bootsnap_test_class.rb", line_no: 22,
-        capture_snapshot: true,
+        capture_snapshot: true
       )
 
       expect(diagnostics_transport).to receive(:send_diagnostics)

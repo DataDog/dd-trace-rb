@@ -199,7 +199,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
     context "request timed out" do
       before do
         expect(easy).to receive(:mirror).and_return(
-          double("Fake mirror", options: {response_code: 0, return_code: :operation_timedout})
+          double("Fake mirror", options: {response_code: 0, return_code: :operation_timedout}),
         )
         subject
       end

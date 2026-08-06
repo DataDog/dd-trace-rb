@@ -161,7 +161,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         }
 
         expect { described_class.parse(invalid_data) }.to raise_error(
-          Datadog::Core::Remote::Configuration::Path::ParseError
+          Datadog::Core::Remote::Configuration::Path::ParseError,
         )
       end
     end

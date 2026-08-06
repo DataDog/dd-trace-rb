@@ -14,7 +14,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
       transport: nil,
       buffer_size: 100,
       on_trace: task,
-      interval: 0.5
+      interval: 0.5,
     )
   end
 
@@ -73,7 +73,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
 
     it "stops underlying thread with default timeout" do
       expect_any_instance_of(Thread).to receive(:join).with(
-        Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT
+        Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT,
       ).and_call_original
 
       worker.start
@@ -88,7 +88,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
           buffer_size: 100,
           on_trace: task,
           interval: 0.5,
-          shutdown_timeout: 1000
+          shutdown_timeout: 1000,
         )
       end
 

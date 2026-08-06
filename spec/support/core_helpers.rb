@@ -157,7 +157,7 @@ module CoreHelpers
         snapshot = at_fork.snapshot_at_fork_blocks
         at_fork.send(
           :replace_at_fork_blocks,
-          snapshot.merge(child: [].freeze).freeze
+          snapshot.merge(child: [].freeze).freeze,
         )
       end
     end

@@ -25,8 +25,8 @@ RSpec.describe Datadog::OpenFeature::Transport::HTTP do
           a_request(:post, %r{/evp_proxy/v2/api/v2/exposures})
             .with(
               headers: {"X-Datadog-EVP-Subdomain" => "event-platform-intake"},
-              body: '{"event":"value"}'
-            )
+              body: '{"event":"value"}',
+            ),
         ).to have_been_made.once
       end
     end

@@ -29,7 +29,7 @@ MESSAGE
           def index
             head :ok
           end
-        end
+        end,
       )
     end
 

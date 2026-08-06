@@ -38,7 +38,7 @@ module Datadog
               Datadog::Tracing::SpanEvent.new(
                 event.name,
                 attributes: event.attributes,
-                time_unix_nano: event.timestamp
+                time_unix_nano: event.timestamp,
               )
             end
           end
@@ -112,7 +112,7 @@ module Datadog
                   trace_state: tracestate && ::Datadog::Core::Utils.utf8_encode(tracestate, placeholder: nil),
                   span_remote: link.span_context.remote?,
                 ),
-                attributes: link.attributes
+                attributes: link.attributes,
               )
             end
           end

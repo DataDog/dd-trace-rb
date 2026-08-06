@@ -63,7 +63,7 @@ module Datadog
           event = Event::Log.new(
             message: message,
             level: level,
-            stack_trace: DatadogStackTrace.from(exception)
+            stack_trace: DatadogStackTrace.from(exception),
           )
 
           log!(event)

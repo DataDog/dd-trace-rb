@@ -38,7 +38,7 @@ module Datadog
           "process_id",
           "profiler_version",
           "profile_seq",
-        ]
+        ],
       ).freeze
 
       def self.call(

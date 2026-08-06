@@ -25,7 +25,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
         [
           "v0.4",
           "v0.3",
-        ]
+        ],
       )
 
       default.apis.each_value do |api|
@@ -66,7 +66,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
           hostname: hostname,
           port: port,
           uds_path: uds_path,
-          timeout_seconds: timeout_seconds
+          timeout_seconds: timeout_seconds,
         )
       end
 
@@ -109,7 +109,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
         expect do |b|
           described_class.default(agent_settings: default_agent_settings, logger: logger, &b)
         end.to yield_with_args(
-          kind_of(Datadog::Core::Transport::HTTP::Builder)
+          kind_of(Datadog::Core::Transport::HTTP::Builder),
         )
       end
     end

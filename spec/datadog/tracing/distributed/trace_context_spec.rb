@@ -70,7 +70,7 @@ RSpec.shared_examples "Trace Context distributed format" do
               Datadog::Tracing::TraceDigest.new(
                 trace_id: 0xC0FFEE,
                 span_id: 0xBEE,
-                trace_sampling_priority: sampling_priority
+                trace_sampling_priority: sampling_priority,
               )
             end
 
@@ -90,7 +90,7 @@ RSpec.shared_examples "Trace Context distributed format" do
               trace_id: 0xC0FFEE,
               span_id: 0xBEE,
               trace_sampling_priority: 1,
-              trace_origin: "synthetics"
+              trace_origin: "synthetics",
             )
           end
 
@@ -103,7 +103,7 @@ RSpec.shared_examples "Trace Context distributed format" do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xC0FFEE,
             span_id: 0xBEE,
-            trace_origin: origin
+            trace_origin: origin,
           )
         end
 
@@ -146,7 +146,7 @@ RSpec.shared_examples "Trace Context distributed format" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
-            span_id: 0xbbbbbbbbbbbbbbbb
+            span_id: 0xbbbbbbbbbbbbbbbb,
           )
         end
 
@@ -162,7 +162,7 @@ RSpec.shared_examples "Trace Context distributed format" do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xC0FFEE,
             span_id: 0xBEE,
-            trace_distributed_tags: tags
+            trace_distributed_tags: tags,
           )
         end
 
@@ -328,7 +328,7 @@ RSpec.shared_examples "Trace Context distributed format" do
             let(:options) do
               super().merge(
                 trace_origin: "origin",
-                trace_state_unknown_fields: "future=field;large:#{"x" * 300};small:ok;"
+                trace_state_unknown_fields: "future=field;large:#{"x" * 300};small:ok;",
               )
             end
 
@@ -343,7 +343,7 @@ RSpec.shared_examples "Trace Context distributed format" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xC0FFEE,
-            span_id: nil
+            span_id: nil,
           )
         end
 

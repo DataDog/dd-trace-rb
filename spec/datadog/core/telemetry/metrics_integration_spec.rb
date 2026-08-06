@@ -47,12 +47,12 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     double(Datadog::Core::Telemetry::Event::AppStarted,
       payload: {hello: "world"},
       type: "app-started",
-      app_started?: true,)
+      app_started?: true)
   end
 
   let(:response) do
     double(Datadog::Core::Transport::HTTP::Response,
-      ok?: true,)
+      ok?: true)
   end
 
   let(:events) { [] }

@@ -34,7 +34,7 @@ module Datadog
                   if Tracing::Distributed::PropagationPolicy.enabled?(
                     pin_config: client_config,
                     global_config: Datadog.configuration.tracing[:httpclient],
-                    trace: trace
+                    trace: trace,
                   )
                     Contrib::HTTP.inject(trace, req.header)
                   end
@@ -43,7 +43,7 @@ module Datadog
                   annotate_span_with_request!(span, req, request_options)
                 rescue => e
                   Datadog.logger.error(
-                    "error preparing span for httpclient request: #{e.class}: #{e.message}, Source: #{e.backtrace}"
+                    "error preparing span for httpclient request: #{e.class}: #{e.message}, Source: #{e.backtrace}",
                   )
                   Datadog::Core::Telemetry::Logger.report(e)
                 ensure
@@ -65,7 +65,7 @@ module Datadog
               if req_options[:peer_service]
                 span.set_tag(
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                  req_options[:peer_service]
+                  req_options[:peer_service],
                 )
               end
 
@@ -86,7 +86,7 @@ module Datadog
               set_analytics_sample_rate(span, req_options)
 
               span.set_tags(
-                Datadog.configuration.tracing.header_tags.request_tags(req.http_header)
+                Datadog.configuration.tracing.header_tags.request_tags(req.http_header),
               )
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
@@ -102,11 +102,11 @@ module Datadog
               end
 
               span.set_tags(
-                Datadog.configuration.tracing.header_tags.response_tags(response.header)
+                Datadog.configuration.tracing.header_tags.response_tags(response.header),
               )
             rescue => e
               Datadog.logger.error(
-                "error preparing span from httpclient response: #{e.class}: #{e.message}, Source: #{e.backtrace}"
+                "error preparing span from httpclient response: #{e.class}: #{e.message}, Source: #{e.backtrace}",
               )
               Datadog::Core::Telemetry::Logger.report(e)
             end

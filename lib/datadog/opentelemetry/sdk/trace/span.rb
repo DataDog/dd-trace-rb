@@ -164,7 +164,7 @@ module Datadog
           if key == "analytics.event" && value.respond_to?(:casecmp)
             Datadog::Tracing::Analytics.set_sample_rate(
               span,
-              (value.casecmp("true") == 0) ? 1 : 0
+              (value.casecmp("true") == 0) ? 1 : 0,
             )
           end
 

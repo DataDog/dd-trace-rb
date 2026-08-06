@@ -49,7 +49,7 @@ class ProfilerMemorySampleSerializeBenchmark
         alloc_samples_enabled: true,
         heap_samples_enabled: @heap_samples_enabled,
         heap_size_enabled: @heap_size_enabled,
-        heap_sample_every: @heap_sample_every
+        heap_sample_every: @heap_sample_every,
       )
     }
   end
