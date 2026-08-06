@@ -78,7 +78,7 @@ module Datadog
               health_metrics_enabled: health_metrics_enabled,
               otlp_traces_export_enabled: otlp_traces_export_enabled,
               otlp_metrics_export_enabled: otlp_metrics_export_enabled,
-              otlp_logs_export_enabled: otlp_logs_export_enabled
+              otlp_logs_export_enabled: otlp_logs_export_enabled,
             }
           end
 

@@ -11,7 +11,7 @@ module Datadog
             AppSec::Configuration::Settings::SAFE_TRACK_USER_EVENTS_MODE =>
               AppSec::Configuration::Settings::ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE,
             AppSec::Configuration::Settings::EXTENDED_TRACK_USER_EVENTS_MODE =>
-              AppSec::Configuration::Settings::IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE
+              AppSec::Configuration::Settings::IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE,
           }.freeze
 
           module_function
