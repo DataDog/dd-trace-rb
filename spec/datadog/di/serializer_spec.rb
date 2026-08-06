@@ -63,6 +63,12 @@ class DISerializerSpecBrokenHash < Hash
   end
 end
 
+class DISerializerSpecRaisingToSKey
+  def to_s
+    raise "#to_s must not be called on a non-String/Symbol hash key"
+  end
+end
+
 class DISerializerSpecFields
   def initialize(**fields)
     fields.each do |k, v|
@@ -533,10 +539,40 @@ RSpec.describe Datadog::DI::Serializer do
       ["object with array field", DISerializerSpecFields.new(a: 1, b: [2]), "#<DISerializerSpecFields @a=1 @b=...>"],
       ["object with hash field", DISerializerSpecFields.new(a: 1, b: {x: 2}), "#<DISerializerSpecFields @a=1 @b=...>"],
       ["when serialization fails", DISerializerSpecBrokenHash.new, "#<DISerializerSpecBrokenHash: serialization error>"],
+      # Redaction
+      ["hash with redacted symbol key", {password: "hunter2"}, "{:password => [redacted]}"],
+      ["hash with redacted string key", {"session-key" => 42}, "{session-key => [redacted]}"],
+      ["hash with non-redacted key", {name: "alice"}, "{:name => alice}"],
+      ["hash with non-string/symbol key does not invoke key#to_s", {DISerializerSpecRaisingToSKey.new => "value"}, "{... => value}"],
+      ["hash value of redacted type", {value: DISerializerSpecSensitiveType.new}, "{:value => [redacted]}"],
+      ["object with redacted and non-redacted fields", DISerializerSpecFields.new(name: "alice", password: "hunter2"), "#<DISerializerSpecFields @name=alice @password=[redacted]>"],
+      ["object with redacted instance variable", DISerializerSpecRedactedInstanceVariable.new(42), "#<DISerializerSpecRedactedInstanceVariable @session=[redacted]>"],
+      ["value of redacted type", DISerializerSpecSensitiveType.new, "[redacted]"],
+      ["value of redacted wildcard type", DISerializerSpecWildCardClass.new, "[redacted]"],
+      ["array with element of redacted type", [1, DISerializerSpecSensitiveType.new], "[1, [redacted]]"],
     ].each do |desc, input, expected_output|
       context desc do
         let(:actual) do
           serializer.serialize_value_for_message(input)
+        end
+
+        it "produces expected output" do
+          expect(actual).to eq(expected_output)
+        end
+      end
+    end
+  end
+
+  describe "#serialize_value_for_message with a name" do
+    [
+      ["redacted identifier", "hunter2", "password", "[redacted]"],
+      ["redacted instance variable identifier", "hunter2", "@password", "[redacted]"],
+      ["non-redacted identifier", "alice", "name", "alice"],
+      ["nil name", "alice", nil, "alice"],
+    ].each do |desc, input, name, expected_output|
+      context desc do
+        let(:actual) do
+          serializer.serialize_value_for_message(input, name: name)
         end
 
         it "produces expected output" do
