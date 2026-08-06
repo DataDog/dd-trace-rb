@@ -30,7 +30,7 @@ module ReleaseNotes
   def draft_changelog(version)
     uri = URI("#{API_URL}/repos/#{REPO}/releases?per_page=100")
     request = Net::HTTP::Get.new(uri)
-    request["Authorization"] = "Bearer #{ENV["GITHUB_TOKEN"]}"
+    request["Authorization"] = "Bearer #{Datadog::DATADOG_ENV["GITHUB_TOKEN"]}"
     request["Accept"] = "application/vnd.github+json"
     request["X-GitHub-Api-Version"] = "2022-11-28"
     request["User-Agent"] = "dd-trace-rb-release-prep"
@@ -42,8 +42,7 @@ module ReleaseNotes
     draft = JSON.parse(response.body).find { |release| release["tag_name"] == tag && release["draft"] == true }
     fail!("No draft release found with tag #{tag}. Please create and approve a draft release first.") unless draft
 
-    # GitHub's API intermittently returns release bodies with CRLF line endings.
-    # Normalize to LF so we don't pollute CHANGELOG.md with mixed line endings.
+    # Normalize to LF because GitHub's API could return bodies with CRLF line endings.
     body = draft["body"].to_s.gsub(/\r\n?/, "\n")
 
     # Highlights (release-page only) precede the marker; the changelog follows
