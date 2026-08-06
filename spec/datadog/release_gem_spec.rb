@@ -67,6 +67,7 @@ RSpec.describe "gem release process" do
             |lib-injection
             |appraisal
             |benchmarks
+            |changelog
             |gemfiles
             |integration
             |tasks

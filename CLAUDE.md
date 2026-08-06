@@ -8,12 +8,13 @@
 - Write for the developer performing code review; be concise
 - Use one sentence per relevant point in summary/motivation sections
 - Changelog entries are written for customers only; consider changes from user/customer POV
-- Internal changes (CI, tooling, tracer-internal telemetry consumed only by Datadog engineering) = "None" for changelog
-- Telemetry that powers customer-facing Datadog product features (symbol database → DI autocomplete UI, profiling data → Profiler UI, AppSec events → AppSec UI, etc.) = "Yes" with a customer-facing summary, even though the data flow is tracer → Datadog backend
-- Changelog entry format: MUST start with "Yes." or "None."
-  - If changes need CHANGELOG: `Yes. Brief customer-facing summary.`
-  - If no CHANGELOG needed: `None.`
-  - Never write just the summary without "Yes." prefix
+- Internal changes (CI, tooling, tracer-internal telemetry consumed only by Datadog engineering) use category `None`
+- Telemetry that powers customer-facing Datadog product features (symbol database → DI autocomplete UI, profiling data → Profiler UI, AppSec events → AppSec UI, etc.) needs a customer-facing changelog entry, even though the data flow is tracer → Datadog backend
+- Generate the changelog entry with `changelog/add.rb`, non-interactively — never hand-write the `changelog/unreleased-*.md` fragment file:
+  - No entry needed: `ruby changelog/add.rb --category None`
+  - Entry needed: `ruby changelog/add.rb --category <category> --label <label> --entry "<brief customer-facing summary>"`
+  - Run `ruby changelog/add.rb --help` for the valid `--category`/`--label` values
+  - `git add` the resulting `changelog/unreleased-<branch>.md` file before opening the PR
 - Add `--label "AI Generated"` when creating PRs (do not mention AI in description; label is sufficient)
 
 ## Never

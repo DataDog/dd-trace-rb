@@ -2,7 +2,7 @@ name: Check change log entry
 
 on: # yamllint disable-line rule:truthy
   pull_request:
-    types: [opened, reopened, edited]
+    types: [opened, reopened, edited, synchronize]
 
 jobs:
   check:
@@ -29,7 +29,7 @@ jobs:
             try {
               response = await github.rest.orgs.checkMembershipForUser({
                 org: context.repo.owner,
-                username: context.payload.sender.login
+                username: context.payload.pull_request.user.login
               })
 
               isMember = response.status == 204
@@ -66,17 +66,32 @@ jobs:
         with:
           github-token: ${{ steps.generate-token.outputs.token }}
           script: |
-            const regex = /\*\*Change log entry\*\*\s+(?:<!--.*?-->\s*)?(?:(?<answer_yes>yes|yep|yeah)(?:\s?[.,:-]\s?(?<yes_message>[^\r\n<!-]+))?|(?<answer_no>no|nope|none)\.?.*?)/ims
-            const entry = context.payload.pull_request.body.match(regex)
+            // Branches of automated pull requests that never carry a customer-facing entry.
+            const SKIPPED_BRANCH_PREFIXES = [
+              "bump_to_version_", // See `release-prep.yml`
+              "auto-generate/update-system-tests", // See `update-system-tests.yml`
+            ]
 
-            const isWriteComment =
-              null === entry
-                || (undefined === entry.groups.answer_yes && undefined === entry.groups.answer_no)
-                || (undefined !== entry.groups.answer_yes && undefined === entry.groups.yes_message)
-                || (undefined !== entry.groups.answer_yes && "" === entry.groups.yes_message.trim())
-              ? true : false
+            const branchRef = context.payload.pull_request.head.ref
 
-            return isWriteComment
+            if (SKIPPED_BRANCH_PREFIXES.some((prefix) => branchRef.startsWith(prefix))) {
+              return false
+            }
+
+            // Matches the sanitization `changelog/add.rb` applies to the branch name.
+            const branch = branchRef.replace(/[^a-zA-Z0-9_-]/g, ".")
+            const expectedPath = `changelog/unreleased-${branch}.md`
+
+            const options = github.rest.pulls.listFiles.endpoint.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+            })
+            const files = await github.paginate(options)
+
+            const hasEntry = files.some((file) => file.filename === expectedPath && file.status !== "removed")
+
+            return !hasEntry
 
       - name: Write comment
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
@@ -84,28 +99,24 @@ jobs:
           github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             const isMember = ${{steps.membership.outputs.result}}
-            const username = !isMember ? "@DataDog/ruby-guild" : `@${context.payload.sender.login}`
+            const username = !isMember ? "@DataDog/ruby-guild" : `@${context.payload.pull_request.user.login}`
 
-            const thankYouMessage = "Thank you for updating **Change log entry** section :clap:"
-            const warningMessage = `:wave: Hey ${username}, please fill "Change log entry" section in the pull request description.
+            const thankYouMessage = "Thank you for adding a changelog entry :clap:"
+            const warningMessage = `:wave: Hey ${username}, this PR is missing a changelog entry.
 
-            If changes need to be present in [CHANGELOG.md](https://github.com/DataDog/dd-trace-rb/blob/master/CHANGELOG.md) you can state it this way
+            Generate one with [\`changelog/add.rb\`](https://github.com/DataDog/dd-trace-rb/blob/master/changelog/add.rb), then commit and push it:
 
-            \`\`\`md
-            **Change log entry**
-
-            Yes. A brief summary to be placed into the CHANGELOG.md
+            \`\`\`sh
+            ruby changelog/add.rb --category Added --label Tracing --entry "A one-sentence description of a user-visible change"
             \`\`\`
-            _(possible answers Yes/Yep/Yeah)_
 
-            Or you can opt out like that
+            Or opt out if this PR doesn't need a changelog entry:
 
-            \`\`\`md
-            **Change log entry**
-
-            None.
+            \`\`\`sh
+            ruby changelog/add.rb --category None
             \`\`\`
-            _(possible answers No/Nope/None)_`
+
+            Run \`ruby changelog/add.rb --help\` for the valid categories and labels.`
 
             const comment = ${{steps.comment.outputs.result}}
             const isWriteWarningComment = ${{steps.condition.outputs.result}}

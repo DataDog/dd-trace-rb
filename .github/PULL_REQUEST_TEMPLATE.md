@@ -1,6 +1,5 @@
 <!--
-Check out the
-https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md
+Check out the https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md
 for guidance on how to set up your development environment,
 run the test suite, write new integrations, and more.
 -->
@@ -11,22 +10,7 @@ run the test suite, write new integrations, and more.
 **Motivation:**
 <!-- What inspired you to submit this pull request? -->
 
-**Change log entry**
-<!--
-If you are a Datadog employee:
-
-If this is a customer-visible change, use:
-`Yes. A brief summary to be placed into the CHANGELOG.md`
-Or opt out with `None/No/Nope`.
-
-This will be the ONLY mention of the change in the release notes;
-it should be self-contained and understandable by customers.
-
-If you are not a Datadog employee:
-
-You can skip this section and it will be filled or deleted during PR review.
-Please do not remove this section from the PR though.
--->
+<!-- (Changelogs are now kept in-tree using the `changelog/add.rb` nano tool) -->
 
 **Additional Notes:**
 <!--
