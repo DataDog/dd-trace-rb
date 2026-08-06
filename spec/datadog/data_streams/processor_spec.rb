@@ -69,6 +69,30 @@ RSpec.describe Datadog::DataStreams::Processor do
         expect(processor.running?).to be true
       end
     end
+
+    it "discards state inherited from the parent across a real fork, instead of double-flushing it" do
+      skip "Fork not supported on current platform" unless Process.respond_to?(:fork)
+
+      processor.track_kafka_produce("orders", 0, 1, Datadog::Core::Utils::Time.now) # buffer an event in the parent, pre-fork
+      processor.instance_variable_get(:@buckets)[123] = {fake: "bucket"}
+      processor.instance_variable_get(:@consumer_stats) << {fake: "stat"}
+
+      expect_in_fork do
+        processor.restart_flush_thread
+
+        expect(processor.instance_variable_get(:@event_buffer)).to be_empty
+        expect(processor.instance_variable_get(:@buckets)).to be_empty
+        expect(processor.instance_variable_get(:@consumer_stats)).to be_empty
+      end
+    end
+
+    it "does not discard buffered state when no fork occurred" do
+      processor.track_kafka_produce("orders", 0, 1, Datadog::Core::Utils::Time.now)
+
+      processor.restart_flush_thread
+
+      expect(processor.instance_variable_get(:@event_buffer)).not_to be_empty
+    end
   end
 
   describe "public checkpoint API" do

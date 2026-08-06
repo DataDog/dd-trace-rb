@@ -80,6 +80,7 @@ module Datadog
       # protected +after_fork+ template method that #perform's internal restart path
       # (+restart_after_fork+) calls on every restart -- overriding it here would recurse.
       def restart_flush_thread
+        discard_inherited_state_after_fork! if forked?
         perform
       end
 
@@ -317,6 +318,20 @@ module Datadog
 
       def decode_pathway_b64(encoded_ctx)
         PathwayContext.decode_b64(encoded_ctx)
+      end
+
+      # A fork copies whatever was buffered in the parent (unflushed events, aggregated
+      # buckets, consumer stats) into the child. If the parent process is still alive and
+      # flushing (e.g. a supervisor process that stays up after forking workers), letting
+      # the child flush that same inherited data as well would double-report it to the
+      # agent. Discard it instead: losing a few seconds of pre-fork stats is preferable to
+      # corrupting pipeline throughput/lag numbers with duplicates.
+      def discard_inherited_state_after_fork!
+        @event_buffer.pop
+        @stats_mutex.synchronize do
+          @buckets.clear
+          @consumer_stats.clear
+        end
       end
 
       def flush_stats
