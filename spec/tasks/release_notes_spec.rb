@@ -1,12 +1,9 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "rake"
+require_relative "../../tasks/release_notes"
 
-Rake.application ||= Rake::Application.new
-load File.expand_path("../../tasks/release_prep.rake", __dir__) unless defined?(ReleasePrep)
-
-RSpec.describe ReleasePrep, webmock: true do
+RSpec.describe ReleaseNotes, webmock: true do
   describe ".draft_changelog" do
     let(:version) { "2.36.0" }
     let(:releases_url) { "https://api.github.com/repos/DataDog/dd-trace-rb/releases?per_page=100" }
