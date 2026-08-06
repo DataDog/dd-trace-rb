@@ -10,6 +10,11 @@ module ActiveRecord
   module Base
   end
 
+  class DatabaseConfigurations
+    class DatabaseConfig
+    end
+  end
+
   module ConnectionAdapters
     module SQLite3Adapter
     end
