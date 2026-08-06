@@ -42,7 +42,9 @@ module ReleasePrep
     draft = JSON.parse(response.body).find { |release| release["tag_name"] == tag && release["draft"] == true }
     fail!("No draft release found with tag #{tag}. Please create and approve a draft release first.") unless draft
 
-    body = draft["body"].to_s
+    # GitHub's API intermittently returns release bodies with CRLF line endings.
+    # Normalize to LF so we don't pollute CHANGELOG.md with mixed line endings.
+    body = draft["body"].to_s.gsub(/\r\n?/, "\n")
 
     # Highlights (release-page only) precede the marker; the changelog follows
     # it. Fall back to the whole body when the marker is absent.
