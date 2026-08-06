@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "base"
-require_relative "configuration_value"
+require_relative "../configuration_value"
 
 module Datadog
   module Core
@@ -65,7 +65,7 @@ module Datadog
           def configuration_entry(name, value, origin, seq_id)
             {
               name: name,
-              value: ConfigurationValue.convert(value),
+              value: Telemetry::ConfigurationValue.convert(value),
               origin: origin,
               seq_id: seq_id,
             }

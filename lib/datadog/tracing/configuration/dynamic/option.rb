@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../../core/telemetry/event/configuration_value"
+require_relative "../../../core/telemetry/configuration_value"
 
 module Datadog
   module Tracing
@@ -59,7 +59,7 @@ module Datadog
               )
             end
 
-            Core::Telemetry::Event::ConfigurationValue.convert(value)
+            Core::Telemetry::ConfigurationValue.convert(value)
           end
 
           protected

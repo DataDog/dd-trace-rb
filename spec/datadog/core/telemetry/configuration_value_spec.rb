@@ -1,8 +1,8 @@
 require "spec_helper"
 
-require "datadog/core/telemetry/event/configuration_value"
+require "datadog/core/telemetry/configuration_value"
 
-RSpec.describe Datadog::Core::Telemetry::Event::ConfigurationValue do
+RSpec.describe Datadog::Core::Telemetry::ConfigurationValue do
   describe ".convert" do
     subject(:converted_value) { described_class.convert(value) }
 

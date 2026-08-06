@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "base"
-require_relative "configuration_value"
+require_relative "../configuration_value"
 
 module Datadog
   module Core
@@ -217,7 +217,7 @@ module Datadog
           def to_telemetry_value(value)
             return value.to_s if value.is_a?(Float)
 
-            ConfigurationValue.convert(value)
+            Telemetry::ConfigurationValue.convert(value)
           end
 
           def install_signature(settings)
