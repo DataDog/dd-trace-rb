@@ -72,7 +72,7 @@ RSpec.describe Datadog::AppSec::Response do
         expect(response.status).to eq(100)
         expect(response.headers).to include("Content-Type" => "text/html")
         expect(response.body[0]).to match(
-          /<p class="security-response-id">.*: 00000000-0000-0000-0000-000000000000/
+          /<p class="security-response-id">.*: 00000000-0000-0000-0000-000000000000/,
         )
       end
     end
@@ -95,7 +95,7 @@ RSpec.describe Datadog::AppSec::Response do
 
         it "returns default json template with security response ID" do
           expect(response.body[0]).to match(
-            /{"errors":.*,"security_response_id":"00000000-0000-0000-0000-000000000000".*}/
+            /{"errors":.*,"security_response_id":"00000000-0000-0000-0000-000000000000".*}/,
           )
         end
       end
@@ -127,7 +127,7 @@ RSpec.describe Datadog::AppSec::Response do
 
         it "returns default json template with security response ID" do
           expect(response.body[0]).to match(
-            /{"errors":.*,"security_response_id":"00000000-0000-0000-0000-000000000000".*}/
+            /{"errors":.*,"security_response_id":"00000000-0000-0000-0000-000000000000".*}/,
           )
         end
       end
@@ -141,7 +141,7 @@ RSpec.describe Datadog::AppSec::Response do
 
         it "returns default json template with security response ID" do
           expect(response.body[0]).to match(
-            /You've been blocked.*Security Response ID: 00000000-0000-0000-0000-000000000000.*/m
+            /You've been blocked.*Security Response ID: 00000000-0000-0000-0000-000000000000.*/m,
           )
         end
       end
@@ -171,7 +171,7 @@ RSpec.describe Datadog::AppSec::Response do
 
         it "returns custom template with security response ID" do
           expect(response.body[0]).to match(
-            /Blocked, that's an ID: 00000000-0000-0000-0000-000000000000/
+            /Blocked, that's an ID: 00000000-0000-0000-0000-000000000000/,
           )
         end
       end

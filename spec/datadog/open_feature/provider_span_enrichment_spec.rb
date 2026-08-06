@@ -27,7 +27,7 @@ RSpec.describe "OpenFeature provider span enrichment (end-to-end)" do
   let(:span_enrichment_hook) do
     Datadog::OpenFeature::Hooks::SpanEnrichmentHook.new(
       Datadog::OpenFeature::Hooks::SpanEnrichmentHook::SpanEnrichmentStateStore.new,
-      logger: instance_double(Datadog::Core::Logger, debug: nil)
+      logger: instance_double(Datadog::Core::Logger, debug: nil),
     )
   end
   let(:open_feature_component) do
@@ -89,7 +89,7 @@ RSpec.describe "OpenFeature provider span enrichment (end-to-end)" do
       serial_id: serial_id,
       extra_logging: {},
       log?: log,
-      error?: false
+      error?: false,
     )
   end
 
@@ -161,7 +161,7 @@ RSpec.describe "OpenFeature provider span enrichment (end-to-end)" do
     it "aggregates evaluations from a child span onto the one local root" do
       allow(engine).to receive(:fetch_value).and_return(
         resolution(value: "on", variant: "enabled", serial_id: 100),
-        resolution(value: "on", variant: "enabled", serial_id: 108)
+        resolution(value: "on", variant: "enabled", serial_id: 108),
       )
 
       ofc = client

@@ -29,7 +29,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       agent_settings: agent_settings,
       guardrails_telemetry: guardrails_telemetry,
       probe_repository: probe_repository,
-      probe_notification_builder: probe_notification_builder,
+      probe_notification_builder: probe_notification_builder
     )
   end
 

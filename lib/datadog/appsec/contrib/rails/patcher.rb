@@ -66,7 +66,7 @@ module Datadog
             if include_middleware?(Datadog::Tracing::Contrib::Rack::TraceMiddleware, app)
               app.middleware.insert_after(
                 Datadog::Tracing::Contrib::Rack::TraceMiddleware,
-                Datadog::AppSec::Contrib::Rack::RequestMiddleware
+                Datadog::AppSec::Contrib::Rack::RequestMiddleware,
               )
             else
               app.middleware.insert_before(0, Datadog::AppSec::Contrib::Rack::RequestMiddleware)
@@ -162,7 +162,7 @@ module Datadog
 
             GUARD_ROUTES_REPORTING_ONCE_PER_APP[::Rails.application].run do
               AppSec.telemetry.app_endpoints_loaded(
-                APISecurity::EndpointCollection::RailsCollector.new(routes).to_enum
+                APISecurity::EndpointCollection::RailsCollector.new(routes).to_enum,
               )
             end
           rescue => e

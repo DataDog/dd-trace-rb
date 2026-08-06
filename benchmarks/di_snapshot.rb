@@ -76,7 +76,7 @@ class DISnapshotBenchmark
     probe = Datadog::DI::Probe.new(
       id: 1, type: :log,
       type_name: "DISnapshotTarget", method_name: "test_method",
-      rate_limit: BASIC_RATE_LIMIT,
+      rate_limit: BASIC_RATE_LIMIT
     )
 
     unless probe_manager.add_probe(probe)
@@ -115,7 +115,7 @@ class DISnapshotBenchmark
       # To get a meaningful number of submissions, increase it to 20.
       # We should get about 200 snapshots in the 10 seconds that the
       # benchmark is supposed to run.
-      rate_limit: ENRICHED_RATE_LIMIT,
+      rate_limit: ENRICHED_RATE_LIMIT
     )
 
     unless probe_manager.add_probe(probe)
@@ -150,7 +150,7 @@ class DISnapshotBenchmark
       id: 1, type: :log,
       file: "di_snapshot_target.rb", line_no: 30,
       capture_snapshot: false,
-      rate_limit: BASIC_RATE_LIMIT,
+      rate_limit: BASIC_RATE_LIMIT
     )
 
     unless probe_manager.add_probe(probe)
@@ -185,7 +185,7 @@ class DISnapshotBenchmark
       id: 1, type: :log,
       file: "di_snapshot_target.rb", line_no: 30,
       capture_snapshot: true,
-      rate_limit: ENRICHED_RATE_LIMIT,
+      rate_limit: ENRICHED_RATE_LIMIT
     )
 
     unless probe_manager.add_probe(probe)

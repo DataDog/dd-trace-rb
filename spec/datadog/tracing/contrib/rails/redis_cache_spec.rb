@@ -32,13 +32,13 @@ MESSAGE
       expect(cache_store_name).to(
         eq("redis_store"),
         'Tests are running with ENV["EXPECT_RAILS_ACTIVESUPPORT"] = true but the test application is not using ' \
-        "the rails-activesupport gem."
+        "the rails-activesupport gem.",
       )
     else
       expect(cache_store_name).to(
         eq("redis_cache_store"),
         'Tests are running without ENV["EXPECT_RAILS_ACTIVESUPPORT"] being set but the test application is not using ' \
-        "the rails built-in redis support."
+        "the rails built-in redis support.",
       )
     end
   end

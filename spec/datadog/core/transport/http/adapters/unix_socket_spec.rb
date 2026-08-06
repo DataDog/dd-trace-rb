@@ -17,7 +17,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::UnixSocket do
         .with(
           adapter.uds_path,
           read_timeout: timeout,
-          continue_timeout: timeout
+          continue_timeout: timeout,
         )
         .and_return(http_connection)
 
@@ -77,7 +77,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::UnixSocket::HTTP do
         is_expected.to have_attributes(
           uds_path: uds_path,
           read_timeout: described_class::DEFAULT_TIMEOUT,
-          continue_timeout: described_class::DEFAULT_TIMEOUT
+          continue_timeout: described_class::DEFAULT_TIMEOUT,
         )
       end
     end

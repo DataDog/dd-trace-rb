@@ -94,7 +94,7 @@ module Datadog
                 if query.selected_operation_name
                   span.set_tag(
                     "graphql.operation.name",
-                    query.selected_operation_name
+                    query.selected_operation_name,
                   )
                 end
                 query.variables.instance_variable_get(:@storage).each do |key, value|
@@ -212,7 +212,7 @@ module Datadog
               "graphql.#{trace_key}",
               type: "graphql",
               resource: resource,
-              service: @service_name
+              service: @service_name,
             ) do |span|
               span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               if Contrib::Analytics.enabled?(@analytics_enabled)
@@ -292,7 +292,7 @@ module Datadog
                   @locations_key =>
                     Datadog::Tracing::Contrib::GraphQL::UnifiedTrace.serialize_error_locations(graphql_error["locations"]),
                   @path_key => graphql_error["path"],
-                )
+                ),
               )
             end
           end

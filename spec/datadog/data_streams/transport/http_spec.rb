@@ -22,7 +22,7 @@ RSpec.describe Datadog::DataStreams::Transport::HTTP do
         hostname: hostname,
         port: port,
         uds_path: uds_path,
-        timeout_seconds: timeout_seconds
+        timeout_seconds: timeout_seconds,
       )
     end
 
@@ -33,7 +33,7 @@ RSpec.describe Datadog::DataStreams::Transport::HTTP do
       expect(default.apis.keys).to eq(
         [
           "v0.1",
-        ]
+        ],
       )
     end
 

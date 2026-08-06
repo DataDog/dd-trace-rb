@@ -24,7 +24,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
         described_class.new(
           logger: logger,
           telemetry: telemetry,
-          experimental_propagate_process_tags_enabled: true
+          experimental_propagate_process_tags_enabled: true,
         )
       end
 
@@ -290,7 +290,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
       before do
         stub_const(
           "Datadog::Core::Workers::RuntimeMetrics::DEFAULT_FLUSH_INTERVAL",
-          default_flush_interval
+          default_flush_interval,
         )
       end
 

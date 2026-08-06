@@ -35,7 +35,7 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
           shoryuken_options queue: qn
           def perform(sqs_msg, body)
           end
-        end
+        end,
       )
     end
     let(:worker) { worker_class.new }
@@ -132,7 +132,7 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
           def perform(sqs_msg, body)
             raise "Bala Boom!"
           end
-        end
+        end,
       )
     end
     let(:worker) { exception_worker_class.new }

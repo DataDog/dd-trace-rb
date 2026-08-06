@@ -11,7 +11,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
       metrics: metrics,
       run_rasp: waf_response,
       downstream_body_sampler: Datadog::AppSec::CounterSampler.new(1.0),
-      state: {downstream_body_analyzed_count: 0}
+      state: {downstream_body_analyzed_count: 0},
     )
   end
   let(:waf_response) do
@@ -131,11 +131,11 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
             "server.io.net.request.headers" => hash_including(
               "cookie" => "x=1; y=2",
               "accept" => "text/plain, application/json",
-              "dnt" => "1"
-            )
+              "dnt" => "1",
+            ),
           ),
           kind_of(Integer),
-          phase: "request"
+          phase: "request",
         )
 
       expect(Datadog::AppSec.active_context).to receive(:run_rasp)
@@ -147,11 +147,11 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
             "server.io.net.response.headers" => hash_including(
               "set-cookie" => "a=1, b=2",
               "via" => "1.1 foo.io, 2.2 bar.io",
-              "age" => "1"
-            )
+              "age" => "1",
+            ),
           ),
           kind_of(Integer),
-          phase: "response"
+          phase: "response",
         )
 
       client.post("/text-plain?z=1", nil, {"Cookie" => "x=1; y=2", "Accept" => "text/plain, application/json", "DNT" => "1"})
@@ -398,7 +398,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
         run_rasp: waf_response,
         downstream_body_sampler: Datadog::AppSec::CounterSampler.new(1.0),
         metrics: metrics,
-        state: {downstream_body_analyzed_count: 0}
+        state: {downstream_body_analyzed_count: 0},
       )
     end
 
@@ -427,7 +427,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
         run_rasp: waf_response,
         downstream_body_sampler: Datadog::AppSec::CounterSampler.new(0.5),
         metrics: metrics,
-        state: {downstream_body_analyzed_count: 0}
+        state: {downstream_body_analyzed_count: 0},
       )
     end
 
@@ -459,10 +459,10 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
         {},
         hash_including(
           "server.io.net.response.status" => "301",
-          "server.io.net.response.headers" => hash_including("location" => "http://example.com/application-json")
+          "server.io.net.response.headers" => hash_including("location" => "http://example.com/application-json"),
         ),
         anything,
-        phase: "response"
+        phase: "response",
       )
     end
   end

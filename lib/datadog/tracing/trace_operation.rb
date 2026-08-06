@@ -266,7 +266,7 @@ module Datadog
           start_time: start_time,
           tags: tags,
           type: type,
-          id: id
+          id: id,
         )
 
         # Start span measurement
@@ -327,7 +327,7 @@ module Datadog
           tags: tags,
           trace_id: trace_id,
           type: type,
-          id: id
+          id: id,
         )
       rescue => e
         logger.debug { "Failed to build new span: #{e.class}: #{e.message}" }
@@ -422,7 +422,7 @@ module Datadog
           trace_otel_threshold: open_telemetry.threshold,
           trace_otel_unknown_fields: open_telemetry.unknown_fields,
           span_remote: @remote_parent && @active_span.nil?,
-          baggage: (@baggage.nil? || @baggage.empty?) ? nil : @baggage
+          baggage: (@baggage.nil? || @baggage.empty?) ? nil : @baggage,
         ).freeze
       end
 
@@ -433,7 +433,7 @@ module Datadog
 
         Correlation::Identifier.new(
           trace_id: @id,
-          span_id: span_id
+          span_id: span_id,
         )
       end
 
@@ -640,7 +640,7 @@ module Datadog
           metrics: metrics,
           root_span_id: (!partial) ? root_span&.id : nil,
           profiling_enabled: @profiling_enabled,
-          apm_tracing_enabled: @apm_tracing_enabled
+          apm_tracing_enabled: @apm_tracing_enabled,
         )
       end
 

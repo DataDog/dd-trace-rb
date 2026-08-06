@@ -68,8 +68,8 @@ module Datadog
 
                 @datadog_span.set_tags(
                   Datadog.configuration.tracing.header_tags.response_tags(
-                    Core::Utils::Hash::CaseInsensitiveWrapper.new(parse_response_headers)
-                  )
+                    Core::Utils::Hash::CaseInsensitiveWrapper.new(parse_response_headers),
+                  ),
                 )
               ensure
                 @datadog_span.finish
@@ -108,7 +108,7 @@ module Datadog
                 Ext::SPAN_REQUEST,
                 service: uri ? service_name(uri.host, datadog_configuration) : datadog_configuration[:service_name],
                 type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND,
-                **trace_options
+                **trace_options,
               )
               datadog_trace = Tracing.active_trace
 
@@ -116,7 +116,7 @@ module Datadog
 
               if Tracing::Distributed::PropagationPolicy.enabled?(
                 global_config: datadog_configuration,
-                trace: datadog_trace
+                trace: datadog_trace,
               )
                 @datadog_original_headers ||= {}
                 Contrib::HTTP.inject(datadog_trace, @datadog_original_headers)
@@ -147,7 +147,7 @@ module Datadog
               if datadog_configuration[:peer_service]
                 span.set_tag(
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                  datadog_configuration[:peer_service]
+                  datadog_configuration[:peer_service],
                 )
               end
 
@@ -170,8 +170,8 @@ module Datadog
               if @datadog_original_headers
                 span.set_tags(
                   Datadog.configuration.tracing.header_tags.request_tags(
-                    Core::Utils::Hash::CaseInsensitiveWrapper.new(@datadog_original_headers)
-                  )
+                    Core::Utils::Hash::CaseInsensitiveWrapper.new(@datadog_original_headers),
+                  ),
                 )
               end
 

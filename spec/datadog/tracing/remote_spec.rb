@@ -29,8 +29,8 @@ RSpec.describe Datadog::Tracing::Remote do
       match(
         lambda do |receiver|
           receiver.match? Datadog::Core::Remote::Configuration::Path.parse(path)
-        end
-      )
+        end,
+      ),
     )
   end
 

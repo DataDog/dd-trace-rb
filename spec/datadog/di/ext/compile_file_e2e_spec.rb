@@ -115,7 +115,7 @@ RSpec.describe "compile_file iseq end-to-end probe test" do
       Datadog::DI::Probe.new(
         id: "compile-file-e2e-1", type: :log,
         file: "compile_file_e2e_test_class.rb", line_no: 22,
-        capture_snapshot: false,
+        capture_snapshot: false
       )
     end
 

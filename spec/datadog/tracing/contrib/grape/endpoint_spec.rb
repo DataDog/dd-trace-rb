@@ -14,7 +14,7 @@ RSpec.describe Datadog::Tracing::Contrib::Grape::Endpoint do
             def self.base
               "TestAPIBase"
             end
-          end
+          end,
         )
       end
 

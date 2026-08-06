@@ -15,7 +15,7 @@ module Datadog
         V4 = Traces::API::Endpoint.new(
           "/v0.4/traces",
           Core::Encoding::MsgpackEncoder,
-          service_rates: true
+          service_rates: true,
         )
 
         V3 = Traces::API::Endpoint.new(
@@ -35,7 +35,7 @@ module Datadog
           Core::Transport::HTTP.build(
             agent_settings: agent_settings,
             logger: logger,
-            headers: headers
+            headers: headers,
           ) do |transport|
             transport.api "v0.4", V4, fallback: "v0.3", default: true
             transport.api "v0.3", V3

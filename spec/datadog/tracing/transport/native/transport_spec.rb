@@ -369,7 +369,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         responses = transport.send_traces([make_trace_segment("web.request")])
 
         expect(responses).to contain_exactly(
-          an_instance_of(Datadog::Tracing::Transport::Native::InternalErrorResponse)
+          an_instance_of(Datadog::Tracing::Transport::Native::InternalErrorResponse),
         )
       end
     end
@@ -665,7 +665,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         responses = transport.send_traces(mixed)
 
         expect(responses).to contain_exactly(
-          an_instance_of(native_module::InternalErrorResponse)
+          an_instance_of(native_module::InternalErrorResponse),
         )
       end
 
@@ -680,7 +680,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         responses = transport.send_traces(mixed)
 
         expect(responses).to contain_exactly(
-          an_instance_of(native_module::InternalErrorResponse)
+          an_instance_of(native_module::InternalErrorResponse),
         )
       end
 

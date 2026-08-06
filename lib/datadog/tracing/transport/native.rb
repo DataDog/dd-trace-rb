@@ -208,7 +208,7 @@ module Datadog
             @fork_hooks = Core::Utils::AtForkMonkeyPatch.at_fork_blocks(
               before: before_hook,
               parent: parent_hook,
-              child: child_hook
+              child: child_hook,
             )
             remove_fork_hooks = self.class.send(:fork_hooks_remover, @fork_hooks)
 
@@ -221,7 +221,7 @@ module Datadog
             # them through its matching completion stage.
             ObjectSpace.define_finalizer(
               self,
-              remove_fork_hooks
+              remove_fork_hooks,
             )
           end
 

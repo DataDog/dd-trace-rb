@@ -165,7 +165,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             target_self: Object.new,
             locals: {
               bar: 42,
-            },
+            }
           )
         end
 
@@ -228,7 +228,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             Datadog::DI::Context.new(
               settings: settings, serializer: serializer,
               probe: probe,
-              target_self: Object.new,
+              target_self: Object.new
             )
           end
 

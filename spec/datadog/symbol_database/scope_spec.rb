@@ -90,7 +90,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
         name: "my_method",
         source_file: "/path/file.rb",
         start_line: 10,
-        end_line: 20
+        end_line: 20,
       )
 
       expect(scope.to_h).to include(
@@ -98,7 +98,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
         name: "my_method",
         source_file: "/path/file.rb",
         start_line: 10,
-        end_line: 20
+        end_line: 20,
       )
     end
 

@@ -64,7 +64,7 @@ module Datadog
         def self.build(agent_settings:, logger:)
           Core::Transport::HTTP.build(
             agent_settings: agent_settings,
-            logger: logger
+            logger: logger,
           ) { |t| t.api("exposures", HTTP::Spec.new) }.to_transport(self)
         end
 
@@ -72,7 +72,7 @@ module Datadog
         def self.build_flagevaluations(agent_settings:, logger:)
           Core::Transport::HTTP.build(
             agent_settings: agent_settings,
-            logger: logger
+            logger: logger,
           ) { |t| t.api("flagevaluations", HTTP::FlagevaluationsSpec.new) }.to_transport(self)
         end
 
@@ -85,7 +85,7 @@ module Datadog
           encoder = Core::Encoding::JSONEncoder
           parcel = Core::Transport::Parcel.new(
             encoder.encode(payload),
-            content_type: encoder.content_type
+            content_type: encoder.content_type,
           )
           request = Core::Transport::Request.new(parcel)
 
@@ -106,7 +106,7 @@ module Datadog
           encoder = Core::Encoding::JSONEncoder
           parcel = Core::Transport::Parcel.new(
             encoder.encode(payload),
-            content_type: encoder.content_type
+            content_type: encoder.content_type,
           )
           request = Core::Transport::Request.new(parcel)
 

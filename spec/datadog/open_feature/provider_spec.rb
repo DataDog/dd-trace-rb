@@ -727,7 +727,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       allow(engine).to receive(:fetch_value).and_return(result)
 
       details = client.fetch_string_details(
-        flag_key: "my-flag", default_value: "default", evaluation_context: evaluation_context
+        flag_key: "my-flag", default_value: "default", evaluation_context: evaluation_context,
       )
 
       expect(details.value).to eq("variant-a")
@@ -748,7 +748,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       allow(engine).to receive(:fetch_value).and_return(result)
 
       details = client.fetch_string_details(
-        flag_key: "type-mismatch-flag", default_value: "default", evaluation_context: evaluation_context
+        flag_key: "type-mismatch-flag", default_value: "default", evaluation_context: evaluation_context,
       )
 
       expect(details.value).to eq("default")
@@ -775,7 +775,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         flag_key: "after-hook-flag",
         default_value: "default",
         evaluation_context: evaluation_context,
-        hooks: [failing_after_hook]
+        hooks: [failing_after_hook],
       )
 
       expect(details.value).to eq("default")
@@ -945,7 +945,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         allow(engine).to receive(:fetch_value).and_return(result)
 
         client.fetch_string_value(
-          flag_key: "real-flag", default_value: "default", evaluation_context: evaluation_context
+          flag_key: "real-flag", default_value: "default", evaluation_context: evaluation_context,
         )
 
         writer.send(:drain_and_flush)
@@ -998,7 +998,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         allow(engine).to receive(:fetch_value).and_return(result)
 
         client.fetch_string_value(
-          flag_key: "typed-default-flag", default_value: "default", evaluation_context: evaluation_context
+          flag_key: "typed-default-flag", default_value: "default", evaluation_context: evaluation_context,
         )
 
         writer.send(:drain_and_flush)
@@ -1075,7 +1075,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       expect(res.flag_metadata).to include(
         "dd.eval.timestamp_ms" => 1_700_000_000_000,
-        "__dd_allocation_key" => "alloc-9"
+        "__dd_allocation_key" => "alloc-9",
       )
       expect(res.flag_metadata).not_to equal(metadata)
       expect(metadata).to eq("existing" => "kept")

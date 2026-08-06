@@ -7,7 +7,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     subject do
       described_class.new(
         source_env: {"DD_SUPPORTED_ENV_VAR" => "true"},
-        supported_configurations: ["DD_SUPPORTED_ENV_VAR"]
+        supported_configurations: ["DD_SUPPORTED_ENV_VAR"],
       )
     end
 
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     subject do
       described_class.new(
         source_env: {"DD_SERVICE" => "my-app", "PATH" => "/usr/bin"},
-        supported_configurations: ["DD_SERVICE"]
+        supported_configurations: ["DD_SERVICE"],
       )
     end
 
@@ -85,7 +85,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     context "when using default source_env" do
       subject do
         described_class.new(
-          supported_configurations: ["DD_SUPPORTED_ENV_VAR"]
+          supported_configurations: ["DD_SUPPORTED_ENV_VAR"],
         )
       end
 
@@ -99,7 +99,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     context "when using default supported_configurations" do
       subject do
         described_class.new(
-          source_env: Datadog::Core::Configuration::SUPPORTED_CONFIGURATION_NAMES.map { |env_var_name| [env_var_name, "true"] }.to_h
+          source_env: Datadog::Core::Configuration::SUPPORTED_CONFIGURATION_NAMES.map { |env_var_name| [env_var_name, "true"] }.to_h,
         )
       end
 
@@ -115,7 +115,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
           Datadog::Core::Configuration::ALIAS_TO_CANONICAL.each do |alias_name, canonical_name|
             # cannot set `subject` inside `it` block
             helper = described_class.new(
-              source_env: {alias_name => "true"}
+              source_env: {alias_name => "true"},
             )
             expect(helper.get_environment_variable(canonical_name)).to eq("true")
           end
@@ -127,7 +127,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       subject do
         described_class.new(
           source_env: {"DD_SUPPORTED_ENV_VAR" => "true"},
-          supported_configurations: ["DD_SUPPORTED_ENV_VAR"]
+          supported_configurations: ["DD_SUPPORTED_ENV_VAR"],
         )
       end
 
@@ -140,7 +140,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       subject do
         described_class.new(
           source_env: {},
-          supported_configurations: ["DD_SUPPORTED_ENV_VAR"]
+          supported_configurations: ["DD_SUPPORTED_ENV_VAR"],
         )
       end
 
@@ -160,7 +160,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
         described_class.new(
           source_env: {"OTEL_SUPPORTED_ENV_VAR" => "my-service"},
           supported_configurations: ["DD_SUPPORTED_ENV_VAR"],
-          aliases: {"DD_SUPPORTED_ENV_VAR" => ["OTEL_SUPPORTED_ENV_VAR"]}
+          aliases: {"DD_SUPPORTED_ENV_VAR" => ["OTEL_SUPPORTED_ENV_VAR"]},
         )
       end
 
@@ -173,7 +173,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
           described_class.new(
             source_env: {"DD_SUPPORTED_ENV_VAR" => "main-service", "OTEL_SUPPORTED_ENV_VAR" => "alias-service"},
             supported_configurations: ["DD_SUPPORTED_ENV_VAR"],
-            aliases: {"DD_SUPPORTED_ENV_VAR" => ["OTEL_SUPPORTED_ENV_VAR"]}
+            aliases: {"DD_SUPPORTED_ENV_VAR" => ["OTEL_SUPPORTED_ENV_VAR"]},
           )
         end
 
@@ -191,7 +191,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       subject do
         described_class.new(
           source_env: {"DD_UNSUPPORTED_VAR" => "value"},
-          supported_configurations: []
+          supported_configurations: [],
         )
       end
 
@@ -206,7 +206,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
         subject do
           described_class.new(
             source_env: {"DD_UNSUPPORTED_VAR" => "value"},
-            supported_configurations: []
+            supported_configurations: [],
           )
         end
 
@@ -220,7 +220,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
           described_class.new(
             source_env: {"DD_UNSUPPORTED_VAR" => "value"},
             supported_configurations: [],
-            raise_on_unknown_env_var: true
+            raise_on_unknown_env_var: true,
           )
         end
 
@@ -253,7 +253,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
             supported_configurations: ["DD_SUPPORTED_ENV_VAR"],
             aliases: {"DD_SUPPORTED_ENV_VAR" => ["SUPPORTED_ENV_VAR"]},
             alias_to_canonical: {"SUPPORTED_ENV_VAR" => "DD_SUPPORTED_ENV_VAR"},
-            raise_on_unknown_env_var: true
+            raise_on_unknown_env_var: true,
           )
         end
 

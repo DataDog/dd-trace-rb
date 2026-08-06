@@ -35,7 +35,7 @@ module Datadog
                   if Tracing::Distributed::PropagationPolicy.enabled?(
                     pin_config: client_config,
                     global_config: Datadog.configuration.tracing[:httprb],
-                    trace: trace
+                    trace: trace,
                   )
                     Contrib::HTTP.inject(trace, req.headers)
                   end
@@ -64,7 +64,7 @@ module Datadog
               if req_options[:peer_service]
                 span.set_tag(
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                  req_options[:peer_service]
+                  req_options[:peer_service],
                 )
               end
 
@@ -98,7 +98,7 @@ module Datadog
               set_analytics_sample_rate(span, req_options)
 
               span.set_tags(
-                Datadog.configuration.tracing.header_tags.request_tags(req.headers)
+                Datadog.configuration.tracing.header_tags.request_tags(req.headers),
               )
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
@@ -116,7 +116,7 @@ module Datadog
               end
 
               span.set_tags(
-                Datadog.configuration.tracing.header_tags.response_tags(response.headers)
+                Datadog.configuration.tracing.header_tags.response_tags(response.headers),
               )
             rescue => e
               logger.error("error preparing span from http.rb response: #{e.class}: #{e.message}, Source: #{e.backtrace}")

@@ -17,7 +17,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
         name: name,
         tags: ["tag1:val1", "tag2:val2"],
         common: true,
-        values: []
+        values: [],
       )
     end
 
@@ -64,7 +64,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
           points: [[now, 2]],
           type: "count",
           tags: ["tag1:val1", "tag2:val2"],
-          common: true
+          common: true,
         )
       end
     end
@@ -112,7 +112,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
         tags: ["tag1:val1", "tag2:val2"],
         interval: interval,
         common: true,
-        values: []
+        values: [],
       )
     end
 
@@ -160,7 +160,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
           type: "gauge",
           tags: ["tag1:val1", "tag2:val2"],
           common: true,
-          interval: interval
+          interval: interval,
         )
       end
     end
@@ -209,7 +209,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
         tags: ["tag1:val1", "tag2:val2"],
         interval: interval,
         common: true,
-        values: []
+        values: [],
       )
     end
 
@@ -267,7 +267,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
           type: "rate",
           tags: ["tag1:val1", "tag2:val2"],
           common: true,
-          interval: 10
+          interval: 10,
         )
       end
     end
@@ -314,7 +314,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
         name: name,
         tags: ["tag1:val1", "tag2:val2"],
         common: true,
-        values: []
+        values: [],
       )
     end
 
@@ -360,7 +360,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
           metric: name,
           points: [2],
           tags: ["tag1:val1", "tag2:val2"],
-          common: true
+          common: true,
         )
       end
     end

@@ -418,7 +418,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
           raise Datadog::AIGuard::AIGuardAbortError.new(
             action: "DENY",
             reason: "Dangerous tool call",
-            tags: ["shell-injection"]
+            tags: ["shell-injection"],
           )
         end
 

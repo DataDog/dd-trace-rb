@@ -114,8 +114,8 @@ RSpec.describe "AppSec ActiveRecord integration for Postgresql adapter" do
             "server.db.statement" => expected_db_statement,
             "server.db.system" => "postgresql",
           },
-          Datadog.configuration.appsec.waf_timeout
-        ).and_call_original
+          Datadog.configuration.appsec.waf_timeout,
+        ).and_call_original,
       )
 
       User.where(name: "Bob").to_a
@@ -130,8 +130,8 @@ RSpec.describe "AppSec ActiveRecord integration for Postgresql adapter" do
             "server.db.statement" => "SELECT * FROM users WHERE name = 'Bob'",
             "server.db.system" => "postgresql",
           },
-          Datadog.configuration.appsec.waf_timeout
-        ).and_call_original
+          Datadog.configuration.appsec.waf_timeout,
+        ).and_call_original,
       )
 
       User.find_by_sql("SELECT * FROM users WHERE name = 'Bob'").to_a
@@ -147,7 +147,7 @@ RSpec.describe "AppSec ActiveRecord integration for Postgresql adapter" do
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 

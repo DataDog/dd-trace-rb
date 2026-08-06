@@ -54,7 +54,7 @@ module Datadog
                 Ext::SPAN_ENDPOINT_RUN,
                 service: service_name,
                 type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
-                resource: resource
+                resource: resource,
               )
               trace = Tracing.active_trace
 
@@ -163,7 +163,7 @@ module Datadog
               span = Tracing.trace(
                 Ext::SPAN_ENDPOINT_RENDER,
                 service: service_name,
-                type: Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE
+                type: Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE,
               )
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -214,7 +214,7 @@ module Datadog
                 Ext::SPAN_ENDPOINT_RUN_FILTERS,
                 service: service_name,
                 type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
-                start_time: start
+                start_time: start,
               )
 
               begin

@@ -109,7 +109,7 @@ RSpec.describe "script_compiled integration" do
       probe = Datadog::DI::Probe.new(
         id: "script-compiled-e2e-1", type: :log,
         file: "script_compiled_integration_test_class.rb", line_no: 22,
-        capture_snapshot: false,
+        capture_snapshot: false
       )
 
       expect(diagnostics_transport).to receive(:send_diagnostics)
@@ -125,7 +125,7 @@ RSpec.describe "script_compiled integration" do
       probe = Datadog::DI::Probe.new(
         id: "script-compiled-e2e-2", type: :log,
         file: "script_compiled_integration_test_class.rb", line_no: 22,
-        capture_snapshot: false,
+        capture_snapshot: false
       )
 
       expect(diagnostics_transport).to receive(:send_diagnostics)
@@ -141,7 +141,7 @@ RSpec.describe "script_compiled integration" do
       probe = Datadog::DI::Probe.new(
         id: "script-compiled-e2e-3", type: :log,
         file: "script_compiled_integration_test_class.rb", line_no: 22,
-        capture_snapshot: true,
+        capture_snapshot: true
       )
 
       expect(diagnostics_transport).to receive(:send_diagnostics)

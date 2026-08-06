@@ -86,7 +86,7 @@ RSpec.describe "Per-method iseq line probe integration" do
       Datadog::DI::Probe.new(
         id: "per-method-test-1", type: :log,
         file: "per_method_iseq_integration_test_class.rb", line_no: 22,
-        capture_snapshot: false,
+        capture_snapshot: false
       )
     end
 
@@ -112,7 +112,7 @@ RSpec.describe "Per-method iseq line probe integration" do
         Datadog::DI::Probe.new(
           id: "per-method-test-2", type: :log,
           file: "per_method_iseq_integration_test_class.rb", line_no: 22,
-          capture_snapshot: true,
+          capture_snapshot: true
         )
       end
 
