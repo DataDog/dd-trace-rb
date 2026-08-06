@@ -21,11 +21,13 @@ module Datadog
 
       @telemetry: Core::Telemetry::Component?
 
+      @correlation: Correlation?
+
       @lock: Mutex
 
       @capture_expression_evaluator: CaptureExpressionEvaluator?
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, ?code_tracker: CodeTracker?, ?telemetry: Core::Telemetry::Component?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, ?code_tracker: CodeTracker?, ?correlation: Correlation?, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 
@@ -38,6 +40,8 @@ module Datadog
       attr_reader logger: DI::Logger
 
       attr_reader telemetry: Core::Telemetry::Component?
+
+      attr_reader correlation: Correlation?
 
       def capture_expression_evaluator: () -> CaptureExpressionEvaluator
 
@@ -69,6 +73,8 @@ module Datadog
       private
 
       attr_reader lock: Mutex
+
+      def emit?: (Probe probe) -> bool
 
       def line_trace_point_callback: (Probe probe, RubyVM::InstructionSequence? iseq, untyped responder, TracePoint tp) -> void
 
