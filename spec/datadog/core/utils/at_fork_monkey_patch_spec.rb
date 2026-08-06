@@ -382,7 +382,10 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
           error = RuntimeError.new("before failed")
           at_fork = Datadog::Core::Utils::AtForkMonkeyPatch
           at_fork.at_fork_blocks(
-            before: proc { calls << :started_before; raise error },
+            before: proc do
+              calls << :started_before
+              raise error
+            end,
             parent: proc { calls << :started_parent },
             child: proc { calls << :started_child }
           )
