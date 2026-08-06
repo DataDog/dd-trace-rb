@@ -7,8 +7,10 @@ declaring a method that is both instance and singleton
 
 - MUST open the class for an empty subclass – `class Foo < Bar` / `end` – NEVER a
   bare `Foo: Bar` constant, which Steep will not type as the class
-- MUST type a `Struct.new(...)` constant as a real class – `attr_accessor` per
-  member and a `self.new` returning `instance` – NEVER `untyped`
+- MUST type a `Struct.new(...)` constant as a real class – parameterize
+  `Struct[E]` with the member value type (a union for mixed members, NEVER a
+  tuple), add an `attr_accessor` per member, and a `self.new` returning
+  `instance` – NEVER `untyped`
 - NEVER leak `struct` / `structure` naming into the public type – it names the
   representation, not the concept
 - SHOULD use `def self?.method` for a method that is both instance and singleton
@@ -30,27 +32,28 @@ Type a `Struct.new` constant as a real class – accessors and a typed construct
 
 ```rbs
 # Good
-class Point < Struct[[Integer, Integer]]
+class Point < Struct[Integer]
   attr_accessor x: Integer
 
   attr_accessor y: Integer
 
-  def self.new: (?Integer x, ?Integer y) -> instance
+  def self.new: (Integer x, Integer y) -> instance
 end
 
-# Bad – untyped members leave point[0], each, to_a, members untyped
+# Bad – untyped element leaves point[0], each, to_a untyped
 class Point < Struct[untyped]
   attr_accessor x: Integer
 
   attr_accessor y: Integer
 
-  def self.new: (?Integer x, ?Integer y) -> instance
+  def self.new: (Integer x, Integer y) -> instance
 end
 ```
 
-`Struct[untyped]` is acceptable only when the code reaches members solely
-through the named accessors – the tuple pays off once anything uses the generic
-Struct API
+`Struct[untyped]` is acceptable only when members are reached solely through the
+named accessors; once anything uses the generic Struct API (`#[]`, `#each`,
+`#to_a`), type the element with the member value type – a union for mixed
+members, NEVER a tuple, which mistypes `#[]` as the whole tuple
 
 Declare a dual instance/singleton method once, so the two can't drift:
 

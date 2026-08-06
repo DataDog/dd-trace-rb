@@ -8,7 +8,8 @@ syntaxes: methods take `# @rbs`, attributes take a trailing `#:`.
 
 - Standalone `sig/` is the repo default – inline mode is opt-in per file via
   `inline: true` in the `Steepfile`; without that line the comments go unchecked
-- A file is EITHER `sig/`-mode OR `inline: true`, NEVER both – pick one per file
+- Prefer one mode per file, but a file MAY keep a `sig/*.rbs` alongside
+  `inline: true` when some information can't yet live inline; Steep reads both
 - SHOULD keep a file inline only when it is small and self-contained; otherwise
   mirror it in `sig/`
 - MUST type every method with `# @rbs` – one `# @rbs <param>:` line per parameter

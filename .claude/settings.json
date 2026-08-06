@@ -8,7 +8,7 @@
           {
             "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/shims/require-skill\" write-rbs 'sig/.*\\.rbs$|vendor/rbs/.*\\.rbs$'",
-            "timeout": 5000
+            "timeout": 5
           }
         ]
       }
