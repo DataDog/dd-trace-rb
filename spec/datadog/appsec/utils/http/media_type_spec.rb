@@ -22,19 +22,19 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaType do
         "text/html;charset=utf-8;boundary=something" => {
           type: "text",
           subtype: "html",
-          parameters: {"charset" => "utf-8", "boundary" => "something"}
+          parameters: {"charset" => "utf-8", "boundary" => "something"},
         },
         "multipart/form-data;boundary=----WebKitFormBoundary" => {
           type: "multipart",
           subtype: "form-data",
-          parameters: {"boundary" => "----webkitformboundary"}
+          parameters: {"boundary" => "----webkitformboundary"},
         },
         'text/plain;charset="utf-8"' => {type: "text", subtype: "plain", parameters: {"charset" => "utf-8"}},
         'text/plain;boundary="----=_Part_0"' => {type: "text", subtype: "plain", parameters: {"boundary" => "----=_part_0"}},
         'text/plain;foo="bar";baz=qux' => {
           type: "text",
           subtype: "plain",
-          parameters: {"foo" => "bar", "baz" => "qux"}
+          parameters: {"foo" => "bar", "baz" => "qux"},
         },
       }
 

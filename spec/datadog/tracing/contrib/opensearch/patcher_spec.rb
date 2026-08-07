@@ -29,9 +29,9 @@ RSpec.describe "OpenSearch instrumentation" do
     {
       settings: {
         index: {
-          number_of_shards: 4
-        }
-      }
+          number_of_shards: 4,
+        },
+      },
     }
   end
   let(:id) { "1" }
@@ -39,7 +39,7 @@ RSpec.describe "OpenSearch instrumentation" do
     {
       title: "Moneyball",
       director: "Bennett Miller",
-      year: "2011"
+      year: "2011",
     }
   end
 
@@ -260,9 +260,9 @@ RSpec.describe "OpenSearch instrumentation" do
         query: {
           multi_match: {
             query: q,
-            fields: ["title^2", "director"]
-          }
-        }
+            fields: ["title^2", "director"],
+          },
+        },
       }
     end
 

@@ -26,23 +26,16 @@ module Datadog
         end
 
         def to_h
-          frames = build_serializable_locations_map.map do |frame_id, location|
-            class_name, function_name = location.label&.match(CLASS_AND_FUNCTION_NAME_REGEX)&.captures
-            {
-              "id" => frame_id,
-              "text" => location.to_s.encode("UTF-8"),
-              "file" => location.path&.encode("UTF-8"),
-              "line" => location.lineno,
-              "class_name" => class_name&.encode("UTF-8"),
-              "function" => function_name&.encode("UTF-8"),
-            }
-          end
-          {"id" => @stack_id.encode("UTF-8"), "language" => "ruby".encode("UTF-8"), "frames" => frames}
+          {
+            "id" => @stack_id.encode("UTF-8"),
+            "language" => "ruby".encode("UTF-8"),
+            "frames" => build_serializable_frames,
+          }
         end
 
         private
 
-        def build_serializable_locations_map
+        def build_serializable_frames
           max_depth = Datadog.configuration.appsec.stack_trace.max_depth
           top_percent = Datadog.configuration.appsec.stack_trace.top_percentage
 
@@ -50,7 +43,7 @@ module Datadog
           drop_until_idx = @locations.size - (max_depth - drop_from_idx)
 
           frame_idx = -1
-          @locations.each_with_object({}) do |location, map|
+          @locations.each_with_object([]) do |location, frames|
             # we are dropping frames from library code without increasing frame index
             next if location.path&.include?("lib/datadog")
 
@@ -58,7 +51,15 @@ module Datadog
 
             next if max_depth != 0 && frame_idx >= drop_from_idx && frame_idx < drop_until_idx
 
-            map[frame_idx] = location
+            class_name, function_name = location.label&.match(CLASS_AND_FUNCTION_NAME_REGEX)&.captures
+            frames << {
+              "id" => frame_idx,
+              "text" => location.to_s.encode("UTF-8"),
+              "file" => location.path&.encode("UTF-8"),
+              "line" => location.lineno,
+              "class_name" => class_name&.encode("UTF-8"),
+              "function" => function_name&.encode("UTF-8"),
+            }
           end
         end
       end

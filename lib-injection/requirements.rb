@@ -44,7 +44,7 @@ def requirements
     "description" => "Ignore the rubygems CLI",
     "os" => nil,
     "cmds" => [
-      "**/ruby"
+      "**/ruby",
     ],
     "args" => [{"args" => ["*/gem"], "position" => 1}],
     "envars" => nil,
@@ -55,7 +55,7 @@ def requirements
     "description" => "Rubygems is required for injection to function",
     "os" => nil,
     "cmds" => [
-      "**/ruby"
+      "**/ruby",
     ],
     "args" => [{"args" => ["--disable-gems"], "position" => nil}],
     "envars" => nil,
@@ -69,7 +69,7 @@ def requirements
     "description" => "Ignore the rubygems update setup.rb",
     "os" => nil,
     "cmds" => [
-      "**/ruby"
+      "**/ruby",
     ],
     "args" => [{"args" => ["setup.rb"], "position" => nil}],
     "envars" => nil,
@@ -109,7 +109,7 @@ def requirements
           "description" => "Ignore #{exe} #{command}",
           "os" => nil,
           "cmds" => [
-            "**/ruby"
+            "**/ruby",
           ],
           "args" => [{"args" => ["*/#{exe}", *varargs, command], "position" => 1}],
           "envars" => nil,
@@ -133,7 +133,7 @@ def requirements
       "description" => "Ignore ruby's #{exe}",
       "os" => nil,
       "cmds" => [
-        "**/ruby"
+        "**/ruby",
       ],
       "args" => [{"args" => ["**/#{exe}"], "position" => 1}],
       "envars" => nil,
@@ -157,7 +157,7 @@ def requirements
       "description" => "Ignore chef's #{exe}",
       "os" => nil,
       "cmds" => [
-        "**/ruby"
+        "**/ruby",
       ],
       "args" => [{"args" => ["*/#{exe}"], "position" => 1}],
       "envars" => nil,
@@ -174,7 +174,7 @@ def requirements
       "description" => "Ignore omnibus's #{exe}",
       "os" => nil,
       "cmds" => [
-        "**/ruby"
+        "**/ruby",
       ],
       "args" => [{"args" => ["*/#{exe}"], "position" => 1}],
       "envars" => nil,
@@ -196,7 +196,7 @@ def requirements
       "description" => "Ignore appraisal #{command}",
       "os" => nil,
       "cmds" => [
-        "**/ruby"
+        "**/ruby",
       ],
       "args" => [{"args" => ["*/appraisal", command], "position" => 1}],
       "envars" => nil,
@@ -211,7 +211,7 @@ def requirements
       "description" => "Ignore vagrant's #{exe}",
       "os" => nil,
       "cmds" => [
-        "**/ruby"
+        "**/ruby",
       ],
       "args" => [{"args" => ["*/#{exe}"], "position" => 1}],
       "envars" => nil,
@@ -226,7 +226,7 @@ def requirements
       "description" => "Ignore puppet's #{exe}",
       "os" => nil,
       "cmds" => [
-        "**/ruby"
+        "**/ruby",
       ],
       "args" => [{"args" => ["*/#{exe}"], "position" => 1}],
       "envars" => nil,
@@ -242,7 +242,7 @@ def requirements
       "description" => "Ignore Homebrew's #{exe}",
       "os" => nil,
       "cmds" => [
-        "**/ruby"
+        "**/ruby",
       ],
       "args" => [{"args" => ["*/#{exe}"], "position" => 1}],
       "envars" => nil,

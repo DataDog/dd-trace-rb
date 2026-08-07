@@ -4,15 +4,18 @@ module Datadog
       class SerializableBacktrace
         include ::MessagePack::_Extension
 
+        type serialized_frame = ::Hash[::String, ::Integer | ::String?]
+        type serialized_value = ::Hash[::String, ::String | ::Array[serialized_frame]]
+
         CLASS_AND_FUNCTION_NAME_REGEX: ::Regexp
 
         @stack_id: ::String
         @locations: ::Array[::Thread::Backtrace::Location]
 
         def initialize: (locations: ::Array[::Thread::Backtrace::Location], stack_id: ::String) -> void
-        def to_h: -> ::Hash[::String, ::String | ::Array[::Hash[::String, ::Integer | ::String?]]]
+        def to_h: -> serialized_value
 
-        private def build_serializable_locations_map: -> ::Hash[Integer, ::Thread::Backtrace::Location]
+        private def build_serializable_frames: -> ::Array[serialized_frame]
       end
     end
   end
