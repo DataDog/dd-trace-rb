@@ -30,7 +30,7 @@ RSpec.describe "SQL comment propagation", order: :defined do
           port: port,
           database: database,
           username: username,
-          password: password
+          password: password,
         }
       end
       let(:sql_statement) { "SELECT 1;" }

@@ -47,7 +47,7 @@ module Datadog
 
           def collect_errors!(responses)
             {
-              agent_error: agent_error(responses)
+              agent_error: agent_error(responses),
             }
           end
 
@@ -114,7 +114,7 @@ module Datadog
               {
                 name: rule.matcher.name,
                 service: rule.matcher.service,
-                sample_rate: rule.sampler.sample_rate(nil)
+                sample_rate: rule.sampler.sample_rate(nil),
               }
             end.compact
           end

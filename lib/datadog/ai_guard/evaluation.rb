@@ -51,7 +51,7 @@ module Datadog
                 messages: truncate_content(truncate_messages(request.serialized_messages)),
                 attack_categories: result.tags,
                 sds: result.sds_findings,
-                tag_probs: result.tag_probabilities
+                tag_probs: result.tag_probabilities,
               }
             )
 
@@ -105,7 +105,7 @@ module Datadog
         end
 
         def truncate_content_value(content, max_bytes)
-          truncated = content.byteslice(0, max_bytes)
+          truncated = content.byteslice(0, max_bytes).to_s
           return truncated if truncated.valid_encoding?
 
           truncated.scrub("")

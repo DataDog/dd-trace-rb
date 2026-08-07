@@ -48,7 +48,7 @@ module Datadog
                 host: ENV.fetch("TEST_POSTGRES_HOST", "127.0.0.1"),
                 password: ENV.fetch("TEST_POSTGRES_PASSWORD", "postgres"),
                 port: ENV.fetch("TEST_POSTGRES_PORT", 5432),
-                username: ENV.fetch("TEST_POSTGRES_USER", "postgres")
+                username: ENV.fetch("TEST_POSTGRES_USER", "postgres"),
               }
             end
 
@@ -62,7 +62,7 @@ module Datadog
                 database: ENV.fetch("TEST_MYSQL_DB", "mysql"),
                 host: ENV.fetch("TEST_MYSQL_HOST", "127.0.0.1"),
                 password: ENV.fetch("TEST_MYSQL_ROOT_PASSWORD", "root"),
-                port: ENV.fetch("TEST_MYSQL_PORT", "3306")
+                port: ENV.fetch("TEST_MYSQL_PORT", "3306"),
               }
             end
           end

@@ -19,7 +19,7 @@ module Datadog
           TELEMETRY_METRICS_EVENTS_INTO_TYPES = {
             LOGIN_SUCCESS_EVENT => "login_success",
             LOGIN_FAILURE_EVENT => "login_failure",
-            SIGNUP_EVENT => "signup"
+            SIGNUP_EVENT => "signup",
           }.freeze
 
           class << self
@@ -241,7 +241,7 @@ module Datadog
 
               tags = {
                 event_type: TELEMETRY_METRICS_EVENTS_INTO_TYPES[event],
-                sdk_version: TELEMETRY_METRICS_SDK_VERSION
+                sdk_version: TELEMETRY_METRICS_SDK_VERSION,
               }
               telemetry.inc(TELEMETRY_METRICS_NAMESPACE, TELEMETRY_METRICS_SDK_EVENT, 1, tags: tags)
             end

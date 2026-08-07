@@ -896,7 +896,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               Datadog::Tracing::Sampling::SimpleRule.new(
                 resource: "Rails::HealthController#show",
                 sample_rate: 0.0
-              )
+              ),
             ],
             rate_limit: nil
           )
@@ -935,7 +935,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     let(:options) do
       {
         resource: "Rails::HealthController#show",
-        sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP
+        sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP,
       }
     end
 
@@ -953,7 +953,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         {
           resource: "Rails::HealthController#show",
           sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP,
-          remote_parent: true
+          remote_parent: true,
         }
       end
 
@@ -987,7 +987,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       let(:options) do
         {
           resource: "Rails::HealthController#show",
-          sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+          sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP,
         }
       end
 
@@ -1482,7 +1482,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               let(:event_args) do
                 [
                   instance_double(Datadog::Tracing::SpanOperation),
-                  instance_double(StandardError)
+                  instance_double(StandardError),
                 ]
               end
 
@@ -2060,7 +2060,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             expect { |b| trace_op.flush!(&b) }.to yield_with_args(
               [
                 have_attributes(name: "parent"),
-                have_attributes(name: "grandparent")
+                have_attributes(name: "grandparent"),
               ]
             )
           end

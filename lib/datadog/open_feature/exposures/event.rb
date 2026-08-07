@@ -23,18 +23,18 @@ module Datadog
             {
               timestamp: current_timestamp_ms,
               allocation: {
-                key: result.allocation_key
+                key: result.allocation_key,
               },
               flag: {
-                key: flag_key
+                key: flag_key,
               },
               variant: {
-                key: result.variant
+                key: result.variant,
               },
               subject: {
                 id: context.targeting_key,
-                attributes: extract_attributes(context)
-              }
+                attributes: extract_attributes(context),
+              },
             }.freeze
           end
 
