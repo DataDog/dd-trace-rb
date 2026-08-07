@@ -2,6 +2,7 @@
 
 require "datadog/core"
 require "datadog/tracing/span"
+require "datadog/tracing/span_event"
 
 RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
   before do
@@ -169,6 +170,52 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         expect(meta).to have_key("added by logger")
 
         GC.start
+      end
+    end
+
+    context "when Ruby conversion raises after native events are allocated" do
+      it "cleans up detached events and propagates the exception" do
+        event = Datadog::Tracing::SpanEvent.new("event", time_unix_nano: 123)
+        span = make_ruby_span(duration: nil, events: [event])
+        allow(span).to receive(:duration).and_raise(RuntimeError, "duration boom")
+
+        expect { tracer_span_class._native_from_span(span) }
+          .to raise_error(RuntimeError, "duration boom")
+
+        GC.start
+        expect(tracer_span_class._native_from_span(make_ruby_span(events: [event])))
+          .to be_a(tracer_span_class)
+      end
+    end
+
+    context "when libdatadog rejects event input" do
+      it "cleans up the event allocation and raises" do
+        invalid = "\xFF".b.force_encoding(Encoding::UTF_8)
+        event = Datadog::Tracing::SpanEvent.new("event", attributes: {"invalid" => invalid})
+
+        expect { tracer_span_class._native_from_span(make_ruby_span(events: [event])) }
+          .to raise_error(RuntimeError, /Failed to set span event attribute/)
+
+        GC.start
+        valid = Datadog::Tracing::SpanEvent.new("event", attributes: {"valid" => "value"})
+        expect(tracer_span_class._native_from_span(make_ruby_span(events: [valid])))
+          .to be_a(tracer_span_class)
+      end
+    end
+
+    context "with malformed native event input" do
+      it "rejects it before allocating Rust resources" do
+        event = double(
+          "malformed event",
+          to_native_format: {
+            "name" => "event",
+            "time_unix_nano" => 123,
+            "attributes" => {"invalid" => {type: 99}},
+          }
+        )
+
+        expect { tracer_span_class._native_from_span(make_ruby_span(events: [event])) }
+          .to raise_error(ArgumentError, /unsupported span event attribute type/)
       end
     end
 

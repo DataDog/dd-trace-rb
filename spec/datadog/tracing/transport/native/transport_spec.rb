@@ -8,6 +8,8 @@ require "datadog/tracing/transport/trace_formatter"
 require "datadog/core/utils/at_fork_monkey_patch"
 require "socket"
 require "json"
+require "msgpack"
+require "datadog/tracing/span_event"
 require "timeout"
 
 RSpec.describe Datadog::Tracing::Transport::Native::Transport do
@@ -23,11 +25,12 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
   # ---------------------------------------------------------------------------
 
   class NativeTransportMockAgent # rubocop:disable Lint/ConstantDefinitionInBlock
-    attr_reader :port
+    attr_reader :port, :requests
 
     def initialize(status: 200, body: '{"rate_by_service":{"service:,env:":1.0}}')
       @status = status
       @body = body
+      @requests = []
       @server = TCPServer.new("127.0.0.1", 0)
       @port = @server.addr[1]
       @thread = Thread.new { run }
@@ -68,7 +71,8 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       end
 
       body_len = (headers["content-length"] || 0).to_i
-      client.read(body_len) if body_len > 0
+      body = (body_len > 0) ? client.read(body_len) : ""
+      @requests << {request_line: request_line.strip, headers: headers, body: body}
 
       client.print "HTTP/1.1 #{@status} OK\r\n"
       client.print "Content-Length: #{@body.bytesize}\r\n"
@@ -104,7 +108,10 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
     end
   end
 
-  after { built_transports.each { |t| NativeTransportForkIsolation.dispose(t) } }
+  after do
+    built_transports.each { |t| NativeTransportForkIsolation.dispose(t) }
+    Datadog.configuration.tracing.reset_options!
+  end
 
   let(:logger) { Logger.new(File::NULL) }
 
@@ -466,6 +473,93 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       end
     end
 
+    context "with span events" do
+      let(:agent_info) { Datadog.send(:components).agent_info }
+
+      def trace_with_event
+        trace = make_trace_segment("web.request")
+        trace.spans.first.events << Datadog::Tracing::SpanEvent.new(
+          "manual",
+          time_unix_nano: 123,
+          attributes: {"count" => 2}
+        )
+        trace
+      end
+
+      def sent_span
+        request = mock_agent.requests.reverse.find { |entry| entry[:request_line].include?("/v0.4/traces") }
+        MessagePack.unpack(request.fetch(:body)).dig(0, 0)
+      end
+
+      it "uses typed events when the explicit override enables them" do
+        Datadog.configuration.tracing.native_span_events = true
+        expect(agent_info).to_not receive(:fetch)
+        trace = trace_with_event
+        trace.spans.first.meta["events"] = "existing"
+
+        expect(transport.send_traces([trace]).first).to be_ok
+
+        expect(sent_span.fetch("span_events").first).to include(
+          "name" => "manual",
+          "time_unix_nano" => 123
+        )
+        expect(sent_span.dig("meta", "events")).to eq("existing")
+      end
+
+      it "uses only legacy meta when the explicit override disables typed events" do
+        Datadog.configuration.tracing.native_span_events = false
+        expect(agent_info).to_not receive(:fetch)
+
+        expect(transport.send_traces([trace_with_event]).first).to be_ok
+
+        expect(sent_span).to_not have_key("span_events")
+        expect(JSON.parse(sent_span.dig("meta", "events"))).to eq([
+          {"name" => "manual", "time_unix_nano" => 123, "attributes" => {"count" => 2}},
+        ])
+      end
+
+      it "uses legacy meta when agent support is unknown" do
+        allow(agent_info).to receive(:fetch).and_return(double("agent info", span_events: nil))
+
+        expect(transport.send_traces([trace_with_event]).first).to be_ok
+
+        expect(sent_span).to_not have_key("span_events")
+        expect(sent_span.dig("meta", "events")).to be_a(String)
+      end
+
+      it "uses typed events when the agent advertises support" do
+        allow(agent_info).to receive(:fetch).and_return(double("agent info", span_events: true))
+
+        expect(transport.send_traces([trace_with_event]).first).to be_ok
+
+        expect(sent_span).to have_key("span_events")
+        expect(sent_span.fetch("meta", {})).to_not have_key("events")
+      end
+
+      it "uses legacy meta when fetching agent support fails" do
+        allow(agent_info).to receive(:fetch).and_raise("agent unavailable")
+
+        expect(transport.send_traces([trace_with_event]).first).to be_ok
+
+        expect(sent_span).to_not have_key("span_events")
+        expect(sent_span.dig("meta", "events")).to be_a(String)
+      end
+
+      it "retries after a failed capability fetch" do
+        allow(agent_info).to receive(:fetch).and_invoke(
+          proc { raise "agent unavailable" },
+          proc { double("agent info", span_events: true) }
+        )
+
+        expect(transport.send_traces([trace_with_event]).first).to be_ok
+        expect(sent_span).to_not have_key("span_events")
+
+        expect(transport.send_traces([trace_with_event]).first).to be_ok
+        expect(sent_span).to have_key("span_events")
+        expect(agent_info).to have_received(:fetch).twice
+      end
+    end
+
     context "when an exception occurs" do
       it "returns an InternalErrorResponse" do
         allow_any_instance_of(transport_class)
@@ -529,10 +623,13 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         trace
       end
 
-      it "warns when a span carries span events" do
-        trace = trace_with { |span| span.events << double("span event") }
+      it "does not warn when a span carries span events" do
+        Datadog.configuration.tracing.native_span_events = false
+        trace = trace_with do |span|
+          span.events << Datadog::Tracing::SpanEvent.new("event", time_unix_nano: 123)
+        end
 
-        expect(logger).to receive(:warn).once
+        expect(logger).to_not receive(:warn)
 
         expect(transport.send_traces([trace]).first.ok?).to be true
       end
@@ -565,7 +662,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         expect(logger).to receive(:warn).once
 
         2.times do
-          transport.send_traces([trace_with { |span| span.events << double("span event") }])
+          transport.send_traces([trace_with { |span| span.links << double("span link") }])
         end
       end
     end
