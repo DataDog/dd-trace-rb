@@ -133,4 +133,5 @@ no external grant needed. No local trigger otherwise.
   - Writing code: `.cursor/rules/code-style.mdc`.
   - Writing tests: `.cursor/rules/testing.mdc`.
 - `docs/GettingStarted.md` is the public documentation of this repo (2900+ lines). All user-facing product documentation lives there.
+- Claude Code skills and hooks live under `.claude/`; see `.claude/hooks/README.md` for the hook build, test, and native re-verification workflow.
 - This AGENTS.md is a living document: update it when CI or scripts evolve. Update specialized personas as well.
