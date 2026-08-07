@@ -191,6 +191,29 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         expect { tracer_span_class._native_from_span(span) }.not_to raise_error
       end
 
+      it "does not call MessagePack for supported values" do
+        value = {"supported" => [nil, true, 1, 1.5, "text", "\xff".b]}
+        def value.to_msgpack
+          raise "must not be called"
+        end
+        span = make_ruby_span
+        span.set_metastruct_tag("native", value)
+
+        expect { tracer_span_class._native_from_span(span) }.not_to raise_error
+      end
+
+      it "rejects custom MessagePack encoders without calling them" do
+        value = Object.new
+        def value.to_msgpack
+          raise "must not be called"
+        end
+        span = make_ruby_span
+        span.set_metastruct_tag("custom", value)
+
+        expect { tracer_span_class._native_from_span(span) }
+          .to raise_error(TypeError, "unsupported meta_struct value type: Object")
+      end
+
       it "skips keys outside the agent string-key contract" do
         span = make_ruby_span
         span.set_metastruct_tag(123, {ignored: true})
@@ -201,27 +224,43 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
       end
 
-      it "supports zero-argument custom MessagePack encoders" do
-        value = Object.new
-        def value.to_msgpack
-          {"custom" => true}.to_msgpack
-        end
-        span = make_ruby_span
-        span.set_metastruct_tag("custom", value)
+      it "rejects cyclic arrays and hashes" do
+        array = []
+        array << array
+        hash = {}
+        hash["self"] = hash
 
-        expect { tracer_span_class._native_from_span(span) }.not_to raise_error
+        [array, hash].each do |value|
+          span = make_ruby_span
+          span.set_metastruct_tag("cyclic", value)
+          expect { tracer_span_class._native_from_span(span) }
+            .to raise_error(ArgumentError, "meta_struct value contains a cycle")
+        end
       end
 
-      it "propagates MessagePack encoding errors without crashing" do
-        value = Object.new
-        def value.to_msgpack
-          raise "encoding failed"
-        end
+      it "rejects values deeper than 64 containers" do
+        value = nil
+        65.times { value = [value] }
         span = make_ruby_span
-        span.set_metastruct_tag("broken", value)
+        span.set_metastruct_tag("deep", value)
 
         expect { tracer_span_class._native_from_span(span) }
-          .to raise_error(RuntimeError, "encoding failed")
+          .to raise_error(ArgumentError, "meta_struct value exceeds maximum depth of 64")
+      end
+
+      it "rejects integers outside the native range" do
+        span = make_ruby_span
+        span.set_metastruct_tag("large", 1 << 64)
+
+        expect { tracer_span_class._native_from_span(span) }.to raise_error(RangeError)
+      end
+
+      it "rejects invalid UTF-8 strings" do
+        span = make_ruby_span
+        span.set_metastruct_tag("invalid", (+"\xff").force_encoding(Encoding::UTF_8))
+
+        expect { tracer_span_class._native_from_span(span) }
+          .to raise_error(EncodingError, "meta_struct string is not valid UTF-8")
 
         GC.start
       end
