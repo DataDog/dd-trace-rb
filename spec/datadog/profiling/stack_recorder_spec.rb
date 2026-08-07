@@ -240,7 +240,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             serialization_time_ns: be > 0,
             heap_iteration_prep_time_ns: be >= 0,
             heap_profile_build_time_ns: be >= 0,
-          )
+          ),
         )
       end
 
@@ -288,7 +288,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
         it "encodes the sample with the metrics provided, ignoring the disabled ones" do
           expect(samples.first.values).to eq(
-            "cpu-time": 123, "cpu-samples": 456, "wall-time": 789, timeline: 1111
+            "cpu-time": 123, "cpu-samples": 456, "wall-time": 789, timeline: 1111,
           )
         end
       end
@@ -311,7 +311,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             serialization_time_ns: be > 0,
             heap_iteration_prep_time_ns: be >= 0,
             heap_profile_build_time_ns: be >= 0,
-          )
+          ),
         )
       end
     end
@@ -349,7 +349,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(
           samples.select do |it|
             labels_without_state.call(it.labels) == {"local root span id": 456}
-          end
+          end,
         ).to have(2).items
 
         # Matching samples taken before and after recording the endpoint have been changed
@@ -357,7 +357,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           samples.select do |it|
             labels_without_state.call(it.labels) ==
               {"local root span id": 123, "trace endpoint": "recorded-endpoint"}
-          end
+          end,
         ).to have(2).items
       end
     end
@@ -647,7 +647,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               recorded_samples: expected_allocation_samples + expected_heap_samples,
               heap_iteration_prep_time_ns: be > 0,
               heap_profile_build_time_ns: be > 0,
-            )
+            ),
           )
         end
 
@@ -1029,7 +1029,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           serialization_time_ns_total: be > 0,
 
           heap_recorder_snapshot: nil,
-        )
+        ),
       )
 
       serialization_time_min, serialization_time_max, serialization_time_avg, serialization_time_total =
@@ -1037,7 +1037,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           :serialization_time_ns_min,
           :serialization_time_ns_max,
           :serialization_time_ns_avg,
-          :serialization_time_ns_total
+          :serialization_time_ns_total,
         )
 
       expect(serialization_time_min).to be <= serialization_time_avg
@@ -1058,7 +1058,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
         described_class::Testing._native_track_object(stack_recorder, obj, 1, obj.class.name)
         Datadog::Profiling::Collectors::Stack::Testing._native_sample(
-          Thread.current, stack_recorder, {"alloc-samples" => 1, "heap_sample" => true}, [], [],
+          Thread.current, stack_recorder, {"alloc-samples" => 1, "heap_sample" => true}, [], []
         )
         # On Ruby 4+, heap recordings are deferred and need to be finalized after the sample is recorded
         described_class::Testing._native_finalize_pending_heap_recordings(stack_recorder)

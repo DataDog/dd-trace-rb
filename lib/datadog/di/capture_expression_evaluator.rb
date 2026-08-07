@@ -52,7 +52,7 @@ module Datadog
               depth: limits[:depth],
               attribute_count: limits[:attribute_count],
               length: limits[:length],
-              collection_size: limits[:collection_size],
+              collection_size: limits[:collection_size]
             )
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)

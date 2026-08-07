@@ -30,7 +30,7 @@ class ProfilerSampleGvlBenchmark
     @recorder = Datadog::Profiling::StackRecorder.for_testing
     @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(
       recorder: @recorder,
-      waiting_for_gvl_threshold_ns: 0
+      waiting_for_gvl_threshold_ns: 0,
     )
   end
 

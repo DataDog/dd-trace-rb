@@ -21,7 +21,7 @@ RSpec.describe "Presto::Client instrumentation" do
       time_zone: time_zone,
       language: language,
       http_proxy: http_proxy,
-      model_version: model_version
+      model_version: model_version,
     )
   end
   let(:service) { "presto" }

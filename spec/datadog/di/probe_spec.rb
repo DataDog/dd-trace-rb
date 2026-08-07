@@ -218,7 +218,7 @@ RSpec.describe Datadog::DI::Probe do
       let(:probe) do
         described_class.new(
           id: "42", type: :log, type_name: "Foo", method_name: "bar",
-          capture_expressions: [capture_expression],
+          capture_expressions: [capture_expression]
         )
       end
 
@@ -236,7 +236,7 @@ RSpec.describe Datadog::DI::Probe do
       let(:probe) do
         described_class.new(
           id: "42", type: :log, type_name: "Foo", method_name: "bar",
-          capture_expressions: [],
+          capture_expressions: []
         )
       end
 
@@ -250,7 +250,7 @@ RSpec.describe Datadog::DI::Probe do
         described_class.new(
           id: "42", type: :log, type_name: "Foo", method_name: "bar",
           capture_expressions: [capture_expression],
-          rate_limit: 42,
+          rate_limit: 42
         )
       end
 
@@ -448,7 +448,7 @@ RSpec.describe Datadog::DI::Probe do
           max_capture_depth: 7,
           max_capture_attribute_count: 99,
           max_capture_string_length: 77,
-          max_capture_collection_size: 33,)
+          max_capture_collection_size: 33)
       end
 
       it "returns the probe-level values for all four fields" do
@@ -464,7 +464,7 @@ RSpec.describe Datadog::DI::Probe do
     context "mixed probe-level overrides" do
       let(:probe) do
         described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
-          max_capture_string_length: 50,)
+          max_capture_string_length: 50)
       end
 
       it "uses the probe-level value where set, settings default otherwise" do

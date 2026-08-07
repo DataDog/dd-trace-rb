@@ -785,13 +785,13 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       let(:probe) do
         Datadog::DI::Probe.new(**base_probe_args.merge(
-          type_name: "HookTestClass", method_name: "hook_test_method"
+          type_name: "HookTestClass", method_name: "hook_test_method",
         ))
       end
 
       let(:probe2) do
         Datadog::DI::Probe.new(**base_probe_args.merge(
-          type_name: "HookTestClass", method_name: "hook_test_method"
+          type_name: "HookTestClass", method_name: "hook_test_method",
         ))
       end
 
@@ -1181,7 +1181,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             Datadog::DI::EL::Expression.new(
               "(expression)",
               # We use "arg1" here, actual variable name is not currently available
-              "ref('arg1') == 41"
+              "ref('arg1') == 41",
             )
           end
 
@@ -1193,7 +1193,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             Datadog::DI::EL::Expression.new(
               "(expression)",
               # We use "arg1" here, actual variable name is not currently available
-              "ref('arg1') == 42"
+              "ref('arg1') == 42",
             )
           end
 
@@ -1206,7 +1206,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              "ref('kwarg') == 42"
+              "ref('kwarg') == 42",
             )
           end
 
@@ -1217,7 +1217,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              "ref('kwarg') == 41"
+              "ref('kwarg') == 41",
             )
           end
 
@@ -1231,7 +1231,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         let(:condition) do
           Datadog::DI::EL::Expression.new(
             "(expression)",
-            "unknown_function('kwarg') == 42"
+            "unknown_function('kwarg') == 42",
           )
         end
 
@@ -1806,7 +1806,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              "ref('local') == 42"
+              "ref('local') == 42",
             )
           end
 
@@ -1822,7 +1822,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              "ref('local') == 43"
+              "ref('local') == 43",
             )
           end
 
@@ -1846,7 +1846,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              "iref('@ivar') == 42"
+              "iref('@ivar') == 42",
             )
           end
 
@@ -1862,7 +1862,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              "iref('@ivar') == 43"
+              "iref('@ivar') == 43",
             )
           end
 
@@ -1978,7 +1978,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       let(:probe) do
         Datadog::DI::Probe.new(
           id: 1, type: :log, type_name: "DITestClass", method_name: "test_method",
-          capture_snapshot: false,
+          capture_snapshot: false
         )
       end
 

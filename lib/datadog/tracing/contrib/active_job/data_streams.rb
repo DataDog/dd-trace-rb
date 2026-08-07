@@ -27,7 +27,7 @@ module Datadog
               Datadog::DataStreams.set_produce_checkpoint(
                 type: Ext::TAG_COMPONENT,
                 destination: queue_name,
-                auto_instrumentation: true
+                auto_instrumentation: true,
               ) do |key, value|
                 job_data[key] = value
               end
@@ -47,7 +47,7 @@ module Datadog
               Datadog::DataStreams.set_consume_checkpoint(
                 type: Ext::TAG_COMPONENT,
                 source: queue_name,
-                auto_instrumentation: true
+                auto_instrumentation: true,
               ) do |key|
                 job_data[key]
               end

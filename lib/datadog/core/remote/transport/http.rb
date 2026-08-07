@@ -40,7 +40,7 @@ module Datadog
             Core::Transport::HTTP.build(
               agent_settings: agent_settings,
               logger: logger,
-              headers: headers
+              headers: headers,
             ) do |transport|
               transport.api "root", ROOT
 
@@ -59,7 +59,7 @@ module Datadog
             Core::Transport::HTTP.build(
               agent_settings: agent_settings,
               logger: logger,
-              headers: headers
+              headers: headers,
             ) do |transport|
               transport.api "v7", V7
 

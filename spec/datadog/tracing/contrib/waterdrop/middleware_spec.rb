@@ -52,7 +52,7 @@ RSpec.describe "WaterDrop middleware" do
 
         expect(message[:headers]).to include(
           "x-datadog-trace-id" => low_order_trace_id(span.trace_id).to_s,
-          "x-datadog-parent-id" => span.id.to_s
+          "x-datadog-parent-id" => span.id.to_s,
         )
       end
     end
@@ -73,7 +73,7 @@ RSpec.describe "WaterDrop middleware" do
         expect(Datadog::DataStreams).to have_received(:set_produce_checkpoint).with(
           type: "kafka",
           destination: "some_topic",
-          auto_instrumentation: true
+          auto_instrumentation: true,
         )
         expect(message[:headers]).to include("data_streams_key" => "data_streams_value")
       end
@@ -86,7 +86,7 @@ RSpec.describe "WaterDrop middleware" do
         expect(Datadog::DataStreams).to have_received(:set_produce_checkpoint).with(
           type: "kafka",
           destination: "some_topic",
-          auto_instrumentation: true
+          auto_instrumentation: true,
         )
       end
 
@@ -97,7 +97,7 @@ RSpec.describe "WaterDrop middleware" do
 
         expect(message[:headers]).to include(
           "data_streams_key" => "data_streams_value",
-          "existing" => "header"
+          "existing" => "header",
         )
       end
     end

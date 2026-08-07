@@ -72,7 +72,7 @@ module Datadog
             builder.to_api_instances,
             builder.default_api,
             logger: logger,
-            telemetry: telemetry
+            telemetry: telemetry,
           )
         end
       end

@@ -27,7 +27,7 @@ module Datadog
               telemetry: telemetry,
               experimental_propagate_process_tags_enabled: options.fetch(:propagate_process_tags_enabled) do
                 options.fetch(:experimental_propagate_process_tags_enabled)
-              end
+              end,
             )
           end
 

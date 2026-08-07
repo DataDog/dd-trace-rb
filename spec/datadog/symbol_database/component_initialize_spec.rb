@@ -35,10 +35,10 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
   before do
     allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:symbols).and_return(
-      instance_double(Datadog::SymbolDatabase::Transport::Symbols::Transport)
+      instance_double(Datadog::SymbolDatabase::Transport::Symbols::Transport),
     )
     allow(Datadog::SymbolDatabase::ScopeBatcher).to receive(:new).and_return(
-      instance_double(Datadog::SymbolDatabase::ScopeBatcher, shutdown: nil)
+      instance_double(Datadog::SymbolDatabase::ScopeBatcher, shutdown: nil),
     )
   end
 

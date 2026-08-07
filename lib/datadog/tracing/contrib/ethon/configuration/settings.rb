@@ -43,7 +43,7 @@ module Datadog
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
                   Ext::ENV_SERVICE_NAME,
-                  Ext::DEFAULT_PEER_SERVICE_NAME
+                  Ext::DEFAULT_PEER_SERVICE_NAME,
                 )
               end
             end

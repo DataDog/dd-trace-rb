@@ -34,7 +34,7 @@ RSpec.describe Datadog::Tracing::TraceDigest do
           trace_distributed_id: nil,
           trace_flags: nil,
           trace_state: nil,
-          trace_state_unknown_fields: nil
+          trace_state_unknown_fields: nil,
         )
       end
 

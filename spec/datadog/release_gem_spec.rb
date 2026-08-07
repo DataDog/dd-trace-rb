@@ -83,7 +83,7 @@ RSpec.describe "gem release process" do
             `git ls-files -z`
               .split("\x0")
               .reject { |f| f.match(directories_excluded) }
-              .reject { |f| f.match(single_files_excluded) }
+              .reject { |f| f.match(single_files_excluded) },
           )
       end
     end

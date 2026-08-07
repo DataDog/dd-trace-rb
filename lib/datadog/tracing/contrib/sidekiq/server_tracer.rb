@@ -34,7 +34,7 @@ module Datadog
               Ext::SPAN_JOB,
               service: @sidekiq_service,
               type: Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
-              on_error: @on_error
+              on_error: @on_error,
             ) do |span|
               span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               span.resource = resource
@@ -46,7 +46,7 @@ module Datadog
 
               span.set_tag(
                 Datadog::Tracing::Metadata::Ext::TAG_KIND,
-                Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CONSUMER
+                Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CONSUMER,
               )
 
               # Set analytics sample rate

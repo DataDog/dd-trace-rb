@@ -40,14 +40,14 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
     it "raises when not given a module or class" do
       expect { Datadog::Kit::Tracing::MethodTracer.trace_method("", :to_s) }.to raise_error(
         ArgumentError,
-        /mod is not a module/
+        /mod is not a module/,
       )
     end
 
     it "raises when span name is ambiguous" do
       expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Class.new, :bar) }.to raise_error(
         ArgumentError,
-        /ambiguous span name: provide one or define mod.name/
+        /ambiguous span name: provide one or define mod.name/,
       )
     end
 
@@ -167,7 +167,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
     it "raises when method is not defined" do
       expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :bar) }.to raise_error(
         NoMethodError,
-        /undefined method :bar for class/
+        /undefined method :bar for class/,
       )
     end
 

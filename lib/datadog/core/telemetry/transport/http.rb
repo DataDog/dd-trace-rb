@@ -33,7 +33,7 @@ module Datadog
             Core::Transport::HTTP.build(
               logger: logger,
               agent_settings: agent_settings,
-              headers: headers
+              headers: headers,
             ) do |transport|
               transport.api "agentless_telemetry", AGENTLESS_TELEMETRY
               # Call block to apply any customization, if provided
@@ -53,7 +53,7 @@ module Datadog
             Core::Transport::HTTP.build(
               logger: logger,
               agent_settings: agent_settings,
-              headers: headers
+              headers: headers,
             ) do |transport|
               transport.api "agent_telemetry", AGENT_TELEMETRY
 

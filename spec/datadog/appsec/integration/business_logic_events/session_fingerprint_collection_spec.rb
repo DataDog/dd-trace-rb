@@ -64,7 +64,7 @@ RSpec.describe "Session fingerprint collection for business events" do
             )
 
             [200, {"Content-Type" => "text/html"}, ["OK"]]
-          end
+          end,
         )
       end
 

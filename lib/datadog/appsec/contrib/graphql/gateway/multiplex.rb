@@ -84,7 +84,7 @@ module Datadog
                     args_hash,
                     selection_name,
                     field_arguments,
-                    arguments_from_directives(selection.directives, query_variables)
+                    arguments_from_directives(selection.directives, query_variables),
                   )
 
                   arguments_from_selections(

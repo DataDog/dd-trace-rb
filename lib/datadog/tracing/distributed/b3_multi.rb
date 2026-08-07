@@ -35,7 +35,7 @@ module Datadog
 
           if digest.trace_sampling_priority
             sampling_priority = Helpers.clamp_sampling_priority(
-              digest.trace_sampling_priority
+              digest.trace_sampling_priority,
             )
             data[@sampled_key] = sampling_priority.to_s
           end

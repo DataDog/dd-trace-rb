@@ -26,7 +26,7 @@ module Datadog
             Datadog.logger.warn(
               "AppSec is not supported in Ruby versions above 3.3.0 when using `ffi` versions older than 1.16.0, " \
               "and will be forcibly disabled due to a memory leak in `ffi`. " \
-              "Please upgrade your `ffi` version to 1.16.0 or higher."
+              "Please upgrade your `ffi` version to 1.16.0 or higher.",
             )
             telemetry.error("AppSec: Component not loaded, ffi version is leaky with ruby > 3.3.0")
 

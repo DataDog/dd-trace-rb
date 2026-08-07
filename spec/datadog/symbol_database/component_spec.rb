@@ -35,10 +35,10 @@ RSpec.describe Datadog::SymbolDatabase::Component do
   # Stub Uploader and ScopeBatcher to avoid real HTTP calls.
   before do
     allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:symbols).and_return(
-      instance_double(Datadog::SymbolDatabase::Transport::Symbols::Transport)
+      instance_double(Datadog::SymbolDatabase::Transport::Symbols::Transport),
     )
     allow(Datadog::SymbolDatabase::ScopeBatcher).to receive(:new).and_return(
-      instance_double(Datadog::SymbolDatabase::ScopeBatcher, shutdown: nil, add_scope: nil, flush: nil, reset: nil)
+      instance_double(Datadog::SymbolDatabase::ScopeBatcher, shutdown: nil, add_scope: nil, flush: nil, reset: nil),
     )
   end
 

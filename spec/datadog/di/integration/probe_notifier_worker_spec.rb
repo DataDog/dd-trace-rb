@@ -22,7 +22,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       settings, logger,
       agent_settings: agent_settings,
       probe_repository: probe_repository,
-      probe_notification_builder: probe_notification_builder,
+      probe_notification_builder: probe_notification_builder
     )
   end
 

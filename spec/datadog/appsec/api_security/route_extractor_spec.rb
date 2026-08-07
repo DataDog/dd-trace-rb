@@ -59,7 +59,7 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
       context "when pattern is nil" do
         before do
           allow(request).to receive(:env).and_return(
-            {"grape.routing_args" => {route_info: double("Grape::Router::Route", pattern: nil)}}
+            {"grape.routing_args" => {route_info: double("Grape::Router::Route", pattern: nil)}},
           )
         end
 
@@ -99,7 +99,7 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
         context "when route has nested path" do
           before do
             allow(request).to receive(:env).and_return(
-              {"action_dispatch.route_uri_pattern" => "/api/v1/users/:id/posts/:post_id(.:format)"}
+              {"action_dispatch.route_uri_pattern" => "/api/v1/users/:id/posts/:post_id(.:format)"},
             )
           end
 
@@ -138,7 +138,7 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
       context "when both datadog and native rails route keys are present" do
         before do
           allow(request).to receive(:env).and_return(
-            {"datadog.action_dispatch.route" => datadog_route, "action_dispatch.route" => native_route}
+            {"datadog.action_dispatch.route" => datadog_route, "action_dispatch.route" => native_route},
           )
         end
 

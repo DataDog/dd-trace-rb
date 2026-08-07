@@ -100,7 +100,7 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingSamplingRules do
       value: RSpec::Matchers::BuiltIn::Match.new(
         lambda do |rules|
           rules == '[{"sample_rate":1,"tags":{"k":"v"}}]'
-        end
+        end,
       ),
       config_object: Datadog.configuration.tracing.sampling do
         # Match the shape Remote Config delivers: JSON.parse produces string keys

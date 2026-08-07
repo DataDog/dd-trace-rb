@@ -90,7 +90,7 @@ module Datadog
         new(
           hash_value: hash_value,
           pathway_start: pathway_start,
-          current_edge_start: current_edge_start
+          current_edge_start: current_edge_start,
         )
       rescue EOFError
         # Not enough data in binary stream

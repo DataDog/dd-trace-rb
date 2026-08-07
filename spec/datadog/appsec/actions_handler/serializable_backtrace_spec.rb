@@ -25,7 +25,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
         path: "path/to/file.rb",
         lineno: 15,
         label: "SomeModule::SomeClass.some_method",
-        to_s: "path/to/file.rb:15:in `SomeModule::SomeClass#some_method'"
+        to_s: "path/to/file.rb:15:in `SomeModule::SomeClass#some_method'",
       )
 
       result = pack_and_unpack(described_class.new(locations: [location], stack_id: "some-id"))
@@ -72,7 +72,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
           Thread::Backtrace::Location,
           path: "path/to/file_#{i}.rb",
           lineno: 10,
-          label: "SomeModule::SomeClass#some_method_#{i}"
+          label: "SomeModule::SomeClass#some_method_#{i}",
         )
       end
 
@@ -104,7 +104,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
           Thread::Backtrace::Location,
           path: "path/to/file_#{i}.rb",
           lineno: 10,
-          label: "SomeModule::SomeClass#some_method_#{i}"
+          label: "SomeModule::SomeClass#some_method_#{i}",
         )
       end
 
@@ -178,7 +178,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
           Thread::Backtrace::Location,
           path: "path/to/file.rb",
           lineno: 15,
-          label: "block (2 levels) in SomeClass.some_method"
+          label: "block (2 levels) in SomeClass.some_method",
         )
 
         result = pack_and_unpack(described_class.new(locations: [location_one, location_two], stack_id: "some-id"))

@@ -79,11 +79,11 @@ RSpec.describe "ActiveRecord SQL Injection" do
           lambda do |env|
             request = Rack::Request.new(env)
             users = User.find_by_sql(
-              "SELECT * FROM users WHERE name = '#{request.params["name"]}'"
+              "SELECT * FROM users WHERE name = '#{request.params["name"]}'",
             )
 
             [200, {"Content-Type" => "application/json"}, [users.to_json]]
-          end
+          end,
         )
       end
     end

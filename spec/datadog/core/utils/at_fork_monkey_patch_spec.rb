@@ -7,7 +7,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
   def clear_at_fork_blocks
     Datadog::Core::Utils::AtForkMonkeyPatch.send(
       :replace_at_fork_blocks,
-      {before: [].freeze, parent: [].freeze, child: [].freeze}.freeze
+      {before: [].freeze, parent: [].freeze, child: [].freeze}.freeze,
     )
   end
 
@@ -308,7 +308,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
             at_fork.at_fork_blocks(
               before: proc { calls << :late_before },
               parent: proc { calls << :late_parent },
-              child: proc { calls << :late_child }
+              child: proc { calls << :late_child },
             )
           end
 
@@ -387,12 +387,12 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
               raise error
             end,
             parent: proc { calls << :started_parent },
-            child: proc { calls << :started_child }
+            child: proc { calls << :started_child },
           )
           at_fork.at_fork_blocks(
             before: proc { calls << :skipped_before },
             parent: proc { calls << :skipped_parent },
-            child: proc { calls << :skipped_child }
+            child: proc { calls << :skipped_child },
           )
 
           expect { process_module._fork }.to raise_error(error)

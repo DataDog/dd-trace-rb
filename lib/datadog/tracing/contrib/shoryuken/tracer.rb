@@ -18,7 +18,7 @@ module Datadog
               Ext::SPAN_JOB,
               service: @shoryuken_service,
               type: Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
-              on_error: @on_error
+              on_error: @on_error,
             ) do |span|
               span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_MESSAGING_SYSTEM)

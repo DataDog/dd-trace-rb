@@ -31,7 +31,7 @@ RSpec.describe Datadog::AppSec::APISecurity::EndpointCollection::GrapeRouteSeria
     instance_double(
       "Grape::Router::Route",
       request_method: method,
-      pattern: instance_double("Grape::Router::Pattern", origin: path)
+      pattern: instance_double("Grape::Router::Pattern", origin: path),
     )
   end
 end

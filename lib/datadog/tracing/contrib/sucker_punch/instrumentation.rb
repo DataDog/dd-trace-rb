@@ -32,7 +32,7 @@ module Datadog
                   if Datadog::Tracing::Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
                     Datadog::Tracing::Contrib::Analytics.set_sample_rate(
                       span,
-                      datadog_configuration[:analytics_sample_rate]
+                      datadog_configuration[:analytics_sample_rate],
                     )
                   end
 

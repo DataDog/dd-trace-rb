@@ -150,7 +150,7 @@ module Datadog
       def assistant(tool_name:, id:, arguments:)
         Evaluation::Message.new(
           role: :assistant,
-          tool_call: Evaluation::ToolCall.new(tool_name, id: id.to_s, arguments: arguments)
+          tool_call: Evaluation::ToolCall.new(tool_name, id: id.to_s, arguments: arguments),
         )
       end
 

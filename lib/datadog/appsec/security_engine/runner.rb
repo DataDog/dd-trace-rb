@@ -54,7 +54,7 @@ module Datadog
             timeout: result.timeout?,
             duration_ns: result.duration,
             duration_ext_ns: (stop_ns - start_ns),
-            input_truncated: result.input_truncated?
+            input_truncated: result.input_truncated?,
           )
         ensure
           @mutex.unlock
@@ -89,7 +89,7 @@ module Datadog
             attributes: {},
             duration: 0,
             keep: false,
-            timeout: false
+            timeout: false,
           )
         end
 

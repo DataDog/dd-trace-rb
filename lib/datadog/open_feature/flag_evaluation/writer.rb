@@ -280,7 +280,7 @@ module Datadog
             flag_key, variant, allocation_key, _runtime_default, _error_message, targeting_key, _ctx_key = key
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
-              targeting_key: targeting_key, entry: entry, flush_time_ms: flush_time_ms, tier: :full,
+              targeting_key: targeting_key, entry: entry, flush_time_ms: flush_time_ms, tier: :full
             )
             events << event
           end
@@ -289,7 +289,7 @@ module Datadog
             flag_key, variant, allocation_key, _runtime_default, _error_message = key
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
-              targeting_key: nil, entry: entry, flush_time_ms: flush_time_ms, tier: :degraded,
+              targeting_key: nil, entry: entry, flush_time_ms: flush_time_ms, tier: :degraded
             )
             events << event
           end
@@ -374,7 +374,7 @@ module Datadog
             {
               "context" => @service_context,
               "flagEvaluations" => events,
-            }
+            },
           )
           if response.respond_to?(:ok?) && !response.ok?
             @logger.debug { "OpenFeature EVP: transport response was not OK: #{response.inspect}" }

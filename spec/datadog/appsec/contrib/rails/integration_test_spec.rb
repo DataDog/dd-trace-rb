@@ -201,7 +201,7 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
             Datadog::Kit::Identity.set_user(Datadog::Tracing.active_trace, id: "blocked-user-id")
             head :ok
           end
-        end
+        end,
       )
     end
 
