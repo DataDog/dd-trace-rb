@@ -51,9 +51,9 @@ RSpec.describe Datadog::Core::Configuration::Deprecations do
         allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return({
           local: {
             config: {
-              "DEPRECATED_TEST" => "old test"
-            }
-          }
+              "DEPRECATED_TEST" => "old test",
+            },
+          },
         })
       end
 
@@ -68,9 +68,9 @@ RSpec.describe Datadog::Core::Configuration::Deprecations do
         allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return({
           fleet: {
             config: {
-              "DEPRECATED_TEST" => "old test"
-            }
-          }
+              "DEPRECATED_TEST" => "old test",
+            },
+          },
         })
       end
 
@@ -85,14 +85,14 @@ RSpec.describe Datadog::Core::Configuration::Deprecations do
         allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return({
           local: {
             config: {
-              "DEPRECATED_TEST" => "old test"
-            }
+              "DEPRECATED_TEST" => "old test",
+            },
           },
           fleet: {
             config: {
-              "DEPRECATED_TEST" => "old test"
-            }
-          }
+              "DEPRECATED_TEST" => "old test",
+            },
+          },
         })
       end
 

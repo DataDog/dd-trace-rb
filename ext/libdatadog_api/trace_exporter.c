@@ -12,8 +12,12 @@
  * Forward declarations
  * ======================================================================== */
 
-/* Internal: convert a Ruby Span to a Rust ddog_TracerSpan* (caller owns) */
-static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span);
+typedef struct {
+  ddog_TracerSpan *span;
+} raw_span_owner;
+
+/* Internal: convert a Ruby Span into the supplied raw Rust span owner */
+static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner);
 
 /* TracerSpan methods */
 static VALUE _native_from_span(VALUE klass, VALUE span);
@@ -305,31 +309,14 @@ static int metrics_iter_cb(VALUE key, VALUE value, VALUE arg) {
   return ST_CONTINUE;
 }
 
-/*
- * Emit a warning while a raw ddog_TracerSpan is held.
- *
- * log_warning calls into Ruby (Datadog.logger.warn), which can raise or be
- * interrupted. A non-local exit here would leak rust_span (it is not yet
- * owned by any chunk), so run the call under rb_protect and, on a pending
- * jump, free rust_span before re-raising with rb_jump_tag.
- */
-static void log_warning_owning_span(ddog_TracerSpan *rust_span, VALUE message) {
-  int state = 0;
-  rb_protect(log_warning, message, &state);
-  if (state) {
-    ddog_tracer_span_free(rust_span);
-    rb_jump_tag(state);
-  }
-}
-
 /* ========================================================================
- * Internal: convert a Ruby Span -> ddog_TracerSpan*
+ * Internal: convert a Ruby Span into a raw_span_owner
  *
- * The returned pointer is Rust-heap-allocated.  Ownership is transferred
- * to the caller (either wrap it in TypedData or push it into trace chunks).
+ * The caller keeps its ensure handler active until the span is either wrapped
+ * in TypedData or consumed by a trace chunk.
  * ======================================================================== */
 
-static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
+static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
   /* 1. Read Ruby ivars */
   VALUE rb_name      = rb_ivar_get(span, at_name_id);
   VALUE rb_service   = rb_ivar_get(span, at_service_id);
@@ -384,22 +371,18 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
     .error          = error_val,
   };
 
-  ddog_TracerSpan *rust_span = NULL;
-  ddog_TraceExporterError *err = ddog_tracer_span_new(&rust_span, &fields);
+  ddog_TraceExporterError *err = ddog_tracer_span_new(&owner->span, &fields);
   check_exporter_error("Failed to create TracerSpan", err);
 
   /* 4. Populate meta and metrics */
-  hash_iter_ctx ctx = {.span = rust_span, .error = NULL, .skipped = 0};
+  hash_iter_ctx ctx = {.span = owner->span, .error = NULL, .skipped = 0};
 
   VALUE rb_meta = rb_ivar_get(span, at_meta_id);
   if (RB_TYPE_P(rb_meta, T_HASH) && RHASH_SIZE(rb_meta) > 0) {
     rb_hash_foreach(rb_meta, meta_iter_cb, (VALUE)&ctx);
-    if (ctx.error != NULL) {
-      ddog_tracer_span_free(rust_span);
-      check_exporter_error("Failed to set span meta", ctx.error);
-    }
+    check_exporter_error("Failed to set span meta", ctx.error);
     if (ctx.skipped > 0) {
-      log_warning_owning_span(rust_span, rb_sprintf(
+      log_warning(rb_sprintf(
           "Native trace exporter: skipped %ld non-string meta entries",
           ctx.skipped));
       ctx.skipped = 0;
@@ -409,28 +392,48 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
   VALUE rb_metrics = rb_ivar_get(span, at_metrics_id);
   if (RB_TYPE_P(rb_metrics, T_HASH) && RHASH_SIZE(rb_metrics) > 0) {
     rb_hash_foreach(rb_metrics, metrics_iter_cb, (VALUE)&ctx);
-    if (ctx.error != NULL) {
-      ddog_tracer_span_free(rust_span);
-      check_exporter_error("Failed to set span metric", ctx.error);
-    }
+    check_exporter_error("Failed to set span metric", ctx.error);
     if (ctx.skipped > 0) {
-      log_warning_owning_span(rust_span, rb_sprintf(
+      log_warning(rb_sprintf(
           "Native trace exporter: skipped %ld non-numeric metrics entries",
           ctx.skipped));
     }
   }
+}
 
-  return rust_span;
+static VALUE free_raw_span(VALUE arg) {
+  raw_span_owner *owner = (raw_span_owner *)arg;
+  if (owner->span != NULL) {
+    ddog_tracer_span_free(owner->span);
+    owner->span = NULL;
+  }
+  return Qnil;
 }
 
 /* ========================================================================
  * TracerSpan._native_from_span
  * ======================================================================== */
 
+typedef struct {
+  VALUE span;
+  raw_span_owner owner;
+} wrap_span_ctx;
+
+static VALUE convert_and_wrap_span(VALUE arg) {
+  wrap_span_ctx *ctx = (wrap_span_ctx *)arg;
+  convert_ruby_span_to_rust(ctx->span, &ctx->owner);
+
+  VALUE wrapped = TypedData_Wrap_Struct(
+      tracer_span_class, &tracer_span_typed_data, ctx->owner.span);
+  ctx->owner.span = NULL;
+  return wrapped;
+}
+
 static VALUE _native_from_span(DDTRACE_UNUSED VALUE klass, VALUE span) {
-  ddog_TracerSpan *rust_span = convert_ruby_span_to_rust(span);
-  return TypedData_Wrap_Struct(tracer_span_class, &tracer_span_typed_data,
-                               rust_span);
+  wrap_span_ctx ctx = {.span = span, .owner = {.span = NULL}};
+  return rb_ensure(
+      convert_and_wrap_span, (VALUE)&ctx,
+      free_raw_span, (VALUE)&ctx.owner);
 }
 
 /* ========================================================================
@@ -516,9 +519,19 @@ static VALUE _native_exporter_new(
   if (rb_service              != Qnil) ENFORCE_TYPE(rb_service,              T_STRING);
   if (rb_version              != Qnil) ENFORCE_TYPE(rb_version,              T_STRING);
 
-  /* Phase 2: create config (cleanup on error) */
+  /* Phase 2: configure before creating the separately-owned runtime. */
   ddog_TraceExporterConfig *config = NULL;
   ddog_trace_exporter_config_new(&config);
+
+  set_config_field(config, ddog_trace_exporter_config_set_url,               rb_url,                   "url");
+  set_config_field(config, ddog_trace_exporter_config_set_tracer_version,    rb_tracer_version,        "tracer_version");
+  set_config_field(config, ddog_trace_exporter_config_set_language,          rb_language,              "language");
+  set_config_field(config, ddog_trace_exporter_config_set_lang_version,      rb_language_version,      "language_version");
+  set_config_field(config, ddog_trace_exporter_config_set_lang_interpreter,  rb_language_interpreter,  "language_interpreter");
+  set_config_field(config, ddog_trace_exporter_config_set_hostname,          rb_hostname,              "hostname");
+  set_config_field(config, ddog_trace_exporter_config_set_env,               rb_env,                   "env");
+  set_config_field(config, ddog_trace_exporter_config_set_service,           rb_service,               "service");
+  set_config_field(config, ddog_trace_exporter_config_set_version,           rb_version,               "version");
 
   /*
    * Create a SharedRuntime and attach it to the config before building the
@@ -547,16 +560,6 @@ static VALUE _native_exporter_new(
       check_exporter_error("Failed to attach SharedRuntime to config", attach_err);
     }
   }
-
-  set_config_field(config, ddog_trace_exporter_config_set_url,               rb_url,                   "url");
-  set_config_field(config, ddog_trace_exporter_config_set_tracer_version,    rb_tracer_version,        "tracer_version");
-  set_config_field(config, ddog_trace_exporter_config_set_language,          rb_language,              "language");
-  set_config_field(config, ddog_trace_exporter_config_set_lang_version,      rb_language_version,      "language_version");
-  set_config_field(config, ddog_trace_exporter_config_set_lang_interpreter,  rb_language_interpreter,  "language_interpreter");
-  set_config_field(config, ddog_trace_exporter_config_set_hostname,          rb_hostname,              "hostname");
-  set_config_field(config, ddog_trace_exporter_config_set_env,               rb_env,                   "env");
-  set_config_field(config, ddog_trace_exporter_config_set_service,           rb_service,               "service");
-  set_config_field(config, ddog_trace_exporter_config_set_version,           rb_version,               "version");
 
   /* Phase 3: build the exporter from the config */
   ddog_TraceExporter *exporter = NULL;
@@ -703,6 +706,7 @@ typedef struct {
   const ddog_TraceExporter *exporter;
   VALUE                     traces;
   long                      trace_count;
+  raw_span_owner            span_owner;
   ddog_TracerTraceChunks   *chunks;  /* NULL after send consumes it */
 } send_traces_ctx;
 
@@ -727,20 +731,13 @@ static VALUE build_and_send_traces(VALUE arg) {
         ddog_tracer_trace_chunks_begin_chunk(ctx->chunks, (size_t)span_count);
     check_exporter_error("Failed to begin trace chunk", begin_err);
     for (long j = 0; j < span_count; j++) {
-      VALUE rb_span = rb_ary_entry(chunk_spans, j);
+      convert_ruby_span_to_rust(
+          rb_ary_entry(chunk_spans, j), &ctx->span_owner);
 
-      /* convert_ruby_span_to_rust may raise (type errors, etc.).
-       * rb_ensure guarantees chunks is freed in that case. */
-      ddog_TracerSpan *rust_span = convert_ruby_span_to_rust(rb_span);
-
-      /* push_span consumes rust_span (ownership transferred to chunks).
-       * The error path should be unreachable: push only fails if no chunk was
-       * started (we always call begin_chunk above) or if the handle is NULL.
-       * Raise rather than swallow, so that if a future libdatadog change makes
-       * it reachable we find out loudly instead of silently sending a
-       * truncated chunk. rb_ensure frees chunks on the raise. */
       ddog_TraceExporterError *push_err =
-          ddog_tracer_trace_chunks_push_span(ctx->chunks, rust_span);
+          ddog_tracer_trace_chunks_push_span(ctx->chunks, ctx->span_owner.span);
+      /* push_span consumes the span on every path. */
+      ctx->span_owner.span = NULL;
       check_exporter_error("Failed to push span into trace chunk", push_err);
     }
   }
@@ -834,11 +831,12 @@ static VALUE build_and_send_traces(VALUE arg) {
 }
 
 /*
- * Ensure: free chunks if they haven't been consumed by the send yet.
+ * Ensure: free the current raw span and any chunks not consumed by the send.
  * This runs whether build_and_send_traces returned normally or raised.
  */
-static VALUE free_chunks_if_needed(VALUE arg) {
+static VALUE free_send_resources(VALUE arg) {
   send_traces_ctx *ctx = (send_traces_ctx *)arg;
+  free_raw_span((VALUE)&ctx->span_owner);
   if (ctx->chunks != NULL) {
     ddog_tracer_trace_chunks_free(ctx->chunks);
     ctx->chunks = NULL;
@@ -877,12 +875,13 @@ static VALUE _native_send_traces(VALUE self, VALUE traces) {
     .exporter    = wrapper->exporter,
     .traces      = traces,
     .trace_count = trace_count,
+    .span_owner  = {.span = NULL},
     .chunks      = chunks,
   };
 
   return rb_ensure(
       build_and_send_traces, (VALUE)&ctx,
-      free_chunks_if_needed, (VALUE)&ctx);
+      free_send_resources, (VALUE)&ctx);
 }
 
 /* ========================================================================

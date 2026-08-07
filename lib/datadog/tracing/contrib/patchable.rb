@@ -84,7 +84,7 @@ module Datadog
                 available: self.class.available?,
                 loaded: self.class.loaded?,
                 compatible: self.class.compatible?,
-                patchable: self.class.patchable?
+                patchable: self.class.patchable?,
               }
             end
 

@@ -179,7 +179,7 @@ module Datadog
         if status == "ERROR"
           diagnostics[:exception] = { # steep:ignore
             type: exception ? exception.class.name : "Error",
-            message: exception ? exception.message : message
+            message: exception ? exception.message : message,
           }
         end
 
@@ -405,7 +405,7 @@ module Datadog
           when String
             segment
           when EL::Expression
-            serializer.serialize_value_for_message(segment.evaluate(context))
+            serializer.serialize_value_for_message(segment.evaluate(context), name: segment.redaction_identifier)
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end

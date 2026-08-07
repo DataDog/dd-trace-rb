@@ -48,13 +48,29 @@ RSpec.describe Datadog::DI::ProbeBuilder do
       end
     end
 
+    context "template with expression segment referencing a redacted identifier" do
+      let(:rc_probe_spec) do
+        {"id" => "3ecfd456-2d7c-4359-a51f-d4cc44141ffe",
+         "type" => "LOG_PROBE",
+         "where" => {"sourceFile" => "aaa.rb", "lines" => [4321]},
+         "template" => "{password}",
+         "segments" => [{"dsl" => "password", "json" => {"ref" => "password"}}],}
+      end
+
+      it "records the referenced identifier on the segment for redaction" do
+        segment = probe.template_segments.first
+        expect(segment).to be_a(Datadog::DI::EL::Expression)
+        expect(segment.redaction_identifier).to eq("password")
+      end
+    end
+
     context "minimum set of fields" do
       # This is a made up payload to test attribute defaulting.
       # In practice payloads like this should not be seen.
       let(:rc_probe_spec) do
         {"id" => "3ecfd456-2d7c-4359-a51f-d4cc44141ffe",
          "type" => "LOG_PROBE",
-         "where" => {"sourceFile" => "aaa.rb", "lines" => [4321]},}
+         "where" => {"sourceFile" => "aaa.rb", "lines" => [4321]}}
       end
 
       describe ".max_capture_depth" do
@@ -149,11 +165,11 @@ RSpec.describe Datadog::DI::ProbeBuilder do
            "json" => {
              "contains" => [
                {
-                 "ref" => "value"
+                 "ref" => "value",
                },
-               "StringLiteral"
-             ]
-           }
+               "StringLiteral",
+             ],
+           },
          },
          "tags" => [],
          "template" => "In aaa, line 1",

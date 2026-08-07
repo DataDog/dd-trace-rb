@@ -71,7 +71,7 @@ RSpec.describe "Karafka Data Streams Integration" do
 
       # Create Karafka message with the pathway context in headers
       messages = build_karafka_messages([
-        {topic: "orders", partition: 0, offset: 100, headers: {"dd-pathway-ctx-base64" => producer_ctx_b64}}
+        {topic: "orders", partition: 0, offset: 100, headers: {"dd-pathway-ctx-base64" => producer_ctx_b64}},
       ], "orders")
 
       # When we call .each, auto-instrumentation automatically:
@@ -94,7 +94,7 @@ RSpec.describe "Karafka Data Streams Integration" do
       processor = Datadog::DataStreams.send(:processor)
 
       messages = build_karafka_messages([
-        {topic: "orders", partition: 0, offset: 100, headers: {}}
+        {topic: "orders", partition: 0, offset: 100, headers: {}},
       ], "orders")
 
       # Auto-instrumentation should still create a consume checkpoint even without headers
@@ -111,7 +111,7 @@ RSpec.describe "Karafka Data Streams Integration" do
       messages = build_karafka_messages([
         {topic: "orders", partition: 0, offset: 100},
         {topic: "orders", partition: 0, offset: 101},
-        {topic: "orders", partition: 0, offset: 102}
+        {topic: "orders", partition: 0, offset: 102},
       ], "orders")
 
       message_count = 0
@@ -141,7 +141,7 @@ RSpec.describe "Karafka Data Streams Integration" do
 
       # Service B: Consumes from Service A (auto-instrumentation processes it)
       messages_from_a = build_karafka_messages([
-        {topic: "orders-topic", partition: 0, offset: 100, headers: {"dd-pathway-ctx-base64" => ctx_a_b64}}
+        {topic: "orders-topic", partition: 0, offset: 100, headers: {"dd-pathway-ctx-base64" => ctx_a_b64}},
       ], "orders-topic")
 
       messages_from_a.each { |_msg| } # Auto-instrumentation runs here
@@ -159,7 +159,7 @@ RSpec.describe "Karafka Data Streams Integration" do
 
       # Service C: Consumes from Service B (auto-instrumentation processes it)
       messages_from_b = build_karafka_messages([
-        {topic: "processed-orders", partition: 0, offset: 200, headers: {"dd-pathway-ctx-base64" => ctx_b_produce_b64}}
+        {topic: "processed-orders", partition: 0, offset: 200, headers: {"dd-pathway-ctx-base64" => ctx_b_produce_b64}},
       ], "processed-orders")
 
       messages_from_b.each { |_msg| } # Auto-instrumentation runs here
@@ -185,7 +185,7 @@ RSpec.describe "Karafka Data Streams Integration" do
 
     it "skips DSM processing" do
       messages = build_karafka_messages([
-        {topic: "orders", partition: 0, offset: 100, headers: {"dd-pathway-ctx-base64" => "some-context"}}
+        {topic: "orders", partition: 0, offset: 100, headers: {"dd-pathway-ctx-base64" => "some-context"}},
       ], "orders")
 
       # Should not raise error even though DSM is disabled
