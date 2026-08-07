@@ -185,7 +185,7 @@ module Datadog
               is_agent: false,
               client_tracer: client_tracer,
               # base64 is needed otherwise the Go agent fails with an unmarshal error
-              capabilities: @capabilities.base64_capabilities
+              capabilities: @capabilities.base64_capabilities,
             },
             cached_target_files: state.cached_target_files,
           }

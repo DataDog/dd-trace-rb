@@ -12,8 +12,12 @@
  * Forward declarations
  * ======================================================================== */
 
-/* Internal: convert a Ruby Span to a Rust ddog_TracerSpan* (caller owns) */
-static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span, VALUE native_events);
+typedef struct {
+  ddog_TracerSpan *span;
+} raw_span_owner;
+
+/* Internal: convert a Ruby Span into the supplied raw Rust span owner */
+static void convert_ruby_span_to_rust(VALUE span, VALUE native_events, raw_span_owner *owner);
 
 /* TracerSpan methods */
 static VALUE _native_from_span(VALUE klass, VALUE span);
@@ -52,11 +56,15 @@ static ID at_status_id;
 static ID at_meta_id;
 static ID at_metrics_id;
 static ID at_events_id;
+static ID at_metastruct_id;
 
 /* Method IDs for time / integer operations */
 static ID id_duration_method;
 static ID id_to_a;
 static ID id_to_native_format;
+static ID id_to_h;
+static ID id_to_msgpack;
+static ID id_to_s;
 
 /* SpanEvent native-format hash keys */
 static VALUE event_name_key             = Qnil;
@@ -69,6 +77,9 @@ static ID event_int_value_id;
 static ID event_double_value_id;
 static ID event_array_value_id;
 static ID event_values_id;
+
+/* MessagePack::Packer, used for transitional meta_struct encoding */
+static VALUE message_pack_packer_class = Qnil;
 
 /* Response class (loaded from Ruby) */
 static VALUE response_class       = Qnil;
@@ -435,13 +446,13 @@ static int metrics_iter_cb(VALUE key, VALUE value, VALUE arg) {
 typedef struct {
   VALUE span;
   VALUE normalized_events;
+  VALUE encoded_metastruct;
+  raw_span_owner *owner;
   void *allocation;
   void *array_scratch;
   ddog_TracerSpanEvent **events;
   long event_count;
   size_t max_array_length;
-  ddog_TracerSpan *rust_span;
-  ddog_TracerSpan *result_span;
 } span_conversion_ctx;
 
 typedef union {
@@ -456,9 +467,9 @@ typedef struct {
   span_event_array_scratch value;
 } span_event_array_scratch_alignment;
 
-/* Release every resource still owned by a conversion context. Event pointers
- * are cleared as libdatadog consumes them, and rust_span is detached only when
- * conversion succeeds. */
+/* Release every event resource still owned by a conversion context. Event
+ * pointers are cleared as libdatadog consumes them. The caller's ensure
+ * handler owns the raw span separately. */
 static VALUE cleanup_span_conversion(VALUE arg) {
   span_conversion_ctx *ctx = (span_conversion_ctx *)arg;
   if (ctx->events != NULL) {
@@ -466,7 +477,6 @@ static VALUE cleanup_span_conversion(VALUE arg) {
       if (ctx->events[i] != NULL) ddog_tracer_span_event_free(ctx->events[i]);
     }
   }
-  if (ctx->rust_span != NULL) ddog_tracer_span_free(ctx->rust_span);
   if (ctx->allocation != NULL) ruby_xfree(ctx->allocation);
   return Qnil;
 }
@@ -576,16 +586,89 @@ static void build_native_events(span_conversion_ctx *ctx) {
   }
 }
 
+typedef struct {
+  VALUE encoded;
+  long skipped;
+} metastruct_encode_ctx;
+
+static int encode_metastruct_iter_cb(VALUE key, VALUE value, VALUE arg) {
+  metastruct_encode_ctx *ctx = (metastruct_encode_ctx *)arg;
+
+  /* The agent meta_struct contract requires string keys. Accept symbols as a
+   * Ruby convenience, but do not encode other key types differently from the
+   * native tracer implementations. */
+  if (RB_TYPE_P(key, T_SYMBOL)) {
+    key = rb_sym2str(key);
+  } else if (!RB_TYPE_P(key, T_STRING)) {
+    ctx->skipped++;
+    return ST_CONTINUE;
+  }
+
+  VALUE blob = rb_funcall(value, id_to_msgpack, 0);
+  if (rb_obj_is_kind_of(blob, message_pack_packer_class)) {
+    blob = rb_funcall(blob, id_to_s, 0);
+  }
+  Check_Type(blob, T_STRING);
+  rb_hash_aset(ctx->encoded, key, blob);
+
+  return ST_CONTINUE;
+}
+
+/*
+ * Encode each meta_struct value before allocating the Rust span. MessagePack
+ * encoding can invoke arbitrary Ruby `to_msgpack` implementations and raise;
+ * doing that work first avoids holding an unowned Rust allocation across a
+ * Ruby non-local exit.
+ */
+static VALUE encode_metastruct(VALUE span) {
+  VALUE metastruct = rb_ivar_get(span, at_metastruct_id);
+  if (metastruct == Qnil) return Qnil;
+
+  VALUE values = rb_funcall(metastruct, id_to_h, 0);
+  Check_Type(values, T_HASH);
+  if (RHASH_SIZE(values) == 0) return Qnil;
+
+  metastruct_encode_ctx ctx = {.encoded = rb_hash_new(), .skipped = 0};
+  rb_hash_foreach(values, encode_metastruct_iter_cb, (VALUE)&ctx);
+
+  if (ctx.skipped > 0) {
+    log_warning(rb_sprintf(
+        "Native trace exporter: skipped %ld meta_struct entries with non-string keys",
+        ctx.skipped));
+  }
+
+  return ctx.encoded;
+}
+
+static int meta_struct_iter_cb(VALUE key, VALUE value, VALUE arg) {
+  hash_iter_ctx *ctx = (hash_iter_ctx *)arg;
+
+  /* libdatadog copies both slices before returning and retains no pointer into
+   * the Ruby-owned key or encoded value storage. */
+  ddog_CharSlice ks = {.ptr = RSTRING_PTR(key), .len = RSTRING_LEN(key)};
+  ddog_ByteSlice vs = {
+    .ptr = (const uint8_t *)RSTRING_PTR(value),
+    .len = RSTRING_LEN(value),
+  };
+
+  ddog_TraceExporterError *err =
+      ddog_tracer_span_set_meta_struct_blob(ctx->span, ks, vs);
+  if (err != NULL) {
+    ctx->error = err;
+    return ST_STOP;
+  }
+
+  return ST_CONTINUE;
+}
 /* ========================================================================
- * Internal: convert a Ruby Span -> ddog_TracerSpan*
+ * Internal: convert a Ruby Span into a raw_span_owner
  *
- * The returned pointer is Rust-heap-allocated.  Ownership is transferred
- * to the caller (either wrap it in TypedData or push it into trace chunks).
+ * The caller keeps its ensure handler active until the span is either wrapped
+ * in TypedData or consumed by a trace chunk.
  * ======================================================================== */
 
-/* rb_ensure body for span conversion. On success, moves the Rust span to the
- * result field and removes it from cleanup ownership; every earlier exit
- * remains owned by the cleanup callback. */
+/* rb_ensure body for span conversion. Event resources are owned by the inner
+ * ensure, while the raw span is owned by the caller's outer ensure. */
 static VALUE build_rust_span(VALUE arg) {
   span_conversion_ctx *conversion = (span_conversion_ctx *)arg;
   VALUE span = conversion->span;
@@ -614,7 +697,6 @@ static VALUE build_rust_span(VALUE arg) {
   }
 
   build_native_events(conversion);
-
   /* 1. Read Ruby ivars */
   VALUE rb_name      = rb_ivar_get(span, at_name_id);
   VALUE rb_service   = rb_ivar_get(span, at_service_id);
@@ -669,17 +751,17 @@ static VALUE build_rust_span(VALUE arg) {
     .error          = error_val,
   };
 
-  ddog_TraceExporterError *err = ddog_tracer_span_new(&conversion->rust_span, &fields);
+  ddog_TraceExporterError *err = ddog_tracer_span_new(&conversion->owner->span, &fields);
   check_exporter_error("Failed to create TracerSpan", err);
 
   for (long i = 0; i < conversion->event_count; i++) {
-    err = ddog_tracer_span_add_event(conversion->rust_span, conversion->events[i]);
+    err = ddog_tracer_span_add_event(conversion->owner->span, conversion->events[i]);
     conversion->events[i] = NULL; /* add_event consumes the event on every path. */
     check_exporter_error("Failed to attach span event", err);
   }
 
   /* 4. Populate meta and metrics */
-  hash_iter_ctx ctx = {.span = conversion->rust_span, .error = NULL, .skipped = 0};
+  hash_iter_ctx ctx = {.span = conversion->owner->span, .error = NULL, .skipped = 0};
 
   VALUE rb_meta = rb_ivar_get(span, at_meta_id);
   if (RB_TYPE_P(rb_meta, T_HASH) && RHASH_SIZE(rb_meta) > 0) {
@@ -704,36 +786,71 @@ static VALUE build_rust_span(VALUE arg) {
     }
   }
 
-  conversion->result_span = conversion->rust_span;
-  conversion->rust_span = NULL;
+  if (conversion->encoded_metastruct != Qnil) {
+    ctx.error = NULL;
+    ctx.skipped = 0;
+    rb_hash_foreach(conversion->encoded_metastruct, meta_struct_iter_cb, (VALUE)&ctx);
+    check_exporter_error("Failed to set span meta_struct", ctx.error);
+  }
+
   return Qnil;
 }
 
-static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span, VALUE native_events) {
+static void convert_ruby_span_to_rust(VALUE span, VALUE native_events, raw_span_owner *owner) {
   span_conversion_ctx ctx = {
     .span = span,
     .normalized_events = Qnil,
+    .encoded_metastruct = Qnil,
+    .owner = owner,
   };
   if (native_events == Qtrue) {
     ctx.normalized_events = normalize_span_events(span, &ctx.max_array_length);
     ctx.event_count = RARRAY_LEN(ctx.normalized_events);
   }
+  /* MessagePack encoding can call arbitrary Ruby code, so complete it before
+   * allocating any Rust resources. */
+  ctx.encoded_metastruct = encode_metastruct(span);
 
   rb_ensure(
       build_rust_span, (VALUE)&ctx,
       cleanup_span_conversion, (VALUE)&ctx);
   RB_GC_GUARD(ctx.normalized_events);
-  return ctx.result_span;
+  RB_GC_GUARD(ctx.encoded_metastruct);
+}
+
+static VALUE free_raw_span(VALUE arg) {
+  raw_span_owner *owner = (raw_span_owner *)arg;
+  if (owner->span != NULL) {
+    ddog_tracer_span_free(owner->span);
+    owner->span = NULL;
+  }
+  return Qnil;
 }
 
 /* ========================================================================
  * TracerSpan._native_from_span
  * ======================================================================== */
 
+typedef struct {
+  VALUE span;
+  raw_span_owner owner;
+} wrap_span_ctx;
+
+static VALUE convert_and_wrap_span(VALUE arg) {
+  wrap_span_ctx *ctx = (wrap_span_ctx *)arg;
+  convert_ruby_span_to_rust(ctx->span, Qtrue, &ctx->owner);
+
+  VALUE wrapped = TypedData_Wrap_Struct(
+      tracer_span_class, &tracer_span_typed_data, ctx->owner.span);
+  ctx->owner.span = NULL;
+  return wrapped;
+}
+
 static VALUE _native_from_span(DDTRACE_UNUSED VALUE klass, VALUE span) {
-  ddog_TracerSpan *rust_span = convert_ruby_span_to_rust(span, Qtrue);
-  return TypedData_Wrap_Struct(tracer_span_class, &tracer_span_typed_data,
-                               rust_span);
+  wrap_span_ctx ctx = {.span = span, .owner = {.span = NULL}};
+  return rb_ensure(
+      convert_and_wrap_span, (VALUE)&ctx,
+      free_raw_span, (VALUE)&ctx.owner);
 }
 
 /* ========================================================================
@@ -819,9 +936,19 @@ static VALUE _native_exporter_new(
   if (rb_service              != Qnil) ENFORCE_TYPE(rb_service,              T_STRING);
   if (rb_version              != Qnil) ENFORCE_TYPE(rb_version,              T_STRING);
 
-  /* Phase 2: create config (cleanup on error) */
+  /* Phase 2: configure before creating the separately-owned runtime. */
   ddog_TraceExporterConfig *config = NULL;
   ddog_trace_exporter_config_new(&config);
+
+  set_config_field(config, ddog_trace_exporter_config_set_url,               rb_url,                   "url");
+  set_config_field(config, ddog_trace_exporter_config_set_tracer_version,    rb_tracer_version,        "tracer_version");
+  set_config_field(config, ddog_trace_exporter_config_set_language,          rb_language,              "language");
+  set_config_field(config, ddog_trace_exporter_config_set_lang_version,      rb_language_version,      "language_version");
+  set_config_field(config, ddog_trace_exporter_config_set_lang_interpreter,  rb_language_interpreter,  "language_interpreter");
+  set_config_field(config, ddog_trace_exporter_config_set_hostname,          rb_hostname,              "hostname");
+  set_config_field(config, ddog_trace_exporter_config_set_env,               rb_env,                   "env");
+  set_config_field(config, ddog_trace_exporter_config_set_service,           rb_service,               "service");
+  set_config_field(config, ddog_trace_exporter_config_set_version,           rb_version,               "version");
 
   /*
    * Create a SharedRuntime and attach it to the config before building the
@@ -850,16 +977,6 @@ static VALUE _native_exporter_new(
       check_exporter_error("Failed to attach SharedRuntime to config", attach_err);
     }
   }
-
-  set_config_field(config, ddog_trace_exporter_config_set_url,               rb_url,                   "url");
-  set_config_field(config, ddog_trace_exporter_config_set_tracer_version,    rb_tracer_version,        "tracer_version");
-  set_config_field(config, ddog_trace_exporter_config_set_language,          rb_language,              "language");
-  set_config_field(config, ddog_trace_exporter_config_set_lang_version,      rb_language_version,      "language_version");
-  set_config_field(config, ddog_trace_exporter_config_set_lang_interpreter,  rb_language_interpreter,  "language_interpreter");
-  set_config_field(config, ddog_trace_exporter_config_set_hostname,          rb_hostname,              "hostname");
-  set_config_field(config, ddog_trace_exporter_config_set_env,               rb_env,                   "env");
-  set_config_field(config, ddog_trace_exporter_config_set_service,           rb_service,               "service");
-  set_config_field(config, ddog_trace_exporter_config_set_version,           rb_version,               "version");
 
   /* Phase 3: build the exporter from the config */
   ddog_TraceExporter *exporter = NULL;
@@ -1007,6 +1124,7 @@ typedef struct {
   VALUE                     traces;
   VALUE                     native_events;
   long                      trace_count;
+  raw_span_owner            span_owner;
   ddog_TracerTraceChunks   *chunks;  /* NULL after send consumes it */
 } send_traces_ctx;
 
@@ -1031,20 +1149,13 @@ static VALUE build_and_send_traces(VALUE arg) {
         ddog_tracer_trace_chunks_begin_chunk(ctx->chunks, (size_t)span_count);
     check_exporter_error("Failed to begin trace chunk", begin_err);
     for (long j = 0; j < span_count; j++) {
-      VALUE rb_span = rb_ary_entry(chunk_spans, j);
+      convert_ruby_span_to_rust(
+          rb_ary_entry(chunk_spans, j), ctx->native_events, &ctx->span_owner);
 
-      /* convert_ruby_span_to_rust may raise (type errors, etc.).
-       * rb_ensure guarantees chunks is freed in that case. */
-      ddog_TracerSpan *rust_span = convert_ruby_span_to_rust(rb_span, ctx->native_events);
-
-      /* push_span consumes rust_span (ownership transferred to chunks).
-       * The error path should be unreachable: push only fails if no chunk was
-       * started (we always call begin_chunk above) or if the handle is NULL.
-       * Raise rather than swallow, so that if a future libdatadog change makes
-       * it reachable we find out loudly instead of silently sending a
-       * truncated chunk. rb_ensure frees chunks on the raise. */
       ddog_TraceExporterError *push_err =
-          ddog_tracer_trace_chunks_push_span(ctx->chunks, rust_span);
+          ddog_tracer_trace_chunks_push_span(ctx->chunks, ctx->span_owner.span);
+      /* push_span consumes the span on every path. */
+      ctx->span_owner.span = NULL;
       check_exporter_error("Failed to push span into trace chunk", push_err);
     }
   }
@@ -1138,11 +1249,12 @@ static VALUE build_and_send_traces(VALUE arg) {
 }
 
 /*
- * Ensure: free chunks if they haven't been consumed by the send yet.
+ * Ensure: free the current raw span and any chunks not consumed by the send.
  * This runs whether build_and_send_traces returned normally or raised.
  */
-static VALUE free_chunks_if_needed(VALUE arg) {
+static VALUE free_send_resources(VALUE arg) {
   send_traces_ctx *ctx = (send_traces_ctx *)arg;
+  free_raw_span((VALUE)&ctx->span_owner);
   if (ctx->chunks != NULL) {
     ddog_tracer_trace_chunks_free(ctx->chunks);
     ctx->chunks = NULL;
@@ -1185,12 +1297,13 @@ static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events) 
     .traces      = traces,
     .native_events = native_events,
     .trace_count = trace_count,
+    .span_owner  = {.span = NULL},
     .chunks      = chunks,
   };
 
   return rb_ensure(
       build_and_send_traces, (VALUE)&ctx,
-      free_chunks_if_needed, (VALUE)&ctx);
+      free_send_resources, (VALUE)&ctx);
 }
 
 /* ========================================================================
@@ -1248,6 +1361,13 @@ void trace_exporter_init(VALUE tracing_module) {
       rb_const_get(native_module, rb_intern("Response"));
   rb_global_variable(&response_class);
 
+  rb_require("msgpack");
+  VALUE message_pack_module =
+      rb_const_get(rb_cObject, rb_intern("MessagePack"));
+  message_pack_packer_class =
+      rb_const_get(message_pack_module, rb_intern("Packer"));
+  rb_global_variable(&message_pack_packer_class);
+
   /* ----------------------------------------------------------------
    * Cache Ruby intern IDs
    * ---------------------------------------------------------------- */
@@ -1266,11 +1386,15 @@ void trace_exporter_init(VALUE tracing_module) {
   at_meta_id       = rb_intern("@meta");
   at_metrics_id    = rb_intern("@metrics");
   at_events_id     = rb_intern("@events");
+  at_metastruct_id = rb_intern("@metastruct");
 
   /* Methods */
   id_duration_method = rb_intern("duration");
-  id_to_a = rb_intern("to_a");
+  id_to_a             = rb_intern("to_a");
   id_to_native_format = rb_intern("to_native_format");
+  id_to_h             = rb_intern("to_h");
+  id_to_msgpack       = rb_intern("to_msgpack");
+  id_to_s             = rb_intern("to_s");
 
   event_name_key = rb_str_new_cstr("name");
   event_time_key = rb_str_new_cstr("time_unix_nano");

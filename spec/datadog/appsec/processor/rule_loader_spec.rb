@@ -15,8 +15,8 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
               {"operation" => "match_regex", "parameters" => {"inputs" => ["value2"], "regex" => "rule1"}},
             ],
             "action" => "record",
-          }
-        ]
+          },
+        ],
       }
     end
     let(:recommended) { JSON.parse(Datadog::AppSec::Assets.waf_rules(:recommended)) }

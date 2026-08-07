@@ -10,6 +10,7 @@ require "socket"
 require "json"
 require "msgpack"
 require "datadog/tracing/span_event"
+require "timeout"
 
 RSpec.describe Datadog::Tracing::Transport::Native::Transport do
   before do
@@ -158,8 +159,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
     let(:at_fork) { Datadog::Core::Utils::AtForkMonkeyPatch }
 
     def registry(stage)
-      const = {before: :AT_FORK_BEFORE_BLOCKS, parent: :AT_FORK_PARENT_BLOCKS, child: :AT_FORK_CHILD_BLOCKS}.fetch(stage)
-      at_fork.const_get(const)
+      at_fork.snapshot_at_fork_blocks.fetch(stage).map(&:block)
     end
 
     # Identity membership check. We must NOT use RSpec's `include(block)` here:
@@ -204,6 +204,75 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
           .to(be_nil)
       end
 
+      it "waits for an in-flight send before closing" do
+        exporter = transport.instance_variable_get(:@exporter)
+        send_started = Queue.new
+        release_send = Queue.new
+
+        allow(exporter).to receive(:_native_send_traces) do
+          send_started << true
+          release_send.pop
+          []
+        end
+
+        sender = Thread.new { transport.send_traces([make_trace_segment("web.request")]) }
+        send_started.pop
+        closer = Thread.new { transport.close }
+
+        Timeout.timeout(5) do
+          Thread.pass until closer.status == "sleep" || !closer.alive?
+        end
+
+        expect(closer).to be_alive
+        expect(transport.instance_variable_get(:@exporter)).to be(exporter)
+
+        release_send << true
+        expect(sender.join(5)).to be(sender)
+        expect(closer.join(5)).to be(closer)
+        expect(transport.instance_variable_get(:@exporter)).to be_nil
+      ensure
+        release_send << true if release_send&.empty?
+        sender&.join(5)
+        closer&.join(5)
+      end
+
+      it "does not release fork locks owned before a reentrant close" do
+        hooks = transport.instance_variable_get(:@fork_hooks)
+        exporter = transport.instance_variable_get(:@exporter)
+        fork_mutex = transport.instance_variable_get(:@fork_mutex)
+        send_mutex = transport.instance_variable_get(:@send_mutex)
+        allow(exporter).to receive(:_native_after_fork_in_parent).and_call_original
+
+        hooks[:before].call
+
+        expect { transport.close }.to raise_error(ThreadError)
+        expect(fork_mutex).to be_owned
+        expect(send_mutex).to be_owned
+
+        hooks[:parent].call
+
+        expect(exporter).to have_received(:_native_after_fork_in_parent).once
+        expect(fork_mutex).to_not be_owned
+        expect(send_mutex).to_not be_owned
+        expect(transport.send_traces([make_trace_segment("after-reentrant-close")]).first).to be_ok
+      ensure
+        hooks&.dig(:parent)&.call if fork_mutex&.owned?
+      end
+
+      it "releases its lifecycle lock but retains a pre-owned send lock" do
+        fork_mutex = transport.instance_variable_get(:@fork_mutex)
+        send_mutex = transport.instance_variable_get(:@send_mutex)
+        send_mutex.lock
+
+        expect { transport.close }.to raise_error(ThreadError)
+
+        expect(fork_mutex).to_not be_owned
+        expect(send_mutex).to be_owned
+        expect(transport.instance_variable_get(:@exporter)).to_not be_nil
+      ensure
+        send_mutex&.unlock if send_mutex&.owned?
+      end
+
       it "stops the exporter native fork hooks from firing on a later fork" do
         exporter = transport.instance_variable_get(:@exporter)
         # If our hooks were still registered, running the blocks would invoke
@@ -213,10 +282,11 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         allow(exporter).to receive(:_native_after_fork_in_child)
 
         transport.close
+        snapshot = at_fork.snapshot_at_fork_blocks
 
-        at_fork.run_at_fork_blocks(:before)
-        at_fork.run_at_fork_blocks(:parent)
-        at_fork.run_at_fork_blocks(:child)
+        at_fork.run_at_fork_blocks(:before, snapshot: snapshot)
+        at_fork.run_at_fork_blocks(:parent, snapshot: snapshot)
+        at_fork.run_at_fork_blocks(:child, snapshot: snapshot)
 
         expect(exporter).to_not have_received(:_native_before_fork)
         expect(exporter).to_not have_received(:_native_after_fork_in_parent)
@@ -247,6 +317,11 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
     end
 
     describe "finalizer fallback" do
+      def build_finalizer(transport)
+        hooks = transport.instance_variable_get(:@fork_hooks)
+        transport_class.send(:fork_hooks_remover, hooks)
+      end
+
       it "registers a finalizer on the transport at construction" do
         # The finalizer guards against a transport that is dropped without
         # #close: it must still deregister the global fork hooks.
@@ -259,8 +334,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         # keep that object reachable, so it would never fire. Building it in a
         # class method guarantees its binding receiver is the class, not an
         # instance.
-        hooks = transport.instance_variable_get(:@fork_hooks)
-        finalizer = transport_class.send(:finalizer_for, hooks)
+        finalizer = build_finalizer(transport)
 
         expect(finalizer.binding.receiver).to be(transport_class)
         expect(finalizer.binding.receiver).to_not be(transport)
@@ -268,7 +342,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
 
       it "removes all the hooks when the finalizer runs" do
         hooks = transport.instance_variable_get(:@fork_hooks)
-        finalizer = transport_class.send(:finalizer_for, hooks)
+        finalizer = build_finalizer(transport)
 
         # Assert the hooks are registered first, so the post-run absence check
         # cannot pass vacuously.
@@ -283,6 +357,49 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         hooks.each do |stage, block|
           expect(registry_contains?(stage, block)).to be(false)
         end
+      end
+
+      it "removes hooks while a lifecycle mutex is owned outside a fork" do
+        hooks = transport.instance_variable_get(:@fork_hooks)
+        fork_mutex = transport.instance_variable_get(:@fork_mutex)
+        finalizer = build_finalizer(transport)
+        fork_mutex.lock
+
+        expect { Timeout.timeout(1) { finalizer.call(transport.object_id) } }.to_not raise_error
+
+        hooks.each do |stage, block|
+          expect(registry_contains?(stage, block)).to be(false)
+        end
+      ensure
+        fork_mutex&.unlock if fork_mutex&.owned?
+      end
+
+      it "keeps snapshotted completion callbacks alive after removing their hooks" do
+        hooks = transport.instance_variable_get(:@fork_hooks)
+        exporter = transport.instance_variable_get(:@exporter)
+        fork_mutex = transport.instance_variable_get(:@fork_mutex)
+        send_mutex = transport.instance_variable_get(:@send_mutex)
+        finalizer = build_finalizer(transport)
+        allow(exporter).to receive(:_native_after_fork_in_parent).and_call_original
+
+        hooks[:before].call
+        expect(fork_mutex).to be_owned
+
+        expect { Timeout.timeout(1) { finalizer.call(transport.object_id) } }.to_not raise_error
+        hooks.each do |stage, block|
+          expect(registry_contains?(stage, block)).to be(false)
+        end
+
+        hooks[:parent].call
+
+        expect(exporter).to have_received(:_native_after_fork_in_parent).once
+        expect(fork_mutex).to_not be_owned
+        expect(send_mutex).to_not be_owned
+        hooks.each do |stage, block|
+          expect(registry_contains?(stage, block)).to be(false)
+        end
+      ensure
+        hooks&.dig(:parent)&.call if fork_mutex&.owned?
       end
     end
 
@@ -525,16 +642,16 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         expect(transport.send_traces([trace]).first.ok?).to be true
       end
 
-      it "warns when a span carries meta_struct" do
-        trace = trace_with { |span| span.metastruct["_dd.stack"] = {} }
-
-        expect(logger).to receive(:warn).once
-
-        expect(transport.send_traces([trace]).first.ok?).to be true
-      end
-
       it "does not warn for a span with only scalar fields, meta, and metrics" do
         trace = make_trace_segment("web.request")
+
+        expect(logger).to_not receive(:warn)
+
+        transport.send_traces([trace])
+      end
+
+      it "does not warn when a span carries meta_struct" do
+        trace = trace_with { |span| span.metastruct["_dd.stack"] = {} }
 
         expect(logger).to_not receive(:warn)
 

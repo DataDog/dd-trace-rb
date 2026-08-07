@@ -282,4 +282,20 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       expect { exporter._native_send_traces([], nil) }.to raise_error(TypeError)
     end
   end
+
+  describe "when conversion fails after a partial batch" do
+    it "frees pushed and untransferred spans" do
+      first = make_span("first")
+      second = make_span("second", meta: {"invalid" => Object.new})
+      allow(Datadog.logger).to receive(:warn).and_raise(RuntimeError, "logger boom")
+
+      20.times do
+        expect { exporter._native_send_traces([[first, second]], false) }
+          .to raise_error(RuntimeError, "logger boom")
+      end
+
+      GC.start
+      expect(exporter._native_send_traces([[make_span("valid")]], false).first.ok?).to be true
+    end
+  end
 end

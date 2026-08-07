@@ -55,7 +55,7 @@ namespace :github do
 
     data = {
       batches: batched_matrix,
-      misc: {"include" => [{"batch" => "0", "tasks" => misc_tasks}]}
+      misc: {"include" => [{"batch" => "0", "tasks" => misc_tasks}]},
     }
 
     # Output the JSON
