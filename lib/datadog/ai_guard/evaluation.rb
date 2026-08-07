@@ -98,7 +98,7 @@ module Datadog
             else
               {
                 **message,
-                content: truncate_content_value(message[:content], max_bytes)
+                content: truncate_content_value(message[:content], max_bytes),
               }
             end
           end

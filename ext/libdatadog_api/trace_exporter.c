@@ -1,5 +1,12 @@
 #include <ruby.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
 #include <ruby/encoding.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 #include <ruby/thread.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -481,8 +488,8 @@ static void append_structured_value(VALUE value, unsigned int depth,
   }
   st_insert(ctx->active, (st_data_t)value, 1);
 
-  long length = RB_TYPE_P(value, T_ARRAY) ? RARRAY_LEN(value) : RHASH_SIZE(value);
-  if ((unsigned long)length > UINT32_MAX) {
+  size_t length = RB_TYPE_P(value, T_ARRAY) ? (size_t)RARRAY_LEN(value) : RHASH_SIZE(value);
+  if (length > UINT32_MAX) {
     rb_raise(rb_eArgError, "meta_struct container exceeds u32::MAX entries");
   }
   ddog_TracerValueToken *token = append_structured_value_token(
@@ -490,8 +497,8 @@ static void append_structured_value(VALUE value, unsigned int depth,
   token->child_count = (uint32_t)length;
 
   if (RB_TYPE_P(value, T_ARRAY)) {
-    for (long i = 0; i < length; i++) {
-      append_structured_value(rb_ary_entry(value, i), depth + 1, ctx);
+    for (size_t i = 0; i < length; i++) {
+      append_structured_value(rb_ary_entry(value, (long)i), depth + 1, ctx);
     }
   } else {
     structured_hash_ctx hash_ctx = {.ctx = ctx, .depth = depth + 1};
