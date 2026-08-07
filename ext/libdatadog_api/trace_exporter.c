@@ -55,9 +55,16 @@ static ID at_duration_id;
 static ID at_status_id;
 static ID at_meta_id;
 static ID at_metrics_id;
+static ID at_metastruct_id;
 
 /* Method IDs for time / integer operations */
 static ID id_duration_method;
+static ID id_to_h;
+static ID id_to_msgpack;
+static ID id_to_s;
+
+/* MessagePack::Packer, used for transitional meta_struct encoding */
+static VALUE message_pack_packer_class = Qnil;
 
 /* Response class (loaded from Ruby) */
 static VALUE response_class       = Qnil;
@@ -309,6 +316,80 @@ static int metrics_iter_cb(VALUE key, VALUE value, VALUE arg) {
   return ST_CONTINUE;
 }
 
+typedef struct {
+  VALUE encoded;
+  long skipped;
+} metastruct_encode_ctx;
+
+static int encode_metastruct_iter_cb(VALUE key, VALUE value, VALUE arg) {
+  metastruct_encode_ctx *ctx = (metastruct_encode_ctx *)arg;
+
+  /* The agent meta_struct contract requires string keys. Accept symbols as a
+   * Ruby convenience, but do not encode other key types differently from the
+   * native tracer implementations. */
+  if (RB_TYPE_P(key, T_SYMBOL)) {
+    key = rb_sym2str(key);
+  } else if (!RB_TYPE_P(key, T_STRING)) {
+    ctx->skipped++;
+    return ST_CONTINUE;
+  }
+
+  VALUE blob = rb_funcall(value, id_to_msgpack, 0);
+  if (rb_obj_is_kind_of(blob, message_pack_packer_class)) {
+    blob = rb_funcall(blob, id_to_s, 0);
+  }
+  Check_Type(blob, T_STRING);
+  rb_hash_aset(ctx->encoded, key, blob);
+
+  return ST_CONTINUE;
+}
+
+/*
+ * Encode each meta_struct value before allocating the Rust span. MessagePack
+ * encoding can invoke arbitrary Ruby `to_msgpack` implementations and raise;
+ * doing that work first avoids holding an unowned Rust allocation across a
+ * Ruby non-local exit.
+ */
+static VALUE encode_metastruct(VALUE span) {
+  VALUE metastruct = rb_ivar_get(span, at_metastruct_id);
+  if (metastruct == Qnil) return Qnil;
+
+  VALUE values = rb_funcall(metastruct, id_to_h, 0);
+  Check_Type(values, T_HASH);
+  if (RHASH_SIZE(values) == 0) return Qnil;
+
+  metastruct_encode_ctx ctx = {.encoded = rb_hash_new(), .skipped = 0};
+  rb_hash_foreach(values, encode_metastruct_iter_cb, (VALUE)&ctx);
+
+  if (ctx.skipped > 0) {
+    log_warning(rb_sprintf(
+        "Native trace exporter: skipped %ld meta_struct entries with non-string keys",
+        ctx.skipped));
+  }
+
+  return ctx.encoded;
+}
+
+static int meta_struct_iter_cb(VALUE key, VALUE value, VALUE arg) {
+  hash_iter_ctx *ctx = (hash_iter_ctx *)arg;
+
+  /* libdatadog copies both slices before returning and retains no pointer into
+   * the Ruby-owned key or encoded value storage. */
+  ddog_CharSlice ks = {.ptr = RSTRING_PTR(key), .len = RSTRING_LEN(key)};
+  ddog_ByteSlice vs = {
+    .ptr = (const uint8_t *)RSTRING_PTR(value),
+    .len = RSTRING_LEN(value),
+  };
+
+  ddog_TraceExporterError *err =
+      ddog_tracer_span_set_meta_struct_blob(ctx->span, ks, vs);
+  if (err != NULL) {
+    ctx->error = err;
+    return ST_STOP;
+  }
+
+  return ST_CONTINUE;
+}
 /* ========================================================================
  * Internal: convert a Ruby Span into a raw_span_owner
  *
@@ -326,6 +407,10 @@ static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
   VALUE rb_parent_id = rb_ivar_get(span, at_parent_id_id);
   VALUE rb_trace_id  = rb_ivar_get(span, at_trace_id_id);
   VALUE rb_status    = rb_ivar_get(span, at_status_id);
+
+  /* MessagePack encoding can call Ruby code and must happen before the Rust
+   * span allocation is created. */
+  VALUE rb_metastruct = encode_metastruct(span);
 
   /* 2. Convert scalars */
   ddog_CharSlice name_s     = char_slice_from_ruby_string(rb_name);
@@ -398,6 +483,13 @@ static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
           "Native trace exporter: skipped %ld non-numeric metrics entries",
           ctx.skipped));
     }
+  }
+
+  if (rb_metastruct != Qnil) {
+    ctx.error = NULL;
+    ctx.skipped = 0;
+    rb_hash_foreach(rb_metastruct, meta_struct_iter_cb, (VALUE)&ctx);
+    check_exporter_error("Failed to set span meta_struct", ctx.error);
   }
 }
 
@@ -939,6 +1031,13 @@ void trace_exporter_init(VALUE tracing_module) {
       rb_const_get(native_module, rb_intern("Response"));
   rb_global_variable(&response_class);
 
+  rb_require("msgpack");
+  VALUE message_pack_module =
+      rb_const_get(rb_cObject, rb_intern("MessagePack"));
+  message_pack_packer_class =
+      rb_const_get(message_pack_module, rb_intern("Packer"));
+  rb_global_variable(&message_pack_packer_class);
+
   /* ----------------------------------------------------------------
    * Cache Ruby intern IDs
    * ---------------------------------------------------------------- */
@@ -956,9 +1055,13 @@ void trace_exporter_init(VALUE tracing_module) {
   at_status_id     = rb_intern("@status");
   at_meta_id       = rb_intern("@meta");
   at_metrics_id    = rb_intern("@metrics");
+  at_metastruct_id = rb_intern("@metastruct");
 
   /* Methods */
   id_duration_method = rb_intern("duration");
+  id_to_h            = rb_intern("to_h");
+  id_to_msgpack      = rb_intern("to_msgpack");
+  id_to_s            = rb_intern("to_s");
 
   /* Response.new */
   id_new = rb_intern("new");

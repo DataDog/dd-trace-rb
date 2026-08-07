@@ -182,6 +182,51 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
       end
     end
 
+    context "with meta_struct" do
+      it "accepts string and symbol keys" do
+        span = make_ruby_span
+        span.set_metastruct_tag("_dd.stack", {frames: [{file: "app.rb", line: 42}]})
+        span.set_metastruct_tag(:ai_guard, {messages: ["hello"]})
+
+        expect { tracer_span_class._native_from_span(span) }.not_to raise_error
+      end
+
+      it "skips keys outside the agent string-key contract" do
+        span = make_ruby_span
+        span.set_metastruct_tag(123, {ignored: true})
+
+        expect(Datadog.logger).to receive(:warn)
+          .with(/skipped 1 meta_struct entries with non-string keys/)
+
+        expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
+      end
+
+      it "supports zero-argument custom MessagePack encoders" do
+        value = Object.new
+        def value.to_msgpack
+          {"custom" => true}.to_msgpack
+        end
+        span = make_ruby_span
+        span.set_metastruct_tag("custom", value)
+
+        expect { tracer_span_class._native_from_span(span) }.not_to raise_error
+      end
+
+      it "propagates MessagePack encoding errors without crashing" do
+        value = Object.new
+        def value.to_msgpack
+          raise "encoding failed"
+        end
+        span = make_ruby_span
+        span.set_metastruct_tag("broken", value)
+
+        expect { tracer_span_class._native_from_span(span) }
+          .to raise_error(RuntimeError, "encoding failed")
+
+        GC.start
+      end
+    end
+
     context "when libdatadog rejects meta or metrics" do
       it "frees the span before raising" do
         invalid = "\xFF".b.force_encoding(Encoding::UTF_8)
