@@ -473,7 +473,7 @@ RSpec.describe "Sinatra instrumentation" do
               "HTTP_X_DATADOG_TRACE_ID" => "1",
               "HTTP_X_DATADOG_PARENT_ID" => "2",
               "HTTP_X_DATADOG_SAMPLING_PRIORITY" => Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP.to_s,
-              "HTTP_X_DATADOG_ORIGIN" => "synthetics"
+              "HTTP_X_DATADOG_ORIGIN" => "synthetics",
             }
           end
 
@@ -506,7 +506,7 @@ RSpec.describe "Sinatra instrumentation" do
               "HTTP_X_DATADOG_TRACE_ID" => "1",
               "HTTP_X_DATADOG_PARENT_ID" => "2",
               "HTTP_X_DATADOG_SAMPLING_PRIORITY" => Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP.to_s,
-              "HTTP_X_DATADOG_ORIGIN" => "synthetics"
+              "HTTP_X_DATADOG_ORIGIN" => "synthetics",
             }
           end
 

@@ -94,7 +94,7 @@ RSpec.describe Datadog::Core::KnuthSampler do
         8696342848850656916 => true,
         18444899399302180860 => true,
         18444899399302180862 => true,
-        9223372036854775808 => true
+        9223372036854775808 => true,
       }.each do |input, expected|
         it { expect(sampler.sample?(input)).to be(expected) }
       end

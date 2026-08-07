@@ -6,7 +6,7 @@
 
 ### Added
 
-* Profiling: Add experimental profiling setting to show class/module names in stack frames. Fix crash in `rb_iseq_path()` caused by incorrect GC marking. ([#6024][])
+* Profiling: Add experimental profiling setting to show class/module names in stack frames ([#6024][])
 * Tracing: Add an experimental native (`libdatadog`-backed) trace transport, selectable via `tracing.native_transport` ([#5971][])
 
 ### Changed
@@ -18,6 +18,7 @@
 * AppSec: Fix standalone billing issues for partially flushed traces ([#6116][])
 * Dynamic Instrumentation: Limit dynamic instrumentation regular expression evaluation time to 500ms ([#5908][])
 * Profiling: Fix missing native filename for static Ruby binaries ([#6097][])
+* Profiling: Fix crash in `rb_iseq_path()` caused by incorrect GC marking ([#6024][])
 * Tracing: Fix missing or zero Kafka producer and connection span tags like `kafka.message_count` and `kafka.request_size` in the `ruby-kafka` integration. ([#6104][])
 
 ## [2.39.0] - 2026-07-22

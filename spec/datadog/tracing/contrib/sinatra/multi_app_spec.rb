@@ -35,7 +35,7 @@ RSpec.describe "Sinatra instrumentation for multi-apps" do
     let(:apps) do
       {
         "/one" => app_one,
-        "/two" => app_two
+        "/two" => app_two,
       }
     end
 

@@ -119,7 +119,7 @@ RSpec.shared_examples "Trace Context distributed format" do
             ";",
             "~",
             "\u007F", # First upper invalid character
-            "\u{10FFFF}" # Last unicode character
+            "\u{10FFFF}", # Last unicode character
           ].each do |character|
             context character.inspect do
               let(:origin) { character }
@@ -216,7 +216,7 @@ RSpec.shared_examples "Trace Context distributed format" do
             ",",
             "=",
             "\u007F", # First upper invalid character
-            "\u{10FFFF}" # Last unicode character
+            "\u{10FFFF}", # Last unicode character
           ].each do |character|
             context character.inspect do
               let(:tags) { {character => "value"} }
@@ -233,7 +233,7 @@ RSpec.shared_examples "Trace Context distributed format" do
             ",",
             ";",
             "~", # First upper invalid character (\u007E)
-            "\u{10FFFF}" # Last unicode character
+            "\u{10FFFF}", # Last unicode character
           ].each do |character|
             context character.inspect do
               let(:tags) { {"key" => character.dup} }
@@ -410,7 +410,7 @@ RSpec.shared_examples "Trace Context distributed format" do
       let(:data) do
         {
           prepare_key["traceparent"] => "00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00",
-          prepare_key["tracestate"] => "dd=t.tid:cccccccccccccccc"
+          prepare_key["tracestate"] => "dd=t.tid:cccccccccccccccc",
         }
       end
 
@@ -435,7 +435,7 @@ RSpec.shared_examples "Trace Context distributed format" do
       let(:data) do
         {
           prepare_key["traceparent"] => "00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00",
-          prepare_key["tracestate"] => ""
+          prepare_key["tracestate"] => "",
         }
       end
 
