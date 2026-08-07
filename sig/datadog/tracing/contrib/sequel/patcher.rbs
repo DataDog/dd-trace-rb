@@ -12,6 +12,8 @@ module Datadog
           def self?.patch_sequel_database: () -> untyped
 
           def self?.patch_sequel_dataset: () -> untyped
+
+          def self?.patch_sequel_connection: () -> untyped
         end
       end
     end

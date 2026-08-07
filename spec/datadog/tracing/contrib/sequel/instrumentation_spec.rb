@@ -288,5 +288,30 @@ RSpec.describe "Sequel instrumentation" do
     let(:db_system) { "postgres" }
 
     it_behaves_like "instrumented queries"
+
+    context "with a multi-host connection string" do
+      let(:connection_string) do
+        user = ENV.fetch("TEST_POSTGRES_USER", "postgres")
+        password = ENV.fetch("TEST_POSTGRES_PASSWORD", "postgres")
+        port = ENV.fetch("TEST_POSTGRES_PORT", "5432")
+        db = ENV.fetch("TEST_POSTGRES_DB", "postgres")
+
+        "#{adapter}:///?host=#{host},#{host}&port=1,#{port}&user=#{user}&password=#{password}&dbname=#{db}&connect_timeout=2"
+      end
+
+      before do
+        skip("PG multi-host connection metadata spec requires the native pg adapter on CRuby.") if PlatformHelpers.jruby?
+      end
+
+      it "enriches the span from the selected active connection endpoint" do
+        sequel.fetch("select 1 as n").all
+
+        span = spans.first
+        expect(span.name).to eq("sequel.query")
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(ENV.fetch("TEST_POSTGRES_PORT", "5432"))
+      end
+    end
   end
 end

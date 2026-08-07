@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sequel
+        module Connection
+          def log_connection_yield: (untyped sql, untyped conn, ?untyped args) ?{ () -> untyped } -> untyped
+        end
+      end
+    end
+  end
+end

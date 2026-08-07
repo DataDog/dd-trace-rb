@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../patcher"
+require_relative "connection"
 require_relative "database"
 require_relative "dataset"
 
@@ -21,6 +22,7 @@ module Datadog
           def patch
             patch_sequel_database
             patch_sequel_dataset
+            patch_sequel_connection
           end
 
           def patch_sequel_database
@@ -29,6 +31,10 @@ module Datadog
 
           def patch_sequel_dataset
             ::Sequel::Dataset.include(Dataset)
+          end
+
+          def patch_sequel_connection
+            ::Sequel::Database.prepend(Connection)
           end
         end
       end

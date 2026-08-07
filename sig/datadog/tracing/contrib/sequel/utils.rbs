@@ -17,9 +17,23 @@ module Datadog
 
           def self.set_common_tags: (untyped span, untyped db) -> untyped
 
+          def self.set_connection_tags: (untyped span, untyped conn) -> untyped
+
           private
 
           def self.jdbc_metadata_from_connection: (::Sequel::Database db) -> { host: String?, port: String?, database: String? }?
+
+          def self.connection_metadata_from_connection: (untyped conn) -> { host: String?, port: String?, database: String? }
+
+          def self.jtopen_as400_connection_metadata: (untyped conn) -> { host: String?, port: String?, database: String? }?
+
+          def self.jtopen_as400_connection?: (untyped conn) -> bool
+
+          def self.jtopen_as400_system_name: (untyped conn) -> String?
+
+          def self.pg_connection_metadata: (untyped conn) -> { host: String?, port: String?, database: String? }?
+
+          def self.set_metadata_tags: (untyped span, { host: String?, port: String?, database: String? } metadata, ?bool set_peer_service) -> untyped
 
           def self.database_from_path: (String? path) -> String?
 

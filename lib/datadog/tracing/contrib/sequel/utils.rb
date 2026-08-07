@@ -94,31 +94,15 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
               span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, database_type(db))
 
-              metadata = connection_metadata(db)
-
-              peer_metadata = false
-
-              # Embedded/hostless databases (e.g. SQLite) have no network peer; skip peer-identifying tags.
-              if metadata[:host] && !metadata[:host].empty?
-                span.set_tag(Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME, metadata[:host])
-                span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, metadata[:host])
-                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, metadata[:host])
-                span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, metadata[:port]) if metadata[:port]
-                peer_metadata = true
-              end
-
-              if metadata[:database] && !metadata[:database].empty?
-                span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, metadata[:database])
-                span.set_tag(Ext::TAG_DB_NAME, metadata[:database])
-                peer_metadata = true
-              end
-
-              if peer_metadata
-                Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
-              end
+              set_metadata_tags(span, connection_metadata(db))
 
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
+            end
+
+            def set_connection_tags(span, conn)
+              set_peer_service = !span.respond_to?(:get_tag) || span.get_tag("peer.service").nil?
+              set_metadata_tags(span, connection_metadata_from_connection(conn), set_peer_service)
             end
 
             # Resolves the connection host/port/database for a Sequel::Database. When the
@@ -187,6 +171,84 @@ module Datadog
               metadata = url && parse_jdbc_uri(url)
               db.instance_variable_set(:@datadog_jdbc_metadata, metadata)
               metadata
+            end
+
+            def connection_metadata_from_connection(conn)
+              metadata = jtopen_as400_connection_metadata(conn) || pg_connection_metadata(conn)
+
+              metadata || {host: nil, port: nil, database: nil}
+            end
+
+            # Resolves connection metadata from IBM JTOpen / jt400 AS400 JDBC connections.
+            # JTOpen 9.4.0 exposes AS400JDBCConnection#system and #catalog through JRuby; it does
+            # not expose a public host/port API on AS400JDBCConnection. Use the system name
+            # as the host and leave port unset unless a supported API is added later.
+            def jtopen_as400_connection_metadata(conn)
+              return unless jtopen_as400_connection?(conn)
+
+              host = jtopen_as400_system_name(conn)
+              database = conn.catalog if conn.respond_to?(:catalog)
+
+              return unless (host && !host.empty?) || (database && !database.empty?)
+
+              {host: host, port: nil, database: database}
+            rescue => e
+              Datadog.logger.debug { "Sequel: unable to resolve JTOpen AS400 connection metadata (#{e.class})" }
+              nil
+            end
+
+            def jtopen_as400_connection?(conn)
+              return false unless defined?(JRUBY_VERSION) && conn.respond_to?(:java_class)
+
+              conn.java_class.name.start_with?("com.ibm.as400.access.AS400JDBCConnection")
+            rescue
+              false
+            end
+
+            def jtopen_as400_system_name(conn)
+              system = conn.system if conn.respond_to?(:system)
+              system.system_name if system && system.respond_to?(:system_name)
+            end
+
+            # Resolves the selected endpoint from the pg driver's PG::Connection API.
+            # Sequel's postgres adapter subclasses PG::Connection, so conn.host/conn.port
+            # are driver methods for the active libpq connection, not generic Sequel APIs.
+            def pg_connection_metadata(conn)
+              return unless defined?(::PG::Connection) && conn.is_a?(::PG::Connection)
+
+              host = conn.host
+              return unless host && !host.empty?
+
+              port = conn.port
+              database = conn.db
+
+              {host: host, port: port&.to_s, database: database}
+            rescue => e
+              Datadog.logger.debug { "Sequel: unable to resolve PG connection metadata (#{e.class})" }
+              nil
+            end
+
+            def set_metadata_tags(span, metadata, set_peer_service = true)
+              peer_metadata = false
+
+              # Embedded/hostless databases (e.g. SQLite) have no network peer; skip peer-identifying tags.
+              if metadata[:host] && !metadata[:host].empty?
+                span.set_tag(Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME, metadata[:host])
+                span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, metadata[:host])
+                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, metadata[:host])
+                span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, metadata[:port]) if metadata[:port]
+                peer_metadata = true
+              end
+
+              if metadata[:database] && !metadata[:database].empty?
+                span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, metadata[:database])
+                span.set_tag(Ext::TAG_DB_NAME, metadata[:database])
+                peer_metadata = true
+              end
+
+              if peer_metadata && set_peer_service
+                Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
+              end
             end
 
             def database_from_path(path)
