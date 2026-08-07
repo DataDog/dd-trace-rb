@@ -514,7 +514,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
 
         expect(sent_span).to_not have_key("span_events")
         expect(JSON.parse(sent_span.dig("meta", "events"))).to eq([
-          {"name" => "manual", "time_unix_nano" => 123, "attributes" => {"count" => 2}}
+          {"name" => "manual", "time_unix_nano" => 123, "attributes" => {"count" => 2}},
         ])
       end
 
