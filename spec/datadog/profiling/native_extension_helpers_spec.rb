@@ -25,6 +25,8 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
       reason&.fetch(:reason)&.join("\n")
     end
 
+    let(:suggested) { described_class.unsupported_reason&.fetch(:suggested)&.join("\n") }
+
     before do
       allow(RbConfig::CONFIG).to receive(:[]).and_call_original
     end
@@ -61,7 +63,14 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
 
         before { stub_const("RUBY_PLATFORM", "x86_64-darwin19") }
 
-        it { is_expected.to include "macOS" }
+        it { is_expected.to include "macOS is currently not supported" }
+
+        it "explains how to compile for development" do
+          expect(suggested).to include "for development"
+          expect(suggested).to include "DD_PROFILING_MACOS_TESTING=true"
+          expect(suggested).to include "bundle exec rake clean compile"
+          expect(suggested).to include "docs/LibdatadogDevelopment.md"
+        end
       end
 
       context "when not on Linux" do
