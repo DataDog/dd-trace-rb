@@ -46,7 +46,8 @@ module Datadog
             # (best-effort) database name. Unsupported or ambiguous forms return empty
             # metadata rather than potentially incorrect tags.
             def parse_jdbc_uri(uri)
-              Datadog.logger.info { "DD_DEBUG:parse_jdbc_uri:uri_validation:(#{uri.is_a?(String)}):#{uri.is_a?(String) && uri.valid_encoding?}:#{uri.is_a?(String) && uri.valid_encoding? && uri.sub(/\?.*/, "")}" }
+              loggable_uri = (uri.is_a?(String) && uri.match?(/\Ajdbc:(mariadb|mysql):/i)) ? uri.sub(/\?.*/, "") : "<redacted>"
+              Datadog.logger.info { "DD_DEBUG:parse_jdbc_uri:uri_validation:(#{uri.is_a?(String)}):#{uri.is_a?(String) && uri.valid_encoding?}:#{loggable_uri}" }
 
               result = {host: nil, port: nil, database: nil}
               return result unless uri.is_a?(String) && uri.valid_encoding?
@@ -54,7 +55,8 @@ module Datadog
               match = JDBC_URI_PATTERN.match(uri)
               return result unless match
 
-              Datadog.logger.info { "DD_DEBUG:parse_jdbc_uri:vendor:(#{match[:vendor]}):location:(#{match[:location].sub(/\?.*/, "")})" }
+              loggable_location = (match[:vendor].casecmp("mariadb").zero? || match[:vendor].casecmp("mysql").zero?) ? match[:location].sub(/\?.*/, "") : "<redacted>"
+              Datadog.logger.info { "DD_DEBUG:parse_jdbc_uri:vendor:(#{match[:vendor]}):location:(#{loggable_location})" }
 
               vendor = match[:vendor].downcase
               location, properties = match[:location].split(";", 2)
