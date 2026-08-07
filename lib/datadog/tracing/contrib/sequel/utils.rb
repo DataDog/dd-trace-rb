@@ -14,10 +14,17 @@ module Datadog
       module Sequel
         # General purpose functions for Sequel
         module Utils
-          JDBC_URI_PATTERN = %r{\Ajdbc:(?<vendor>[a-z][a-z0-9+.-]*):(?<location>//[^\r\n]*)\z}i
+          # Captures an optional Connector/J sub-protocol (e.g. "replication" in
+          # jdbc:mysql:replication://...) between the vendor and the // authority.
+          JDBC_URI_PATTERN =
+            %r{\Ajdbc:(?<vendor>[a-z][a-z0-9+.-]*)(?::(?<subprotocol>[a-z][a-z0-9+.-]*))?:(?<location>//[^\r\n]*)\z}i
           DATABASE_PROPERTY_PATTERN =
             /(?:\A|[&;])(?<key>databaseName|database|libraries)=(?<value>[^&;]+)/i
-          private_constant :JDBC_URI_PATTERN, :DATABASE_PROPERTY_PATTERN
+          # Connector/J sub-protocols that spread queries across hosts (load balancing)
+          # or route them by role (read/write splitting), so no single host identifies
+          # the peer a query reached. The database name is still meaningful.
+          HOST_AGNOSTIC_SUBPROTOCOLS = %w[loadbalance replication].freeze
+          private_constant :JDBC_URI_PATTERN, :DATABASE_PROPERTY_PATTERN, :HOST_AGNOSTIC_SUBPROTOCOLS
 
           class << self
             # Ruby database connector library
@@ -43,8 +50,9 @@ module Datadog
             end
 
             # Parses URI-style JDBC connection strings, extracting host, port, and
-            # (best-effort) database name. Unsupported or ambiguous forms return empty
-            # metadata rather than potentially incorrect tags.
+            # (best-effort) database name. Handles Connector/J failover forms (an
+            # optional sub-protocol and comma-separated host lists). Unsupported or
+            # ambiguous forms return empty metadata rather than potentially incorrect tags.
             def parse_jdbc_uri(uri)
               result = {host: nil, port: nil, database: nil}
               return result unless uri.is_a?(String) && uri.valid_encoding?
@@ -53,14 +61,25 @@ module Datadog
               return result unless match
 
               vendor = match[:vendor].downcase
+              subprotocol = match[:subprotocol]&.downcase
               location, properties = match[:location].split(";", 2)
+
+              # Failover drivers (e.g. MySQL/MariaDB Connector/J) list several
+              # comma-separated hosts in the authority; keep only the first so the value
+              # parses as a standard URI and to recover the database name from its path.
+              location, multiple_hosts = single_host_location(location)
 
               # Several JDBC vendors append properties with semicolons, outside the URI
               # grammar. Parse the URI-compatible location separately from those properties.
               parsed = URI.parse("#{vendor}:#{location}")
 
               host = parsed.hostname
-              port = parsed.port
+              host = nil unless valid_host?(host)
+              # With multiple hosts, load-balancing/replication sub-protocols do not pin a
+              # query to a single host, so any one host would be a misleading peer; drop it
+              # (keep database). A single host is unambiguous regardless of sub-protocol.
+              host = nil if multiple_hosts && HOST_AGNOSTIC_SUBPROTOCOLS.include?(subprotocol)
+              port = parsed.port if host
 
               database = database_from_path(parsed.path) ||
                 database_from_properties(properties) || database_from_properties(parsed.query)
@@ -150,6 +169,29 @@ module Datadog
             end
 
             private
+
+            def single_host_location(location)
+              return [location, false] unless location.start_with?("//")
+
+              authority_end = location.index(%r{[/?#]}, 2)
+              authority = authority_end ? location[2...authority_end] : location[2..-1]
+              remainder = authority_end ? location[authority_end..-1] : ""
+
+              return [location, false] unless authority.include?(",")
+
+              userinfo, separator, hosts = authority.rpartition("@")
+              first_host = hosts.split(",", 2).first
+              authority = separator.empty? ? first_host : "#{userinfo}#{separator}#{first_host}"
+
+              ["//#{authority}#{remainder}", true]
+            end
+
+            # Rejects authority values that are not plausible hostnames or IP addresses
+            # (e.g. MySQL's "address=(host=..)(port=..)" form), which would otherwise
+            # surface as a misleading peer.hostname tag.
+            def valid_host?(host)
+              !host.nil? && !host.empty? && host.match?(/\A[\w.\-:]+\z/)
+            end
 
             def database_from_path(path)
               return unless path&.start_with?("/")
