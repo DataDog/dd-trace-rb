@@ -631,6 +631,28 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    context "positional arg whose name collides with a keyword key" do
+      let(:probe_args) do
+        {type_name: "HookTestClass", method_name: "method_kwarg_name_collision",
+         capture_snapshot: true}
+      end
+
+      it "keeps the positional under arg-N and the keyword under its own name" do
+        hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        expect(HookTestClass.new.method_kwarg_name_collision("/a", path: "override")).to eq ["/a", {path: "override"}]
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first.serialized_entry_args).to eq(
+          arg1: {type: "String", value: "/a"},
+          path: {type: "String", value: "override"},
+          self: {type: "HookTestClass", fields: {}},
+        )
+      end
+    end
+
     context "when method is virtual (defined via method_missing) with snapshot capture" do
       let(:probe_args) do
         {type_name: "YieldingMethodMissingHookTestClass", method_name: "yielding",
@@ -2149,6 +2171,8 @@ RSpec.describe Datadog::DI::Instrumenter do
         def no_params
           nil
         end
+
+        attr_writer :written
       end
     end
 
@@ -2182,6 +2206,23 @@ RSpec.describe Datadog::DI::Instrumenter do
 
     it "returns an empty array for a method with no parameters" do
       expect(names_for(:no_params)).to eq([])
+    end
+
+    it "returns a nil name for a generated method (attr_writer) with no parameter name" do
+      expect(names_for(:written=)).to eq([nil])
+    end
+
+    it "returns nil and logs when parameter extraction raises" do
+      broken = instance_double(UnboundMethod)
+      allow(broken).to receive(:parameters).and_raise(RuntimeError.new("boom"))
+
+      logged = nil
+      expect(logger).to receive(:debug) do |&blk|
+        logged = blk.call
+      end
+
+      expect(instrumenter.send(:extract_positional_param_names, broken)).to be_nil
+      expect(logged).to include("failed to extract positional parameter names")
     end
   end
 end

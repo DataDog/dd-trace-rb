@@ -120,15 +120,21 @@ module Datadog
       # @param target_self [Object] the receiver of the probed method
       # @param param_names [Array<Symbol, nil>, nil] real names of the leading
       #   fixed positional parameters; a nil entry (generated methods, splat
-      #   overflow, virtual/C methods) falls back to the arg-N label. nil means
-      #   no names are available and every position uses arg-N.
+      #   overflow, virtual/C methods), or a name that collides with a keyword
+      #   argument key, falls back to the arg-N label. nil means no names are
+      #   available and every position uses arg-N.
       # @return [Hash{Symbol=>Object}] argument values keyed by name, plus :self
       def combine_args(args, kwargs, target_self, param_names = nil)
         combined = {}
         args.each_with_index do |value, index|
           name = param_names && param_names[index]
+          # A real parameter name can coincide with a keyword argument key;
+          # the #update below would then overwrite the positional value with
+          # the keyword value, silently dropping the positional. Fall back to
+          # the positional arg-N label in that case so both values are kept.
           # Symbol keys put positional args ahead of the symbol-keyed kwargs
           # merged below.
+          name = nil if name && kwargs.key?(name)
           combined[name || :"arg#{index + 1}"] = value
         end
         combined.update(kwargs)
