@@ -62,7 +62,25 @@ module Datadog
 
         super()
         self.loop_base_interval = interval
+        # Without this, a preload-then-fork deployment model (e.g. Puma cluster mode with
+        # preload_app!, or Sidekiq Enterprise's sidekiqswarm with SIDEKIQ_PRELOAD_APP) leaves
+        # every forked child with a dead flush thread: Ruby threads don't survive fork, and the
+        # default FORK_POLICY_STOP means #perform would otherwise just mark the worker stopped
+        # instead of restarting it. See #restart_flush_thread.
+        self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
 
+        perform
+      end
+
+      # Restarts the flush thread if a fork has been detected since this processor was
+      # created. Called by Components#after_fork. Safe to call even when no fork occurred:
+      # #perform (via Workers::Async::Thread) only restarts the worker when +forked?+ is true.
+      #
+      # Deliberately not named +after_fork+: Workers::Async::Thread already defines a
+      # protected +after_fork+ template method that #perform's internal restart path
+      # (+restart_after_fork+) calls on every restart -- overriding it here would recurse.
+      def restart_flush_thread
+        discard_inherited_state_after_fork! if forked?
         perform
       end
 
@@ -300,6 +318,20 @@ module Datadog
 
       def decode_pathway_b64(encoded_ctx)
         PathwayContext.decode_b64(encoded_ctx)
+      end
+
+      # A fork copies whatever was buffered in the parent (unflushed events, aggregated
+      # buckets, consumer stats) into the child. If the parent process is still alive and
+      # flushing (e.g. a supervisor process that stays up after forking workers), letting
+      # the child flush that same inherited data as well would double-report it to the
+      # agent. Discard it instead: losing a few seconds of pre-fork stats is preferable to
+      # corrupting pipeline throughput/lag numbers with duplicates.
+      def discard_inherited_state_after_fork!
+        @event_buffer.pop
+        @stats_mutex.synchronize do
+          @buckets.clear
+          @consumer_stats.clear
+        end
       end
 
       def flush_stats
