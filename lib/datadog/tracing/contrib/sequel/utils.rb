@@ -46,8 +46,7 @@ module Datadog
             # (best-effort) database name. Unsupported or ambiguous forms return empty
             # metadata rather than potentially incorrect tags.
             def parse_jdbc_uri(uri)
-              loggable_uri = (uri.is_a?(String) && uri.match?(/\Ajdbc:(mariadb|mysql):/i)) ? uri.sub(/\?.*/, "") : "<redacted>"
-              Datadog.logger.info { "DD_DEBUG:parse_jdbc_uri:uri_validation:(#{uri.is_a?(String)}):#{uri.is_a?(String) && uri.valid_encoding?}:#{loggable_uri}" }
+              Datadog.logger.info { "DD_DEBUG:parse_jdbc_uri:uri_validation:(#{uri.is_a?(String)}):#{uri.is_a?(String) && uri.valid_encoding?}:#{(uri.is_a?(String) && uri.valid_encoding? && uri.match?(/\Ajdbc:(mariadb|mysql):/i)) ? uri.sub(/\?.*/, "") : "<redacted>"}" }
 
               result = {host: nil, port: nil, database: nil}
               return result unless uri.is_a?(String) && uri.valid_encoding?
@@ -65,14 +64,21 @@ module Datadog
               # grammar. Parse the URI-compatible location separately from those properties.
               parsed = URI.parse("#{vendor}:#{location}")
 
+              Datadog.logger.info { "DD_DEBUG:parse_jdbc_uri:parsed:(#{parsed.hostname}):(#{parsed.port})" }
+
               host = parsed.hostname
               port = parsed.port
 
               database = database_from_path(parsed.path) ||
                 database_from_properties(properties) || database_from_properties(parsed.query)
 
+              Datadog.logger.info { "DD_DEBUG:parse_jdbc_uri:return:(#{host}):(#{port}):(#{database})" }
+
               {host: host, port: port&.to_s, database: database}
-            rescue URI::InvalidURIError, Encoding::CompatibilityError, ArgumentError
+            rescue URI::InvalidURIError, Encoding::CompatibilityError, ArgumentError => e
+              message = e.message.sub(/(password=).*?((&[\w_]+?=)|$)/, '\1<redacted>\2')
+              Datadog.logger.info { "DD_DEBUG:parse_jdbc_uri:rescue:#{e.class}:#{message}:(#{e.backtrace[0..10].join(";")})" }
+              pp "RESULT:(#{result})"
               result
             end
 
