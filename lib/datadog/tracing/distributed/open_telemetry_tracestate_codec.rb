@@ -26,6 +26,11 @@ module Datadog
       # @api private
       # @see https://opentelemetry.io/docs/specs/otel/trace/tracestate-probability-sampling/
       module OpenTelemetryTracestateCodec
+        OpenTelemetrySamplingFields = Struct.new(:random_value, :threshold)
+
+        OpenTelemetryFields = Struct.new(:sampling_fields, :unknown_fields)
+        private_constant :OpenTelemetryFields
+
         # 2^56, the range of both `rv` and `th`.
         MAX_THRESHOLD = 1 << 56
         private_constant :MAX_THRESHOLD
@@ -49,17 +54,13 @@ module Datadog
         VALID_RANDOM_VALUE = /\A[0-9a-f]{14}\z/
         private_constant :VALID_RANDOM_VALUE
 
-        # Decision makers that are NOT probability decisions: when one of these is the
-        # effective decision maker, the trace was force-kept and no threshold applies.
-        # A Set avoids a linear Array#include? scan on every call.
+        # Sampling decision makers that do not represent probability decisions.
         NON_PROBABILITY_DECISIONS = Set[
           Sampling::Ext::Decision::MANUAL,
           Sampling::Ext::Decision::ASM,
           Sampling::Ext::Decision::AI_GUARD,
         ].freeze
         private_constant :NON_PROBABILITY_DECISIONS
-
-        ExtractedOtelFields = Struct.new(:random_value, :threshold, :unknown_fields)
 
         module_function
 
@@ -74,20 +75,18 @@ module Datadog
         # @param decision_maker [String, nil] the effective `_dd.p.dm` value
         # @param applied_rate [Float, nil] `rule_sample_rate || agent_sample_rate`
         # @param rate_limiter_rate [Float, nil] set only when a rule kept-by-probability
-        # @param inbound_random_value [String, nil] head-set randomness to preserve
-        # @param inbound_threshold [String, nil] threshold decided upstream
+        # @param inbound [OpenTelemetrySamplingFields, nil] sampling fields decided upstream
         # @param distributed_sampling_priority [Boolean] whether a sampling priority was
         #   already assigned to this trace from an upstream distributed context, i.e. a
         #   decision was already made and should be preserved rather than re-decided
-        # @return [Array(String?, String?)] `[random_value, threshold]` hex strings to emit
+        # @return [OpenTelemetrySamplingFields, nil] sampling fields to emit
         def resolve_outbound(
           trace_id:,
           sampling_priority:,
           decision_maker:,
           applied_rate:,
           rate_limiter_rate:,
-          inbound_random_value:,
-          inbound_threshold:,
+          inbound:,
           distributed_sampling_priority:
         )
           # A non-probability force-keep (manual, ASM, AI Guard) is not a probability
@@ -95,7 +94,9 @@ module Datadog
           # or participant re-run a probability decision and drop the trace we deliberately
           # force-kept. The random value is the trace's explicit randomness (not a decision),
           # so keep it for consistent per-hop sampling downstream.
-          return [inbound_random_value, nil] if NON_PROBABILITY_DECISIONS.include?(decision_maker)
+          if NON_PROBABILITY_DECISIONS.include?(decision_maker)
+            return OpenTelemetrySamplingFields.new(inbound&.random_value, nil)
+          end
 
           trace_kept = sampling_priority && sampling_priority >= Sampling::Ext::Priority::AUTO_KEEP
           # The rate limiter rate is always set on the trace when the trace is sampled
@@ -105,25 +106,25 @@ module Datadog
 
           # Rate-limiter drop: no threshold. Keep an inherited random
           # value so downstream per-hop sampling stays consistent.
-          return [inbound_random_value, nil] if limiter_dropped
+          return OpenTelemetrySamplingFields.new(inbound&.random_value, nil) if limiter_dropped
 
           # Decided upstream: forward the threshold (and/or any explicit random value)
           # unchanged, do not re-decide. When it arrives without a random value or threshold, leave it
           # absent — downstream participants fall back to the W3C implicit random value
           # (the trace id's 56 least-significant bits) themselves.
-          return [inbound_random_value, inbound_threshold] if inbound_threshold || inbound_random_value
+          return inbound if inbound
 
           # Only a trace that is making its own probability decision may derive a fresh
           # `(rv, th)`. When a sampling priority was already assigned upstream (e.g. an
           # older OpenTelemetry or Datadog SDK that sent no `ot` fields), DD is following
           # that decision, not making its own: emit nothing. Same if no rate is applied.
-          return [nil, nil] if distributed_sampling_priority || !applied_rate
+          return OpenTelemetrySamplingFields.new if distributed_sampling_priority || !applied_rate
 
           th = threshold(applied_rate)
           # Datadog is deriving the random value: reconcile the 64-bit keep/drop decision
           # with the 56-bit threshold so a downstream participant agrees.
           rv = reconcile_random_value(random_value(trace_id), th, !!trace_kept)
-          [format_random_value(rv), format_threshold(th)]
+          OpenTelemetrySamplingFields.new(format_random_value(rv), format_threshold(th))
         end
 
         # Parses the value of an `ot=` tracestate member (the part after `ot=`).
@@ -134,9 +135,9 @@ module Datadog
         # Malformed `rv`/`th` are each ignored independently
         #
         # @param value [String?] the `ot=` member value
-        # @return [ExtractedOtelFields] each field may be nil
+        # @return [OpenTelemetryFields] each field may be nil
         def extract_otel_fields(value)
-          return ExtractedOtelFields.new unless value
+          return OpenTelemetryFields.new unless value
 
           # @type var random_value: ::String?
           # @type var threshold: ::String?
@@ -159,10 +160,10 @@ module Datadog
 
           threshold = nil if threshold && !VALID_THRESHOLD.match?(threshold)
           random_value = nil if random_value && !VALID_RANDOM_VALUE.match?(random_value)
+          sampling_fields = OpenTelemetrySamplingFields.new(random_value, threshold) if random_value || threshold
 
-          ExtractedOtelFields.new(
-            random_value,
-            threshold,
+          OpenTelemetryFields.new(
+            sampling_fields,
             unknown.empty? ? nil : "#{unknown.join(";")};",
           )
         end

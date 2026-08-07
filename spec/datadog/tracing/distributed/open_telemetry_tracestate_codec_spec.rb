@@ -10,8 +10,8 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
     let(:decision_maker) { Datadog::Tracing::Sampling::Ext::Decision::TRACE_SAMPLING_RULE }
     let(:applied_rate) { 0.1 }
     let(:rate_limiter_rate) { 1.0 }
-    let(:inbound_random_value) { nil }
-    let(:inbound_threshold) { nil }
+    let(:sampling_fields_class) { described_class::OpenTelemetrySamplingFields }
+    let(:inbound) { nil }
     let(:distributed_sampling_priority) { false }
 
     subject(:resolve) do
@@ -21,26 +21,25 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
         decision_maker: decision_maker,
         applied_rate: applied_rate,
         rate_limiter_rate: rate_limiter_rate,
-        inbound_random_value: inbound_random_value,
-        inbound_threshold: inbound_threshold,
+        inbound: inbound,
         distributed_sampling_priority: distributed_sampling_priority,
       )
     end
 
     context "when a threshold was decided upstream" do
-      let(:inbound_threshold) { "8" }
+      let(:inbound) { sampling_fields_class.new(nil, "8") }
 
       it "forwards the threshold without fabricating a random value when only a threshold arrives" do
         # An OTel SDK that sets `th` without `rv` relies on the W3C implicit random value;
         # downstream participants re-derive it themselves, so we leave `rv` absent.
-        expect(resolve).to eq([nil, "8"])
+        expect(resolve).to eq(sampling_fields_class.new(nil, "8"))
       end
 
       context "and a random value is also present" do
-        let(:inbound_random_value) { "abcabcabcabcab" }
+        let(:inbound) { sampling_fields_class.new("abcabcabcabcab", "8") }
 
         it "forwards the inbound hex strings unchanged, without re-deciding" do
-          expect(resolve).to eq(["abcabcabcabcab", "8"])
+          expect(resolve).to eq(sampling_fields_class.new("abcabcabcabcab", "8"))
         end
 
         context "and the rate limiter drops the trace" do
@@ -48,7 +47,7 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
           let(:sampling_priority) { -1 }
 
           it "erases the threshold but preserves the random value" do
-            expect(resolve).to eq(["abcabcabcabcab", nil])
+            expect(resolve).to eq(sampling_fields_class.new("abcabcabcabcab", nil))
           end
         end
 
@@ -56,7 +55,7 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
           let(:decision_maker) { Datadog::Tracing::Sampling::Ext::Decision::MANUAL }
 
           it "erases the threshold but preserves the random value" do
-            expect(resolve).to eq(["abcabcabcabcab", nil])
+            expect(resolve).to eq(sampling_fields_class.new("abcabcabcabcab", nil))
           end
         end
       end
@@ -67,22 +66,30 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
       let(:sampling_priority) { -1 }
 
       it "emits no random value and no threshold" do
-        expect(resolve).to eq([nil, nil])
+        expect(resolve).to eq(sampling_fields_class.new(nil, nil))
+      end
+    end
+
+    context "when a non-probability decision has no inbound values" do
+      let(:decision_maker) { Datadog::Tracing::Sampling::Ext::Decision::MANUAL }
+
+      it "emits empty sampling fields" do
+        expect(resolve).to eq(sampling_fields_class.new(nil, nil))
       end
     end
 
     context "when only an inbound random value is present" do
       # This can happen when a trace is rate-limited or manually kept by a decision maker.
-      let(:inbound_random_value) { "abcabcabcabcab" }
+      let(:inbound) { sampling_fields_class.new("abcabcabcabcab", nil) }
 
       it "forwards the inbound random value unchanged, without re-generating one" do
-        expect(resolve).to eq(["abcabcabcabcab", nil])
+        expect(resolve).to eq(sampling_fields_class.new("abcabcabcabcab", nil))
       end
     end
 
     context "when DD makes a probability decision" do
       it "generates rv from the trace id and th from the rate (keep)" do
-        expect(resolve).to eq(["ef284ace7a91e1", "e6666666666668"])
+        expect(resolve).to eq(sampling_fields_class.new("ef284ace7a91e1", "e6666666666668"))
       end
 
       context "with a trace ID that would be dropped" do
@@ -94,7 +101,7 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
           # A probabilistic drop never sets the rate limiter rate (the limiter only runs
           # after a rule already kept the trace). trace id 2 has rv e12914a9a8771c < th, so it
           # is a natural drop that needs no reconciliation.
-          expect(resolve).to eq(["e12914a9a8771c", "e6666666666668"])
+          expect(resolve).to eq(sampling_fields_class.new("e12914a9a8771c", "e6666666666668"))
         end
       end
 
@@ -113,7 +120,7 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
           let(:applied_rate) { rate }
 
           it "derives threshold #{expected_th} from rate #{rate}" do
-            expect(resolve[1]).to eq(expected_th)
+            expect(resolve.threshold).to eq(expected_th)
           end
         end
       end
@@ -126,7 +133,7 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
           let(:applied_rate) { rate }
 
           it "clamps an out-of-range applied rate" do
-            expect(resolve[1]).to eq(expected_th)
+            expect(resolve.threshold).to eq(expected_th)
           end
         end
       end
@@ -135,7 +142,7 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
         let(:trace_id) { 0xabcdef << 64 | 0xfff972474538efff }
 
         it "derives the random value only from the trace id's lower 64 bits" do
-          expect(resolve[0]).to eq("ef284ace7a91e1")
+          expect(resolve.random_value).to eq("ef284ace7a91e1")
         end
       end
     end
@@ -151,7 +158,7 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
       # trace id ...263811222310854400, rate 0.1
       # raw rv e6666666666666 < th e6666666666668 (OTel would drop)
       it "raises the random value to the threshold" do
-        expect(resolve).to eq(["e6666666666668", "e6666666666668"])
+        expect(resolve).to eq(sampling_fields_class.new("e6666666666668", "e6666666666668"))
       end
     end
 
@@ -164,7 +171,7 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
       # trace id ...5401449561355763072, rate 0.05
       # raw rv f3333333333331 >= th f3333333333330 (OTel would keep)
       it "lowers the random value below the threshold" do
-        expect(resolve).to eq(["f333333333332f", "f333333333333"])
+        expect(resolve).to eq(sampling_fields_class.new("f333333333332f", "f333333333333"))
       end
     end
 
@@ -174,7 +181,7 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
       let(:rate_limiter_rate) { nil }
 
       it "erases the threshold but preserves the random value" do
-        expect(resolve).to eq([nil, nil])
+        expect(resolve).to eq(sampling_fields_class.new(nil, nil))
       end
     end
 
@@ -185,7 +192,7 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
       let(:distributed_sampling_priority) { true }
 
       it "emits nothing" do
-        expect(resolve).to eq([nil, nil])
+        expect(resolve).to eq(sampling_fields_class.new(nil, nil))
       end
     end
   end
@@ -194,17 +201,18 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
     let(:otel_fields) { "rv:f972474538efff;th:8" }
     subject(:extract_otel_fields) { described_class.extract_otel_fields(otel_fields) }
 
-    let(:extracted_otel_fields_class) { described_class.const_get(:ExtractedOtelFields) }
+    let(:open_telemetry_fields_class) { described_class.const_get(:OpenTelemetryFields) }
+    let(:sampling_fields_class) { described_class::OpenTelemetrySamplingFields }
 
     it "parses the random value and threshold as raw hex strings" do
-      is_expected.to eq(extracted_otel_fields_class.new("f972474538efff", "8", nil))
+      is_expected.to eq(open_telemetry_fields_class.new(sampling_fields_class.new("f972474538efff", "8"), nil))
     end
 
     context "with unknown sub-keys" do
       let(:otel_fields) { "th:8;future:x;more:y" }
 
       it "preserves unknown sub-keys with a trailing semicolon" do
-        is_expected.to eq(extracted_otel_fields_class.new(nil, "8", "future:x;more:y;"))
+        is_expected.to eq(open_telemetry_fields_class.new(sampling_fields_class.new(nil, "8"), "future:x;more:y;"))
       end
     end
 
@@ -212,7 +220,7 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
       let(:otel_fields) { "th:e6666666666668" }
 
       it "parses a threshold with no random value (implicit random value case)" do
-        is_expected.to eq(extracted_otel_fields_class.new(nil, "e6666666666668", nil))
+        is_expected.to eq(open_telemetry_fields_class.new(sampling_fields_class.new(nil, "e6666666666668"), nil))
       end
     end
 
@@ -226,7 +234,7 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
         let(:otel_fields) { "rv:f972474538efff;#{member}" }
 
         it "ignores #{member} while keeping a valid random value" do
-          is_expected.to eq(extracted_otel_fields_class.new("f972474538efff", nil, nil))
+          is_expected.to eq(open_telemetry_fields_class.new(sampling_fields_class.new("f972474538efff", nil), nil))
         end
       end
     end
@@ -241,7 +249,7 @@ RSpec.describe Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec do
         let(:otel_fields) { "#{member};th:8" }
 
         it "ignores #{member} but keeps a valid threshold" do
-          is_expected.to eq(extracted_otel_fields_class.new(nil, "8", nil))
+          is_expected.to eq(open_telemetry_fields_class.new(sampling_fields_class.new(nil, "8"), nil))
         end
       end
     end

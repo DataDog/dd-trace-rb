@@ -2231,17 +2231,32 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
 
           it "derives ot.rv from the trace id and ot.th from the applied rate" do
-            expect(digest.trace_otel_random_value).to eq("ef284ace7a91e1")
-            expect(digest.trace_otel_threshold).to eq("e6666666666668")
+            expect(digest.trace_otel_sampling_fields).to eq(
+              Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
+                "ef284ace7a91e1",
+                "e6666666666668"
+              )
+            )
           end
         end
 
         context "when the inbound context carried values" do
-          let(:options) { super().merge(otel_random_value: "abcabcabcabcab", otel_threshold: "7") }
+          let(:options) do
+            super().merge(
+              otel_sampling_fields: Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
+                "abcabcabcabcab",
+                "7"
+              )
+            )
+          end
 
           it "forwards the inbound values unchanged" do
-            expect(digest.trace_otel_random_value).to eq("abcabcabcabcab")
-            expect(digest.trace_otel_threshold).to eq("7")
+            expect(digest.trace_otel_sampling_fields).to eq(
+              Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
+                "abcabcabcabcab",
+                "7"
+              )
+            )
           end
         end
 
@@ -2252,8 +2267,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           let(:options) { super().merge(remote_parent: true, distributed_sampling_priority: true) }
 
           it "emits no ot values" do
-            expect(digest.trace_otel_random_value).to be_nil
-            expect(digest.trace_otel_threshold).to be_nil
+            expect(digest.trace_otel_sampling_fields).to eq(
+              Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(nil, nil)
+            )
           end
         end
 
@@ -2264,8 +2280,12 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           let(:options) { super().merge(remote_parent: true, distributed_sampling_priority: false) }
 
           it "derives ot.rv from the trace id and ot.th from the applied rate" do
-            expect(digest.trace_otel_random_value).to eq("ef284ace7a91e1")
-            expect(digest.trace_otel_threshold).to eq("e6666666666668")
+            expect(digest.trace_otel_sampling_fields).to eq(
+              Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
+                "ef284ace7a91e1",
+                "e6666666666668"
+              )
+            )
           end
         end
       end

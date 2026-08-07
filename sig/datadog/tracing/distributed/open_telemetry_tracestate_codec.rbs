@@ -2,12 +2,15 @@ module Datadog
   module Tracing
     module Distributed
       module OpenTelemetryTracestateCodec
-        class ExtractedOtelFields < ::Struct[[::String?, ::String?, ::String?]]
-          def self.new: (?::String? random_value, ?::String? threshold, ?::String? unknown_fields) -> ExtractedOtelFields
-
+        class OpenTelemetrySamplingFields < ::Struct[[::String?, ::String?]]
+          def self.new: (?::String? random_value, ?::String? threshold) -> OpenTelemetrySamplingFields
           attr_accessor random_value: ::String?
-
           attr_accessor threshold: ::String?
+        end
+
+        class OpenTelemetryFields < ::Struct[[OpenTelemetrySamplingFields?, ::String?]]
+          def self.new: (?OpenTelemetrySamplingFields? sampling_fields, ?::String? unknown_fields) -> OpenTelemetryFields
+          attr_accessor sampling_fields: OpenTelemetrySamplingFields?
 
           attr_accessor unknown_fields: ::String?
         end
@@ -26,12 +29,11 @@ module Datadog
           decision_maker: ::String?,
           applied_rate: ::Float?,
           rate_limiter_rate: ::Float?,
-          inbound_random_value: ::String?,
-          inbound_threshold: ::String?,
+          inbound: OpenTelemetrySamplingFields?,
           distributed_sampling_priority: bool
-        ) -> [::String?, ::String?]
+        ) -> OpenTelemetrySamplingFields?
 
-        def self?.extract_otel_fields: (::String? value) -> ExtractedOtelFields
+        def self?.extract_otel_fields: (::String? value) -> OpenTelemetryFields
 
         private
 
