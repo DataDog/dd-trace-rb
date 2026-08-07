@@ -32,7 +32,7 @@ RSpec.describe "Kafka patcher" do
         client_id: client_id,
         api: api,
         request_size: request_size,
-        response_size: response_size
+        response_size: response_size,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONNECTION_REQUEST }
@@ -118,7 +118,7 @@ RSpec.describe "Kafka patcher" do
         message_count: message_count,
         partition: partition,
         highwater_mark_offset: highwater_mark_offset,
-        offset_lag: offset_lag
+        offset_lag: offset_lag,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_PROCESS_BATCH }
@@ -207,7 +207,7 @@ RSpec.describe "Kafka patcher" do
         topic: topic,
         partition: partition,
         offset: offset,
-        offset_lag: offset_lag
+        offset_lag: offset_lag,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_PROCESS_MESSAGE }
@@ -286,14 +286,14 @@ RSpec.describe "Kafka patcher" do
     let(:topic_partitions) do
       {
         "foo" => [0, 2],
-        "bar" => [1, 3]
+        "bar" => [1, 3],
       }
     end
     let(:payload) do
       {
         client_id: client_id,
         group_id: group_id,
-        topic_partitions: topic_partitions
+        topic_partitions: topic_partitions,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONSUMER_HEARTBEAT }
@@ -364,7 +364,7 @@ RSpec.describe "Kafka patcher" do
     let(:payload) do
       {
         client_id: client_id,
-        group_id: group_id
+        group_id: group_id,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONSUMER_JOIN_GROUP }
@@ -431,7 +431,7 @@ RSpec.describe "Kafka patcher" do
     let(:payload) do
       {
         client_id: client_id,
-        group_id: group_id
+        group_id: group_id,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONSUMER_LEAVE_GROUP }
@@ -498,7 +498,7 @@ RSpec.describe "Kafka patcher" do
     let(:payload) do
       {
         client_id: client_id,
-        group_id: group_id
+        group_id: group_id,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONSUMER_SYNC_GROUP }
@@ -567,7 +567,7 @@ RSpec.describe "Kafka patcher" do
       {
         client_id: client_id,
         message_count: message_count,
-        sent_message_count: sent_message_count
+        sent_message_count: sent_message_count,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_SEND_MESSAGES }
@@ -642,7 +642,7 @@ RSpec.describe "Kafka patcher" do
         client_id: client_id,
         attempts: attempts,
         message_count: message_count,
-        delivered_message_count: delivered_message_count
+        delivered_message_count: delivered_message_count,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_DELIVER_MESSAGES }

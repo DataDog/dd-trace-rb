@@ -197,6 +197,52 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         # A leaked rust span would surface as a crash under GC pressure.
         GC.start
       end
+
+      it "frees the span when Warning.warn raises for a huge Bignum" do
+        span = make_ruby_span(metrics: {"huge" => (1 << 65_536)})
+        verbose = $VERBOSE
+        $VERBOSE = true
+        allow(Warning).to receive(:warn).and_raise(RuntimeError, "warning boom")
+
+        20.times do
+          expect { tracer_span_class._native_from_span(span) }
+            .to raise_error(RuntimeError, "warning boom")
+        end
+
+        GC.start
+      ensure
+        $VERBOSE = verbose
+      end
+
+      it "frees the span when Warning.warn mutates the iterated hash" do
+        metrics = {"huge" => (1 << 65_536)}
+        span = make_ruby_span(metrics: metrics)
+        verbose = $VERBOSE
+        $VERBOSE = true
+        allow(Warning).to receive(:warn) { metrics["added by warning"] = 1.0 }
+
+        expect { tracer_span_class._native_from_span(span) }
+          .to raise_error(RuntimeError, /can't add a new key into hash during iteration/)
+
+        GC.start
+      ensure
+        $VERBOSE = verbose
+      end
+
+      it "remains safe when warning code mutates the converted hash" do
+        meta = {"invalid" => Object.new}
+        span = make_ruby_span(meta: meta)
+        allow(Datadog.logger).to receive(:warn) do
+          meta["added by logger"] = Object.new
+          raise "logger mutated meta"
+        end
+
+        expect { tracer_span_class._native_from_span(span) }
+          .to raise_error(RuntimeError, "logger mutated meta")
+        expect(meta).to have_key("added by logger")
+
+        GC.start
+      end
     end
 
     context "with non-numeric metrics values (mixed hash)" do
@@ -206,6 +252,70 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         expect(Datadog.logger).to receive(:warn).with(/skipped 1 non-numeric metrics entries/)
 
         expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
+      end
+    end
+
+    context "with meta_struct" do
+      it "accepts string and symbol keys" do
+        span = make_ruby_span
+        span.set_metastruct_tag("_dd.stack", {frames: [{file: "app.rb", line: 42}]})
+        span.set_metastruct_tag(:ai_guard, {messages: ["hello"]})
+
+        expect { tracer_span_class._native_from_span(span) }.not_to raise_error
+      end
+
+      it "skips keys outside the agent string-key contract" do
+        span = make_ruby_span
+        span.set_metastruct_tag(123, {ignored: true})
+
+        expect(Datadog.logger).to receive(:warn)
+          .with(/skipped 1 meta_struct entries with non-string keys/)
+
+        expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
+      end
+
+      it "supports zero-argument custom MessagePack encoders" do
+        value = Object.new
+        def value.to_msgpack
+          {"custom" => true}.to_msgpack
+        end
+        span = make_ruby_span
+        span.set_metastruct_tag("custom", value)
+
+        expect { tracer_span_class._native_from_span(span) }.not_to raise_error
+      end
+
+      it "propagates MessagePack encoding errors without crashing" do
+        value = Object.new
+        def value.to_msgpack
+          raise "encoding failed"
+        end
+        span = make_ruby_span
+        span.set_metastruct_tag("broken", value)
+
+        expect { tracer_span_class._native_from_span(span) }
+          .to raise_error(RuntimeError, "encoding failed")
+
+        GC.start
+      end
+    end
+
+    context "when libdatadog rejects meta or metrics" do
+      it "frees the span before raising" do
+        invalid = "\xFF".b.force_encoding(Encoding::UTF_8)
+        spans = [
+          make_ruby_span(meta: {invalid => "value"}),
+          make_ruby_span(metrics: {invalid => 1.0}),
+        ]
+
+        20.times do
+          spans.each do |span|
+            expect { tracer_span_class._native_from_span(span) }
+              .to raise_error(RuntimeError, /Failed to set span (meta|metric)/)
+          end
+        end
+
+        GC.start
       end
     end
 

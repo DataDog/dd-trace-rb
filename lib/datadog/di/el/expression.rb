@@ -12,12 +12,17 @@ module Datadog
         # @param regexps [Array<Regexp>] precompiled `matches` regexps (see
         #   Compiler#precompile_regexp), the second element returned by
         #   Compiler#compile.
-        def initialize(dsl_expr, compiled_expr, regexps = [])
+        # @param redaction_identifier [String, nil] the identifier this
+        #   expression directly references at its top level (see
+        #   Compiler#redaction_identifier); nil when it is not a direct
+        #   reference.
+        def initialize(dsl_expr, compiled_expr, regexps: [], redaction_identifier: nil)
           unless String === compiled_expr
             raise ArgumentError, "compiled_expr must be a string"
           end
 
           @dsl_expr = dsl_expr
+          @redaction_identifier = redaction_identifier
 
           cls = Class.new(Evaluator)
           cls.class_exec do
@@ -36,6 +41,7 @@ module Datadog
 
         attr_reader :dsl_expr
         attr_reader :evaluator
+        attr_reader :redaction_identifier
 
         def evaluate(context)
           @evaluator.evaluate(context)

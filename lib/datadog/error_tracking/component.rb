@@ -154,7 +154,7 @@ module Datadog
         attributes = {
           "exception.type" => formatted_exception.type,
           "exception.message" => formatted_exception.message,
-          "exception.stacktrace" => formatted_exception.backtrace
+          "exception.stacktrace" => formatted_exception.backtrace,
         }
         Datadog::Tracing::SpanEvent.new("exception", attributes: attributes)
       end

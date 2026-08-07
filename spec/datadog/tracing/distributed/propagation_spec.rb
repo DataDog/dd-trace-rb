@@ -196,7 +196,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
         let(:data) do
           {
             prepare_key["x-datadog-trace-id"] => "123",
-            prepare_key["x-datadog-parent-id"] => "456"
+            prepare_key["x-datadog-parent-id"] => "456",
           }
         end
 
@@ -214,7 +214,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
             {
               prepare_key["x-datadog-trace-id"] => "7",
               prepare_key["x-datadog-parent-id"] => "8",
-              prepare_key["x-datadog-sampling-priority"] => "0"
+              prepare_key["x-datadog-sampling-priority"] => "0",
             }
           end
 
@@ -232,7 +232,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
                 prepare_key["x-datadog-trace-id"] => "7",
                 prepare_key["x-datadog-parent-id"] => "8",
                 prepare_key["x-datadog-sampling-priority"] => "0",
-                prepare_key["x-datadog-origin"] => "synthetics"
+                prepare_key["x-datadog-origin"] => "synthetics",
               }
             end
 
@@ -251,7 +251,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
             {
               prepare_key["x-datadog-trace-id"] => "7",
               prepare_key["x-datadog-parent-id"] => "8",
-              prepare_key["x-datadog-origin"] => "synthetics"
+              prepare_key["x-datadog-origin"] => "synthetics",
             }
           end
 
@@ -411,7 +411,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
             prepare_key["x-b3-traceid"] => "00ef01",
             prepare_key["x-b3-spanid"] => "011ef0",
             prepare_key["b3"] => "00ef01-011ef0",
-            prepare_key["baggage"] => "key=value"
+            prepare_key["baggage"] => "key=value",
           }
         end
 
@@ -433,7 +433,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
               prepare_key["x-b3-spanid"] => "011ef0",
               prepare_key["x-b3-sampled"] => "1",
               prepare_key["b3"] => "00ef01-011ef0-1",
-              prepare_key["baggage"] => "key=value"
+              prepare_key["baggage"] => "key=value",
             }
           end
 
@@ -453,7 +453,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
             prepare_key["x-datadog-trace-id"] => "61185",
             prepare_key["x-datadog-parent-id"] => "73456",
             prepare_key["b3"] => "00ef01-011ef0",
-            prepare_key["baggage"] => "key=value"
+            prepare_key["baggage"] => "key=value",
           }
         end
 
@@ -472,7 +472,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
               prepare_key["x-datadog-parent-id"] => "73456",
               prepare_key["x-datadog-sampling-priority"] => "1",
               prepare_key["b3"] => "00ef01-011ef0-1",
-              prepare_key["baggage"] => "key=value"
+              prepare_key["baggage"] => "key=value",
             }
           end
 
@@ -501,7 +501,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
             prepare_key["x-datadog-trace-id"] => datadog_trace_id.to_s(10),
             prepare_key["x-datadog-parent-id"] => datadog_span_id.to_s(10),
             prepare_key["traceparent"] => traceparent,
-            prepare_key["baggage"] => "key=value"
+            prepare_key["baggage"] => "key=value",
           }
         end
 
