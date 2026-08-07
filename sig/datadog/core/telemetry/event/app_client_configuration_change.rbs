@@ -3,27 +3,32 @@ module Datadog
     module Telemetry
       module Event
         class AppClientConfigurationChange < Base
-          @changes: untyped
+          type configuration_changes = Array[[String, any]] | Hash[String, any]
 
-          @origin: untyped
+          @changes: configuration_changes
+          @origin: String
 
-          attr_reader changes: Array[[String, Numeric | bool | String | int]]
+          attr_reader changes: configuration_changes
 
           attr_reader origin: String
 
           def type: () -> "app-client-configuration-change"
 
-          def initialize: (Array[[String, Numeric | bool | String]] changes, String origin) -> void
+          def initialize: (configuration_changes changes, String origin) -> void
 
-          def payload: () -> { configuration: untyped }
+          def payload: () -> { configuration: Array[telemetry_configuration] }
 
-          def configuration: () -> Array[Hash[Symbol, untyped]]
+          def configuration: () -> Array[telemetry_configuration]
 
           def ==: (untyped other) -> untyped
 
           alias eql? ==
 
           def hash: () -> untyped
+
+          private
+
+          def configuration_entry: (String name, any value, String origin, Integer seq_id) -> telemetry_configuration
         end
       end
     end
