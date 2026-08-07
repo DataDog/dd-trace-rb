@@ -2,6 +2,8 @@
 
 require "datadog/core"
 require "datadog/tracing/span"
+require "datadog/tracing/span_link"
+require "datadog/tracing/trace_digest"
 
 RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
   before do
@@ -88,6 +90,77 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
       it "does not raise" do
         span = make_ruby_span(trace_id: 42)
         expect { tracer_span_class._native_from_span(span) }.not_to raise_error
+      end
+    end
+
+    context "with span links" do
+      let(:link) do
+        Datadog::Tracing::SpanLink.new(
+          Datadog::Tracing::TraceDigest.new(
+            trace_id: (0x1234 << 64) | 0x5678,
+            span_id: 0x9abc,
+            trace_sampling_priority: 1,
+            trace_state: "vendor=value"
+          ),
+          attributes: {"operation" => "receive", "batch" => [1, true]}
+        )
+      end
+
+      it "uses the canonical SpanLink hash before native conversion" do
+        expect(link).to receive(:to_hash).once.and_call_original
+        span = make_ruby_span
+        span.links << link
+
+        expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
+      end
+
+      it "normalizes every link before allocating the Rust span" do
+        bad_link = double("span link")
+        allow(bad_link).to receive(:to_hash).and_raise("normalization failed")
+        span = make_ruby_span
+        span.links.concat([link, bad_link])
+
+        expect { tracer_span_class._native_from_span(span) }
+          .to raise_error(RuntimeError, "normalization failed")
+        GC.start
+      end
+
+      it "rejects invalid UTF-8 atomically" do
+        invalid_link = Datadog::Tracing::SpanLink.new(
+          Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2),
+          attributes: {"valid" => "value", "invalid" => "\xff".b}
+        )
+        span = make_ruby_span
+        span.links.concat([link, invalid_link])
+
+        expect { tracer_span_class._native_from_span(span) }
+          .to raise_error(RuntimeError, /Failed to set span links/)
+        GC.start
+      end
+
+      it "cleans up partial snapshots when a hash default proc raises" do
+        calls = []
+        canonical = {
+          trace_id: 1,
+          trace_id_high: 0,
+          span_id: 2,
+          attributes: {"copied" => "value"},
+          flags: 0,
+        }
+        canonical.default_proc = proc do |_hash, key|
+          calls << key
+          raise "default proc failed"
+        end
+        stateful_link = double("span link", to_hash: canonical)
+        span = make_ruby_span
+        span.links << stateful_link
+
+        20.times do
+          expect { tracer_span_class._native_from_span(span) }
+            .to raise_error(RuntimeError, "default proc failed")
+        end
+        expect(calls).to eq([:tracestate] * 20)
+        GC.start
       end
     end
 

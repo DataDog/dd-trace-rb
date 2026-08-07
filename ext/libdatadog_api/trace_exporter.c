@@ -65,12 +65,22 @@ static ID at_duration_id;
 static ID at_status_id;
 static ID at_meta_id;
 static ID at_metrics_id;
+static ID at_links_id;
 static ID at_metastruct_id;
 
 /* Method IDs for time / integer operations */
 static ID id_duration_method;
+static ID id_to_hash;
 static ID id_to_h;
 static ID id_negative_p;
+
+/* Canonical SpanLink#to_hash field IDs */
+static ID link_trace_id_id;
+static ID link_trace_id_high_id;
+static ID link_span_id_id;
+static ID link_attributes_id;
+static ID link_tracestate_id;
+static ID link_flags_id;
 
 /* Resolved lazily because AppSec may load after this extension. */
 static VALUE serializable_backtrace_class = Qnil;
@@ -323,6 +333,196 @@ static int metrics_iter_cb(VALUE key, VALUE value, VALUE arg) {
   }
 
   return ST_CONTINUE;
+}
+
+typedef struct {
+  char  *ptr;
+  size_t len;
+} owned_link_string;
+
+typedef struct {
+  owned_link_string key;
+  owned_link_string value;
+} owned_link_attribute;
+
+typedef struct {
+  uint64_t              trace_id_low;
+  uint64_t              trace_id_high;
+  uint64_t              span_id;
+  owned_link_attribute *attributes;
+  size_t                attribute_count;
+  owned_link_string     tracestate;
+  uint32_t              flags;
+} owned_span_link;
+
+typedef struct {
+  VALUE            rb_links;
+  owned_span_link *links;
+  size_t           link_count;
+  size_t           attribute_count;
+  void            *ffi_storage;
+  ddog_TracerSpanLink *ffi_links;
+} span_links_snapshot;
+
+typedef struct {
+  owned_link_attribute *attributes;
+  size_t                 offset;
+  size_t                 capacity;
+} snapshot_attribute_ctx;
+
+static void snapshot_link_string(VALUE string, owned_link_string *snapshot) {
+  ENFORCE_TYPE(string, T_STRING);
+  snapshot->len = (size_t)RSTRING_LEN(string);
+  snapshot->ptr = ruby_xmalloc(snapshot->len == 0 ? 1 : snapshot->len);
+  if (snapshot->len > 0) {
+    memcpy(snapshot->ptr, RSTRING_PTR(string), snapshot->len);
+  }
+}
+
+static int snapshot_link_attribute_cb(VALUE key, VALUE value, VALUE arg) {
+  snapshot_attribute_ctx *ctx = (snapshot_attribute_ctx *)arg;
+  if (ctx->offset >= ctx->capacity) {
+    raise_error(rb_eRuntimeError, "Span link attributes changed during snapshot");
+  }
+  owned_link_attribute *attribute = &ctx->attributes[ctx->offset++];
+  snapshot_link_string(key, &attribute->key);
+  snapshot_link_string(value, &attribute->value);
+  return ST_CONTINUE;
+}
+
+static ddog_CharSlice snapshot_char_slice(const owned_link_string *snapshot) {
+  return (ddog_CharSlice){
+    .ptr = snapshot->ptr == NULL ? "" : snapshot->ptr,
+    .len = snapshot->len,
+  };
+}
+
+static void free_owned_link_string(owned_link_string *snapshot) {
+  if (snapshot->ptr != NULL) {
+    ruby_xfree(snapshot->ptr);
+    snapshot->ptr = NULL;
+  }
+}
+
+static void free_span_links_snapshot(span_links_snapshot *snapshot) {
+  if (snapshot->ffi_storage != NULL) {
+    ruby_xfree(snapshot->ffi_storage);
+  }
+  snapshot->ffi_storage = NULL;
+  snapshot->ffi_links = NULL;
+
+  if (snapshot->links != NULL) {
+    for (size_t i = 0; i < snapshot->link_count; i++) {
+      owned_span_link *link = &snapshot->links[i];
+      if (link->attributes != NULL) {
+        for (size_t j = 0; j < link->attribute_count; j++) {
+          free_owned_link_string(&link->attributes[j].key);
+          free_owned_link_string(&link->attributes[j].value);
+        }
+        ruby_xfree(link->attributes);
+      }
+      free_owned_link_string(&link->tracestate);
+    }
+    ruby_xfree(snapshot->links);
+    snapshot->links = NULL;
+  }
+}
+
+static VALUE prepare_span_links_snapshot(VALUE arg) {
+  span_links_snapshot *snapshot = (span_links_snapshot *)arg;
+  snapshot->link_count = (size_t)RARRAY_LEN(snapshot->rb_links);
+  if (snapshot->link_count > SIZE_MAX / sizeof(owned_span_link)) {
+    raise_error(rb_eArgError, "Span link count is too large");
+  }
+  if (snapshot->link_count > 0) {
+    snapshot->links = ruby_xcalloc(snapshot->link_count, sizeof(owned_span_link));
+  }
+
+  for (size_t i = 0; i < snapshot->link_count; i++) {
+    VALUE canonical = rb_funcall(rb_ary_entry(snapshot->rb_links, (long)i), id_to_hash, 0);
+    ENFORCE_TYPE(canonical, T_HASH);
+
+    /* Fetch each canonical field exactly once. Hash default procs may be
+     * stateful, so every value must be captured before Rust allocation/FFI. */
+    owned_span_link *link = &snapshot->links[i];
+    VALUE trace_id = rb_hash_aref(canonical, ID2SYM(link_trace_id_id));
+    link->trace_id_low = NUM2ULL(trace_id);
+
+    VALUE trace_id_high = rb_hash_aref(canonical, ID2SYM(link_trace_id_high_id));
+    link->trace_id_high = trace_id_high == Qnil ? 0 : NUM2ULL(trace_id_high);
+
+    VALUE span_id = rb_hash_aref(canonical, ID2SYM(link_span_id_id));
+    link->span_id = NUM2ULL(span_id);
+
+    VALUE attributes = rb_hash_aref(canonical, ID2SYM(link_attributes_id));
+    if (attributes != Qnil) {
+      ENFORCE_TYPE(attributes, T_HASH);
+      link->attribute_count = (size_t)RHASH_SIZE(attributes);
+      if (link->attribute_count > SIZE_MAX - snapshot->attribute_count) {
+        raise_error(rb_eArgError, "Span link attribute count is too large");
+      }
+      snapshot->attribute_count += link->attribute_count;
+      if (link->attribute_count > 0) {
+        link->attributes = ruby_xcalloc(link->attribute_count, sizeof(owned_link_attribute));
+        snapshot_attribute_ctx ctx = {
+          .attributes = link->attributes,
+          .offset = 0,
+          .capacity = link->attribute_count,
+        };
+        rb_hash_foreach(attributes, snapshot_link_attribute_cb, (VALUE)&ctx);
+      }
+    }
+
+    VALUE tracestate = rb_hash_aref(canonical, ID2SYM(link_tracestate_id));
+    if (tracestate != Qnil) {
+      snapshot_link_string(tracestate, &link->tracestate);
+    }
+
+    VALUE flags = rb_hash_aref(canonical, ID2SYM(link_flags_id));
+    link->flags = NUM2UINT(flags);
+  }
+
+  if (snapshot->attribute_count > SIZE_MAX / sizeof(ddog_TracerSpanLinkAttribute)) {
+    raise_error(rb_eArgError, "Span link attribute count is too large");
+  }
+  size_t attributes_size =
+      snapshot->attribute_count * sizeof(ddog_TracerSpanLinkAttribute);
+  if (snapshot->link_count > (SIZE_MAX - attributes_size) /
+      sizeof(ddog_TracerSpanLink)) {
+    raise_error(rb_eArgError, "Span link count is too large");
+  }
+  size_t links_size = snapshot->link_count * sizeof(ddog_TracerSpanLink);
+  size_t storage_size = links_size + attributes_size;
+  snapshot->ffi_storage = ruby_xcalloc(1, storage_size == 0 ? 1 : storage_size);
+  snapshot->ffi_links = (ddog_TracerSpanLink *)snapshot->ffi_storage;
+  ddog_TracerSpanLinkAttribute *ffi_attributes =
+      (ddog_TracerSpanLinkAttribute *)((char *)snapshot->ffi_storage + links_size);
+  size_t attribute_offset = 0;
+
+  for (size_t i = 0; i < snapshot->link_count; i++) {
+    owned_span_link *link = &snapshot->links[i];
+    size_t first_attribute = attribute_offset;
+    for (size_t j = 0; j < link->attribute_count; j++) {
+      owned_link_attribute *attribute = &link->attributes[j];
+      ffi_attributes[attribute_offset++] = (ddog_TracerSpanLinkAttribute){
+        .key = snapshot_char_slice(&attribute->key),
+        .value = snapshot_char_slice(&attribute->value),
+      };
+    }
+    snapshot->ffi_links[i] = (ddog_TracerSpanLink){
+      .trace_id_low = link->trace_id_low,
+      .trace_id_high = link->trace_id_high,
+      .span_id = link->span_id,
+      .attributes = {
+        .ptr = ffi_attributes + first_attribute,
+        .len = link->attribute_count,
+      },
+      .tracestate = snapshot_char_slice(&link->tracestate),
+      .flags = link->flags,
+    };
+  }
+
+  return Qnil;
 }
 
 typedef struct {
@@ -657,6 +857,9 @@ static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
   VALUE rb_trace_id  = rb_ivar_get(span, at_trace_id_id);
   VALUE rb_status    = rb_ivar_get(span, at_status_id);
 
+  /* Validate scalar strings without borrowing their pointers. Link and
+   * meta_struct normalization below can call arbitrary Ruby code that mutates
+   * these strings and invalidates any prior RSTRING_PTR. */
   ENFORCE_TYPE(rb_name, T_STRING);
   if (rb_service != Qnil) ENFORCE_TYPE(rb_service, T_STRING);
   if (rb_resource != Qnil) ENFORCE_TYPE(rb_resource, T_STRING);
@@ -686,12 +889,30 @@ static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
     if (dur != Qnil) duration_ns = (int64_t)(NUM2DBL(dur) * 1e9);
   }
 
-  /* Structured-value normalisation can call Ruby code. Snapshot it before
-   * borrowing scalar string pointers or allocating the Rust span. */
+  /* Structured-value and link normalization can call Ruby code. Prepare both
+   * before borrowing scalar string pointers or allocating the Rust span. */
   prepared_metastruct metastruct = {0};
   prepare_metastruct(span, &metastruct);
 
-  /* No Ruby calls may occur between borrowing these pointers and span_new. */
+  /* Snapshot canonical links and all string bytes before allocating Rust
+   * state. rb_protect guarantees partial C-owned snapshots are reclaimed if a
+   * default proc, to_hash, validation, or allocation raises. */
+  VALUE rb_links = rb_ivar_get(span, at_links_id);
+  ENFORCE_TYPE(rb_links, T_ARRAY);
+  span_links_snapshot links_snapshot = {
+    .rb_links = rb_links,
+  };
+  if (RARRAY_LEN(rb_links) > 0) {
+    int snapshot_state = 0;
+    rb_protect(prepare_span_links_snapshot, (VALUE)&links_snapshot, &snapshot_state);
+    if (snapshot_state) {
+      free_span_links_snapshot(&links_snapshot);
+      free_prepared_metastruct(&metastruct);
+      rb_jump_tag(snapshot_state);
+    }
+  }
+
+  /* No Ruby callbacks occur between borrowing these pointers and the FFI call. */
   ddog_CharSlice name_s     = char_slice_from_ruby_string(rb_name);
   ddog_CharSlice service_s  = nullable_char_slice(rb_service);
   ddog_CharSlice resource_s = nullable_char_slice(rb_resource);
@@ -713,11 +934,28 @@ static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
   };
 
   ddog_TraceExporterError *err = ddog_tracer_span_new(&owner->span, &fields);
-  if (err != NULL) free_prepared_metastruct(&metastruct);
+  if (err != NULL) {
+    free_span_links_snapshot(&links_snapshot);
+    free_prepared_metastruct(&metastruct);
+  }
   check_exporter_error("Failed to create TracerSpan", err);
+
+  if (links_snapshot.link_count > 0) {
+    ddog_Slice_TracerSpanLink links_slice = {
+      .ptr = links_snapshot.ffi_links,
+      .len = links_snapshot.link_count,
+    };
+    /* libdatadog validates link strings as UTF-8, matching the native meta
+     * setters. A validation error rejects this span conversion and therefore the
+     * complete batch; send_traces reports it as an InternalErrorResponse. */
+    err = ddog_tracer_span_set_links(owner->span, links_slice);
+    free_span_links_snapshot(&links_snapshot);
+    if (err != NULL) free_prepared_metastruct(&metastruct);
+    check_exporter_error("Failed to set span links", err);
+  }
   set_prepared_metastruct(owner->span, &metastruct);
 
-  /* 4. Populate meta and metrics */
+  /* 5. Populate meta, metrics, and meta_struct */
   hash_iter_ctx ctx = {.span = owner->span, .error = NULL, .skipped = 0};
 
   VALUE rb_meta = rb_ivar_get(span, at_meta_id);
@@ -1300,12 +1538,22 @@ void trace_exporter_init(VALUE tracing_module) {
   at_status_id     = rb_intern("@status");
   at_meta_id       = rb_intern("@meta");
   at_metrics_id    = rb_intern("@metrics");
+  at_links_id      = rb_intern("@links");
   at_metastruct_id = rb_intern("@metastruct");
 
   /* Methods */
   id_duration_method = rb_intern("duration");
-  id_to_h            = rb_intern("to_h");
-  id_negative_p      = rb_intern("negative?");
+  id_to_hash          = rb_intern("to_hash");
+  id_to_h             = rb_intern("to_h");
+  id_negative_p       = rb_intern("negative?");
+
+  /* SpanLink#to_hash fields */
+  link_trace_id_id = rb_intern("trace_id");
+  link_trace_id_high_id = rb_intern("trace_id_high");
+  link_span_id_id = rb_intern("span_id");
+  link_attributes_id = rb_intern("attributes");
+  link_tracestate_id = rb_intern("tracestate");
+  link_flags_id = rb_intern("flags");
 
   /* Response.new */
   id_new = rb_intern("new");
