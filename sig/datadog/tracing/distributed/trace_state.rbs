@@ -1,0 +1,47 @@
+module Datadog
+  module Tracing
+    module Distributed
+      module TraceState
+        type tags = ::Hash[::String, ::String]
+
+        class DatadogFields < ::Struct[[::Integer?, ::String?, ::String?, tags?, ::String?]]
+          def self.new: (?::Integer? sampling_priority, ?::String? origin, ?::String? ts_parent_id, ?tags? tags, ?::String? unknown_fields) -> DatadogFields
+          attr_accessor sampling_priority: ::Integer?
+          attr_accessor origin: ::String?
+          attr_accessor ts_parent_id: ::String?
+          attr_accessor tags: tags?
+          attr_accessor unknown_fields: ::String?
+        end
+
+        class ExtractedVendors < ::Struct[[::String?, DatadogFields, OpenTelemetryTracestateCodec::OpenTelemetryFields]]
+          def self.new: (::String? tracestate, DatadogFields dd, OpenTelemetryTracestateCodec::OpenTelemetryFields ot) -> ExtractedVendors
+          attr_accessor tracestate: ::String?
+          attr_accessor dd: DatadogFields
+          attr_accessor ot: OpenTelemetryTracestateCodec::OpenTelemetryFields
+        end
+
+        def self?.build: (TraceDigest digest) -> ::String?
+        def self?.extract: (::String? tracestate) -> ExtractedVendors
+        def self?.build_dd_vendor: (TraceDigest digest) -> ::String
+        def self?.build_ot_vendor: (TraceDigest digest) -> ::String?
+        def self?.select_leading_vendors: (::String dd_vendor, ::String? ot_vendor) -> ::Array[::String]
+        def self?.append_to_vendor: (::String vendor, ::String field) -> bool
+        def self?.last_dd_parent_id: (TraceDigest digest) -> ::String
+        def self?.serialize_origin: (::String value) -> ::String
+        def self?.serialize_tag_key: (::String name) -> ::String
+        def self?.serialize_tag_value: (::String value) -> ::String
+        def self?.extract_datadog_fields: (::String? value) -> DatadogFields
+        def self?.pop_vendor: (::Array[::String] vendors, ::String prefix) -> ::String?
+        def self?.split: (::String? tracestate) -> ::Array[::String]?
+
+        TRACESTATE_MAX_SIZE_LIMIT: 512
+        TRACESTATE_MAX_LIST_VENDORS: 32
+        TRACESTATE_VALUE_SIZE_LIMIT: 256
+        INVALID_ORIGIN_CHARS: ::Regexp
+        REMAP_ORIGIN_CHARS: ::Regexp
+        INVALID_TAG_KEY_CHARS: ::Regexp
+        INVALID_TAG_VALUE_CHARS: ::Regexp
+      end
+    end
+  end
+end

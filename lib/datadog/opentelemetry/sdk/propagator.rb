@@ -60,7 +60,7 @@ module Datadog
 
           if digest.trace_state || digest.trace_flags
             trace_flags = ::OpenTelemetry::Trace::TraceFlags.from_byte(digest.trace_flags)
-            tracestate = Tracing::Distributed::TraceContext.new(fetcher: nil).send(:build_tracestate, digest)
+            tracestate = Tracing::Distributed::TraceState.build(digest)
           else
             trace_flags = if Tracing::Sampling::PrioritySampler.sampled?(digest.trace_sampling_priority)
               ::OpenTelemetry::Trace::TraceFlags::SAMPLED

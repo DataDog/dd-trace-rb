@@ -377,6 +377,21 @@ RSpec.shared_examples "Distributed tracing propagator" do
             end
           end
 
+          context "and an OpenTelemetry `ot=` tracestate member" do
+            let(:data) do
+              super().merge(prepare_key["tracestate"] => "dd=s:1,ot=rv:ef284ace7a91e1;th:e6666666666668")
+            end
+
+            it "merges the consistent probability sampling values from the tracecontext style" do
+              expect(trace_digest.trace_otel_sampling_fields).to eq(
+                Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
+                  "ef284ace7a91e1",
+                  "e6666666666668"
+                )
+              )
+            end
+          end
+
           context "and span_id is not matching" do
             let(:data) { super().merge(prepare_key["x-datadog-parent-id"] => "15") }
 
@@ -619,6 +634,18 @@ RSpec.shared_examples "Distributed tracing propagator" do
               "reason" => "propagation_behavior_extract",
               "context_headers" => "tracecontext"
             )
+          end
+
+          context "with an inbound `ot=` member" do
+            let(:data) do
+              super().merge(
+                prepare_key["tracestate"] => "dd=s:1,ot=rv:ef284ace7a91e1;th:e6666666666668"
+              )
+            end
+
+            it "does not inherit the consistent probability sampling values into the fresh trace" do
+              expect(trace_digest.trace_otel_sampling_fields).to be_nil
+            end
           end
         end
 

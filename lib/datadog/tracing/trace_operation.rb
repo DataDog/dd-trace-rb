@@ -5,6 +5,7 @@ require_relative "../core/utils"
 require_relative "event"
 require_relative "metadata/tagging"
 require_relative "sampling/ext"
+require_relative "distributed/open_telemetry_tracestate_codec"
 require_relative "span_operation"
 require_relative "trace_digest"
 require_relative "correlation"
@@ -87,7 +88,10 @@ module Datadog
         metrics: nil,
         trace_state: nil,
         trace_state_unknown_fields: nil,
+        otel_sampling_fields: nil,
+        otel_unknown_fields: nil,
         remote_parent: false,
+        distributed_sampling_priority: false,
         tracer: nil, # DEV-3.0: deprecated, remove in 3.0
         baggage: nil,
         auto_finish: true
@@ -100,6 +104,7 @@ module Datadog
         @parent_span_id = parent_span_id
         @sampled = sampled.nil? || sampled
         @remote_parent = remote_parent
+        @distributed_sampling_priority = distributed_sampling_priority
         @span_links = span_links
         # Tags
         @agent_sample_rate = agent_sample_rate
@@ -116,6 +121,8 @@ module Datadog
         @apm_tracing_enabled = apm_tracing_enabled
         @trace_state = trace_state
         @trace_state_unknown_fields = trace_state_unknown_fields
+        @otel_sampling_fields = otel_sampling_fields
+        @otel_unknown_fields = otel_unknown_fields
         @baggage = baggage
 
         # Generic tags
@@ -391,6 +398,18 @@ module Datadog
         @propagated = true
         events.trace_propagated.publish(self)
 
+        # Snapshotted here (not deferred to injection) because the sampling decision is
+        # mutable trace state that must match the rest of this frozen TraceDigest.
+        otel_sampling_fields = Distributed::OpenTelemetryTracestateCodec.resolve_outbound(
+          trace_id: @id,
+          sampling_priority: @sampling_priority,
+          decision_maker: get_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER),
+          applied_rate: @rule_sample_rate || @agent_sample_rate,
+          rate_limiter_rate: @rate_limiter_rate,
+          inbound: @otel_sampling_fields,
+          distributed_sampling_priority: @distributed_sampling_priority,
+        )
+
         TraceDigest.new(
           span_id: span_id,
           span_name: @active_span && @active_span.name,
@@ -409,6 +428,8 @@ module Datadog
           trace_service: service,
           trace_state: @trace_state,
           trace_state_unknown_fields: @trace_state_unknown_fields,
+          trace_otel_sampling_fields: otel_sampling_fields,
+          trace_otel_unknown_fields: @otel_unknown_fields,
           span_remote: @remote_parent && @active_span.nil?,
           baggage: (@baggage.nil? || @baggage.empty?) ? nil : @baggage
         ).freeze
@@ -446,9 +467,12 @@ module Datadog
           service: service&.dup,
           trace_state: @trace_state&.dup,
           trace_state_unknown_fields: @trace_state_unknown_fields&.dup,
+          otel_sampling_fields: @otel_sampling_fields,
+          otel_unknown_fields: @otel_unknown_fields&.dup,
           tags: meta.dup,
           metrics: metrics.dup,
-          remote_parent: @remote_parent
+          remote_parent: @remote_parent,
+          distributed_sampling_priority: @distributed_sampling_priority
         )
       end
 

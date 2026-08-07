@@ -2213,6 +2213,83 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
+      context "carries OpenTelemetry consistent probability sampling values" do
+        let(:options) do
+          {
+            id: 0xfff972474538efff,
+            sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP,
+            rule_sample_rate: 0.1,
+          }
+        end
+
+        context "when DD made a probability decision" do
+          before do
+            trace_op.set_tag(
+              Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+              Datadog::Tracing::Sampling::Ext::Decision::TRACE_SAMPLING_RULE
+            )
+          end
+
+          it "derives ot.rv from the trace id and ot.th from the applied rate" do
+            expect(digest.trace_otel_sampling_fields).to eq(
+              Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
+                "ef284ace7a91e1",
+                "e6666666666668"
+              )
+            )
+          end
+        end
+
+        context "when the inbound context carried values" do
+          let(:options) do
+            super().merge(
+              otel_sampling_fields: Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
+                "abcabcabcabcab",
+                "7"
+              )
+            )
+          end
+
+          it "forwards the inbound values unchanged" do
+            expect(digest.trace_otel_sampling_fields).to eq(
+              Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
+                "abcabcabcabcab",
+                "7"
+              )
+            )
+          end
+        end
+
+        context "when a sampling priority was already assigned from an upstream distributed context" do
+          # DD did not make its own probability decision here — it follows the inbound
+          # sampling decision (traceparent sampled bit / X-Datadog-* headers). Even with a
+          # local rate available, it must not fabricate ot values the origin never sent.
+          let(:options) { super().merge(remote_parent: true, distributed_sampling_priority: true) }
+
+          it "emits no ot values" do
+            expect(digest.trace_otel_sampling_fields).to eq(
+              Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(nil, nil)
+            )
+          end
+        end
+
+        context "when the trace has a remote parent but no sampling priority was inherited" do
+          # e.g. distributed headers carried a trace id but no priority (older/partial
+          # propagation). DD is the one making the probability decision here, so fresh
+          # ot values should be emitted even though the trace has a remote parent.
+          let(:options) { super().merge(remote_parent: true, distributed_sampling_priority: false) }
+
+          it "derives ot.rv from the trace id and ot.th from the applied rate" do
+            expect(digest.trace_otel_sampling_fields).to eq(
+              Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
+                "ef284ace7a91e1",
+                "e6666666666668"
+              )
+            )
+          end
+        end
+      end
+
       context "is measuring an operation" do
         before do
           trace_op.measure(

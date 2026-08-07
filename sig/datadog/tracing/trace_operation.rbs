@@ -9,6 +9,7 @@ module Datadog
 
       @logger: Core::Logger
       @span_links: ::Array[SpanLink]?
+      @distributed_sampling_priority: bool
 
       attr_reader logger: Core::Logger
 
@@ -57,7 +58,10 @@ module Datadog
         ?metrics: untyped?,
         ?trace_state: untyped?,
         ?trace_state_unknown_fields: untyped?,
+        ?otel_sampling_fields: Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields?,
+        ?otel_unknown_fields: ::String?,
         ?remote_parent: untyped?,
+        ?distributed_sampling_priority: bool,
         ?tracer: untyped?,
         ?baggage: untyped?,
         ?auto_finish: bool
