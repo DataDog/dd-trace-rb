@@ -367,7 +367,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(observed_calls.first).to be_a(Datadog::DI::Context)
           expect(observed_calls.first.return_value).to eq 2
           expect(observed_calls.first.duration).to be_a(Float)
-          # expect(observed_calls.first.serialized_entry_args).to eq(arg1: 2)
+          # expect(observed_calls.first.serialized_entry_args).to eq(arg: 2)
         end
       end
 
@@ -395,7 +395,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first.duration).to be_a(Float)
 
             expect(observed_calls.first.serialized_entry_args).to eq(
-              arg1: {type: "Integer", value: "2"},
+              arg: {type: "Integer", value: "2"},
               self: {type: "HookTestClass", fields: {}},
             )
           end
@@ -423,7 +423,7 @@ RSpec.describe Datadog::DI::Instrumenter do
               expect(observed_calls.first.duration).to be_a(Float)
 
               expect(observed_calls.first.serialized_entry_args).to eq(
-                arg1: {type: "Integer", value: "2"},
+                arg: {type: "Integer", value: "2"},
                 self: {
                   type: "HookIvarTestClass",
                   fields: {
@@ -575,9 +575,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first.duration).to be_a(Float)
 
             expect(observed_calls.first.serialized_entry_args).to eq(
-              # TODO actual argument name not captured yet,
-              # requires method call trace point.
-              arg1: {type: "Integer", value: "41"},
+              arg: {type: "Integer", value: "41"},
               kwarg: {type: "Integer", value: "42"},
               self: {type: "HookTestClass", fields: {}},
             )
@@ -607,6 +605,72 @@ RSpec.describe Datadog::DI::Instrumenter do
             include_examples "does not invoke callback but invokes target method"
           end
         end
+      end
+    end
+
+    context "positional args with a splat parameter" do
+      let(:probe_args) do
+        {type_name: "HookTestClass", method_name: "method_with_splat",
+         capture_snapshot: true}
+      end
+
+      it "names the leading fixed positionals and falls back to arg-N for splat values" do
+        hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        expect(HookTestClass.new.method_with_splat(1, 2, 3)).to eq [1, [2, 3]]
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first.serialized_entry_args).to eq(
+          first: {type: "Integer", value: "1"},
+          arg2: {type: "Integer", value: "2"},
+          arg3: {type: "Integer", value: "3"},
+          self: {type: "HookTestClass", fields: {}},
+        )
+      end
+    end
+
+    context "positional arg whose name collides with a keyword key" do
+      let(:probe_args) do
+        {type_name: "HookTestClass", method_name: "method_kwarg_name_collision",
+         capture_snapshot: true}
+      end
+
+      it "keeps the positional under arg-N and the keyword under its own name" do
+        hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        expect(HookTestClass.new.method_kwarg_name_collision("/a", path: "override")).to eq ["/a", {path: "override"}]
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first.serialized_entry_args).to eq(
+          arg1: {type: "String", value: "/a"},
+          path: {type: "String", value: "override"},
+          self: {type: "HookTestClass", fields: {}},
+        )
+      end
+    end
+
+    context "when method is virtual (defined via method_missing) with snapshot capture" do
+      let(:probe_args) do
+        {type_name: "YieldingMethodMissingHookTestClass", method_name: "yielding",
+         capture_snapshot: true}
+      end
+
+      it "captures positional args as arg-N because no parameter names are available" do
+        hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        expect(YieldingMethodMissingHookTestClass.new.yielding("hello") { |_| }).to eq [["hello"], {}]
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first.serialized_entry_args).to eq(
+          arg1: {type: "String", value: "hello"},
+          self: {type: "YieldingMethodMissingHookTestClass", fields: {}},
+        )
       end
     end
 
@@ -711,7 +775,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first.duration).to be_a(Float)
 
             expect(observed_calls.first.serialized_entry_args).to eq(
-              arg1: {type: "String", value: "hello"},
+              arg: {type: "String", value: "hello"},
               kwarg: {type: "Integer", value: "42"},
               self: {type: "HookTestClass", fields: {}},
             )
@@ -1180,8 +1244,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              # We use "arg1" here, actual variable name is not currently available
-              "ref('arg1') == 41"
+              "ref('arg') == 41"
             )
           end
 
@@ -1192,8 +1255,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              # We use "arg1" here, actual variable name is not currently available
-              "ref('arg1') == 42"
+              "ref('arg') == 42"
             )
           end
 
@@ -2076,6 +2138,91 @@ RSpec.describe Datadog::DI::Instrumenter do
           HookLineLoadTestClass.new.test_method_with_local
         end.not_to raise_error
       end
+    end
+  end
+
+  describe "#extract_positional_param_names" do
+    let(:target_class) do
+      Class.new do
+        def only_req(a, b)
+          [a, b]
+        end
+
+        def req_and_opt(a, b = 1)
+          [a, b]
+        end
+
+        def leading_req_then_rest(a, b, *rest)
+          [a, b, rest]
+        end
+
+        def rest_first(*rest, a)
+          [rest, a]
+        end
+
+        def kwargs_only(x:, y: 1, **opts)
+          [x, y, opts]
+        end
+
+        def block_only(&blk)
+          blk
+        end
+
+        def no_params
+          nil
+        end
+
+        attr_writer :written
+      end
+    end
+
+    def names_for(method_name)
+      instrumenter.send(:extract_positional_param_names, target_class.instance_method(method_name))
+    end
+
+    it "returns required positional names in order" do
+      expect(names_for(:only_req)).to eq([:a, :b])
+    end
+
+    it "includes optional positional parameters" do
+      expect(names_for(:req_and_opt)).to eq([:a, :b])
+    end
+
+    it "stops at a rest parameter, keeping the leading fixed positionals" do
+      expect(names_for(:leading_req_then_rest)).to eq([:a, :b])
+    end
+
+    it "stops at a leading rest parameter, dropping post-splat positionals" do
+      expect(names_for(:rest_first)).to eq([])
+    end
+
+    it "ignores keyword and keyword-splat parameters" do
+      expect(names_for(:kwargs_only)).to eq([])
+    end
+
+    it "ignores block parameters" do
+      expect(names_for(:block_only)).to eq([])
+    end
+
+    it "returns an empty array for a method with no parameters" do
+      expect(names_for(:no_params)).to eq([])
+    end
+
+    it "returns a nil name for a generated method (attr_writer) with no parameter name" do
+      expect(names_for(:written=)).to eq([nil])
+    end
+
+    it "returns nil and logs when parameter extraction raises" do
+      broken = instance_double(UnboundMethod)
+      allow(broken).to receive(:parameters).and_raise(RuntimeError.new("boom"))
+
+      logged = nil
+      expect(logger).to receive(:debug) do |&blk|
+        logged = blk.call
+      end
+
+      expect(instrumenter.send(:extract_positional_param_names, broken)).to be_nil
+      expect(logged).to include("failed to extract positional parameter names")
     end
   end
 end
