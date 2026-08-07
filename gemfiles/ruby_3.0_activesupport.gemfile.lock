@@ -4,7 +4,7 @@ PATH
     datadog (2.41.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.4)
-      libdatadog (~> 39.0.0.1.0)
+      libdatadog (~> 40.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -100,10 +100,10 @@ GEM
       bigdecimal (>= 3.1, < 5)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
-    libdatadog (39.0.0.1.0)
-    libdatadog (39.0.0.1.0-aarch64-linux)
-    libdatadog (39.0.0.1.0-arm64-darwin)
-    libdatadog (39.0.0.1.0-x86_64-linux)
+    libdatadog (40.0.0.1.0)
+    libdatadog (40.0.0.1.0-aarch64-linux)
+    libdatadog (40.0.0.1.0-arm64-darwin)
+    libdatadog (40.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.2-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-arm64-darwin)

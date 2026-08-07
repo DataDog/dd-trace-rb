@@ -1,5 +1,14 @@
 #include <ruby.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+#include <ruby/encoding.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 #include <ruby/thread.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <string.h>
 #include <datadog/data-pipeline.h>
@@ -63,8 +72,7 @@ static ID at_metastruct_id;
 static ID id_duration_method;
 static ID id_to_hash;
 static ID id_to_h;
-static ID id_to_msgpack;
-static ID id_to_s;
+static ID id_negative_p;
 
 /* Canonical SpanLink#to_hash field IDs */
 static ID link_trace_id_id;
@@ -74,8 +82,8 @@ static ID link_attributes_id;
 static ID link_tracestate_id;
 static ID link_flags_id;
 
-/* MessagePack::Packer, used for transitional meta_struct encoding */
-static VALUE message_pack_packer_class = Qnil;
+/* Resolved lazily because AppSec may load after this extension. */
+static VALUE serializable_backtrace_class = Qnil;
 
 /* Response class (loaded from Ruby) */
 static VALUE response_class       = Qnil;
@@ -220,6 +228,14 @@ static inline void set_config_field(
 /* ========================================================================
  * Conversion helpers (Ruby -> C, require the GVL)
  * ======================================================================== */
+
+/* Nullable Ruby String -> ddog_CharSlice (nil -> empty slice) */
+static inline ddog_CharSlice nullable_char_slice(VALUE str) {
+  if (str == Qnil) {
+    return (ddog_CharSlice){.ptr = "", .len = 0};
+  }
+  return char_slice_from_ruby_string(str);
+}
 
 /* Ruby Time -> int64_t nanoseconds since Unix epoch */
 static inline int64_t time_to_nanos(VALUE time) {
@@ -510,12 +526,231 @@ static VALUE prepare_span_links_snapshot(VALUE arg) {
 }
 
 typedef struct {
-  VALUE encoded;
-  long skipped;
-} metastruct_encode_ctx;
+  ddog_TracerValueToken *tokens;
+  size_t len;
+  size_t capacity;
+  st_table *active;
+  uint8_t **scratch;
+  size_t scratch_len;
+  size_t scratch_capacity;
+} structured_value_ctx;
 
-static int encode_metastruct_iter_cb(VALUE key, VALUE value, VALUE arg) {
-  metastruct_encode_ctx *ctx = (metastruct_encode_ctx *)arg;
+static ddog_TracerValueToken *append_structured_value_token(
+    structured_value_ctx *ctx, uint8_t kind) {
+  if (ctx->len == ctx->capacity) {
+    size_t capacity = ctx->capacity == 0 ? 16 : ctx->capacity * 2;
+    if (capacity < ctx->capacity || capacity > SIZE_MAX / sizeof(*ctx->tokens)) {
+      rb_raise(rb_eNoMemError, "meta_struct token buffer is too large");
+    }
+    REALLOC_N(ctx->tokens, ddog_TracerValueToken, capacity);
+    ctx->capacity = capacity;
+  }
+
+  ddog_TracerValueToken *token = &ctx->tokens[ctx->len++];
+  *token = (ddog_TracerValueToken){0};
+  token->kind = kind;
+  return token;
+}
+
+static const uint8_t *copy_structured_value_bytes(
+    structured_value_ctx *ctx, VALUE string, size_t len) {
+  if (len == 0) return (const uint8_t *)"";
+
+  if (ctx->scratch_len == ctx->scratch_capacity) {
+    size_t capacity = ctx->scratch_capacity == 0 ? 8 : ctx->scratch_capacity * 2;
+    if (capacity < ctx->scratch_capacity || capacity > SIZE_MAX / sizeof(*ctx->scratch)) {
+      rb_raise(rb_eNoMemError, "meta_struct scratch buffer is too large");
+    }
+    REALLOC_N(ctx->scratch, uint8_t *, capacity);
+    ctx->scratch_capacity = capacity;
+  }
+
+  uint8_t *copy = ruby_xmalloc(len);
+  ctx->scratch[ctx->scratch_len++] = copy;
+  /* ruby_xmalloc may trigger GC, so retrieve the Ruby buffer only after it
+   * returns and do not call Ruby again before the copy completes. */
+  memcpy(copy, RSTRING_PTR(string), len);
+  return copy;
+}
+
+static void free_structured_value_ctx(structured_value_ctx *ctx) {
+  if (ctx->active != NULL) st_free_table(ctx->active);
+  for (size_t i = 0; i < ctx->scratch_len; i++) {
+    ruby_xfree(ctx->scratch[i]);
+  }
+  ruby_xfree(ctx->scratch);
+  ruby_xfree(ctx->tokens);
+}
+
+static VALUE resolve_serializable_backtrace_class(void) {
+  if (serializable_backtrace_class != Qnil) return serializable_backtrace_class;
+
+  ID datadog_id = rb_intern("Datadog");
+  ID appsec_id = rb_intern("AppSec");
+  ID actions_handler_id = rb_intern("ActionsHandler");
+  ID backtrace_id = rb_intern("SerializableBacktrace");
+  if (!rb_const_defined(rb_cObject, datadog_id)) return Qnil;
+  VALUE datadog = rb_const_get(rb_cObject, datadog_id);
+  if (!rb_const_defined(datadog, appsec_id)) return Qnil;
+  VALUE appsec = rb_const_get(datadog, appsec_id);
+  if (!rb_const_defined(appsec, actions_handler_id)) return Qnil;
+  VALUE actions_handler = rb_const_get(appsec, actions_handler_id);
+  if (!rb_const_defined(actions_handler, backtrace_id)) return Qnil;
+
+  serializable_backtrace_class = rb_const_get(actions_handler, backtrace_id);
+  rb_global_variable(&serializable_backtrace_class);
+  return serializable_backtrace_class;
+}
+
+static void append_structured_value(VALUE value, unsigned int depth,
+                                    structured_value_ctx *ctx);
+
+typedef struct {
+  structured_value_ctx *ctx;
+  unsigned int depth;
+} structured_hash_ctx;
+
+static int append_structured_hash_entry(VALUE key, VALUE value, VALUE arg) {
+  structured_hash_ctx *hash_ctx = (structured_hash_ctx *)arg;
+  append_structured_value(key, hash_ctx->depth, hash_ctx->ctx);
+  append_structured_value(value, hash_ctx->depth, hash_ctx->ctx);
+  return ST_CONTINUE;
+}
+
+static VALUE utf8_string(VALUE value) {
+  VALUE string = RB_TYPE_P(value, T_SYMBOL) ? rb_sym2str(value) : value;
+  string = rb_str_export_to_enc(string, rb_utf8_encoding());
+  if (rb_enc_str_coderange(string) == ENC_CODERANGE_BROKEN) {
+    rb_raise(rb_eEncodingError, "meta_struct string is not valid UTF-8");
+  }
+  return string;
+}
+
+static void append_structured_value(VALUE value, unsigned int depth,
+                                    structured_value_ctx *ctx) {
+  if (value == Qnil) {
+    append_structured_value_token(ctx, DDOG_TRACER_VALUE_NIL);
+    return;
+  }
+  if (value == Qtrue || value == Qfalse) {
+    ddog_TracerValueToken *token =
+        append_structured_value_token(ctx, DDOG_TRACER_VALUE_BOOL);
+    token->bool_value = value == Qtrue ? 1 : 0;
+    return;
+  }
+  if (RB_TYPE_P(value, T_FIXNUM) || RB_TYPE_P(value, T_BIGNUM)) {
+    if (RTEST(rb_funcall(value, id_negative_p, 0))) {
+      ddog_TracerValueToken *token =
+          append_structured_value_token(ctx, DDOG_TRACER_VALUE_I64);
+      token->i64_value = NUM2LL(value);
+    } else {
+      ddog_TracerValueToken *token =
+          append_structured_value_token(ctx, DDOG_TRACER_VALUE_U64);
+      token->u64_value = NUM2ULL(value);
+    }
+    return;
+  }
+  if (RB_TYPE_P(value, T_FLOAT)) {
+    ddog_TracerValueToken *token =
+        append_structured_value_token(ctx, DDOG_TRACER_VALUE_F64);
+    token->f64_value = RFLOAT_VALUE(value);
+    return;
+  }
+  if (RB_TYPE_P(value, T_STRING) || RB_TYPE_P(value, T_SYMBOL)) {
+    bool binary = RB_TYPE_P(value, T_STRING) &&
+        rb_enc_get_index(value) == rb_ascii8bit_encindex();
+    VALUE string = binary ? value : utf8_string(value);
+    size_t len = (size_t)RSTRING_LEN(string);
+    ddog_TracerValueToken *token = append_structured_value_token(
+        ctx, binary ? DDOG_TRACER_VALUE_BINARY : DDOG_TRACER_VALUE_STRING);
+    token->bytes = (ddog_ByteSlice){
+      .ptr = copy_structured_value_bytes(ctx, string, len),
+      .len = len,
+    };
+    return;
+  }
+
+  VALUE backtrace_class = resolve_serializable_backtrace_class();
+  if (backtrace_class != Qnil && rb_obj_is_kind_of(value, backtrace_class)) {
+    append_structured_value(rb_funcall(value, id_to_h, 0), depth, ctx);
+    return;
+  }
+
+  if (!RB_TYPE_P(value, T_ARRAY) && !RB_TYPE_P(value, T_HASH)) {
+    rb_raise(rb_eTypeError, "unsupported meta_struct value type: %s",
+             rb_obj_classname(value));
+  }
+  if (depth >= 64) {
+    rb_raise(rb_eArgError, "meta_struct value exceeds maximum depth of 64");
+  }
+  if (st_lookup(ctx->active, (st_data_t)value, NULL)) {
+    rb_raise(rb_eArgError, "meta_struct value contains a cycle");
+  }
+  st_insert(ctx->active, (st_data_t)value, 1);
+
+  size_t length = RB_TYPE_P(value, T_ARRAY) ? (size_t)RARRAY_LEN(value) : RHASH_SIZE(value);
+  if (length > UINT32_MAX) {
+    rb_raise(rb_eArgError, "meta_struct container exceeds u32::MAX entries");
+  }
+  ddog_TracerValueToken *token = append_structured_value_token(
+      ctx, RB_TYPE_P(value, T_ARRAY) ? DDOG_TRACER_VALUE_ARRAY : DDOG_TRACER_VALUE_MAP);
+  token->child_count = (uint32_t)length;
+
+  if (RB_TYPE_P(value, T_ARRAY)) {
+    for (size_t i = 0; i < length; i++) {
+      append_structured_value(rb_ary_entry(value, (long)i), depth + 1, ctx);
+    }
+  } else {
+    structured_hash_ctx hash_ctx = {.ctx = ctx, .depth = depth + 1};
+    rb_hash_foreach(value, append_structured_hash_entry, (VALUE)&hash_ctx);
+  }
+  st_delete(ctx->active, (st_data_t *)&value, NULL);
+}
+
+typedef struct {
+  const uint8_t *key;
+  size_t key_len;
+  structured_value_ctx value;
+} prepared_metastruct_entry;
+
+typedef struct {
+  prepared_metastruct_entry *entries;
+  size_t len;
+  size_t capacity;
+} prepared_metastruct;
+
+static void free_prepared_metastruct(prepared_metastruct *prepared) {
+  for (size_t i = 0; i < prepared->len; i++) {
+    free_structured_value_ctx(&prepared->entries[i].value);
+  }
+  ruby_xfree(prepared->entries);
+  *prepared = (prepared_metastruct){0};
+}
+
+static prepared_metastruct_entry *append_prepared_metastruct_entry(
+    prepared_metastruct *prepared) {
+  if (prepared->len == prepared->capacity) {
+    size_t capacity = prepared->capacity == 0 ? 4 : prepared->capacity * 2;
+    if (capacity < prepared->capacity || capacity > SIZE_MAX / sizeof(*prepared->entries)) {
+      rb_raise(rb_eNoMemError, "meta_struct entry buffer is too large");
+    }
+    REALLOC_N(prepared->entries, prepared_metastruct_entry, capacity);
+    prepared->capacity = capacity;
+  }
+
+  prepared_metastruct_entry *entry = &prepared->entries[prepared->len++];
+  *entry = (prepared_metastruct_entry){0};
+  entry->value.active = st_init_numtable();
+  return entry;
+}
+
+typedef struct {
+  prepared_metastruct *prepared;
+  long skipped;
+} metastruct_prepare_ctx;
+
+static int prepare_metastruct_iter_cb(VALUE key, VALUE value, VALUE arg) {
+  metastruct_prepare_ctx *ctx = (metastruct_prepare_ctx *)arg;
 
   /* The agent meta_struct contract requires string keys. Accept symbols as a
    * Ruby convenience, but do not encode other key types differently from the
@@ -527,61 +762,82 @@ static int encode_metastruct_iter_cb(VALUE key, VALUE value, VALUE arg) {
     return ST_CONTINUE;
   }
 
-  VALUE blob = rb_funcall(value, id_to_msgpack, 0);
-  if (rb_obj_is_kind_of(blob, message_pack_packer_class)) {
-    blob = rb_funcall(blob, id_to_s, 0);
-  }
-  Check_Type(blob, T_STRING);
-  rb_hash_aset(ctx->encoded, key, blob);
+  key = utf8_string(key);
+  prepared_metastruct_entry *entry =
+      append_prepared_metastruct_entry(ctx->prepared);
+  entry->key_len = (size_t)RSTRING_LEN(key);
+  entry->key = copy_structured_value_bytes(
+      &entry->value, key, entry->key_len);
+  append_structured_value(value, 0, &entry->value);
 
   return ST_CONTINUE;
 }
 
-/*
- * Encode each meta_struct value before allocating the Rust span. MessagePack
- * encoding can invoke arbitrary Ruby `to_msgpack` implementations and raise;
- * doing that work first avoids holding an unowned Rust allocation across a
- * Ruby non-local exit.
- */
-static VALUE encode_metastruct(VALUE span) {
-  VALUE metastruct = rb_ivar_get(span, at_metastruct_id);
+typedef struct {
+  VALUE span;
+  prepared_metastruct *prepared;
+} prepare_metastruct_call;
+
+static VALUE prepare_metastruct_body(VALUE arg) {
+  prepare_metastruct_call *call = (prepare_metastruct_call *)arg;
+  VALUE metastruct = rb_ivar_get(call->span, at_metastruct_id);
   if (metastruct == Qnil) return Qnil;
 
   VALUE values = rb_funcall(metastruct, id_to_h, 0);
   Check_Type(values, T_HASH);
   if (RHASH_SIZE(values) == 0) return Qnil;
 
-  metastruct_encode_ctx ctx = {.encoded = rb_hash_new(), .skipped = 0};
-  rb_hash_foreach(values, encode_metastruct_iter_cb, (VALUE)&ctx);
-
+  metastruct_prepare_ctx ctx = {.prepared = call->prepared, .skipped = 0};
+  rb_hash_foreach(values, prepare_metastruct_iter_cb, (VALUE)&ctx);
   if (ctx.skipped > 0) {
     log_warning(rb_sprintf(
         "Native trace exporter: skipped %ld meta_struct entries with non-string keys",
         ctx.skipped));
   }
-
-  return ctx.encoded;
+  return Qnil;
 }
 
-static int meta_struct_iter_cb(VALUE key, VALUE value, VALUE arg) {
-  hash_iter_ctx *ctx = (hash_iter_ctx *)arg;
-
-  /* libdatadog copies both slices before returning and retains no pointer into
-   * the Ruby-owned key or encoded value storage. */
-  ddog_CharSlice ks = {.ptr = RSTRING_PTR(key), .len = RSTRING_LEN(key)};
-  ddog_ByteSlice vs = {
-    .ptr = (const uint8_t *)RSTRING_PTR(value),
-    .len = RSTRING_LEN(value),
-  };
-
-  ddog_TraceExporterError *err =
-      ddog_tracer_span_set_meta_struct_blob(ctx->span, ks, vs);
-  if (err != NULL) {
-    ctx->error = err;
-    return ST_STOP;
+/* Prepare stable token storage before allocating the Rust span. Any Ruby
+ * callback or non-local exit is contained here, where deterministic cleanup
+ * does not need to account for Rust span ownership. */
+static void prepare_metastruct(VALUE span, prepared_metastruct *prepared) {
+  prepare_metastruct_call call = {.span = span, .prepared = prepared};
+  int state = 0;
+  rb_protect(prepare_metastruct_body, (VALUE)&call, &state);
+  if (state) {
+    free_prepared_metastruct(prepared);
+    rb_jump_tag(state);
   }
+}
 
-  return ST_CONTINUE;
+static void set_prepared_metastruct(
+    ddog_TracerSpan *span, prepared_metastruct *prepared) {
+  for (size_t i = 0; i < prepared->len; i++) {
+    prepared_metastruct_entry *entry = &prepared->entries[i];
+    ddog_Slice_TracerValueToken tokens = {
+      .ptr = entry->value.tokens,
+      .len = entry->value.len,
+    };
+    ddog_TracerEncodedValue *blob = NULL;
+    ddog_TraceExporterError *err = ddog_tracer_encode_value(tokens, &blob);
+    if (err != NULL) {
+      free_prepared_metastruct(prepared);
+      check_exporter_error("Failed to encode span meta_struct value", err);
+    }
+
+    ddog_ByteSlice value = ddog_tracer_encoded_value_as_slice(blob);
+    ddog_CharSlice key = {
+      .ptr = (const char *)entry->key,
+      .len = entry->key_len,
+    };
+    err = ddog_tracer_span_set_meta_struct_blob(span, key, value);
+    ddog_tracer_encoded_value_free(blob);
+    if (err != NULL) {
+      free_prepared_metastruct(prepared);
+      check_exporter_error("Failed to set span meta_struct", err);
+    }
+  }
+  free_prepared_metastruct(prepared);
 }
 /* ========================================================================
  * Internal: convert a Ruby Span into a raw_span_owner
@@ -609,10 +865,7 @@ static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
   if (rb_resource != Qnil) ENFORCE_TYPE(rb_resource, T_STRING);
   if (rb_type != Qnil) ENFORCE_TYPE(rb_type, T_STRING);
 
-  /* MessagePack encoding can call Ruby code and must happen before the Rust
-   * span allocation is created. */
-  VALUE rb_metastruct = encode_metastruct(span);
-
+  /* 2. Convert scalars that may call Ruby. */
   uint64_t span_id   = NUM2ULL(rb_span_id);
   uint64_t parent_id = NUM2ULL(rb_parent_id);
   int32_t  error_val = NUM2INT(rb_status);
@@ -636,7 +889,12 @@ static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
     if (dur != Qnil) duration_ns = (int64_t)(NUM2DBL(dur) * 1e9);
   }
 
-  /* 3. Snapshot canonical links and all string bytes before allocating Rust
+  /* Structured-value and link normalization can call Ruby code. Prepare both
+   * before borrowing scalar string pointers or allocating the Rust span. */
+  prepared_metastruct metastruct = {0};
+  prepare_metastruct(span, &metastruct);
+
+  /* Snapshot canonical links and all string bytes before allocating Rust
    * state. rb_protect guarantees partial C-owned snapshots are reclaimed if a
    * default proc, to_hash, validation, or allocation raises. */
   VALUE rb_links = rb_ivar_get(span, at_links_id);
@@ -649,26 +907,18 @@ static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
     rb_protect(prepare_span_links_snapshot, (VALUE)&links_snapshot, &snapshot_state);
     if (snapshot_state) {
       free_span_links_snapshot(&links_snapshot);
+      free_prepared_metastruct(&metastruct);
       rb_jump_tag(snapshot_state);
     }
   }
 
   /* No Ruby callbacks occur between borrowing these pointers and the FFI call. */
-  ddog_CharSlice name_s = {
-    .ptr = RSTRING_PTR(rb_name),
-    .len = RSTRING_LEN(rb_name),
-  };
-  ddog_CharSlice service_s = rb_service == Qnil ?
-      (ddog_CharSlice){.ptr = "", .len = 0} :
-      (ddog_CharSlice){.ptr = RSTRING_PTR(rb_service), .len = RSTRING_LEN(rb_service)};
-  ddog_CharSlice resource_s = rb_resource == Qnil ?
-      (ddog_CharSlice){.ptr = "", .len = 0} :
-      (ddog_CharSlice){.ptr = RSTRING_PTR(rb_resource), .len = RSTRING_LEN(rb_resource)};
-  ddog_CharSlice type_s = rb_type == Qnil ?
-      (ddog_CharSlice){.ptr = "", .len = 0} :
-      (ddog_CharSlice){.ptr = RSTRING_PTR(rb_type), .len = RSTRING_LEN(rb_type)};
+  ddog_CharSlice name_s     = char_slice_from_ruby_string(rb_name);
+  ddog_CharSlice service_s  = nullable_char_slice(rb_service);
+  ddog_CharSlice resource_s = nullable_char_slice(rb_resource);
+  ddog_CharSlice type_s     = nullable_char_slice(rb_type);
 
-  /* 4. Create Rust span */
+  /* 3. Create Rust span and immediately consume the stable prepared values. */
   ddog_TracerSpanFields fields = {
     .service        = service_s,
     .name           = name_s,
@@ -686,6 +936,7 @@ static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
   ddog_TraceExporterError *err = ddog_tracer_span_new(&owner->span, &fields);
   if (err != NULL) {
     free_span_links_snapshot(&links_snapshot);
+    free_prepared_metastruct(&metastruct);
   }
   check_exporter_error("Failed to create TracerSpan", err);
 
@@ -699,8 +950,10 @@ static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
      * complete batch; send_traces reports it as an InternalErrorResponse. */
     err = ddog_tracer_span_set_links(owner->span, links_slice);
     free_span_links_snapshot(&links_snapshot);
+    if (err != NULL) free_prepared_metastruct(&metastruct);
     check_exporter_error("Failed to set span links", err);
   }
+  set_prepared_metastruct(owner->span, &metastruct);
 
   /* 5. Populate meta, metrics, and meta_struct */
   hash_iter_ctx ctx = {.span = owner->span, .error = NULL, .skipped = 0};
@@ -728,12 +981,6 @@ static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
     }
   }
 
-  if (rb_metastruct != Qnil) {
-    ctx.error = NULL;
-    ctx.skipped = 0;
-    rb_hash_foreach(rb_metastruct, meta_struct_iter_cb, (VALUE)&ctx);
-    check_exporter_error("Failed to set span meta_struct", ctx.error);
-  }
 }
 
 static VALUE free_raw_span(VALUE arg) {
@@ -1274,13 +1521,6 @@ void trace_exporter_init(VALUE tracing_module) {
       rb_const_get(native_module, rb_intern("Response"));
   rb_global_variable(&response_class);
 
-  rb_require("msgpack");
-  VALUE message_pack_module =
-      rb_const_get(rb_cObject, rb_intern("MessagePack"));
-  message_pack_packer_class =
-      rb_const_get(message_pack_module, rb_intern("Packer"));
-  rb_global_variable(&message_pack_packer_class);
-
   /* ----------------------------------------------------------------
    * Cache Ruby intern IDs
    * ---------------------------------------------------------------- */
@@ -1305,8 +1545,7 @@ void trace_exporter_init(VALUE tracing_module) {
   id_duration_method = rb_intern("duration");
   id_to_hash          = rb_intern("to_hash");
   id_to_h             = rb_intern("to_h");
-  id_to_msgpack       = rb_intern("to_msgpack");
-  id_to_s             = rb_intern("to_s");
+  id_negative_p       = rb_intern("negative?");
 
   /* SpanLink#to_hash fields */
   link_trace_id_id = rb_intern("trace_id");
