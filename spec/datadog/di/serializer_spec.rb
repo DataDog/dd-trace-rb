@@ -464,6 +464,27 @@ RSpec.describe Datadog::DI::Serializer do
           self: {type: "Object", fields: {}},
         )
       end
+
+      it "falls back to arg-N when a positional name collides with a keyword key" do
+        # def foo(path, **opts) called foo("/a", path: "override"): the positional
+        # path and the keyword path are distinct values. Keying the positional
+        # by its real name would let the keyword overwrite it in the merge.
+        expect(serializer.serialize_args(["/a"], {path: "override"}, target_self, [:path])).to eq(
+          arg1: {type: "String", value: "/a"},
+          path: {type: "String", value: "override"},
+          self: {type: "Object", fields: {}},
+        )
+      end
+
+      it "redacts a positional arg whose real name is a redacted identifier" do
+        # Keying by real name routes positional args through identifier
+        # redaction; a positional named e.g. password is now redacted where
+        # the arg-N label previously captured it in the clear.
+        expect(serializer.serialize_args(["secret"], {}, target_self, [:password])).to eq(
+          password: {type: "String", notCapturedReason: "redactedIdent"},
+          self: {type: "Object", fields: {}},
+        )
+      end
     end
 
     context "when positional arg is frozen" do
