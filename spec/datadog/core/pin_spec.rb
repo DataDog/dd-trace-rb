@@ -114,7 +114,7 @@ RSpec.describe Datadog::Core::Pin do
         {
           app: double("app"),
           app_type: double("app_type"),
-          tags: double("tags")
+          tags: double("tags"),
         }
       end
 

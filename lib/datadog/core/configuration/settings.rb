@@ -644,6 +644,13 @@ module Datadog
               o.env "DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS"
               o.default true
             end
+
+            # Whether the profiler samples include the class/module name in stack frames, like `Foo::Bar#baz`, or not (`baz`)
+            option :experimental_show_classes_enabled do |o|
+              o.type :bool
+              o.env "DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED"
+              o.default false
+            end
           end
 
           # @public_api

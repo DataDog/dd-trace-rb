@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "rbconfig"
 require_relative "core"
 require_relative "core/environment/variable_helpers"
 require_relative "core/utils/only_once"
@@ -7,6 +8,9 @@ require_relative "core/utils/only_once"
 module Datadog
   # Datadog Continuous Profiler implementation: https://docs.datadoghq.com/profiler/
   module Profiling
+    STATIC_RUBY_PATH = (RbConfig::CONFIG["ENABLE_SHARED"] == "no") ? RbConfig.ruby.freeze : nil
+    private_constant :STATIC_RUBY_PATH
+
     def self.supported?
       unsupported_reason.nil?
     end

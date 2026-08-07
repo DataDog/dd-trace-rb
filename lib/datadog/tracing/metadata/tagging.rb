@@ -21,7 +21,7 @@ module Datadog
           Ext::Distributed::TAG_ORIGIN => true,
           Core::Environment::Ext::TAG_VERSION => true,
           Ext::HTTP::TAG_STATUS_CODE => true,
-          Ext::NET::TAG_HOSTNAME => true
+          Ext::NET::TAG_HOSTNAME => true,
         }.freeze
 
         # Return the tag with the given key, nil if it doesn't exist.
