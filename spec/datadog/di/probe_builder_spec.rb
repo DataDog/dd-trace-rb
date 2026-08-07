@@ -54,7 +54,7 @@ RSpec.describe Datadog::DI::ProbeBuilder do
          "type" => "LOG_PROBE",
          "where" => {"sourceFile" => "aaa.rb", "lines" => [4321]},
          "template" => "{password}",
-         "segments" => [{"dsl" => "password", "json" => {"ref" => "password"}}],}
+         "segments" => [{"dsl" => "password", "json" => {"ref" => "password"}}]}
       end
 
       it "records the referenced identifier on the segment for redaction" do
