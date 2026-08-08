@@ -4,8 +4,6 @@ on: # yamllint disable-line rule:truthy
   push:
     branches: [master, release]
   pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [master]
 
 # Default permissions for all jobs
 permissions: {}
