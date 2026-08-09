@@ -61,7 +61,7 @@ GEM
       domain_name (~> 0.5)
     http-form_data (2.3.0)
     httpclient (2.8.3)
-    io-console (0.8.2)
+    io-console (0.9.1)
     irb (1.18.0)
       pp (>= 0.6.0)
       prism (>= 1.3.0)
@@ -109,7 +109,7 @@ GEM
       erb
       psych (>= 4.0.0)
       tsort
-    reline (0.6.3)
+    reline (0.7.0)
       io-console (~> 0.5)
     rexml (3.4.4)
     rspec (3.13.2)
@@ -150,7 +150,7 @@ GEM
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
     webrick (1.9.2)
-    zstd-ruby (2.0.6)
+    zstd-ruby (2.0.7)
 
 PLATFORMS
   aarch64-linux
@@ -223,7 +223,7 @@ CHECKSUMS
   http-cookie (1.0.5) sha256=73756d46c7dbdc7023deecdb8a171348ea95a1b99810b31cfe8b4fb4e9a6318f
   http-form_data (2.3.0) sha256=cc4eeb1361d9876821e31d7b1cf0b68f1cf874b201d27903480479d86448a5f3
   httpclient (2.8.3) sha256=2951e4991214464c3e92107e46438527d23048e634f3aee91c719e0bdfaebda6
-  io-console (0.8.2) sha256=d6e3ae7a7cc7574f4b8893b4fca2162e57a825b223a177b7afa236c5ef9814cc
+  io-console (0.9.1) sha256=34b5d65a6ed934d9d79d28c0d78ae6a547aa04fa75ba185b2996e1bd2c92d6e6
   irb (1.18.0) sha256=de9454a0703a54704b9811a5ef31a60c86949fbf4013fcf244fabc7c775248e3
   json-schema (6.2.0) sha256=e8bff46ed845a22c1ab2bd0d7eccf831c01fe23bb3920caa4c74db4306813666
   libdatadog (40.0.0.1.0) sha256=47047bb378a5816ec8ce0778e9400087517d6c13ff9fdf23d264e14402799b64
@@ -249,7 +249,7 @@ CHECKSUMS
   rake (13.4.2) sha256=cb825b2bd5f1f8e91ca37bddb4b9aaf345551b4731da62949be002fa89283701
   rake-compiler (1.3.1) sha256=6b351612b6e2d73ddd5563ee799bb58685176e05363db6758504bd11573d670a
   rdoc (7.2.0) sha256=8650f76cd4009c3b54955eb5d7e3a075c60a57276766ebf36f9085e8c9f23192
-  reline (0.6.3) sha256=1198b04973565b36ec0f11542ab3f5cfeeec34823f4e54cebde90968092b1835
+  reline (0.7.0) sha256=5b012d8e55dbf9d450f12bde2cf7d15ff546ae80b3f8f3b30e570d431815583d
   rexml (3.4.4) sha256=19e0a2c3425dfbf2d4fc1189747bdb2f849b6c5e74180401b15734bc97b5d142
   rspec (3.13.2) sha256=206284a08ad798e61f86d7ca3e376718d52c0bc944626b2349266f239f820587
   rspec-collection_matchers (1.2.1) sha256=ff7626d2bbf16ac237fbb46439694c78b7d9c6dc49c4b216df437968133b56a2
@@ -270,7 +270,7 @@ CHECKSUMS
   warning (1.6.0) sha256=a49cdfae19fb77d19afff2efbe45f8ab759e9cd25b4e4ce2c79dbaf46bdb6c9e
   webmock (3.26.2) sha256=774556f2ea6371846cca68c01769b2eac0d134492d21f6d0ab5dd643965a4c90
   webrick (1.9.2) sha256=beb4a15fc474defed24a3bda4ffd88a490d517c9e4e6118c3edce59e45864131
-  zstd-ruby (2.0.6) sha256=4d57faa75a11ed5db551fb8befe5bb508046518be1898a91a5d9ddf782f146de
+  zstd-ruby (2.0.7) sha256=9b744a3d3d1f1a8cf9384dba926ebe1eb84093703172342509785cb84c0fc6b2
 
 BUNDLED WITH
    2.6.9

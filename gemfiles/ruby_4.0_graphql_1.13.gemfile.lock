@@ -110,7 +110,7 @@ GEM
     hashdiff (1.2.1)
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
-    io-console (0.8.2)
+    io-console (0.9.1)
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
@@ -215,7 +215,7 @@ GEM
     rake (13.4.2)
     rake-compiler (1.3.1)
       rake
-    reline (0.6.3)
+    reline (0.7.0)
       io-console (~> 0.5)
     request_store (1.7.0)
       rack (>= 1.4)
@@ -268,7 +268,7 @@ GEM
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
     zeitwerk (2.7.3)
-    zstd-ruby (2.0.6)
+    zstd-ruby (2.0.7)
 
 PLATFORMS
   aarch64-linux
@@ -356,7 +356,7 @@ CHECKSUMS
   graphql (1.13.25) sha256=99d685d654ea072fd2a63ee9718476516ec62dec3ea57b1a22b9548ba8887adb
   hashdiff (1.2.1) sha256=9c079dbc513dfc8833ab59c0c2d8f230fa28499cc5efb4b8dd276cf931457cd1
   i18n (1.14.7) sha256=ceba573f8138ff2c0915427f1fc5bdf4aa3ab8ae88c8ce255eb3ecf0a11a5d0f
-  io-console (0.8.2) sha256=d6e3ae7a7cc7574f4b8893b4fca2162e57a825b223a177b7afa236c5ef9814cc
+  io-console (0.9.1) sha256=34b5d65a6ed934d9d79d28c0d78ae6a547aa04fa75ba185b2996e1bd2c92d6e6
   json-schema (6.2.0) sha256=e8bff46ed845a22c1ab2bd0d7eccf831c01fe23bb3920caa4c74db4306813666
   libdatadog (40.0.0.1.0) sha256=47047bb378a5816ec8ce0778e9400087517d6c13ff9fdf23d264e14402799b64
   libdatadog (40.0.0.1.0-aarch64-linux) sha256=9fe5488133f87a72f1c161121eb407f001b385ce21192c799d2b1bc9e0f80096
@@ -403,7 +403,7 @@ CHECKSUMS
   railties (6.1.7.10) sha256=de6e7a18a16a172c741020dac2e06c068a6a40bd493a4ec5244303171d6e5f0b
   rake (13.4.2) sha256=cb825b2bd5f1f8e91ca37bddb4b9aaf345551b4731da62949be002fa89283701
   rake-compiler (1.3.1) sha256=6b351612b6e2d73ddd5563ee799bb58685176e05363db6758504bd11573d670a
-  reline (0.6.3) sha256=1198b04973565b36ec0f11542ab3f5cfeeec34823f4e54cebde90968092b1835
+  reline (0.7.0) sha256=5b012d8e55dbf9d450f12bde2cf7d15ff546ae80b3f8f3b30e570d431815583d
   request_store (1.7.0) sha256=e1b75d5346a315f452242a68c937ef8e48b215b9453a77a6c0acdca2934c88cb
   rexml (3.4.4) sha256=19e0a2c3425dfbf2d4fc1189747bdb2f849b6c5e74180401b15734bc97b5d142
   rspec (3.13.2) sha256=206284a08ad798e61f86d7ca3e376718d52c0bc944626b2349266f239f820587
@@ -428,7 +428,7 @@ CHECKSUMS
   websocket-driver (0.8.0) sha256=ed0dba4b943c22f17f9a734817e808bc84cdce6a7e22045f5315aa57676d4962
   websocket-extensions (0.1.5) sha256=1c6ba63092cda343eb53fc657110c71c754c56484aad42578495227d717a8241
   zeitwerk (2.7.3) sha256=b2e86b4a9b57d26ba68a15230dcc7fe6f040f06831ce64417b0621ad96ba3e85
-  zstd-ruby (2.0.6) sha256=4d57faa75a11ed5db551fb8befe5bb508046518be1898a91a5d9ddf782f146de
+  zstd-ruby (2.0.7) sha256=9b744a3d3d1f1a8cf9384dba926ebe1eb84093703172342509785cb84c0fc6b2
 
 BUNDLED WITH
   4.0.17

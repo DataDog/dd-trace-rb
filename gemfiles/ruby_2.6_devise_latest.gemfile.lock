@@ -69,7 +69,7 @@ GEM
     hashdiff (1.2.1)
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
-    io-console (0.8.2)
+    io-console (0.9.1)
     json-schema (4.3.1)
       addressable (>= 2.8)
     libdatadog (40.0.0.1.0)
@@ -126,7 +126,7 @@ GEM
     rake (13.4.2)
     rake-compiler (1.3.1)
       rake
-    reline (0.6.3)
+    reline (0.7.0)
       io-console (~> 0.5)
     responders (3.1.1)
       actionpack (>= 5.2)
@@ -169,7 +169,7 @@ GEM
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
     zeitwerk (2.6.18)
-    zstd-ruby (2.0.6)
+    zstd-ruby (2.0.7)
 
 PLATFORMS
   aarch64-linux

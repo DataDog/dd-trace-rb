@@ -51,7 +51,7 @@ GEM
       google-protobuf (~> 3.21)
       googleapis-common-protos-types (~> 1.0)
     hashdiff (1.2.1)
-    io-console (0.8.2)
+    io-console (0.9.1)
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
@@ -95,7 +95,7 @@ GEM
       connection_pool
     redis-namespace (1.10.0)
       redis (>= 4)
-    reline (0.6.3)
+    reline (0.7.0)
       io-console (~> 0.5)
     resque (2.4.0)
       mono_logger (~> 1.0)
@@ -152,7 +152,7 @@ GEM
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
     webrick (1.9.2)
-    zstd-ruby (2.0.6)
+    zstd-ruby (2.0.7)
 
 PLATFORMS
   aarch64-linux

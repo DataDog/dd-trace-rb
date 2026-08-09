@@ -117,12 +117,12 @@ GEM
     hashdiff (1.2.1)
     i18n (1.14.8)
       concurrent-ruby (~> 1.0)
-    io-console (0.8.2)
+    io-console (0.9.1)
     irb (1.15.2)
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    json (2.21.1)
+    json (2.21.2)
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
@@ -245,7 +245,7 @@ GEM
     rdoc (6.14.2)
       erb
       psych (>= 4.0.0)
-    reline (0.6.3)
+    reline (0.7.0)
       io-console (~> 0.5)
     request_store (1.7.0)
       rack (>= 1.4)
@@ -290,7 +290,7 @@ GEM
       hashdiff (>= 0.4.0, < 2.0.0)
     webrick (1.9.2)
     zeitwerk (2.7.5)
-    zstd-ruby (2.0.6)
+    zstd-ruby (2.0.7)
 
 PLATFORMS
   aarch64-linux
@@ -385,9 +385,9 @@ CHECKSUMS
   grape (3.1.1) sha256=774f16782d917a90e69de0499dfaab571e5ad967569ac066a2b0b918af12de69
   hashdiff (1.2.1) sha256=9c079dbc513dfc8833ab59c0c2d8f230fa28499cc5efb4b8dd276cf931457cd1
   i18n (1.14.8) sha256=285778639134865c5e0f6269e0b818256017e8cde89993fdfcbfb64d088824a5
-  io-console (0.8.2) sha256=d6e3ae7a7cc7574f4b8893b4fca2162e57a825b223a177b7afa236c5ef9814cc
+  io-console (0.9.1) sha256=34b5d65a6ed934d9d79d28c0d78ae6a547aa04fa75ba185b2996e1bd2c92d6e6
   irb (1.15.2) sha256=222f32952e278da34b58ffe45e8634bf4afc2dc7aa9da23fed67e581aa50fdba
-  json (2.21.1) sha256=13a43df75d95641443f5702dff350f237164a9d811ff0f2c2800d4d980220583
+  json (2.21.2) sha256=1f1d3b7cf2b3ba1a69beca0bb6db13d5438b80bff3cd54cdaaa620b9b07c1c6a
   json-schema (6.2.0) sha256=e8bff46ed845a22c1ab2bd0d7eccf831c01fe23bb3920caa4c74db4306813666
   jsonapi-renderer (0.2.2) sha256=b5c44b033d61b4abdb6500fa4ab84807ca0b36ea0e59e47a2c3ca7095a6e447b
   king_konf (1.0.1) sha256=28d7eb9dcbd42b26214f5364188f68a8052fadb387ed15f38c5079d7f04744c0
@@ -440,7 +440,7 @@ CHECKSUMS
   rdkafka (0.23.1-arm64-darwin) sha256=55fcad8566bc96ee199cb27934caf2f45ae0c61ceb44487155ced60bd2b9ebbe
   rdkafka (0.23.1-x86_64-linux-gnu) sha256=bf3a53a5bc8c41675d9e0cd9a84777ee5cad14b66d70ed2500a04a6e6550d2c1
   rdoc (6.14.2) sha256=9fdd44df130f856ae70cc9a264dfd659b9b40de369b16581f4ab746e42439226
-  reline (0.6.3) sha256=1198b04973565b36ec0f11542ab3f5cfeeec34823f4e54cebde90968092b1835
+  reline (0.7.0) sha256=5b012d8e55dbf9d450f12bde2cf7d15ff546ae80b3f8f3b30e570d431815583d
   request_store (1.7.0) sha256=e1b75d5346a315f452242a68c937ef8e48b215b9453a77a6c0acdca2934c88cb
   rexml (3.4.4) sha256=19e0a2c3425dfbf2d4fc1189747bdb2f849b6c5e74180401b15734bc97b5d142
   rspec (3.13.2) sha256=206284a08ad798e61f86d7ca3e376718d52c0bc944626b2349266f239f820587
@@ -464,7 +464,7 @@ CHECKSUMS
   webmock (3.26.2) sha256=774556f2ea6371846cca68c01769b2eac0d134492d21f6d0ab5dd643965a4c90
   webrick (1.9.2) sha256=beb4a15fc474defed24a3bda4ffd88a490d517c9e4e6118c3edce59e45864131
   zeitwerk (2.7.5) sha256=d8da92128c09ea6ec62c949011b00ed4a20242b255293dd66bf41545398f73dd
-  zstd-ruby (2.0.6) sha256=4d57faa75a11ed5db551fb8befe5bb508046518be1898a91a5d9ddf782f146de
+  zstd-ruby (2.0.7) sha256=9b744a3d3d1f1a8cf9384dba926ebe1eb84093703172342509785cb84c0fc6b2
 
 BUNDLED WITH
   4.0.17
