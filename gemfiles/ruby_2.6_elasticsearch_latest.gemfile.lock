@@ -34,10 +34,10 @@ GEM
     elastic-transport (8.5.3)
       faraday (< 3)
       multi_json
-    elasticsearch (9.4.3)
+    elasticsearch (9.5.0)
       elastic-transport (~> 8.3)
-      elasticsearch-api (= 9.4.3)
-    elasticsearch-api (9.4.3)
+      elasticsearch-api (= 9.5.0)
+    elasticsearch-api (9.5.0)
       base64
       multi_json
     faraday (2.8.1)
@@ -71,7 +71,7 @@ GEM
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    msgpack (1.8.3)
+    msgpack (1.8.4)
     multi_json (1.15.0)
     os (1.1.4)
     pry (0.16.0)

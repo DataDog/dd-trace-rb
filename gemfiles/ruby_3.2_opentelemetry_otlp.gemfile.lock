@@ -70,7 +70,7 @@ GEM
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    msgpack (1.8.3)
+    msgpack (1.8.4)
     opentelemetry-api (1.2.5)
     opentelemetry-common (0.20.1)
       opentelemetry-api (~> 1.0)
@@ -226,7 +226,7 @@ CHECKSUMS
   logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
   memory_profiler (0.9.14) sha256=de558cf6525d8d56d2c0ea465b1664517fbe45560f892dc7a898d3b8c2863b12
   method_source (1.1.0) sha256=181301c9c45b731b4769bc81e8860e72f9161ad7d66dd99103c9ab84f560f5c5
-  msgpack (1.8.3) sha256=8bda4a6428d3244e50d6bd55854d354edbada88a4e1f4f5731a39a0f86bee6a1
+  msgpack (1.8.4) sha256=4411c22d350dd1c20250f7eada3cca2695438c2f769cf0782f0cd065d90a3e7b
   opentelemetry-api (1.2.5) sha256=ab3d9a0566cd2ee068ade40e840bc973383ab8568e693c0c5712f0c789122cc9
   opentelemetry-common (0.20.1) sha256=f8cd7284d4a58f89b80d26aeb0e86306bc730df015d171af0d7796cb1388e7de
   opentelemetry-exporter-otlp (0.26.3) sha256=fc1deea7924c74e3536983b02684d1bc7e9737baa5c38f3aff9809a7fd330399
