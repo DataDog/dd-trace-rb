@@ -83,6 +83,9 @@ end
 RSpec.describe Datadog::OpenFeature::NativeEvaluator do
   fixture_root = File.expand_path("ffe-system-test-data", __dir__)
   fixture_files = Dir[File.join(fixture_root, "evaluation-cases", "*.json")].sort
+  regex_fixture = JSON.parse(
+    File.read(File.join(fixture_root, "regex-conformance", "targeting-regex-conformance.json"))
+  )
 
   raise "FFE fixture submodule is missing or empty" if fixture_files.empty?
 
@@ -112,6 +115,43 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
     end
   end
 
+  describe "targeting regex conformance" do
+    regex_fixture.fetch("cases").each do |test_case|
+      rust_expectation = test_case.fetch("engineExpectations", {}).fetch("rustRulesBased") do
+        {
+          "compile" => test_case.fetch("expectedCompile"),
+          "match" => test_case.fetch("expectedMatch")
+        }
+      end
+      expected_match = rust_expectation.fetch("compile") ? rust_expectation.fetch("match") : false
+
+      it "compiles and evaluates #{test_case.fetch("id")} through libdatadog" do
+        regex_evaluator = described_class.new(regex_configuration(configuration, test_case.fetch("rawPattern")))
+        result = regex_evaluator.get_assignment(
+          "regex-conformance",
+          default_value: "not-matched",
+          expected_type: :string,
+          context: {
+            "targeting_key" => test_case.fetch("id"),
+            "candidate" => test_case.fetch("input")
+          }
+        )
+
+        aggregate_failures do
+          # libdatadog isolates a regex compile failure to the affected flag and
+          # exposes it as this default result instead of raising from configuration creation.
+          observed_compile = result.error_message != "flag configuration is invalid or unsupported"
+          expected_compile = rust_expectation.fetch("compile")
+          details = "reason=#{result.reason.inspect}, error_code=#{result.error_code.inspect}, " \
+            "error_message=#{result.error_message.inspect}"
+
+          expect(observed_compile).to be(expected_compile), details
+          expect(result.value).to eq(expected_match ? "matched" : "not-matched"), details
+        end
+      end
+    end
+  end
+
   def expected_type(variation_type)
     case variation_type
     when "BOOLEAN"
@@ -131,5 +171,45 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
 
   def evaluation_context(test_case)
     {"targeting_key" => test_case["targetingKey"]}.merge(test_case.fetch("attributes") || {})
+  end
+
+  def regex_configuration(base_configuration, pattern)
+    configuration = JSON.parse(base_configuration)
+    configuration["flags"] = {
+      "regex-conformance" => {
+        "key" => "regex-conformance",
+        "enabled" => true,
+        "variationType" => "STRING",
+        "variations" => {
+          "matched" => {"key" => "matched", "value" => "matched"},
+          "not-matched" => {"key" => "not-matched", "value" => "not-matched"}
+        },
+        "allocations" => [
+          {
+            "key" => "regex-match",
+            "rules" => [
+              {
+                "conditions" => [
+                  {
+                    "attribute" => "candidate",
+                    "operator" => "MATCHES",
+                    "value" => pattern
+                  }
+                ]
+              }
+            ],
+            "splits" => [{"variationKey" => "matched", "shards" => []}],
+            "doLog" => false
+          },
+          {
+            "key" => "regex-fallback",
+            "rules" => [],
+            "splits" => [{"variationKey" => "not-matched", "shards" => []}],
+            "doLog" => false
+          }
+        ]
+      }
+    }
+    JSON.generate(configuration)
   end
 end
