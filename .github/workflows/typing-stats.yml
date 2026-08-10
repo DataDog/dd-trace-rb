@@ -2,8 +2,6 @@ name: Comment typing stats on PR
 
 on: # yamllint disable-line rule:truthy
   pull_request:
-    branches:
-      - master
 
 # TODO:
 # Upload the report somewhere not limited by the 64k char limit (maybe FPD ?) to be able to include links to the files
