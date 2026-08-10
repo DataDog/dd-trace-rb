@@ -69,8 +69,6 @@ module Datadog
     #
     # @api private
     class Instrumenter
-      # Extended into each method-probe wrapper module so #original_target_method
-      # recognizes DI wrappers when resolving a method's original definition.
       module InstrumentedMethodMarker
       end
 
