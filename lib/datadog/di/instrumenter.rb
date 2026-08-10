@@ -160,6 +160,7 @@ module Datadog
         end
 
         loc = target_method&.source_location
+        positional_param_names = target_method && extract_positional_param_names(target_method)
         instrumenter = self
 
         mod = Module.new do
@@ -205,7 +206,7 @@ module Datadog
                 args, kwargs, target_block, # steep:ignore FallbackAny
                 self,
                 probe, responder,
-                loc, method_name,
+                loc, method_name, positional_param_names,
               ) do
                 super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
               end
@@ -225,7 +226,7 @@ module Datadog
                 pos_args, kwargs, target_block,
                 self,
                 probe, responder,
-                loc, method_name,
+                loc, method_name, positional_param_names,
               ) do
                 super(*args, &target_block)
               end
@@ -438,6 +439,41 @@ module Datadog
 
       attr_reader :lock
 
+      # Real names of the target method's leading fixed positional parameters
+      # (+:req+ and +:opt+), in declaration order, used to label captured
+      # positional arguments with their source names instead of the synthetic
+      # arg1, arg2, ... labels. Uses the same Method#parameters reflection that
+      # the symbol database extractor relies on.
+      #
+      # Stops at a rest (+*+) parameter: values absorbed by a splat, and any
+      # positional parameters declared after it, cannot be mapped to a name by
+      # index, so they fall back to arg-N labels in #combine_args. A name entry
+      # may be nil (e.g. attr_writer-generated methods expose no parameter
+      # name); #combine_args falls back to arg-N for those too.
+      #
+      # Only called with a resolved UnboundMethod; virtual and C methods have
+      # no UnboundMethod and skip this at the call site.
+      #
+      # @param target_method [UnboundMethod]
+      # @return [Array<Symbol, nil>, nil]
+      def extract_positional_param_names(target_method)
+        names = []
+        target_method.parameters.each do |type, name|
+          case type
+          when :req, :opt
+            names << name
+          when :rest
+            break
+          end
+        end
+        names
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
+        logger.debug { "di: failed to extract positional parameter names: #{e.class}: #{e.message}" }
+        telemetry&.report(e, description: "Error extracting positional parameter names")
+        nil
+      end
+
       # Body of the method probe wrapper. Extracted from the define_method
       # block in #hook_method so the begin/ensure structure can use normal
       # indentation. The original method is invoked with yield, calling the
@@ -445,11 +481,11 @@ module Datadog
       # from inside the define_method block, the only place super resolves
       # to the prepended-on class's method.
       #
-      # Performance: this method takes eight positional parameters, not
+      # Performance: this method takes nine positional parameters, not
       # keyword parameters, deliberately. Every probed method invocation
       # passes through here on the firing/disabled/rate-limited paths.
       # Keyword-argument calls in Ruby allocate a fresh Hash on every call
-      # to materialize the keyword bindings; with eight keyword arguments
+      # to materialize the keyword bindings; with that many keyword arguments
       # (~300-1000 ns of allocation per invocation), that hash dominated
       # the wrapper's per-call overhead. Positional parameters skip the
       # allocation entirely. The cost is a long unlabeled signature and
@@ -466,10 +502,11 @@ module Datadog
       # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback] callback target invoked with the built Context
       # @param loc [Array(String, Integer), nil] source location of the probed method, or nil for virtual/lazily-defined methods
       # @param method_name [String] name of the probed method, used as the synthetic top stack frame label
+      # @param positional_param_names [Array<Symbol, nil>, nil] real names of the target method's leading fixed positional parameters, for labeling captured positional arguments
       # @yield invokes the original method via super and returns its value
       # @return [Object] the original method's return value, or re-raises its exception
       def run_method_probe(args, kwargs, target_block, target_self,
-        probe, responder, loc, method_name)
+        probe, responder, loc, method_name, positional_param_names = nil)
         # Disabled probe: skip DI processing entirely. enter_probe is not
         # called on this path so the guard is never set — there is no DI
         # work to guard, and any nested probed methods invoked by the
@@ -488,7 +525,7 @@ module Datadog
               # We do not need the stack for condition evaluation, therefore
               # stack is not passed to Context here.
               context = Context.new(
-                locals: serializer.combine_args(args, kwargs, target_self),
+                locals: serializer.combine_args(args, kwargs, target_self, positional_param_names),
                 target_self: target_self,
                 probe: probe, settings: settings, serializer: serializer,
               )
@@ -532,7 +569,7 @@ module Datadog
             # Arguments may be mutated by the method, therefore
             # they need to be serialized prior to method invocation.
             serialized_entry_args = if probe.capture_snapshot?
-              serializer.serialize_args(args, kwargs, target_self,
+              serializer.serialize_args(args, kwargs, target_self, positional_param_names,
                 **probe.snapshot_serializer_limits(settings))
             end
 
@@ -543,7 +580,7 @@ module Datadog
                 entry_context = Context.new(
                   probe: probe, settings: settings, serializer: serializer,
                   target_self: target_self,
-                  locals: serializer.combine_args(args, kwargs, target_self),
+                  locals: serializer.combine_args(args, kwargs, target_self, positional_param_names),
                 )
                 entry_capture_expressions, entry_capture_evaluation_errors =
                   capture_expression_evaluator.evaluate(probe, entry_context)
@@ -617,7 +654,7 @@ module Datadog
             # TODO capture arguments at exit
 
             capture_expression_locals = if probe.capture_expressions_only?
-              serializer.combine_args(args, kwargs, target_self)
+              serializer.combine_args(args, kwargs, target_self, positional_param_names)
             end
             context = Context.new(locals: capture_expression_locals, target_self: target_self,
               probe: probe, settings: settings, serializer: serializer,
