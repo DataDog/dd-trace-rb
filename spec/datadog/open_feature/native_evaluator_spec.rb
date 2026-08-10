@@ -105,5 +105,35 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
         expect(result.error_code).to eq("PARSE_ERROR")
       end
     end
+
+    context "when a condition contains an invalid regular expression" do
+      let(:configuration_json) do
+        JSON.generate(
+          "flags" => {
+            flag_key => {
+              "variationType" => "STRING",
+              "variations" => {"on" => {"key" => "on", "value" => "on"}},
+              "allocations" => [
+                {
+                  "rules" => [
+                    {"conditions" => [{"attribute" => "email", "operator" => "MATCHES", "value" => "[invalid"}]},
+                  ],
+                },
+              ],
+            },
+          },
+        )
+      end
+      let(:default_value) { "default" }
+      let(:expected_type) { :string }
+
+      it "returns a parse error without evaluating the invalid flag" do
+        expect(configuration).not_to receive(:get_assignment)
+
+        expect(result.value).to eq("default")
+        expect(result.reason).to eq("ERROR")
+        expect(result.error_code).to eq("PARSE_ERROR")
+      end
+    end
   end
 end

@@ -14,7 +14,7 @@ module Datadog
       #       JSON string containing feature flags (straight from the remote config)
       #       in the format expected by `libdatadog` without any modifications
       def initialize(configuration)
-        @variant_type_mismatch_flags = find_variant_type_mismatch_flags(configuration)
+        @variant_type_mismatch_flags, @invalid_regex_flags = find_flag_validation_errors(configuration)
         @configuration = Core::FeatureFlags::Configuration.new(configuration)
       end
 
@@ -37,6 +37,13 @@ module Datadog
             error_message: "Variant value does not match the declared variation type"
           )
         end
+        if @invalid_regex_flags.include?(flag_key)
+          return ResolutionDetails.build_error(
+            value: default_value,
+            error_code: Ext::PARSE_ERROR,
+            error_message: "Condition contains an invalid regular expression"
+          )
+        end
 
         result = @configuration.get_assignment(flag_key, expected_type, context)
 
@@ -49,27 +56,60 @@ module Datadog
 
       private
 
-      def find_variant_type_mismatch_flags(configuration)
+      def find_flag_validation_errors(configuration)
         flags = JSON.parse(configuration)["flags"]
-        return {} unless flags.is_a?(Hash)
+        return [{}, {}] unless flags.is_a?(Hash)
 
-        flags.each_with_object({}) do |(flag_key, flag), mismatches|
+        mismatches = {} #: Hash[String, Array[Symbol]]
+        invalid_regexes = {} #: Hash[String, bool]
+        flags.each do |flag_key, flag|
           next unless flag.is_a?(Hash)
           next if flag["enabled"] == false
 
           variation_type = flag["variationType"]
           expected_types = expected_types_for(variation_type)
           variations = flag["variations"]
-          next unless expected_types && variations.is_a?(Hash)
+          if expected_types && variations.is_a?(Hash)
+            mismatches[flag_key] = expected_types if variations.values.any? do |variation|
+              variation.is_a?(Hash) &&
+                variation.key?("value") &&
+                !variant_value_matches?(variation_type, variation["value"])
+            end
+          end
 
-          mismatches[flag_key] = expected_types if variations.values.any? do |variation|
-            variation.is_a?(Hash) &&
-              variation.key?("value") &&
-              !variant_value_matches?(variation_type, variation["value"])
+          invalid_regexes[flag_key] = true if flag_has_invalid_regex?(flag)
+        end
+        [mismatches, invalid_regexes]
+      rescue JSON::ParserError, TypeError
+        [{}, {}]
+      end
+
+      def flag_has_invalid_regex?(flag)
+        allocations = flag["allocations"]
+        return false unless allocations.is_a?(Array)
+
+        allocations.any? do |allocation|
+          rules = allocation["rules"] if allocation.is_a?(Hash)
+          next false unless rules.is_a?(Array)
+
+          rules.any? do |rule|
+            conditions = rule["conditions"] if rule.is_a?(Hash)
+            next false unless conditions.is_a?(Array)
+
+            conditions.any? { |condition| invalid_regex_condition?(condition) }
           end
         end
-      rescue JSON::ParserError, TypeError
-        {}
+      end
+
+      def invalid_regex_condition?(condition)
+        return false unless condition.is_a?(Hash)
+        return false unless ["MATCHES", "NOT_MATCHES"].include?(condition["operator"])
+        return false unless condition["value"].is_a?(String)
+
+        Regexp.new(condition["value"])
+        false
+      rescue RegexpError
+        true
       end
 
       def expected_types_for(variation_type)
