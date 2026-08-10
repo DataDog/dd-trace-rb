@@ -2,7 +2,6 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
-require_relative "sampling_unit"
 require_relative "fatal_exceptions"
 require_relative "capture_expression_evaluator"
 
@@ -387,10 +386,6 @@ module Datadog
           # TODO add tests that the trace/span id is correctly propagated
           "dd.trace_id": active_trace&.id&.to_s,
           "dd.span_id": active_span&.id&.to_s,
-          # Where the trace id in this envelope came from, so a consumer knows
-          # when a join to APM is valid: "apm" (active trace) or "none" (no
-          # active trace; the hit was not correlated).
-          trace_id_source: trace_id_source,
           ddsource: "dd_debugger",
           message: message,
           timestamp: timestamp,
@@ -446,11 +441,6 @@ module Datadog
         if defined?(Datadog::Tracing)
           Datadog::Tracing.active_trace
         end
-      end
-
-      # Reports the sampling-unit source the sampling gate used for this hit.
-      def trace_id_source
-        SamplingUnit.current.source.to_s
       end
 
       def active_span
