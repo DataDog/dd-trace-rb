@@ -82,7 +82,16 @@ RSpec.describe "Correlation integration" do
     end
   end
 
+  # A capturing (snapshot) probe: coordinated sampling applies to it.
   def method_probe(id, method_name, rate_limit: nil)
+    Datadog::DI::Probe.new(id: id, type: :log,
+      type_name: "CorrelationIntegrationTestClass", method_name: method_name,
+      capture_snapshot: true, rate_limit: rate_limit)
+  end
+
+  # A non-capturing (log-only) probe: coordinated sampling does not apply, so
+  # it keeps its own per-probe rate limit and is not capped per span.
+  def non_capturing_probe(id, method_name, rate_limit: nil)
     Datadog::DI::Probe.new(id: id, type: :log,
       type_name: "CorrelationIntegrationTestClass", method_name: method_name,
       capture_snapshot: false, rate_limit: rate_limit)
@@ -160,6 +169,19 @@ RSpec.describe "Correlation integration" do
 
       expect(snapshots.size).to eq(1)
       expect(snapshots.first[:runtimeId]).to eq(Datadog::Core::Environment::Identity.id)
+    end
+  end
+
+  context "non-capturing probes" do
+    before { stub_trace("trace-abc", "span-1") }
+
+    it "bypasses coordination and is not capped per span" do
+      probe_manager.add_probe(non_capturing_probe("p-inner", "inner", rate_limit: 5000))
+
+      CorrelationIntegrationTestClass.new.loop_n(25)
+      flush
+
+      expect(snapshots.size).to eq(25)
     end
   end
 
