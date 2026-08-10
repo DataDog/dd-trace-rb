@@ -84,8 +84,6 @@ module Datadog
         trace_budget: GuardrailsTelemetry::Reason::RATE_LIMIT_TRACE_BUDGET,
       }.freeze
 
-      # Extended into each method-probe wrapper module so #original_target_method
-      # recognizes DI wrappers when resolving a method's original definition.
       module InstrumentedMethodMarker
       end
 
