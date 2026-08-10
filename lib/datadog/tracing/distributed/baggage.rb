@@ -231,8 +231,7 @@ module Datadog
           tags = {}
 
           baggage_tag_keys.each do |key, _|
-            # Steep: https://github.com/soutaro/steep/issues/2031
-            value = baggage[key] # steep:ignore ArgumentTypeMismatch
+            value = baggage[key]
             next if value.nil? || value.empty?
 
             tags["baggage.#{key}"] = value
