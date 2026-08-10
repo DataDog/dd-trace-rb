@@ -607,6 +607,40 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    context "when the method is already instrumented by an earlier probe" do
+      let(:probe_args) do
+        {type_name: "HookTestClass", method_name: "hook_test_method_with_arg",
+         capture_snapshot: true}
+      end
+
+      let(:first_probe) do
+        Datadog::DI::Probe.new(**base_probe_args.merge(
+          id: "first", type_name: "HookTestClass",
+          method_name: "hook_test_method_with_arg", capture_snapshot: true
+        ))
+      end
+
+      let(:first_calls) { [] }
+
+      after do
+        instrumenter.unhook(first_probe)
+      end
+
+      it "captures positional args under their real names for the later probe" do
+        hook_method(first_probe) { |payload| first_calls << payload }
+        hook_method(probe) { |payload| observed_calls << payload }
+
+        expect(HookTestClass.new.hook_test_method_with_arg(2)).to eq 2
+
+        expect(first_calls.length).to eq 1
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first.serialized_entry_args).to eq(
+          arg: {type: "Integer", value: "2"},
+          self: {type: "HookTestClass", fields: {}},
+        )
+      end
+    end
+
     context "positional args with a splat parameter" do
       let(:probe_args) do
         {type_name: "HookTestClass", method_name: "method_with_splat",
@@ -2431,6 +2465,76 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       expect(instrumenter.send(:extract_positional_param_names, broken)).to be_nil
       expect(logged).to include("failed to extract positional parameter names")
+    end
+  end
+
+  describe "#original_target_method" do
+    let(:target_class) do
+      Class.new do
+        def method_with_args(account, action, count)
+          [account, action, count]
+        end
+      end
+    end
+
+    def build_wrapper
+      Module.new do
+        define_method(:method_with_args) { |*args, **kwargs, &blk| super(*args, **kwargs, &blk) }
+      end
+    end
+
+    def wrapper_module
+      mod = build_wrapper
+      mod.extend(Datadog::DI::Instrumenter::InstrumentedMethodMarker)
+      mod
+    end
+
+    def resolve
+      instrumenter.send(:original_target_method, target_class.instance_method(:method_with_args))
+    end
+
+    it "returns the method unchanged when it is not a wrapper" do
+      expect(resolve.parameters).to eq([[:req, :account], [:req, :action], [:req, :count]])
+    end
+
+    it "resolves past a single prepended wrapper to the original method" do
+      target_class.prepend(wrapper_module)
+      expect(resolve.parameters).to eq([[:req, :account], [:req, :action], [:req, :count]])
+    end
+
+    it "resolves past multiple stacked wrappers to the original method" do
+      target_class.prepend(wrapper_module)
+      target_class.prepend(wrapper_module)
+      expect(resolve.parameters).to eq([[:req, :account], [:req, :action], [:req, :count]])
+    end
+
+    it "stops at a non-DI wrapper installed by module prepend" do
+      plain = build_wrapper
+      target_class.prepend(plain)
+      target_class.prepend(wrapper_module)
+
+      resolved = resolve
+      expect(resolved.owner).to eq(plain)
+      expect(resolved.parameters).to eq([[:rest, :args], [:keyrest, :kwargs], [:block, :blk]])
+    end
+
+    it "returns nil when only wrappers underlie the target (virtual method)" do
+      virtual_class = Class.new do
+        def method_missing(name, *args, **kwargs, &blk)
+          [args, kwargs]
+        end
+
+        def respond_to_missing?(name, include_private = false)
+          true
+        end
+      end
+      virtual_class.prepend(wrapper_module)
+      resolved = instrumenter.send(:original_target_method, virtual_class.instance_method(:method_with_args))
+      expect(resolved).to be_nil
+    end
+
+    it "returns nil when given nil" do
+      expect(instrumenter.send(:original_target_method, nil)).to be_nil
     end
   end
 end

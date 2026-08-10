@@ -9,6 +9,9 @@ module Datadog
         def label: () -> String?
       end
 
+      module InstrumentedMethodMarker
+      end
+
       DATADOG_NAMESPACE_TYPE_NAME: ::Regexp
 
       GLOBAL_SNAPSHOT_RATE_LIMIT: ::Integer
@@ -83,6 +86,8 @@ module Datadog
       private
 
       attr_reader lock: Mutex
+
+      def original_target_method: (::UnboundMethod? target_method) -> ::UnboundMethod?
 
       def extract_positional_param_names: (::UnboundMethod target_method) -> ::Array[::Symbol?]?
 
