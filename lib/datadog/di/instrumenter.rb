@@ -78,12 +78,8 @@ module Datadog
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
-      # Extended into every method-probe wrapper module before it is
-      # prepended. #hook_method uses it to recognize wrapper modules that
-      # earlier probes on this method have prepended and resolve past them
-      # to the user's original method (see #original_target_method), so
-      # parameter names and source location are read from the original
-      # definition.
+      # Extended into each method-probe wrapper module so #original_target_method
+      # recognizes DI wrappers when resolving a method's original definition.
       module InstrumentedMethodMarker
       end
 
@@ -182,8 +178,6 @@ module Datadog
           nil
         end
 
-        # Resolve past wrappers prepended by earlier probes on this method so
-        # the checks below read the user's original definition.
         target_method = original_target_method(target_method)
 
         # Reject method probes whose target method resolves to Kernel#lambda,
@@ -490,10 +484,8 @@ module Datadog
       # ancestor chain, so each step drops one prepended wrapper. Returns nil
       # when only wrappers underlie the target (e.g. a virtual method that an
       # earlier probe instrumented), matching the nil that #hook_method assigns
-      # for a method it cannot resolve.
-      #
-      # @param target_method [UnboundMethod, nil]
-      # @return [UnboundMethod, nil]
+      # for a method it cannot resolve. Called at hook time so the source
+      # location and parameter names read below come from the user's method.
       def original_target_method(target_method)
         return target_method unless target_method
         return target_method unless target_method.owner.is_a?(InstrumentedMethodMarker)
