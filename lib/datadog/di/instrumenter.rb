@@ -69,6 +69,15 @@ module Datadog
     #
     # @api private
     class Instrumenter
+      # Extended into every method-probe wrapper module before it is
+      # prepended. #hook_method uses it to recognize wrapper modules that
+      # earlier probes on the same method have prepended and resolve past them
+      # to the user's original method (see #original_target_method), so
+      # parameter names and source location are read from the original
+      # definition.
+      module InstrumentedMethodMarker
+      end
+
       def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
@@ -142,6 +151,10 @@ module Datadog
           # target method here.
           nil
         end
+
+        # Resolve past wrappers prepended by earlier probes on this method so
+        # the checks below read the user's original definition.
+        target_method = original_target_method(target_method)
 
         # Reject method probes whose target method resolves to Kernel#lambda,
         # including inherited targets. Every class inherits Kernel#lambda, so a
@@ -241,6 +254,7 @@ module Datadog
             return
           end
 
+          mod.extend(InstrumentedMethodMarker)
           probe.instrumentation_module = mod
           cls.send(:prepend, mod)
 
@@ -438,6 +452,23 @@ module Datadog
       private
 
       attr_reader :lock
+
+      # Resolves +target_method+ past any method-probe wrapper modules that
+      # earlier probes on the same method have prepended, returning the user's
+      # original method. Ruby resolves UnboundMethod#super_method along the
+      # ancestor chain, so each step drops one prepended wrapper. Returns nil
+      # when only wrappers underlie the target (e.g. a virtual method that an
+      # earlier probe instrumented), matching the nil that #hook_method assigns
+      # for a method it cannot resolve.
+      #
+      # @param target_method [UnboundMethod, nil]
+      # @return [UnboundMethod, nil]
+      def original_target_method(target_method)
+        return target_method unless target_method
+        return target_method unless target_method.owner.is_a?(InstrumentedMethodMarker)
+
+        original_target_method(target_method.super_method)
+      end
 
       # Real names of the target method's leading fixed positional parameters
       # (+:req+ and +:opt+), in declaration order, used to label captured
