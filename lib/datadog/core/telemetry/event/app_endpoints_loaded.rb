@@ -20,7 +20,7 @@ module Datadog
           def payload
             {
               is_first: @is_first,
-              endpoints: @endpoints
+              endpoints: @endpoints,
             }
           end
         end

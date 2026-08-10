@@ -10,7 +10,7 @@ RSpec.describe Datadog::Core::Utils::Network do
           headers = Datadog::Core::HeaderCollection.from_hash(
             {"X-Forwarded-For" => "10.42.42.42",
              "True-Client-Ip" => "43.43.43.43",
-             "X-Cluster-Client-Ip" => "10.0.0.1",}
+             "X-Cluster-Client-Ip" => "10.0.0.1"}
           )
 
           result = described_class.stripped_ip_from_request_headers(headers)
@@ -148,7 +148,7 @@ RSpec.describe Datadog::Core::Utils::Network do
             "",
             "dd",
             "02001:0000:1234:0000:0000:C1C0:ABCD:0876",
-            "2001:0000:1234:0000:00001:C1C0:ABCD:0876"
+            "2001:0000:1234:0000:00001:C1C0:ABCD:0876",
           ]
 
         ips.each do |ip|

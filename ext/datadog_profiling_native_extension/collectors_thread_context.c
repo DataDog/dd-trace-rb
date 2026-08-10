@@ -153,6 +153,8 @@ typedef struct {
   VALUE otel_current_span_key;
   // Used to enable native filenames in stack traces
   bool native_filenames_enabled;
+  // Used to include class/module names in method names (e.g. "Foo#bar" instead of "bar")
+  bool show_classes;
   // Used to cache native filename lookup results (Map[void *function_pointer, char *filename])
   st_table *native_filenames_cache;
   // Used to attribute overhead during sampling to this component
@@ -493,7 +495,7 @@ static void thread_context_collector_typed_data_free(void *state_ptr) {
 
   // Important: Remember that we're only guaranteed to see here what's been set in _native_new, aka
   // pointers that have been set NULL there may still be NULL here.
-  if (state->locations.ptr != NULL) ruby_xfree(state->locations.ptr);
+  sample_locations_free(&state->locations);
 
   st_free_table(state->native_filenames_cache);
 
@@ -550,14 +552,13 @@ static VALUE _native_new(VALUE klass) {
   // being leaked.
 
   // Update this when modifying state struct
-  state->locations.ptr = NULL;
-  state->locations.len = 0;
   state->recorder_instance = Qnil;
   state->tracer_context_key = MISSING_TRACER_CONTEXT_KEY;
   VALUE thread_list_buffer = rb_ary_new();
   state->thread_list_buffer = thread_list_buffer;
   state->endpoint_collection_enabled = true;
   state->native_filenames_enabled = false;
+  state->show_classes = false;
   state->native_filenames_cache = st_init_numtable();
   state->otel_context_enabled = OTEL_CONTEXT_ENABLED_FALSE;
   state->otel_context_source = OTEL_CONTEXT_SOURCE_UNKNOWN;
@@ -593,12 +594,14 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   VALUE waiting_for_gvl_threshold_ns = rb_hash_fetch(options, ID2SYM(rb_intern("waiting_for_gvl_threshold_ns")));
   VALUE otel_context_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("otel_context_enabled")));
   VALUE native_filenames_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("native_filenames_enabled")));
+  VALUE show_classes = rb_hash_fetch(options, ID2SYM(rb_intern("show_classes")));
   VALUE overhead_filename = rb_hash_fetch(options, ID2SYM(rb_intern("overhead_filename")));
 
   ENFORCE_TYPE(max_frames, T_FIXNUM);
   ENFORCE_BOOLEAN(endpoint_collection_enabled);
   ENFORCE_TYPE(waiting_for_gvl_threshold_ns, T_FIXNUM);
   ENFORCE_BOOLEAN(native_filenames_enabled);
+  ENFORCE_BOOLEAN(show_classes);
   ENFORCE_TYPE(overhead_filename, T_STRING);
 
   uint16_t max_frame_int = sampling_buffer_check_max_frames(NUM2INT(max_frames));
@@ -607,12 +610,12 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   // Update this when modifying state struct
-  state->locations.len = max_frame_int;
-  state->locations.ptr = ruby_xcalloc(max_frame_int, sizeof(ddog_prof_Location));
+  sample_locations_initialize(&state->locations, max_frame_int, show_classes == Qtrue);
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
   recorder_install_on_serialize(recorder_instance, self_instance);
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
   state->native_filenames_enabled = (native_filenames_enabled == Qtrue);
+  state->show_classes = (show_classes == Qtrue);
   state->overhead_filename = overhead_filename;
   if (otel_context_enabled == Qfalse || otel_context_enabled == Qnil) {
     state->otel_context_enabled = OTEL_CONTEXT_ENABLED_FALSE;
@@ -949,7 +952,7 @@ bool thread_context_collector_on_gc_finish(VALUE self_instance) {
 
   // Update cpu-time accounting so it doesn't include the cpu-time spent in GC during the next sample.
   // We don't do the same for wall-time, because GC is just like any other reason a thread didn't make
-  // progress -- time always goes forward regardless of the thread making progress on what it wanted. 
+  // progress -- time always goes forward regardless of the thread making progress on what it wanted.
   if (thread_context->cpu_time_at_previous_sample_ns != INVALID_TIME) {
     thread_context->cpu_time_at_previous_sample_ns += gc_cpu_time_elapsed_ns;
   }
@@ -1157,7 +1160,8 @@ static void trigger_sample_for_thread(
       .is_gvl_waiting_state = is_gvl_waiting_state,
     },
     state->native_filenames_enabled,
-    state->native_filenames_cache
+    state->native_filenames_cache,
+    state->show_classes
   );
 }
 
@@ -1329,6 +1333,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" stats=%"PRIsVALUE, stats_to_ruby_hash(state, rb_hash_new())));
   rb_str_concat(result, rb_sprintf(" endpoint_collection_enabled=%"PRIsVALUE, state->endpoint_collection_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(" native_filenames_enabled=%"PRIsVALUE, state->native_filenames_enabled ? Qtrue : Qfalse));
+  rb_str_concat(result, rb_sprintf(" show_classes=%"PRIsVALUE, state->show_classes ? Qtrue : Qfalse));
   // Note: `st_table_size()` is available from Ruby 3.2+ but not before
   rb_str_concat(result, rb_sprintf(" native_filenames_cache_size=%zu", state->native_filenames_cache->num_entries));
   rb_str_concat(result, rb_sprintf(" otel_context_enabled=%d", state->otel_context_enabled));
