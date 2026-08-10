@@ -1,9 +1,8 @@
 module Datadog
   module OpenFeature
     class NativeEvaluator
-      INVALID_FLAG_CONFIGURATION_ERROR_MESSAGE: ::String
-
       @configuration: Core::FeatureFlags::Configuration
+      @variant_type_mismatch_flags: ::Hash[::String, ::Array[::Symbol]]
 
       def initialize: (::String configuration) -> void
 
@@ -16,9 +15,11 @@ module Datadog
 
       private
 
-      def invalid_flag_configuration?: (Core::FeatureFlags::ResolutionDetails result) -> bool
+      def find_variant_type_mismatch_flags: (::String configuration) -> ::Hash[::String, ::Array[::Symbol]]
 
-      def invalid_flag_configuration_error: (untyped default_value) -> ResolutionDetails
+      def expected_types_for: (untyped variation_type) -> (::Array[::Symbol]?)
+
+      def variant_value_matches?: (untyped variation_type, untyped value) -> bool
     end
   end
 end

@@ -78,7 +78,7 @@ module Datadog
           "STRING" => [:string],
           "INTEGER" => [:integer],
           "NUMERIC" => [:number, :float],
-          "JSON" => [:object]
+          "JSON" => [:object],
         }[variation_type]
       end
 
