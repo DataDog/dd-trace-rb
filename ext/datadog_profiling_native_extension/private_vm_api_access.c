@@ -647,7 +647,9 @@ check_method_entry(VALUE obj, int can_be_svar) {
 // While older Rubies may have this function, the symbol is not exported which leads to dynamic loader issues, e.g.
 // `dyld: lazy symbol binding failed: Symbol not found: _rb_vm_frame_method_entry`.
 //
-// Modifications: None
+// Modifications:
+// * Added NULL check on ep after VM_ENV_PREV_EP to guard against corrupted EP chains
+//   when called from a signal handler during vm_make_env_each
 MJIT_STATIC const rb_callable_method_entry_t *
 rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
 {
@@ -659,6 +661,10 @@ rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
             return me;
         }
         ep = VM_ENV_PREV_EP(ep);
+        // Safety: VM_ENV_PREV_EP can return NULL when the profiler's signal handler interrupts
+        // vm_make_env_each (vm.c), which non-atomically converts stack EPs to heap EPs during
+        // Thread.new. The SPECVAL link in the new heap EP may not yet be initialized.
+        if (ep == NULL) return NULL;
     }
 
     return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
