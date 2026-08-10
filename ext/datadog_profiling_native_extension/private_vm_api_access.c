@@ -943,6 +943,7 @@ static bool has_permanent_classpath(DDTRACE_UNUSED VALUE mod, DDTRACE_UNUSED VAL
 
 #define ONLY_METHOD_NAME ((ssize_t) -1)
 #define BUFFER_OUT_OF_SPACE ((ssize_t) -2)
+#define NO_METHOD_NAME ((ssize_t) -3)
 
 static ssize_t rb_gen_method_name(VALUE owner, VALUE method_name, char *buf, size_t buf_size) {
   if (!(RB_TYPE_P(owner, T_CLASS) || RB_TYPE_P(owner, T_MODULE))) {
@@ -1032,6 +1033,9 @@ static ssize_t calculate_iseq_label(VALUE owner, const rb_iseq_t *iseq, char *bu
 ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq, char *buf, size_t buf_size) {
   if (location_cfunc_p(cme)) {
     VALUE method_name = rb_id2str(cme->def->original_id);
+    if (method_name == Qfalse) {
+      return NO_METHOD_NAME;
+    }
     return rb_gen_method_name(cme->owner, method_name, buf, buf_size);
   } else {
     VALUE owner = cme ? cme->owner : Qnil;
@@ -1039,6 +1043,7 @@ ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_i
   }
 }
 
+// Returns a String or Qfalse (like rb_id2str())
 VALUE ddtrace_location_base_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq) {
   if (location_cfunc_p(cme)) {
     return rb_id2str(cme->def->original_id);
@@ -1047,10 +1052,13 @@ VALUE ddtrace_location_base_label(const rb_callable_method_entry_t *cme, const r
   }
 }
 
+// Always returns a String
 VALUE ddtrace_iseq_base_label(const rb_iseq_t *iseq) {
   return rb_iseq_base_label(iseq);
 }
 
+// Always returns a String
+// See https://github.com/ruby/ruby/blob/75aeb225b8558ff908ea78bf608dfbba09bdc2f9/iseq.c#L564-L565
 VALUE ddtrace_iseq_path(const rb_iseq_t *iseq) {
   return rb_iseq_path(iseq);
 }

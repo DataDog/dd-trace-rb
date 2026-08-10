@@ -15,7 +15,7 @@ module Datadog
               response: %w[
                 Content-Type
                 X-Request-ID
-              ]
+              ],
             }.freeze
 
             option :enabled do |o|

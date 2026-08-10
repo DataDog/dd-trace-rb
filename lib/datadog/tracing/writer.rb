@@ -130,7 +130,7 @@ module Datadog
       def stats
         {
           traces_flushed: @traces_flushed,
-          transport: @transport.stats
+          transport: @transport.stats,
         }
       end
 

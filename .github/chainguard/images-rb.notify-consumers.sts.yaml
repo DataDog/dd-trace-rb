@@ -1,0 +1,13 @@
+issuer: https://token.actions.githubusercontent.com
+
+# Caller: images-rb's notify-consumers.yml. Any branch, since it can be
+# manually dispatched pre-merge to send an early pin-update.
+subject_pattern: "repo:DataDog/images-rb:ref:refs/heads/.+"
+
+claim_pattern:
+  event_name: workflow_run|workflow_dispatch
+  repository: DataDog/images-rb
+  job_workflow_ref: DataDog/images-rb/\.github/workflows/notify-consumers\.yml@refs/heads/.+
+
+permissions:
+  contents: write
