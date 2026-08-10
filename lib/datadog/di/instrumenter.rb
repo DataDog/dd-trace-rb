@@ -77,9 +77,6 @@ module Datadog
       # Maximum number of non-capturing probe emissions admitted per second across
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
-
-      # Extended into each method-probe wrapper module so #original_target_method
-      # recognizes DI wrappers when resolving a method's original definition.
       module InstrumentedMethodMarker
       end
 
