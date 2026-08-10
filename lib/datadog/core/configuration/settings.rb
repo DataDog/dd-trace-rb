@@ -340,7 +340,8 @@ module Datadog
 
             # Can be used to enable/disable the collection of heap profiles.
             #
-            # This feature is in preview and disabled by default. Requires Ruby 3.1+.
+            # This feature is in preview and disabled by default. Requires Ruby 3.1+, and is currently
+            # unavailable on Ruby 4+.
             #
             # @warn To enable heap profiling you are required to also enable allocation profiling.
             #

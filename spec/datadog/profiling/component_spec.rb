@@ -345,7 +345,6 @@ RSpec.describe Datadog::Profiling::Component do
         context "when heap profiling is enabled", ruby: ">= 2.7" do
           # Universally supported ruby version for allocation profiling by default
           let(:testing_version) { "3.3.0" }
-          let(:heap_size_profiling_available) { RubyVersion.is?("< 4") } # Currently incompatible with Ruby 4
 
           before do
             settings.profiling.advanced.experimental_heap_enabled = true
@@ -368,15 +367,15 @@ RSpec.describe Datadog::Profiling::Component do
             end
           end
 
-          context "on Ruby 4.1 or newer" do
-            let(:testing_version) { "4.1.0" }
+          context "on Ruby 4 or newer" do
+            let(:testing_version) { "4.0.0" }
 
             it "initializes StackRecorder without heap sampling support and warns" do
               expect(Datadog::Profiling::StackRecorder).to receive(:new)
                 .with(hash_including(heap_samples_enabled: false, heap_size_enabled: false))
                 .and_call_original
 
-              expect(logger).to receive(:warn).with(/Heap profiling is currently incompatible with Ruby 4.1/)
+              expect(logger).to receive(:warn).with(/Heap profiling is currently incompatible with Ruby 4/)
 
               build_profiler_component
             end
@@ -405,7 +404,7 @@ RSpec.describe Datadog::Profiling::Component do
 
             it "initializes StackRecorder with heap sampling support and warns" do
               expect(Datadog::Profiling::StackRecorder).to receive(:new)
-                .with(hash_including(heap_samples_enabled: true, heap_size_enabled: heap_size_profiling_available))
+                .with(hash_including(heap_samples_enabled: true, heap_size_enabled: true))
                 .and_call_original
 
               expect(logger).to receive(:debug).with(/Ractors.+stopping/)
@@ -413,22 +412,6 @@ RSpec.describe Datadog::Profiling::Component do
               expect(logger).to receive(:debug).with(/Enabled heap profiling/)
 
               build_profiler_component
-            end
-
-            context "on Ruby 4.0 or newer" do
-              let(:testing_version) { "4.0.0" }
-
-              before { allow(logger).to receive(:debug) }
-
-              it "initializes StackRecorder with heap sampling but without heap size profiling support and logs" do
-                expect(Datadog::Profiling::StackRecorder).to receive(:new)
-                  .with(hash_including(heap_samples_enabled: true, heap_size_enabled: false))
-                  .and_call_original
-
-                expect(logger).to receive(:info).with(/Heap live size profiling is currently incompatible with Ruby 4/)
-
-                build_profiler_component
-              end
             end
 
             context "but heap size profiling is disabled" do
