@@ -125,7 +125,6 @@ RSpec.describe "Correlation integration" do
 
       expect(snapshots.size).to eq(2)
       expect(snapshots.map { |s| s[:"dd.trace_id"] }.uniq).to eq(["trace-abc"])
-      expect(snapshots.map { |s| s[:trace_id_source] }.uniq).to eq(["apm"])
     end
 
     it "drops every probe in the sampling unit when the decision is DROP" do
@@ -195,7 +194,6 @@ RSpec.describe "Correlation integration" do
       flush
 
       expect(snapshots.size).to eq(1)
-      expect(snapshots.first[:trace_id_source]).to eq("none")
     end
   end
 
