@@ -281,7 +281,6 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           "dd.span_id": nil,
           "dd.trace_id": nil,
           runtimeId: String,
-          trace_id_source: "none",
           debugger: {
             type: "snapshot",
             snapshot: {
@@ -335,7 +334,6 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           "dd.span_id": nil,
           "dd.trace_id": nil,
           runtimeId: String,
-          trace_id_source: "none",
           debugger: {
             type: "snapshot",
             snapshot: {
@@ -404,7 +402,6 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           "dd.span_id": nil,
           "dd.trace_id": nil,
           runtimeId: String,
-          trace_id_source: "none",
           debugger: {
             type: "snapshot",
             snapshot: {
