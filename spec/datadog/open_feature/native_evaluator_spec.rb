@@ -2,6 +2,7 @@
 
 require "json"
 require "spec_helper"
+require "datadog/core"
 require "datadog/open_feature/native_evaluator"
 
 RSpec.describe Datadog::OpenFeature::NativeEvaluator do
