@@ -66,8 +66,8 @@
     "integration": "concurrent_ruby",
     "package": "concurrent-ruby",
     "source": "rubygems.org",
-    "min_tested": "1.3.7",
-    "max_tested": "1.3.7"
+    "min_tested": "1.3.8",
+    "max_tested": "1.3.8"
   },
   {
     "integration": "dalli",
@@ -208,7 +208,7 @@
     "package": "mongo",
     "source": "rubygems.org",
     "min_tested": "2.11.0",
-    "max_tested": "2.24.1"
+    "max_tested": "2.25.0"
   },
   {
     "integration": "mysql2",

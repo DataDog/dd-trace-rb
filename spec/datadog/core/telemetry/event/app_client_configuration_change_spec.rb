@@ -20,7 +20,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
           name: name,
           value: value,
           origin: origin,
-          seq_id: 6
+          seq_id: 6,
         }]
       )
     end
@@ -41,7 +41,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
           configuration:
           [
             {name: name, value: value, origin: origin, seq_id: 6},
-            {name: "appsec.sca_enabled", value: false, origin: "code", seq_id: 5}
+            {name: "appsec.sca_enabled", value: false, origin: "code", seq_id: 5},
           ]
         )
       end

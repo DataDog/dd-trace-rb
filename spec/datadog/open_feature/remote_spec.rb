@@ -45,7 +45,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
         {
           "custom" => {"v" => 1},
           "hashes" => {"sha256" => Digest::SHA256.hexdigest(content_data)},
-          "length" => content_data.length
+          "length" => content_data.length,
         }
       )
     end
@@ -178,7 +178,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
             Datadog::Core::Remote::Configuration::Repository::Change::Updated,
             path: missing_path,
             type: :update,
-          )
+          ),
         ]
       end
       let(:missing_path) do

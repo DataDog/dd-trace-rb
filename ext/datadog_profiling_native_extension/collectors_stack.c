@@ -326,7 +326,7 @@ void sample_thread(
       iseq = frame.as.ruby_frame.iseq;
 
       VALUE filename = ddtrace_iseq_path(iseq);
-      filename_slice = NIL_P(filename) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(filename);
+      filename_slice = char_slice_from_ruby_string(filename);
       line = frame.as.ruby_frame.line;
 
       last_ruby_frame_filename = filename_slice;
@@ -350,7 +350,7 @@ void sample_thread(
     // TODO: name_slice is currently the unqualified method name
     // because we don't always use qualified method names yet, so we don't always compute it,
     // and checks below need to compare to something stable until we always qualified method names.
-    ddog_CharSlice name_slice = char_slice_from_ruby_string(name);
+    ddog_CharSlice name_slice = (name == Qfalse) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
 
     ddog_CharSlice qualified_name = DDOG_CHARSLICE_C("");
     if (show_classes) {

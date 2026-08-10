@@ -51,9 +51,9 @@ module Datadog
               service: service.to_s,
               version: version.to_s,
               trace_id: trace_id.to_s,
-              span_id: span_id.to_s
+              span_id: span_id.to_s,
             },
-            ddsource: Core::Logging::Ext::DD_SOURCE
+            ddsource: Core::Logging::Ext::DD_SOURCE,
           }
         end
 
