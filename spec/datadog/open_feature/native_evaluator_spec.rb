@@ -52,8 +52,10 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
 
   describe "#get_assignment" do
     subject(:result) do
-      evaluator.get_assignment(flag_key, default_value: false, expected_type: expected_type, context: context)
+      evaluator.get_assignment(flag_key, default_value: default_value, expected_type: expected_type, context: context)
     end
+
+    let(:default_value) { false }
 
     context "when libdatadog reports an invalid per-flag configuration as caller default" do
       let(:reason) { "DEFAULT" }
@@ -76,6 +78,32 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
         expect(assignment).to receive(:value=).with(false)
 
         expect(result).to be(assignment)
+      end
+    end
+
+    context "when a variant value violates the declared flag type" do
+      let(:configuration_json) do
+        JSON.generate(
+          "flags" => {
+            flag_key => {
+              "variationType" => "INTEGER",
+              "variations" => {
+                "on" => {"key" => "on", "value" => "not-an-integer"},
+                "off" => {"key" => "off", "value" => 0}
+              }
+            }
+          }
+        )
+      end
+      let(:default_value) { 0 }
+      let(:expected_type) { :integer }
+
+      it "returns a parse error without evaluating the invalid flag" do
+        expect(configuration).not_to receive(:get_assignment)
+
+        expect(result.value).to eq(0)
+        expect(result.reason).to eq("ERROR")
+        expect(result.error_code).to eq("PARSE_ERROR")
       end
     end
   end
