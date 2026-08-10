@@ -19,6 +19,7 @@ lib/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
 lib/datadog/profiling.rb @DataDog/profiling-rb @DataDog/ruby-guild
 lib/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
 lib/datadog/data_streams.rb @DataDog/data-streams-monitoring @DataDog/ruby-guild
+lib/datadog/core/feature_flags.rb @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 lib/datadog/open_feature/ @DataDog/feature-flagging-and-experimentation-sdk
 lib/datadog/open_feature.rb @DataDog/feature-flagging-and-experimentation-sdk
 lib/datadog/di/ @DataDog/debugger-ruby @DataDog/ruby-guild
@@ -47,6 +48,7 @@ sig/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
 sig/datadog/profiling.rbs @DataDog/profiling-rb @DataDog/ruby-guild
 sig/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
 sig/datadog/data_streams.rbs @DataDog/data-streams-monitoring @DataDog/ruby-guild
+sig/datadog/core/feature_flags.rbs @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 sig/datadog/open_feature/ @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 sig/datadog/open_feature.rbs @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 sig/datadog/di/ @DataDog/debugger-ruby @DataDog/ruby-guild
@@ -66,6 +68,7 @@ spec/datadog/single_step_instrument_spec.rb @DataDog/lang-platform-ruby
 spec/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
 spec/datadog/profiling_spec.rb @DataDog/profiling-rb @DataDog/ruby-guild
 spec/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
+spec/datadog/core/feature_flags_spec.rb @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 spec/datadog/open_feature/ @DataDog/feature-flagging-and-experimentation-sdk
 spec/datadog/open_feature_spec.rb @DataDog/feature-flagging-and-experimentation-sdk
 spec/datadog/di/ @DataDog/debugger-ruby @DataDog/ruby-guild
