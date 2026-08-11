@@ -642,24 +642,31 @@ check_method_entry(VALUE obj, int can_be_svar) {
 }
 #endif // RUBY_MJIT_HEADER
 
-// Identical to upstream rb_vm_frame_method_entry (vm_insnhelper.c) except for a FIXNUM_P guard
-// after VM_ENV_PREV_EP to detect torn EPs. The profiler's signal handler can interrupt
-// vm_make_env_each (vm.c) mid-escape, at which point a child frame's SPECVAL still points to
-// the parent's old stack EP whose flags slot has been overwritten with (VALUE)env for GC marking
+// Identical to upstream rb_vm_frame_method_entry (vm_insnhelper.c) with two additions:
+// 1. FIXNUM_P check on ep[FLAGS] before each iteration to detect torn EPs
+// 2. NULL check on ep after VM_ENV_PREV_EP
+//
+// When the profiler's signal handler interrupts vm_make_env_each (vm.c) mid-escape,
+// a child frame's SPECVAL can still point to the parent's old stack EP whose flags
+// slot has been overwritten with (VALUE)env for GC marking.
 static const rb_callable_method_entry_t *
 safe_vm_frame_method_entry(const rb_control_frame_t *cfp)
 {
     const VALUE *ep = cfp->ep;
     rb_callable_method_entry_t *me;
 
-    while (!VM_ENV_LOCAL_P(ep)) {
+    // Torn-EP check before VM_ENV_LOCAL_P, check_method_entry, and VM_ENV_PREV_EP
+    // dereference ep
+    while (FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS]) && !VM_ENV_LOCAL_P(ep)) {
         if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) {
             return me;
         }
         ep = VM_ENV_PREV_EP(ep);
-        // This function is idential to upstream rb_vm_frame_method_entry except for the one extra guard below
-        if (ep == NULL || !FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS])) return NULL;
+        if (ep == NULL) return NULL;
     }
+
+    // If we exited because of a torn EP (failed FIXNUM_P), bail out
+    if (!FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS])) return NULL;
 
     return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
 }
