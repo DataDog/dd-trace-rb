@@ -25,10 +25,6 @@ module Datadog
           alias eql? ==
 
           def hash: () -> untyped
-
-          private
-
-          def configuration_entry: (String name, any value, String origin, Integer seq_id) -> telemetry_configuration
         end
       end
     end

@@ -28,23 +28,24 @@ module Datadog
           def configuration
             config = Datadog.configuration
 
+            # @type var res: Array[telemetry_configuration]
             res = @changes.map do |name, value|
-              configuration_entry(
-                name,
-                value,
-                @origin,
-                Configuration::Option::Precedence::REMOTE_CONFIGURATION.numeric.next
-              )
+              {
+                name: name,
+                value: Telemetry::ConfigurationValue.convert(value),
+                origin: @origin,
+                seq_id: Configuration::Option::Precedence::REMOTE_CONFIGURATION.numeric.next,
+              }
             end
 
             # DEV: This seems unnecessary (we send the state of sca_enabled for each remote config change)
             unless config.dig("appsec", "sca_enabled").nil?
-              res << configuration_entry(
-                "appsec.sca_enabled",
-                config.appsec.sca_enabled,
-                "code",
-                Configuration::Option::Precedence::PROGRAMMATIC.numeric.next
-              )
+              res << {
+                name: "appsec.sca_enabled",
+                value: config.appsec.sca_enabled,
+                origin: "code",
+                seq_id: Configuration::Option::Precedence::PROGRAMMATIC.numeric.next,
+              }
             end
 
             res
@@ -58,17 +59,6 @@ module Datadog
 
           def hash
             [self.class, @changes, @origin].hash
-          end
-
-          private
-
-          def configuration_entry(name, value, origin, seq_id)
-            {
-              name: name,
-              value: Telemetry::ConfigurationValue.convert(value),
-              origin: origin,
-              seq_id: seq_id,
-            }
           end
         end
       end
