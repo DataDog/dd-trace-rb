@@ -142,11 +142,6 @@ have_func "malloc_stats"
 # On older Rubies, there was no primitive mutex and condition variable implemented in `thread_sync.rb` (internal)
 $defs << "-DNO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE" if RUBY_VERSION < "4"
 
-# On Ruby 4.0, we've seen crashes when computing the memsize of a class/module/iclass:
-# rb_obj_memsize_of walks the per-namespace class extensions (classext_memsize), which seem to sometimes be in an inconsistent state
-# (see https://github.com/DataDog/dd-trace-rb/issues/5936)
-$defs << "-DNO_SAFE_CLASS_MEMSIZE" unless RUBY_VERSION < "4"
-
 # This symbol is exclusively visible on certain Ruby versions: 2.6 to 3.2, as well as 3.4 (but not 4.0+)
 # It's only used to get extra information about an object when a failure happens, so it's a "very nice to have" but not
 # actually required for correct behavior of the profiler.
