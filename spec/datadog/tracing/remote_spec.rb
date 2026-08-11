@@ -85,8 +85,8 @@ RSpec.describe Datadog::Tracing::Remote do
               "tracing_header_tags" => [
                 {"header" => "X-Test-Header", "tag_name" => "test_header_rc"},
                 {"header" => "Content-Length", "tag_name" => ""},
-              ]
-            }
+              ],
+            },
           }
         end
 
@@ -114,9 +114,9 @@ RSpec.describe Datadog::Tracing::Remote do
                 {
                   "sample_rate" => 1.0,
                   "tags" => [{"key" => "service", "value_glob" => "web-*"}],
-                }
-              ]
-            }
+                },
+              ],
+            },
           }
         end
 
