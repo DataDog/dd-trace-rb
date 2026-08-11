@@ -142,14 +142,6 @@ have_func "malloc_stats"
 # On older Rubies, there was no primitive mutex and condition variable implemented in `thread_sync.rb` (internal)
 $defs << "-DNO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE" if RUBY_VERSION < "4"
 
-# On Ruby 4, we can't ask the object_id from IMEMOs (https://github.com/ruby/ruby/pull/13347)
-$defs << "-DNO_IMEMO_OBJECT_ID" unless RUBY_VERSION < "4"
-
-# On Ruby 4, we need to defer calling rb_obj_id during heap allocation recording
-# because it's not safe to mutate objects during the newobj tracepoint
-# (see https://bugs.ruby-lang.org/issues/21710)
-$defs << "-DUSE_DEFERRED_HEAP_ALLOCATION_RECORDING" unless RUBY_VERSION < "4"
-
 # On Ruby 4.0, we've seen crashes when computing the memsize of a class/module/iclass:
 # rb_obj_memsize_of walks the per-namespace class extensions (classext_memsize), which seem to sometimes be in an inconsistent state
 # (see https://github.com/DataDog/dd-trace-rb/issues/5936)

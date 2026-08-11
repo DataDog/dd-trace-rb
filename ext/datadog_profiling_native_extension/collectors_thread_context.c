@@ -1665,8 +1665,8 @@ bool thread_context_collector_prepare_sample_inside_signal_handler(void) {
   return prepare_sample_thread(current_thread, &thread_context->sampling_buffer);
 }
 
-// This method gets called from inside the RUBY_INTERNAL_EVENT_NEWOBJ tracepoint so it should never allocate in the
-// Ruby heap.
+// This method gets called from inside the RUBY_INTERNAL_EVENT_NEWOBJ tracepoint so it should neither allocate in the
+// Ruby heap nor release the GVL (https://github.com/DataDog/dd-trace-rb/pull/4240).
 //
 // Returns true if the after_allocation needs to be called (to do work that can't be done from inside the
 // tracepoint, such as allocate new objects), and false if it doesn't
