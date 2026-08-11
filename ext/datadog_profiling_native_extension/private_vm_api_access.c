@@ -640,33 +640,6 @@ check_method_entry(VALUE obj, int can_be_svar) {
 
   return NULL;
 }
-
-// Taken from upstream vm_insnhelper.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
-// Copyright (C) 2007 Koichi Sasada
-// to support our custom rb_profile_frames (see above)
-//
-// While older Rubies may have this function, the symbol is not exported which leads to dynamic loader issues, e.g.
-// `dyld: lazy symbol binding failed: Symbol not found: _rb_vm_frame_method_entry`.
-//
-// Modifications: None
-// Note: This function is not called directly by our code; safe_vm_frame_method_entry (below)
-// is used instead. This definition is kept because it is needed to satisfy the linker on
-// non-MJIT Ruby builds where the symbol is not exported.
-MJIT_STATIC const rb_callable_method_entry_t *
-rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
-{
-    const VALUE *ep = cfp->ep;
-    rb_callable_method_entry_t *me;
-
-    while (!VM_ENV_LOCAL_P(ep)) {
-        if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) {
-            return me;
-        }
-        ep = VM_ENV_PREV_EP(ep);
-    }
-
-    return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
-}
 #endif // RUBY_MJIT_HEADER
 
 static const rb_callable_method_entry_t *
