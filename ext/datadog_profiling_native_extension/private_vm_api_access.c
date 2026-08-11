@@ -669,13 +669,10 @@ rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
 }
 #endif // RUBY_MJIT_HEADER
 
-// Signal-safe replacement for rb_vm_frame_method_entry.
+// Signal-safe replacement for rb_vm_frame_method_entry that adds a NULL check after
+// VM_ENV_PREV_EP.
 //
-// On MJIT-header builds (Ruby 2.6–3.2), rb_vm_frame_method_entry comes from the MJIT header
-// and has no NULL guard on the EP chain. On non-MJIT builds (Ruby 3.3+), our fallback above
-// includes the guard but we use this wrapper uniformly so there is a single call site to maintain.
-//
-// The guard is needed because the profiler's signal handler can interrupt vm_make_env_each,
+// The guard is needed because the profiler's signal handler can interrupt vm_make_env_each (vm.c),
 // which non-atomically converts stack-allocated EPs to heap-allocated EPs during Thread.new.
 // During the transition, VM_ENV_PREV_EP may return NULL because the SPECVAL link in the new
 // heap EP has not yet been initialized.
