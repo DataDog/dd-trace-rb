@@ -59,6 +59,7 @@
 #include "private_vm_api_access.h"
 
 static inline const rb_callable_method_entry_t* get_cfunc_method_entry(const rb_control_frame_t *cfp);
+static const rb_callable_method_entry_t* safe_vm_frame_method_entry(const rb_control_frame_t *cfp);
 
 // MRI has a similar rb_thread_ptr() function which we can't call it directly
 // because Ruby does not expose the thread_data_type publicly.
@@ -525,7 +526,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
                 continue;
             }
 
-            cme = rb_vm_frame_method_entry(cfp);
+            cme = safe_vm_frame_method_entry(cfp);
 
             // Upstream (Ruby 4.0) does:
             // if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
@@ -647,9 +648,10 @@ check_method_entry(VALUE obj, int can_be_svar) {
 // While older Rubies may have this function, the symbol is not exported which leads to dynamic loader issues, e.g.
 // `dyld: lazy symbol binding failed: Symbol not found: _rb_vm_frame_method_entry`.
 //
-// Modifications:
-// * Added NULL check on ep after VM_ENV_PREV_EP to guard against corrupted EP chains
-//   when called from a signal handler during vm_make_env_each
+// Modifications: None
+// Note: This function is not called directly by our code; safe_vm_frame_method_entry (below)
+// is used instead. This definition is kept because it is needed to satisfy the linker on
+// non-MJIT Ruby builds where the symbol is not exported.
 MJIT_STATIC const rb_callable_method_entry_t *
 rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
 {
@@ -661,15 +663,38 @@ rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
             return me;
         }
         ep = VM_ENV_PREV_EP(ep);
-        // Safety: VM_ENV_PREV_EP can return NULL when the profiler's signal handler interrupts
-        // vm_make_env_each (vm.c), which non-atomically converts stack EPs to heap EPs during
-        // Thread.new. The SPECVAL link in the new heap EP may not yet be initialized.
-        if (ep == NULL) return NULL;
     }
 
     return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
 }
 #endif // RUBY_MJIT_HEADER
+
+// Signal-safe replacement for rb_vm_frame_method_entry.
+//
+// On MJIT-header builds (Ruby 2.6–3.2), rb_vm_frame_method_entry comes from the MJIT header
+// and has no NULL guard on the EP chain. On non-MJIT builds (Ruby 3.3+), our fallback above
+// includes the guard but we use this wrapper uniformly so there is a single call site to maintain.
+//
+// The guard is needed because the profiler's signal handler can interrupt vm_make_env_each,
+// which non-atomically converts stack-allocated EPs to heap-allocated EPs during Thread.new.
+// During the transition, VM_ENV_PREV_EP may return NULL because the SPECVAL link in the new
+// heap EP has not yet been initialized.
+static const rb_callable_method_entry_t *
+safe_vm_frame_method_entry(const rb_control_frame_t *cfp)
+{
+    const VALUE *ep = cfp->ep;
+    rb_callable_method_entry_t *me;
+
+    while (!VM_ENV_LOCAL_P(ep)) {
+        if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) {
+            return me;
+        }
+        ep = VM_ENV_PREV_EP(ep);
+        if (ep == NULL) return NULL;
+    }
+
+    return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
+}
 
 // Optimized version of rb_vm_frame_method_entry() for cfunc frames.
 // Cfunc frames always have VM_ENV_FLAG_LOCAL set, so ep[-2] is the cme directly
