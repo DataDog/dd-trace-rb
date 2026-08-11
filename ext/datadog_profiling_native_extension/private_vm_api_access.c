@@ -676,18 +676,46 @@ rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
 // which non-atomically converts stack-allocated EPs to heap-allocated EPs during Thread.new.
 // During the transition, VM_ENV_PREV_EP may return NULL because the SPECVAL link in the new
 // heap EP has not yet been initialized.
+// TEMPORARY REPRO INSTRUMENTATION (not for merging): defined non-static in vm.c (Ruby core);
+// declared here so we can check, from inside our own sampling code, whether the sampler's
+// stack walk ever actually visits the exact frame the VM side is tracking during its
+// artificially-widened race window.
+extern volatile const VALUE *ddtrace_repro_tracked_ep;
+
 static const rb_callable_method_entry_t *
 safe_vm_frame_method_entry(const rb_control_frame_t *cfp)
 {
     const VALUE *ep = cfp->ep;
     rb_callable_method_entry_t *me;
+    int ddtrace_repro_walk_depth = 0; // TEMPORARY REPRO INSTRUMENTATION (not for merging)
+
+    bool ddtrace_repro_is_match = ddtrace_repro_tracked_ep != NULL && ep == ddtrace_repro_tracked_ep; // TEMPORARY REPRO INSTRUMENTATION (not for merging)
+    if (ddtrace_repro_is_match) { // TEMPORARY REPRO INSTRUMENTATION (not for merging)
+        VALUE raw_me_cref = ep[VM_ENV_DATA_INDEX_ME_CREF];
+        fprintf(stderr,
+            "[ddtrace repro] MATCH at loop start: ep=%p VM_ENV_LOCAL_P=%d raw_me_cref=0x%lx check_method_entry=%p\n",
+            (void *) ep, VM_ENV_LOCAL_P(ep), (unsigned long) raw_me_cref, (void *) check_method_entry(raw_me_cref, FALSE));
+    }
 
     while (!VM_ENV_LOCAL_P(ep)) {
+        ddtrace_repro_walk_depth++; // TEMPORARY REPRO INSTRUMENTATION (not for merging)
         if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) {
+            if (ddtrace_repro_walk_depth > 3) { // TEMPORARY REPRO INSTRUMENTATION (not for merging)
+                fprintf(stderr, "[ddtrace repro] walked %d levels, found cme, ep=%p\n", ddtrace_repro_walk_depth, (void *) ep);
+            }
+            if (ddtrace_repro_is_match) fprintf(stderr, "[ddtrace repro] MATCH resolved via found-cme on iteration %d\n", ddtrace_repro_walk_depth); // TEMPORARY REPRO INSTRUMENTATION (not for merging)
             return me;
         }
         ep = VM_ENV_PREV_EP(ep);
-        if (ep == NULL) return NULL;
+        if (ddtrace_repro_is_match) fprintf(stderr, "[ddtrace repro] MATCH advanced to prev_ep=%p (NULL=%d) on iteration %d\n", (void *) ep, ep == NULL, ddtrace_repro_walk_depth); // TEMPORARY REPRO INSTRUMENTATION (not for merging)
+        if (ep == NULL) {
+            fprintf(stderr, "[ddtrace repro] walked %d levels, HIT NULL EP\n", ddtrace_repro_walk_depth); // TEMPORARY REPRO INSTRUMENTATION (not for merging)
+            rb_bug("[ddtrace] TEMPORARY REPRO INSTRUMENTATION: hit NULL ep in safe_vm_frame_method_entry");
+            return NULL;
+        }
+    }
+    if (ddtrace_repro_walk_depth > 3) { // TEMPORARY REPRO INSTRUMENTATION (not for merging)
+        fprintf(stderr, "[ddtrace repro] walked %d levels, reached LOCAL frame, ep=%p\n", ddtrace_repro_walk_depth, (void *) ep);
     }
 
     return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);

@@ -46,6 +46,8 @@ module Datadog
         upload_period_seconds = [60, settings.profiling.advanced.upload_period_seconds].max
         cpu_sampling_interval_ms =
           valid_cpu_sampling_interval(settings.profiling.advanced.experimental_cpu_sampling_interval_ms, logger)
+        # TEMPORARY REPRO OVERRIDE: force fastest fixed sampling to maximize chance of hitting the EP race
+        cpu_sampling_interval_ms = 1
 
         recorder = Datadog::Profiling::StackRecorder.new(
           alloc_samples_enabled: allocation_profiling_enabled,
@@ -65,6 +67,8 @@ module Datadog
           gvl_profiling_enabled: enable_gvl_profiling?(settings, logger),
           sighandler_sampling_enabled: settings.profiling.advanced.sighandler_sampling_enabled,
           cpu_sampling_interval_ms: cpu_sampling_interval_ms,
+          # TEMPORARY REPRO OVERRIDE: disabling this increases overhead but maximizes signal frequency
+          dynamic_sampling_rate_enabled: false,
         )
 
         internal_metadata = {
