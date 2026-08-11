@@ -227,11 +227,13 @@ module Datadog
           return false
         end
 
-        # Heap profiling relies on `ObjectSpace._id2ref`, which was removed on Ruby 4.1
-        # (https://bugs.ruby-lang.org/issues/22135).
-        if RubyVersion.is?(">= 4.1")
+        # Heap profiling tracks live objects using an `ObjectSpace::WeakMap`, which could corrupt its internal
+        # state during compaction before these versions (https://bugs.ruby-lang.org/issues/19529).
+        if RubyVersion.is?("< 3.1.4") || RubyVersion.is?(">= 3.2", "< 3.2.3")
           logger.warn(
-            "Heap profiling is currently incompatible with Ruby 4.1+ and has been disabled."
+            "Current Ruby version (#{RUBY_VERSION}) cannot support heap profiling due to a VM bug. " \
+            "Please upgrade to Ruby >= 3.1.4 or >= 3.2.3 in order to use this feature. " \
+            "Heap profiling has been disabled."
           )
           return false
         end

@@ -258,12 +258,13 @@ static VALUE _native_end_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self
 static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns, long heap_iteration_prep_time_ns, long heap_profile_build_time_ns);
-static VALUE _native_is_object_recorded(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE object_id);
+static VALUE _native_is_object_recorded(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE record_id);
+static VALUE _native_record_id_for(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE obj);
 static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_recorder_after_gc_step(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_benchmark_intern(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE string, VALUE times, VALUE use_all);
 static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE_UNUSED VALUE _self);
-static VALUE _native_finalize_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_commit_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 
 void stack_recorder_init(VALUE profiling_module) {
   VALUE stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -296,11 +297,12 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_debug_heap_recorder",
       _native_debug_heap_recorder, 1);
   rb_define_singleton_method(testing_module, "_native_is_object_recorded?", _native_is_object_recorded, 2);
+  rb_define_singleton_method(testing_module, "_native_record_id_for", _native_record_id_for, 2);
   rb_define_singleton_method(testing_module, "_native_heap_recorder_reset_last_update", _native_heap_recorder_reset_last_update, 1);
   rb_define_singleton_method(testing_module, "_native_recorder_after_gc_step", _native_recorder_after_gc_step, 1);
   rb_define_singleton_method(testing_module, "_native_benchmark_intern", _native_benchmark_intern, 4);
   rb_define_singleton_method(testing_module, "_native_test_managed_string_storage_produces_valid_profiles", _native_test_managed_string_storage_produces_valid_profiles, 0);
-  rb_define_singleton_method(testing_module, "_native_finalize_pending_heap_recordings", _native_finalize_pending_heap_recordings, 1);
+  rb_define_singleton_method(testing_module, "_native_commit_pending_heap_recordings", _native_commit_pending_heap_recordings, 1);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -398,7 +400,7 @@ static void stack_recorder_typed_data_mark(void *state_ptr) {
   stack_recorder_state *state = (stack_recorder_state *) state_ptr;
 
   rb_gc_mark(state->thread_context_collector_instance);
-  heap_recorder_mark_pending_recordings(state->heap_recorder);
+  heap_recorder_mark(state->heap_recorder);
 }
 
 static void stack_recorder_typed_data_free(void *state_ptr) {
@@ -657,6 +659,9 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   }
 }
 
+// This method gets called from inside the RUBY_INTERNAL_EVENT_NEWOBJ tracepoint so it should never allocate in the
+// Ruby heap.
+//
 // Returns needs_after_allocation: true whenever an after_sample callback is required
 bool track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight, ddog_CharSlice alloc_class) {
   stack_recorder_state *state;
@@ -693,7 +698,7 @@ void recorder_after_sample(VALUE recorder_instance) {
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
-  heap_recorder_finalize_pending_recordings(state->heap_recorder);
+  heap_recorder_commit_pending_recordings(state->heap_recorder);
 }
 
 #define MAX_LEN_HEAP_ITERATION_ERROR_MSG 256
@@ -1024,13 +1029,20 @@ static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns,
   return stats_as_hash;
 }
 
-static VALUE _native_is_object_recorded(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE obj_id) {
-  ENFORCE_TYPE(obj_id, T_FIXNUM);
+static VALUE _native_is_object_recorded(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE record_id) {
+  ENFORCE_TYPE(record_id, T_FIXNUM);
 
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
-  return heap_recorder_testonly_is_object_recorded(state->heap_recorder, obj_id);
+  return heap_recorder_testonly_is_object_recorded(state->heap_recorder, record_id);
+}
+
+static VALUE _native_record_id_for(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE obj) {
+  stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
+
+  return heap_recorder_testonly_record_id_for(state->heap_recorder, obj);
 }
 
 static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
@@ -1153,11 +1165,11 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
   return rb_ary_new_from_args(2, encoded_pprof_1, encoded_pprof_2);
 }
 
-static VALUE _native_finalize_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+static VALUE _native_commit_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
-  heap_recorder_finalize_pending_recordings(state->heap_recorder);
+  heap_recorder_commit_pending_recordings(state->heap_recorder);
 
   return Qtrue;
 }

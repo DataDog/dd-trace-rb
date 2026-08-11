@@ -31,6 +31,9 @@ def sample_object(recorder, depth = 0)
       [],
       [],
     )
+    # Heap recordings are deferred and need to be committed after the sample is recorded; in the real profiler this
+    # is driven by a postponed job.
+    Datadog::Profiling::StackRecorder::Testing._native_commit_pending_heap_recordings(recorder)
     obj
   else
     sample_object(recorder, depth - 1)

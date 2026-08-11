@@ -125,14 +125,13 @@ int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, 
 // these objects quicker) and hopefully reduces tail latency (because there's less objects at serialization time to check).
 void heap_recorder_update_young_objects(heap_recorder *heap_recorder);
 
-// Finalize any pending heap allocation recordings by getting their object IDs.
+// Commit any pending heap allocation recordings by taking a weak reference to their objects.
 // This should be called via a postponed job, after the on_newobj_event has completed.
-// Raises an exception if a fatal error occurs (e.g., bignum object ID detected).
-void heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder);
+void heap_recorder_commit_pending_recordings(heap_recorder *heap_recorder);
 
-// Mark pending recordings to prevent GC from collecting the objects
-// while they're waiting for the recordings to be finalized.
-void heap_recorder_mark_pending_recordings(heap_recorder *heap_recorder);
+// Mark the Ruby objects the heap recorder holds on to: the objects of any pending recordings (so that GC does not
+// collect them while they're waiting to be committed) and the weak map itself.
+void heap_recorder_mark(heap_recorder *heap_recorder);
 
 // Update the heap recorder to reflect the latest state of the VM and prepare internal structures
 // for efficient iteration.
@@ -179,8 +178,14 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder);
 // troubleshoot issues such as unexpected test failures.
 VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder);
 
-// Check if a given object_id is being tracked or not
-VALUE heap_recorder_testonly_is_object_recorded(heap_recorder *heap_recorder, VALUE obj_id);
+// Check if a given record_id is being tracked or not
+VALUE heap_recorder_testonly_is_object_recorded(heap_recorder *heap_recorder, VALUE record_id);
+
+// Returns the record id being used to track the given (still alive) object, or nil if it's not being tracked (which
+// includes the case where heap profiling is disabled). This lets tests hold on to a record id and keep asking about
+// it after the object itself is gone.
+// NOTE: This is a linear scan over the tracked objects; fine for the small numbers tests track.
+VALUE heap_recorder_testonly_record_id_for(heap_recorder *heap_recorder, VALUE obj);
 
 // Used to ensure that a GC actually triggers an update of the objects
 void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder);
