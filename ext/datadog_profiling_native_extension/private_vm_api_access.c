@@ -642,6 +642,10 @@ check_method_entry(VALUE obj, int can_be_svar) {
 }
 #endif // RUBY_MJIT_HEADER
 
+// Identical to upstream rb_vm_frame_method_entry (vm_insnhelper.c) except for a FIXNUM_P guard
+// after VM_ENV_PREV_EP to detect torn EPs. The profiler's signal handler can interrupt
+// vm_make_env_each (vm.c) mid-escape, at which point a child frame's SPECVAL still points to
+// the parent's old stack EP whose flags slot has been overwritten with (VALUE)env for GC marking
 static const rb_callable_method_entry_t *
 safe_vm_frame_method_entry(const rb_control_frame_t *cfp)
 {
@@ -653,9 +657,8 @@ safe_vm_frame_method_entry(const rb_control_frame_t *cfp)
             return me;
         }
         ep = VM_ENV_PREV_EP(ep);
-        // This is identical to upstream rb_vm_frame_method_entry (vm_insnhelper.c)
-        // except for this one extra guard below
-        if (ep == NULL) return NULL;
+        // This function is idential to upstream rb_vm_frame_method_entry except for the one extra guard below
+        if (ep == NULL || !FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS])) return NULL;
     }
 
     return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
