@@ -343,10 +343,8 @@ RSpec.shared_examples "Trace Context distributed format" do
         let(:options) do
           {
             trace_sampling_priority: 1,
-            trace_otel_sampling_fields: Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
-              "ef284ace7a91e1",
-              "e6666666666668"
-            ),
+            trace_otel_random_value: "ef284ace7a91e1",
+            trace_otel_threshold: "e6666666666668",
           }
         end
 
@@ -358,7 +356,7 @@ RSpec.shared_examples "Trace Context distributed format" do
           let(:options) do
             {
               trace_sampling_priority: 2,
-              trace_otel_sampling_fields: Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new("ef284ace7a91e1", nil),
+              trace_otel_random_value: "ef284ace7a91e1",
             }
           end
 
@@ -409,7 +407,8 @@ RSpec.shared_examples "Trace Context distributed format" do
             {
               trace_sampling_priority: 1,
               trace_state_unknown_fields: "u:#{"x" * 247};",
-              trace_otel_sampling_fields: Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new("e" * 14, "f" * 14),
+              trace_otel_random_value: "e" * 14,
+              trace_otel_threshold: "f" * 14,
               trace_otel_unknown_fields: "u:#{"y" * 215};",
             }
           end
@@ -641,12 +640,8 @@ RSpec.shared_examples "Trace Context distributed format" do
         let(:tracestate) { "dd=s:1;t.dm:-4,ot=rv:ef284ace7a91e1;th:e6666666666668,other=vendor" }
 
         it "parses the random value and threshold as their raw hex strings" do
-          expect(digest.trace_otel_sampling_fields).to eq(
-            Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
-              "ef284ace7a91e1",
-              "e6666666666668"
-            )
-          )
+          expect(digest.trace_otel_random_value).to eq("ef284ace7a91e1")
+          expect(digest.trace_otel_threshold).to eq("e6666666666668")
         end
 
         it "removes the `ot=` member from the preserved trace_state" do
@@ -657,12 +652,8 @@ RSpec.shared_examples "Trace Context distributed format" do
           let(:tracestate) { "ot=rv:00000000000005;th:8,vendor=x" }
 
           it "still parses the `ot=` values, keeping the threshold trimmed as sent" do
-            expect(digest.trace_otel_sampling_fields).to eq(
-              Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
-                "00000000000005",
-                "8"
-              )
-            )
+            expect(digest.trace_otel_random_value).to eq("00000000000005")
+            expect(digest.trace_otel_threshold).to eq("8")
             expect(digest.trace_state).to eq("vendor=x")
           end
         end
@@ -671,7 +662,7 @@ RSpec.shared_examples "Trace Context distributed format" do
           let(:tracestate) { "dd=s:1,ot=rv:00000000000005;future:field" }
 
           it "preserves the unknown sub-keys for forwarding" do
-            expect(digest.trace_otel_sampling_fields.random_value).to eq("00000000000005")
+            expect(digest.trace_otel_random_value).to eq("00000000000005")
             expect(digest.trace_otel_unknown_fields).to eq("future:field;")
           end
         end
@@ -708,9 +699,7 @@ RSpec.shared_examples "Trace Context distributed format" do
         end
       end
 
-      # The size-limit truncation in TraceState#split runs before encoding
-      # validation, so an invalid byte that would be discarded by truncation
-      # does not poison the parseable prefix.
+      # Truncation precedes encoding validation so invalid bytes in the discarded tail are harmless.
       context "with an oversized ASCII-8BIT tracestate where invalid bytes are only in the truncated tail" do
         let(:tracestate) do
           String.new("dd=o:origin,v=1,#{"a" * 600}\xFF", encoding: Encoding::ASCII_8BIT)

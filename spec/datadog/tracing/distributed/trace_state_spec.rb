@@ -4,20 +4,20 @@ require "datadog/tracing/distributed/trace_state"
 require "datadog/tracing/trace_digest"
 
 RSpec.describe Datadog::Tracing::Distributed::TraceState do
-  describe ".build" do
+  describe "#build" do
     let(:digest) do
       Datadog::Tracing::TraceDigest.new(
         trace_sampling_priority: 1,
         trace_state: "vendor=value",
-        trace_otel_sampling_fields: sampling_fields.new("ef284ace7a91e1", "8")
+        trace_otel_random_value: "ef284ace7a91e1",
+        trace_otel_threshold: "8"
       )
-    end
-    let(:sampling_fields) do
-      Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields
     end
 
     it "assembles Datadog, OpenTelemetry, and pass-through vendors" do
-      expect(described_class.build(digest)).to eq("dd=s:1,ot=rv:ef284ace7a91e1;th:8,vendor=value")
+      expect(described_class.from_digest(digest).build).to eq(
+        "dd=s:1,ot=rv:ef284ace7a91e1;th:8,vendor=value"
+      )
     end
   end
 
@@ -26,21 +26,57 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState do
 
     it "extracts owned vendors and preserves pass-through vendors" do
       expect(extracted.tracestate).to eq("vendor=value")
-      expect(extracted.dd.sampling_priority).to eq(1)
-      expect(extracted.ot.sampling_fields).to eq(
-        Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
-          "ef284ace7a91e1",
-          "8"
-        )
+      expect(extracted.datadog.sampling_priority).to eq(1)
+      expect(extracted.open_telemetry).to have_attributes(
+        random_value: "ef284ace7a91e1",
+        threshold: "8"
       )
     end
   end
 
-  describe "vendor building" do
-    it "removes the trailing field separator before selecting vendors" do
-      digest = Datadog::Tracing::TraceDigest.new(trace_sampling_priority: 1)
+  describe ".from_digest" do
+    subject(:trace_state) { described_class.from_digest(digest, propagate_sampling: propagate_sampling) }
 
-      expect(described_class.send(:build_dd_vendor, digest)).to eq("dd=s:1")
+    let(:digest) do
+      Datadog::Tracing::TraceDigest.new(
+        span_id: 15,
+        span_remote: false,
+        trace_origin: "synthetics",
+        trace_sampling_priority: 1,
+        trace_distributed_tags: {"_dd.p.test" => "value"},
+        trace_state_unknown_fields: "future:value;",
+        trace_otel_random_value: "ef284ace7a91e1",
+        trace_otel_threshold: "8",
+        trace_otel_unknown_fields: "future:value;"
+      )
+    end
+    let(:propagate_sampling) { true }
+
+    it "converts all parsed digest values" do
+      expect(trace_state.datadog).to have_attributes(
+        sampling_priority: 1,
+        origin: "synthetics",
+        ts_parent_id: "000000000000000f",
+        tags: {"_dd.p.test" => "value"},
+        unknown_fields: "future:value;"
+      )
+      expect(trace_state.open_telemetry).to have_attributes(
+        random_value: "ef284ace7a91e1",
+        threshold: "8",
+        unknown_fields: "future:value;"
+      )
+    end
+
+    context "without sampling propagation" do
+      let(:propagate_sampling) { false }
+
+      it "keeps only pass-through OpenTelemetry fields" do
+        expect(trace_state.open_telemetry).to have_attributes(
+          random_value: nil,
+          threshold: nil,
+          unknown_fields: "future:value;"
+        )
+      end
     end
   end
 
@@ -48,11 +84,11 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState do
     it "uses an extra result to detect and discard a 33rd vendor" do
       value = Array.new(33) { |index| "v#{index}=1" }.join(",")
 
-      expect(described_class.send(:split, value)).to eq(Array.new(32) { |index| "v#{index}=1" })
+      expect(described_class.split(value)).to eq(Array.new(32) { |index| "v#{index}=1" })
     end
 
     it "discards trailing blank members after stripping whitespace" do
-      expect(described_class.send(:split, "v=1,   ,")).to eq(["v=1"])
+      expect(described_class.split("v=1,   ,")).to eq(["v=1"])
     end
   end
 end

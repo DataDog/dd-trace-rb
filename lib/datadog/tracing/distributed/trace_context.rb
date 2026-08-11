@@ -30,7 +30,7 @@ module Datadog
           if (traceparent = build_traceparent(digest))
             data[@traceparent_key] = traceparent
 
-            if (tracestate = TraceState.build(digest))
+            if (tracestate = TraceState.from_digest(digest).build)
               data[@tracestate_key] = tracestate
             end
           end
@@ -45,9 +45,9 @@ module Datadog
 
           return unless trace_id # Could not parse traceparent
 
-          parsed = TraceState.extract(fetcher[@tracestate_key])
-          dd = parsed.dd
-          ot = parsed.ot
+          tracestate = TraceState.extract(fetcher[@tracestate_key])
+          dd = tracestate.datadog
+          ot = tracestate.open_telemetry
 
           tags = dd.tags
           sampling_priority = parse_priority_sampling(sampled, dd.sampling_priority) do |decision|
@@ -71,9 +71,10 @@ module Datadog
             trace_sampling_priority: sampling_priority,
             trace_distributed_tags: tags,
             trace_flags: trace_flags,
-            trace_state: parsed.tracestate,
+            trace_state: tracestate.tracestate,
             trace_state_unknown_fields: dd.unknown_fields,
-            trace_otel_sampling_fields: ot.sampling_fields,
+            trace_otel_random_value: ot.random_value,
+            trace_otel_threshold: ot.threshold,
             trace_otel_unknown_fields: ot.unknown_fields,
             span_remote: true,
           )

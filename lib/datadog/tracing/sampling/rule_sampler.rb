@@ -192,10 +192,7 @@ module Datadog
 
         def reconsider_matching_rule!(trace, rule)
           trace.agent_sample_rate = nil
-          # Clear the limiter rate too: apply_rule! only sets it after a probabilistic
-          # keep, so a re-decision that drops by probability would otherwise leave the
-          # previous pass's rate_limiter_rate in place, misrepresenting the drop as a
-          # rate-limiter drop.
+          # Avoid mistaking a reconsidered probabilistic drop for a limiter drop.
           trace.rate_limiter_rate = nil
           trace.clear_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
           apply_rule!(trace, rule)

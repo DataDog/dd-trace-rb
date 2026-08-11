@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "distributed/open_telemetry_tracestate_codec"
-
 module Datadog
   module Tracing
     # Trace digest that represents the important parts of an active trace.
@@ -85,14 +83,14 @@ module Datadog
       #   This allows later propagation to include those unknown fields, as they can represent future versions of the spec
       #   sending data through this service. This value ends in a trailing `;` to facilitate serialization.
       #   @return [String]
-      # @!attribute [r] trace_otel_sampling_fields
-      #   OpenTelemetry consistent probability sampling fields from the `ot=` tracestate member.
-      #   See {Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec}.
-      #   @return [Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields]
+      # @!attribute [r] trace_otel_random_value
+      #   OpenTelemetry consistent probability sampling random value.
+      #   @return [String]
+      # @!attribute [r] trace_otel_threshold
+      #   OpenTelemetry consistent probability sampling threshold.
+      #   @return [String]
       # @!attribute [r] trace_otel_unknown_fields
-      #   From W3C "tracestate"'s `ot=` entry, sub-keys other than `rv`/`th` are stored here
-      #   along with their values, so later propagation can forward them. This value ends in a
-      #   trailing `;` to facilitate serialization.
+      #   Unrecognized `ot=` fields, retained with a trailing `;` for propagation.
       #   @return [String]
       # @!attribute [r] baggage
       #   The W3C "baggage" extracted from a distributed context. This field is a hash of key/value pairs.
@@ -120,7 +118,8 @@ module Datadog
         :trace_flags,
         :trace_state,
         :trace_state_unknown_fields,
-        :trace_otel_sampling_fields,
+        :trace_otel_random_value,
+        :trace_otel_threshold,
         :trace_otel_unknown_fields,
         :span_remote,
         :baggage
@@ -146,7 +145,8 @@ module Datadog
         trace_flags: nil,
         trace_state: nil,
         trace_state_unknown_fields: nil,
-        trace_otel_sampling_fields: nil,
+        trace_otel_random_value: nil,
+        trace_otel_threshold: nil,
         trace_otel_unknown_fields: nil,
         span_remote: true,
         baggage: nil
@@ -171,12 +171,8 @@ module Datadog
         @trace_flags = trace_flags
         @trace_state = trace_state && trace_state.dup.freeze
         @trace_state_unknown_fields = trace_state_unknown_fields && trace_state_unknown_fields.dup.freeze
-        @trace_otel_sampling_fields = if trace_otel_sampling_fields
-          Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
-            trace_otel_sampling_fields.random_value&.dup&.freeze,
-            trace_otel_sampling_fields.threshold&.dup&.freeze,
-          ).freeze
-        end
+        @trace_otel_random_value = trace_otel_random_value && trace_otel_random_value.dup.freeze
+        @trace_otel_threshold = trace_otel_threshold && trace_otel_threshold.dup.freeze
         @trace_otel_unknown_fields = trace_otel_unknown_fields && trace_otel_unknown_fields.dup.freeze
         @span_remote = span_remote
         @baggage = baggage && baggage.dup.freeze
@@ -210,7 +206,8 @@ module Datadog
           trace_flags: trace_flags,
           trace_state: trace_state,
           trace_state_unknown_fields: trace_state_unknown_fields,
-          trace_otel_sampling_fields: trace_otel_sampling_fields,
+          trace_otel_random_value: trace_otel_random_value,
+          trace_otel_threshold: trace_otel_threshold,
           trace_otel_unknown_fields: trace_otel_unknown_fields,
           span_remote: span_remote,
           baggage: baggage, **field_value_pairs

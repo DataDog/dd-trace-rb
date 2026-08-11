@@ -37,7 +37,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         tags: tags,
         metrics: metrics,
         trace_state: trace_state,
-        trace_state_unknown_fields: trace_state_unknown_fields,
         remote_parent: remote_parent,
       }
     end
@@ -57,8 +56,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     let(:profiling_enabled) { "profiling_enabled" }
     let(:tags) { {"foo" => "bar"}.merge(distributed_tags) }
     let(:metrics) { {"baz" => 42.0} }
-    let(:trace_state) { "my-trace-state" }
-    let(:trace_state_unknown_fields) { "any;field;really" }
+    let(:trace_state) do
+      Datadog::Tracing::Distributed::TraceState.new
+    end
 
     let(:distributed_tags) { {"_dd.p.test" => "value"} }
     let(:remote_parent) { true }
@@ -88,8 +88,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           sample_rate: nil,
           sampling_priority: nil,
           service: nil,
-          trace_state: nil,
-          trace_state_unknown_fields: nil,
+          trace_state: an_instance_of(Datadog::Tracing::Distributed::TraceState),
           remote_parent: false,
         )
       end
@@ -2231,61 +2230,44 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
 
           it "derives ot.rv from the trace id and ot.th from the applied rate" do
-            expect(digest.trace_otel_sampling_fields).to eq(
-              Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
-                "ef284ace7a91e1",
-                "e6666666666668"
-              )
-            )
+            expect(digest.trace_otel_random_value).to eq("ef284ace7a91e1")
+            expect(digest.trace_otel_threshold).to eq("e6666666666668")
           end
         end
 
         context "when the inbound context carried values" do
           let(:options) do
             super().merge(
-              otel_sampling_fields: Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
-                "abcabcabcabcab",
-                "7"
+              trace_state: Datadog::Tracing::Distributed::TraceState.new(
+                open_telemetry: Datadog::Tracing::Distributed::TraceState::OpenTelemetry.new(
+                  random_value: "abcabcabcabcab",
+                  threshold: "7"
+                )
               )
             )
           end
 
           it "forwards the inbound values unchanged" do
-            expect(digest.trace_otel_sampling_fields).to eq(
-              Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
-                "abcabcabcabcab",
-                "7"
-              )
-            )
+            expect(digest.trace_otel_random_value).to eq("abcabcabcabcab")
+            expect(digest.trace_otel_threshold).to eq("7")
           end
         end
 
         context "when a sampling priority was already assigned from an upstream distributed context" do
-          # DD did not make its own probability decision here — it follows the inbound
-          # sampling decision (traceparent sampled bit / X-Datadog-* headers). Even with a
-          # local rate available, it must not fabricate ot values the origin never sent.
           let(:options) { super().merge(remote_parent: true, distributed_sampling_priority: true) }
 
           it "emits no ot values" do
-            expect(digest.trace_otel_sampling_fields).to eq(
-              Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(nil, nil)
-            )
+            expect(digest.trace_otel_random_value).to be_nil
+            expect(digest.trace_otel_threshold).to be_nil
           end
         end
 
         context "when the trace has a remote parent but no sampling priority was inherited" do
-          # e.g. distributed headers carried a trace id but no priority (older/partial
-          # propagation). DD is the one making the probability decision here, so fresh
-          # ot values should be emitted even though the trace has a remote parent.
           let(:options) { super().merge(remote_parent: true, distributed_sampling_priority: false) }
 
           it "derives ot.rv from the trace id and ot.th from the applied rate" do
-            expect(digest.trace_otel_sampling_fields).to eq(
-              Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
-                "ef284ace7a91e1",
-                "e6666666666668"
-              )
-            )
+            expect(digest.trace_otel_random_value).to eq("ef284ace7a91e1")
+            expect(digest.trace_otel_threshold).to eq("e6666666666668")
           end
         end
       end

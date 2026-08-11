@@ -383,12 +383,8 @@ RSpec.shared_examples "Distributed tracing propagator" do
             end
 
             it "merges the consistent probability sampling values from the tracecontext style" do
-              expect(trace_digest.trace_otel_sampling_fields).to eq(
-                Datadog::Tracing::Distributed::OpenTelemetryTracestateCodec::OpenTelemetrySamplingFields.new(
-                  "ef284ace7a91e1",
-                  "e6666666666668"
-                )
-              )
+              expect(trace_digest.trace_otel_random_value).to eq("ef284ace7a91e1")
+              expect(trace_digest.trace_otel_threshold).to eq("e6666666666668")
             end
           end
 
@@ -644,7 +640,8 @@ RSpec.shared_examples "Distributed tracing propagator" do
             end
 
             it "does not inherit the consistent probability sampling values into the fresh trace" do
-              expect(trace_digest.trace_otel_sampling_fields).to be_nil
+              expect(trace_digest.trace_otel_random_value).to be_nil
+              expect(trace_digest.trace_otel_threshold).to be_nil
             end
           end
         end
