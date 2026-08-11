@@ -9,9 +9,6 @@ module Datadog
       # Can be set to force rubygems to fail gem installation when profiling extension could not be built
       ENV_FAIL_INSTALL_IF_MISSING_EXTENSION = "DD_PROFILING_FAIL_INSTALL_IF_MISSING_EXTENSION"
 
-      # The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on datadog-ruby_core_source
-      CAN_USE_MJIT_HEADER = false
-
       def self.fail_install_if_missing_extension?
         ENV[ENV_FAIL_INSTALL_IF_MISSING_EXTENSION].to_s.strip.downcase == "true"
       end
@@ -35,7 +32,6 @@ module Datadog
             on_macos? ||
             on_unknown_os? ||
             on_unsupported_cpu_arch? ||
-            expected_to_use_mjit_but_mjit_is_disabled? ||
             libdatadog_not_available? ||
             libdatadog_not_usable?
         end
@@ -94,13 +90,6 @@ module Datadog
         # Validation for this check is done in extconf.rb because it relies on mkmf
         FAILED_TO_CONFIGURE_LIBDATADOG = explain_issue(
           "there was a problem in setting up the `libdatadog` dependency.",
-          suggested: CONTACT_SUPPORT,
-        )
-
-        # Validation for this check is done in extconf.rb because it relies on mkmf
-        COMPILATION_BROKEN = explain_issue(
-          "compilation of the Ruby VM just-in-time header failed.",
-          "Your C compiler or Ruby VM just-in-time compiler seem to be broken.",
           suggested: CONTACT_SUPPORT,
         )
 
@@ -185,19 +174,6 @@ module Datadog
           )
 
           architecture_not_supported unless RUBY_PLATFORM.start_with?("x86_64", "aarch64", "arm64")
-        end
-
-        # On some Rubies, we require the mjit header to be present. If Ruby was installed without MJIT support, we also skip
-        # building the extension.
-        private_class_method def self.expected_to_use_mjit_but_mjit_is_disabled?
-          ruby_without_mjit = explain_issue(
-            "your Ruby has been compiled without JIT support (--disable-jit-support).",
-            "The profiling native extension requires a Ruby compiled with JIT support,",
-            "even if the JIT is not in use by the application itself.",
-            suggested: CONTACT_SUPPORT,
-          )
-
-          ruby_without_mjit if CAN_USE_MJIT_HEADER && RbConfig::CONFIG["MJIT_SUPPORT"] != "yes"
         end
 
         private_class_method def self.libdatadog_not_available?
