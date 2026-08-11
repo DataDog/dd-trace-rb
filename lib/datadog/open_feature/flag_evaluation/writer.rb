@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
+require "digest"
+
 require_relative "aggregator"
+require_relative "../ext"
 require_relative "../../core/encoding"
 require_relative "../../core/evp"
 require_relative "../../core/utils/time"
@@ -33,11 +36,20 @@ module Datadog
         ROWS_DROPPED_METRIC = "flagevaluation.rows.dropped"
         ROWS_DEGRADED_METRIC = "flagevaluation.rows.degraded"
         PAYLOAD_SPLITS_METRIC = "flagevaluation.payload.splits"
+        CONTEXT_TRUNCATED_METRIC = "flagevaluation.context.truncated"
 
         REASON_QUEUE_OVERFLOW = "queue_overflow"
         REASON_DEGRADED_CAP = "degraded_cap"
         REASON_CARDINALITY_CAP = "cardinality_cap"
         REASON_PAYLOAD_LIMIT = "payload_limit"
+        REASON_PRE_QUEUE_OVERFLOW = "pre_queue_overflow"
+        REASON_MAX_CONTEXT_FIELDS = "max_context_fields"
+        REASON_MAX_FIELD_LENGTH = "max_field_length"
+
+        # Literal prefix for the SHA-256 hash of the targeting key. The hash is
+        # unsalted SHA-256 over the raw UTF-8 bytes, lowercase hex, 71 chars total.
+        # This prefix is the cross-SDK contract: every SDK emits the same digest.
+        TARGETING_KEY_HASH_PREFIX = "sha256_"
 
         # Service context fields for the batch wrapper.
         attr_reader :service_context
@@ -56,6 +68,8 @@ module Datadog
           @stop_cond = ConditionVariable.new
           @stopped = false
           @dropped_queue_overflow = 0
+          @dropped_pre_queue_overflow = 0
+          @context_truncated_count = 0
 
           self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
 
@@ -65,20 +79,35 @@ module Datadog
 
         # Non-blocking enqueue from the finally hook. Drops + counts on overflow.
         # Context flattening/pruning runs in the background writer, not on the caller eval thread.
+        #
+        # observe_full_evaluation_data is the consent value stamped from the UFC
+        # that the evaluation ran against. When consent is off, the context is
+        # omitted on emit, so the context copy work is skipped.
         def enqueue(**event)
           start_background_thread if forked?
 
+          # Pre-queue capacity check: a full queue is an O(1) drop + counter, not
+          # a copy-then-discard. Do the bounded context copy only when the queue
+          # has room.
+          if @queue.size >= QUEUE_SIZE
+            @stop_mutex.synchronize { @dropped_pre_queue_overflow += 1 }
+            return
+          end
+
+          observe_full_evaluation_data = event[:observe_full_evaluation_data] == true
           attrs = event[:attrs]
-          attrs = attrs.is_a?(Hash) ? snapshot_context_value(attrs, {}, 0) || {} : {}
+          attrs = (attrs.is_a?(Hash) && observe_full_evaluation_data) ? (snapshot_context_value(attrs, {}, 0) || {}) : {}
           bounded_event = {
             flag_key: event[:flag_key],
             variant: event[:variant],
             allocation_key: event[:allocation_key],
             error_message: event[:error_message],
+            error_code: event[:error_code],
             runtime_default: event[:runtime_default],
             targeting_key: event[:targeting_key],
             eval_time_ms: event[:eval_time_ms],
             attrs: attrs,
+            observe_full_evaluation_data: observe_full_evaluation_data,
           }
           @queue.push(bounded_event, true)
           start_background_thread unless running?
@@ -111,6 +140,8 @@ module Datadog
           @stop_cond = ConditionVariable.new
           @stopped = false
           @dropped_queue_overflow = 0
+          @dropped_pre_queue_overflow = 0
+          @context_truncated_count = 0
         end
 
         private
@@ -218,6 +249,8 @@ module Datadog
                 attrs: event[:attrs].is_a?(Hash) ? event[:attrs] : {},
                 error_message: event[:error_message],
                 runtime_default: event[:runtime_default],
+                observe_full_evaluation_data: event[:observe_full_evaluation_data],
+                error_code: event[:error_code],
               )
               drained += 1
             rescue ThreadError
@@ -231,8 +264,11 @@ module Datadog
           snapshot = @aggregator.flush_and_reset
           dropped_overflow = snapshot[:dropped_degraded_overflow].to_i
           dropped_queue = take_dropped_queue_overflow
+          dropped_pre_queue = take_dropped_pre_queue_overflow
+          context_truncated = take_context_truncated_count
 
-          emit_drop_counts(dropped_queue, dropped_overflow)
+          emit_drop_counts(dropped_queue, dropped_overflow, dropped_pre_queue)
+          emit_context_truncated_counts(context_truncated)
 
           events = build_events(snapshot)
           emit_degraded_counts(snapshot[:degraded].values.sum { |entry| entry[:count].to_i })
@@ -252,18 +288,49 @@ module Datadog
           end
         end
 
+        # Read-and-reset the pre-queue overflow counter. This counter fires when
+        # the queue is full before the bounded context copy, so a full queue is
+        # an O(1) drop, not a copy-then-discard.
+        def take_dropped_pre_queue_overflow
+          @stop_mutex.synchronize do
+            count = @dropped_pre_queue_overflow
+            @dropped_pre_queue_overflow = 0
+            count
+          end
+        end
+
+        # Read-and-reset the context-truncated counter. The aggregator adds to
+        # this count when a context cap is hit during pruning.
+        def take_context_truncated_count
+          @stop_mutex.synchronize do
+            count = @context_truncated_count
+            @context_truncated_count = 0
+            count
+          end
+        end
+
         # Emit (log) the observable drop counts so backpressure is never silently lost.
         # Σ(emitted tier counts + these drops) == evaluations processed.
-        def emit_drop_counts(dropped_queue, dropped_overflow)
-          return if dropped_queue.zero? && dropped_overflow.zero?
+        def emit_drop_counts(dropped_queue, dropped_overflow, dropped_pre_queue)
+          return if dropped_queue.zero? && dropped_overflow.zero? && dropped_pre_queue.zero?
 
+          record_telemetry_count(ROWS_DROPPED_METRIC, dropped_pre_queue, reason: REASON_PRE_QUEUE_OVERFLOW)
           record_telemetry_count(ROWS_DROPPED_METRIC, dropped_queue, reason: REASON_QUEUE_OVERFLOW)
           record_telemetry_count(ROWS_DROPPED_METRIC, dropped_overflow, reason: REASON_DEGRADED_CAP)
 
           @logger.debug do
             "OpenFeature EVP: dropped events " \
+              "pre_queue_overflow=#{dropped_pre_queue} " \
               "queue_overflow=#{dropped_queue} degraded_overflow=#{dropped_overflow}"
           end
+        end
+
+        # Emit the context-truncated count with a reason label so the operator can
+        # tell which cap was hit.
+        def emit_context_truncated_counts(context_truncated)
+          return if context_truncated.zero?
+
+          record_telemetry_count(CONTEXT_TRUNCATED_METRIC, context_truncated, reason: REASON_MAX_CONTEXT_FIELDS)
         end
 
         def emit_degraded_counts(degraded_count)
@@ -272,24 +339,31 @@ module Datadog
 
         # Build flagEvaluationEvent list from aggregation snapshot.
         # Full-tier entries include all optional fields; degraded entries omit targeting_key + context.
+        #
+        # Consent is read from the bucket key (and AND-folded with the entry value as
+        # defense in depth). When consent is off, the targeting key is hashed and the
+        # error message is redacted to the error code.
         def build_events(snapshot)
           flush_time_ms = (Core::Utils::Time.now.to_f * 1000).to_i
           events = []
 
           snapshot[:full].each do |key, entry|
-            flag_key, variant, allocation_key, _runtime_default, _error_message, targeting_key, _ctx_key = key
+            flag_key, variant, allocation_key, _runtime_default, _error_message, targeting_key, _ctx_key, consent = key
+            consent &&= entry[:observe_full_evaluation_data] == true
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
               targeting_key: targeting_key, entry: entry, flush_time_ms: flush_time_ms, tier: :full,
+              observe_full_evaluation_data: consent,
             )
             events << event
           end
 
           snapshot[:degraded].each do |key, entry|
-            flag_key, variant, allocation_key, _runtime_default, _error_message = key
+            flag_key, variant, allocation_key, _runtime_default, _error_message, _consent = key
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
               targeting_key: nil, entry: entry, flush_time_ms: flush_time_ms, tier: :degraded,
+              observe_full_evaluation_data: false,
             )
             events << event
           end
@@ -297,7 +371,10 @@ module Datadog
           events
         end
 
-        def build_event(flag_key:, variant:, allocation_key:, targeting_key:, entry:, flush_time_ms:, tier:)
+        def build_event(
+          flag_key:, variant:, allocation_key:, targeting_key:, entry:, flush_time_ms:, tier:,
+          observe_full_evaluation_data:
+        )
           # @type var event: ::Hash[::String, untyped]
           event = {
             "timestamp" => flush_time_ms,
@@ -308,7 +385,20 @@ module Datadog
           }
 
           event["runtime_default_used"] = true if entry[:runtime_default]
-          event["error"] = {"message" => entry[:error_message]} if entry[:error_message] && !entry[:error_message].empty?
+
+          # When consent is off, the error message can carry raw context data
+          # (for example, a NumberFormatException that echoes a targeting key).
+          # Put the error code in place of the raw message so the operator keeps
+          # a stable signal without the raw data. When consent is on, keep the
+          # raw error message.
+          error_message = entry[:error_message]
+          if error_message && !error_message.empty?
+            if observe_full_evaluation_data
+              event["error"] = {"message" => error_message}
+            elsif (error_code = entry[:error_code])
+              event["error"] = {"message" => error_code.to_s}
+            end
+          end
 
           # variant + allocation are present in both tiers (omitempty per schema).
           event["variant"] = {"key" => variant} if variant && !variant.empty?
@@ -317,14 +407,29 @@ module Datadog
           # Full-tier additionally carries targeting_key + the pruned evaluation context;
           # the degraded tier omits both.
           if tier == :full
-            event["targeting_key"] = targeting_key if targeting_key && !targeting_key.empty?
+            if targeting_key && !targeting_key.empty?
+              event["targeting_key"] = if observe_full_evaluation_data
+                targeting_key
+              else
+                hash_targeting_key(targeting_key)
+              end
+            end
 
-            if entry[:context_attrs] && !entry[:context_attrs].empty?
+            # Context is emitted only when consent is on. When consent is off,
+            # the context_attrs are not stored, so this branch does not run.
+            if observe_full_evaluation_data && entry[:context_attrs] && !entry[:context_attrs].empty?
               event["context"] = {"evaluation" => entry[:context_attrs]}
             end
           end
 
           event
+        end
+
+        # Unsalted SHA-256 over the raw UTF-8 bytes of the targeting key, with the
+        # literal `sha256_` prefix. Lowercase hex, 71 chars total. Every SDK must
+        # produce the same digest for the same targeting key.
+        def hash_targeting_key(targeting_key)
+          TARGETING_KEY_HASH_PREFIX + Digest::SHA256.hexdigest(targeting_key)
         end
 
         def send_payload_batches(events)

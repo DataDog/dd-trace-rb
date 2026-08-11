@@ -41,7 +41,11 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
     let(:evaluation_details) do
       build_evaluation_details(
         variant: "on",
-        flag_metadata: {"__dd_allocation_key" => "alloc-9", "dd.eval.timestamp_ms" => 1_700_000_000_000},
+        flag_metadata: {
+          "__dd_allocation_key" => "alloc-9",
+          "dd.eval.timestamp_ms" => 1_700_000_000_000,
+          Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
+        },
       )
     end
 
@@ -133,6 +137,71 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       ctx = build_hook_context(flag_key: "f", evaluation_context: nil)
       expect(writer).to receive(:enqueue).with(hash_including(targeting_key: nil, attrs: {}))
       expect { hook.finally(hook_context: ctx, evaluation_details: details) }.not_to raise_error
+    end
+  end
+
+  describe "#finally — consent lifecycle" do
+    let(:eval_context) { ::OpenFeature::SDK::EvaluationContext.new(targeting_key: "user-7", env: "prod") }
+    let(:hook_context) { build_hook_context }
+
+    def details_with_consent(consent)
+      metadata = {
+        "dd.eval.timestamp_ms" => 1_700_000_000_000,
+        Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => consent,
+      }
+      build_evaluation_details(variant: "on", flag_metadata: metadata)
+    end
+
+    it "reads consent from evaluation metadata, not from live config" do
+      details = details_with_consent(true)
+      expect(writer).to receive(:enqueue).with(
+        hash_including(observe_full_evaluation_data: true, attrs: {"env" => "prod"})
+      )
+      hook.finally(hook_context: hook_context, evaluation_details: details)
+    end
+
+    it "treats absent consent as false (privacy-preserving default)" do
+      details = build_evaluation_details(variant: "on", flag_metadata: {"dd.eval.timestamp_ms" => 1})
+      expect(writer).to receive(:enqueue).with(
+        hash_including(observe_full_evaluation_data: false, attrs: {})
+      )
+      hook.finally(hook_context: hook_context, evaluation_details: details)
+    end
+
+    it "treats null consent as false" do
+      details = details_with_consent(nil)
+      expect(writer).to receive(:enqueue).with(
+        hash_including(observe_full_evaluation_data: false, attrs: {})
+      )
+      hook.finally(hook_context: hook_context, evaluation_details: details)
+    end
+
+    it "treats wrong-typed consent as false" do
+      details = details_with_consent("true")
+      expect(writer).to receive(:enqueue).with(
+        hash_including(observe_full_evaluation_data: false, attrs: {})
+      )
+      hook.finally(hook_context: hook_context, evaluation_details: details)
+    end
+
+    # Regression guard for the Java pilot's core lesson: consent must travel on the
+    # event, not be looked up from live config. The hook reads only metadata.
+    it "ignores gateway consent even when it disagrees with metadata" do
+      details = details_with_consent(false)
+      # Even if a global accessor returned true, the hook must use metadata's false.
+      expect(writer).to receive(:enqueue).with(
+        hash_including(observe_full_evaluation_data: false, attrs: {})
+      )
+      hook.finally(hook_context: hook_context, evaluation_details: details)
+    end
+
+    it "passes the error code so the writer can redact the error message" do
+      details = build_evaluation_details(
+        variant: nil, error_message: "boom", error_code: "TYPE_MISMATCH",
+        flag_metadata: {"dd.eval.timestamp_ms" => 1}
+      )
+      expect(writer).to receive(:enqueue).with(hash_including(error_code: "TYPE_MISMATCH"))
+      hook.finally(hook_context: hook_context, evaluation_details: details)
     end
   end
 end

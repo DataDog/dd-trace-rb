@@ -74,7 +74,9 @@ module Datadog
           eval_time_ms: ::Integer,
           attrs: ::Hash[::String, untyped]?,
           ?error_message: ::String?,
-          ?runtime_default: bool?
+          ?runtime_default: bool?,
+          ?observe_full_evaluation_data: bool,
+          ?error_code: untyped
         ) -> void
 
         def flush_and_reset: () -> ::Hash[::Symbol, untyped]
@@ -106,7 +108,9 @@ module Datadog
           runtime_default: bool,
           ?error_message: ::String?,
           ?targeting_key: ::String?,
-          ?context_attrs: ::Hash[::String, untyped]?
+          ?context_attrs: ::Hash[::String, untyped]?,
+          ?observe_full_evaluation_data: bool,
+          ?error_code: untyped
         ) -> ::Hash[::Symbol, untyped]
 
         def observe: (::Hash[::Symbol, untyped] entry, ::Integer evaluation_time_ms) -> void
@@ -117,7 +121,8 @@ module Datadog
           ::String allocation_key,
           bool runtime_default,
           ::String error_message,
-          ::Integer evaluation_time_ms
+          ::Integer evaluation_time_ms,
+          ?observe_full_evaluation_data: bool
         ) -> void
       end
     end

@@ -7,7 +7,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
   before do
     stub_const("Datadog::Core::FeatureFlags::Configuration", configuration_class)
     allow(Datadog::Core::FeatureFlags::Configuration)
-      .to receive(:new).with(configuration_json).and_return(configuration)
+      .to receive(:new).and_return(configuration)
     allow(configuration).to receive(:get_assignment).with(flag_key, expected_type, context).and_return(assignment)
   end
 
@@ -79,6 +79,61 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
 
         expect(result).to be(assignment)
       end
+    end
+  end
+
+  describe "#observe_full_evaluation_data" do
+    def ufc(observe: :absent)
+      base = "{\"format\":\"SERVER\",\"environment\":{\"name\":\"test\"},\"flags\":{}}"
+      return base if observe == :absent
+
+      value = (observe == true) ? "true" : "false"
+      extra = "\"observeFullEvaluationData\":#{value}"
+      base.sub('{"format"', "{#{extra},\"format\"")
+    end
+
+    it "returns false when the field is absent (privacy-preserving default)" do
+      evaluator = described_class.new(ufc(observe: :absent))
+      expect(evaluator.observe_full_evaluation_data).to be(false)
+    end
+
+    it "returns false when the field is false" do
+      evaluator = described_class.new(ufc(observe: false))
+      expect(evaluator.observe_full_evaluation_data).to be(false)
+    end
+
+    it "returns true when the field is true" do
+      evaluator = described_class.new(ufc(observe: true))
+      expect(evaluator.observe_full_evaluation_data).to be(true)
+    end
+
+    it "returns false when the field is explicit null" do
+      json = '{"format":"SERVER","observeFullEvaluationData":null,"environment":{"name":"test"},"flags":{}}'
+      evaluator = described_class.new(json)
+      expect(evaluator.observe_full_evaluation_data).to be(false)
+    end
+
+    it "returns false when the field is wrong-typed (string)" do
+      json = '{"format":"SERVER","observeFullEvaluationData":"true","environment":{"name":"test"},"flags":{}}'
+      evaluator = described_class.new(json)
+      expect(evaluator.observe_full_evaluation_data).to be(false)
+    end
+
+    it "reads the field from the UFC root, not from the environment object" do
+      # The environment object does not carry the field; the root does.
+      json = '{"format":"SERVER","observeFullEvaluationData":true,"environment":{"name":"test"},"flags":{}}'
+      evaluator = described_class.new(json)
+      expect(evaluator.observe_full_evaluation_data).to be(true)
+    end
+
+    it "returns false and does not raise on malformed JSON" do
+      evaluator = described_class.new("{not valid json")
+      expect(evaluator.observe_full_evaluation_data).to be(false)
+    end
+
+    it "returns false for a nil configuration" do
+      evaluator = described_class.new(nil)
+      expect(evaluator.observe_full_evaluation_data).to be(false)
     end
   end
 end

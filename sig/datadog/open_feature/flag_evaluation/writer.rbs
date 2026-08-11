@@ -24,6 +24,8 @@ module Datadog
 
         PAYLOAD_SPLITS_METRIC: ::String
 
+        CONTEXT_TRUNCATED_METRIC: ::String
+
         REASON_QUEUE_OVERFLOW: ::String
 
         REASON_DEGRADED_CAP: ::String
@@ -31,6 +33,14 @@ module Datadog
         REASON_CARDINALITY_CAP: ::String
 
         REASON_PAYLOAD_LIMIT: ::String
+
+        REASON_PRE_QUEUE_OVERFLOW: ::String
+
+        REASON_MAX_CONTEXT_FIELDS: ::String
+
+        REASON_MAX_FIELD_LENGTH: ::String
+
+        TARGETING_KEY_HASH_PREFIX: ::String
 
         @transport: Transport::HTTP
 
@@ -49,6 +59,10 @@ module Datadog
         @stopped: bool
 
         @dropped_queue_overflow: ::Integer
+
+        @dropped_pre_queue_overflow: ::Integer
+
+        @context_truncated_count: ::Integer
 
         @service_context: ::Hash[::String, ::String]
 
@@ -96,7 +110,13 @@ module Datadog
 
         def take_dropped_queue_overflow: () -> ::Integer
 
-        def emit_drop_counts: (::Integer dropped_queue, ::Integer dropped_overflow) -> void
+        def take_dropped_pre_queue_overflow: () -> ::Integer
+
+        def take_context_truncated_count: () -> ::Integer
+
+        def emit_drop_counts: (::Integer dropped_queue, ::Integer dropped_overflow, ::Integer dropped_pre_queue) -> void
+
+        def emit_context_truncated_counts: (::Integer context_truncated) -> void
 
         def emit_degraded_counts: (::Integer degraded_count) -> void
 
@@ -109,8 +129,11 @@ module Datadog
           targeting_key: ::String?,
           entry: ::Hash[::Symbol, untyped],
           flush_time_ms: ::Integer,
-          tier: ::Symbol
+          tier: ::Symbol,
+          observe_full_evaluation_data: bool
         ) -> ::Hash[::String, untyped]
+
+        def hash_targeting_key: (::String targeting_key) -> ::String
 
         def send_payload_batches: (::Array[::Hash[::String, untyped]] events) -> void
 

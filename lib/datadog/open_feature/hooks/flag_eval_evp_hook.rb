@@ -42,15 +42,31 @@ module Datadog
           eval_time_ms = metadata.is_a?(Hash) ? metadata["dd.eval.timestamp_ms"] : nil
           eval_time_ms ||= (Core::Utils::Time.now.to_f * 1000).to_i
 
+          # Read the consent value from the evaluation metadata, not from live config.
+          # The provider stamped this value from the UFC it evaluated against.
+          # Absent, null, false, or wrong-typed values all become false.
+          observe_full_evaluation_data = metadata.is_a?(Hash) ? metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] : nil
+          observe_full_evaluation_data = false unless observe_full_evaluation_data == true
+
+          # When consent is off, the evaluation context is omitted on emit. Do not do
+          # the capture work on this hot path. Pass an empty hash to the writer.
+          attrs = if observe_full_evaluation_data
+            extract_attributes(hook_context.evaluation_context)
+          else
+            {}
+          end
+
           writer.enqueue(
             flag_key: hook_context.flag_key,
             variant: evaluation_details.variant,
             allocation_key: extract_allocation_key(evaluation_details),
             error_message: extract_error_message(evaluation_details),
+            error_code: extract_error_code(evaluation_details),
             runtime_default: runtime_default?(evaluation_details),
             targeting_key: extract_targeting_key(hook_context.evaluation_context),
             eval_time_ms: eval_time_ms,
-            attrs: extract_attributes(hook_context.evaluation_context),
+            attrs: attrs,
+            observe_full_evaluation_data: observe_full_evaluation_data,
           )
         end
 
@@ -88,6 +104,15 @@ module Datadog
           return unless evaluation_details.respond_to?(:error_message)
 
           evaluation_details.error_message
+        end
+
+        # The error code is used to redact the error message when consent is off.
+        # The writer puts the error code in place of the raw message so the
+        # operator keeps a stable signal without the raw context data.
+        def extract_error_code(evaluation_details)
+          return unless evaluation_details.respond_to?(:error_code)
+
+          evaluation_details.error_code
         end
 
         def runtime_default?(evaluation_details)

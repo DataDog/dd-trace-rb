@@ -7,6 +7,13 @@ module Datadog
   module OpenFeature
     # This class is a noop interface of evaluation logic
     class NoopEvaluator
+      # Consent is false before the configuration is present. This is the
+      # privacy-preserving default: the SDK hashes the targeting key and
+      # omits the evaluation context.
+      def observe_full_evaluation_data
+        false
+      end
+
       def initialize(_configuration)
         # no-op
       end

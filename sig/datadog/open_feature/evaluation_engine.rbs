@@ -24,6 +24,8 @@ module Datadog
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> (ResolutionDetails | Core::FeatureFlags::ResolutionDetails)
 
+      def observe_full_evaluation_data: () -> bool
+
       def reconfigure!: (::String? configuration) -> void
     end
   end

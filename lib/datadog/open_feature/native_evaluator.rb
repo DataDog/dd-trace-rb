@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "json"
 require_relative "../core/feature_flags"
 require_relative "ext"
 require_relative "resolution_details"
@@ -15,7 +16,14 @@ module Datadog
       #       in the format expected by `libdatadog` without any modifications
       def initialize(configuration)
         @configuration = Core::FeatureFlags::Configuration.new(configuration)
+        @observe_full_evaluation_data = parse_observe_full_evaluation_data(configuration)
       end
+
+      # Consent value read from the UFC that this evaluator evaluated against.
+      # The hook reads this value from evaluation metadata, not from live config.
+      # Returns false when the value is absent, null, or wrong-typed. This is the
+      # privacy-preserving default.
+      attr_reader :observe_full_evaluation_data
 
       # Returns the assignment for a given flag key based on the feature flags
       # configuration
@@ -41,6 +49,21 @@ module Datadog
       end
 
       private
+
+      # Parse the consent boolean from the top level of the UFC JSON string.
+      # The field is a sibling of `environment`, not a field on it.
+      # Absent, null, or wrong-typed values return false. A malformed JSON
+      # string returns false and does not raise: the C extension does the full
+      # UFC parse and raises ReconfigurationError on truly bad input. The
+      # consent read must not be the cause that stops a pod from starting.
+      def parse_observe_full_evaluation_data(configuration)
+        return false unless configuration.is_a?(String) && !configuration.empty?
+
+        parsed = JSON.parse(configuration)
+        parsed.is_a?(Hash) && parsed["observeFullEvaluationData"] == true
+      rescue JSON::ParserError
+        false
+      end
 
       def invalid_flag_configuration?(result)
         result.reason == Ext::DEFAULT &&

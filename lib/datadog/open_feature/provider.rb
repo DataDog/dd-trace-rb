@@ -121,6 +121,11 @@ module Datadog
         # Build metadata before branching so provider-returned details carry eval-entry time.
         flag_meta = build_flag_metadata(result, eval_time_ms)
 
+        # Stamp the consent value from the engine that did the evaluation. The hook reads
+        # this value from metadata, not from live config. This is the authoritative stamp:
+        # the C extension result has no flag_metadata setter, so consent goes here.
+        flag_meta[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] = engine.observe_full_evaluation_data
+
         if result.error?
           return sdk_error_details(default_value, result.error_code, result.error_message, result.reason, flag_meta)
         end
@@ -218,7 +223,10 @@ module Datadog
           error_code: Ext::PROVIDER_FATAL,
           error_message: "Datadog's OpenFeature component must be configured",
           reason: Ext::ERROR,
-          flag_metadata: {"dd.eval.timestamp_ms" => eval_time_ms}
+          flag_metadata: {
+            "dd.eval.timestamp_ms" => eval_time_ms,
+            Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => false,
+          }
         )
       end
     end

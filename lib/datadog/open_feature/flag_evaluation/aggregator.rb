@@ -60,12 +60,20 @@ module Datadog
         end
 
         # Record one evaluation event. Thread-safe. Called from the background writer.
+        #
+        # observe_full_evaluation_data is the consent value stamped from the UFC
+        # that the evaluation ran against. It is part of the bucket key so that
+        # consent-on and consent-off evaluations do not merge. When consent is
+        # off, the context dimension is removed from the key and the context
+        # attributes are not stored: the context is omitted on emit, so keying on
+        # it would burn the per-flag bucket cap on privacy-protected traffic.
         def record(
           flag_key:, variant:, allocation_key:, targeting_key:, eval_time_ms:, attrs:, error_message: nil,
-          runtime_default: nil
+          runtime_default: nil, observe_full_evaluation_data: false, error_code: nil
         )
           runtime_default = variant.nil? if runtime_default.nil?
           runtime_default = !!runtime_default
+          observe_full_evaluation_data = observe_full_evaluation_data == true
 
           # Normalize nil/empty strings
           variant = variant.to_s
@@ -73,12 +81,24 @@ module Datadog
           error_message = error_message.to_s
           targeting_key = targeting_key.to_s
 
-          # Context pruning + canonical key (see prune_context and canonical_context_key).
-          # Runs in the background writer so caller eval threads do not pay the flatten/prune cost.
-          pruned_context = prune_context(attrs)
-          context_key = canonical_context_key(pruned_context)
-
-          full_key = [flag_key, variant, allocation_key, runtime_default, error_message, targeting_key, context_key]
+          if observe_full_evaluation_data
+            # Consent on: keep the context dimension in the key and store the
+            # pruned context attributes for emit.
+            pruned_context = prune_context(attrs)
+            context_key = canonical_context_key(pruned_context)
+            full_key = [
+              flag_key, variant, allocation_key, runtime_default, error_message,
+              targeting_key, context_key, true
+            ]
+          else
+            # Consent off: remove the context dimension from the key and do not
+            # store the context attributes. The context is omitted on emit.
+            pruned_context = nil
+            full_key = [
+              flag_key, variant, allocation_key, runtime_default, error_message,
+              targeting_key, false
+            ]
+          end
           evaluation_time_ms = eval_time_ms.to_i
 
           @mutex.synchronize do
@@ -90,7 +110,10 @@ module Datadog
 
             per_flag_count = @per_flag_full[flag_key]
             if per_flag_count >= @per_flag_cap
-              add_to_degraded(flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms)
+              add_to_degraded(
+                flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
+                observe_full_evaluation_data: observe_full_evaluation_data
+              )
               return
             end
 
@@ -104,13 +127,18 @@ module Datadog
                 runtime_default: runtime_default,
                 error_message: error_message,
                 targeting_key: targeting_key,
-                context_attrs: pruned_context
+                context_attrs: pruned_context,
+                observe_full_evaluation_data: observe_full_evaluation_data,
+                error_code: error_code
               )
               @full[full_key] = entry
               @global_count += 1
             else
               # Route to degraded tier
-              add_to_degraded(flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms)
+              add_to_degraded(
+                flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
+                observe_full_evaluation_data: observe_full_evaluation_data
+              )
             end
           end
         end
@@ -240,15 +268,20 @@ module Datadog
           length_bytes + bytes
         end
 
-        def new_entry(evaluation_time_ms, runtime_default:, error_message: nil, targeting_key: nil, context_attrs: nil)
+        def new_entry(
+          evaluation_time_ms, runtime_default:, error_message: nil, targeting_key: nil, context_attrs: nil,
+          observe_full_evaluation_data: false, error_code: nil
+        )
           {
             count: 1,
             first_evaluation: evaluation_time_ms,
             last_evaluation: evaluation_time_ms,
             runtime_default: runtime_default,
             error_message: error_message,
+            error_code: error_code,
             targeting_key: targeting_key,
             context_attrs: context_attrs,
+            observe_full_evaluation_data: observe_full_evaluation_data,
           }
         end
 
@@ -258,8 +291,13 @@ module Datadog
           entry[:last_evaluation] = evaluation_time_ms if evaluation_time_ms > entry[:last_evaluation]
         end
 
-        def add_to_degraded(flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms)
-          degraded_key = [flag_key, variant, allocation_key, runtime_default, error_message]
+        def add_to_degraded(
+          flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
+          observe_full_evaluation_data: false
+        )
+          # Consent is part of the degraded key as defense in depth, so that
+          # consent-on and consent-off evaluations do not merge.
+          degraded_key = [flag_key, variant, allocation_key, runtime_default, error_message, observe_full_evaluation_data]
 
           if (entry = @degraded[degraded_key])
             observe(entry, evaluation_time_ms)

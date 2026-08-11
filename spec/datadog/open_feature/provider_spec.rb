@@ -289,6 +289,10 @@ RSpec.describe Datadog::OpenFeature::Provider do
         allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(nil)
         allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(real_flag_eval_evp_hook)
         allow(logger).to receive(:debug)
+
+        # These tests verify the end-to-end emit path with raw values. Set consent
+        # to true so the targeting key and context are emitted as supplied.
+        allow(engine).to receive(:observe_full_evaluation_data).and_return(true)
       end
 
       it "enqueues an event into the Writer when the SDK client evaluates successfully" do

@@ -46,6 +46,14 @@ module Datadog
         )
       end
 
+      # Consent value from the UFC that the current evaluator holds. The provider
+      # stamps this value onto evaluation metadata so the hook reads it from
+      # the event, not from live config. Returns false before configuration is
+      # present or when the value is absent, null, or wrong-typed.
+      def observe_full_evaluation_data
+        @evaluator.observe_full_evaluation_data
+      end
+
       # NOTE: In a currect implementation configuration is expected to be a raw
       #       JSON string containing feature flags (straight from the remote config)
       #       in the format expected by `libdatadog` without any modifications

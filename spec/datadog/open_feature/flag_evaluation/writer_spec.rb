@@ -223,6 +223,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         writer.enqueue(
           flag_key: "prefork-flag", variant: "on", allocation_key: "alloc",
           targeting_key: "prefork-user", eval_time_ms: realistic_eval_ms, attrs: {"worker" => "child"},
+          observe_full_evaluation_data: true,
         )
         writer.stop
 
@@ -283,23 +284,24 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       capacity.times { writer.enqueue(**event) }
       expect(writer.dropped_queue_overflow).to eq(0)
 
-      # Three more pushes overflow the bounded queue and must be counted.
+      # Three more pushes overflow the bounded queue. The pre-queue capacity
+      # check drops them before the context copy and counts them as
+      # pre-queue overflow (O(1) drop, not copy-then-discard).
       3.times { writer.enqueue(**event) }
-      expect(writer.dropped_queue_overflow).to eq(3)
 
       # On flush the count is emitted (logged) and reset to 0 (observable, not silently lost).
       logged = []
       allow(logger).to receive(:debug) { |&blk| logged << blk.call }
       writer.send(:flush_once)
 
-      expect(logged.join).to match(/queue_overflow=3/)
+      expect(logged.join).to match(/pre_queue_overflow=3/)
       expect_telemetry_count(
         telemetry,
         "flagevaluation.rows.dropped",
         3,
-        {reason: "queue_overflow"}
+        {reason: "pre_queue_overflow"}
       )
-      expect(writer.dropped_queue_overflow).to eq(0)
+      expect(writer.send(:take_dropped_pre_queue_overflow)).to eq(0)
     end
 
     it "does not flatten or prune context before buffering" do
@@ -311,7 +313,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(Datadog::OpenFeature::FlagEvaluation::Aggregator).not_to receive(:prune_context)
       writer.enqueue(
         flag_key: "f", variant: "on", allocation_key: "",
-        targeting_key: "t", eval_time_ms: 1, attrs: raw,
+        targeting_key: "t", eval_time_ms: 1, attrs: raw, observe_full_evaluation_data: true,
       )
 
       queued = writer.instance_variable_get(:@queue).pop(true)
@@ -342,6 +344,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
           flag_key: "schema-flag", variant: "on", allocation_key: "alloc-1",
           targeting_key: "user-42",
           eval_time_ms: realistic_eval_ms, attrs: {"env" => "prod", "tier" => "gold"},
+          observe_full_evaluation_data: true,
         )
       end
 
@@ -451,6 +454,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         writer.enqueue(
           flag_key: "prune-flag", variant: "on", allocation_key: "",
           targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: raw,
+          observe_full_evaluation_data: true,
         )
       end
 
@@ -473,6 +477,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         writer.enqueue(
           flag_key: "snapshot-flag", variant: "on", allocation_key: "",
           targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: raw,
+          observe_full_evaluation_data: true,
         )
 
         raw["profile"]["plan"] = "enterprise"
@@ -498,6 +503,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         writer.enqueue(
           flag_key: "cyclic-context-flag", variant: "on", allocation_key: "",
           targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: raw,
+          observe_full_evaluation_data: true,
         )
       end
 
@@ -512,6 +518,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
           flag_key: "error-flag", variant: nil, allocation_key: "",
           error_message: "flag not found", targeting_key: "user-42",
           eval_time_ms: realistic_eval_ms, attrs: {},
+          observe_full_evaluation_data: true,
         )
       end
 
@@ -598,6 +605,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       writer.enqueue(
         flag_key: "large", variant: "on", allocation_key: "alloc",
         targeting_key: "user-large", eval_time_ms: realistic_eval_ms, attrs: {"blob" => "x" * 256},
+        observe_full_evaluation_data: true,
       )
       writer.send(:drain_and_flush)
 
@@ -680,6 +688,102 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         7,
         {reason: "degraded_cap"}
       )
+    end
+  end
+
+  # PII protection: when observeFullEvaluationData is false (the default), the writer
+  # hashes the targeting key with the sha256_ prefix and omits the evaluation context.
+  # The error message is redacted to the error code so it cannot carry raw context data.
+  # Assert on raw wire bytes: the hash is present AND the raw subject string appears nowhere.
+  describe "PII protection (observeFullEvaluationData = false)" do
+    let(:logger) { instance_double(Logger, debug: nil) }
+
+    def captured_payload
+      payload = nil
+      transport = instance_double(Datadog::OpenFeature::Transport::HTTP)
+      allow(transport).to receive(:send_flag_evaluations) { |p| payload = p }
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      writer = described_class.new(transport: transport, logger: logger)
+      yield writer
+      writer.send(:drain_and_flush)
+      payload
+    end
+
+    # Cross-SDK canonical vector: every SDK must produce this exact digest.
+    it "hashes the targeting key to the canonical cross-SDK vector" do
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "pii-flag", variant: "on", allocation_key: "alloc",
+          targeting_key: "jane.doe@datadoghq.com",
+          eval_time_ms: realistic_eval_ms, attrs: {"env" => "prod"},
+        )
+      end
+
+      row = payload["flagEvaluations"].first
+      expect(row["targeting_key"]).to eq(
+        "sha256_b4698f9b6d186781fa8dc59e533578fa2d8379a46b1cf6db85cda6aa9c99e51b"
+      )
+      expect(row["targeting_key"].length).to eq(71)
+    end
+
+    it "omits the context entirely (absent key, not nil, not {})" do
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "pii-flag", variant: "on", allocation_key: "alloc",
+          targeting_key: "user-1",
+          eval_time_ms: realistic_eval_ms, attrs: {"env" => "prod", "tier" => "gold"},
+        )
+      end
+
+      row = payload["flagEvaluations"].first
+      expect(row).not_to have_key("context")
+    end
+
+    it "does not carry the raw subject string anywhere in the payload" do
+      raw_subject = "jane.doe@datadoghq.com"
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "pii-flag", variant: "on", allocation_key: "alloc",
+          targeting_key: raw_subject,
+          eval_time_ms: realistic_eval_ms, attrs: {"user_email" => raw_subject},
+        )
+      end
+
+      wire = Datadog::Core::Encoding::JSONEncoder.encode(payload)
+      expect(wire).not_to include(raw_subject)
+    end
+
+    it "redacts the error message to the error code so it cannot carry raw context" do
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "err-flag", variant: nil, allocation_key: "",
+          error_message: 'For input string: "jane.doe@datadoghq.com"',
+          error_code: "TYPE_MISMATCH",
+          targeting_key: "jane.doe@datadoghq.com",
+          eval_time_ms: realistic_eval_ms, attrs: {},
+        )
+      end
+
+      row = payload["flagEvaluations"].first
+      expect(row["error"]).to eq("message" => "TYPE_MISMATCH")
+      wire = Datadog::Core::Encoding::JSONEncoder.encode(payload)
+      expect(wire).not_to include("jane.doe@datadoghq.com")
+    end
+
+    it "omits the error key when consent is off and no error code is present" do
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "err-flag", variant: nil, allocation_key: "",
+          error_message: 'For input string: "jane.doe@datadoghq.com"',
+          targeting_key: "jane.doe@datadoghq.com",
+          eval_time_ms: realistic_eval_ms, attrs: {},
+        )
+      end
+
+      row = payload["flagEvaluations"].first
+      expect(row).not_to have_key("error")
+      wire = Datadog::Core::Encoding::JSONEncoder.encode(payload)
+      expect(wire).not_to include("jane.doe@datadoghq.com")
     end
   end
 end
