@@ -24,6 +24,7 @@
     uint8_t trace_id[16];
     uint8_t span_id[8];
     uint8_t local_root_span_id[8];
+    uint8_t trace_flags;
   } otel_fiber_context;
 
   static const rb_data_type_t otel_fiber_context_t = {
@@ -60,7 +61,9 @@ void otel_thread_context_init(VALUE core_module) {
   #endif
   rb_define_singleton_method(otel_thread_context_module, "_native_set", native_set, 3);
   rb_define_singleton_method(otel_thread_context_module, "_native_supported?", native_supported_p, 0);
-  rb_define_singleton_method(otel_thread_context_module, "_native_read", native_read, 0);
+
+  VALUE testing_module = rb_define_module_under(otel_thread_context_module, "Testing");
+  rb_define_singleton_method(testing_module, "_native_read", native_read, 0);
   #ifdef HAVE_RB_EXT_RACTOR_SAFE
     rb_ext_ractor_safe(false);
   #endif
@@ -69,12 +72,12 @@ void otel_thread_context_init(VALUE core_module) {
 #ifdef __linux__
   static void publish_context(const otel_fiber_context *ctx) {
     if (ctx) {
-      ddog_otel_thread_ctx_update(&ctx->trace_id, &ctx->span_id, &ctx->local_root_span_id);
+      ddog_otel_thread_ctx_update(&ctx->trace_id, &ctx->span_id, ctx->trace_flags, &ctx->local_root_span_id);
     } else {
       static const uint8_t zero_trace_id[16] = {0};
       static const uint8_t zero_span_id[8] = {0};
 
-      ddog_otel_thread_ctx_update(&zero_trace_id, &zero_span_id, &zero_span_id);
+      ddog_otel_thread_ctx_update(&zero_trace_id, &zero_span_id, 0, &zero_span_id);
     }
   }
 

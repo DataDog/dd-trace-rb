@@ -29,8 +29,6 @@ module Datadog
       def self._native_set: (Integer trace_id, Integer span_id, Integer local_root_span_id) -> bool
 
       def self._native_read: () -> native_record?
-
-      private def self.decode_attrs: (String raw_attrs) -> Hash[Integer, String]
     end
   end
 end

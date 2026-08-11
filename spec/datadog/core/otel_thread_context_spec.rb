@@ -1,13 +1,37 @@
 require "spec_helper"
-require "support/otel_thread_context_test_helpers"
 
 require "etc"
 require "datadog/core/otel_thread_context"
 
 RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
   describe ".set" do
+    def decode_context(raw)
+      return unless raw
+
+      attrs = {}
+      offset = 0
+      size = raw[:attrs].bytesize
+
+      while offset + 2 <= size
+        key_index = raw[:attrs].getbyte(offset)
+        value_len = raw[:attrs].getbyte(offset + 1)
+        break unless key_index && value_len
+        break if offset + 2 + value_len > size
+
+        attrs[key_index] = raw[:attrs].byteslice(offset + 2, value_len)
+        offset += 2 + value_len
+      end
+
+      {
+        trace_id: raw[:trace_id].unpack1("H*").to_s.to_i(16),
+        span_id: raw[:span_id].unpack1("H*").to_s.to_i(16),
+        local_root_span_id: attrs[0]&.to_i(16),
+        valid: raw[:valid].getbyte(0) == 1,
+        attrs: attrs,
+      }
+    end
+
     before(:all) do
-      described_class.singleton_class.include(OTelThreadContextTestHelpers)
       described_class.enable!
     end
 
@@ -28,7 +52,7 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
 
       described_class.set(trace_id: trace_id, span_id: span_id, local_root_span_id: local_root_span_id)
 
-      expect(described_class.read).to include(
+      expect(decode_context(described_class::Testing._native_read)).to include(
         trace_id: trace_id, span_id: span_id, local_root_span_id: local_root_span_id
       )
     end
@@ -41,29 +65,29 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
 
         Fiber.yield
 
-        described_class.read
+        decode_context(described_class::Testing._native_read)
       end
 
       fiber.resume
-      expect(described_class.read).to include(trace_id: 1, span_id: 2, local_root_span_id: 3)
+      expect(decode_context(described_class::Testing._native_read)).to include(trace_id: 1, span_id: 2, local_root_span_id: 3)
 
       fiber_context = fiber.resume
       expect(fiber_context).to include(trace_id: 11, span_id: 12, local_root_span_id: 13)
 
-      expect(described_class.read).to include(trace_id: 1, span_id: 2, local_root_span_id: 3)
+      expect(decode_context(described_class::Testing._native_read)).to include(trace_id: 1, span_id: 2, local_root_span_id: 3)
     end
 
     it "updates the thread context when switching between fibers" do
       fiber_a = Fiber.new do
         described_class.set(trace_id: 100, span_id: 101, local_root_span_id: 102)
         Fiber.yield
-        described_class.read
+        decode_context(described_class::Testing._native_read)
       end
 
       fiber_b = Fiber.new do
         described_class.set(trace_id: 200, span_id: 201, local_root_span_id: 202)
         Fiber.yield
-        described_class.read
+        decode_context(described_class::Testing._native_read)
       end
 
       fiber_a.resume
@@ -72,7 +96,7 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
       expect(fiber_a.resume).to include(trace_id: 100, span_id: 101, local_root_span_id: 102)
       expect(fiber_b.resume).to include(trace_id: 200, span_id: 201, local_root_span_id: 202)
 
-      expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
+      expect(decode_context(described_class::Testing._native_read)).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
     end
 
     # This example is for the Valgrind memcheck run.
@@ -100,7 +124,7 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
 
       expect { failed.join }.to raise_error(StandardError)
 
-      expect(described_class.read).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
+      expect(decode_context(described_class::Testing._native_read)).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
     end
 
     context "inside a non-main Ractor", if: RUBY_VERSION >= "3.3", memcheck_valgrind_skip: true do
@@ -108,38 +132,39 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
         thread_count = Etc.nprocessors * 4 + 1
 
         # M:N is disabled on the main Ractor by default
-        results = Ractor.new(thread_count) do |count|
+        raw_results = Ractor.new(thread_count) do |count|
           Array.new(count) do |i|
             Thread.new do
               Datadog::Core::OTelThreadContext.set(trace_id: i, span_id: i + 1, local_root_span_id: i + 2)
               Thread.pass
-              Datadog::Core::OTelThreadContext.read&.fetch(:trace_id)
+              Datadog::Core::OTelThreadContext::Testing._native_read
             end
           end.map(&:value)
         end.take
 
+        results = raw_results.map { |raw| decode_context(raw).fetch(:trace_id) }
         expect(results).to match_array((0..(thread_count - 1)).to_a)
       end
 
       it "updates the thread context on fiber switch" do
-        outer, inner = Ractor.new do
+        outer_raw, inner_raw = Ractor.new do
           Datadog::Core::OTelThreadContext.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
 
           fiber = Fiber.new do
             Datadog::Core::OTelThreadContext.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
             Fiber.yield
-            Datadog::Core::OTelThreadContext.read
+            Datadog::Core::OTelThreadContext::Testing._native_read
           end
 
           fiber.resume
-          outer_after_yield = Datadog::Core::OTelThreadContext.read
+          outer_after_yield = Datadog::Core::OTelThreadContext::Testing._native_read
           inner_after_resume = fiber.resume
 
           [outer_after_yield, inner_after_resume]
         end.take
 
-        expect(outer).to include(trace_id: 1, span_id: 2, local_root_span_id: 3)
-        expect(inner).to include(trace_id: 11, span_id: 12, local_root_span_id: 13)
+        expect(decode_context(outer_raw)).to include(trace_id: 1, span_id: 2, local_root_span_id: 3)
+        expect(decode_context(inner_raw)).to include(trace_id: 11, span_id: 12, local_root_span_id: 13)
       end
     end
   end
