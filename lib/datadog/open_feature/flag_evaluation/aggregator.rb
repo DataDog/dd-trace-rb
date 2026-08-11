@@ -88,7 +88,7 @@ module Datadog
             context_key = canonical_context_key(pruned_context)
             full_key = [
               flag_key, variant, allocation_key, runtime_default, error_message,
-              targeting_key, context_key, true
+              targeting_key, context_key, true,
             ]
           else
             # Consent off: remove the context dimension from the key and do not
@@ -96,7 +96,7 @@ module Datadog
             pruned_context = nil
             full_key = [
               flag_key, variant, allocation_key, runtime_default, error_message,
-              targeting_key, false
+              targeting_key, false,
             ]
           end
           evaluation_time_ms = eval_time_ms.to_i
