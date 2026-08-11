@@ -490,8 +490,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect(hash_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_hash) * sample_rate)
         end
 
-        # Regression test for https://github.com/DataDog/dd-trace-rb/issues/5936,
-        # see comments on `ruby_obj_memsize_of` for details
+        # Regression test for https://github.com/DataDog/dd-trace-rb/issues/5936: on Ruby 4, sizing a class walks the
+        # per-namespace class extensions, which used to crash the VM when we handed it an object resurrected via
+        # `ObjectSpace._id2ref`. We no longer use `_id2ref`, so this is expected to report a real size everywhere.
         context "for class objects" do
           let(:a_class) { Class.new }
 
@@ -500,17 +501,13 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             GC.start # Age the class past the current GC gen so it is reported as a live heap object (gen_age > 0)
           end
 
-          it "tracks the class without crashing and reports a size that is safe for the current Ruby" do
+          it "tracks the class without crashing and reports its size" do
             skip_asan_flaky
 
             class_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "Class" }
             expect(class_sample).to_not be_nil
 
-            if RubyVersion.is?(">= 4")
-              expect(class_sample.values[:"heap-live-size"]).to eq(0)
-            else
-              expect(class_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_class) * sample_rate)
-            end
+            expect(class_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_class) * sample_rate)
           end
         end
 
