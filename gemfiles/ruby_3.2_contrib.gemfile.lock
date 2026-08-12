@@ -14,6 +14,7 @@ GEM
   specs:
     addressable (2.9.0)
       public_suffix (>= 2.0.2, < 8.0)
+    base64 (0.3.0)
     benchmark-ips (2.15.1)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -44,16 +45,19 @@ GEM
     google-protobuf (3.25.8-arm64-darwin)
     google-protobuf (3.25.8-x86_64-darwin)
     google-protobuf (3.25.8-x86_64-linux)
-    googleapis-common-protos-types (1.5.0)
-      google-protobuf (~> 3.14)
-    grpc (1.52.0)
-      google-protobuf (~> 3.21)
+    googleapis-common-protos-types (1.20.0)
+      google-protobuf (>= 3.18, < 5.a)
+    grpc (1.82.0-aarch64-linux-gnu)
+      google-protobuf (>= 3.25, < 5.0)
       googleapis-common-protos-types (~> 1.0)
-    grpc (1.52.0-x86_64-darwin)
-      google-protobuf (~> 3.21)
+    grpc (1.82.0-arm64-darwin)
+      google-protobuf (>= 3.25, < 5.0)
       googleapis-common-protos-types (~> 1.0)
-    grpc (1.52.0-x86_64-linux)
-      google-protobuf (~> 3.21)
+    grpc (1.82.0-x86_64-darwin)
+      google-protobuf (>= 3.25, < 5.0)
+      googleapis-common-protos-types (~> 1.0)
+    grpc (1.82.0-x86_64-linux-gnu)
+      google-protobuf (>= 3.25, < 5.0)
       googleapis-common-protos-types (~> 1.0)
     hashdiff (1.2.1)
     io-console (0.9.1)
@@ -96,9 +100,14 @@ GEM
       reline (>= 0.6.0)
     public_suffix (7.0.5)
     que (2.2.0)
-    rack (2.2.8)
-    rack-protection (3.0.5)
-      rack
+    rack (3.2.6)
+    rack-protection (4.2.1)
+      base64 (>= 0.1.0)
+      logger (>= 1.6.0)
+      rack (>= 3.0.0, < 4)
+    rack-session (2.1.2)
+      base64 (>= 0.1.0)
+      rack (>= 3.0.0)
     rack-test (2.1.0)
       rack (>= 1.3)
     rake (13.4.2)
@@ -161,10 +170,12 @@ GEM
       simplecov_json_formatter (~> 0.1)
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
-    sinatra (3.0.5)
+    sinatra (4.2.1)
+      logger (>= 1.6.0)
       mustermann (~> 3.0)
-      rack (~> 2.2, >= 2.2.4)
-      rack-protection (= 3.0.5)
+      rack (>= 3.0.0, < 4)
+      rack-protection (= 4.2.1)
+      rack-session (>= 2.0.0, < 3)
       tilt (~> 2.0)
     sucker_punch (3.1.0)
       concurrent-ruby (~> 1.0)
@@ -220,6 +231,7 @@ DEPENDENCIES
 
 CHECKSUMS
   addressable (2.9.0) sha256=7fdf6ac3660f7f4e867a0838be3f6cf722ace541dd97767fa42bc6cfa980c7af
+  base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
   benchmark-ips (2.15.1) sha256=07a1a9f3c6105ecaf68c174fc3fbcddd71a0e9ada6236ae03093a0dcfd812d59
   benchmark-memory (0.1.2) sha256=aa7bfe6776174d0ddefe6fb39945d88fff6d76eac165690188391d9acd441c87
   bigdecimal (4.1.2) sha256=53d217666027eab4280346fba98e7d5b66baaae1b9c3c1c0ffe89d48188a3fbd
@@ -245,10 +257,11 @@ CHECKSUMS
   google-protobuf (3.25.8-arm64-darwin) sha256=e294affc4fb25c8bc7edd264f0ba490d42dce3afff08db1e08fb7bb44cc57488
   google-protobuf (3.25.8-x86_64-darwin) sha256=9c9e8c1c760eeb314fd6bcba1b0fb1e64c473fc9e2040c8992df61874974c108
   google-protobuf (3.25.8-x86_64-linux) sha256=07783d910635e2a60eaf929fe3e45ea4d657d023be3816bda99a21c14f7be959
-  googleapis-common-protos-types (1.5.0) sha256=5769cf7376abc86ef7f5897a4aaca1d5c5a3c49ddabeddd2c251fcf8155f858b
-  grpc (1.52.0) sha256=7ed34993c54f0c56d2121182307fee6433edd3beeaa4120bfa3f90b186877b07
-  grpc (1.52.0-x86_64-darwin) sha256=6937ebfccba966ad18a771f6a0c50255e2e04f64a074383e8122ecd4db870b94
-  grpc (1.52.0-x86_64-linux) sha256=376dfdfebe5951edb02134a87a0d6e2fe69278b2e77a33a36b531abb045721bf
+  googleapis-common-protos-types (1.20.0) sha256=5e374b06bcfc7e13556e7c0d87b99f1fa3d42de6396a1de3d8fc13aefb4dd07f
+  grpc (1.82.0-aarch64-linux-gnu) sha256=cadab07ba458603492dabbdd4aea8ed69e7e1b6f88c4d82ebdfa290d225c1bd5
+  grpc (1.82.0-arm64-darwin) sha256=c5b142a3d715cdc635df16a756bf357b1dc24739833387ba00b76d5e462f9b0a
+  grpc (1.82.0-x86_64-darwin) sha256=e364496220953964304b4c2caca07a33dae021d1f01e3125f60551a1d46703d8
+  grpc (1.82.0-x86_64-linux-gnu) sha256=f12d54f47e96c34778dbca89b9955a8b2d662c1631ac1b4e47dd5f2dd8fadea2
   hashdiff (1.2.1) sha256=9c079dbc513dfc8833ab59c0c2d8f230fa28499cc5efb4b8dd276cf931457cd1
   io-console (0.9.1) sha256=34b5d65a6ed934d9d79d28c0d78ae6a547aa04fa75ba185b2996e1bd2c92d6e6
   irb (1.18.0) sha256=de9454a0703a54704b9811a5ef31a60c86949fbf4013fcf244fabc7c775248e3
@@ -275,8 +288,9 @@ CHECKSUMS
   pry (0.16.0) sha256=d76c69065698ed1f85e717bd33d7942c38a50868f6b0673c636192b3d1b6054e
   public_suffix (7.0.5) sha256=1a8bb08f1bbea19228d3bed6e5ed908d1cb4f7c2726d18bd9cadf60bc676f623
   que (2.2.0) sha256=3defceb95c5fc79888354fc6071070b7123c664cad9b2542a30b6ee38eb0fe9e
-  rack (2.2.8) sha256=7b83a1f1304a8f5554c67bc83632d29ecd2ed1daeb88d276b7898533fde22d97
-  rack-protection (3.0.5) sha256=3a428f9de18ee2a4080e2fab308f20f9e98d74dcbe06ed407a8035b46ba822a8
+  rack (3.2.6) sha256=5ed78e1f73b2e25679bec7d45ee2d4483cc4146eb1be0264fc4d94cb5ef212c2
+  rack-protection (4.2.1) sha256=cf6e2842df8c55f5e4d1a4be015e603e19e9bc3a7178bae58949ccbb58558bac
+  rack-session (2.1.2) sha256=595434f8c0c3473ae7d7ac56ecda6cc6dfd9d37c0b2b5255330aa1576967ffe8
   rack-test (2.1.0) sha256=0c61fc61904049d691922ea4bb99e28004ed3f43aa5cfd495024cc345f125dfb
   rake (13.4.2) sha256=cb825b2bd5f1f8e91ca37bddb4b9aaf345551b4731da62949be002fa89283701
   rake-compiler (1.3.1) sha256=6b351612b6e2d73ddd5563ee799bb58685176e05363db6758504bd11573d670a
@@ -303,7 +317,7 @@ CHECKSUMS
   simplecov (0.22.0) sha256=fe2622c7834ff23b98066bb0a854284b2729a569ac659f82621fc22ef36213a5
   simplecov-html (0.13.2) sha256=bd0b8e54e7c2d7685927e8d6286466359b6f16b18cb0df47b508e8d73c777246
   simplecov_json_formatter (0.1.4) sha256=529418fbe8de1713ac2b2d612aa3daa56d316975d307244399fa4838c601b428
-  sinatra (3.0.5) sha256=40ec7643a65d01b9c25ab5f7cafc5c67ca0b9ac523fa728345d88de69392cee7
+  sinatra (4.2.1) sha256=b7aeb9b11d046b552972ade834f1f9be98b185fa8444480688e3627625377080
   sucker_punch (3.1.0) sha256=975c2fa09f09c0128b7cf6176f33797775557dd0610a834d89841a8cfa4e7e89
   tilt (2.1.0) sha256=bacb211cbcaf57d170bebf1ba8ab2986952305bee5a5e935fcf2e79b9a89b0e2
   tsort (0.2.0) sha256=9650a793f6859a43b6641671278f79cfead60ac714148aabe4e3f0060480089f

@@ -12,3 +12,159 @@
 #
 # Reviewed on a regular cadence; remove entries once the gem can be upgraded.
 ignore: []
+
+# Gem+version-scoped ignore list, checked in addition to `ignore` above.
+#
+# Unlike `ignore` (which suppresses an advisory id everywhere it appears,
+# regardless of gem or version), each entry here only suppresses findings
+# for that exact gem+version pair. If `bundle lock --update <gem>` is ever
+# re-run and moves the gem to a different version -- fixed or not -- the
+# finding stops matching and reappears in the audit instead of staying
+# silently hidden. Prefer this over `ignore` whenever the unresolvable
+# advisory is tied to a specific pinned version rather than the gem in
+# general.
+#
+# Each entry MUST be documented with:
+#   - the gem and the exact pinned version
+#   - why it cannot be upgraded (what pins it, and whether a fix exists upstream)
+#   - the date added and who reviewed it
+#
+# Reviewed on a regular cadence; remove entries once the gem can be upgraded.
+ignore_gem_versions:
+  # rack 1.6.13 -- gemfiles/ruby_{3.1,3.2,3.3,3.4,4.0}_devise_min.gemfile.lock
+  # and gemfiles/ruby_{3.1,3.2}_rack_1.gemfile.lock. Pinned by these Gemfiles'
+  # own old Rails/Devise/rack-1.x compatibility constraints; `bundle lock
+  # --update rack` cannot move it without editing the Gemfile itself.
+  # Added 2026-07-20, reviewed by Tony Hsu.
+  - gem: rack
+    version: 1.6.13
+    reason: "Pinned by devise_min/rack_1 Gemfiles' old Rails/Devise/rack-1.x compatibility constraints"
+
+  # actionpack 4.2.11.3 -- gemfiles/ruby_{3.1,3.2,3.3,3.4,4.0}_devise_min.gemfile.lock.
+  # Same old Rails floor as the rack entry above.
+  # Added 2026-07-20, reviewed by Tony Hsu.
+  - gem: actionpack
+    version: 4.2.11.3
+    reason: "Pinned by devise_min Gemfiles' old Rails version floor"
+
+  # activesupport 4.2.11.3 -- gemfiles/ruby_{3.1,3.2,3.3,3.4,4.0}_devise_min.gemfile.lock.
+  # Same old Rails floor as the rack entry above.
+  # Added 2026-07-20, reviewed by Tony Hsu.
+  - gem: activesupport
+    version: 4.2.11.3
+    reason: "Pinned by devise_min Gemfiles' old Rails version floor"
+
+  # devise 3.2.1 -- gemfiles/ruby_{3.1,3.2,3.3,3.4,4.0}_devise_min.gemfile.lock.
+  # This is the Gemfile's minimum-supported devise version by design (the
+  # gemfile exists to test against the oldest supported devise); there is no
+  # fixed 3.2.x release.
+  # Added 2026-07-20, reviewed by Tony Hsu.
+  - gem: devise
+    version: 3.2.1
+    reason: "devise_min Gemfiles intentionally pin the minimum supported devise version; no fixed 3.2.x release exists"
+
+  # faraday 0.17.6 -- gemfiles/ruby_{3.1,3.2,3.3,3.4,4.0}_contrib_old.gemfile.lock.
+  # Pinned below 1.0 by presto-client's own dependency on
+  # `faraday_middleware ~> 0.12.2`; even the latest presto-client (0.6.6)
+  # carries this constraint, so there is no upstream fix to relock into.
+  # Added 2026-07-20, reviewed by Tony Hsu.
+  - gem: faraday
+    version: 0.17.6
+    reason: "Pinned below 1.0 by presto-client's dependency on faraday_middleware ~> 0.12.2; no newer presto-client release relaxes this"
+
+  # sprockets 1.0.2 -- gemfiles/ruby_{3.4,4.0}_rails8_trilogy.gemfile.lock.
+  # Pinned `< 4` by the Gemfile itself.
+  # Added 2026-07-20, reviewed by Tony Hsu.
+  - gem: sprockets
+    version: 1.0.2
+    reason: "Pinned < 4 by the rails8_trilogy Gemfile itself"
+
+  # actionpack/actionview/activerecord/activestorage/activesupport 6.1.7.10 --
+  # the graphql_1.13/2.0/2.1/2.2/2.3, rails61_mysql2, rails61_postgres,
+  # rails61_postgres_redis, rails61_postgres_sidekiq, rails61_semantic_logger,
+  # rails61_trilogy, and rails_old_redis Gemfiles across ruby 3.1-4.0. Each of
+  # these pins `rails ~> 6.1.0`; 6.1.7.10 is the latest release satisfying that
+  # constraint (verified via `gem list --remote --all rails`). `bundle lock
+  # --update` cannot move past it without editing the Gemfile itself.
+  # Added 2026-08-11, reviewed by Tony Hsu.
+  - gem: actionpack
+    version: 6.1.7.10
+    reason: "Ceiling of rails ~> 6.1.0 constraint in graphql/rails61_*/rails_old_redis Gemfiles; no newer 6.1.x release exists"
+  - gem: actionview
+    version: 6.1.7.10
+    reason: "Ceiling of rails ~> 6.1.0 constraint in graphql/rails61_*/rails_old_redis Gemfiles; no newer 6.1.x release exists"
+  - gem: activerecord
+    version: 6.1.7.10
+    reason: "Ceiling of rails ~> 6.1.0 constraint in graphql/rails61_*/rails_old_redis Gemfiles; no newer 6.1.x release exists"
+  - gem: activestorage
+    version: 6.1.7.10
+    reason: "Ceiling of rails ~> 6.1.0 constraint in graphql/rails61_*/rails_old_redis Gemfiles; no newer 6.1.x release exists"
+  - gem: activesupport
+    version: 6.1.7.10
+    reason: "Ceiling of rails ~> 6.1.0 constraint in graphql/rails61_*/rails_old_redis Gemfiles; no newer 6.1.x release exists"
+
+  # actionview/activerecord/activestorage/activesupport 7.0.10 --
+  # gemfiles/ruby_{3.1,3.2,3.3,3.4,4.0}_rails7.gemfile.lock and (activerecord/
+  # activesupport only) ruby_{3.1..4.0}_relational_db.gemfile.lock. Pinned by
+  # `rails ~> 7.0.0`; 7.0.10 is the latest release satisfying that constraint.
+  # Added 2026-08-11, reviewed by Tony Hsu.
+  - gem: actionview
+    version: 7.0.10
+    reason: "Ceiling of rails ~> 7.0.0 constraint in rails7 Gemfiles; no newer 7.0.x release exists"
+  - gem: activerecord
+    version: 7.0.10
+    reason: "Ceiling of rails ~> 7.0.0 constraint in rails7/relational_db Gemfiles; no newer 7.0.x release exists"
+  - gem: activestorage
+    version: 7.0.10
+    reason: "Ceiling of rails ~> 7.0.0 constraint in rails7 Gemfiles; no newer 7.0.x release exists"
+  - gem: activesupport
+    version: 7.0.10
+    reason: "Ceiling of rails ~> 7.0.0 constraint in rails7/relational_db Gemfiles; no newer 7.0.x release exists"
+
+  # actionview/activestorage/activesupport 7.1.6 --
+  # gemfiles/ruby_{3.1,3.2,3.3,3.4,4.0}_rails71.gemfile.lock. Pinned by
+  # `rails ~> 7.1.0`; 7.1.6 is the latest release satisfying that constraint.
+  # Added 2026-08-11, reviewed by Tony Hsu.
+  - gem: actionview
+    version: 7.1.6
+    reason: "Ceiling of rails ~> 7.1.0 constraint in rails71 Gemfiles; no newer 7.1.x release exists"
+  - gem: activestorage
+    version: 7.1.6
+    reason: "Ceiling of rails ~> 7.1.0 constraint in rails71 Gemfiles; no newer 7.1.x release exists"
+  - gem: activesupport
+    version: 7.1.6
+    reason: "Ceiling of rails ~> 7.1.0 constraint in rails71 Gemfiles; no newer 7.1.x release exists"
+
+  # actionview 4.2.11.3 -- gemfiles/ruby_{3.1,3.2,3.3,3.4,4.0}_devise_min.gemfile.lock.
+  # Same old Rails version floor as the actionpack/activesupport 4.2.11.3
+  # entries above (build_coverage_matrix's intentional exact-version pin for
+  # minimum-supported-version test coverage).
+  # Added 2026-08-11, reviewed by Tony Hsu.
+  - gem: actionview
+    version: 4.2.11.3
+    reason: "Pinned by devise_min Gemfiles' old Rails version floor (intentional min-version test coverage)"
+
+  # sinatra 2.2.4 -- gemfiles/ruby_{3.1,3.2,3.3,3.4,4.0}_sinatra_2.gemfile.lock.
+  # Pinned by `sinatra ~> 2`; 2.2.4 is the latest 2.x release.
+  # Added 2026-08-11, reviewed by Tony Hsu.
+  - gem: sinatra
+    version: 2.2.4
+    reason: "Ceiling of sinatra ~> 2 constraint in sinatra_2 Gemfiles; no newer 2.x release exists"
+
+  # sinatra 3.2.0 -- gemfiles/ruby_{3.1,3.2,3.3,3.4,4.0}_sinatra_3.gemfile.lock
+  # (pinned by `sinatra ~> 3`) and gemfiles/ruby_3.3_rails_app.gemfile.lock
+  # (sinatra itself is unconstrained there, but the Gemfile's `rack ~> 2` pin
+  # transitively caps sinatra at 3.2.0, since sinatra 4.x requires rack 3).
+  # 3.2.0 is the latest release compatible with either constraint.
+  # Added 2026-08-11, reviewed by Tony Hsu.
+  - gem: sinatra
+    version: 3.2.0
+    reason: "Ceiling of sinatra ~> 3 constraint in sinatra_3 Gemfiles; also the highest sinatra rails_app's rack ~> 2 pin allows (sinatra 4.x requires rack 3)"
+
+  # sqlite3 1.7.3 -- gemfiles/ruby_{3.4,4.0}_relational_db.gemfile.lock.
+  # Pinned by an effective `sqlite3 ~> 1.4` constraint in these lockfiles'
+  # resolved DEPENDENCIES; 1.7.3 is the latest release satisfying it.
+  # Added 2026-08-11, reviewed by Tony Hsu.
+  - gem: sqlite3
+    version: 1.7.3
+    reason: "Ceiling of the resolved sqlite3 ~> 1.4 constraint in relational_db Gemfiles (ruby 3.4/4.0); no newer 1.x release exists"
