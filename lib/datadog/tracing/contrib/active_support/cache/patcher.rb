@@ -31,6 +31,11 @@ module Datadog
                 ::ActiveSupport::Cache::Store.prepend(Cache::Instrumentation::Store)
               end
 
+              # Backfill the `:namespace` key in the ActiveSupport event payload for older Rails.
+              if Integration.version < Gem::Version.new("8.0.0")
+                ::ActiveSupport::Cache::Store.prepend(Cache::Instrumentation::BackfillNamespace)
+              end
+
               # DEV-3.0: Backwards compatibility code for the 2.x gem series.
               # DEV-3.0: See documentation at {Datadog::Tracing::Contrib::ActiveSupport::Cache::Instrumentation}
               # DEV-3.0: for the complete information about this backwards compatibility code.
