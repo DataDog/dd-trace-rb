@@ -5,15 +5,15 @@ require "datadog/tracing/distributed/trace_state/datadog"
 RSpec.describe Datadog::Tracing::Distributed::TraceState::Datadog do
   let(:codec) { described_class }
 
-  describe "#build" do
-    subject(:build) do
+  describe "#to_s" do
+    subject(:serialized) do
       described_class.new(
         sampling_priority: 1,
         origin: "synthetics",
         ts_parent_id: "000000000000000f",
         tags: {"_dd.p.test" => "value"},
         unknown_fields: "future:value;"
-      ).build
+      ).to_s
     end
 
     it "builds the Datadog tracestate member" do
@@ -21,7 +21,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState::Datadog do
     end
 
     it "removes the trailing field separator" do
-      expect(described_class.new(sampling_priority: 1).build).to eq("dd=s:1")
+      expect(described_class.new(sampling_priority: 1).to_s).to eq("dd=s:1")
     end
   end
 

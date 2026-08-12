@@ -147,7 +147,7 @@ module Datadog
           end
 
           # Builds the `dd=` tracestate member.
-          def build
+          def to_s
             vendor = +"dd="
             if ts_parent_id
               field = "p:#{ts_parent_id};"

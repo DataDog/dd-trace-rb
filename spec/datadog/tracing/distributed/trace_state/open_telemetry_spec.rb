@@ -104,7 +104,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState::OpenTelemetry do
       let(:sampling_priority) { -1 }
 
       it "does not emit sampling fields" do
-        expect(resolved.build).to be_empty
+        expect(resolved.to_s).to be_empty
       end
     end
 
@@ -112,7 +112,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState::OpenTelemetry do
       let(:decision_maker) { Datadog::Tracing::Sampling::Ext::Decision::MANUAL }
 
       it "does not emit sampling fields" do
-        expect(resolved.build).to be_empty
+        expect(resolved.to_s).to be_empty
       end
     end
 
@@ -188,7 +188,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState::OpenTelemetry do
       let(:distributed_sampling_priority) { true }
 
       it "does not create ot values" do
-        expect(resolved.build).to be_empty
+        expect(resolved.to_s).to be_empty
       end
     end
 
@@ -196,7 +196,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState::OpenTelemetry do
       let(:applied_rate) { nil }
 
       it "does not create ot values" do
-        expect(resolved.build).to be_empty
+        expect(resolved.to_s).to be_empty
       end
     end
   end

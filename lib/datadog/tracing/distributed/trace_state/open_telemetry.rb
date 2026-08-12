@@ -94,7 +94,7 @@ module Datadog
             )
           end
 
-          def build
+          def to_s
             fields = []
             fields << "rv:#{random_value}" if random_value
             fields << "th:#{threshold}" if threshold

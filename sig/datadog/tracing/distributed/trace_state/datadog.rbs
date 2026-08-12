@@ -23,7 +23,7 @@ module Datadog
           attr_reader unknown_fields: ::String?
 
           def initialize: (?sampling_priority: ::Integer?, ?origin: ::String?, ?ts_parent_id: ::String?, ?tags: tags?, ?unknown_fields: ::String?) -> void
-          def build: -> ::String
+          def to_s: -> ::String
 
           private
 

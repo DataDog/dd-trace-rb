@@ -967,7 +967,7 @@ RSpec.describe Datadog::Tracing::Tracer do
             origin: digest.trace_origin,
             sampling_priority: digest.trace_sampling_priority,
             trace_state: an_object_having_attributes(
-              tracestate: "my-state",
+              unknown_vendors: "my-state",
               datadog: an_object_having_attributes(unknown_fields: "any;field")
             ),
           )

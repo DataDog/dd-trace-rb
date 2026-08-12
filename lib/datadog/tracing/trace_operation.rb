@@ -416,7 +416,7 @@ module Datadog
           trace_runtime_id: Core::Environment::Identity.id,
           trace_sampling_priority: @sampling_priority,
           trace_service: service,
-          trace_state: @trace_state.tracestate,
+          trace_state: @trace_state.unknown_vendors,
           trace_state_unknown_fields: @trace_state.datadog.unknown_fields,
           trace_otel_random_value: open_telemetry.random_value,
           trace_otel_threshold: open_telemetry.threshold,

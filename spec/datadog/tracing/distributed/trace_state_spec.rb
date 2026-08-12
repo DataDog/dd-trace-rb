@@ -4,7 +4,7 @@ require "datadog/tracing/distributed/trace_state"
 require "datadog/tracing/trace_digest"
 
 RSpec.describe Datadog::Tracing::Distributed::TraceState do
-  describe "#build" do
+  describe ".serialize_digest" do
     let(:digest) do
       Datadog::Tracing::TraceDigest.new(
         trace_sampling_priority: 1,
@@ -15,7 +15,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState do
     end
 
     it "assembles Datadog, OpenTelemetry, and pass-through vendors" do
-      expect(described_class.from_digest(digest).build).to eq(
+      expect(described_class.serialize_digest(digest)).to eq(
         "dd=s:1,ot=rv:ef284ace7a91e1;th:8,vendor=value"
       )
     end
@@ -25,7 +25,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState do
     subject(:extracted) { described_class.extract("dd=s:1,ot=rv:ef284ace7a91e1;th:8,vendor=value") }
 
     it "extracts owned vendors and preserves pass-through vendors" do
-      expect(extracted.tracestate).to eq("vendor=value")
+      expect(extracted.unknown_vendors).to eq("vendor=value")
       expect(extracted.datadog.sampling_priority).to eq(1)
       expect(extracted.open_telemetry).to have_attributes(
         random_value: "ef284ace7a91e1",
@@ -53,6 +53,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState do
     let(:propagate_sampling) { true }
 
     it "converts all parsed digest values" do
+      expect(trace_state.unknown_vendors).to eq(digest.trace_state)
       expect(trace_state.datadog).to have_attributes(
         sampling_priority: 1,
         origin: "synthetics",

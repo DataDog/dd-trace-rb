@@ -19,7 +19,7 @@ module Datadog
             rate_limiter_rate: ::Float?,
             distributed_sampling_priority: bool
           ) -> OpenTelemetry
-          def build: -> ::String
+          def to_s: -> ::String
 
           private
 

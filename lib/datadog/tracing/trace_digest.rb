@@ -72,10 +72,7 @@ module Datadog
       #   @return [Integer]
       #   @see https://www.w3.org/TR/trace-context/#trace-flags
       # @!attribute [r] trace_state
-      #   The W3C "tracestate" extracted from a distributed context.
-      #   This field is a string representing vendor-specific distribution data.
-      #   The `dd=` entry is removed from `trace_state` as its value is dynamically calculated
-      #   on every propagation injection.
+      #   W3C "tracestate" members other than `dd=` and `ot=`, which are stored in parsed fields.
       #   @return [String]
       #   @see https://www.w3.org/TR/trace-context/#tracestate-header
       # @!attribute [r] trace_state_unknown_fields

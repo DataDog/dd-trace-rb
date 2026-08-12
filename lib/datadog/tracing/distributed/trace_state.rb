@@ -14,9 +14,17 @@ module Datadog
         class << self
           def from_digest(digest, propagate_sampling: true)
             new(
-              tracestate: digest.trace_state,
+              unknown_vendors: digest.trace_state,
               datadog: Datadog.from_digest(digest),
               open_telemetry: OpenTelemetry.from_digest(digest, propagate_sampling: propagate_sampling),
+            )
+          end
+
+          def serialize_digest(digest)
+            serialize(
+              unknown_vendors: digest.trace_state,
+              datadog: Datadog.from_digest(digest),
+              open_telemetry: OpenTelemetry.from_digest(digest),
             )
           end
 
@@ -29,7 +37,7 @@ module Datadog
             otel_value = vendors.delete_at(otel_index).delete_prefix("ot=") if otel_index
 
             new(
-              tracestate: vendors.empty? ? nil : vendors.join(","),
+              unknown_vendors: vendors.empty? ? nil : vendors.join(","),
               datadog: Datadog.from_tracestate_member(datadog_value),
               open_telemetry: OpenTelemetry.from_tracestate_member(otel_value),
             )
@@ -55,58 +63,57 @@ module Datadog
             vendors.pop while vendors.last == ""
             vendors
           end
+
+          private
+
+          def serialize(unknown_vendors:, datadog:, open_telemetry:)
+            leading_vendors = select_leading_vendors(datadog, open_telemetry)
+            vendors = split(unknown_vendors)
+
+            if leading_vendors.empty?
+              return unless vendors && !vendors.empty?
+
+              return vendors.join(",")
+            end
+
+            vendors&.reject! { |vendor| vendor.start_with?("dd=", "ot=") }
+
+            tracestate = leading_vendors.join(",")
+            if vendors && !vendors.empty?
+              vendors.first(Ext::TRACESTATE_MAX_LIST_VENDORS - leading_vendors.size).each do |vendor|
+                break if tracestate.bytesize + vendor.bytesize + 1 > Ext::TRACESTATE_MAX_SIZE_LIMIT
+
+                tracestate << "," << vendor
+              end
+            end
+
+            tracestate
+          end
+
+          def select_leading_vendors(datadog, open_telemetry)
+            leading_vendors = []
+            add_leading_vendor(leading_vendors, datadog)
+            add_leading_vendor(leading_vendors, open_telemetry)
+
+            leading_vendors
+          end
+
+          def add_leading_vendor(leading_vendors, state)
+            vendor = state.to_s
+            return if vendor.empty?
+
+            combined_size = leading_vendors.sum { |current| current.bytesize } +
+              leading_vendors.size + vendor.bytesize
+            leading_vendors << vendor if combined_size <= Ext::TRACESTATE_MAX_SIZE_LIMIT
+          end
         end
 
-        attr_reader :tracestate, :datadog, :open_telemetry
+        attr_reader :unknown_vendors, :datadog, :open_telemetry
 
-        def initialize(tracestate: nil, datadog: nil, open_telemetry: nil)
-          @tracestate = tracestate
+        def initialize(unknown_vendors: nil, datadog: nil, open_telemetry: nil)
+          @unknown_vendors = unknown_vendors
           @datadog = datadog || Datadog.new
           @open_telemetry = open_telemetry || OpenTelemetry.new
-        end
-
-        # Builds the complete header from parsed Datadog and OpenTelemetry state.
-        def build
-          leading_vendors = select_leading_vendors
-          vendors = TraceState.split(tracestate)
-
-          if leading_vendors.empty?
-            return unless vendors && !vendors.empty?
-
-            return vendors.join(",")
-          end
-
-          vendors&.reject! { |vendor| vendor.start_with?("dd=", "ot=") }
-
-          tracestate = leading_vendors.join(",")
-          if vendors && !vendors.empty?
-            vendors.first(Ext::TRACESTATE_MAX_LIST_VENDORS - leading_vendors.size).each do |vendor|
-              break if tracestate.bytesize + vendor.bytesize + 1 > Ext::TRACESTATE_MAX_SIZE_LIMIT
-
-              tracestate << "," << vendor
-            end
-          end
-
-          tracestate
-        end
-
-        private
-
-        def select_leading_vendors
-          leading_vendors = []
-          add_leading_vendor(leading_vendors, datadog)
-          add_leading_vendor(leading_vendors, open_telemetry)
-
-          leading_vendors
-        end
-
-        def add_leading_vendor(leading_vendors, state)
-          vendor = state.build
-          return if vendor.empty?
-
-          combined_size = leading_vendors.sum { |current| current.bytesize } +
-            leading_vendors.size + vendor.bytesize
-          leading_vendors << vendor if combined_size <= Ext::TRACESTATE_MAX_SIZE_LIMIT
         end
       end
     end
