@@ -34,7 +34,11 @@ module Datadog
             module Delete
               def delete: (*untyped args) ?{ () -> untyped } -> untyped
             end
-            module BackfillNamespace
+            DELETE_NAMESPACE_KEY: "datadog_active_support_cache_delete_namespace"
+
+            module BackfillDeleteNamespace
+              def delete: (any name, ?::Hash[::Symbol, any]? options) -> untyped
+
               def instrument: (::Symbol operation, any key, ?::Hash[::Symbol, any]? call_options) ?{ (any payload) -> untyped } -> untyped
             end
           end

@@ -588,12 +588,30 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
       end
 
       context "with a callable namespace" do
-        let(:namespace) { -> { "callable-namespace" } }
+        let(:calls) { [] }
+        let(:namespace) do
+          lambda do
+            calls << :namespace
+            "callable-namespace"
+          end
+        end
 
-        it "tags the value the callable returns" do
+        it "does not tag the namespace" do
           expect(cache.read(key)).to eq(50)
 
-          expect(span.get_tag("rails.cache.namespace")).to eq("callable-namespace")
+          expect(span.get_tag("rails.cache.namespace")).to be_nil
+        end
+
+        it "leaves the callable to Rails instead of calling it for the tag" do
+          calls.clear
+          cache.read(key)
+          instrumented = calls.size
+
+          Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
+          calls.clear
+          cache.read(key)
+
+          expect(instrumented).to eq(calls.size)
         end
       end
 
@@ -632,6 +650,22 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
         expect(span.resource).to eq("DELETE")
         expect(span.get_tag("rails.cache.namespace")).to eq("my_model")
       end
+
+      context "with a namespace given for the call" do
+        it "prefers the namespace of the call over the one of the store" do
+          cache.delete(key, namespace: "per-call")
+
+          expect(span.get_tag("rails.cache.namespace")).to eq("per-call")
+        end
+      end
+
+      context "with the namespace of the store disabled for the call" do
+        it "does not tag the namespace" do
+          cache.delete(key, namespace: nil)
+
+          expect(span.get_tag("rails.cache.namespace")).to be_nil
+        end
+      end
     end
 
     describe "#write_multi" do
@@ -664,6 +698,15 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
           expect(span.get_tag("rails.cache.namespace")).to eq("per-call")
         end
       end
+
+      context "with the options of the call given as a trailing hash" do
+        it "reads the namespace from the hash and keeps it out of the keys" do
+          cache.read_multi(*multi_keys, {namespace: "per-call"})
+
+          expect(JSON.parse(span.get_tag("rails.cache.keys"))).to eq(multi_keys)
+          expect(span.get_tag("rails.cache.namespace")).to eq("per-call")
+        end
+      end
     end
 
     describe "#fetch" do
@@ -686,16 +729,25 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
         end
       end
 
-      context "when the callable namespace raises" do
-        let(:namespace) { -> { raise "boom" } }
+      context "with a callable namespace" do
+        let(:calls) { [] }
+        let(:namespace) do
+          lambda do
+            calls << :namespace
+            "callable-namespace"
+          end
+        end
 
-        it "reports the failure and leaves the error to Rails" do
-          allow(Datadog.logger).to receive(:error)
+        it "leaves the callable to Rails instead of calling it for the tag" do
+          calls.clear
+          cache.fetch("miss-1") { "default" }
+          instrumented = calls.size
 
-          expect { cache.fetch(key) { "default" } }.to raise_error("boom")
+          Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
+          calls.clear
+          cache.fetch("miss-2") { "default" }
 
-          expect(Datadog.logger).to have_received(:error).with(/boom/)
-          expect(span.get_tag("rails.cache.namespace")).to be_nil
+          expect(instrumented).to eq(calls.size)
         end
       end
     end
