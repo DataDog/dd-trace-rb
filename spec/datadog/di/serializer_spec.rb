@@ -433,7 +433,7 @@ RSpec.describe Datadog::DI::Serializer do
       let(:target_self) { Object.new }
 
       it "labels positional args with their real names" do
-        expect(serializer.serialize_args([1, "x"], {}, target_self, [:count, :label])).to eq(
+        expect(serializer.serialize_args([1, "x"], {}, target_self, param_names: [:count, :label])).to eq(
           count: {type: "Integer", value: "1"},
           label: {type: "String", value: "x"},
           self: {type: "Object", fields: {}},
@@ -443,7 +443,7 @@ RSpec.describe Datadog::DI::Serializer do
       it "falls back to arg-N labels for positions without a name" do
         # A nil name (e.g. attr_writer-generated methods) or a value absorbed
         # by a splat has no name; those positions keep the arg-N label.
-        expect(serializer.serialize_args([1, "x", 2], {}, target_self, [:count, nil])).to eq(
+        expect(serializer.serialize_args([1, "x", 2], {}, target_self, param_names: [:count, nil])).to eq(
           count: {type: "Integer", value: "1"},
           arg2: {type: "String", value: "x"},
           arg3: {type: "Integer", value: "2"},
@@ -452,7 +452,7 @@ RSpec.describe Datadog::DI::Serializer do
       end
 
       it "keeps arg-N labels when no names are given" do
-        expect(serializer.serialize_args([1, "x"], {}, target_self, nil)).to eq(
+        expect(serializer.serialize_args([1, "x"], {}, target_self, param_names: nil)).to eq(
           arg1: {type: "Integer", value: "1"},
           arg2: {type: "String", value: "x"},
           self: {type: "Object", fields: {}},
@@ -463,7 +463,7 @@ RSpec.describe Datadog::DI::Serializer do
         # def foo(path, **opts) called foo("/a", path: "override"): the positional
         # path and the keyword path are distinct values. Keying the positional
         # by its real name would let the keyword overwrite it in the merge.
-        expect(serializer.serialize_args(["/a"], {path: "override"}, target_self, [:path])).to eq(
+        expect(serializer.serialize_args(["/a"], {path: "override"}, target_self, param_names: [:path])).to eq(
           arg1: {type: "String", value: "/a"},
           path: {type: "String", value: "override"},
           self: {type: "Object", fields: {}},
@@ -474,7 +474,7 @@ RSpec.describe Datadog::DI::Serializer do
         # Keying by real name routes positional args through identifier
         # redaction; a positional named e.g. password is now redacted where
         # the arg-N label previously captured it in the clear.
-        expect(serializer.serialize_args(["secret"], {}, target_self, [:password])).to eq(
+        expect(serializer.serialize_args(["secret"], {}, target_self, param_names: [:password])).to eq(
           password: {type: "String", notCapturedReason: "redactedIdent"},
           self: {type: "Object", fields: {}},
         )
