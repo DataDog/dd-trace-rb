@@ -34,6 +34,11 @@ module Datadog
             module Delete
               def delete: (*untyped args) ?{ () -> untyped } -> untyped
             end
+            RESOLVED_NAMESPACE_KEY: "datadog_active_support_cache_resolved_namespace"
+
+            module ResolveNamespace
+              def namespace_key: (untyped key, ?untyped _options) -> untyped
+            end
             DELETE_NAMESPACE_KEY: "datadog_active_support_cache_delete_namespace"
 
             module BackfillDeleteNamespace
