@@ -100,6 +100,53 @@ RSpec.describe "WaterDrop middleware" do
           "existing" => "header"
         )
       end
+
+      it "does not raise for frozen existing headers" do
+        source_headers = {"existing" => "header", "binary" => "\x00\xFF".b}.freeze
+        message = {topic: "some_topic", payload: "hello", headers: source_headers}
+
+        expect { middleware.call(message) }.not_to raise_error
+      end
+
+      it "leaves the frozen source headers unchanged" do
+        source_headers = {"existing" => "header", "binary" => "\x00\xFF".b}.freeze
+        message = {topic: "some_topic", payload: "hello", headers: source_headers}
+
+        middleware.call(message)
+
+        expect(source_headers).to eq("existing" => "header", "binary" => "\x00\xFF".b)
+      end
+
+      it "keeps the source headers frozen" do
+        source_headers = {"existing" => "header", "binary" => "\x00\xFF".b}.freeze
+        message = {topic: "some_topic", payload: "hello", headers: source_headers}
+
+        middleware.call(message)
+
+        expect(source_headers).to be_frozen
+      end
+
+      it "copies the source headers before injecting the pathway context" do
+        source_headers = {"existing" => "header", "binary" => "\x00\xFF".b}.freeze
+        message = {topic: "some_topic", payload: "hello", headers: source_headers}
+
+        middleware.call(message)
+
+        expect(message[:headers]).not_to equal(source_headers)
+      end
+
+      it "preserves existing and binary headers while injecting the pathway context" do
+        source_headers = {"existing" => "header", "binary" => "\x00\xFF".b}.freeze
+        message = {topic: "some_topic", payload: "hello", headers: source_headers}
+
+        middleware.call(message)
+
+        expect(message[:headers]).to eq(
+          "existing" => "header",
+          "binary" => "\x00\xFF".b,
+          "data_streams_key" => "data_streams_value"
+        )
+      end
     end
 
     context "when DataStreams is disabled" do
