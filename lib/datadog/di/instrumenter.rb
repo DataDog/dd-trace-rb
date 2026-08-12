@@ -77,6 +77,10 @@ module Datadog
       # Maximum number of non-capturing probe emissions admitted per second across
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
+
+      # Marker module extended into each method-probe wrapper module so
+      # #original_target_method can distinguish DI wrappers from other
+      # prepended modules when resolving a method's original definition.
       module InstrumentedMethodMarker
       end
 
@@ -607,7 +611,7 @@ module Datadog
               # We do not need the stack for condition evaluation, therefore
               # stack is not passed to Context here.
               context = Context.new(
-                locals: serializer.combine_args(args, kwargs, target_self, positional_param_names),
+                locals: serializer.combine_args(args, kwargs, target_self, param_names: positional_param_names),
                 target_self: target_self,
                 probe: probe, settings: settings, serializer: serializer,
               )
@@ -660,7 +664,7 @@ module Datadog
             # Arguments may be mutated by the method, therefore
             # they need to be serialized prior to method invocation.
             serialized_entry_args = if probe.capture_snapshot?
-              serializer.serialize_args(args, kwargs, target_self, positional_param_names,
+              serializer.serialize_args(args, kwargs, target_self, param_names: positional_param_names,
                 deadline: serializer.serialization_deadline,
                 **probe.snapshot_serializer_limits(settings),)
             end
@@ -672,7 +676,7 @@ module Datadog
                 entry_context = Context.new(
                   probe: probe, settings: settings, serializer: serializer,
                   target_self: target_self,
-                  locals: serializer.combine_args(args, kwargs, target_self, positional_param_names),
+                  locals: serializer.combine_args(args, kwargs, target_self, param_names: positional_param_names),
                 )
                 entry_capture_result = capture_expression_evaluator.evaluate(probe, entry_context)
                 entry_capture_expressions = entry_capture_result.serialized_values
@@ -747,7 +751,7 @@ module Datadog
             # TODO capture arguments at exit
 
             capture_expression_locals = if probe.capture_expressions_only?
-              serializer.combine_args(args, kwargs, target_self, positional_param_names)
+              serializer.combine_args(args, kwargs, target_self, param_names: positional_param_names)
             end
             context = Context.new(locals: capture_expression_locals, target_self: target_self,
               probe: probe, settings: settings, serializer: serializer,

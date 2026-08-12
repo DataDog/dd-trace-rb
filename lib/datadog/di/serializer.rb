@@ -171,7 +171,7 @@ module Datadog
       #   argument key, falls back to the arg-N label. nil means no names are
       #   available and every position uses arg-N.
       # @return [Hash{Symbol=>Object}] argument values keyed by name, plus :self
-      def combine_args(args, kwargs, target_self, param_names = nil)
+      def combine_args(args, kwargs, target_self, param_names: nil)
         combined = {}
         args.each_with_index do |value, index|
           name = param_names && param_names[index]
@@ -210,13 +210,13 @@ module Datadog
       # @param collection_size [Integer, nil] maximum collection entries
       # @param deadline [Float] absolute capture deadline in thread CPU clock seconds
       # @return [Hash{Symbol=>Hash}] serialized argument values keyed by name
-      def serialize_args(args, kwargs, target_self, param_names = nil,
+      def serialize_args(args, kwargs, target_self, param_names: nil,
         deadline:,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
         length: nil,
         collection_size: nil)
-        combined = combine_args(args, kwargs, target_self, param_names)
+        combined = combine_args(args, kwargs, target_self, param_names: param_names)
         serialize_vars(combined, depth: depth, attribute_count: attribute_count,
           length: length, collection_size: collection_size, deadline: deadline,)
       end
