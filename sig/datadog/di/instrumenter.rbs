@@ -9,6 +9,9 @@ module Datadog
         def label: () -> String?
       end
 
+      # Marker module extended into each method-probe wrapper module so
+      # #original_target_method can distinguish DI wrappers from other
+      # prepended modules when resolving a method's original definition.
       module InstrumentedMethodMarker
       end
 
