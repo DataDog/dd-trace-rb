@@ -168,3 +168,26 @@ ignore_gem_versions:
   - gem: sqlite3
     version: 1.7.3
     reason: "Ceiling of the resolved sqlite3 ~> 1.4 constraint in relational_db Gemfiles (ruby 3.4/4.0); no newer 1.x release exists"
+
+  # nokogiri 1.18.10 -- gemfiles/ruby_3.1_{activesupport,devise_latest,
+  # devise_min,graphql_1.13,graphql_2.0,graphql_2.1,graphql_2.2,graphql_2.3,
+  # rails61_mysql2,rails61_postgres,rails61_postgres_redis,
+  # rails61_postgres_sidekiq,rails61_semantic_logger,rails61_trilogy,rails7,
+  # rails71,rails_old_redis}.gemfile.lock. nokogiri 1.19.0+ requires
+  # Ruby >= 3.2; verified via the RubyGems API and a failed
+  # `gem install nokogiri --version 1.19.4 --dry-run` inside a Ruby 3.1
+  # container. `bundle lock --update nokogiri` still resolves to 1.18.10 on
+  # Ruby 3.1 -- it is the latest installable release for that Ruby.
+  # Added 2026-08-12, reviewed by Tony Hsu.
+  - gem: nokogiri
+    version: 1.18.10
+    reason: "Latest nokogiri installable on Ruby 3.1; 1.19.0+ requires Ruby >= 3.2"
+
+  # sqlite3 2.8.1 -- gemfiles/ruby_3.1_relational_db.gemfile.lock. sqlite3
+  # 2.9.0+ requires Ruby >= 3.2 (verified via the RubyGems API); `bundle lock
+  # --update sqlite3` still resolves to 2.8.1 on Ruby 3.1 -- it is the latest
+  # installable release for that Ruby.
+  # Added 2026-08-12, reviewed by Tony Hsu.
+  - gem: sqlite3
+    version: 2.8.1
+    reason: "Latest sqlite3 installable on Ruby 3.1; 2.9.0+ requires Ruby >= 3.2"
