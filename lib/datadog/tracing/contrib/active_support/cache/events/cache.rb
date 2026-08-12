@@ -89,7 +89,19 @@ module Datadog
 
                 if Datadog.configuration.tracing[:active_support][:cache_key].enabled
                   set_cache_key(span, key, mapping[:multi_key])
-                  set_cache_namespace(span, payload[:namespace])
+                end
+              rescue => e
+                Datadog.logger.error("#{e.class}: #{e.message}")
+                Datadog::Core::Telemetry::Logger.report(e)
+              end
+
+              # A callable namespace is only known once ActiveSupport has normalized the key, which
+              # for most operations happens after the event has started.
+              def on_finish(span, event, id, payload)
+                super
+
+                if Datadog.configuration.tracing[:active_support][:cache_key].enabled
+                  ActiveSupport::Cache::Instrumentation.set_cache_namespace(span, payload[:namespace])
                 end
               rescue => e
                 Datadog.logger.error("#{e.class}: #{e.message}")
@@ -107,17 +119,6 @@ module Datadog
                   cache_key = Core::Utils.truncate(resolved_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
                   span.set_tag(Ext::TAG_CACHE_KEY, cache_key)
                 end
-              end
-
-              # The event payload reports the key without the namespace Rails prefixes onto it,
-              # so a namespaced key is ambiguous on its own.
-              #
-              # A callable namespace is left untagged: resolving it means calling customer code,
-              # which instrumentation must never do.
-              def set_cache_namespace(span, namespace)
-                return if !namespace || namespace.respond_to?(:call)
-
-                span.set_tag(Ext::TAG_CACHE_NAMESPACE, Core::Utils.truncate(namespace, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE))
               end
 
               # The name of the `store` is never saved by Rails.

@@ -58,12 +58,16 @@ module Datadog
 
                 span.set_tag(Ext::TAG_CACHE_BACKEND, store) if store
 
-                if Datadog.configuration.tracing[:active_support][:cache_key].enabled
-                  set_cache_key(span, key, multi_key)
-                  set_cache_namespace(span, namespace)
-                end
+                tag_cache_key = Datadog.configuration.tracing[:active_support][:cache_key].enabled
+                set_cache_key(span, key, multi_key) if tag_cache_key
 
-                yield
+                begin
+                  yield
+                ensure
+                  # A callable namespace is only known once ActiveSupport has normalized the key,
+                  # which it does while running the operation.
+                  set_cache_namespace(span, namespace) if tag_cache_key
+                end
               end
             end
 
@@ -97,13 +101,14 @@ module Datadog
               end
             end
 
-            # Rails prefixes the namespace onto the key when it normalizes it, which happens after
-            # the key reaches this instrumentation, so a namespaced key is ambiguous on its own.
+            # The reported key is the one the user gave, before Rails prefixes the namespace onto it
+            # while normalizing it, so it is ambiguous on its own.
             #
-            # A callable namespace is left untagged: resolving it means calling customer code,
-            # which instrumentation must never do.
+            # A callable is never invoked here, as instrumentation must not call customer code.
+            # The value ActiveSupport resolved it to is reported instead, see {ResolveNamespace}.
             def set_cache_namespace(span, namespace)
-              return if !namespace || namespace.respond_to?(:call)
+              namespace = Thread.current[RESOLVED_NAMESPACE_KEY] if namespace.respond_to?(:call)
+              return unless namespace
 
               span.set_tag(Ext::TAG_CACHE_NAMESPACE, Core::Utils.truncate(namespace, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE))
             end
@@ -230,6 +235,31 @@ module Datadog
               end
             end
 
+            RESOLVED_NAMESPACE_KEY = "datadog_active_support_cache_resolved_namespace"
+
+            # ActiveSupport resolves a callable namespace itself, while it normalizes the key of the
+            # operation. Recording what it resolved is what allows a callable to be reported without
+            # instrumentation ever invoking it.
+            #
+            # `#namespace_key` returns the key it is given prefixed with `"#{namespace}:"`, so the
+            # namespace is whatever it put in front of that key. It is the single place ActiveSupport
+            # applies the namespace, and exists since Rails 5.2; older versions inline it into
+            # `#normalize_key`, where the key is not yet expanded and the prefix cannot be isolated.
+            module ResolveNamespace
+              # Kept private, as prepending a public method would widen the visibility Rails gives it.
+              private
+
+              def namespace_key(key, _options = nil)
+                super.tap do |namespaced_key|
+                  next unless key.is_a?(::String) && namespaced_key.is_a?(::String)
+
+                  namespace_size = namespaced_key.bytesize - key.bytesize - 1
+                  Thread.current[RESOLVED_NAMESPACE_KEY] =
+                    (namespace_size < 0) ? nil : namespaced_key.byteslice(0, namespace_size)
+                end
+              end
+            end
+
             DELETE_NAMESPACE_KEY = "datadog_active_support_cache_delete_namespace"
 
             # ActiveSupport only forwards the call options to the `#delete` event since Rails 8, so
@@ -242,8 +272,9 @@ module Datadog
               def delete(name, options = nil)
                 previous = Thread.current[DELETE_NAMESPACE_KEY]
                 namespace = dd_cache_namespace(options)
-                # A callable is never reported, and putting one in the payload would let Rails'
-                # debug logging normalize the key with it, calling it once more.
+                # A callable is the one namespace `#delete` cannot report on these versions:
+                # putting one in the payload would let Rails' debug logging normalize the key
+                # with it, invoking it once more.
                 Thread.current[DELETE_NAMESPACE_KEY] = namespace.respond_to?(:call) ? nil : namespace
                 super
               ensure

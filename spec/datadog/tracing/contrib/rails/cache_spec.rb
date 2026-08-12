@@ -573,6 +573,23 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
 
     before { clear_traces! }
 
+    shared_context "a callable namespace" do
+      let(:calls) { [] }
+      let(:namespace) do
+        lambda do
+          calls << :namespace
+          "callable-namespace"
+        end
+      end
+    end
+
+    # Rails only resolves the namespace in `#namespace_key`, where it can be recorded, since 5.2.
+    def skip_unless_namespace_resolved_by_rails
+      return if ::ActiveSupport::Cache::Store.private_method_defined?(:namespace_key)
+
+      skip "Test is not applicable to this Rails version"
+    end
+
     describe "#read" do
       before do
         cache.write(key, 50)
@@ -588,18 +605,14 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
       end
 
       context "with a callable namespace" do
-        let(:calls) { [] }
-        let(:namespace) do
-          lambda do
-            calls << :namespace
-            "callable-namespace"
-          end
-        end
+        include_context "a callable namespace"
 
-        it "does not tag the namespace" do
+        it "tags the namespace Rails resolved the callable to" do
+          skip_unless_namespace_resolved_by_rails
+
           expect(cache.read(key)).to eq(50)
 
-          expect(span.get_tag("rails.cache.namespace")).to be_nil
+          expect(span.get_tag("rails.cache.namespace")).to eq("callable-namespace")
         end
 
         it "leaves the callable to Rails instead of calling it for the tag" do
@@ -641,6 +654,18 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
         expect(span.resource).to eq("SET")
         expect(span.get_tag("rails.cache.namespace")).to eq("my_model")
       end
+
+      context "with a callable namespace" do
+        include_context "a callable namespace"
+
+        it "tags the namespace Rails resolved the callable to" do
+          skip_unless_namespace_resolved_by_rails
+
+          cache.write(key, 50)
+
+          expect(span.get_tag("rails.cache.namespace")).to eq("callable-namespace")
+        end
+      end
     end
 
     describe "#delete" do
@@ -664,6 +689,34 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
           cache.delete(key, namespace: nil)
 
           expect(span.get_tag("rails.cache.namespace")).to be_nil
+        end
+      end
+
+      context "with a callable namespace" do
+        include_context "a callable namespace"
+
+        it "tags the namespace Rails resolved the callable to", if: Rails.version.to_i >= 8 do
+          cache.delete(key)
+
+          expect(span.get_tag("rails.cache.namespace")).to eq("callable-namespace")
+        end
+
+        it "does not tag the namespace", if: Rails.version.to_i < 8 do
+          cache.delete(key)
+
+          expect(span.get_tag("rails.cache.namespace")).to be_nil
+        end
+
+        it "leaves the callable to Rails instead of calling it for the tag" do
+          calls.clear
+          cache.delete(key)
+          instrumented = calls.size
+
+          Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
+          calls.clear
+          cache.delete(key)
+
+          expect(instrumented).to eq(calls.size)
         end
       end
     end
@@ -707,6 +760,30 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
           expect(span.get_tag("rails.cache.namespace")).to eq("per-call")
         end
       end
+
+      context "with a callable namespace" do
+        include_context "a callable namespace"
+
+        it "tags the namespace Rails resolved the callable to" do
+          skip_unless_namespace_resolved_by_rails
+
+          cache.read_multi(*multi_keys)
+
+          expect(span.get_tag("rails.cache.namespace")).to eq("callable-namespace")
+        end
+
+        it "leaves the callable to Rails instead of calling it for the tag" do
+          calls.clear
+          cache.read_multi(*multi_keys)
+          instrumented = calls.size
+
+          Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
+          calls.clear
+          cache.read_multi(*multi_keys)
+
+          expect(instrumented).to eq(calls.size)
+        end
+      end
     end
 
     describe "#fetch" do
@@ -730,12 +807,17 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
       end
 
       context "with a callable namespace" do
-        let(:calls) { [] }
-        let(:namespace) do
-          lambda do
-            calls << :namespace
-            "callable-namespace"
-          end
+        include_context "a callable namespace"
+
+        it "tags the namespace Rails resolved the callable to on the read and the write" do
+          skip_unless_namespace_resolved_by_rails
+
+          cache.fetch(key) { "default" }
+
+          expect(spans).to have(2).items
+          expect(spans.map { |span| span.get_tag("rails.cache.namespace") }).to eq(
+            ["callable-namespace", "callable-namespace"]
+          )
         end
 
         it "leaves the callable to Rails instead of calling it for the tag" do
@@ -772,6 +854,30 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
 
           expect(spans[0].resource).to eq("MGET")
           expect(spans[0].get_tag("rails.cache.namespace")).to eq("per-call")
+        end
+      end
+
+      context "with a callable namespace" do
+        include_context "a callable namespace"
+
+        it "tags the namespace Rails resolved the callable to" do
+          skip_unless_namespace_resolved_by_rails
+
+          cache.fetch_multi(*multi_keys) { |key| 50 + key[-1].to_i }
+
+          expect(spans.map { |span| span.get_tag("rails.cache.namespace") }.uniq).to eq(["callable-namespace"])
+        end
+
+        it "leaves the callable to Rails instead of calling it for the tag" do
+          calls.clear
+          cache.fetch_multi("miss-1", "miss-2") { |key| key }
+          instrumented = calls.size
+
+          Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
+          calls.clear
+          cache.fetch_multi("miss-3", "miss-4") { |key| key }
+
+          expect(instrumented).to eq(calls.size)
         end
       end
     end
