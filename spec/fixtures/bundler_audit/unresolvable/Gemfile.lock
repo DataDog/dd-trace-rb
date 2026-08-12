@@ -1,0 +1,17 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    rack (2.0.4)
+
+PLATFORMS
+  arm64-darwin-25
+  ruby
+
+DEPENDENCIES
+  rack (= 2.0.4)
+
+CHECKSUMS
+  rack (2.0.4) sha256=2700d52bdc681b103e161d1da2b3767850e58f3de80e87d16e232491058fd9d5
+
+BUNDLED WITH
+  4.0.10
