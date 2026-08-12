@@ -111,9 +111,11 @@ module Datadog
 
               # The event payload reports the key without the namespace Rails prefixes onto it,
               # so a namespaced key is ambiguous on its own.
+              #
+              # A callable namespace is left untagged: resolving it means calling customer code,
+              # which instrumentation must never do.
               def set_cache_namespace(span, namespace)
-                namespace = namespace.call if namespace.respond_to?(:call)
-                return unless namespace
+                return if !namespace || namespace.respond_to?(:call)
 
                 span.set_tag(Ext::TAG_CACHE_NAMESPACE, Core::Utils.truncate(namespace, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE))
               end
