@@ -89,6 +89,7 @@ module Datadog
 
                 if Datadog.configuration.tracing[:active_support][:cache_key].enabled
                   set_cache_key(span, key, mapping[:multi_key])
+                  set_cache_namespace(span, payload[:namespace])
                 end
               rescue => e
                 Datadog.logger.error("#{e.class}: #{e.message}")
@@ -106,6 +107,15 @@ module Datadog
                   cache_key = Core::Utils.truncate(resolved_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
                   span.set_tag(Ext::TAG_CACHE_KEY, cache_key)
                 end
+              end
+
+              # The event payload reports the key without the namespace Rails prefixes onto it,
+              # so a namespaced key is ambiguous on its own.
+              def set_cache_namespace(span, namespace)
+                namespace = namespace.call if namespace.respond_to?(:call)
+                return unless namespace
+
+                span.set_tag(Ext::TAG_CACHE_NAMESPACE, Core::Utils.truncate(namespace, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE))
               end
 
               # The name of the `store` is never saved by Rails.

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "../../../../core/telemetry/logger"
 require_relative "../../../../core/utils"
 require_relative "../../../metadata/ext"
 require_relative "../ext"
@@ -41,7 +42,8 @@ module Datadog
             # @param action [String] type of cache operation. Will be set as the span resource.
             # @param key [Object] redis cache key. Used for actions with a single key locator.
             # @param multi_key [Array<Object>] list of redis cache keys. Used for actions with a multiple key locators.
-            def trace(action, store, key: nil, multi_key: nil)
+            # @param namespace [Object] cache key namespace, as configured on the store or for this call.
+            def trace(action, store, key: nil, multi_key: nil, namespace: nil)
               return yield unless enabled?
 
               # create a new ``Span`` and add it to the tracing context
@@ -57,7 +59,10 @@ module Datadog
 
                 span.set_tag(Ext::TAG_CACHE_BACKEND, store) if store
 
-                set_cache_key(span, key, multi_key) if Datadog.configuration.tracing[:active_support][:cache_key].enabled
+                if Datadog.configuration.tracing[:active_support][:cache_key].enabled
+                  set_cache_key(span, key, multi_key)
+                  set_cache_namespace(span, namespace)
+                end
 
                 yield
               end
@@ -91,6 +96,20 @@ module Datadog
                 cache_key = Core::Utils.truncate(resolved_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
                 span.set_tag(Ext::TAG_CACHE_KEY, cache_key)
               end
+            end
+
+            # Rails prefixes the namespace onto the key when it normalizes it, which happens after
+            # the key reaches this instrumentation, so a namespaced key is ambiguous on its own.
+            def set_cache_namespace(span, namespace)
+              namespace = namespace.call if namespace.respond_to?(:call)
+              return unless namespace
+
+              span.set_tag(Ext::TAG_CACHE_NAMESPACE, Core::Utils.truncate(namespace, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE))
+            rescue => e
+              # A callable namespace is customer code. Rails invokes it again moments later while
+              # normalizing the key, so instrumentation must not be the frame that raises it.
+              Datadog.logger.error("#{e.class}: #{e.message}")
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             def enabled?
@@ -132,6 +151,18 @@ module Datadog
                 # DEV: used to remove the module ('*::') part of a constant name.
                 @store_name = self.class.name.demodulize.underscore
               end
+
+              # Mirrors the precedence `ActiveSupport::Cache::Store#namespace_key` applies: options
+              # passed to the call itself win over the ones the store was configured with.
+              # A callable namespace is returned unresolved, so it is only invoked if the span
+              # actually reports it.
+              def dd_cache_namespace(call_options)
+                if call_options.is_a?(::Hash) && call_options.key?(:namespace)
+                  call_options[:namespace]
+                else
+                  options[:namespace]
+                end
+              end
             end
 
             # Defines the the legacy monkey-patching instrumentation for ActiveSupport cache read_multi
@@ -143,7 +174,12 @@ module Datadog
               def read_multi(*keys, **options, &block)
                 return super if Instrumentation.nested_multiread?
 
-                Instrumentation.trace(Ext::RESOURCE_CACHE_MGET, dd_store_name, multi_key: keys) { super }
+                Instrumentation.trace(
+                  Ext::RESOURCE_CACHE_MGET,
+                  dd_store_name,
+                  multi_key: keys,
+                  namespace: dd_cache_namespace(options),
+                ) { super }
               end
             end
 
@@ -154,7 +190,12 @@ module Datadog
               def fetch(*args, &block)
                 return super if Instrumentation.nested_read?
 
-                Instrumentation.trace(Ext::RESOURCE_CACHE_GET, dd_store_name, key: args[0]) { super }
+                Instrumentation.trace(
+                  Ext::RESOURCE_CACHE_GET,
+                  dd_store_name,
+                  key: args[0],
+                  namespace: dd_cache_namespace(args[1]),
+                ) { super }
               end
             end
 
@@ -167,8 +208,15 @@ module Datadog
               def fetch_multi(*args, **options, &block)
                 return super if Instrumentation.nested_multiread?
 
-                keys = args[-1].instance_of?(Hash) ? args[0..-2] : args
-                Instrumentation.trace(Ext::RESOURCE_CACHE_MGET, dd_store_name, multi_key: keys) { super }
+                trailing_options = args[-1] if args[-1].instance_of?(Hash)
+                keys = trailing_options ? args[0..-2] : args
+
+                Instrumentation.trace(
+                  Ext::RESOURCE_CACHE_MGET,
+                  dd_store_name,
+                  multi_key: keys,
+                  namespace: dd_cache_namespace(trailing_options || options),
+                ) { super }
               end
             end
 
@@ -179,6 +227,21 @@ module Datadog
                 polyfill_options = options&.dup || {}
                 polyfill_options[:store] = self.class.name
                 super(operation, key, polyfill_options)
+              end
+            end
+
+            # ActiveSupport only forwards the call options to the `#delete` event since Rails 8, so
+            # on older versions the namespace never reaches the payload. Only the options the store
+            # was configured with can be recovered here, as `#delete` does not forward the ones
+            # given to the call either.
+            module BackfillNamespace
+              def instrument(operation, key, call_options = nil)
+                return super unless call_options.nil?
+
+                namespace = options[:namespace]
+                return super if namespace.nil?
+
+                super(operation, key, {namespace: namespace})
               end
             end
 

@@ -567,6 +567,172 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
     end
   end
 
+  context "with a namespaced cache store" do
+    let(:cache) { ActiveSupport::Cache::MemoryStore.new(namespace: namespace) }
+    let(:namespace) { "my_model" }
+
+    before { clear_traces! }
+
+    describe "#read" do
+      before do
+        cache.write(key, 50)
+        clear_traces!
+      end
+
+      it "tags the namespace alongside the key" do
+        expect(cache.read(key)).to eq(50)
+
+        expect(span.resource).to eq("GET")
+        expect(span.get_tag("rails.cache.key")).to eq(key)
+        expect(span.get_tag("rails.cache.namespace")).to eq("my_model")
+      end
+
+      context "with a callable namespace" do
+        let(:namespace) { -> { "callable-namespace" } }
+
+        it "tags the value the callable returns" do
+          expect(cache.read(key)).to eq(50)
+
+          expect(span.get_tag("rails.cache.namespace")).to eq("callable-namespace")
+        end
+      end
+
+      context "with a namespace given for the call" do
+        it "prefers the namespace of the call over the one of the store" do
+          cache.read(key, namespace: "per-call")
+
+          expect(span.get_tag("rails.cache.namespace")).to eq("per-call")
+        end
+      end
+
+      context "when cache_key.enabled is false" do
+        before { Datadog.configuration.tracing[:active_support][:cache_key].enabled = false }
+
+        it "does not tag the namespace" do
+          expect(cache.read(key)).to eq(50)
+
+          expect(span.get_tag("rails.cache.namespace")).to be_nil
+        end
+      end
+    end
+
+    describe "#write" do
+      it "tags the namespace" do
+        cache.write(key, 50)
+
+        expect(span.resource).to eq("SET")
+        expect(span.get_tag("rails.cache.namespace")).to eq("my_model")
+      end
+    end
+
+    describe "#delete" do
+      it "tags the namespace" do
+        cache.delete(key)
+
+        expect(span.resource).to eq("DELETE")
+        expect(span.get_tag("rails.cache.namespace")).to eq("my_model")
+      end
+    end
+
+    describe "#write_multi" do
+      before do
+        unless ::ActiveSupport::Cache::Store.public_method_defined?(:write_multi)
+          skip "Test is not applicable to this Rails version"
+        end
+      end
+
+      it "tags the namespace" do
+        cache.write_multi(multi_keys.zip([51, 52, 53]).to_h)
+
+        expect(span.resource).to eq("MSET")
+        expect(span.get_tag("rails.cache.namespace")).to eq("my_model")
+      end
+    end
+
+    describe "#read_multi" do
+      it "tags the namespace" do
+        cache.read_multi(*multi_keys)
+
+        expect(span.resource).to eq("MGET")
+        expect(span.get_tag("rails.cache.namespace")).to eq("my_model")
+      end
+
+      context "with a namespace given for the call" do
+        it "prefers the namespace of the call over the one of the store" do
+          cache.read_multi(*multi_keys, namespace: "per-call")
+
+          expect(span.get_tag("rails.cache.namespace")).to eq("per-call")
+        end
+      end
+    end
+
+    describe "#fetch" do
+      it "tags the namespace on the read and the write it performs on a miss" do
+        expect(cache.fetch(key) { "default" }).to eq("default")
+
+        expect(spans).to have(2).items
+        get, set = spans
+        expect(get.resource).to eq("GET")
+        expect(get.get_tag("rails.cache.namespace")).to eq("my_model")
+        expect(set.resource).to eq("SET")
+        expect(set.get_tag("rails.cache.namespace")).to eq("my_model")
+      end
+
+      context "with a namespace given for the call" do
+        it "prefers the namespace of the call over the one of the store" do
+          cache.fetch(key, namespace: "per-call") { "default" }
+
+          expect(spans[0].get_tag("rails.cache.namespace")).to eq("per-call")
+        end
+      end
+
+      context "when the callable namespace raises" do
+        let(:namespace) { -> { raise "boom" } }
+
+        it "reports the failure and leaves the error to Rails" do
+          allow(Datadog.logger).to receive(:error)
+
+          expect { cache.fetch(key) { "default" } }.to raise_error("boom")
+
+          expect(Datadog.logger).to have_received(:error).with(/boom/)
+          expect(span.get_tag("rails.cache.namespace")).to be_nil
+        end
+      end
+    end
+
+    describe "#fetch_multi" do
+      before do
+        unless ::ActiveSupport::Cache::Store.public_method_defined?(:fetch_multi)
+          skip "Test is not applicable to this Rails version"
+        end
+      end
+
+      it "tags the namespace" do
+        cache.fetch_multi(*multi_keys) { |key| 50 + key[-1].to_i }
+
+        expect(spans.map(&:resource)).to include("MGET")
+        expect(spans.map { |span| span.get_tag("rails.cache.namespace") }.uniq).to eq(["my_model"])
+      end
+
+      context "with a namespace given for the call" do
+        it "prefers the namespace of the call over the one of the store" do
+          cache.fetch_multi(*multi_keys, namespace: "per-call") { |key| 50 + key[-1].to_i }
+
+          expect(spans[0].resource).to eq("MGET")
+          expect(spans[0].get_tag("rails.cache.namespace")).to eq("per-call")
+        end
+      end
+    end
+  end
+
+  context "with a cache store without a namespace" do
+    it "does not tag the namespace" do
+      cache.write(key, 50)
+
+      expect(span.get_tag("rails.cache.namespace")).to be_nil
+    end
+  end
+
   context "with very large cache key and when cache_key.enabled is false" do
     before do
       Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
