@@ -55,6 +55,27 @@ RSpec.describe "WaterDrop middleware" do
           "x-datadog-parent-id" => span.id.to_s
         )
       end
+
+      it "copies frozen headers before propagating trace context" do
+        source_headers = {"existing" => "header"}.freeze
+        message = {topic: "topic_name", payload: "foo", headers: source_headers}
+
+        Datadog::Tracing.trace("test.span") do
+          middleware.call(message)
+        end
+
+        expect(message[:headers]).not_to equal(source_headers)
+      end
+
+      it "keeps the copied headers mutable for trace propagation" do
+        message = {topic: "topic_name", payload: "foo", headers: {"existing" => "header"}.freeze}
+
+        Datadog::Tracing.trace("test.span") do
+          middleware.call(message)
+        end
+
+        expect(message[:headers]).not_to be_frozen
+      end
     end
 
     context "when DataStreams is enabled" do
