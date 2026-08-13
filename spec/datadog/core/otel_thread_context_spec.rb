@@ -102,7 +102,7 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
     # In this example we create and kill a few threads,
     # and rely on the ruby_memcheck gem with spec:core_with_libdatadog_api_memcheck
     # to validate that we leave no memory behind for those threads.
-    it "releases the thread context when a Thread exits", if: RUBY_VERSION >= "3.3" do
+    it "releases the thread context when a Thread exits" do
       Thread.new do
         described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
       end.join
