@@ -88,6 +88,14 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
   )
 
   raise "FFE fixture submodule is missing or empty" if fixture_files.empty?
+  raise "unsupported regex fixture schema" unless regex_fixture.fetch("schema") ==
+    "datadog.ffe.targeting-regex-conformance/v1"
+  raise "unsupported regex fixture version" unless regex_fixture.fetch("schemaVersion") == 1
+  raise "unsupported regex contract version" unless regex_fixture.fetch("contractVersion") == "targeting-regex-v1"
+
+  regex_cases = regex_fixture.fetch("cases")
+  raise "regex fixture must contain 75 cases" unless regex_cases.length == 75
+  raise "regex fixture IDs must be unique" unless regex_cases.map { |test_case| test_case.fetch("id") }.uniq.length == 75
 
   subject(:evaluator) { described_class.new(configuration) }
 
@@ -116,7 +124,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
   end
 
   describe "targeting regex conformance" do
-    regex_fixture.fetch("cases").each do |test_case|
+    regex_cases.each do |test_case|
       rust_expectation = test_case.fetch("engineExpectations", {}).fetch("rustRulesBased") do
         {
           "compile" => test_case.fetch("expectedCompile"),
