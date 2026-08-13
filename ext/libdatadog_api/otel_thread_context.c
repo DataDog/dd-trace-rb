@@ -8,18 +8,6 @@
   #include <datadog/otel-thread-ctx.h>
   extern __thread const uint8_t *otel_thread_ctx_v1;
 
-  #ifdef HAVE_RB_RACTOR_LOCAL_STORAGE_VALUE_NEWKEY
-    #include <ruby/ractor.h>
-    static rb_ractor_local_key_t ractor_hooks_key;
-  #endif
-
-  #ifdef HAVE_RUBY_THREAD_STORAGE_API
-    static rb_internal_thread_specific_key_t otel_ctx_key;
-  #endif
-
-  static ID fiber_context_slot;
-  static const int BIG_ENDIAN_PACK_FLAGS = INTEGER_PACK_MSWORD_FIRST | INTEGER_PACK_BIG_ENDIAN;
-
   static void otel_ctx_handle_free(void *handle) {
     ddog_otel_thread_ctx_free((struct ddog_ThreadContextHandle *) handle);
   }
@@ -31,22 +19,32 @@
   };
 #endif
 
+#ifdef HAVE_RB_RACTOR_LOCAL_STORAGE_VALUE_NEWKEY
+  #include <ruby/ractor.h>
+  static rb_ractor_local_key_t ractor_hooks_key;
+#endif
+
+#ifdef HAVE_RUBY_THREAD_STORAGE_API
+  static rb_internal_thread_specific_key_t otel_ctx_key;
+#endif
+
+static ID fiber_context_slot;
+static const int BIG_ENDIAN_PACK_FLAGS = INTEGER_PACK_MSWORD_FIRST | INTEGER_PACK_BIG_ENDIAN;
+
 static VALUE native_set(VALUE _self, VALUE trace_id, VALUE span_id, VALUE local_root_span_id);
 static VALUE native_supported_p(VALUE _self);
 static VALUE native_enable(VALUE _self);
 static VALUE native_read(VALUE _self);
 
 void otel_thread_context_init(VALUE core_module) {
-  #ifdef __linux__
-    fiber_context_slot = rb_intern("__dd_otel_fiber_context");
+  fiber_context_slot = rb_intern("__dd_otel_fiber_context");
 
-    #ifdef HAVE_RUBY_THREAD_STORAGE_API
-      otel_ctx_key = rb_internal_thread_specific_key_create();
-    #endif
+  #ifdef HAVE_RUBY_THREAD_STORAGE_API
+    otel_ctx_key = rb_internal_thread_specific_key_create();
+  #endif
 
-    #ifdef HAVE_RB_RACTOR_LOCAL_STORAGE_VALUE_NEWKEY
-      ractor_hooks_key = rb_ractor_local_storage_value_newkey();
-    #endif
+  #ifdef HAVE_RB_RACTOR_LOCAL_STORAGE_VALUE_NEWKEY
+    ractor_hooks_key = rb_ractor_local_storage_value_newkey();
   #endif
 
   VALUE otel_thread_context_module = rb_define_module_under(core_module, "OTelThreadContext");
