@@ -77,7 +77,7 @@ RSpec.describe "ActionCable patcher", execute_in_fork: ::ActionCable.version.seg
       it_behaves_like "analytics for integration" do
         before do
           ActiveSupport::Notifications.instrument(
-            Datadog::Tracing::Contrib::ActionCable::Events::Broadcast::EVENT_NAME
+            Datadog::Tracing::Contrib::ActionCable::Events::Broadcast::EVENT_NAME,
           )
         end
 
@@ -88,7 +88,7 @@ RSpec.describe "ActionCable patcher", execute_in_fork: ::ActionCable.version.seg
       it_behaves_like "measured span for integration", false do
         before do
           ActiveSupport::Notifications.instrument(
-            Datadog::Tracing::Contrib::ActionCable::Events::Broadcast::EVENT_NAME
+            Datadog::Tracing::Contrib::ActionCable::Events::Broadcast::EVENT_NAME,
           )
         end
       end
@@ -108,7 +108,7 @@ RSpec.describe "ActionCable patcher", execute_in_fork: ::ActionCable.version.seg
 
           def foo(_data)
           end
-        end
+        end,
       )
     end
 
@@ -119,7 +119,7 @@ RSpec.describe "ActionCable patcher", execute_in_fork: ::ActionCable.version.seg
         logger: Logger.new($stdout),
         transmit: nil,
         identifiers: [],
-        config: double(filter_parameters: [])
+        config: double(filter_parameters: []),
       )
     end
 
@@ -188,7 +188,7 @@ RSpec.describe "ActionCable patcher", execute_in_fork: ::ActionCable.version.seg
       it_behaves_like "analytics for integration" do
         before do
           ActiveSupport::Notifications.instrument(
-            Datadog::Tracing::Contrib::ActionCable::Events::PerformAction::EVENT_NAME
+            Datadog::Tracing::Contrib::ActionCable::Events::PerformAction::EVENT_NAME,
           )
         end
 
@@ -199,7 +199,7 @@ RSpec.describe "ActionCable patcher", execute_in_fork: ::ActionCable.version.seg
       it_behaves_like "measured span for integration", true do
         before do
           ActiveSupport::Notifications.instrument(
-            Datadog::Tracing::Contrib::ActionCable::Events::PerformAction::EVENT_NAME
+            Datadog::Tracing::Contrib::ActionCable::Events::PerformAction::EVENT_NAME,
           )
         end
       end
@@ -225,7 +225,7 @@ RSpec.describe "ActionCable patcher", execute_in_fork: ::ActionCable.version.seg
             def foo(_data)
               transmit({mock: "data"}, via: "streamed from chat_channel")
             end
-          end
+          end,
         )
       end
 
@@ -250,7 +250,7 @@ RSpec.describe "ActionCable patcher", execute_in_fork: ::ActionCable.version.seg
       it_behaves_like "analytics for integration" do
         before do
           ActiveSupport::Notifications.instrument(
-            Datadog::Tracing::Contrib::ActionCable::Events::Transmit::EVENT_NAME
+            Datadog::Tracing::Contrib::ActionCable::Events::Transmit::EVENT_NAME,
           )
         end
 
@@ -261,7 +261,7 @@ RSpec.describe "ActionCable patcher", execute_in_fork: ::ActionCable.version.seg
       it_behaves_like "measured span for integration", false do
         before do
           ActiveSupport::Notifications.instrument(
-            Datadog::Tracing::Contrib::ActionCable::Events::Transmit::EVENT_NAME
+            Datadog::Tracing::Contrib::ActionCable::Events::Transmit::EVENT_NAME,
           )
         end
       end

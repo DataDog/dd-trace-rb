@@ -127,7 +127,7 @@ RSpec.describe Datadog::AIGuard do
 
         it "raises Datadog::AIGuard::AIGuardAbortError when allow_raise is set to true" do
           expect { described_class.evaluate(*messages, allow_raise: true) }.to raise_error(
-            Datadog::AIGuard::AIGuardAbortError
+            Datadog::AIGuard::AIGuardAbortError,
           )
         end
 

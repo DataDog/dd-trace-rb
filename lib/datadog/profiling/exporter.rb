@@ -112,7 +112,7 @@ module Datadog
               profile_stats: profile_stats,
               recorder_stats: pprof_recorder.stats,
               gc: GC.stat,
-            }
+            },
           ),
           info_json: info_json,
         )

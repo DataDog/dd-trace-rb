@@ -203,7 +203,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
       Datadog::Tracing::TraceOperation.new(
         id: 1,
         resource: "Rails::HealthController#show",
-        sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP
+        sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP,
       )
     end
 
@@ -211,7 +211,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
       trace.agent_sample_rate = 0.5
       trace.set_tag(
         Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-        Datadog::Tracing::Sampling::Ext::Decision::DEFAULT
+        Datadog::Tracing::Sampling::Ext::Decision::DEFAULT,
       )
     end
 
@@ -219,7 +219,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
       let(:post_sampler) do
         Datadog::Tracing::Sampling::RuleSampler.new(
           [Datadog::Tracing::Sampling::SimpleRule.new(resource: "Rails::HealthController#show", sample_rate: 0.0)],
-          rate_limit: nil
+          rate_limit: nil,
         )
       end
 
@@ -238,7 +238,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
       let(:post_sampler) do
         Datadog::Tracing::Sampling::RuleSampler.new(
           [Datadog::Tracing::Sampling::SimpleRule.new(resource: "Rails::HealthController#show", sample_rate: 1.0)],
-          rate_limit: nil
+          rate_limit: nil,
         )
       end
 
@@ -256,7 +256,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
       let(:post_sampler) do
         Datadog::Tracing::Sampling::RuleSampler.new(
           [Datadog::Tracing::Sampling::SimpleRule.new(resource: "OtherController#show", sample_rate: 0.0)],
-          rate_limit: nil
+          rate_limit: nil,
         )
       end
 

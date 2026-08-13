@@ -20,7 +20,7 @@ module Datadog
               def run(query)
                 Tracing.trace(
                   Ext::SPAN_QUERY,
-                  service: datadog_configuration[:service_name]
+                  service: datadog_configuration[:service_name],
                 ) do |span|
                   begin
                     span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
@@ -39,7 +39,7 @@ module Datadog
               def query(query, &blk)
                 Tracing.trace(
                   Ext::SPAN_QUERY,
-                  service: datadog_configuration[:service_name]
+                  service: datadog_configuration[:service_name],
                 ) do |span|
                   begin
                     span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
@@ -58,7 +58,7 @@ module Datadog
               def kill(query_id)
                 Tracing.trace(
                   Ext::SPAN_KILL,
-                  service: datadog_configuration[:service_name]
+                  service: datadog_configuration[:service_name],
                 ) do |span|
                   begin
                     span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
@@ -91,7 +91,7 @@ module Datadog
                 if datadog_configuration[:peer_service]
                   span.set_tag(
                     Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                    datadog_configuration[:peer_service]
+                    datadog_configuration[:peer_service],
                   )
                 end
 

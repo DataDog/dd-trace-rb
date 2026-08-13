@@ -97,7 +97,7 @@ module Datadog
           AT_FORK_REGISTRY_MUTEX.synchronize do
             current = @at_fork_blocks
             @at_fork_blocks = current.merge(
-              stage => (blocks_for(current, stage) + [Callback.new(block)]).freeze
+              stage => (blocks_for(current, stage) + [Callback.new(block)]).freeze,
             ).freeze
           end
 
@@ -129,7 +129,7 @@ module Datadog
             current = @at_fork_blocks
             callbacks = blocks_for(current, stage)
             @at_fork_blocks = current.merge(
-              stage => callbacks.reject { |callback| callback.block.equal?(block) }.freeze
+              stage => callbacks.reject { |callback| callback.block.equal?(block) }.freeze,
             ).freeze
           end
 

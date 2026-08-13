@@ -105,7 +105,7 @@ RSpec.describe Datadog::Core::Error do
              #{middle_caller}.*
              #{root_error_message}.*
              #{root_caller}.*
-             /mx
+             /mx,
             )
 
           # Expect 2 "first-class" exception lines: 'root cause' and 'wrapper layer'.

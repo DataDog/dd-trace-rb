@@ -78,7 +78,7 @@ module Datadog
             @counter = meter.create_counter(
               METRIC_NAME,
               unit: METRIC_UNIT,
-              description: METRIC_DESCRIPTION
+              description: METRIC_DESCRIPTION,
             )
           end
         rescue => e

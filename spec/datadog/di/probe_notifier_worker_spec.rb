@@ -48,7 +48,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       agent_settings: agent_settings,
       telemetry: telemetry,
       probe_repository: default_probe_repository,
-      probe_notification_builder: default_probe_notification_builder,
+      probe_notification_builder: default_probe_notification_builder
     )
   end
 
@@ -259,7 +259,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           agent_settings: agent_settings,
           telemetry: telemetry,
           probe_repository: probe_repository,
-          probe_notification_builder: probe_notification_builder,
+          probe_notification_builder: probe_notification_builder
         )
       end
 
@@ -360,7 +360,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           agent_settings: agent_settings,
           telemetry: nil,
           probe_repository: real_probe_repository,
-          probe_notification_builder: error_probe_notification_builder,
+          probe_notification_builder: error_probe_notification_builder
         )
       end
 

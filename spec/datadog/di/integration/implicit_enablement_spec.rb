@@ -371,7 +371,7 @@ RSpec.describe "DI implicit enablement integration" do
     # Poll N: only the LIVE_DEBUGGING probe (DI still stopped).
     let(:poll_with_probe_only) do
       DIHelpers::TestRemoteConfigGenerator.new(
-        {"datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec}
+        {"datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec},
       ).mock_response
     end
 
@@ -381,7 +381,7 @@ RSpec.describe "DI implicit enablement integration" do
         {
           "datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec,
           "datadog/2/APM_TRACING/lib_config/config" => {"lib_config" => {"dynamic_instrumentation_enabled" => true}},
-        }
+        },
       ).mock_response
     end
 

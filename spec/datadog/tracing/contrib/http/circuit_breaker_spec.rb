@@ -40,7 +40,7 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::CircuitBreaker do
       let(:active_span) do
         instance_double(
           Datadog::Tracing::Span,
-          name: Datadog::Tracing::Contrib::HTTP::Ext::SPAN_REQUEST
+          name: Datadog::Tracing::Contrib::HTTP::Ext::SPAN_REQUEST,
         )
       end
 

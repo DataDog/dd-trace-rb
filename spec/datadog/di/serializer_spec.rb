@@ -623,7 +623,7 @@ RSpec.describe Datadog::DI::Serializer do
         expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: ArgumentError/)
         expect(telemetry).to receive(:report).with(
           an_instance_of(ArgumentError),
-          description: "Custom serializer condition failed"
+          description: "Custom serializer condition failed",
         )
 
         serialized = serializer.serialize_value(invalid_utf8)
@@ -650,7 +650,7 @@ RSpec.describe Datadog::DI::Serializer do
         expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: ArgumentError/)
         expect(telemetry).to receive(:report).with(
           an_instance_of(ArgumentError),
-          description: "Custom serializer condition failed"
+          description: "Custom serializer condition failed",
         )
 
         serialized = serializer.serialize_value(invalid_utf8)
@@ -674,7 +674,7 @@ RSpec.describe Datadog::DI::Serializer do
         expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: NotImplementedError/)
         expect(telemetry).to receive(:report).with(
           an_instance_of(NotImplementedError),
-          description: "Custom serializer condition failed"
+          description: "Custom serializer condition failed",
         )
 
         serialized = serializer.serialize_value("trigger non-standard")
@@ -1176,7 +1176,7 @@ RSpec.describe Datadog::DI::Serializer do
       # Register a custom serializer that raises SystemStackError
       # This simulates what happens when a serializer creates infinite recursion
       Datadog::DI::Serializer.register(
-        condition: lambda { |value| DISerializerStackOverflowTestClass === value }
+        condition: lambda { |value| DISerializerStackOverflowTestClass === value },
       ) do |*args|
         raise SystemStackError, "stack level too deep (emulated infinite recursion)"
       end
@@ -1283,7 +1283,7 @@ RSpec.describe Datadog::DI::Serializer do
       # Register a custom serializer that raises NoMemoryError
       # This simulates what happens when trying to serialize extremely large objects
       Datadog::DI::Serializer.register(
-        condition: lambda { |value| DISerializerOutOfMemoryTestClass === value }
+        condition: lambda { |value| DISerializerOutOfMemoryTestClass === value },
       ) do |*args|
         raise NoMemoryError, "failed to allocate memory (emulated out of memory condition)"
       end

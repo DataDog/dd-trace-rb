@@ -53,7 +53,7 @@ RSpec.describe Datadog::Tracing::Contrib::Analytics do
         expect(span).to receive(:set_metric)
           .with(
             Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE,
-            sample_rate
+            sample_rate,
           )
 
         set_sample_rate

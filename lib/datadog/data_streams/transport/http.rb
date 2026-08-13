@@ -10,7 +10,7 @@ module Datadog
       # HTTP transport for Data Streams Monitoring
       module HTTP
         V01 = Stats::API::Endpoint.new(
-          "/v0.1/pipeline_stats"
+          "/v0.1/pipeline_stats",
         )
 
         module_function

@@ -519,7 +519,7 @@ module Datadog
                   Datadog.logger.warn(
                     "The profiling.advanced.preview_gvl_enabled setting has been deprecated for removal and " \
                     "no longer does anything. Please remove it from your Datadog.configure block. " \
-                    "GVL profiling is now controlled by the profiling.advanced.gvl_enabled setting instead."
+                    "GVL profiling is now controlled by the profiling.advanced.gvl_enabled setting instead.",
                   )
                 end
               end

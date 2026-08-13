@@ -32,7 +32,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
           hostname: nil,
           port: nil,
           uds_path: nil,
-          timeout_seconds: nil
+          timeout_seconds: nil,
         )
       end
       let(:config_adapter) { :adapter_foo }
@@ -272,7 +272,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
         it "configures the map with a fallback" do
           expect(api_instances).to include(
             key => kind_of(Datadog::Core::Transport::HTTP::API::Instance),
-            fallback_key => kind_of(Datadog::Core::Transport::HTTP::API::Instance)
+            fallback_key => kind_of(Datadog::Core::Transport::HTTP::API::Instance),
           )
           expect(api_instances.fallbacks[key]).to eq(fallback_key)
         end
@@ -302,7 +302,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
             expect(api_instances[key].headers).to eq(
               "X-Test-One" => "foo",
               "X-Test-Two" => "blah",
-              "X-Test-Three" => "baz"
+              "X-Test-Three" => "baz",
             )
           end
         end

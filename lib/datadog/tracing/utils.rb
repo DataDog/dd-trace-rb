@@ -78,7 +78,7 @@ module Datadog
 
           concatenate(
             Core::Utils::Time.now.to_i << 32,
-            Utils.next_id
+            Utils.next_id,
           )
         end
 

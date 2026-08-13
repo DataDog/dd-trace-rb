@@ -20,7 +20,7 @@ RSpec.describe Datadog::Core::Environment::Container do
         is_expected.to have_attributes(
           platform: platform,
           container_id: container_id,
-          task_uid: task_uid
+          task_uid: task_uid,
         )
       end
     end
@@ -277,7 +277,7 @@ RSpec.describe Datadog::Core::Environment::Container do
         expect(headers).to include(
           "Datadog-Container-ID" => container_id,
           "Datadog-Entity-ID" => "ci-#{container_id}",
-          "Datadog-External-Env" => external_env_value
+          "Datadog-External-Env" => external_env_value,
         )
       end
     end

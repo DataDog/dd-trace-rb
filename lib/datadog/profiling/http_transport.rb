@@ -40,7 +40,7 @@ module Datadog
       def export(flush)
         status, result = self.class._native_do_export(
           exporter_configuration,
-          flush
+          flush,
         )
 
         if status == :ok
@@ -50,10 +50,10 @@ module Datadog
           else
             Datadog.logger.warn(
               "Failed to report profiling data (#{config_without_api_key}): " \
-              "server returned unexpected HTTP #{result} status code"
+              "server returned unexpected HTTP #{result} status code",
             )
             Datadog::Core::Telemetry::Logger.error(
-              "Failed to report profiling data: unexpected HTTP #{result} status code"
+              "Failed to report profiling data: unexpected HTTP #{result} status code",
             )
             false
           end

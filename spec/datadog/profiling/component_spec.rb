@@ -67,7 +67,7 @@ RSpec.describe Datadog::Profiling::Component do
       context "when an exception is raised during initialization" do
         before do
           expect(Datadog::Profiling::HttpTransport).to receive(:new).and_raise(
-            ArgumentError.new("Failed to initialize transport: something went wrong")
+            ArgumentError.new("Failed to initialize transport: something went wrong"),
           )
         end
 
@@ -490,7 +490,7 @@ RSpec.describe Datadog::Profiling::Component do
         it "sets up the Profiler with the CpuAndWallTimeWorker collector" do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
             worker: instance_of(Datadog::Profiling::Collectors::CpuAndWallTimeWorker),
-            scheduler: anything
+            scheduler: anything,
           )
 
           build_profiler_component
@@ -515,8 +515,8 @@ RSpec.describe Datadog::Profiling::Component do
               internal_metadata: {
                 no_signals_workaround_enabled: :no_signals_result,
                 heap_sample_every: 456,
-              }
-            )
+              },
+            ),
           )
 
           build_profiler_component
@@ -550,7 +550,7 @@ RSpec.describe Datadog::Profiling::Component do
 
         it "passes the setting value to HttpTransport" do
           expect(Datadog::Profiling::HttpTransport).to receive(:new).with(
-            hash_including(use_system_dns: :experimental_use_system_dns_setting_value)
+            hash_including(use_system_dns: :experimental_use_system_dns_setting_value),
           )
 
           build_profiler_component
@@ -770,7 +770,7 @@ RSpec.describe Datadog::Profiling::Component do
       context "when overhead_target_percentage is invalid value (#{invalid_value})" do
         it "logs an error" do
           expect(logger).to receive(:warn).with(
-            /Ignoring invalid value for profiling overhead_target_percentage/
+            /Ignoring invalid value for profiling overhead_target_percentage/,
           )
 
           valid_overhead_target
@@ -803,7 +803,7 @@ RSpec.describe Datadog::Profiling::Component do
 
       it "logs a warning" do
         expect(logger).to receive(:warn).with(
-          /cpu_sampling_interval_ms is set to 11ms, but values above 10ms are not supported.*overhead_target_percentage/
+          /cpu_sampling_interval_ms is set to 11ms, but values above 10ms are not supported.*overhead_target_percentage/,
         )
 
         valid_cpu_sampling_interval
@@ -861,7 +861,7 @@ RSpec.describe Datadog::Profiling::Component do
 
         it "logs a warning message mentioning that this is is not recommended" do
           expect(logger).to receive(:warn).with(
-            /workaround has been disabled via configuration.*This is not recommended/
+            /workaround has been disabled via configuration.*This is not recommended/,
           )
 
           no_signals_workaround_enabled?

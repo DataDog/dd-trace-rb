@@ -206,7 +206,7 @@ module Datadog
                 args, kwargs, target_block, # steep:ignore FallbackAny
                 self,
                 probe, responder,
-                loc, method_name,
+                loc, method_name
               ) do
                 super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
               end
@@ -226,7 +226,7 @@ module Datadog
                 pos_args, kwargs, target_block,
                 self,
                 probe, responder,
-                loc, method_name,
+                loc, method_name
               ) do
                 super(*args, &target_block)
               end
@@ -491,7 +491,7 @@ module Datadog
               context = Context.new(
                 locals: serializer.combine_args(args, kwargs, target_self),
                 target_self: target_self,
-                probe: probe, settings: settings, serializer: serializer,
+                probe: probe, settings: settings, serializer: serializer
               )
               continue = condition.satisfied?(context)
             rescue Exception => exc # standard:disable Lint/RescueException
@@ -544,7 +544,7 @@ module Datadog
                 entry_context = Context.new(
                   probe: probe, settings: settings, serializer: serializer,
                   target_self: target_self,
-                  locals: serializer.combine_args(args, kwargs, target_self),
+                  locals: serializer.combine_args(args, kwargs, target_self)
                 )
                 entry_capture_expressions, entry_capture_evaluation_errors =
                   capture_expression_evaluator.evaluate(probe, entry_context)
@@ -626,7 +626,7 @@ module Datadog
               entry_capture_expressions: entry_capture_expressions,
               entry_capture_evaluation_errors: entry_capture_evaluation_errors,
               caller_locations: caller_locs,
-              return_value: rv, duration: duration, exception: exc,)
+              return_value: rv, duration: duration, exception: exc)
 
             begin
               responder.probe_executed_callback(context)

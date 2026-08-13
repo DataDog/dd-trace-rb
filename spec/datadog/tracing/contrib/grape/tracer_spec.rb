@@ -99,7 +99,7 @@ RSpec.describe "Grape instrumentation" do
         get "/path/with/leading/slash" do
           "leading-slash"
         end
-      end
+      end,
     )
   end
 
@@ -135,7 +135,7 @@ RSpec.describe "Grape instrumentation" do
         get "/path/with/leading/slash" do
           "leading-slash"
         end
-      end
+      end,
     )
 
     # create a custom Rack application with the Rack middleware and a Grape API

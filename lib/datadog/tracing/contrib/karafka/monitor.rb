@@ -54,7 +54,7 @@ module Datadog
                     Datadog::DataStreams.track_kafka_consume(
                       job.executor.topic.name,
                       job.executor.partition,
-                      message.metadata.offset
+                      message.metadata.offset,
                     )
                   end
                 end

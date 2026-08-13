@@ -26,7 +26,7 @@ namespace :edge do
       Bundler.with_unbundled_env do
         output, = Open3.capture2e(
           {"BUNDLE_GEMFILE" => gemfile.to_s},
-          "bundle lock --update #{gemspec_runtime_dependencies.map(&:name).join(" ")}"
+          "bundle lock --update #{gemspec_runtime_dependencies.map(&:name).join(" ")}",
         )
 
         puts output

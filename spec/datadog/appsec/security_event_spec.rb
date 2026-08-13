@@ -57,7 +57,7 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -76,7 +76,7 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -97,7 +97,7 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 
@@ -116,7 +116,7 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 

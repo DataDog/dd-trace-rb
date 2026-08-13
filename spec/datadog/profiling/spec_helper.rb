@@ -26,7 +26,7 @@ module ProfileHelpers
     if PlatformHelpers.mac? && ENV["DD_PROFILING_MACOS_TESTING"] != "true"
       testcase.skip(
         "Profiling is not supported on macOS. If you still want to run these specs, you can use " \
-        "DD_PROFILING_MACOS_TESTING=true to override this check."
+        "DD_PROFILING_MACOS_TESTING=true to override this check.",
       )
     end
 

@@ -38,7 +38,7 @@ RSpec.describe Datadog::AppSec::APISecurity::EndpointCollection::RailsRouteSeria
     it "uses specified method in method_override argument" do
       result = described_class.serialize(
         build_route_double(method: "GET|POST", path: "/search"),
-        method_override: "GET"
+        method_override: "GET",
       )
 
       aggregate_failures "path attributes" do
@@ -52,7 +52,7 @@ RSpec.describe Datadog::AppSec::APISecurity::EndpointCollection::RailsRouteSeria
     instance_double(
       "ActionDispatch::Journey::Route",
       verb: method,
-      path: instance_double("ActionDispatch::Journey::Path::Pattern", spec: path)
+      path: instance_double("ActionDispatch::Journey::Path::Pattern", spec: path),
     )
   end
 end

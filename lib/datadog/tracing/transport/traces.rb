@@ -78,7 +78,7 @@ module Datadog
               encoder,
               trace,
               logger: logger,
-              native_events_supported: @native_events_supported
+              native_events_supported: @native_events_supported,
             )
 
             if encoded.size > max_size
@@ -125,7 +125,7 @@ module Datadog
             chunker = Datadog::Tracing::Transport::Traces::Chunker.new(
               encoder,
               logger: logger,
-              native_events_supported: native_events_supported?
+              native_events_supported: native_events_supported?,
             )
 
             responses = chunker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count|
