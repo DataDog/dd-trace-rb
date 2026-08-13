@@ -59,6 +59,7 @@
 #include "private_vm_api_access.h"
 
 static inline const rb_callable_method_entry_t* get_cfunc_method_entry(const rb_control_frame_t *cfp);
+static const rb_callable_method_entry_t* safe_vm_frame_method_entry(const rb_control_frame_t *cfp);
 
 // MRI has a similar rb_thread_ptr() function which we can't call it directly
 // because Ruby does not expose the thread_data_type publicly.
@@ -525,7 +526,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
                 continue;
             }
 
-            cme = rb_vm_frame_method_entry(cfp);
+            cme = safe_vm_frame_method_entry(cfp);
 
             // Upstream (Ruby 4.0) does:
             // if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
@@ -639,31 +640,36 @@ check_method_entry(VALUE obj, int can_be_svar) {
 
   return NULL;
 }
+#endif // RUBY_MJIT_HEADER
 
-// Taken from upstream vm_insnhelper.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
-// Copyright (C) 2007 Koichi Sasada
-// to support our custom rb_profile_frames (see above)
+// Identical to upstream rb_vm_frame_method_entry (vm_insnhelper.c) with two additions:
+// 1. FIXNUM_P check on ep[FLAGS] before each iteration to detect torn EPs
+// 2. NULL check on ep after VM_ENV_PREV_EP
 //
-// While older Rubies may have this function, the symbol is not exported which leads to dynamic loader issues, e.g.
-// `dyld: lazy symbol binding failed: Symbol not found: _rb_vm_frame_method_entry`.
-//
-// Modifications: None
-MJIT_STATIC const rb_callable_method_entry_t *
-rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
+// When the profiler's signal handler interrupts vm_make_env_each (vm.c) mid-escape,
+// a child frame's SPECVAL can still point to the parent's old stack EP whose flags
+// slot has been overwritten with (VALUE)env for GC marking.
+static const rb_callable_method_entry_t *
+safe_vm_frame_method_entry(const rb_control_frame_t *cfp)
 {
     const VALUE *ep = cfp->ep;
     rb_callable_method_entry_t *me;
 
-    while (!VM_ENV_LOCAL_P(ep)) {
+    // Torn-EP check before VM_ENV_LOCAL_P, check_method_entry, and VM_ENV_PREV_EP
+    // dereference ep
+    while (FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS]) && !VM_ENV_LOCAL_P(ep)) {
         if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) {
             return me;
         }
         ep = VM_ENV_PREV_EP(ep);
+        if (ep == NULL) return NULL;
     }
+
+    // If we exited because of a torn EP (failed FIXNUM_P), bail out
+    if (!FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS])) return NULL;
 
     return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
 }
-#endif // RUBY_MJIT_HEADER
 
 // Optimized version of rb_vm_frame_method_entry() for cfunc frames.
 // Cfunc frames always have VM_ENV_FLAG_LOCAL set, so ep[-2] is the cme directly
@@ -943,6 +949,7 @@ static bool has_permanent_classpath(DDTRACE_UNUSED VALUE mod, DDTRACE_UNUSED VAL
 
 #define ONLY_METHOD_NAME ((ssize_t) -1)
 #define BUFFER_OUT_OF_SPACE ((ssize_t) -2)
+#define NO_METHOD_NAME ((ssize_t) -3)
 
 static ssize_t rb_gen_method_name(VALUE owner, VALUE method_name, char *buf, size_t buf_size) {
   if (!(RB_TYPE_P(owner, T_CLASS) || RB_TYPE_P(owner, T_MODULE))) {
@@ -1032,6 +1039,9 @@ static ssize_t calculate_iseq_label(VALUE owner, const rb_iseq_t *iseq, char *bu
 ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq, char *buf, size_t buf_size) {
   if (location_cfunc_p(cme)) {
     VALUE method_name = rb_id2str(cme->def->original_id);
+    if (method_name == Qfalse) {
+      return NO_METHOD_NAME;
+    }
     return rb_gen_method_name(cme->owner, method_name, buf, buf_size);
   } else {
     VALUE owner = cme ? cme->owner : Qnil;
@@ -1039,6 +1049,7 @@ ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_i
   }
 }
 
+// Returns a String or Qfalse (like rb_id2str())
 VALUE ddtrace_location_base_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq) {
   if (location_cfunc_p(cme)) {
     return rb_id2str(cme->def->original_id);
@@ -1047,10 +1058,13 @@ VALUE ddtrace_location_base_label(const rb_callable_method_entry_t *cme, const r
   }
 }
 
+// Always returns a String
 VALUE ddtrace_iseq_base_label(const rb_iseq_t *iseq) {
   return rb_iseq_base_label(iseq);
 }
 
+// Always returns a String
+// See https://github.com/ruby/ruby/blob/75aeb225b8558ff908ea78bf608dfbba09bdc2f9/iseq.c#L564-L565
 VALUE ddtrace_iseq_path(const rb_iseq_t *iseq) {
   return rb_iseq_path(iseq);
 }

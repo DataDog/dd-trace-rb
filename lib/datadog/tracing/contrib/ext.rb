@@ -31,7 +31,7 @@ module Datadog
           PEER_SERVICE_SOURCES = [TAG_INSTANCE,
             Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
             Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
-            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
+            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST].freeze
         end
 
         module RPC
@@ -41,7 +41,7 @@ module Datadog
           PEER_SERVICE_SOURCES = [TAG_SERVICE,
             Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
             Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
-            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
+            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST].freeze
           module GRPC
             TAG_STATUS_CODE = "rpc.grpc.status_code"
             TAG_FULL_METHOD = "rpc.grpc.full_method"
@@ -53,7 +53,7 @@ module Datadog
           TAG_DESTINATION = "messaging.destination"
           PEER_SERVICE_SOURCES = [Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
             Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
-            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
+            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST].freeze
         end
 
         module Metadata

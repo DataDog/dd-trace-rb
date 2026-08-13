@@ -26,7 +26,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g47f47df86aeb379fb8b31dc6ad91a91bb3c97516
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g27019b38640025d7722ca3969437962037b5877f
       env:
         BUNDLE_GEMFILE: tools/yard.gemfile
         BUNDLE_FROZEN: "true"

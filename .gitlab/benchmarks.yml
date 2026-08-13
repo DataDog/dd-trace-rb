@@ -378,7 +378,9 @@ microbenchmarks-pr-comment:
 # If bypassing is necessary, see https://datadoghq.atlassian.net/wiki/x/8YFzMwE for more details.
 microbenchmarks-check-big-regressions:
   stage: microbenchmarks
-  needs: ["microbenchmarks"]
+  needs:
+    - job: microbenchmarks
+      optional: true
   tags: ["arch:amd64"]
   image: $BASE_CI_IMAGE
   timeout: 30m

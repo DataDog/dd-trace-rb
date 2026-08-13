@@ -48,7 +48,7 @@ module DIHelpers
           "v" => 1,
         },
         "hashes" => {"sha256" => Digest::SHA256.hexdigest(encoded)},
-        "length" => encoded.length
+        "length" => encoded.length,
       }
     end
 

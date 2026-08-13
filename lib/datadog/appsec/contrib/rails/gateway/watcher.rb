@@ -26,7 +26,7 @@ module Datadog
                   limit = Datadog.configuration.appsec.body_parsing_size_limit
 
                   persistent_data = {
-                    "server.request.path_params" => gateway_request.route_params
+                    "server.request.path_params" => gateway_request.route_params,
                   }
 
                   unless limit.zero?
@@ -67,7 +67,7 @@ module Datadog
                   context = container.context
 
                   persistent_data = {
-                    "server.response.body" => container.data
+                    "server.response.body" => container.data,
                   }
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 

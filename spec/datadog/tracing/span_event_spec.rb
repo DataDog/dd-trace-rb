@@ -105,7 +105,7 @@ RSpec.describe Datadog::Tracing::SpanEvent do
           "string_arr" => %w[ab cd],
           "bool_arr" => [true, false],
           "int_arr" => [1, 2],
-          "float_arr" => [1.0, 2.0]
+          "float_arr" => [1.0, 2.0],
         }
       end
 

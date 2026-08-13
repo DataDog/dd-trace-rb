@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.40.0)
+    datadog (2.41.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.4)
-      libdatadog (~> 36.0.0.1.0)
+      libdatadog (~> 40.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -40,13 +40,13 @@ GEM
     googleapis-common-protos-types (1.12.0)
       google-protobuf (~> 3.18)
     hashdiff (1.2.1)
-    io-console (0.8.2)
+    io-console (0.9.1)
     json-schema (4.3.1)
       addressable (>= 2.8)
-    libdatadog (36.0.0.1.0)
-    libdatadog (36.0.0.1.0-aarch64-linux)
-    libdatadog (36.0.0.1.0-arm64-darwin)
-    libdatadog (36.0.0.1.0-x86_64-linux)
+    libdatadog (40.0.0.1.0)
+    libdatadog (40.0.0.1.0-aarch64-linux)
+    libdatadog (40.0.0.1.0-arm64-darwin)
+    libdatadog (40.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.2-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-arm64-darwin)
@@ -58,7 +58,7 @@ GEM
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    msgpack (1.8.3)
+    msgpack (1.8.4)
     opentelemetry-api (1.1.0)
     opentelemetry-common (0.19.7)
       opentelemetry-api (~> 1.0)
@@ -87,7 +87,7 @@ GEM
     rake (13.4.2)
     rake-compiler (1.3.1)
       rake
-    reline (0.6.3)
+    reline (0.7.0)
       io-console (~> 0.5)
     rexml (3.4.4)
     rspec (3.13.2)
@@ -121,7 +121,7 @@ GEM
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
-    zstd-ruby (2.0.6)
+    zstd-ruby (2.0.7)
 
 PLATFORMS
   aarch64-linux

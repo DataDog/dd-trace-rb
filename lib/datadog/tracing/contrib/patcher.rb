@@ -57,7 +57,7 @@ module Datadog
             @patch_error_result = {
               type: e.class.name,
               message: e.message,
-              line: Array(e.backtrace).first
+              line: Array(e.backtrace).first,
             }
 
             # Emit a metric

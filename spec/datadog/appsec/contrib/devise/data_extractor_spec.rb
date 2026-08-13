@@ -16,7 +16,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
       let(:mappings) do
         {
           user: instance_double(Devise::Mapping, name: :user, class_name: "User"),
-          admin: instance_double(Devise::Mapping, name: :admin, class_name: "Admin")
+          admin: instance_double(Devise::Mapping, name: :admin, class_name: "Admin"),
         }
       end
 
