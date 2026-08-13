@@ -13,6 +13,10 @@ begin
   Object.send(:remove_const, :HookIvarTestClass)
 rescue NameError
 end
+begin
+  Object.send(:remove_const, :HookBasicObjectTestClass)
+rescue NameError
+end
 
 class HookTestClass
   class TestException < StandardError
@@ -84,6 +88,18 @@ class YieldingMethodMissingHookTestClass
   def method_missing(name, *args, **kwargs)
     yield [args, kwargs]
     [args, kwargs]
+  end
+end
+
+# A BasicObject subclass: instances are valid method receivers but do not
+# respond to Object/Kernel methods such as #class or #instance_variables.
+class HookBasicObjectTestClass < BasicObject
+  def initialize
+    @ivar = 2442
+  end
+
+  def hook_test_method
+    42
   end
 end
 
