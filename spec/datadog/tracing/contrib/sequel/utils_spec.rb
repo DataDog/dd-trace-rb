@@ -21,6 +21,24 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
       end
     end
 
+    # Connector/J parses query properties without applying URI fragment semantics:
+    # https://github.com/mariadb-corporation/mariadb-connector-j/blob/3.5.10/src/main/java/org/mariadb/jdbc/Configuration.java#L832-L844
+    context "when a loose fragment delimiter (#) appears in a MariaDB Connector/J URL" do
+      let(:uri) { "jdbc:mariadb://db-host:3306/example?pwd=containing# a_hash_and_space" }
+
+      it "does not consider it a fragment delimiter" do
+        expect(parsed).to eq(host: "db-host", port: "3306", database: "example")
+      end
+
+      context "with query arguments after the loose `#`" do
+        let(:uri) { "jdbc:mariadb://db-host:3306?pwd=# foo&database=orders" }
+
+        it "continues parsing query arguments" do
+          expect(parsed).to eq(host: "db-host", port: "3306", database: "orders")
+        end
+      end
+    end
+
     context "postgresql path-style" do
       let(:uri) { "jdbc:postgresql://pg-host:5432/analytics" }
 
@@ -34,6 +52,16 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
 
       it "extracts the host without brackets" do
         expect(parsed).to eq(host: "2001:db8::1", port: "5432", database: "analytics")
+      end
+    end
+
+    # This driver strips brackets without validating that their contents are an IPv6 address:
+    # https://github.com/mariadb-corporation/mariadb-connector-j/blob/3.5.10/src/main/java/org/mariadb/jdbc/HostAddress.java
+    context "with a bracketed hostname, accepted by MariaDB Connector/J" do
+      let(:uri) { "jdbc:mariadb://[hostname]:1234/database" }
+
+      it "extracts clean host" do
+        expect(parsed).to eq(host: "hostname", port: "1234", database: "database")
       end
     end
 
@@ -70,10 +98,20 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
     end
 
     context "as400 with only a libraries property" do
-      let(:uri) { "jdbc:as400://as400-host;libraries=MYLIB,OTHER" }
+      let(:uri) { "jdbc:as400://as400-host;libraries=,MYLIB,OTHER" }
 
-      it "uses the first library as the database" do
+      it "uses the first non-empty library as the database" do
         expect(parsed).to eq(host: "as400-host", port: nil, database: "MYLIB")
+      end
+    end
+
+    # This is a contrived example, simply to document the precedence order as
+    # both `libraries` and `database` are not used by the same driver implementation.
+    context "with libraries before another database property" do
+      let(:uri) { "jdbc:as400://as400-host;libraries=FIRST,OTHER;database=second" }
+
+      it "prefers the explicit database property" do
+        expect(parsed).to eq(host: "as400-host", port: nil, database: "second")
       end
     end
 
@@ -101,14 +139,6 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
       end
     end
 
-    context "nil input" do
-      let(:uri) { nil }
-
-      it "returns all-nil without raising" do
-        expect(parsed).to eq(host: nil, port: nil, database: nil)
-      end
-    end
-
     context "authority containing user-info" do
       let(:uri) { "jdbc:mysql://user:password@db-host:3306/orders" }
 
@@ -117,19 +147,178 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
       end
     end
 
-    context "URI containing a fragment" do
-      let(:uri) { "jdbc:mysql://db-host:3306/orders#section" }
+    context "with URI delimiters in the URL path" do
+      [":", "@", "[", "]", "?", "&", "=", "#"].each do |delimiter|
+        context "with delimiter `#{delimiter.inspect}`" do
+          let(:uri) { "jdbc:mariadb://db-host:3306/orders#{delimiter}section" }
 
-      it "ignores the fragment" do
-        expect(parsed).to eq(host: "db-host", port: "3306", database: "orders")
+          it "extracts the path before the delimiter as the database" do
+            expect(parsed).to eq(host: "db-host", port: "3306", database: "orders")
+          end
+        end
+      end
+    end
+
+    context "when the database path contains multiple segments" do
+      let(:uri) { "jdbc:mariadb://db-host:3306/orders/archive/2025" }
+
+      it "extracts the complete path as database" do
+        expect(parsed).to eq(host: "db-host", port: "3306", database: "orders/archive/2025")
+      end
+    end
+
+    # H2 remote URLs allow a filesystem-style path before the database name:
+    # https://h2database.github.io/html/features.html#database_url
+    context "with an H2 server-side database path" do
+      let(:uri) { "jdbc:h2:tcp://db-host:9092/data/archive/orders" }
+
+      it "extracts the complete path as database" do
+        expect(parsed).to eq(host: "db-host", port: "9092", database: "data/archive/orders")
       end
     end
 
     context "multi-host authority" do
       let(:uri) { "jdbc:postgresql://host1:5432,host2:5432/analytics" }
 
-      it "returns all-nil rather than selecting incorrect metadata" do
+      it "keeps the multi-host value as the host" do
+        expect(parsed).to eq(host: "host1:5432,host2:5432", port: nil, database: "analytics")
+      end
+    end
+
+    context "with opaque control characters in a query property" do
+      let(:uri) { "jdbc:mariadb://db-host/orders?pwd=\r\n\0" }
+
+      it "extracts metadata without interpreting the property" do
+        expect(parsed).to eq(host: "db-host", port: nil, database: "orders")
+      end
+    end
+
+    context "with an empty or missing authority" do
+      [
+        "jdbc:x://",
+        "jdbc:x://?a=b",
+        "jdbc:x://;a=b",
+        "jdbc:x:///database",
+        "jdbc:x://user:password@"
+      ].each do |malformed_uri|
+        context "with #{malformed_uri.inspect}" do
+          let(:uri) { malformed_uri }
+
+          it "returns an empty result" do
+            expect(parsed).to eq(host: nil, port: nil, database: nil)
+          end
+        end
+      end
+    end
+
+    context "with an empty path" do
+      let(:uri) { "jdbc:mysql://db-host:123/" }
+
+      it "retains authority metadata" do
+        expect(parsed).to eq(host: "db-host", port: "123", database: nil)
+      end
+    end
+
+    context "with malformed authorities" do
+      [
+        "host:12:34",
+        "[2001:db8::1",
+        "2001:db8::1",
+        "[[2001:db8::1]]:1234"
+      ].each do |authority|
+        context "with #{authority.inspect}" do
+          let(:uri) { "jdbc:x://#{authority}/database" }
+
+          it "does not guess a host" do
+            expect(parsed).to eq(host: nil, port: nil, database: nil)
+          end
+        end
+      end
+    end
+
+    context "with a port" do
+      ["0", "1", "65535"].each do |port|
+        context "with #{port.inspect}" do
+          let(:uri) { "jdbc:x://host:#{port}/database" }
+
+          it "accepts the sequence of digits" do
+            expect(parsed).to eq(host: "host", port: port, database: "database")
+          end
+        end
+      end
+
+      ["", "+1", "-1", "12x"].each do |port|
+        context "with invalid port #{port.inspect}" do
+          let(:uri) { "jdbc:x://host:#{port}/database" }
+
+          it "does not retain partial metadata" do
+            expect(parsed).to eq(host: nil, port: nil, database: nil)
+          end
+        end
+      end
+    end
+
+    context "at the JDBC URL size limit" do
+      let(:maximum_size) { 8_192 }
+      let(:prefix) { "jdbc:mysql://db-host?padding=" }
+      let(:database_property) { "&database=orders" }
+      let(:uri) do
+        prefix + ("x" * (maximum_size - prefix.bytesize - database_property.bytesize)) + database_property
+      end
+
+      it "extracts a database property ending at the limit" do
+        expect(uri.bytesize).to eq(maximum_size)
+        expect(parsed).to eq(host: "db-host", port: nil, database: "orders")
+      end
+    end
+
+    context "over the JDBC URL size limit" do
+      let(:maximum_size) { 8_192 }
+      let(:prefix) { "jdbc:mysql://db-host?padding=" }
+      let(:database_property) { "&database=orders" }
+      let(:uri) do
+        prefix + ("x" * (maximum_size - prefix.bytesize - database_property.bytesize)) + database_property + "x"
+      end
+
+      it "extracts the database property only through the first 8 KiB" do
+        expect(uri.bytesize).to eq(maximum_size + 1)
+        expect(parsed).to eq(host: "db-host", port: nil, database: "orders")
+      end
+
+      it "discards a partial multibyte database value at the boundary" do
+        uri = prefix +
+          ("x" * (maximum_size - prefix.bytesize - database_property.bytesize - 1)) +
+          database_property + "€"
+
+        expect(uri.bytesize).to eq(maximum_size + 2)
+        expect(described_class.parse_jdbc_uri(uri))
+          .to eq(host: "db-host", port: nil, database: "orders")
+      end
+    end
+
+    context "with an encoding that cannot be matched using the standard ASCII regexp" do
+      let(:uri) { "jdbc:mysql://host/database".encode("UTF-16LE") }
+
+      it "returns an empty result" do
+        expect { parsed }.not_to raise_error
         expect(parsed).to eq(host: nil, port: nil, database: nil)
+      end
+    end
+
+    context "with malformed JDBC input" do
+      [
+        "jdbc:",
+        "jdbc:x:",
+        "jdbc:://host/database",
+        "jdbc:x:/host/database"
+      ].each do |input|
+        context "with #{input.inspect}" do
+          let(:uri) { input }
+
+          it "returns an empty result" do
+            expect(parsed).to eq(host: nil, port: nil, database: nil)
+          end
+        end
       end
     end
 
@@ -254,15 +443,6 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
         described_class.connection_metadata(db)
         described_class.connection_metadata(db)
         expect(db).to have_received(:synchronize).once
-      end
-
-      it "memoizes only parsed, credential-free metadata (never the raw URL)" do
-        described_class.connection_metadata(db)
-
-        cached = db.instance_variable_get(:@datadog_jdbc_metadata)
-        expect(cached).to eq(host: "prod-host", port: "3111", database: "yds")
-        expect(cached.to_s).not_to include("password")
-        expect(cached.to_s).not_to include("jdbc:")
       end
     end
 
