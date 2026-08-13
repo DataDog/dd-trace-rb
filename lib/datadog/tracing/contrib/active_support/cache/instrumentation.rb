@@ -245,8 +245,10 @@ module Datadog
             # namespace is whatever it put in front of that key. It is the single place ActiveSupport
             # applies the namespace, and exists since Rails 5.2; older versions inline it into
             # `#normalize_key`, where the key is not yet expanded and the prefix cannot be isolated.
+            #
+            # The override stays private, as prepending a public one would widen the visibility
+            # ActiveSupport gives the method.
             module ResolveNamespace
-              # Kept private, as prepending a public method would widen the visibility Rails gives it.
               private
 
               def namespace_key(key, _options = nil)
