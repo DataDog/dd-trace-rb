@@ -18,7 +18,7 @@ module Datadog
               data_streams_enabled = Datadog::DataStreams.enabled?
 
               if trace_propagation_enabled || data_streams_enabled
-                message[:headers] = (message[:headers] || {}).dup
+                message[:headers] = message[:headers]&.dup || {}
               end
 
               if trace_propagation_enabled
