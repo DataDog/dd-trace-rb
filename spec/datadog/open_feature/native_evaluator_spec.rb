@@ -91,7 +91,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
   raise "unsupported regex fixture schema" unless regex_fixture.fetch("schema") ==
     "datadog.ffe.targeting-regex-conformance/v1"
   raise "unsupported regex fixture version" unless regex_fixture.fetch("schemaVersion") == 1
-  raise "unsupported regex contract version" unless regex_fixture.fetch("contractVersion") == "targeting-regex-v1"
+    raise "unsupported regex contract version" unless regex_fixture.fetch("contractVersion") == "targeting-regex-v2"
 
   regex_cases = regex_fixture.fetch("cases")
   raise "regex fixture must contain 75 cases" unless regex_cases.length == 75
