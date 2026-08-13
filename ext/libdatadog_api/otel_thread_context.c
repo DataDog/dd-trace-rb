@@ -20,16 +20,13 @@
   static ID fiber_context_slot;
   static const int BIG_ENDIAN_PACK_FLAGS = INTEGER_PACK_MSWORD_FIRST | INTEGER_PACK_BIG_ENDIAN;
 
-  typedef struct {
-    uint8_t trace_id[16];
-    uint8_t span_id[8];
-    uint8_t local_root_span_id[8];
-    uint8_t trace_flags;
-  } otel_fiber_context;
+  static void otel_ctx_handle_free(void *handle) {
+    ddog_otel_thread_ctx_free((struct ddog_ThreadContextHandle *) handle);
+  }
 
-  static const rb_data_type_t otel_fiber_context_t = {
-    .wrap_struct_name = "Datadog::Core::OTelThreadContext fiber-local context",
-    .function = {.dfree = RUBY_TYPED_DEFAULT_FREE},
+  static const rb_data_type_t otel_ctx_handle_t = {
+    .wrap_struct_name = "Datadog::Core::OTelThreadContext handle",
+    .function = {.dfree = otel_ctx_handle_free},
     .flags = RUBY_TYPED_FREE_IMMEDIATELY,
   };
 #endif
@@ -70,58 +67,27 @@ void otel_thread_context_init(VALUE core_module) {
 }
 
 #ifdef __linux__
-  static void publish_context(const otel_fiber_context *ctx) {
-    if (ctx) {
-      ddog_otel_thread_ctx_update(&ctx->trace_id, &ctx->span_id, ctx->trace_flags, &ctx->local_root_span_id);
-    } else {
-      static const uint8_t zero_trace_id[16] = {0};
-      static const uint8_t zero_span_id[8] = {0};
+  static struct ddog_ThreadContextHandle *get_current_fiber_handle(void) {
+    VALUE obj = rb_thread_local_aref(rb_thread_current(), fiber_context_slot);
+    if (NIL_P(obj)) return NULL;
 
-      ddog_otel_thread_ctx_update(&zero_trace_id, &zero_span_id, 0, &zero_span_id);
-    }
+    struct ddog_ThreadContextHandle *handle;
+    TypedData_Get_Struct(obj, struct ddog_ThreadContextHandle, &otel_ctx_handle_t, handle);
+    return handle;
   }
 
-  static otel_fiber_context *get_fiber_context_for(VALUE thread) {
-    VALUE existing_ctx = rb_thread_local_aref(thread, fiber_context_slot);
-    if (NIL_P(existing_ctx)) return NULL;
-
-    otel_fiber_context *ctx;
-    TypedData_Get_Struct(existing_ctx, otel_fiber_context, &otel_fiber_context_t, ctx);
-    return ctx;
-  }
-
-  static otel_fiber_context *get_or_create_current_fiber_context(void) {
-    otel_fiber_context *ctx = get_fiber_context_for(rb_thread_current());
-    if (ctx) {
-      #ifdef HAVE_RUBY_THREAD_STORAGE_API
-        rb_internal_thread_specific_set(rb_thread_current(), otel_ctx_key, ctx);
-      #endif
-      return ctx;
-    }
-
-    VALUE obj = TypedData_Make_Struct(rb_cObject, otel_fiber_context, &otel_fiber_context_t, ctx);
+  static void store_current_fiber_handle(struct ddog_ThreadContextHandle *handle) {
+    VALUE obj = TypedData_Wrap_Struct(rb_cObject, &otel_ctx_handle_t, handle);
     rb_thread_local_aset(rb_thread_current(), fiber_context_slot, obj);
-
-    #ifdef HAVE_RUBY_THREAD_STORAGE_API
-      rb_internal_thread_specific_set(rb_thread_current(), otel_ctx_key, ctx);
-    #endif
-    return ctx;
   }
 
   #ifdef RUBY_INTERNAL_THREAD_EVENT_EXITED
     static void on_thread_exited(
       DDTRACE_UNUSED rb_event_flag_t event,
-      const rb_internal_thread_event_data_t *event_data,
+      DDTRACE_UNUSED const rb_internal_thread_event_data_t *event_data,
       DDTRACE_UNUSED void *user_data
     ) {
-      #ifdef HAVE_RUBY_THREAD_STORAGE_API
-        if (rb_thread_current() != event_data->thread) return;
-      #else
-        (void) event_data;
-      #endif
-
-      struct ddog_ThreadContextHandle *ctx = ddog_otel_thread_ctx_detach();
-      if (ctx) ddog_otel_thread_ctx_free(ctx);
+      ddog_otel_thread_ctx_detach();
     }
   #else
     static void on_thread_end(
@@ -131,19 +97,30 @@ void otel_thread_context_init(VALUE core_module) {
       DDTRACE_UNUSED ID mid,
       DDTRACE_UNUSED VALUE klass
     ) {
-      struct ddog_ThreadContextHandle *ctx = ddog_otel_thread_ctx_detach();
-      if (ctx) ddog_otel_thread_ctx_free(ctx);
+      ddog_otel_thread_ctx_detach();
     }
   #endif
 
   #ifdef HAVE_RUBY_THREAD_STORAGE_API
-    static void on_thread_resumed(
+    // SUSPENDED fires on every GVL release, so if thread that calls set and then enters a C extension
+    // that releases the GVL and does something, the slot becomes empty for the whole duration.
+    static void on_thread_suspended(
       DDTRACE_UNUSED rb_event_flag_t event,
-      DDTRACE_UNUSED const rb_internal_thread_event_data_t *event_data,
+      const rb_internal_thread_event_data_t *event_data,
       DDTRACE_UNUSED void *user_data
     ) {
-      otel_fiber_context *ctx = rb_internal_thread_specific_get(rb_thread_current(), otel_ctx_key);
-      publish_context(ctx);
+      struct ddog_ThreadContextHandle *handle = ddog_otel_thread_ctx_detach();
+      rb_internal_thread_specific_set(event_data->thread, otel_ctx_key, handle);
+    }
+
+    static void on_thread_resumed(
+      DDTRACE_UNUSED rb_event_flag_t event,
+      const rb_internal_thread_event_data_t *event_data,
+      DDTRACE_UNUSED void *user_data
+    ) {
+      struct ddog_ThreadContextHandle *handle = rb_internal_thread_specific_get(event_data->thread, otel_ctx_key);
+
+      if (handle != NULL) ddog_otel_thread_ctx_attach(handle);
     }
   #endif
 
@@ -154,7 +131,13 @@ void otel_thread_context_init(VALUE core_module) {
     DDTRACE_UNUSED ID mid,
     DDTRACE_UNUSED VALUE klass
   ) {
-    publish_context(get_or_create_current_fiber_context());
+    struct ddog_ThreadContextHandle *handle = get_current_fiber_handle();
+
+    if (handle != NULL) {
+      ddog_otel_thread_ctx_attach(handle);
+    } else {
+      ddog_otel_thread_ctx_detach();
+    }
   }
 
   static void register_ractor_local_hooks(void) {
@@ -188,6 +171,7 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
     // Under M:N, a Ruby thread migrates between OS threads.
     // We use thread storage to store a pointer to the OTel thread context record.
     #ifdef HAVE_RUBY_THREAD_STORAGE_API
+      rb_internal_thread_add_event_hook(on_thread_suspended, RUBY_INTERNAL_THREAD_EVENT_SUSPENDED, NULL);
       rb_internal_thread_add_event_hook(on_thread_resumed, RUBY_INTERNAL_THREAD_EVENT_RESUMED, NULL);
     #endif
 
@@ -216,13 +200,24 @@ static VALUE native_set(
   #ifdef __linux__
     register_ractor_local_hooks();
 
-    otel_fiber_context *ctx = get_or_create_current_fiber_context();
+    uint8_t trace_id_bytes[16];
+    uint8_t span_id_bytes[8];
+    uint8_t local_root_span_id_bytes[8];
 
-    rb_integer_pack(trace_id, ctx->trace_id, sizeof(ctx->trace_id), 1, 0, BIG_ENDIAN_PACK_FLAGS);
-    rb_integer_pack(span_id, ctx->span_id, sizeof(ctx->span_id), 1, 0, BIG_ENDIAN_PACK_FLAGS);
-    rb_integer_pack(local_root_span_id, ctx->local_root_span_id, sizeof(ctx->local_root_span_id), 1, 0, BIG_ENDIAN_PACK_FLAGS);
+    rb_integer_pack(trace_id, trace_id_bytes, sizeof(trace_id_bytes), 1, 0, BIG_ENDIAN_PACK_FLAGS);
+    rb_integer_pack(span_id, span_id_bytes, sizeof(span_id_bytes), 1, 0, BIG_ENDIAN_PACK_FLAGS);
+    rb_integer_pack(local_root_span_id, local_root_span_id_bytes, sizeof(local_root_span_id_bytes), 1, 0, BIG_ENDIAN_PACK_FLAGS);
 
-    publish_context(ctx);
+    struct ddog_ThreadContextHandle *handle = get_current_fiber_handle();
+
+    if (handle == NULL) {
+      handle = ddog_otel_thread_ctx_new(&trace_id_bytes, &span_id_bytes, 0, &local_root_span_id_bytes);
+      store_current_fiber_handle(handle);
+      ddog_otel_thread_ctx_attach(handle);
+    } else {
+      ddog_otel_thread_ctx_attach(handle);
+      ddog_otel_thread_ctx_update(&trace_id_bytes, &span_id_bytes, 0, &local_root_span_id_bytes);
+    }
 
     return Qtrue;
   #else

@@ -96,10 +96,12 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
       expect(fiber_a.resume).to include(trace_id: 100, span_id: 101, local_root_span_id: 102)
       expect(fiber_b.resume).to include(trace_id: 200, span_id: 201, local_root_span_id: 202)
 
-      expect(decode_context(described_class::Testing._native_read)).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
+      expect(decode_context(described_class::Testing._native_read)).to be_nil
     end
 
-    # This example is for the Valgrind memcheck run.
+    # In this example we create and kill a few threads,
+    # and rely on the ruby_memcheck gem with spec:core_with_libdatadog_api_memcheck
+    # to validate that we leave no memory behind for those threads.
     it "releases the thread context when a Thread exits", if: RUBY_VERSION >= "3.3" do
       Thread.new do
         described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
@@ -124,7 +126,7 @@ RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
 
       expect { failed.join }.to raise_error(StandardError)
 
-      expect(decode_context(described_class::Testing._native_read)).to include(trace_id: 0, span_id: 0, local_root_span_id: 0)
+      expect(decode_context(described_class::Testing._native_read)).to be_nil
     end
 
     context "inside a non-main Ractor", if: RUBY_VERSION >= "3.3", memcheck_valgrind_skip: true do
