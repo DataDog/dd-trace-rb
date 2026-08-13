@@ -41,7 +41,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        uses: ./.github/actions/signed-commit-pr
         with:
           token: ${{ steps.generate-token.outputs.token }}
           branch: auto-generate/update-supported-versions
@@ -49,8 +49,6 @@ jobs:
           base: master
           labels: dev/internal, integrations
           commit-message: "Test creating supported versions"
-          delete-branch: true
-          sign-commits: true
           body: |
             This is a PR to update the table for supported integration versions.
             The supported versions markdown is generated from the minimum and maximum tested versions of each integration,

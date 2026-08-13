@@ -1,0 +1,62 @@
+name: 'Signed commit pull request'
+
+description: 'Commits the working tree as a GitHub-signed commit and opens or updates a pull request'
+
+inputs:
+  token:
+    description: 'Token used to push, create the signed commit and open the PR (needs contents and pull-requests write)'
+    required: true
+  branch:
+    description: 'Head branch to create or force-update'
+    required: true
+  title:
+    description: 'Pull request title'
+    required: true
+  commit-message:
+    description: 'Commit message'
+    required: true
+  body:
+    description: 'Pull request body'
+    required: true
+  base:
+    description: 'Base branch the pull request targets'
+    default: 'master'
+  labels:
+    description: 'Labels to apply, comma- or newline-separated'
+    default: ''
+  paths:
+    description: 'Git pathspecs to commit, comma- or newline-separated. Defaults to the whole working tree'
+    default: '.'
+  fail-if-empty:
+    description: 'Fail instead of no-op when there is nothing to commit'
+    default: 'false'
+
+outputs:
+  pull-request-url:
+    description: 'URL of the created or updated pull request, empty when there was nothing to commit'
+    value: ${{ steps.signed-commit-pr.outputs.pull-request-url }}
+  commit-sha:
+    description: 'SHA of the signed commit, empty when there was nothing to commit'
+    value: ${{ steps.signed-commit-pr.outputs.commit-sha }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Commit, push and open the pull request
+      id: signed-commit-pr
+      shell: bash
+      # Inputs go through `env` rather than being interpolated into the script:
+      # titles and bodies embed `github.event.client_payload.*`, which is
+      # attacker-controlled for `repository_dispatch` triggers.
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        BRANCH: ${{ inputs.branch }}
+        BASE: ${{ inputs.base }}
+        TITLE: ${{ inputs.title }}
+        COMMIT_MESSAGE: ${{ inputs.commit-message }}
+        BODY: ${{ inputs.body }}
+        LABELS: ${{ inputs.labels }}
+        PATHS: ${{ inputs.paths }}
+        FAIL_IF_EMPTY: ${{ inputs.fail-if-empty }}
+      run: ${{ github.action_path }}/signed_commit_pr.sh

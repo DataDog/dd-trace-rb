@@ -64,7 +64,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        uses: ./.github/actions/signed-commit-pr
         with:
           token: ${{ steps.generate-token.outputs.token }}
           branch: auto-generate/update-images
@@ -72,9 +72,7 @@ jobs:
           base: master
           labels: dev/internal
           commit-message: "[🤖] Update images-rb pin: ${{github.server_url}}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          delete-branch: true
-          sign-commits: true
-          add-paths: |
+          paths: |
             .github/
             .gitlab/
             docker-compose.yml
