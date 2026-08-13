@@ -19,17 +19,14 @@
   };
 #endif
 
-#ifdef HAVE_RB_RACTOR_LOCAL_STORAGE_VALUE_NEWKEY
-  #include <ruby/ractor.h>
-  static rb_ractor_local_key_t ractor_hooks_key;
-#endif
-
 #ifdef HAVE_RUBY_THREAD_STORAGE_API
   static rb_internal_thread_specific_key_t otel_ctx_key;
 #endif
 
 static ID fiber_context_slot;
 static const int BIG_ENDIAN_PACK_FLAGS = INTEGER_PACK_MSWORD_FIRST | INTEGER_PACK_BIG_ENDIAN;
+
+static bool otel_context_enabled = false;
 
 static VALUE native_set(VALUE _self, VALUE trace_id, VALUE span_id, VALUE local_root_span_id);
 static VALUE native_supported_p(VALUE _self);
@@ -43,25 +40,14 @@ void otel_thread_context_init(VALUE core_module) {
     otel_ctx_key = rb_internal_thread_specific_key_create();
   #endif
 
-  #ifdef HAVE_RB_RACTOR_LOCAL_STORAGE_VALUE_NEWKEY
-    ractor_hooks_key = rb_ractor_local_storage_value_newkey();
-  #endif
-
   VALUE otel_thread_context_module = rb_define_module_under(core_module, "OTelThreadContext");
 
   rb_define_singleton_method(otel_thread_context_module, "_native_enable", native_enable, 0);
-
-  #ifdef HAVE_RB_EXT_RACTOR_SAFE
-    rb_ext_ractor_safe(true);
-  #endif
   rb_define_singleton_method(otel_thread_context_module, "_native_set", native_set, 3);
   rb_define_singleton_method(otel_thread_context_module, "_native_supported?", native_supported_p, 0);
 
   VALUE testing_module = rb_define_module_under(otel_thread_context_module, "Testing");
   rb_define_singleton_method(testing_module, "_native_read", native_read, 0);
-  #ifdef HAVE_RB_EXT_RACTOR_SAFE
-    rb_ext_ractor_safe(false);
-  #endif
 }
 
 #ifdef __linux__
@@ -137,29 +123,13 @@ void otel_thread_context_init(VALUE core_module) {
       ddog_otel_thread_ctx_detach();
     }
   }
-
-  static void register_ractor_local_hooks(void) {
-    #ifdef HAVE_RB_RACTOR_LOCAL_STORAGE_VALUE_NEWKEY
-      if (rb_ractor_local_storage_value(ractor_hooks_key) == Qtrue) return;
-      rb_ractor_local_storage_value_set(ractor_hooks_key, Qtrue);
-    #else
-      static bool registered = false;
-      if (registered) return;
-      registered = true;
-    #endif
-
-    rb_add_event_hook(on_fiber_switch, RUBY_EVENT_FIBER_SWITCH, Qnil);
-  }
 #endif
 
 static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
   #ifdef __linux__
-    static bool enabled = false;
-    if (enabled) return Qtrue;
-    enabled = true;
+    if (otel_context_enabled) return Qtrue;
+    otel_context_enabled = true;
 
-    // Starting with Ruby 3.2 we use internal thread EXITED hook and not
-    // RUBY_EVENT_THREAD_END VM trace event, since trace events are scoped to main Ractor.
     #ifdef RUBY_INTERNAL_THREAD_EVENT_EXITED
       rb_internal_thread_add_event_hook(on_thread_exited, RUBY_INTERNAL_THREAD_EVENT_EXITED, NULL);
     #else
@@ -173,7 +143,7 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
       rb_internal_thread_add_event_hook(on_thread_resumed, RUBY_INTERNAL_THREAD_EVENT_RESUMED, NULL);
     #endif
 
-    register_ractor_local_hooks();
+    rb_add_event_hook(on_fiber_switch, RUBY_EVENT_FIBER_SWITCH, Qnil);
 
     return Qtrue;
   #else
@@ -196,7 +166,7 @@ static VALUE native_set(
     DDTRACE_UNUSED VALUE local_root_span_id
   ) {
   #ifdef __linux__
-    register_ractor_local_hooks();
+    if (!otel_context_enabled) return Qfalse;
 
     uint8_t trace_id_bytes[16];
     uint8_t span_id_bytes[8];
