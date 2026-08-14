@@ -1,277 +1,277 @@
-appraise "rails61-mysql2" do
-  gem "rails", "~> 6.1.0"
-  gem "mysql2", "~> 0.5", platform: :ruby
-  gem "sprockets", "< 4"
-  gem "lograge", "~> 0.11"
-  gem "net-smtp"
+appraise 'rails61-mysql2' do
+  gem 'rails', '~> 6.1.0'
+  gem 'mysql2', '~> 0.5', platform: :ruby
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
 end
 
-appraise "rails61-postgres" do
-  gem "rails", "~> 6.1.0"
-  gem "pg", ">= 1.1", platform: :ruby
-  gem "sprockets", "< 4"
-  gem "lograge", "~> 0.11"
-  gem "net-smtp"
+appraise 'rails61-postgres' do
+  gem 'rails', '~> 6.1.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
 end
 
-appraise "rails61-postgres-redis" do
-  gem "rails", "~> 6.1.0"
-  gem "pg", ">= 1.1", platform: :ruby
-  gem "redis", "~> 4"
-  gem "sprockets", "< 4"
-  gem "lograge", "~> 0.11"
-  gem "net-smtp"
+appraise 'rails61-postgres-redis' do
+  gem 'rails', '~> 6.1.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'redis', '~> 4'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
 end
 
-appraise "rails61-postgres-sidekiq" do
-  gem "rails", "~> 6.1.0"
-  gem "pg", ">= 1.1", platform: :ruby
-  gem "sidekiq", ">= 6.1.2"
-  gem "sprockets", "< 4"
-  gem "lograge", "~> 0.11"
-  gem "rails_semantic_logger", "~> 4.0"
-  gem "net-smtp"
+appraise 'rails61-postgres-sidekiq' do
+  gem 'rails', '~> 6.1.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'sidekiq', '>= 6.1.2'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+  gem 'rails_semantic_logger', '~> 4.0'
+  gem 'net-smtp'
 end
 
-appraise "rails61-semantic-logger" do
-  gem "rails", "~> 6.1.0"
-  gem "pg", ">= 1.1", platform: :ruby
-  gem "sprockets", "< 4"
-  gem "rails_semantic_logger", "~> 4.0"
-  gem "net-smtp"
+appraise 'rails61-semantic-logger' do
+  gem 'rails', '~> 6.1.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'sprockets', '< 4'
+  gem 'rails_semantic_logger', '~> 4.0'
+  gem 'net-smtp'
 end
 
-appraise "rails61-trilogy" do
-  gem "rails", "~> 6.1.0"
-  gem "trilogy"
-  gem "activerecord-trilogy-adapter"
-  gem "sprockets", "< 4"
-  gem "lograge", "~> 0.11"
-  gem "net-smtp"
+appraise 'rails61-trilogy' do
+  gem 'rails', '~> 6.1.0'
+  gem 'trilogy'
+  gem 'activerecord-trilogy-adapter'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
 end
 
-appraise "rails7" do
-  gem "rails", "~> 7.0.0"
+appraise 'rails7' do
+  gem 'rails', '~> 7.0.0'
 end
 
-appraise "rails71" do
-  gem "rails", "~> 7.1.0"
+appraise 'rails71' do
+  gem 'rails', '~> 7.1.0'
 end
 
-appraise "rails81" do
-  gem "rails", "~> 8.1.0"
+appraise 'rails81' do
+  gem 'rails', '~> 8.1.0'
 end
 
-appraise "rails8-mysql2" do
-  gem "rails", "~> 8.0.0"
-  gem "mysql2", "~> 0.5", platform: :ruby
-  gem "lograge", "~> 0.11"
-  gem "bootsnap", ">= 1.7"
-  gem "net-smtp"
+appraise 'rails8-mysql2' do
+  gem 'rails', '~> 8.0.0'
+  gem 'mysql2', '~> 0.5', platform: :ruby
+  gem 'lograge', '~> 0.11'
+  gem 'bootsnap', '>= 1.7'
+  gem 'net-smtp'
 end
 
-appraise "rails8-postgres" do
-  gem "rails", "~> 8.0.0"
-  gem "pg", ">= 1.1", platform: :ruby
-  gem "lograge", "~> 0.11"
-  gem "net-smtp"
+appraise 'rails8-postgres' do
+  gem 'rails', '~> 8.0.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
 end
 
-appraise "rails8-postgres-redis" do
-  gem "rails", "~> 8.0.0"
-  gem "pg", ">= 1.1", platform: :ruby
-  gem "redis", "~> 4"
-  gem "lograge", "~> 0.11"
-  gem "net-smtp"
+appraise 'rails8-postgres-redis' do
+  gem 'rails', '~> 8.0.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'redis', '~> 4'
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
 end
 
-appraise "rails8-postgres-sidekiq" do
-  gem "rails", "~> 8.0.0"
-  gem "pg", ">= 1.1", platform: :ruby
-  gem "sidekiq", "< 8"
-  gem "lograge", "~> 0.11"
-  gem "rails_semantic_logger", "~> 4.0"
-  gem "net-smtp"
+appraise 'rails8-postgres-sidekiq' do
+  gem 'rails', '~> 8.0.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'sidekiq', '< 8'
+  gem 'lograge', '~> 0.11'
+  gem 'rails_semantic_logger', '~> 4.0'
+  gem 'net-smtp'
 end
 
-appraise "rails8-semantic-logger" do
-  gem "rails", "~> 8.0.0"
-  gem "pg", ">= 1.1", platform: :ruby
-  gem "rails_semantic_logger", "~> 4.0"
-  gem "net-smtp"
+appraise 'rails8-semantic-logger' do
+  gem 'rails', '~> 8.0.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'rails_semantic_logger', '~> 4.0'
+  gem 'net-smtp'
 end
 
-appraise "rails8-trilogy" do
-  gem "rails", "~> 8.0.0"
-  gem "trilogy"
-  gem "lograge", "~> 0.11"
-  gem "net-smtp"
+appraise 'rails8-trilogy' do
+  gem 'rails', '~> 8.0.0'
+  gem 'trilogy'
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
 end
 
-appraise "rails-old-redis" do
+appraise 'rails-old-redis' do
   # All dependencies except Redis < 4 are not important, they are just required to run Rails tests.
-  gem "redis", "< 4"
-  gem "rails", "~> 6.1.0"
-  gem "pg", ">= 1.1", platform: :ruby
-  gem "sprockets", "< 4"
-  gem "lograge", "~> 0.11"
+  gem 'redis', '< 4'
+  gem 'rails', '~> 6.1.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
 end
 
-appraise "resque2-redis3" do
-  gem "redis", "< 4.0"
-  gem "resque", ">= 2.0"
+appraise 'resque2-redis3' do
+  gem 'redis', '< 4.0'
+  gem 'resque', '>= 2.0'
 end
 
-appraise "resque2-redis4" do
-  gem "redis", ">= 4.0"
-  gem "resque", ">= 2.0"
+appraise 'resque2-redis4' do
+  gem 'redis', '>= 4.0'
+  gem 'resque', '>= 2.0'
 end
 
-appraise "aws" do
-  gem "aws-sdk"
-  gem "shoryuken"
+appraise 'aws' do
+  gem 'aws-sdk'
+  gem 'shoryuken'
 end
 
-appraise "http" do
-  gem "ethon"
-  gem "http"
-  gem "httpclient"
-  gem "typhoeus"
+appraise 'http' do
+  gem 'ethon'
+  gem 'http'
+  gem 'httpclient'
+  gem 'typhoeus'
 end
 
-appraise "http6" do
-  gem "ethon"
-  gem "http", "~> 6"
-  gem "httpclient"
-  gem "typhoeus"
+appraise 'http6' do
+  gem 'ethon'
+  gem 'http', '~> 6'
+  gem 'httpclient'
+  gem 'typhoeus'
 end
 
-build_coverage_matrix("stripe", 7..12, min: "5.15.0")
-build_coverage_matrix("opensearch", [2], gem: "opensearch-ruby")
-build_coverage_matrix("elasticsearch", [7])
-build_coverage_matrix("faraday", meta: {"faraday-follow_redirects" => nil})
-build_coverage_matrix("excon")
-build_coverage_matrix("rest-client")
-build_coverage_matrix("mongo", min: "2.11.0")
-build_coverage_matrix("dalli", [2])
-build_coverage_matrix("karafka", min: "2.3.0")
-build_coverage_matrix("waterdrop", min: "2.8.8.rc1")
-build_coverage_matrix("devise", min: "3.2.1")
-build_coverage_matrix("openfeature", min: "0.5.1", gem: "openfeature-sdk", meta: {
-  "opentelemetry-sdk" => "~> 1.1",
-  "opentelemetry-metrics-sdk" => ">= 0.8",
+build_coverage_matrix('stripe', 7..12, min: '5.15.0')
+build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
+build_coverage_matrix('elasticsearch', [7])
+build_coverage_matrix('faraday', meta: { 'faraday-follow_redirects' => nil })
+build_coverage_matrix('excon')
+build_coverage_matrix('rest-client')
+build_coverage_matrix('mongo', min: '2.11.0')
+build_coverage_matrix('dalli', [2])
+build_coverage_matrix('karafka', min: '2.3.0')
+build_coverage_matrix('waterdrop', min: '2.8.8.rc1')
+build_coverage_matrix('devise', min: '3.2.1')
+build_coverage_matrix('openfeature', min: '0.5.1', gem: 'openfeature-sdk', meta: {
+  'opentelemetry-sdk' => '~> 1.1',
+  'opentelemetry-metrics-sdk' => '>= 0.8',
 })
-build_coverage_matrix("ruby-llm", gem: "ruby_llm")
-build_coverage_matrix("kicks", min: "3.0.0")
+build_coverage_matrix('ruby-llm', gem: 'ruby_llm')
+build_coverage_matrix('kicks', min: '3.0.0')
 
-appraise "sneakers" do
-  gem "sneakers", "= 2.12.0" # Sneakers is not receiving updates anymore and 2.12.0 is the last version
+appraise 'sneakers' do
+  gem 'sneakers', '= 2.12.0' # Sneakers is not receiving updates anymore and 2.12.0 is the last version
 end
 
-appraise "relational_db" do
-  gem "activerecord", "~> 7"
-  gem "delayed_job"
-  gem "delayed_job_active_record"
-  gem "makara", ">= 0.6.0.pre" # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
-  gem "mysql2", ">= 0.5.3", platform: :ruby
-  gem "pg", platform: :ruby
-  gem "sqlite3", ">= 1.4.2", platform: :ruby
-  gem "sequel"
-  gem "trilogy"
+appraise 'relational_db' do
+  gem 'activerecord', '~> 7'
+  gem 'delayed_job'
+  gem 'delayed_job_active_record'
+  gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
+  gem 'mysql2', '>= 0.5.3', platform: :ruby
+  gem 'pg', platform: :ruby
+  gem 'sqlite3', '>= 1.4.2', platform: :ruby
+  gem 'sequel'
+  gem 'trilogy'
 end
 
-appraise "activesupport" do
-  gem "activesupport", "~> 7"
+appraise 'activesupport' do
+  gem 'activesupport', '~> 7'
 
-  gem "actionpack"
-  gem "actionview"
-  gem "active_model_serializers", ">= 0.10.0"
-  gem "grape"
-  gem "lograge"
-  gem "racecar", ">= 0.3.5"
-  gem "ruby-kafka", ">= 0.7.10"
+  gem 'actionpack'
+  gem 'actionview'
+  gem 'active_model_serializers', '>= 0.10.0'
+  gem 'grape'
+  gem 'lograge'
+  gem 'racecar', '>= 0.3.5'
+  gem 'ruby-kafka', '>= 0.7.10'
 end
 
-appraise "contrib" do
-  gem "concurrent-ruby"
-  gem "grpc", ">= 1.38.0", platform: :ruby # Minimum version with Ruby 3.0 support
-  gem "rack-test" # Dev dependencies for testing rack-based code
-  gem "rake", ">= 12.3"
-  gem "resque"
-  gem "roda", ">= 2.0.0"
-  gem "semantic_logger", "~> 4.0"
-  gem "sidekiq", "~> 7"
-  gem "sucker_punch"
-  gem "que", ">= 1.0.0"
+appraise 'contrib' do
+  gem 'concurrent-ruby'
+  gem 'grpc', '>= 1.38.0', platform: :ruby # Minimum version with Ruby 3.0 support
+  gem 'rack-test' # Dev dependencies for testing rack-based code
+  gem 'rake', '>= 12.3'
+  gem 'resque'
+  gem 'roda', '>= 2.0.0'
+  gem 'semantic_logger', '~> 4.0'
+  gem 'sidekiq', '~> 7'
+  gem 'sucker_punch'
+  gem 'que', '>= 1.0.0'
 end
 
 [
-  "2.3",
-  "2.2",
-  "2.1",
-  "2.0",
-  "1.13",
+  '2.3',
+  '2.2',
+  '2.1',
+  '2.0',
+  '1.13',
 ].each do |v|
   appraise "graphql-#{v}" do
-    gem "rails", "~> 6.1.0"
-    gem "graphql", "~> #{v}.0"
-    gem "sprockets", "< 4"
-    gem "lograge", "~> 0.11"
+    gem 'rails', '~> 6.1.0'
+    gem 'graphql', "~> #{v}.0"
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
   end
 end
 
-build_coverage_matrix("redis", [3, 4])
-build_coverage_matrix("rack", 1..2, meta: {
+build_coverage_matrix('redis', [3, 4])
+build_coverage_matrix('rack', 1..2, meta: {
   # rack-contrib >= 2.0.0 requires Rack::MediaType, introduced in Rack 2.0, so
   # it cannot run against the rack-1 appraisal's `rack ~> 1` pin. 1.8.0 is the
   # newest release that still supports Rack 1.x; it predates the fix for
   # CVE-2024-35231, accepted as a known risk here (see .bundler-audit.yml).
-  1 => {"rack-contrib" => "1.8.0"},
-  2 => {"rack-contrib" => nil},
-  :latest => {"rack-contrib" => nil},
-  "rack-test" => nil,
+  1 => { 'rack-contrib' => '1.8.0' },
+  2 => { 'rack-contrib' => nil },
+  :latest => { 'rack-contrib' => nil },
+  'rack-test' => nil,
 })
 
 [2, 3, 4].each do |n|
   appraise "sinatra-#{n}" do
-    gem "sinatra", "~> #{n}"
-    gem "sinatra-contrib", "~> #{n}"
-    gem "rack-contrib"
-    gem "rack-test" # Dev dependencies for testing rack-based code
+    gem 'sinatra', "~> #{n}"
+    gem 'sinatra-contrib', "~> #{n}"
+    gem 'rack-contrib'
+    gem 'rack-test' # Dev dependencies for testing rack-based code
   end
 end
 
-appraise "opentelemetry" do
-  gem "opentelemetry-sdk", "~> 1.1"
-  gem "opentelemetry-metrics-sdk", ">= 0.8"
-  gem "opentelemetry-exporter-otlp-metrics", ">= 0.4"
-  gem "opentelemetry-logs-sdk", ">= 0.1"
-  gem "opentelemetry-exporter-otlp-logs", ">= 0.1"
+appraise 'opentelemetry' do
+  gem 'opentelemetry-sdk', '~> 1.1'
+  gem 'opentelemetry-metrics-sdk', '>= 0.8'
+  gem 'opentelemetry-exporter-otlp-metrics', '>= 0.4'
+  gem 'opentelemetry-logs-sdk', '>= 0.1'
+  gem 'opentelemetry-exporter-otlp-logs', '>= 0.1'
 end
 
-appraise "opentelemetry_otlp" do
-  gem "opentelemetry-api", "< 1.5" # Context is kept in `Thread.current#[]`
-  gem "opentelemetry-sdk", "~> 1.1"
-  gem "opentelemetry-exporter-otlp"
+appraise 'opentelemetry_otlp' do
+  gem 'opentelemetry-api', '< 1.5' # Context is kept in `Thread.current#[]`
+  gem 'opentelemetry-sdk', '~> 1.1'
+  gem 'opentelemetry-exporter-otlp'
 end
 
-appraise "opentelemetry_otlp_1_5" do
-  gem "opentelemetry-api", ">= 1.5" # Context is kept as instance variable in `Fiber.current`
-  gem "opentelemetry-sdk", "~> 1.1"
-  gem "opentelemetry-exporter-otlp"
+appraise 'opentelemetry_otlp_1_5' do
+  gem 'opentelemetry-api', '>= 1.5' # Context is kept as instance variable in `Fiber.current`
+  gem 'opentelemetry-sdk', '~> 1.1'
+  gem 'opentelemetry-exporter-otlp'
 end
 
-appraise "contrib-old" do
-  gem "presto-client", ">= 0.5.14" # Renamed to trino-client in >= 1.0
+appraise 'contrib-old' do
+  gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 end
 
-appraise "core-old" do
-  gem "dogstatsd-ruby", "~> 4"
+appraise 'core-old' do
+  gem 'dogstatsd-ruby', '~> 4'
 end
 
-appraise "environment" do
-  gem "spring", ">= 2.0.2"
-  gem "cucumber", ">= 3"
-  gem "logger"
-  gem "minitest"
+appraise 'environment' do
+  gem 'spring', '>= 2.0.2'
+  gem 'cucumber', '>= 3'
+  gem 'logger'
+  gem 'minitest'
 end
