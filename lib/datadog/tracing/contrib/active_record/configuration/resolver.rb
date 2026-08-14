@@ -138,7 +138,7 @@ module Datadog
                 host: active_record_config[:host],
                 port: active_record_config[:port],
                 database: active_record_config[:database],
-                username: active_record_config[:username]
+                username: active_record_config[:username],
               }
             end
 

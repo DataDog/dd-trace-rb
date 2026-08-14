@@ -89,7 +89,7 @@ RSpec.describe Datadog::Tracing::Writer do
             buffer_size: Datadog::Tracing::Workers::AsyncTransport::DEFAULT_BUFFER_MAX_SIZE,
             on_trace: anything,
             interval: Datadog::Tracing::Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL,
-            shutdown_timeout: Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT
+            shutdown_timeout: Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT,
           }
         end
 
