@@ -7,8 +7,14 @@ require "datadog"
 require "semantic_logger"
 
 require "rack"
-# `Rack::Handler::WEBrick` was extracted to the `rackup` gem in Rack 3.0
-require "rackup/handler/webrick" if Gem::Version.new(Rack::RELEASE) >= Gem::Version.new("3")
+# `Rack::Handler::WEBrick` was extracted to the `rackup` gem in Rack 3.0.
+# `rackup` isn't a dependency of every gemfile that exercises this spec, so
+# the WEBrick-mounting example below skips itself when it's unavailable.
+begin
+  require "rackup/handler/webrick" if Gem::Version.new(Rack::RELEASE) >= Gem::Version.new("3")
+rescue LoadError
+  nil
+end
 require "webrick"
 
 # https://github.com/rubocop/rubocop-rspec/issues/2078
@@ -142,7 +148,11 @@ RSpec.describe "contrib integration testing", :integration do
         end
       end
 
-      context "for tracing_header_tags" do
+      rackup_webrick_unavailable = Gem::Version.new(Rack::RELEASE) >= Gem::Version.new("3") &&
+        !defined?(Rackup::Handler::WEBrick)
+
+      context "for tracing_header_tags",
+        skip: (rackup_webrick_unavailable ? "rackup is not available to mount a WEBrick handler for Rack 3+" : false) do
         let(:tracing_header_tags) { [{"header" => "test-header", "tag_name" => ""}] }
         http_server do |http_server|
           app = Rack::Builder.new do
