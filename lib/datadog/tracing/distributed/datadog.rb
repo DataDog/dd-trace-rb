@@ -2,7 +2,7 @@
 
 require_relative "../metadata/ext"
 require_relative "../trace_digest"
-require_relative "datadog_tags_codec"
+require_relative "trace_state/datadog"
 require_relative "../utils"
 require_relative "helpers"
 
@@ -129,7 +129,7 @@ module Datadog
         def inject_tags!(tags, data)
           return set_tags_propagation_error(reason: "disabled") if tags_disabled?
 
-          encoded_tags = DatadogTagsCodec.encode(tags)
+          encoded_tags = TraceState::Datadog.encode(tags)
 
           return set_tags_propagation_error(reason: "inject_max_size") if tags_too_large?(encoded_tags, scenario: "inject")
 
@@ -155,7 +155,7 @@ module Datadog
           return set_tags_propagation_error(reason: "disabled") if tags_disabled?
           return set_tags_propagation_error(reason: "extract_max_size") if tags_too_large?(tags, scenario: "extract")
 
-          tags_hash = DatadogTagsCodec.decode(tags)
+          tags_hash = TraceState::Datadog.decode(tags)
           # Only extract keys with the expected Datadog prefix
           tags_hash.select! do |key, _|
             key.start_with?(Tracing::Metadata::Ext::Distributed::TAGS_PREFIX) && key != EXCLUDED_TAG
