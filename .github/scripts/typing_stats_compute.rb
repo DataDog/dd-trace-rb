@@ -41,16 +41,19 @@ total_files_size = Dir.glob("#{project.base_dir}/lib/**/*.rb").size
 
 # steep:ignore comments stats
 ignore_comments = loader.each_path_in_patterns(datadog_target.source_pattern).each_with_object([]) do |path, result|
-  buffer = ::Parser::Source::Buffer.new(path.to_s, 1, source: path.read)
+  source = path.read
+  source_lines = source.lines
+  buffer = ::Parser::Source::Buffer.new(path.to_s, 1, source: source)
   _, comments = ::Parser::Ruby25.new.parse_with_comments(buffer)
-  rbs_buffer = ::RBS::Buffer.new(name: path, content: path.read)
+  rbs_buffer = ::RBS::Buffer.new(name: path, content: source)
   comments.each do |comment|
     ignore = ::Steep::AST::Ignore.parse(comment, rbs_buffer)
     next if ignore.nil? || ignore.is_a?(::Steep::AST::Ignore::IgnoreEnd)
 
     result << {
       path: path.to_s,
-      line: ignore.line
+      line: ignore.line,
+      source: source_lines.fetch(ignore.line - 1).chomp
     }
   end
 end

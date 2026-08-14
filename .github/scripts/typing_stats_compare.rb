@@ -23,23 +23,21 @@ def concord(word, count, suffix = "s")
   (count > 1) ? pluralize(word, suffix) : word
 end
 
-def declaration_changes(head_declarations, base_declarations)
-  unmatched_base_declarations = base_declarations.dup
-  added_declarations = head_declarations.each_with_object([]) do |head_declaration, result|
-    matching_index = unmatched_base_declarations.find_index do |base_declaration|
-      head_declaration[:path] == base_declaration[:path] &&
-        head_declaration[:namespace] == base_declaration[:namespace] &&
-        head_declaration[:line_content] == base_declaration[:line_content]
+def changes_ignoring_line(head_entries, base_entries)
+  unmatched_base_entries = base_entries.dup
+  added_entries = head_entries.each_with_object([]) do |head_entry, result|
+    matching_index = unmatched_base_entries.find_index do |base_entry|
+      head_entry.reject { |key, _value| key == :line } == base_entry.reject { |key, _value| key == :line }
     end
 
     if matching_index
-      unmatched_base_declarations.delete_at(matching_index)
+      unmatched_base_entries.delete_at(matching_index)
     else
-      result << head_declaration
+      result << head_entry
     end
   end
 
-  [added_declarations, unmatched_base_declarations]
+  [added_entries, unmatched_base_entries]
 end
 
 def create_intro(
@@ -165,8 +163,10 @@ def ignored_files_summary(head_stats, base_stats)
 end
 
 def steep_ignore_summary(head_stats, base_stats)
-  steep_ignore_added = head_stats[:steep_ignore_comments] - base_stats[:steep_ignore_comments]
-  steep_ignore_removed = base_stats[:steep_ignore_comments] - head_stats[:steep_ignore_comments]
+  steep_ignore_added, steep_ignore_removed = changes_ignoring_line(
+    head_stats[:steep_ignore_comments],
+    base_stats[:steep_ignore_comments]
+  )
 
   create_summary(
     added: steep_ignore_added,
@@ -176,8 +176,8 @@ def steep_ignore_summary(head_stats, base_stats)
 end
 
 def untyped_methods_summary(head_stats, base_stats)
-  untyped_methods_added, untyped_methods_removed = declaration_changes(head_stats[:untyped_methods], base_stats[:untyped_methods])
-  partially_typed_methods_added, partially_typed_methods_removed = declaration_changes(
+  untyped_methods_added, untyped_methods_removed = changes_ignoring_line(head_stats[:untyped_methods], base_stats[:untyped_methods])
+  partially_typed_methods_added, partially_typed_methods_removed = changes_ignoring_line(
     head_stats[:partially_typed_methods],
     base_stats[:partially_typed_methods]
   )
@@ -200,8 +200,8 @@ def untyped_methods_summary(head_stats, base_stats)
 end
 
 def untyped_others_summary(head_stats, base_stats)
-  untyped_others_added, untyped_others_removed = declaration_changes(head_stats[:untyped_others], base_stats[:untyped_others])
-  partially_typed_others_added, partially_typed_others_removed = declaration_changes(
+  untyped_others_added, untyped_others_removed = changes_ignoring_line(head_stats[:untyped_others], base_stats[:untyped_others])
+  partially_typed_others_added, partially_typed_others_removed = changes_ignoring_line(
     head_stats[:partially_typed_others],
     base_stats[:partially_typed_others]
   )

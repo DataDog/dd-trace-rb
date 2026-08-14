@@ -10,8 +10,8 @@ RSpec.describe "typing stats comparison" do
   subject(:comparison) do
     Dir.mktmpdir("typing-stats-head") do |head_project_path|
       Dir.mktmpdir("typing-stats-base") do |base_project_path|
-        create_project(head_project_path, head_rbs)
-        create_project(base_project_path, base_rbs)
+        create_project(head_project_path, head_rbs, head_rb)
+        create_project(base_project_path, base_rbs, base_rb)
 
         Tempfile.create("typing-stats-head") do |head_stats_file|
           Tempfile.create("typing-stats-base") do |base_stats_file|
@@ -33,10 +33,10 @@ RSpec.describe "typing stats comparison" do
     end
   end
 
-  def create_project(project_path, rbs)
+  def create_project(project_path, rbs, ruby_source)
     FileUtils.mkdir_p(File.join(project_path, "lib"))
     FileUtils.mkdir_p(File.join(project_path, "sig"))
-    File.write(File.join(project_path, "lib/example.rb"), "")
+    File.write(File.join(project_path, "lib/example.rb"), ruby_source)
     File.write(File.join(project_path, "sig/example.rbs"), rbs)
     File.write(
       File.join(project_path, "Steepfile"),
@@ -63,6 +63,9 @@ RSpec.describe "typing stats comparison" do
 
     output
   end
+
+  let(:base_rb) { "" }
+  let(:head_rb) { "" }
 
   context "when an untyped declaration is introduced" do
     let(:base_rbs) do
@@ -137,6 +140,69 @@ RSpec.describe "typing stats comparison" do
 
     it "reports the introduced and cleared declarations" do
       is_expected.to include("introduces **1** untyped method, and clears **1** untyped method")
+    end
+  end
+
+  context "when a line is introduced before a steep:ignore comment" do
+    let(:base_rbs) do
+      <<~RBS
+        class Example
+        end
+      RBS
+    end
+
+    let(:head_rbs) { base_rbs }
+
+    let(:base_rb) do
+      <<~RUBY
+        class Example
+          value.call # steep:ignore NoMethod
+        end
+      RUBY
+    end
+
+    let(:head_rb) do
+      <<~RUBY
+        class Example
+          inserted = true
+          value.call # steep:ignore NoMethod
+        end
+      RUBY
+    end
+
+    it "does not report the moved comment" do
+      is_expected.to eq("")
+    end
+  end
+
+  context "when a steep:ignore comment is introduced" do
+    let(:base_rbs) do
+      <<~RBS
+        class Example
+        end
+      RBS
+    end
+
+    let(:head_rbs) { base_rbs }
+
+    let(:base_rb) do
+      <<~RUBY
+        class Example
+        end
+      RUBY
+    end
+
+    let(:head_rb) do
+      <<~RUBY
+        class Example
+          value.call # steep:ignore NoMethod
+        end
+      RUBY
+    end
+
+    it "reports the comment at its current line" do
+      is_expected.to include("introduces **1** <code>steep:ignore</code> comment")
+      is_expected.to include("lib/example.rb:2")
     end
   end
 end
