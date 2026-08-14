@@ -55,7 +55,13 @@ ignore_comments = loader.each_path_in_patterns(datadog_target.source_pattern).ea
   end
 end
 
-def ast_traversal(declarations, result = {})
+def declaration_namespace(declaration, enclosing_namespace)
+  return declaration.name.to_s.delete_prefix("::") if declaration.name.namespace.absolute?
+
+  [enclosing_namespace, declaration.name.to_s].reject(&:empty?).join("::")
+end
+
+def ast_traversal(declarations, result = {}, namespace = "")
   result[:methods] ||= []
   result[:others] ||= []
   declarations.each do |declaration|
@@ -63,16 +69,16 @@ def ast_traversal(declarations, result = {})
     when ::RBS::AST::Declarations::Module,
          ::RBS::AST::Declarations::Class,
          ::RBS::AST::Declarations::Interface
-      ast_traversal(declaration.members, result)
+      ast_traversal(declaration.members, result, declaration_namespace(declaration, namespace))
     when ::RBS::AST::Declarations::TypeAlias,
       ::RBS::AST::Declarations::Constant,
       ::RBS::AST::Declarations::Global,
       ::RBS::AST::Members::Var,
       ::RBS::AST::Members::Attribute
-      result[:others] << declaration
+      result[:others] << [declaration, namespace]
     # Only this one does not have a type field
     when ::RBS::AST::Members::MethodDefinition
-      result[:methods] << declaration
+      result[:methods] << [declaration, namespace]
     end
   end
   result
@@ -177,7 +183,7 @@ signature_paths.each do |sig_path|
   _, _directives, declarations = ::RBS::Parser.parse_signature(buffer)
   filtered_declarations = ast_traversal(declarations)
 
-  filtered_declarations[:methods].each do |method|
+  filtered_declarations[:methods].each do |method, namespace|
     # Skip definitions with last comment line being `untyped:accept`
     if method.comment&.string&.end_with?("untyped:accept\n")
       typed_methods_size += 1
@@ -192,13 +198,13 @@ signature_paths.each do |sig_path|
     when :typed
       typed_methods_size += 1
     when :untyped
-      untyped_methods << {path: sig_path.to_s, line: method.location.start_line, line_content: method.location.source}
+      untyped_methods << {path: sig_path.to_s, namespace: namespace, line: method.location.start_line, line_content: method.location.source}
     when :partial
-      partially_typed_methods << {path: sig_path.to_s, line: method.location.start_line, line_content: method.location.source}
+      partially_typed_methods << {path: sig_path.to_s, namespace: namespace, line: method.location.start_line, line_content: method.location.source}
     end
   end
 
-  filtered_declarations[:others].each do |declaration|
+  filtered_declarations[:others].each do |declaration, namespace|
     # Skip definitions with last comment line being `untyped:accept`
     if declaration.comment&.string&.end_with?("untyped:accept\n")
       typed_others_size += 1
@@ -209,9 +215,9 @@ signature_paths.each do |sig_path|
     when :typed, nil
       typed_others_size += 1
     when :untyped
-      untyped_others << {path: sig_path.to_s, line: declaration.location.start_line, line_content: declaration.location.source}
+      untyped_others << {path: sig_path.to_s, namespace: namespace, line: declaration.location.start_line, line_content: declaration.location.source}
     when :partial
-      partially_typed_others << {path: sig_path.to_s, line: declaration.location.start_line, line_content: declaration.location.source}
+      partially_typed_others << {path: sig_path.to_s, namespace: namespace, line: declaration.location.start_line, line_content: declaration.location.source}
     end
   end
 end

@@ -23,6 +23,25 @@ def concord(word, count, suffix = "s")
   (count > 1) ? pluralize(word, suffix) : word
 end
 
+def declaration_changes(head_declarations, base_declarations)
+  unmatched_base_declarations = base_declarations.dup
+  added_declarations = head_declarations.each_with_object([]) do |head_declaration, result|
+    matching_index = unmatched_base_declarations.find_index do |base_declaration|
+      head_declaration[:path] == base_declaration[:path] &&
+        head_declaration[:namespace] == base_declaration[:namespace] &&
+        head_declaration[:line_content] == base_declaration[:line_content]
+    end
+
+    if matching_index
+      unmatched_base_declarations.delete_at(matching_index)
+    else
+      result << head_declaration
+    end
+  end
+
+  [added_declarations, unmatched_base_declarations]
+end
+
 def create_intro(
   added:,
   removed:,
@@ -157,10 +176,11 @@ def steep_ignore_summary(head_stats, base_stats)
 end
 
 def untyped_methods_summary(head_stats, base_stats)
-  untyped_methods_added = head_stats[:untyped_methods] - base_stats[:untyped_methods]
-  untyped_methods_removed = base_stats[:untyped_methods] - head_stats[:untyped_methods]
-  partially_typed_methods_added = head_stats[:partially_typed_methods] - base_stats[:partially_typed_methods]
-  partially_typed_methods_removed = base_stats[:partially_typed_methods] - head_stats[:partially_typed_methods]
+  untyped_methods_added, untyped_methods_removed = declaration_changes(head_stats[:untyped_methods], base_stats[:untyped_methods])
+  partially_typed_methods_added, partially_typed_methods_removed = declaration_changes(
+    head_stats[:partially_typed_methods],
+    base_stats[:partially_typed_methods]
+  )
   total_methods_base = base_stats[:typed_methods_size] + base_stats[:untyped_methods].size + base_stats[:partially_typed_methods].size
   total_methods_head = head_stats[:typed_methods_size] + head_stats[:untyped_methods].size + head_stats[:partially_typed_methods].size
   typed_methods_percentage_base = (base_stats[:typed_methods_size] / total_methods_base.to_f * 100).round(2)
@@ -180,10 +200,11 @@ def untyped_methods_summary(head_stats, base_stats)
 end
 
 def untyped_others_summary(head_stats, base_stats)
-  untyped_others_added = head_stats[:untyped_others] - base_stats[:untyped_others]
-  untyped_others_removed = base_stats[:untyped_others] - head_stats[:untyped_others]
-  partially_typed_others_added = head_stats[:partially_typed_others] - base_stats[:partially_typed_others]
-  partially_typed_others_removed = base_stats[:partially_typed_others] - head_stats[:partially_typed_others]
+  untyped_others_added, untyped_others_removed = declaration_changes(head_stats[:untyped_others], base_stats[:untyped_others])
+  partially_typed_others_added, partially_typed_others_removed = declaration_changes(
+    head_stats[:partially_typed_others],
+    base_stats[:partially_typed_others]
+  )
   total_others_base = base_stats[:typed_others_size] + base_stats[:untyped_others].size + base_stats[:partially_typed_others].size
   total_others_head = head_stats[:typed_others_size] + head_stats[:untyped_others].size + head_stats[:partially_typed_others].size
   typed_others_percentage_base = (base_stats[:typed_others_size] / total_others_base.to_f * 100).round(2)
