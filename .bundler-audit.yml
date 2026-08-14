@@ -191,3 +191,15 @@ ignore_gem_versions:
   - gem: sqlite3
     version: 2.8.1
     reason: "Latest sqlite3 installable on Ruby 3.1; 2.9.0+ requires Ruby >= 3.2"
+
+  # rack-contrib 1.8.0 -- gemfiles/ruby_{3.1,3.2}_rack_1.gemfile.lock.
+  # rack-contrib >= 2.0.0 (the fixed version for CVE-2024-35231, a DoS via the
+  # `profiler_runs` param in Rack::Contrib::Profiler) requires Rack::MediaType,
+  # introduced in Rack 2.0. The rack_1 appraisal intentionally pins `rack ~> 1`
+  # to test against Rack 1.x, so it cannot use a fixed rack-contrib release.
+  # The vulnerable Profiler middleware is not used by any spec in this
+  # appraisal; only json_body_parser is exercised.
+  # Added 2026-08-14, reviewed by Tony Hsu.
+  - gem: rack-contrib
+    version: 1.8.0
+    reason: "rack-contrib >= 2.0.0 (fixed for CVE-2024-35231) requires Rack::MediaType, unavailable before Rack 2.0; rack_1 appraisal intentionally tests Rack 1.x"
