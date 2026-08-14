@@ -13,15 +13,9 @@
 ignore: []
 
 # Gem+version-scoped ignore list, checked in addition to `ignore` above.
-#
-# Unlike `ignore` (which suppresses an advisory id everywhere it appears,
-# regardless of gem or version), each entry here only suppresses findings
-# for that exact gem+version pair. If `bundle lock --update <gem>` is ever
-# re-run and moves the gem to a different version -- fixed or not -- the
-# finding stops matching and reappears in the audit instead of staying
-# silently hidden. Prefer this over `ignore` whenever the unresolvable
-# advisory is tied to a specific pinned version rather than the gem in
-# general.
+# Unlike `ignore`, each entry only suppresses findings for that exact
+# gem+version pair, so bumping the gem makes the finding reappear instead
+# of staying silently hidden.
 #
 # Each entry MUST be documented with:
 #   - the gem and the exact pinned version

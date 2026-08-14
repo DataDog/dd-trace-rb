@@ -222,10 +222,8 @@ end
 
 build_coverage_matrix('redis', [3, 4])
 build_coverage_matrix('rack', 1..2, meta: {
-  # rack-contrib >= 2.0.0 requires Rack::MediaType, introduced in Rack 2.0, so
-  # it cannot run against the rack-1 appraisal's `rack ~> 1` pin. 1.8.0 is the
-  # newest release that still supports Rack 1.x; it predates the fix for
-  # CVE-2024-35231, accepted as a known risk here (see .bundler-audit.yml).
+  # rack-contrib >= 2.0.0 requires Rack::MediaType (Rack 2.0+); 1.8.0 is the
+  # newest release supporting Rack 1.x (see .bundler-audit.yml).
   1 => { 'rack-contrib' => '1.8.0' },
   2 => { 'rack-contrib' => nil },
   :latest => { 'rack-contrib' => nil },

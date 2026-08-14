@@ -11,16 +11,9 @@ module DependencyAuditing
 
   Finding = Struct.new(:lockfile, :gem, :version, :criticality, :id)
 
-  # Scan each lockfile with a single shared Database and return only the
-  # findings whose criticality is in `severities`, excluding `ignore` or
-  # `ignore_gem_versions`.
-  #
-  # `ignore` matches bundler-audit's own semantics: a flat list of advisory
-  # ids (CVE/GHSA), suppressed everywhere that id appears, regardless of gem
-  # or version. `ignore_gem_versions` is scoped tighter -- each entry only
-  # suppresses findings for that exact gem+version pair, so a fix that bumps
-  # the gem (even to another still-vulnerable version) makes the finding
-  # reappear instead of staying silently hidden.
+  # Scan each lockfile and return findings whose criticality is in `severities`,
+  # excluding `ignore` (advisory id, any gem/version) or `ignore_gem_versions`
+  # (exact gem+version pair only).
   #
   # Returns an Array of Finding.
   def findings(lockfile_paths, database:, ignore:, severities: SEVERITIES, ignore_gem_versions: [])

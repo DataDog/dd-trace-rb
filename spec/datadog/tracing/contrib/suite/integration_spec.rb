@@ -7,9 +7,8 @@ require "datadog"
 require "semantic_logger"
 
 require "rack"
-# `Rack::Handler::WEBrick` was extracted to the `rackup` gem in Rack 3.0.
-# `rackup` isn't a dependency of every gemfile that exercises this spec, so
-# the WEBrick-mounting example below skips itself when it's unavailable.
+# `Rack::Handler::WEBrick` moved to the `rackup` gem in Rack 3.0, which isn't
+# a dependency of every gemfile here; the WEBrick example skips if unavailable.
 begin
   require "rackup/handler/webrick" if Gem::Version.new(Rack::RELEASE) >= Gem::Version.new("3")
 rescue LoadError

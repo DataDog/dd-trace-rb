@@ -62,14 +62,8 @@ RSpec.describe "ActiveRecord instantiation instrumentation" do
         end
       end
 
-      # `register_db_config_handler` appends to a process-wide, class-level array with no
-      # way to deregister a single handler, so handlers registered in these examples must
-      # be removed here to avoid leaking into (and raising in) every other spec that
-      # resolves an ActiveRecord database configuration afterwards.
-      #
-      # This must guard itself the same way the `before` block above does: `around` hooks
-      # wrap `before` hooks, so this runs even on Rails versions where `db_config_handlers`
-      # doesn't exist and the `before` block's skip hasn't taken effect yet.
+      # register_db_config_handler has no way to deregister, so restore the handler list
+      # here to avoid leaking into later specs. Guards itself since `around` wraps `before`.
       around do |example|
         unless defined?(ActiveRecord::DatabaseConfigurations.register_db_config_handler)
           next example.run
