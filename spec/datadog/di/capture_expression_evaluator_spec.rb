@@ -211,7 +211,10 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       before do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
         clock_calls = 0
-        clock_returns = [0, 0, 200_000_000]
+        # Reads in order: deadline computation, first-expression check,
+        # serialize_value of the first result (shares the deadline),
+        # second-expression check (past the deadline).
+        clock_returns = [0, 0, 0, 200_000_000]
         allow(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
           if args == [::Process::CLOCK_MONOTONIC, :nanosecond]
             clock_returns[clock_calls].tap { clock_calls += 1 }
