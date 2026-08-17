@@ -53,6 +53,7 @@ module SerializerHelper
         # Reduce max capture depth to 2 from default of 3
         allow(settings).to receive(:max_capture_depth).and_return(2)
         allow(settings).to receive(:max_capture_string_length).and_return(100)
+        allow(settings).to receive(:max_time_to_serialize_ms).and_return(200)
       end
     end
   end
