@@ -379,9 +379,8 @@ module Datadog
             thread_id: nil,
             version: 2,
           },
-          # Per-process identity, distinguishing snapshots emitted before and
-          # after a restart inside the same container. Same value already sent
-          # in probe status diagnostics.
+          # Per-process identity, distinguishing snapshots before and after a
+          # restart inside the same container.
           runtimeId: Core::Environment::Identity.id,
           # TODO add tests that the trace/span id is correctly propagated
           "dd.trace_id": active_trace&.id&.to_s,

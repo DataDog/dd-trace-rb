@@ -9,6 +9,8 @@ module Datadog
     #
     # @api private
     class SamplingUnit
+      NONE = new(nil)
+
       # Resolves the unit enclosing the current probe hit.
       #
       # @return [SamplingUnit]
@@ -20,11 +22,9 @@ module Datadog
           end
         end
 
-        new(nil)
+        NONE
       end
 
-      # Holds one resolved unit; callers obtain instances from {.current}.
-      #
       # @param key [String, Integer, nil] the trace id, or nil when no trace is
       #   active
       def initialize(key)

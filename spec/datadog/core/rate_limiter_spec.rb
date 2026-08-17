@@ -253,7 +253,7 @@ RSpec.describe Datadog::Core::BorrowingTokenBucket do
     end
 
     it "removes the requested size" do
-      bucket.consume(5)
+      bucket.consume(size: 5)
       expect(bucket.available_tokens).to eq(15)
     end
 
