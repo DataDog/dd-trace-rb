@@ -101,7 +101,7 @@ module Datadog
                 super
 
                 if Datadog.configuration.tracing[:active_support][:cache_key].enabled
-                  ActiveSupport::Cache::Instrumentation.set_cache_namespace(span, payload[:namespace])
+                  ActiveSupport::Cache::Instrumentation.set_cache_namespace_tag(span, payload[:namespace])
                 end
               rescue => e
                 Datadog.logger.error("#{e.class}: #{e.message}")

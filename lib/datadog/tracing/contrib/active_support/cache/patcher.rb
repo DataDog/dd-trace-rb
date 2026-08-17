@@ -26,8 +26,6 @@ module Datadog
                 ::ActiveSupport::Cache::Store.prepend(Cache::Instrumentation::PreserveOriginalKey)
               end
 
-              # Record the namespace ActiveSupport resolves for an operation, so that a callable one
-              # can be reported without instrumentation invoking it.
               if Integration.version >= Gem::Version.new("5.2.0")
                 ::ActiveSupport::Cache::Store.prepend(Cache::Instrumentation::ResolveNamespace)
               end
@@ -37,7 +35,6 @@ module Datadog
                 ::ActiveSupport::Cache::Store.prepend(Cache::Instrumentation::Store)
               end
 
-              # Backfill the `:namespace` key in the ActiveSupport `delete` event payload for older Rails.
               if Integration.version < Gem::Version.new("8.0.0")
                 ::ActiveSupport::Cache::Store.prepend(Cache::Instrumentation::BackfillDeleteNamespace)
               end

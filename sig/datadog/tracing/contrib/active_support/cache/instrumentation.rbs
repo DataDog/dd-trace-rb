@@ -10,7 +10,7 @@ module Datadog
 
             def self?.finish_trace_cache_multi: (untyped payload) -> untyped
 
-            def self?.set_cache_namespace: (untyped span, any namespace) -> void
+            def self?.set_cache_namespace_tag: (untyped span, any namespace) -> void
 
             def self?.enabled?: () -> untyped
             module InstanceMethods
@@ -34,12 +34,12 @@ module Datadog
             module Delete
               def delete: (*untyped args) ?{ () -> untyped } -> untyped
             end
-            RESOLVED_NAMESPACE_KEY: "datadog_active_support_cache_resolved_namespace"
+            RESOLVED_NAMESPACE_KEY: ::String
 
             module ResolveNamespace
               def namespace_key: (untyped key, ?untyped _options) -> untyped
             end
-            DELETE_NAMESPACE_KEY: "datadog_active_support_cache_delete_namespace"
+            DELETE_NAMESPACE_KEY: ::String
 
             module BackfillDeleteNamespace
               def delete: (any name, ?::Hash[::Symbol, any]? options) -> untyped
