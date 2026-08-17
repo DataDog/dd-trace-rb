@@ -25,7 +25,7 @@ RSpec.describe Datadog::DI::CorrelationSampler do
   # A rate limiter that admits +allow+ times, then denies.
   def limiter(allow:)
     remaining = allow
-    double("limiter").tap do |rl|
+    instance_double(Datadog::Core::RateLimiter).tap do |rl|
       allow(rl).to receive(:allow?) do
         if remaining > 0
           remaining -= 1
@@ -38,7 +38,7 @@ RSpec.describe Datadog::DI::CorrelationSampler do
   end
 
   def probe(id, rate_limiter: nil)
-    double("probe", id: id, rate_limiter: rate_limiter)
+    instance_double(Datadog::DI::Probe, id: id, rate_limiter: rate_limiter)
   end
 
   def unit(key)

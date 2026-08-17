@@ -125,10 +125,11 @@ module Datadog
       # key is the oldest. Must hold the lock.
       def store(key, budget)
         trace_budgets[key] = budget
-        return unless trace_budgets.size > max_entries
-
-        oldest = trace_budgets.first
-        trace_budgets.delete(oldest.first) if oldest
+        if trace_budgets.size > max_entries
+          oldest = trace_budgets.first
+          trace_budgets.delete(oldest.first) if oldest
+        end
+        nil
       end
 
       # Per-trace emission counters: one all counter shared by every probe, and

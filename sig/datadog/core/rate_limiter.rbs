@@ -73,11 +73,11 @@ module Datadog
 
       attr_reader max_tokens: ::Numeric
 
-      def initialize: (::Float | ::Integer rate, ?::Numeric max_tokens) -> void
+      def initialize: (::Float | ::Integer rate, ?max_tokens: ::Numeric) -> void
 
       def available?: () -> bool
 
-      def consume: (?::Numeric size) -> void
+      def consume: (?size: ::Numeric) -> void
 
       def available_tokens: () -> ::Numeric
 

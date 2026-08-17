@@ -185,7 +185,7 @@ module Datadog
 
       # @param rate [Numeric] refill rate, in tokens per second
       # @param max_tokens [Numeric] ceiling the balance refills toward
-      def initialize(rate, max_tokens = rate)
+      def initialize(rate, max_tokens: rate)
         raise ArgumentError, "rate must be a number: #{rate}" unless rate.is_a?(Numeric)
         raise ArgumentError, "max_tokens must be a number: #{max_tokens}" unless max_tokens.is_a?(Numeric)
 
@@ -206,7 +206,7 @@ module Datadog
       #
       # @param size [Numeric] tokens to remove
       # @return [void]
-      def consume(size = 1)
+      def consume(size: 1)
         refill
         @tokens -= size
         nil

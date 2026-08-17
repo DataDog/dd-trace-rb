@@ -5,7 +5,7 @@ RSpec.describe Datadog::DI::SamplingUnit do
   di_test
 
   def stub_active_trace(trace_id)
-    trace = double("trace", id: trace_id)
+    trace = instance_double(Datadog::Tracing::TraceOperation, id: trace_id)
     allow(Datadog::Tracing).to receive(:active_trace).and_return(trace)
   end
 

@@ -1,31 +1,31 @@
 module Datadog
   module DI
     class CorrelationSampler
-      DEFAULT_MAX_ENTRIES: Integer
+      DEFAULT_MAX_ENTRIES: ::Integer
 
-      TOP_RATE: Integer
+      TOP_RATE: ::Integer
 
-      GLOBAL_RATE: Integer
+      GLOBAL_RATE: ::Integer
 
-      PER_PROBE_BUDGET: Integer
+      PER_PROBE_BUDGET: ::Integer
 
-      ALL_BUDGET: Integer
+      ALL_BUDGET: ::Integer
 
-      @max_entries: Integer
+      @max_entries: ::Integer
 
-      @per_probe_budget: Integer
+      @per_probe_budget: ::Integer
 
-      @all_budget: Integer
+      @all_budget: ::Integer
 
       @lock: ::Thread::Mutex
 
-      @trace_budgets: Hash[Integer, TraceBudget]
+      @trace_budgets: ::Hash[::Integer, TraceBudget]
 
       @top_limiter: Core::TokenBucket
 
       @global_limiter: Core::BorrowingTokenBucket
 
-      def initialize: (?max_entries: Integer, ?top_rate: (Float | Integer), ?global_rate: (Float | Integer), ?per_probe_budget: Integer, ?all_budget: Integer) -> void
+      def initialize: (?max_entries: ::Integer, ?top_rate: (::Float | ::Integer), ?global_rate: (::Float | ::Integer), ?per_probe_budget: ::Integer, ?all_budget: ::Integer) -> void
 
       def emit?: (Probe probe, SamplingUnit sampling_unit) -> bool
 
@@ -33,40 +33,40 @@ module Datadog
 
       attr_reader lock: ::Thread::Mutex
 
-      attr_reader trace_budgets: Hash[Integer, TraceBudget]
+      attr_reader trace_budgets: ::Hash[::Integer, TraceBudget]
 
       attr_reader top_limiter: Core::TokenBucket
 
       attr_reader global_limiter: Core::BorrowingTokenBucket
 
-      attr_reader max_entries: Integer
+      attr_reader max_entries: ::Integer
 
-      attr_reader per_probe_budget: Integer
+      attr_reader per_probe_budget: ::Integer
 
-      attr_reader all_budget: Integer
+      attr_reader all_budget: ::Integer
 
       def emit_uncorrelated?: (Probe probe) -> bool
 
-      def fetch_budget: (Integer key) -> TraceBudget?
+      def fetch_budget: (::Integer key) -> TraceBudget?
 
-      def emit_first_in_unit?: (Integer key, Probe probe) -> bool
+      def emit_first_in_unit?: (::Integer key, Probe probe) -> bool
 
       def emit_correlated?: (TraceBudget budget, Probe probe) -> bool
 
-      def store: (Integer key, TraceBudget budget) -> void
+      def store: (::Integer key, TraceBudget budget) -> void
 
       class TraceBudget
-        @all_remaining: Integer
+        @all_remaining: ::Integer
 
-        @per_probe_limit: Integer
+        @per_probe_limit: ::Integer
 
-        @per_probe: Hash[String, Integer]
+        @per_probe: ::Hash[::String, ::Integer]
 
-        def initialize: (Integer all_budget, Integer per_probe_limit) -> void
+        def initialize: (::Integer all_budget, ::Integer per_probe_limit) -> void
 
-        attr_reader all_remaining: Integer
+        attr_reader all_remaining: ::Integer
 
-        def admit: (String probe_id) -> bool
+        def admit: (::String probe_id) -> bool
       end
     end
   end
