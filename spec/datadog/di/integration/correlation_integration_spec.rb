@@ -1,13 +1,13 @@
 require "datadog/di/spec_helper"
 require "datadog/di"
 
-# Integration tests for coordinated sampling (Datadog::DI::Correlation) wired
+# Integration tests for coordinated sampling (Datadog::DI::CorrelationSampler) wired
 # through the real Component, Instrumenter, ProbeManager and notification
 # builder. The correlation gate is exercised with real instrumentation; the
 # active APM trace is stubbed at the Datadog::Tracing seam the gate reads from.
 # The process-wide TOP/GLOBAL limits and starvation are covered in the unit
 # spec, where the limits are constructed small; here the Component builds
-# Correlation with production limits, ample for these examples.
+# CorrelationSampler with production limits, ample for these examples.
 
 class CorrelationIntegrationTestClass
   def alpha
@@ -131,7 +131,7 @@ RSpec.describe "Correlation integration" do
       CorrelationIntegrationTestClass.new.loop_n(25)
       flush
 
-      expect(snapshots.size).to eq(Datadog::DI::Correlation::PER_PROBE_BUDGET)
+      expect(snapshots.size).to eq(Datadog::DI::CorrelationSampler::PER_PROBE_BUDGET)
     end
 
     it "carries the per-process runtime id on the snapshot" do
@@ -178,7 +178,7 @@ RSpec.describe "Correlation integration" do
 
     it "still emits when the gate raises" do
       probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
-      allow(component.correlation).to receive(:emit?).and_raise("gate boom")
+      allow(component.correlation_sampler).to receive(:emit?).and_raise("gate boom")
 
       CorrelationIntegrationTestClass.new.inner
       flush

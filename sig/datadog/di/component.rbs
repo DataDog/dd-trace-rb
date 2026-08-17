@@ -13,7 +13,7 @@ module Datadog
 
       @serializer: Serializer
 
-      @correlation: Correlation
+      @correlation_sampler: CorrelationSampler
 
       @instrumenter: Instrumenter
 
@@ -47,7 +47,7 @@ module Datadog
 
       attr_reader code_tracker: CodeTracker?
 
-      attr_reader correlation: Correlation
+      attr_reader correlation_sampler: CorrelationSampler
 
       attr_reader instrumenter: Instrumenter
 
