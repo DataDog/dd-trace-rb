@@ -44,9 +44,6 @@ inputs:
     default: ''
 
 outputs:
-  changed:
-    description: 'Whether there were changes to commit ("true"/"false").'
-    value: ${{ steps.stage.outputs.changed }}
   commit-hash:
     description: 'Hash of the created commit, empty when nothing changed.'
     value: ${{ steps.commit.outputs.commit-hash }}
