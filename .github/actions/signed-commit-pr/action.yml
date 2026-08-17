@@ -170,8 +170,14 @@ runs:
         BODY: ${{ inputs.body }}
         LABELS: ${{ inputs.labels }}
       run: |
+        # --head filters on branch name alone; it does not accept the
+        # "<owner>:<branch>" form, so a fork's pull request using the same branch
+        # name and base would also match. Selecting on the head repository owner
+        # keeps this from editing a contributor's pull request and then skipping
+        # the one this action needs to open.
         existing="$(gh pr list --repo "$REPO" --head "$BRANCH" --base "$BASE" \
-          --state open --json number --jq '.[0].number // empty')"
+          --state open --json number,headRepositoryOwner \
+          --jq "[.[] | select(.headRepositoryOwner.login == \"${REPO%%/*}\")] | .[0].number // empty")"
 
         args=()
         if [ -n "$LABELS" ]; then
