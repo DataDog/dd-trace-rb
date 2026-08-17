@@ -125,7 +125,18 @@ jobs:
         run: |
           # Guards the silent-truncation class of bug: a green run that commits
           # only a subset of the intended files.
-          count="$(gh api "repos/$REPO/commits/$SHA" --jq '.files | length')"
+          #
+          # Counted from the tree, not from `commits/$SHA`.`files`: that array is
+          # capped at 300 entries by the REST API, so with FILE_COUNT above 300 it
+          # under-reports and this check fails on a correct commit. The tree
+          # response carries its own `truncated` flag, asserted below.
+          tree="$(gh api "repos/$REPO/git/trees/$SHA?recursive=1")"
+          if [ "$(echo "$tree" | jq -r '.truncated')" != "false" ]; then
+            echo "FAIL: tree listing was truncated, cannot count reliably"
+            exit 1
+          fi
+          count="$(echo "$tree" \
+            | jq '[.tree[] | select(.path | startswith("tmp-validate/"))] | length')"
           echo "files in commit: $count (expected $FILE_COUNT)"
           if [ "$count" -ne "$FILE_COUNT" ]; then
             echo "FAIL: expected $FILE_COUNT files, commit has $count"
