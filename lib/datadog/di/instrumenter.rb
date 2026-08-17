@@ -70,7 +70,7 @@ module Datadog
     #
     # @api private
     class Instrumenter
-      GLOBAL_SNAPSHOT_RATE_LIMIT = 100
+      GLOBAL_SNAPSHOT_RATE_LIMIT = 20
 
       GLOBAL_LOG_RATE_LIMIT = 5000
 
