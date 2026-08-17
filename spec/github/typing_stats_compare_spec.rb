@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "bundler"
 require "fileutils"
 require "open3"
 require "spec_helper"
@@ -58,11 +59,19 @@ RSpec.describe "typing stats comparison" do
   end
 
   def run_script(script, environment, working_directory: Dir.pwd)
-    output, status = Open3.capture2e(environment, "ruby", File.expand_path(script), chdir: working_directory)
-    raise output unless status.success?
+  environment = environment.merge(
+    "BUNDLE_GEMFILE" => Bundler.default_gemfile.expand_path.to_s
+  )
 
-    output
-  end
+  output, status = Open3.capture2e(
+    environment,
+    "bundle", "exec", "ruby", File.expand_path(script),
+    chdir: working_directory
+  )
+  raise output unless status.success?
+
+  output
+end
 
   let(:base_rb) { "" }
   let(:head_rb) { "" }
