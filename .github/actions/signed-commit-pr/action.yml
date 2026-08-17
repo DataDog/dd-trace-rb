@@ -1,8 +1,8 @@
 name: 'Signed commit and pull request'
 
 description: >-
-  Creates a GitHub-signed commit from the working tree via GraphQL, and
-  optionally opens or updates a pull request for it.
+  Creates a GitHub-signed commit from the working tree via GraphQL, and opens or
+  updates a pull request for it.
 
 # Exists because create-pull-request with `sign-commits: true` rebuilds the
 # commit over REST, one blob and tree object per file: ~10 minutes on a
@@ -13,10 +13,10 @@ description: >-
 
 inputs:
   token:
-    description: 'Token with contents:write and (unless commit-only) pull_requests:write.'
+    description: 'Token with contents:write and pull_requests:write.'
     required: true
   branch:
-    description: 'Branch to commit to.'
+    description: 'Branch to commit to. Reset to the checked-out commit, so it must be one this workflow owns.'
     required: true
   commit-message:
     description: 'Commit message.'
@@ -29,28 +29,17 @@ inputs:
       which treats a comma as a literal character in a pathspec.
     required: false
     default: '.'
-  commit-only:
-    description: >-
-      When true, commit to `branch` as it already exists and skip both the
-      branch reset and all pull request handling. Required when committing onto
-      a branch this workflow does not own, such as a contributor's PR branch.
-    required: false
-    default: 'false'
   base:
-    description: 'Base branch for the pull request. Ignored when commit-only.'
-    required: false
-    default: ''
+    description: 'Base branch for the pull request.'
+    required: true
   title:
-    description: 'Pull request title. Ignored when commit-only.'
-    required: false
-    default: ''
+    description: 'Pull request title.'
+    required: true
   body:
-    description: 'Pull request body. Ignored when commit-only.'
-    required: false
-    default: ''
+    description: 'Pull request body.'
+    required: true
   labels:
-    description: >-
-      Comma or newline separated labels to apply. Ignored when commit-only.
+    description: 'Comma or newline separated labels to apply.'
     required: false
     default: ''
 
@@ -104,7 +93,7 @@ runs:
     # Moves the remote ref only: resetting the local tree would discard what was
     # just staged, leaving nothing to commit and the run still green.
     - name: Reset branch
-      if: steps.stage.outputs.changed == 'true' && inputs.commit-only != 'true'
+      if: steps.stage.outputs.changed == 'true'
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}
@@ -145,7 +134,7 @@ runs:
     # on name alone: a fork PR sharing the branch name would otherwise be edited
     # in place of the one this action needs to open.
     - name: Create or update pull request
-      if: steps.stage.outputs.changed == 'true' && inputs.commit-only != 'true'
+      if: steps.stage.outputs.changed == 'true'
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}
