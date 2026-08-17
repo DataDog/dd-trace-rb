@@ -127,11 +127,15 @@ runs:
       run: |
         head_sha="$(git rev-parse HEAD)"
         echo "Pointing $BRANCH at $head_sha"
-        # 422 rather than 404 when the ref is absent, on at least some API
-        # versions, so treat any PATCH failure as "try to create it".
+        # A missing ref has been reported as both 404 and 422 depending on API
+        # version, so any PATCH failure falls through to creating the branch.
+        # The error is deliberately not silenced: other causes reach here too
+        # (403 from branch protection, an expired token), and the POST that
+        # follows would then fail with a misleading "Reference already exists".
+        # Keeping the PATCH error in the log is what makes that distinguishable.
         if ! gh api --silent -X PATCH "repos/$REPO/git/refs/heads/$BRANCH" \
-              -F "sha=$head_sha" -F force=true 2>/dev/null; then
-          echo "Branch does not exist yet, creating it."
+              -F "sha=$head_sha" -F force=true; then
+          echo "Could not update the branch, attempting to create it."
           gh api --silent -X POST "repos/$REPO/git/refs" \
             -f "ref=refs/heads/$BRANCH" -f "sha=$head_sha"
         fi
