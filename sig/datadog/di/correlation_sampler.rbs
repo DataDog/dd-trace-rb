@@ -45,13 +45,13 @@ module Datadog
 
       attr_reader all_budget: Integer
 
-      def per_probe: (Probe probe) -> bool
+      def emit_uncorrelated?: (Probe probe) -> bool
 
       def fetch_budget: (Integer key) -> TraceBudget?
 
-      def top: (Integer key, Probe probe) -> bool
+      def emit_first_in_unit?: (Integer key, Probe probe) -> bool
 
-      def correlated: (TraceBudget budget, Probe probe) -> bool
+      def emit_correlated?: (TraceBudget budget, Probe probe) -> bool
 
       def store: (Integer key, TraceBudget budget) -> void
 
