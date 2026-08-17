@@ -1,0 +1,190 @@
+name: 'Signed commit and pull request'
+
+description: >-
+  Creates a GitHub-signed commit from the working tree via GraphQL, and
+  optionally opens or updates a pull request for it.
+
+# Why this exists instead of peter-evans/create-pull-request with
+# `sign-commits: true`: a locally-created commit cannot be signed by GitHub, so
+# that action falls back to building the commit over the REST API, creating one
+# blob and one tree object per changed file. On a lockfile refresh touching
+# hundreds of files under gemfiles/, that N+1 takes ~10 minutes. The GraphQL
+# `createCommitOnBranch` mutation used here sends every file in a single request
+# and GitHub signs the result server-side, so cost is flat in file count.
+#
+# Inputs deliberately mirror create-pull-request's names so call sites read the
+# same way.
+
+inputs:
+  token:
+    description: 'Token with contents:write and (unless commit-only) pull_requests:write.'
+    required: true
+  branch:
+    description: 'Branch to commit to.'
+    required: true
+  commit-message:
+    description: 'Commit message.'
+    required: true
+  add-paths:
+    description: >-
+      Paths to stage, separated by whitespace, newlines, or commas. Defaults to
+      everything. Note that commas are accepted here for parity with
+      create-pull-request, but are normalized to whitespace before reaching git,
+      which treats a comma as a literal character in a pathspec.
+    required: false
+    default: '.'
+  commit-only:
+    description: >-
+      When true, commit to `branch` as it already exists and skip both the
+      branch reset and all pull request handling. Required when committing onto
+      a branch this workflow does not own, such as a contributor's PR branch.
+    required: false
+    default: 'false'
+  base:
+    description: 'Base branch for the pull request. Ignored when commit-only.'
+    required: false
+    default: ''
+  title:
+    description: 'Pull request title. Ignored when commit-only.'
+    required: false
+    default: ''
+  body:
+    description: 'Pull request body. Ignored when commit-only.'
+    required: false
+    default: ''
+  labels:
+    description: >-
+      Comma or newline separated labels to apply. Ignored when commit-only.
+    required: false
+    default: ''
+
+outputs:
+  changed:
+    description: 'Whether there were changes to commit ("true"/"false").'
+    value: ${{ steps.stage.outputs.changed }}
+  commit-hash:
+    description: 'Hash of the created commit, empty when nothing changed.'
+    value: ${{ steps.commit.outputs.commit-hash }}
+
+runs:
+  using: "composite"
+  steps:
+    # Staged before touching any remote ref, so that a run with nothing to do
+    # makes no remote changes at all: no reset, no empty commit, no empty PR.
+    - name: Stage changes
+      id: stage
+      shell: bash
+      env:
+        ADD_PATHS: ${{ inputs.add-paths }}
+      run: |
+        # `git add` takes each pathspec as a separate argument. Both separators
+        # must be flattened to spaces before splitting:
+        #   - a comma is a literal character to git, so a comma-joined list
+        #     would arrive as one pathspec that matches nothing and exits 0;
+        #   - `read -r -a` stops at the first newline, so a `|` block list would
+        #     silently contribute only its first path.
+        # Either mistake fails by committing too little, with a green run.
+        normalized="${ADD_PATHS//,/ }"
+        normalized="${normalized//$'\n'/ }"
+        read -r -a paths <<< "$normalized"
+        git add -- "${paths[@]}"
+        # Re-emit as a single whitespace-separated line for ghcommit-action's
+        # file_pattern, which splits with `read -r -a` and so must not receive
+        # newlines.
+        echo "paths=${paths[*]}" >> "$GITHUB_OUTPUT"
+        if git diff --cached --quiet; then
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+          echo "No changes to commit."
+        else
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Show staged changes
+      if: steps.stage.outputs.changed == 'true'
+      shell: bash
+      run: git diff --cached --stat
+
+    # Point the branch at the commit this run checked out, so it holds exactly
+    # one commit on top of that base rather than accumulating one per run.
+    #
+    # The target is local HEAD, NOT the `base` input: ghcommit-action exposes no
+    # head-SHA input, so its `expectedHeadOid` is always local `git rev-parse
+    # HEAD`, and the mutation is rejected if the branch points elsewhere. Those
+    # two diverge whenever base moved after checkout.
+    #
+    # This moves only the remote ref and never the local tree. Resetting the
+    # local tree here would discard the changes just staged, after which
+    # ghcommit-action would find nothing to do and exit 0 - a green run that
+    # commits nothing. Moving the ref remotely also avoids needing a `git push`,
+    # which matters because callers check out with `persist-credentials: false`.
+    - name: Reset branch
+      if: steps.stage.outputs.changed == 'true' && inputs.commit-only != 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        BRANCH: ${{ inputs.branch }}
+      run: |
+        head_sha="$(git rev-parse HEAD)"
+        echo "Pointing $BRANCH at $head_sha"
+        # 422 rather than 404 when the ref is absent, on at least some API
+        # versions, so treat any PATCH failure as "try to create it".
+        if ! gh api --silent -X PATCH "repos/$REPO/git/refs/heads/$BRANCH" \
+              -F "sha=$head_sha" -F force=true 2>/dev/null; then
+          echo "Branch does not exist yet, creating it."
+          gh api --silent -X POST "repos/$REPO/git/refs" \
+            -f "ref=refs/heads/$BRANCH" -f "sha=$head_sha"
+        fi
+
+    - name: Create signed commit
+      id: commit
+      if: steps.stage.outputs.changed == 'true'
+      uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
+      with:
+        repo: ${{ github.repository }}
+        branch: ${{ inputs.branch }}
+        # The normalized single-line form from the staging step, NOT the raw
+        # add-paths input: ghcommit-action's entrypoint splits this with
+        # `read -r -a`, which would keep only the first line of a multi-line
+        # value and silently commit a subset of the intended files.
+        file_pattern: ${{ steps.stage.outputs.paths }}
+        commit_message: ${{ inputs.commit-message }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+
+    # `gh pr create` fails if a PR is already open for the branch, so that the
+    # scheduled workflows stay idempotent across reruns.
+    - name: Create or update pull request
+      if: steps.stage.outputs.changed == 'true' && inputs.commit-only != 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        BRANCH: ${{ inputs.branch }}
+        BASE: ${{ inputs.base }}
+        TITLE: ${{ inputs.title }}
+        BODY: ${{ inputs.body }}
+        LABELS: ${{ inputs.labels }}
+      run: |
+        existing="$(gh pr list --repo "$REPO" --head "$BRANCH" --base "$BASE" \
+          --state open --json number --jq '.[0].number // empty')"
+
+        args=()
+        if [ -n "$LABELS" ]; then
+          # Accept both comma and newline separation, as create-pull-request did.
+          while IFS= read -r label; do
+            label="$(echo "$label" | xargs)"
+            [ -n "$label" ] && args+=(--add-label "$label")
+          done <<< "${LABELS//,/$'\n'}"
+        fi
+
+        if [ -n "$existing" ]; then
+          echo "Updating pull request #$existing"
+          gh pr edit "$existing" --repo "$REPO" \
+            --title "$TITLE" --body "$BODY" "${args[@]}"
+          gh pr view "$existing" --repo "$REPO" --json url --jq .url
+        else
+          # --add-label is spelled --label on create.
+          gh pr create --repo "$REPO" --head "$BRANCH" --base "$BASE" \
+            --title "$TITLE" --body "$BODY" "${args[@]/--add-label/--label}"
+        fi
