@@ -51,14 +51,14 @@ module Datadog
       # @return [Boolean]
       def emit?(probe, sampling_unit)
         key = sampling_unit.key
-        return per_probe(probe) if key.nil?
+        return emit_uncorrelated?(probe) if key.nil?
 
         lock.synchronize do
           budget = fetch_budget(key)
           if budget
-            correlated(budget, probe)
+            emit_correlated?(budget, probe)
           else
-            top(key, probe)
+            emit_first_in_unit?(key, probe)
           end
         end
       end
@@ -81,7 +81,7 @@ module Datadog
 
       # Consults the probe's own rate limiter for a hit with no active trace,
       # consuming a token; a probe with no limiter is permitted.
-      def per_probe(probe)
+      def emit_uncorrelated?(probe)
         limiter = probe.rate_limiter
         limiter.nil? || limiter.allow?
       end
@@ -98,7 +98,7 @@ module Datadog
       # TOP gates to emit and seed the trace counters; on either gate's refusal,
       # marks the trace starved so every correlated probe in it also drops.
       # Must hold the lock.
-      def top(key, probe)
+      def emit_first_in_unit?(key, probe)
         unless global_limiter.available? && top_limiter.allow?
           store(key, TraceBudget.new(0, per_probe_budget))
           return false
@@ -113,7 +113,7 @@ module Datadog
 
       # A capturing probe firing inside an established unit. Bounded by the
       # per-probe and all counters; consumes GLOBAL on emit. Must hold the lock.
-      def correlated(budget, probe)
+      def emit_correlated?(budget, probe)
         return false unless budget.admit(probe.id)
 
         global_limiter.consume
