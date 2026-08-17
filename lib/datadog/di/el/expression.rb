@@ -33,10 +33,7 @@ module Datadog
               end
             RUBY
           end
-          # cls inherits Evaluator#initialize(regexps), but Steep types
-          # Class#new as () -> untyped and cannot see that initializer
-          # through this dynamically created subclass.
-          @evaluator = cls.new(regexps) # steep:ignore UnexpectedPositionalArgument
+          @evaluator = cls.new(regexps)
         end
 
         attr_reader :dsl_expr

@@ -37,9 +37,9 @@ module Datadog
             # Guard for RBS/Steep
             raise "option is a #{option.class}, expected Option" unless option.is_a?(Configuration::Dynamic::Option)
 
-            option.call(value)
+            telemetry_value = option.call(value)
 
-            [env_var, value]
+            [env_var, telemetry_value]
           end
 
           if (di_enabled = lib_config["dynamic_instrumentation_enabled"]) != nil # rubocop:disable Style/NonNilCheck

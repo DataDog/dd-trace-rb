@@ -618,20 +618,12 @@ static void set_prepared_metastruct(
       .ptr = entry->value.tokens,
       .len = entry->value.len,
     };
-    ddog_TracerEncodedValue *blob = NULL;
-    ddog_TraceExporterError *err = ddog_tracer_encode_value(tokens, &blob);
-    if (err != NULL) {
-      free_prepared_metastruct(prepared);
-      check_exporter_error("Failed to encode span meta_struct value", err);
-    }
-
-    ddog_ByteSlice value = ddog_tracer_encoded_value_as_slice(blob);
     ddog_CharSlice key = {
       .ptr = (const char *)entry->key,
       .len = entry->key_len,
     };
-    err = ddog_tracer_span_set_meta_struct_blob(span, key, value);
-    ddog_tracer_encoded_value_free(blob);
+    ddog_TraceExporterError *err =
+        ddog_tracer_span_set_meta_struct(span, key, tokens);
     if (err != NULL) {
       free_prepared_metastruct(prepared);
       check_exporter_error("Failed to set span meta_struct", err);

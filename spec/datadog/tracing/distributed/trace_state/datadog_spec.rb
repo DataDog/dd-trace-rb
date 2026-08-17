@@ -1,9 +1,29 @@
 require "spec_helper"
 
-require "datadog/tracing/distributed/datadog_tags_codec"
+require "datadog/tracing/distributed/trace_state/datadog"
 
-RSpec.describe Datadog::Tracing::Distributed::DatadogTagsCodec do
+RSpec.describe Datadog::Tracing::Distributed::TraceState::Datadog do
   let(:codec) { described_class }
+
+  describe "#to_s" do
+    subject(:serialized) do
+      described_class.new(
+        sampling_priority: 1,
+        origin: "synthetics",
+        ts_parent_id: "000000000000000f",
+        tags: {"_dd.p.test" => "value"},
+        unknown_fields: "future:value;"
+      ).to_s
+    end
+
+    it "builds the Datadog tracestate member" do
+      is_expected.to eq("dd=p:000000000000000f;s:1;o:synthetics;t.test:value;future:value")
+    end
+
+    it "removes the trailing field separator" do
+      expect(described_class.new(sampling_priority: 1).to_s).to eq("dd=s:1")
+    end
+  end
 
   describe "#decode" do
     subject(:decode) { codec.decode(input) }
@@ -44,7 +64,7 @@ RSpec.describe Datadog::Tracing::Distributed::DatadogTagsCodec do
       ].each do |input|
         context "of value `#{input}`" do
           let(:input) { input }
-          it { expect { decode }.to raise_error(Datadog::Tracing::Distributed::DatadogTagsCodec::DecodingError) }
+          it { expect { decode }.to raise_error(described_class::DecodingError) }
         end
       end
     end
@@ -81,7 +101,7 @@ RSpec.describe Datadog::Tracing::Distributed::DatadogTagsCodec do
       ].each do |input, _expected|
         context "of value `#{input}`" do
           let(:input) { input }
-          it { expect { encode }.to raise_error(Datadog::Tracing::Distributed::DatadogTagsCodec::EncodingError) }
+          it { expect { encode }.to raise_error(described_class::EncodingError) }
         end
       end
     end
