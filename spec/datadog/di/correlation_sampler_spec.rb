@@ -1,8 +1,8 @@
 require "datadog/di/spec_helper"
-require "datadog/di/correlation"
+require "datadog/di/correlation_sampler"
 require "datadog/di/sampling_unit"
 
-RSpec.describe Datadog::DI::Correlation do
+RSpec.describe Datadog::DI::CorrelationSampler do
   di_test
 
   subject(:correlation) do
@@ -166,7 +166,7 @@ RSpec.describe Datadog::DI::Correlation do
     end
   end
 
-  describe Datadog::DI::Correlation::TraceBudget do
+  describe Datadog::DI::CorrelationSampler::TraceBudget do
     it "consumes one per-probe and one all token together" do
       budget = described_class.new(2, 5)
       expect(budget.admit("a")).to be(true)
