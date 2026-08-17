@@ -475,6 +475,87 @@ RSpec.describe Datadog::DI::Serializer do
     end
   end
 
+  describe "capture time budget" do
+    let(:telemetry) { double("telemetry") }
+    let(:serializer) do
+      described_class.new(settings, redactor, telemetry: telemetry)
+    end
+
+    before do
+      allow(telemetry).to receive(:inc)
+    end
+
+    context "budget already exhausted before serialization starts" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(0)
+      end
+
+      it "returns a timeout stub for the top-level value without descending" do
+        expect(serializer.serialize_value([1, 2, 3], name: :x)).to eq(
+          type: "Array", notCapturedReason: "timeout",
+        )
+      end
+
+      it "increments the timeout telemetry counter" do
+        expect(telemetry).to receive(:inc).with(
+          "dynamic_instrumentation", "serialized_values_skipped_by_timeout", 1,
+        ).at_least(:once)
+        serializer.serialize_value([1, 2, 3], name: :x)
+      end
+    end
+
+    context "budget exhausted midway through a collection" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+        clock_calls = 0
+        # Reads: deadline computation, then a read for each serialize_value
+        # call. The deadline (100ms) is crossed on the third element.
+        clock_returns = [0, 0, 0, 0, 200_000_000, 200_000_000]
+        allow(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
+          if args == [::Process::CLOCK_MONOTONIC, :nanosecond]
+            clock_returns[clock_calls].tap { clock_calls += 1 }
+          else
+            original.call(*args)
+          end
+        end
+      end
+
+      it "captures earlier elements and times out later ones" do
+        result = serializer.serialize_value([10, 20, 30, 40], name: :x)
+        expect(result[:type]).to eq("Array")
+        expect(result[:elements]).to eq([
+          {type: "Integer", value: "10"},
+          {type: "Integer", value: "20"},
+          {type: "Integer", notCapturedReason: "timeout"},
+          {type: "Integer", notCapturedReason: "timeout"},
+        ])
+      end
+    end
+
+    context "budget shared across all variables of a single capture point" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+        clock_calls = 0
+        # Reads: deadline computation, first var, second var (past deadline).
+        clock_returns = [0, 0, 200_000_000]
+        allow(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
+          if args == [::Process::CLOCK_MONOTONIC, :nanosecond]
+            clock_returns[clock_calls].tap { clock_calls += 1 }
+          else
+            original.call(*args)
+          end
+        end
+      end
+
+      it "times out later variables once the shared deadline passes" do
+        expect(serializer.serialize_vars({a: 1, b: 2})).to eq(
+          a: {type: "Integer", value: "1"},
+          b: {type: "Integer", notCapturedReason: "timeout"},
+        )
+      end
+    end
+  end
+
   describe "#serialize_string_or_symbol_for_message" do
     [
       [100, "short", "short"],

@@ -83,10 +83,13 @@ module Datadog
         capture_expression_evaluation_errors = []
         captures = if probe.capture_snapshot?
           snapshot_limits = probe.snapshot_serializer_limits(settings)
+          # A single capture time budget shared across every value serialized
+          # at this capture point (return value + self, or locals + self).
+          deadline_ns = serializer.serialization_deadline_ns
           if probe.method?
             return_arguments = {
-              "@return": serializer.serialize_value(context.return_value, **snapshot_limits),
-              self: serializer.serialize_value(context.target_self, **snapshot_limits),
+              "@return": serializer.serialize_value(context.return_value, deadline_ns: deadline_ns, **snapshot_limits),
+              self: serializer.serialize_value(context.target_self, deadline_ns: deadline_ns, **snapshot_limits),
             }
             {
               entry: {
@@ -99,10 +102,10 @@ module Datadog
             }
           elsif probe.line?
             {
-              lines: (locals = context.serialized_locals) && {
+              lines: (locals = context.serialized_locals(deadline_ns: deadline_ns)) && {
                 probe.line_no => {
                   locals: locals,
-                  arguments: {self: serializer.serialize_value(context.target_self, **snapshot_limits)},
+                  arguments: {self: serializer.serialize_value(context.target_self, deadline_ns: deadline_ns, **snapshot_limits)},
                 },
               },
             }
