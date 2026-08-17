@@ -116,6 +116,13 @@
         "sensitive": true
       }
     ],
+    "DD_APPSEC_AGENTIC_ONBOARDING": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": ""
+      }
+    ],
     "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING": [
       {
         "version": "A",
@@ -588,6 +595,13 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
       }
     ],
     "DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED": [

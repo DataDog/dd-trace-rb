@@ -767,7 +767,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
       let(:metrics_list) do
         [
           Datadog::Core::Metrics::Metric.new(:distribution, dist_name, dist_value, dist_options),
-          Datadog::Core::Metrics::Metric.new(:increment, inc_name, nil, inc_options)
+          Datadog::Core::Metrics::Metric.new(:increment, inc_name, nil, inc_options),
         ]
       end
 

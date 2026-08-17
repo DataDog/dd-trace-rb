@@ -11,7 +11,7 @@ module Datadog
         module Events
           ALL = [
             Events::Instantiation,
-            Events::SQL
+            Events::SQL,
           ].freeze
 
           module_function

@@ -139,13 +139,6 @@ end
 
 have_func "malloc_stats"
 
-# Used to get native filenames (dladdr1 is preferred, so we only check for the other if not available)
-# Note it's possible none are available
-if have_header("dlfcn.h")
-  (have_struct_member("struct link_map", "l_name", "link.h") && have_func("dladdr1")) ||
-    have_func("dladdr")
-end
-
 # On older Rubies, there was no primitive mutex and condition variable implemented in `thread_sync.rb` (internal)
 $defs << "-DNO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE" if RUBY_VERSION < "4"
 
@@ -182,8 +175,17 @@ $defs << "-DUSE_RACTOR_INTERNAL_APIS_DIRECTLY" if RUBY_VERSION < "3.3"
 # On older Rubies, there was no GVL instrumentation API and APIs created to support it
 $defs << "-DNO_GVL_INSTRUMENTATION" if RUBY_VERSION < "3.2"
 
+# On older Rubies, rb_class_attached_object is not available
+$defs << "-DNO_CLASS_ATTACHED_OBJECT" if RUBY_VERSION < "3.2"
+
+# On older Rubies, rb_mod_name allocates (rb_str_dup); use rb_attr_get(__classpath__) instead
+$defs << "-DNO_ALLOC_FREE_MOD_NAME" if RUBY_VERSION < "2.7"
+
 # rb_internal_thread_specific_*()
 $defs << "-DHAVE_RUBY_THREAD_STORAGE_API" if RUBY_VERSION >= "3.3"
+
+# RCLASS_EXT(mod)->permanent_classpath
+$defs << "-DHAVE_PERMANENT_CLASSPATH" if RUBY_VERSION >= "3.3"
 
 # On older Rubies, there was no struct rb_native_thread. See private_vm_api_acccess.c for details.
 $defs << "-DNO_RB_NATIVE_THREAD" if RUBY_VERSION < "3.2"
@@ -206,6 +208,9 @@ $defs << "-DNO_THREAD_TID" if RUBY_VERSION < "3.1"
 
 # On older Rubies, there was no jit_return member on the rb_control_frame_t struct
 $defs << "-DNO_JIT_RETURN" if RUBY_VERSION < "3.1"
+
+# internal/class.h is available since 3.0
+$defs << "-DNO_INTERNAL_CLASS_HEADER_INCLUDE" if RUBY_VERSION < "3"
 
 # On older Rubies, there are no Ractors
 $defs << "-DNO_RACTORS" if RUBY_VERSION < "3"

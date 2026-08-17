@@ -32,7 +32,7 @@ RSpec.describe "Kafka patcher" do
         client_id: client_id,
         api: api,
         request_size: request_size,
-        response_size: response_size
+        response_size: response_size,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONNECTION_REQUEST }
@@ -118,7 +118,7 @@ RSpec.describe "Kafka patcher" do
         message_count: message_count,
         partition: partition,
         highwater_mark_offset: highwater_mark_offset,
-        offset_lag: offset_lag
+        offset_lag: offset_lag,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_PROCESS_BATCH }
@@ -207,7 +207,7 @@ RSpec.describe "Kafka patcher" do
         topic: topic,
         partition: partition,
         offset: offset,
-        offset_lag: offset_lag
+        offset_lag: offset_lag,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_PROCESS_MESSAGE }
@@ -286,14 +286,14 @@ RSpec.describe "Kafka patcher" do
     let(:topic_partitions) do
       {
         "foo" => [0, 2],
-        "bar" => [1, 3]
+        "bar" => [1, 3],
       }
     end
     let(:payload) do
       {
         client_id: client_id,
         group_id: group_id,
-        topic_partitions: topic_partitions
+        topic_partitions: topic_partitions,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONSUMER_HEARTBEAT }
@@ -364,7 +364,7 @@ RSpec.describe "Kafka patcher" do
     let(:payload) do
       {
         client_id: client_id,
-        group_id: group_id
+        group_id: group_id,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONSUMER_JOIN_GROUP }
@@ -431,7 +431,7 @@ RSpec.describe "Kafka patcher" do
     let(:payload) do
       {
         client_id: client_id,
-        group_id: group_id
+        group_id: group_id,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONSUMER_LEAVE_GROUP }
@@ -498,7 +498,7 @@ RSpec.describe "Kafka patcher" do
     let(:payload) do
       {
         client_id: client_id,
-        group_id: group_id
+        group_id: group_id,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONSUMER_SYNC_GROUP }
@@ -567,7 +567,7 @@ RSpec.describe "Kafka patcher" do
       {
         client_id: client_id,
         message_count: message_count,
-        sent_message_count: sent_message_count
+        sent_message_count: sent_message_count,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_SEND_MESSAGES }
@@ -642,7 +642,7 @@ RSpec.describe "Kafka patcher" do
         client_id: client_id,
         attempts: attempts,
         message_count: message_count,
-        delivered_message_count: delivered_message_count
+        delivered_message_count: delivered_message_count,
       }
     end
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_DELIVER_MESSAGES }
@@ -707,6 +707,65 @@ RSpec.describe "Kafka patcher" do
 
     it_behaves_like "measured span for integration", true do
       before { ActiveSupport::Notifications.instrument("deliver_messages.producer.kafka", payload) }
+    end
+  end
+
+  describe "payload populated inside the instrumented block" do
+    describe "connection.request" do
+      let(:api) { "api" }
+      let(:request_size) { rand(1..1000) }
+      let(:response_size) { rand(1..1000) }
+      let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONNECTION_REQUEST }
+
+      it "captures the request and response sizes set during the block" do
+        payload = {client_id: client_id, api: api, request_size: 0, response_size: 0}
+        ActiveSupport::Notifications.instrument("request.connection.kafka", payload) do
+          payload[:request_size] = request_size
+          payload[:response_size] = response_size
+        end
+
+        expect(span.get_tag("kafka.client")).to eq(client_id)
+        expect(span.resource).to eq(api)
+        expect(span.get_tag("kafka.request_size")).to eq(request_size)
+        expect(span.get_tag("kafka.response_size")).to eq(response_size)
+      end
+    end
+
+    describe "producer.send_messages" do
+      let(:message_count) { rand(10..100) }
+      let(:sent_message_count) { rand(1..message_count) }
+      let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_SEND_MESSAGES }
+
+      it "captures the message counts set during the block" do
+        payload = {client_id: client_id}
+        ActiveSupport::Notifications.instrument("send_messages.producer.kafka", payload) do
+          payload[:message_count] = message_count
+          payload[:sent_message_count] = sent_message_count
+        end
+
+        expect(span.get_tag("kafka.message_count")).to eq(message_count)
+        expect(span.get_tag("kafka.sent_message_count")).to eq(sent_message_count)
+      end
+    end
+
+    describe "producer.deliver_messages" do
+      let(:attempts) { rand(1..10) }
+      let(:message_count) { rand(10..100) }
+      let(:delivered_message_count) { rand(1..message_count) }
+      let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_DELIVER_MESSAGES }
+
+      it "captures the delivery metadata set during the block" do
+        payload = {client_id: client_id}
+        ActiveSupport::Notifications.instrument("deliver_messages.producer.kafka", payload) do
+          payload[:attempts] = attempts
+          payload[:message_count] = message_count
+          payload[:delivered_message_count] = delivered_message_count
+        end
+
+        expect(span.get_tag("kafka.attempts")).to eq(attempts)
+        expect(span.get_tag("kafka.message_count")).to eq(message_count)
+        expect(span.get_tag("kafka.delivered_message_count")).to eq(delivered_message_count)
+      end
     end
   end
 end

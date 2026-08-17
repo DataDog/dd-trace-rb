@@ -94,6 +94,15 @@ tracing libraries.
   dd-trace-js, dd-trace-php, auto_inject, httpd-datadog, nginx-datadog,
   inject-browser-sdk (listed in `libdatadog-build/campaigner-config.yml`).
 
+## images-rb pin updates
+
+`.github/workflows/update-images.yml` receives a `repository_dispatch` from
+images-rb (after its `main` builds successfully) and opens a PR pinning this
+repo to the new images. images-rb authenticates via the
+`images-rb.notify-consumers` dd-octo-sts trust policy
+(`.github/chainguard/images-rb.notify-consumers.sts.yaml`), an in-repo file –
+no external grant needed. No local trigger otherwise.
+
 # Guidelines
 
 ## ⚠️ Ask First
@@ -114,7 +123,6 @@ tracing libraries.
 
 - Always pipe stdout and stderr of `rspec` and `rake test:*` to `2>&1 | tee /tmp/full_rspec.log | grep -E 'Pending:|Failures:|Finished' -A 99` to get concise but complete test outputs.
 - Transport noise (`Internal error during Datadog::Tracing::Transport::HTTP::Client request`) is expected unless you are debugging transport logic.
-- Profiling specs fail on MacOS without additinal setup; ask user if they actually want to run them.
 - Thread leaks: use `rspec --seed <N>` and inspect `docs/DevelopmentGuide.md#ensuring-tests-dont-leak-resources`.
 - `docker compose run` failures: run `docker compose pull` before retrying.
 

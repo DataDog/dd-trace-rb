@@ -31,10 +31,24 @@ RSpec.describe "Karafka monitor" do
     end
 
     context "when the event is traceable" do
-      let(:job) do
-        instance_double(Karafka::Processing::Jobs::Consume, class: Class.new, executor: executor, messages: messages)
+      let(:consume_job_class) do
+        if defined?(Karafka::Processing::ConsumerGroups::Jobs::Consume) # Karafka 2.6
+          Karafka::Processing::ConsumerGroups::Jobs::Consume
+        else
+          Karafka::Processing::Jobs::Consume
+        end
       end
-      let(:executor) { instance_double(Karafka::Processing::Executor, topic: topic, partition: 1) }
+      let(:executor_class) do
+        if defined?(Karafka::Processing::ConsumerGroups::Executor) # Karafka 2.6
+          Karafka::Processing::ConsumerGroups::Executor
+        else
+          Karafka::Processing::Executor
+        end
+      end
+      let(:job) do
+        instance_double(consume_job_class, class: consume_job_class, executor: executor, messages: messages)
+      end
+      let(:executor) { instance_double(executor_class, topic: topic, partition: 1) }
       let(:topic) { instance_double(Karafka::Routing::Topic, consumer: "Consumer", name: "topic_name") }
       let(:messages) { [instance_double(Karafka::Messages::Messages, metadata: metadata)] }
       let(:metadata) { instance_double(Karafka::Messages::Metadata, offset: 42) }

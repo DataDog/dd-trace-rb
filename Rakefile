@@ -52,8 +52,11 @@ DI_WITH_EXT = %w[
 # Add new instrumentation libraries here as they gain DSM support
 DSM_ENABLED_LIBRARIES = [
   :kafka,
-  :karafka
+  :karafka,
 ].freeze
+
+# The Rakefile is only for development, enable testing the profiler on macOS
+ENV["DD_PROFILING_MACOS_TESTING"] = "true"
 
 # rubocop:disable Metrics/BlockLength
 namespace :test do
@@ -366,7 +369,7 @@ namespace :spec do
     :sucker_punch,
     :suite,
     :trilogy,
-    :waterdrop
+    :waterdrop,
   ].each do |contrib|
     desc "" # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(contrib) do |t, args|
@@ -403,7 +406,8 @@ namespace :spec do
       :faraday,
       :excon,
       :rest_client,
-      :integration
+      :aws_lambda,
+      :integration,
     ]
 
     # Datadog AppSec main specs
@@ -432,7 +436,8 @@ namespace :spec do
       :graphql,
       :faraday,
       :excon,
-      :rest_client
+      :rest_client,
+      :aws_lambda,
     ].each do |contrib|
       desc "" # "Explicitly hiding from `rake -T`"
       RSpec::Core::RakeTask.new(contrib) do |t, args|
@@ -512,8 +517,8 @@ namespace :spec do
     task all: [:main, :ractors]
 
     task :compile_native_extensions do
-      # "bundle exec rake compile" currently only works on MRI Ruby on Linux
-      if RUBY_ENGINE == "ruby" && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("2.3.0")
+      # "bundle exec rake compile" currently only works on CRuby
+      if RUBY_ENGINE == "ruby"
         Rake::Task[:clean].invoke
         Rake::Task[:compile].invoke
       end

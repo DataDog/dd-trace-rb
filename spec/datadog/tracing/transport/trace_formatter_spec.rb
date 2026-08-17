@@ -61,7 +61,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         "foo" => "bar",
         "baz" => 42,
         "_dd.p.dm" => "-1",
-        "_dd.p.tid" => "aaaaaaaaaaaaaaaa"
+        "_dd.p.tid" => "aaaaaaaaaaaaaaaa",
       }
     end
   end
@@ -244,7 +244,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
           expect(first_span.meta).to include(
             {
               "_dd.git.repository_url" => git_repository_url,
-              "_dd.git.commit.sha" => git_commit_sha
+              "_dd.git.commit.sha" => git_commit_sha,
             }
           )
         end
@@ -564,6 +564,43 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
           )
         end
       end
+    end
+  end
+
+  describe "#format! _dd.apm.enabled marker" do
+    before { described_class.format!(trace) }
+
+    let(:span_markers) { spans.map { |span| span.get_metric(Datadog::Tracing::Metadata::Ext::TAG_APM_ENABLED) } }
+    let(:spans) { Array.new(3) { Datadog::Tracing::Span.new("my.job") } }
+
+    context "when APM tracing is disabled and the chunk contains its root span" do
+      let(:trace) do
+        Datadog::Tracing::TraceSegment.new(
+          spans, root_span_id: spans[1].id, apm_tracing_enabled: false, id: trace_id
+        )
+      end
+
+      it { expect(span_markers).to all(eq(0)) }
+    end
+
+    context "when APM tracing is disabled and the chunk has no root span (partial flush)" do
+      let(:trace) do
+        Datadog::Tracing::TraceSegment.new(
+          spans, root_span_id: Datadog::Tracing::Utils.next_id, apm_tracing_enabled: false, id: trace_id
+        )
+      end
+
+      it { expect(span_markers).to all(eq(0)) }
+    end
+
+    context "when APM tracing is enabled" do
+      let(:trace) do
+        Datadog::Tracing::TraceSegment.new(
+          spans, root_span_id: spans[1].id, apm_tracing_enabled: true, id: trace_id
+        )
+      end
+
+      it { expect(span_markers).to all(be_nil) }
     end
   end
 end

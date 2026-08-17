@@ -5,8 +5,6 @@ on: # yamllint disable-line rule:truthy
     branches:
       - master
   pull_request:
-    branches:
-      - master
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/master' && github.run_id || github.ref }}
@@ -20,7 +18,7 @@ jobs:
     name: build
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g27019b38640025d7722ca3969437962037b5877f
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -28,7 +26,7 @@ jobs:
       lockfile: ${{ steps.bundle-cache.outputs.lockfile }}
       cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Prepare bundle cache
@@ -40,12 +38,12 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g27019b38640025d7722ca3969437962037b5877f
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Restore bundle cache
@@ -61,12 +59,12 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g27019b38640025d7722ca3969437962037b5877f
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Restore bundle cache
@@ -81,12 +79,12 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g27019b38640025d7722ca3969437962037b5877f
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Restore bundle cache
@@ -105,19 +103,15 @@ jobs:
 
   bundler-audit:
     name: bundler-audit
-    # TODO: re-enable once the pre-existing high/critical CVE backlog across
-    # the 368 eligible lockfiles is triaged (either fixed or reviewed into
-    # .bundler-audit.yml). Until then this job would fail on every PR.
-    if: false
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcbb088706f291b08890f4909d2c2467391a77eab
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g27019b38640025d7722ca3969437962037b5877f
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Restore bundle cache
@@ -132,12 +126,12 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g27019b38640025d7722ca3969437962037b5877f
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Restore bundle cache
@@ -152,7 +146,7 @@ jobs:
     runs-on: ubuntu-24.04
     container: semgrep/semgrep:1.169.0 # PENDING: Possible to be rate limited.
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - run: |
@@ -170,7 +164,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Get GitHub Token via dd-octo-sts
@@ -180,29 +174,35 @@ jobs:
           scope: DataDog/dd-trace-rb
           policy: self.check
       - name: Run zizmor
-        uses: docker://ghcr.io/zizmorcore/zizmor:1.26.1
+        uses: zizmorcore/zizmor-action@3dc1ecc9bcb9e94e9b2c709687979e1298497054 # v0.6.2
         with:
-          args: --min-severity low .
-        env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          version: 1.26.1
+          min-severity: low
+          advanced-security: false
+          token: ${{ steps.generate-token.outputs.token }}
 
   actionlint:
     name: actionlint
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Run actionlint
-        uses: docker://rhysd/actionlint:1.7.8
-        with:
-          args: -color
+        env:
+          ACTIONLINT_IMAGE: rhysd/actionlint@sha256:96d4a8c87dbbfb3bdd324f8fdc285fc3df5261e2decc619a4dd7e8ee52bbfd46 # 1.7.8
+        run: |
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/repo:ro" \
+            --workdir /repo \
+            "$ACTIONLINT_IMAGE" \
+            -color
 
   yaml-lint:
     name: yaml-lint
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - run: pip install yamllint
@@ -220,9 +220,7 @@ jobs:
       - 'actionlint'
       - 'yaml-lint'
       - 'checksum-coverage'
-      # TODO: add 'bundler-audit' back to this list
-      # once those jobs are no longer disabled (see their `if: false` above)
-      # — a skipped dependency would otherwise make this aggregate job skip too.
+      - 'bundler-audit'
     runs-on: ubuntu-24.04
     steps:
       - run: echo "Done"

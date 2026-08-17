@@ -34,7 +34,10 @@ RSpec.describe Datadog::Tracing::TraceDigest do
           trace_distributed_id: nil,
           trace_flags: nil,
           trace_state: nil,
-          trace_state_unknown_fields: nil
+          trace_state_unknown_fields: nil,
+          trace_otel_random_value: nil,
+          trace_otel_threshold: nil,
+          trace_otel_unknown_fields: nil
         )
       end
 
@@ -180,6 +183,27 @@ RSpec.describe Datadog::Tracing::TraceDigest do
         let(:trace_state_unknown_fields) { "unknown1:field1;unknown2:field2;" }
 
         it { is_expected.to have_attributes(trace_state_unknown_fields: be_a_frozen_copy_of(trace_state_unknown_fields)) }
+      end
+
+      context "with OpenTelemetry tracestate fields" do
+        let(:options) do
+          {
+            trace_otel_random_value: random_value,
+            trace_otel_threshold: threshold,
+            trace_otel_unknown_fields: unknown_fields,
+          }
+        end
+        let(:random_value) { "ef284ace7a91e1" }
+        let(:threshold) { "8" }
+        let(:unknown_fields) { "future:value;" }
+
+        it "stores frozen scalar values" do
+          is_expected.to have_attributes(
+            trace_otel_random_value: be_a_frozen_copy_of(random_value),
+            trace_otel_threshold: be_a_frozen_copy_of(threshold),
+            trace_otel_unknown_fields: be_a_frozen_copy_of(unknown_fields)
+          )
+        end
       end
     end
   end

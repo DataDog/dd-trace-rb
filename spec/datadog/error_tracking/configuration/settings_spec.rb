@@ -17,7 +17,7 @@ RSpec.describe Datadog::ErrorTracking::Configuration::Settings do
         ["handled_errors", "third_party"],
         ["handled_errors_include", []],
         ["handled_errors_include", ["foo"]],
-        ["handled_errors_include", ["foo", "bar", "hello", "world"]]
+        ["handled_errors_include", ["foo", "bar", "hello", "world"]],
       ].each do |(name, value)|
         context "when #{name} set to #{value}" do
           before do
