@@ -4,15 +4,13 @@ require "datadog/di"
 # Integration tests for coordinated sampling (Datadog::DI::Correlation) wired
 # through the real Component, Instrumenter, ProbeManager and notification
 # builder. The correlation gate is exercised with real instrumentation; the
-# active APM trace is stubbed at the Datadog::Tracing seam the gate and builder
-# read from.
+# active APM trace is stubbed at the Datadog::Tracing seam the gate reads from.
+# The process-wide TOP/GLOBAL limits and starvation are covered in the unit
+# spec, where the limits are constructed small; here the Component builds
+# Correlation with production limits, ample for these examples.
 
 class CorrelationIntegrationTestClass
   def alpha
-    inner
-  end
-
-  def beta
     inner
   end
 
@@ -90,7 +88,7 @@ RSpec.describe "Correlation integration" do
   end
 
   # A non-capturing (log-only) probe: coordinated sampling does not apply, so
-  # it keeps its own per-probe rate limit and is not capped per span.
+  # it keeps its own per-probe rate limit and is not counted per trace.
   def non_capturing_probe(id, method_name, rate_limit: nil)
     Datadog::DI::Probe.new(id: id, type: :log,
       type_name: "CorrelationIntegrationTestClass", method_name: method_name,
@@ -113,12 +111,12 @@ RSpec.describe "Correlation integration" do
     component.probe_notifier_worker.flush
   end
 
-  context "tier 1 (active APM trace)" do
+  context "active APM trace" do
     before { stub_trace("trace-abc", "span-1") }
 
-    it "emits both probes in one trace with the same trace id and source" do
-      probe_manager.add_probe(method_probe("p-alpha", "alpha", rate_limit: 5000))
-      probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
+    it "emits a nested capturing chain together, sharing the trace id" do
+      probe_manager.add_probe(method_probe("p-alpha", "alpha"))
+      probe_manager.add_probe(method_probe("p-inner", "inner"))
 
       CorrelationIntegrationTestClass.new.alpha
       flush
@@ -127,41 +125,17 @@ RSpec.describe "Correlation integration" do
       expect(snapshots.map { |s| s[:"dd.trace_id"] }.uniq).to eq(["trace-abc"])
     end
 
-    it "drops every probe in the sampling unit when the decision is DROP" do
-      # rate_limit 0: the deciding probe's limiter denies, so the whole sampling unit
-      # drops regardless of which probe fires first.
-      probe_manager.add_probe(method_probe("p-alpha", "alpha", rate_limit: 0))
-      probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 0))
-
-      CorrelationIntegrationTestClass.new.alpha
-      flush
-
-      expect(snapshots).to be_empty
-    end
-
-    it "caps a probe to one snapshot per span despite many hits" do
-      probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
+    it "bounds one probe to the per-probe counter within a trace" do
+      probe_manager.add_probe(method_probe("p-inner", "inner"))
 
       CorrelationIntegrationTestClass.new.loop_n(25)
       flush
 
-      expect(snapshots.size).to eq(1)
-    end
-
-    it "resets the cap across spans" do
-      probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
-
-      stub_trace("trace-abc", "span-1")
-      CorrelationIntegrationTestClass.new.inner
-      stub_trace("trace-abc", "span-2")
-      CorrelationIntegrationTestClass.new.inner
-      flush
-
-      expect(snapshots.size).to eq(2)
+      expect(snapshots.size).to eq(Datadog::DI::Correlation::PER_PROBE_BUDGET)
     end
 
     it "carries the per-process runtime id on the snapshot" do
-      probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
+      probe_manager.add_probe(method_probe("p-inner", "inner"))
 
       CorrelationIntegrationTestClass.new.inner
       flush
@@ -174,7 +148,7 @@ RSpec.describe "Correlation integration" do
   context "non-capturing probes" do
     before { stub_trace("trace-abc", "span-1") }
 
-    it "bypasses coordination and is not capped per span" do
+    it "bypasses coordination and keeps its own rate limit" do
       probe_manager.add_probe(non_capturing_probe("p-inner", "inner", rate_limit: 5000))
 
       CorrelationIntegrationTestClass.new.loop_n(25)
@@ -187,10 +161,10 @@ RSpec.describe "Correlation integration" do
   context "no active trace" do
     before { stub_no_trace }
 
-    it "makes an independent decision outside any sampling unit" do
-      probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
+    it "applies the capturing probe's own rate limit, uncorrelated" do
+      probe_manager.add_probe(method_probe("p-inner", "inner"))
 
-      CorrelationIntegrationTestClass.new.inner
+      CorrelationIntegrationTestClass.new.loop_n(25)
       flush
 
       expect(snapshots.size).to eq(1)
