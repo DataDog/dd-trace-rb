@@ -178,6 +178,57 @@ module Datadog
       end
     end
 
+    # Token bucket that permits consumption below zero. A coordinated group of
+    # events that has started emitting keeps emitting after the per-second
+    # budget is spent; the resulting deficit refills over time at +rate+ before
+    # the bucket reports a positive balance again.
+    class BorrowingTokenBucket
+      attr_reader :rate, :max_tokens
+
+      # @param rate [Numeric] refill rate, in tokens per second
+      # @param max_tokens [Numeric] ceiling the balance refills toward
+      def initialize(rate, max_tokens = rate)
+        raise ArgumentError, "rate must be a number: #{rate}" unless rate.is_a?(Numeric)
+        raise ArgumentError, "max_tokens must be a number: #{max_tokens}" unless max_tokens.is_a?(Numeric)
+
+        @rate = rate
+        @max_tokens = max_tokens
+        @tokens = max_tokens
+        @last_refill = Core::Utils::Time.get_time
+      end
+
+      # @return [Boolean] whether the balance is currently positive
+      def available?
+        refill
+        @tokens > 0
+      end
+
+      # Removes +size+ tokens, driving the balance negative when the bucket is
+      # short.
+      #
+      # @param size [Numeric] tokens to remove
+      # @return [void]
+      def consume(size = 1)
+        refill
+        @tokens -= size
+        nil
+      end
+
+      # @return [Numeric] the current balance, negative when borrowed
+      def available_tokens
+        @tokens
+      end
+
+      private
+
+      def refill
+        now = Core::Utils::Time.get_time
+        @tokens += @rate * (now - @last_refill)
+        @tokens = @max_tokens if @tokens > @max_tokens
+        @last_refill = now
+      end
+    end
+
     # {Datadog::Core::RateLimiter} that accepts all resources,
     # with no limits.
     class UnlimitedLimiter < RateLimiter
