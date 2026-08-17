@@ -49,8 +49,8 @@ module Datadog
       #   capture expression name and the errors of the expressions that failed
       #   to evaluate or serialize
       def evaluate(probe, context)
-        deadline = ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) +
-          settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0
+        budget_ns = settings.dynamic_instrumentation.max_time_to_serialize_ms * 1_000_000
+        deadline_ns = ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) + budget_ns
 
         output = {}
         evaluation_errors = []
@@ -58,7 +58,7 @@ module Datadog
         probe.capture_expressions.each do |capture_expression|
           name = capture_expression.name
 
-          if ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) >= deadline
+          if ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) >= deadline_ns
             output[name] = {notCapturedReason: "timeout"}
             telemetry&.inc(DI::TELEMETRY_NAMESPACE, "capture_expressions_skipped_by_timeout", 1)
             guardrails_telemetry.skipped(
@@ -81,6 +81,7 @@ module Datadog
               attribute_count: limits[:attribute_count],
               length: limits[:length],
               collection_size: limits[:collection_size],
+              deadline_ns: deadline_ns,
             )
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)

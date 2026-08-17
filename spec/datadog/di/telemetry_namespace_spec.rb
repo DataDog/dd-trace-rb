@@ -79,6 +79,10 @@ RSpec.describe "DI telemetry namespace under direct requires" do
         100
       end
 
+      def di_settings.max_time_to_serialize_ms
+        150
+      end
+
       di_settings
     end
 
