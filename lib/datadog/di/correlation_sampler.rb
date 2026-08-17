@@ -10,7 +10,7 @@ module Datadog
     # Correlation requirements.
     #
     # @api private
-    class Correlation
+    class CorrelationSampler
       # Upper bound on retained per-trace budgets.
       DEFAULT_MAX_ENTRIES = 4096
 

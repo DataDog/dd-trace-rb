@@ -1,6 +1,6 @@
 module Datadog
   module DI
-    class Correlation
+    class CorrelationSampler
       DEFAULT_MAX_ENTRIES: Integer
 
       TOP_RATE: Integer

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "correlation"
+require_relative "correlation_sampler"
 require_relative "fatal_exceptions"
 
 module Datadog
@@ -89,9 +89,9 @@ module Datadog
           settings: settings, serializer: serializer, logger: logger,
           guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
         )
-        @correlation = Correlation.new
+        @correlation_sampler = CorrelationSampler.new
         @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker,
-          correlation: correlation, telemetry: telemetry,
+          correlation_sampler: correlation_sampler, telemetry: telemetry,
           guardrails_telemetry: guardrails_telemetry,
           capture_expression_evaluator: capture_expression_evaluator,)
         @probe_repository = ProbeRepository.new
@@ -128,7 +128,7 @@ module Datadog
       # @return [CaptureExpressionEvaluator]
       attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
-      attr_reader :correlation
+      attr_reader :correlation_sampler
       attr_reader :instrumenter
       attr_reader :probe_repository
       attr_reader :probe_notifier_worker

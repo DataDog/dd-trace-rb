@@ -86,12 +86,12 @@ module Datadog
       # @param logger [DI::Logger] logger for instrumenter diagnostics
       # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical rate-limit skip metric
       # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
-      # @param correlation [Correlation, nil] coordinated-sampling gate
+      # @param correlation_sampler [CorrelationSampler, nil] coordinated-sampling gate
       # @param code_tracker [CodeTracker, nil] code tracker for line probe installation
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component instrumenter errors are reported through
       # @return [void]
       def initialize(settings, serializer, logger, guardrails_telemetry:, capture_expression_evaluator:,
-        correlation: nil, code_tracker: nil, telemetry: nil)
+        correlation_sampler: nil, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
@@ -101,7 +101,7 @@ module Datadog
         @code_tracker = code_tracker
         @global_snapshot_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_SNAPSHOT_RATE_LIMIT)
         @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
-        @correlation = correlation
+        @correlation_sampler = correlation_sampler
 
         @lock = Mutex.new
       end
@@ -117,7 +117,7 @@ module Datadog
       # @return [CaptureExpressionEvaluator]
       attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
-      attr_reader :correlation
+      attr_reader :correlation_sampler
 
       # The code tracker is a global singleton created lazily by
       # DI.activate_tracking. When DI is enabled after boot via remote
@@ -505,16 +505,16 @@ module Datadog
       attr_reader :lock
 
       # Coordinated sampling gate. Returns true when the probe hit should emit a
-      # snapshot. Delegates the decision to the correlation component so probes
+      # snapshot. Delegates the decision to the correlation sampler so probes
       # in one sampling unit share it. Only capturing probes are coordinated;
       # non-capturing probes keep their own per-probe rate limit. Fails open: if
-      # correlation is absent or the gate raises, fall back to the probe's own
-      # rate limiter.
+      # the correlation sampler is absent or the gate raises, fall back to the
+      # probe's own rate limiter.
       def emit?(probe)
-        correlation = self.correlation
-        if correlation && probe.capturing?
+        correlation_sampler = self.correlation_sampler
+        if correlation_sampler && probe.capturing?
           begin
-            return correlation.emit?(probe, SamplingUnit.current)
+            return correlation_sampler.emit?(probe, SamplingUnit.current)
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions

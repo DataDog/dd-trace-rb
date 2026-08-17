@@ -31,13 +31,13 @@ module Datadog
 
       @global_log_rate_limiter: Datadog::Core::TokenBucket
 
-      @correlation: Correlation?
+      @correlation_sampler: CorrelationSampler?
 
       @lock: Mutex
 
       @capture_expression_evaluator: CaptureExpressionEvaluator
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, guardrails_telemetry: GuardrailsTelemetry, capture_expression_evaluator: CaptureExpressionEvaluator, ?correlation: Correlation?, ?code_tracker: CodeTracker?, ?telemetry: Core::Telemetry::Component?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, guardrails_telemetry: GuardrailsTelemetry, capture_expression_evaluator: CaptureExpressionEvaluator, ?correlation_sampler: CorrelationSampler?, ?code_tracker: CodeTracker?, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 
@@ -59,7 +59,7 @@ module Datadog
 
       attr_reader capture_expression_evaluator: CaptureExpressionEvaluator
 
-      attr_reader correlation: Correlation?
+      attr_reader correlation_sampler: CorrelationSampler?
 
       def probe_global_rate_limiter: (Probe probe) -> Datadog::Core::TokenBucket
 
