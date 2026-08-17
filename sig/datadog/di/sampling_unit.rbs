@@ -1,6 +1,8 @@
 module Datadog
   module DI
     class SamplingUnit
+      NONE: SamplingUnit
+
       @key: ::Integer?
 
       def self.current: () -> SamplingUnit
