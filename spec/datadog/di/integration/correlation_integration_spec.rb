@@ -28,11 +28,11 @@ RSpec.describe "Correlation integration" do
   di_test
 
   let(:diagnostics_transport) do
-    double(Datadog::DI::Transport::Diagnostics::Transport)
+    instance_double(Datadog::DI::Transport::Diagnostics::Transport)
   end
 
   let(:input_transport) do
-    double(Datadog::DI::Transport::Input::Transport)
+    instance_double(Datadog::DI::Transport::Input::Transport)
   end
 
   before do
@@ -96,8 +96,8 @@ RSpec.describe "Correlation integration" do
   end
 
   def stub_trace(trace_id, span_id)
-    trace = double("trace", id: trace_id)
-    span = double("span", id: span_id)
+    trace = instance_double(Datadog::Tracing::TraceOperation, id: trace_id)
+    span = instance_double(Datadog::Tracing::SpanOperation, id: span_id)
     allow(Datadog::Tracing).to receive(:active_trace).and_return(trace)
     allow(Datadog::Tracing).to receive(:active_span).and_return(span)
   end
