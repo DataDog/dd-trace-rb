@@ -178,10 +178,8 @@ module Datadog
       end
     end
 
-    # Token bucket that permits consumption below zero. A coordinated group of
-    # events that has started emitting keeps emitting after the per-second
-    # budget is spent; the resulting deficit refills over time at +rate+ before
-    # the bucket reports a positive balance again.
+    # Token bucket that permits consumption below zero. The deficit refills over
+    # time at +rate+.
     class BorrowingTokenBucket
       attr_reader :rate, :max_tokens
 

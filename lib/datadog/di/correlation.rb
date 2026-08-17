@@ -5,27 +5,20 @@ require_relative "../core/rate_limiter"
 module Datadog
   module DI
     # Decides whether a capturing Live Debugger probe hit emits a snapshot,
-    # coordinating the decision across every capturing probe that fires in the
-    # same trace so a chain emits together, and bounding total volume with
-    # process-wide budgets shared fairly across probes.
-    #
-    # Implements the mechanism in the Casual Correlation requirements: a per-
-    # process TOP rate limit and a borrowing GLOBAL rate limit gate the first
-    # capturing probe in a trace (the top probe); per-trace per-probe and all
-    # counters bound how much each established trace emits.
+    # coordinating every capturing probe in one trace and bounding total volume
+    # with process-wide budgets. Implements the sampling mechanism in the Casual
+    # Correlation requirements.
     #
     # @api private
     class Correlation
-      # Upper bound on retained per-trace budgets; the oldest trace is evicted
-      # when the bound is exceeded.
+      # Upper bound on retained per-trace budgets.
       DEFAULT_MAX_ENTRIES = 4096
 
       # Snapshots per second, process-wide, that may establish an emitting
-      # trace. Non-borrowing.
+      # trace.
       TOP_RATE = 10
 
-      # Snapshots per second, process-wide, across all emits. Borrowing: a trace
-      # that has started emitting keeps emitting after the budget is spent.
+      # Snapshots per second, process-wide, across all emits.
       GLOBAL_RATE = 20
 
       # Snapshots one probe may emit within one trace.
@@ -72,30 +65,22 @@ module Datadog
 
       private
 
-      # Serializes access to the ledger and both rate limiters.
       attr_reader :lock
 
-      # Per-trace emission budgets, keyed by trace id. Bounded LRU.
       attr_reader :trace_budgets
 
-      # Process-wide TOP rate limiter (non-borrowing).
       attr_reader :top_limiter
 
-      # Process-wide GLOBAL rate limiter (borrowing).
       attr_reader :global_limiter
 
-      # This sampler's retention bound for per-trace budgets.
       attr_reader :max_entries
 
-      # Per-probe per-trace emission counter start value.
       attr_reader :per_probe_budget
 
-      # All-probe per-trace emission counter start value.
       attr_reader :all_budget
 
       # Consults the probe's own rate limiter for a hit with no active trace,
-      # consuming a token; a probe with no limiter is permitted. Capturing
-      # probes limit at 1/second here.
+      # consuming a token; a probe with no limiter is permitted.
       def per_probe(probe)
         limiter = probe.rate_limiter
         limiter.nil? || limiter.allow?
