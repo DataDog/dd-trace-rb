@@ -2,50 +2,38 @@
 
 module Datadog
   module DI
-    # Owns the sampling unit that groups related Live Debugger probe hits: the
-    # active APM trace, or the individual hit when no trace is active.
-    #
-    # The sampling unit is resolved from existing tracer context only (the
-    # active trace and span). No new context mechanism is introduced; when no
-    # trace is active the hit is not correlated.
+    # Identifies the correlation unit that groups related Live Debugger probe
+    # hits: the active APM trace. The unit is resolved from existing tracer
+    # context only (an in-process read of the active trace). When no trace is
+    # active the hit belongs to no unit and is not correlated.
     #
     # @api private
     class SamplingUnit
-      # Resolves the sampling unit enclosing the current probe hit.
+      # Resolves the unit enclosing the current probe hit.
       #
       # @return [SamplingUnit]
       def self.current
         if defined?(Datadog::Tracing)
           trace = Datadog::Tracing.active_trace
           if trace && (trace_id = trace.id)
-            span = Datadog::Tracing.active_span
-            return new(trace_id, span&.id || trace_id, :apm)
+            return new(trace_id)
           end
         end
 
-        new(nil, nil, :none)
+        new(nil)
       end
 
-      # Holds one resolved sampling unit; callers obtain instances from
-      # {.current}.
+      # Holds one resolved unit; callers obtain instances from {.current}.
       #
-      # @param key [String, Integer, nil] groups hits that share one decision
-      # @param scope [String, Integer, nil] bounds a probe's repeat emissions
-      # @param source [Symbol] :apm or :none
-      def initialize(key, scope, source)
+      # @param key [String, Integer, nil] the trace id, or nil when no trace is
+      #   active
+      def initialize(key)
         @key = key
-        @scope = scope
-        @source = source
       end
 
-      # Identifies the sampling unit whose hits share one emit-or-drop decision.
+      # Groups hits that share one emit-or-drop decision; nil when no trace is
+      # active.
       attr_reader :key
-
-      # Bounds how often a single probe emits inside the sampling unit.
-      attr_reader :scope
-
-      # Origin of the sampling unit: :apm or :none.
-      attr_reader :source
     end
   end
 end

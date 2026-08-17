@@ -5,117 +5,190 @@ require "datadog/di/sampling_unit"
 RSpec.describe Datadog::DI::Correlation do
   di_test
 
-  subject(:correlation) { described_class.new(max_entries: max_entries) }
+  subject(:correlation) do
+    described_class.new(max_entries: max_entries, top_rate: top_rate,
+      global_rate: global_rate, per_probe_budget: per_probe_budget,
+      all_budget: all_budget)
+  end
 
   let(:max_entries) { 4096 }
+  let(:top_rate) { 10 }
+  let(:global_rate) { 20 }
+  let(:per_probe_budget) { 5 }
+  let(:all_budget) { 20 }
 
-  # A probe whose rate limiter admits +allow+ times, then denies. nil limiter
-  # means "always allow" (matches a probe constructed with no rate limit).
-  def probe_double(id, allow: Float::INFINITY, limiter: :default)
-    rate_limiter =
-      if limiter == :default
-        remaining = allow
-        double("rate_limiter").tap do |rl|
-          allow(rl).to receive(:allow?) do
-            if remaining > 0
-              remaining -= 1
-              true
-            else
-              false
-            end
-          end
+  # Freeze the clock so the process-wide buckets never refill mid-example.
+  before do
+    allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0)
+  end
+
+  # A rate limiter that admits +allow+ times, then denies.
+  def limiter(allow:)
+    remaining = allow
+    double("limiter").tap do |rl|
+      allow(rl).to receive(:allow?) do
+        if remaining > 0
+          remaining -= 1
+          true
+        else
+          false
         end
-      else
-        limiter
       end
+    end
+  end
+
+  def probe(id, rate_limiter: nil)
     double("probe", id: id, rate_limiter: rate_limiter)
   end
 
-  def sampling_unit(key, scope = key, source: :apm)
-    Datadog::DI::SamplingUnit.new(key, scope, source)
+  def unit(key)
+    Datadog::DI::SamplingUnit.new(key)
   end
 
-  def none_sampling_unit
-    Datadog::DI::SamplingUnit.new(nil, nil, :none)
+  def none
+    Datadog::DI::SamplingUnit.new(nil)
   end
 
   describe "#emit?" do
-    context "within a sampling unit" do
-      it "emits when the deciding probe's limiter admits" do
-        expect(correlation.emit?(probe_double("a", allow: 1), sampling_unit("u1", "s1"))).to be(true)
+    context "no active trace" do
+      it "admits a probe with no rate limiter" do
+        expect(correlation.emit?(probe("a"), none)).to be(true)
       end
 
-      it "drops the whole sampling unit when the deciding probe's limiter denies" do
-        expect(correlation.emit?(probe_double("a", allow: 0), sampling_unit("u1", "s1"))).to be(false)
+      it "drops when the probe's own rate limiter denies" do
+        expect(correlation.emit?(probe("a", rate_limiter: limiter(allow: 0)), none)).to be(false)
       end
 
-      it "shares one decision across sibling probes in the same sampling unit" do
-        # First probe decides EMIT for the sampling unit.
-        expect(correlation.emit?(probe_double("a", allow: 1), sampling_unit("u1", "s1"))).to be(true)
-        # Sibling probe with a denying limiter still inherits EMIT (its limiter
-        # is not consulted), then emits once under its own cap slot.
-        sibling = probe_double("b", allow: 0)
-        expect(correlation.emit?(sibling, sampling_unit("u1", "s1"))).to be(true)
+      it "defers to the probe's rate limiter across hits" do
+        p = probe("a", rate_limiter: limiter(allow: 1))
+        expect(correlation.emit?(p, none)).to be(true)
+        expect(correlation.emit?(p, none)).to be(false)
       end
 
-      it "propagates a drop decision to sibling probes" do
-        expect(correlation.emit?(probe_double("a", allow: 0), sampling_unit("u1", "s1"))).to be(false)
-        # Sibling whose own limiter would admit still inherits DROP.
-        expect(correlation.emit?(probe_double("b", allow: 1), sampling_unit("u1", "s1"))).to be(false)
+      it "does not coordinate independent hits" do
+        p = probe("a", rate_limiter: limiter(allow: 2))
+        expect(correlation.emit?(p, none)).to be(true)
+        expect(correlation.emit?(p, none)).to be(true)
+      end
+    end
+
+    context "top probe (first capturing probe in a trace)" do
+      it "emits when GLOBAL and TOP admit" do
+        expect(correlation.emit?(probe("a"), unit(1))).to be(true)
       end
 
-      describe "per-probe-per-scope cap" do
-        it "admits a probe once per scope, then suppresses repeats" do
-          probe = probe_double("a", allow: 5)
-          expect(correlation.emit?(probe, sampling_unit("u1", "s1"))).to be(true)
-          expect(correlation.emit?(probe, sampling_unit("u1", "s1"))).to be(false)
-          expect(correlation.emit?(probe, sampling_unit("u1", "s1"))).to be(false)
+      context "when TOP is exhausted" do
+        let(:top_rate) { 1 }
+
+        it "starves the trace: the top probe and every correlated probe drop" do
+          # trace 1's top probe consumes the only TOP token.
+          expect(correlation.emit?(probe("a"), unit(1))).to be(true)
+
+          # trace 2's top probe finds TOP empty and marks the trace starved.
+          expect(correlation.emit?(probe("a"), unit(2))).to be(false)
+          # a correlated probe in the starved trace also drops.
+          expect(correlation.emit?(probe("b"), unit(2))).to be(false)
         end
+      end
 
-        it "does not let one probe's cap affect another probe" do
-          correlation.emit?(probe_double("a", allow: 1), sampling_unit("u1", "s1")) # decides EMIT
-          expect(correlation.emit?(probe_double("a", allow: 5), sampling_unit("u1", "s1"))).to be(false) # a capped
-          expect(correlation.emit?(probe_double("b", allow: 5), sampling_unit("u1", "s1"))).to be(true) # b fresh
-        end
+      context "when GLOBAL is non-positive" do
+        let(:global_rate) { 0 }
 
-        it "resets the cap for a different scope" do
-          probe = probe_double("a", allow: 5)
-          expect(correlation.emit?(probe, sampling_unit("u1", "s1"))).to be(true)
-          expect(correlation.emit?(probe, sampling_unit("u1", "s1"))).to be(false)
-          expect(correlation.emit?(probe, sampling_unit("u1", "s2"))).to be(true)
+        it "starves the trace" do
+          expect(correlation.emit?(probe("a"), unit(1))).to be(false)
+          expect(correlation.emit?(probe("b"), unit(1))).to be(false)
         end
       end
     end
 
-    context "no sampling unit" do
-      it "makes an independent per-probe decision" do
-        expect(correlation.emit?(probe_double("a", allow: 1), none_sampling_unit)).to be(true)
-        expect(correlation.emit?(probe_double("a", allow: 0), none_sampling_unit)).to be(false)
+    context "per-probe counter" do
+      let(:per_probe_budget) { 3 }
+      let(:all_budget) { 100 }
+
+      it "lets one probe emit exactly per_probe_budget times in a trace" do
+        p = probe("a")
+        emitted = 6.times.count { correlation.emit?(p, unit(1)) }
+        expect(emitted).to eq(3)
       end
 
-      it "does not cache decisions across independent hits" do
-        # Same probe, its limiter admits twice: both independent hits emit
-        # (no sampling unit to coordinate).
-        probe = probe_double("a", allow: 2)
-        expect(correlation.emit?(probe, none_sampling_unit)).to be(true)
-        expect(correlation.emit?(probe, none_sampling_unit)).to be(true)
+      it "gives each distinct probe its own per-probe counter" do
+        a = probe("a")
+        3.times { correlation.emit?(a, unit(1)) } # exhausts a
+        expect(correlation.emit?(a, unit(1))).to be(false)
+        expect(correlation.emit?(probe("b"), unit(1))).to be(true)
       end
     end
 
-    describe "cap-scope LRU eviction" do
+    context "all counter" do
+      let(:per_probe_budget) { 100 }
+      let(:all_budget) { 4 }
+
+      it "lets a trace emit exactly all_budget snapshots across probes" do
+        emitted = %w[a b c d e f].count { |id| correlation.emit?(probe(id), unit(1)) }
+        expect(emitted).to eq(4)
+      end
+    end
+
+    context "GLOBAL borrowing" do
+      let(:global_rate) { 5 }
+      let(:per_probe_budget) { 100 }
+      let(:all_budget) { 100 }
+
+      it "consumes GLOBAL past zero for correlated probes, then starves new traces" do
+        # 8 emits in trace 1 (1 top + 7 correlated) drive GLOBAL from 5 to -3;
+        # correlated probes consume GLOBAL without checking it.
+        emitted = %w[a b c d e f g h].count { |id| correlation.emit?(probe(id), unit(1)) }
+        expect(emitted).to eq(8)
+
+        # GLOBAL is negative, so a new trace's top probe is starved.
+        expect(correlation.emit?(probe("a"), unit(2))).to be(false)
+      end
+    end
+
+    describe "per-trace ledger LRU eviction" do
       let(:max_entries) { 2 }
+      let(:per_probe_budget) { 1 }
+      let(:all_budget) { 100 }
+      let(:top_rate) { 100 }
+      let(:global_rate) { 100 }
 
-      it "evicts the oldest scope, resetting its cap" do
-        probe = probe_double("a", allow: 100)
-        expect(correlation.emit?(probe, sampling_unit("u", "s1"))).to be(true)
-        expect(correlation.emit?(probe, sampling_unit("u", "s1"))).to be(false) # s1 caps a
+      it "evicts the oldest trace, resetting its counters" do
+        p = probe("a")
+        expect(correlation.emit?(p, unit(1))).to be(true)  # top, per-probe → 0
+        expect(correlation.emit?(p, unit(1))).to be(false) # capped in trace 1
 
-        correlation.emit?(probe, sampling_unit("u", "s2"))
-        correlation.emit?(probe, sampling_unit("u", "s3")) # inserting s3 evicts s1
+        correlation.emit?(probe("b"), unit(2)) # ledger: {1, 2}
+        correlation.emit?(probe("c"), unit(3)) # inserting 3 evicts oldest (1)
 
-        # s1 was evicted, so its cap has reset and a may emit again.
-        expect(correlation.emit?(probe, sampling_unit("u", "s1"))).to be(true)
+        # trace 1 was evicted, so its counters reset and a emits again as a top.
+        expect(correlation.emit?(p, unit(1))).to be(true)
       end
+    end
+  end
+
+  describe Datadog::DI::Correlation::TraceBudget do
+    it "consumes one per-probe and one all token together" do
+      budget = described_class.new(2, 5)
+      expect(budget.admit("a")).to be(true)
+      expect(budget.all).to eq(1)
+    end
+
+    it "returns false when the all counter is exhausted" do
+      budget = described_class.new(2, 5)
+      2.times { budget.admit("a") }
+      expect(budget.admit("a")).to be(false)
+    end
+
+    it "returns false when a probe's per-probe counter is exhausted" do
+      budget = described_class.new(100, 1)
+      expect(budget.admit("a")).to be(true)
+      expect(budget.admit("a")).to be(false)
+    end
+
+    it "defaults an unseen probe's counter to the per-probe limit" do
+      budget = described_class.new(100, 5)
+      expect(budget.admit("unseen")).to be(true)
+      expect(budget.all).to eq(99)
     end
   end
 end
