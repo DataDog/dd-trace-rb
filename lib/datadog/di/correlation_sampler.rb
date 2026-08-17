@@ -137,16 +137,16 @@ module Datadog
       #
       # @api private
       class TraceBudget
-        # @param all [Integer] all-probe counter start value
+        # @param all_budget [Integer] all-probe counter start value
         # @param per_probe_limit [Integer] per-probe counter start value
-        def initialize(all, per_probe_limit)
-          @all = all
+        def initialize(all_budget, per_probe_limit)
+          @all_remaining = all_budget
           @per_probe_limit = per_probe_limit
           @per_probe = {}
         end
 
         # Remaining all-probe counter.
-        attr_reader :all
+        attr_reader :all_remaining
 
         # Consumes one per-probe and one all token for +probe_id+.
         #
@@ -155,10 +155,10 @@ module Datadog
         #   consumed, false when either was exhausted
         def admit(probe_id)
           remaining = @per_probe.fetch(probe_id, @per_probe_limit)
-          return false if remaining <= 0 || @all <= 0
+          return false if remaining <= 0 || @all_remaining <= 0
 
           @per_probe[probe_id] = remaining - 1
-          @all -= 1
+          @all_remaining -= 1
           true
         end
       end
