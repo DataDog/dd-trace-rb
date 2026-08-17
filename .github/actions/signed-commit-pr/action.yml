@@ -4,16 +4,12 @@ description: >-
   Creates a GitHub-signed commit from the working tree via GraphQL, and
   optionally opens or updates a pull request for it.
 
-# Why this exists instead of peter-evans/create-pull-request with
-# `sign-commits: true`: a locally-created commit cannot be signed by GitHub, so
-# that action falls back to building the commit over the REST API, creating one
-# blob and one tree object per changed file. On a lockfile refresh touching
-# hundreds of files under gemfiles/, that N+1 takes ~10 minutes. The GraphQL
-# `createCommitOnBranch` mutation used here sends every file in a single request
-# and GitHub signs the result server-side, so cost is flat in file count.
+# Exists because create-pull-request with `sign-commits: true` rebuilds the
+# commit over REST, one blob and tree object per file: ~10 minutes on a
+# gemfiles/ refresh. `createCommitOnBranch` sends every file in one request, so
+# cost is flat in file count.
 #
-# Inputs deliberately mirror create-pull-request's names so call sites read the
-# same way.
+# Input names mirror create-pull-request so call sites read the same way.
 
 inputs:
   token:
@@ -69,28 +65,23 @@ outputs:
 runs:
   using: "composite"
   steps:
-    # Staged before touching any remote ref, so that a run with nothing to do
-    # makes no remote changes at all: no reset, no empty commit, no empty PR.
+    # Runs before any remote ref is touched, so a no-op run changes nothing
+    # remotely: no reset, no empty commit, no empty PR.
+    #
+    # Both separators are flattened because either would silently commit a
+    # subset and still exit green: git treats a comma as a literal pathspec
+    # character, and `read -r -a` stops at the first newline.
     - name: Stage changes
       id: stage
       shell: bash
       env:
         ADD_PATHS: ${{ inputs.add-paths }}
       run: |
-        # `git add` takes each pathspec as a separate argument. Both separators
-        # must be flattened to spaces before splitting:
-        #   - a comma is a literal character to git, so a comma-joined list
-        #     would arrive as one pathspec that matches nothing and exits 0;
-        #   - `read -r -a` stops at the first newline, so a `|` block list would
-        #     silently contribute only its first path.
-        # Either mistake fails by committing too little, with a green run.
         normalized="${ADD_PATHS//,/ }"
         normalized="${normalized//$'\n'/ }"
         read -r -a paths <<< "$normalized"
         git add -- "${paths[@]}"
-        # Re-emit as a single whitespace-separated line for ghcommit-action's
-        # file_pattern, which splits with `read -r -a` and so must not receive
-        # newlines.
+        # Single line: ghcommit-action's file_pattern must not receive newlines.
         echo "paths=${paths[*]}" >> "$GITHUB_OUTPUT"
         if git diff --cached --quiet; then
           echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -104,19 +95,9 @@ runs:
       shell: bash
       run: git diff --cached --stat
 
-    # Point the branch at the commit this run checked out, so it holds exactly
-    # one commit on top of that base rather than accumulating one per run.
-    #
-    # The target is local HEAD, NOT the `base` input: ghcommit-action exposes no
-    # head-SHA input, so its `expectedHeadOid` is always local `git rev-parse
-    # HEAD`, and the mutation is rejected if the branch points elsewhere. Those
-    # two diverge whenever base moved after checkout.
-    #
-    # This moves only the remote ref and never the local tree. Resetting the
-    # local tree here would discard the changes just staged, after which
-    # ghcommit-action would find nothing to do and exit 0 - a green run that
-    # commits nothing. Moving the ref remotely also avoids needing a `git push`,
-    # which matters because callers check out with `persist-credentials: false`.
+    # Keeps the branch at one commit per run instead of accumulating one each
+    # time. Moves the remote ref only: resetting the local tree would discard
+    # what was just staged, leaving nothing to commit and the run still green.
     - name: Reset branch
       if: steps.stage.outputs.changed == 'true' && inputs.commit-only != 'true'
       shell: bash
@@ -125,14 +106,13 @@ runs:
         REPO: ${{ github.repository }}
         BRANCH: ${{ inputs.branch }}
       run: |
+        # Local HEAD, not `base`: ghcommit-action always sends this as
+        # expectedHeadOid, and the two diverge once base moves after checkout.
         head_sha="$(git rev-parse HEAD)"
         echo "Pointing $BRANCH at $head_sha"
-        # A missing ref has been reported as both 404 and 422 depending on API
-        # version, so any PATCH failure falls through to creating the branch.
-        # The error is deliberately not silenced: other causes reach here too
-        # (403 from branch protection, an expired token), and the POST that
-        # follows would then fail with a misleading "Reference already exists".
-        # Keeping the PATCH error in the log is what makes that distinguishable.
+        # PATCH failure falls through to create, as a missing ref is 404 or 422.
+        # The error stays visible so branch protection and token expiry are not
+        # hidden behind the POST's misleading "Reference already exists".
         if ! gh api --silent -X PATCH "repos/$REPO/git/refs/heads/$BRANCH" \
               -F "sha=$head_sha" -F force=true; then
           echo "Could not update the branch, attempting to create it."
@@ -147,17 +127,19 @@ runs:
       with:
         repo: ${{ github.repository }}
         branch: ${{ inputs.branch }}
-        # The normalized single-line form from the staging step, NOT the raw
-        # add-paths input: ghcommit-action's entrypoint splits this with
-        # `read -r -a`, which would keep only the first line of a multi-line
-        # value and silently commit a subset of the intended files.
+        # Normalized form, not raw add-paths: this is split with `read -r -a`,
+        # which would keep only the first line and commit a subset.
         file_pattern: ${{ steps.stage.outputs.paths }}
         commit_message: ${{ inputs.commit-message }}
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
 
-    # `gh pr create` fails if a PR is already open for the branch, so that the
-    # scheduled workflows stay idempotent across reruns.
+    # Reuses an open PR so reruns stay idempotent; `gh pr create` fails when one
+    # already exists.
+    #
+    # Matched on head repository owner as well as branch, because `--head` filters
+    # on name alone: a fork PR sharing the branch name would otherwise be edited
+    # in place of the one this action needs to open.
     - name: Create or update pull request
       if: steps.stage.outputs.changed == 'true' && inputs.commit-only != 'true'
       shell: bash
@@ -170,11 +152,6 @@ runs:
         BODY: ${{ inputs.body }}
         LABELS: ${{ inputs.labels }}
       run: |
-        # --head filters on branch name alone; it does not accept the
-        # "<owner>:<branch>" form, so a fork's pull request using the same branch
-        # name and base would also match. Selecting on the head repository owner
-        # keeps this from editing a contributor's pull request and then skipping
-        # the one this action needs to open.
         existing="$(gh pr list --repo "$REPO" --head "$BRANCH" --base "$BASE" \
           --state open --json number,headRepositoryOwner \
           --jq "[.[] | select(.headRepositoryOwner.login == \"${REPO%%/*}\")] | .[0].number // empty")"

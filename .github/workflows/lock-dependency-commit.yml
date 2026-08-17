@@ -73,14 +73,10 @@ jobs:
         with:
           scope: DataDog/dd-trace-rb
           policy: self.lock-dependency
-      # This is the one caller that must NOT use .github/actions/signed-commit-pr.
-      # A local `uses: ./...` resolves from the checked-out workspace, which is the
-      # pull request's head_sha above, so routing this step through the composite
-      # would let a pull request rewrite the action body and run it with the
-      # privileged token minted just above. The pinned external action is immune to
-      # workspace contents. Staging is handled by the Stage changes step already,
-      # and this workflow commits onto a branch it does not own, so the composite's
-      # branch reset and pull request handling would be unused here anyway.
+      # Must NOT use .github/actions/signed-commit-pr, unlike the other callers: a
+      # local `uses: ./...` resolves from the workspace, which is the PR's head_sha
+      # here, letting a PR rewrite the action and run it with the token above.
+      # A pinned action cannot be influenced that way.
       - name: Commit changes
         if: steps.check.outputs.changed == 'true'
         uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
