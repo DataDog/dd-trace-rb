@@ -32,7 +32,7 @@ module Datadog
           "DD-AI-GUARD-VERSION": Datadog::VERSION::STRING,
           "DD-AI-GUARD-SOURCE": "SDK",
           "DD-AI-GUARD-LANGUAGE": "ruby",
-          "content-type": "application/json"
+          "content-type": "application/json",
         }.freeze
       end
 

@@ -160,6 +160,7 @@ module Datadog
         end
 
         loc = target_method&.source_location
+        # @type var instrumenter: Instrumenter
         instrumenter = self
 
         mod = Module.new do
@@ -193,7 +194,7 @@ module Datadog
           # user probe on Proc#call cannot intercept the trampoline, and no
           # Proc is allocated for the block.
           if RubyVersion.is?(">= 3")
-            define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
+            define_method(method_name) do |*args, **kwargs, &target_block|
               # steep:ignore FallbackAny below: Steep cannot narrow the
               # **kwargs parameter inside this define_method block, so it
               # falls back to untyped at the super and run_method_probe sites.
@@ -211,7 +212,7 @@ module Datadog
               end
             end
           else
-            define_method(method_name) do |*args, &target_block| # steep:ignore NoMethod
+            define_method(method_name) do |*args, &target_block|
               if DI.in_probe?
                 return super(*args, &target_block)
               end
@@ -230,7 +231,7 @@ module Datadog
                 super(*args, &target_block)
               end
             end
-            ruby2_keywords(method_name) if respond_to?(:ruby2_keywords, true) # steep:ignore NoMethod
+            ruby2_keywords(method_name) if respond_to?(:ruby2_keywords, true)
           end
         end
 
@@ -461,7 +462,7 @@ module Datadog
       # @param args [Array] positional arguments passed to the probed method
       # @param kwargs [Hash{Symbol => Object}] keyword arguments passed to the probed method
       # @param target_block [Proc, nil] block argument passed to the probed method
-      # @param target_self [Object] the receiver of the probed method invocation
+      # @param target_self [any] the receiver of the probed method invocation
       # @param probe [Datadog::DI::Probe] the probe whose callback this invocation runs
       # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback] callback target invoked with the built Context
       # @param loc [Array(String, Integer), nil] source location of the probed method, or nil for virtual/lazily-defined methods

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../../../core/telemetry/configuration_value"
+
 module Datadog
   module Tracing
     module Configuration
@@ -56,6 +58,8 @@ module Datadog
                 precedence: Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
               )
             end
+
+            Core::Telemetry::ConfigurationValue.convert(value)
           end
 
           protected

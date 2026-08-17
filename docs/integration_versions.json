@@ -74,7 +74,7 @@
     "package": "dalli",
     "source": "rubygems.org",
     "min_tested": "2.7.11",
-    "max_tested": "5.0.5"
+    "max_tested": "5.0.6"
   },
   {
     "integration": "delayed_job",
@@ -88,7 +88,7 @@
     "package": "elasticsearch",
     "source": "rubygems.org",
     "min_tested": "7.17.11",
-    "max_tested": "9.4.3"
+    "max_tested": "9.5.0"
   },
   {
     "integration": "ethon",
@@ -102,7 +102,7 @@
     "package": "excon",
     "source": "rubygems.org",
     "min_tested": "0.109.0",
-    "max_tested": "1.6.0"
+    "max_tested": "1.7.0"
   },
   {
     "integration": "faraday",
@@ -180,7 +180,7 @@
     "package": "karafka",
     "source": "rubygems.org",
     "min_tested": "2.0.41",
-    "max_tested": "2.5.9"
+    "max_tested": "2.6.0"
   },
   {
     "integration": "kicks",
@@ -278,7 +278,7 @@
     "package": "redis",
     "source": "rubygems.org",
     "min_tested": "3.3.5",
-    "max_tested": "5.4.1"
+    "max_tested": "6.0.0"
   },
   {
     "integration": "resque",
@@ -348,7 +348,7 @@
     "package": "stripe",
     "source": "rubygems.org",
     "min_tested": "5.15.0",
-    "max_tested": "19.3.1"
+    "max_tested": "19.4.0"
   },
   {
     "integration": "sucker_punch",
