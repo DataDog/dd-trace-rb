@@ -170,7 +170,7 @@ RSpec.describe Datadog::DI::CorrelationSampler do
     it "consumes one per-probe and one all token together" do
       budget = described_class.new(2, 5)
       expect(budget.admit("a")).to be(true)
-      expect(budget.all).to eq(1)
+      expect(budget.all_remaining).to eq(1)
     end
 
     it "returns false when the all counter is exhausted" do
@@ -188,7 +188,7 @@ RSpec.describe Datadog::DI::CorrelationSampler do
     it "defaults an unseen probe's counter to the per-probe limit" do
       budget = described_class.new(100, 5)
       expect(budget.admit("unseen")).to be(true)
-      expect(budget.all).to eq(99)
+      expect(budget.all_remaining).to eq(99)
     end
   end
 end

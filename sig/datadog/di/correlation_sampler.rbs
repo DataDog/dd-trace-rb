@@ -56,15 +56,15 @@ module Datadog
       def store: (Integer key, TraceBudget budget) -> void
 
       class TraceBudget
-        @all: Integer
+        @all_remaining: Integer
 
         @per_probe_limit: Integer
 
         @per_probe: Hash[String, Integer]
 
-        def initialize: (Integer all, Integer per_probe_limit) -> void
+        def initialize: (Integer all_budget, Integer per_probe_limit) -> void
 
-        attr_reader all: Integer
+        attr_reader all_remaining: Integer
 
         def admit: (String probe_id) -> bool
       end
