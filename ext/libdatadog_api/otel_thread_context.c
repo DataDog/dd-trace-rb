@@ -19,10 +19,6 @@
   };
 #endif
 
-#ifdef HAVE_RUBY_THREAD_STORAGE_API
-  static rb_internal_thread_specific_key_t otel_ctx_key;
-#endif
-
 static ID fiber_context_slot;
 static const int BIG_ENDIAN_PACK_FLAGS = INTEGER_PACK_MSWORD_FIRST | INTEGER_PACK_BIG_ENDIAN;
 
@@ -36,10 +32,6 @@ static VALUE native_read(VALUE _self);
 void otel_thread_context_init(VALUE core_module) {
   fiber_context_slot = rb_intern("__dd_otel_fiber_context");
 
-  #ifdef HAVE_RUBY_THREAD_STORAGE_API
-    otel_ctx_key = rb_internal_thread_specific_key_create();
-  #endif
-
   VALUE otel_thread_context_module = rb_define_module_under(core_module, "OTelThreadContext");
 
   rb_define_singleton_method(otel_thread_context_module, "_native_enable", native_enable, 0);
@@ -51,13 +43,16 @@ void otel_thread_context_init(VALUE core_module) {
 }
 
 #ifdef __linux__
-  static struct ddog_ThreadContextHandle *get_current_fiber_handle(void) {
-    VALUE obj = rb_thread_local_aref(rb_thread_current(), fiber_context_slot);
-    if (NIL_P(obj)) return NULL;
+  static struct ddog_ThreadContextHandle *get_fiber_handle_for(VALUE thread) {
+    VALUE obj = rb_thread_local_aref(thread, fiber_context_slot);
 
-    struct ddog_ThreadContextHandle *handle;
-    TypedData_Get_Struct(obj, struct ddog_ThreadContextHandle, &otel_ctx_handle_t, handle);
-    return handle;
+    if (!RB_TYPE_P(obj, T_DATA) || !RTYPEDDATA_P(obj) || RTYPEDDATA_TYPE(obj) != &otel_ctx_handle_t) return NULL;
+
+    return RTYPEDDATA_DATA(obj);
+  }
+
+  static struct ddog_ThreadContextHandle *get_current_fiber_handle(void) {
+    return get_fiber_handle_for(rb_thread_current());
   }
 
   static void store_current_fiber_handle(struct ddog_ThreadContextHandle *handle) {
@@ -90,11 +85,10 @@ void otel_thread_context_init(VALUE core_module) {
     // that releases the GVL and does something, the slot becomes empty for the whole duration.
     static void on_thread_suspended(
       DDTRACE_UNUSED rb_event_flag_t event,
-      const rb_internal_thread_event_data_t *event_data,
+      DDTRACE_UNUSED const rb_internal_thread_event_data_t *event_data,
       DDTRACE_UNUSED void *user_data
     ) {
-      struct ddog_ThreadContextHandle *handle = ddog_otel_thread_ctx_detach();
-      rb_internal_thread_specific_set(event_data->thread, otel_ctx_key, handle);
+      ddog_otel_thread_ctx_detach();
     }
 
     static void on_thread_resumed(
@@ -102,7 +96,7 @@ void otel_thread_context_init(VALUE core_module) {
       const rb_internal_thread_event_data_t *event_data,
       DDTRACE_UNUSED void *user_data
     ) {
-      struct ddog_ThreadContextHandle *handle = rb_internal_thread_specific_get(event_data->thread, otel_ctx_key);
+      struct ddog_ThreadContextHandle *handle = get_fiber_handle_for(event_data->thread);
 
       if (handle != NULL) ddog_otel_thread_ctx_attach(handle);
     }
