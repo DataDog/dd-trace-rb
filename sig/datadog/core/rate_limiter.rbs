@@ -61,7 +61,7 @@ module Datadog
     end
 
     class BorrowingTokenBucket
-      @rate: ::Numeric
+      @rate: ::Float | ::Integer
 
       @max_tokens: ::Numeric
 
@@ -69,11 +69,11 @@ module Datadog
 
       @last_refill: ::Numeric
 
-      attr_reader rate: ::Numeric
+      attr_reader rate: ::Float | ::Integer
 
       attr_reader max_tokens: ::Numeric
 
-      def initialize: (::Numeric rate, ?::Numeric max_tokens) -> void
+      def initialize: (::Float | ::Integer rate, ?::Numeric max_tokens) -> void
 
       def available?: () -> bool
 
