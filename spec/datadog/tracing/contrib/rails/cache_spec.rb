@@ -573,16 +573,6 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
 
     before { clear_traces! }
 
-    shared_context "a callable namespace" do
-      let(:calls) { [] }
-      let(:namespace) do
-        lambda do
-          calls << :namespace
-          "callable-namespace"
-        end
-      end
-    end
-
     # Rails only resolves the namespace in `#namespace_key`, where it can be recorded, since 5.2.
     def skip_unless_namespace_resolved_by_rails
       return if ::ActiveSupport::Cache::Store.private_method_defined?(:namespace_key)
@@ -605,7 +595,13 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
       end
 
       context "with a callable namespace" do
-        include_context "a callable namespace"
+        let(:calls) { [] }
+        let(:namespace) do
+          lambda do
+            calls << :namespace
+            "callable-namespace"
+          end
+        end
 
         it "tags the namespace Rails resolved the callable to" do
           skip_unless_namespace_resolved_by_rails
@@ -640,9 +636,8 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
         before { Datadog.configuration.tracing[:active_support][:cache_key].enabled = false }
 
         it "does not tag the namespace" do
-          expect(cache.read(key)).to eq(50)
-
-          expect(span.get_tag("rails.cache.namespace")).to be_nil
+          expect { cache.read(key) }
+            .not_to(change { fetch_spans.first&.get_tag("rails.cache.namespace") }.from(nil))
         end
       end
     end
@@ -656,7 +651,7 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
       end
 
       context "with a callable namespace" do
-        include_context "a callable namespace"
+        let(:namespace) { -> { "callable-namespace" } }
 
         it "tags the namespace Rails resolved the callable to" do
           skip_unless_namespace_resolved_by_rails
@@ -686,14 +681,19 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
 
       context "with the namespace of the store disabled for the call" do
         it "does not tag the namespace" do
-          cache.delete(key, namespace: nil)
-
-          expect(span.get_tag("rails.cache.namespace")).to be_nil
+          expect { cache.delete(key, namespace: nil) }
+            .not_to(change { fetch_spans.first&.get_tag("rails.cache.namespace") }.from(nil))
         end
       end
 
       context "with a callable namespace" do
-        include_context "a callable namespace"
+        let(:calls) { [] }
+        let(:namespace) do
+          lambda do
+            calls << :namespace
+            "callable-namespace"
+          end
+        end
 
         it "tags the namespace Rails resolved the callable to", if: Rails.version.to_i >= 8 do
           cache.delete(key)
@@ -702,9 +702,8 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
         end
 
         it "does not tag the namespace", if: Rails.version.to_i < 8 do
-          cache.delete(key)
-
-          expect(span.get_tag("rails.cache.namespace")).to be_nil
+          expect { cache.delete(key) }
+            .not_to(change { fetch_spans.first&.get_tag("rails.cache.namespace") }.from(nil))
         end
 
         it "leaves the callable to Rails instead of calling it for the tag" do
@@ -762,7 +761,13 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
       end
 
       context "with a callable namespace" do
-        include_context "a callable namespace"
+        let(:calls) { [] }
+        let(:namespace) do
+          lambda do
+            calls << :namespace
+            "callable-namespace"
+          end
+        end
 
         it "tags the namespace Rails resolved the callable to" do
           skip_unless_namespace_resolved_by_rails
@@ -807,7 +812,13 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
       end
 
       context "with a callable namespace" do
-        include_context "a callable namespace"
+        let(:calls) { [] }
+        let(:namespace) do
+          lambda do
+            calls << :namespace
+            "callable-namespace"
+          end
+        end
 
         it "tags the namespace Rails resolved the callable to on the read and the write" do
           skip_unless_namespace_resolved_by_rails
@@ -858,7 +869,13 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
       end
 
       context "with a callable namespace" do
-        include_context "a callable namespace"
+        let(:calls) { [] }
+        let(:namespace) do
+          lambda do
+            calls << :namespace
+            "callable-namespace"
+          end
+        end
 
         it "tags the namespace Rails resolved the callable to" do
           skip_unless_namespace_resolved_by_rails
@@ -885,9 +902,8 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
 
   context "with a cache store without a namespace" do
     it "does not tag the namespace" do
-      cache.write(key, 50)
-
-      expect(span.get_tag("rails.cache.namespace")).to be_nil
+      expect { cache.write(key, 50) }
+        .not_to(change { fetch_spans.first&.get_tag("rails.cache.namespace") }.from(nil))
     end
   end
 

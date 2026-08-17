@@ -58,15 +58,15 @@ module Datadog
 
                 span.set_tag(Ext::TAG_CACHE_BACKEND, store) if store
 
-                tag_cache_key = Datadog.configuration.tracing[:active_support][:cache_key].enabled
-                set_cache_key(span, key, multi_key) if tag_cache_key
+                cache_key_enabled = Datadog.configuration.tracing[:active_support][:cache_key].enabled
+                set_cache_key(span, key, multi_key) if cache_key_enabled
 
                 begin
                   yield
                 ensure
                   # A callable namespace is only known once ActiveSupport has normalized the key,
                   # which it does while running the operation.
-                  set_cache_namespace(span, namespace) if tag_cache_key
+                  set_cache_namespace_tag(span, namespace) if cache_key_enabled
                 end
               end
             end
@@ -101,12 +101,9 @@ module Datadog
               end
             end
 
-            # The reported key is the one the user gave, before Rails prefixes the namespace onto it
-            # while normalizing it, so it is ambiguous on its own.
-            #
             # A callable is never invoked here, as instrumentation must not call customer code.
-            # The value ActiveSupport resolved it to is reported instead, see {ResolveNamespace}.
-            def set_cache_namespace(span, namespace)
+            # The value {ResolveNamespace} captured when ActiveSupport resolved it is used instead.
+            def set_cache_namespace_tag(span, namespace)
               namespace = Thread.current[RESOLVED_NAMESPACE_KEY] if namespace.respond_to?(:call)
               return unless namespace
 
@@ -237,17 +234,10 @@ module Datadog
 
             RESOLVED_NAMESPACE_KEY = "datadog_active_support_cache_resolved_namespace"
 
-            # ActiveSupport resolves a callable namespace itself, while it normalizes the key of the
-            # operation. Recording what it resolved is what allows a callable to be reported without
-            # instrumentation ever invoking it.
-            #
             # `#namespace_key` returns the key it is given prefixed with `"#{namespace}:"`, so the
             # namespace is whatever it put in front of that key. It is the single place ActiveSupport
             # applies the namespace, and exists since Rails 5.2; older versions inline it into
             # `#normalize_key`, where the key is not yet expanded and the prefix cannot be isolated.
-            #
-            # The override stays private, as prepending a public one would widen the visibility
-            # ActiveSupport gives the method.
             module ResolveNamespace
               private
 
