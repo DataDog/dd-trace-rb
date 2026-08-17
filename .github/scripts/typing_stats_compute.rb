@@ -39,19 +39,72 @@ end
 
 total_files_size = Dir.glob("#{project.base_dir}/lib/**/*.rb").size
 
+def ruby_constant_name(node)
+  namespace, name = node.children
+  return name.to_s if namespace.nil?
+  return "::#{name}" if namespace.type == :cbase
+
+  "#{ruby_constant_name(namespace)}::#{name}"
+end
+
+def ruby_declaration_namespace(node, enclosing_namespace)
+  name = ruby_constant_name(node)
+  return name.delete_prefix("::") if name.start_with?("::")
+
+  [enclosing_namespace, name].reject(&:empty?).join("::")
+end
+
+def ruby_scope_regions(node, enclosing_namespace = "", enclosing_scope = "", result = [])
+  return result unless node.is_a?(::Parser::AST::Node)
+
+  namespace = enclosing_namespace
+  scope = enclosing_scope
+  case node.type
+  when :class, :module
+    namespace = ruby_declaration_namespace(node.children.first, enclosing_namespace)
+    scope = namespace
+  when :def
+    scope = "#{enclosing_scope}##{node.children.first}"
+  when :defs
+    receiver, name = node.children
+    owner = if receiver.type == :self
+      enclosing_scope
+    else
+      [enclosing_scope, receiver.location.expression.source].reject(&:empty?).join(".")
+    end
+    scope = [owner, name.to_s].reject(&:empty?).join(".")
+  end
+
+  if [:class, :module, :def, :defs].include?(node.type)
+    result << {start_line: node.location.expression.line, end_line: node.location.expression.last_line, namespace: namespace, scope: scope}
+  end
+
+  node.children.each do |child|
+    ruby_scope_regions(child, namespace, scope, result)
+  end
+  result
+end
+
 # steep:ignore comments stats
 ignore_comments = loader.each_path_in_patterns(datadog_target.source_pattern).each_with_object([]) do |path, result|
   source = path.read
   source_lines = source.lines
   buffer = ::Parser::Source::Buffer.new(path.to_s, 1, source: source)
-  _, comments = ::Parser::Ruby25.new.parse_with_comments(buffer)
+  ast, comments = ::Parser::Ruby25.new.parse_with_comments(buffer)
+  scope_regions = ruby_scope_regions(ast)
   rbs_buffer = ::RBS::Buffer.new(name: path, content: source)
   comments.each do |comment|
     ignore = ::Steep::AST::Ignore.parse(comment, rbs_buffer)
     next if ignore.nil? || ignore.is_a?(::Steep::AST::Ignore::IgnoreEnd)
 
+    # reverse_each to find the deepest scope region that contains the comment line.
+    scope_region = scope_regions.reverse_each.find do |region|
+      ignore.line.between?(region[:start_line], region[:end_line])
+    end
     result << {
       path: path.to_s,
+      namespace: scope_region ? scope_region[:namespace] : "",
+      scope: scope_region ? scope_region[:scope] : "",
       line: ignore.line,
       source: source_lines.fetch(ignore.line - 1).chomp
     }

@@ -59,19 +59,19 @@ RSpec.describe "typing stats comparison" do
   end
 
   def run_script(script, environment, working_directory: Dir.pwd)
-  environment = environment.merge(
-    "BUNDLE_GEMFILE" => Bundler.default_gemfile.expand_path.to_s
-  )
+    environment = environment.merge(
+      "BUNDLE_GEMFILE" => Bundler.default_gemfile.expand_path.to_s
+    )
 
-  output, status = Open3.capture2e(
-    environment,
-    "bundle", "exec", "ruby", File.expand_path(script),
-    chdir: working_directory
-  )
-  raise output unless status.success?
+    output, status = Open3.capture2e(
+      environment,
+      "bundle", "exec", "ruby", File.expand_path(script),
+      chdir: working_directory
+    )
+    raise output unless status.success?
 
-  output
-end
+    output
+  end
 
   let(:base_rb) { "" }
   let(:head_rb) { "" }
@@ -212,6 +212,90 @@ end
     it "reports the comment at its current line" do
       is_expected.to include("introduces **1** <code>steep:ignore</code> comment")
       is_expected.to include("lib/example.rb:2")
+    end
+  end
+
+  context "when the same steep:ignore comment moves to another namespace" do
+    let(:base_rbs) do
+      <<~RBS
+        class First
+        end
+        class Second
+        end
+      RBS
+    end
+
+    let(:head_rbs) { base_rbs }
+
+    let(:base_rb) do
+      <<~RUBY
+        class First
+          value.call # steep:ignore NoMethod
+        end
+
+        class Second
+          value.call
+        end
+      RUBY
+    end
+
+    let(:head_rb) do
+      <<~RUBY
+        class First
+          value.call
+        end
+
+        class Second
+          value.call # steep:ignore NoMethod
+        end
+      RUBY
+    end
+
+    it "reports the introduced and cleared comments" do
+      is_expected.to include("introduces **1** <code>steep:ignore</code> comment, and clears **1** <code>steep:ignore</code> comment")
+    end
+  end
+
+  context "when the same steep:ignore comment moves to another method" do
+    let(:base_rbs) do
+      <<~RBS
+        class Example
+        end
+      RBS
+    end
+
+    let(:head_rbs) { base_rbs }
+
+    let(:base_rb) do
+      <<~RUBY
+        class Example
+          def first
+            value.call # steep:ignore NoMethod
+          end
+
+          def second
+            value.call
+          end
+        end
+      RUBY
+    end
+
+    let(:head_rb) do
+      <<~RUBY
+        class Example
+          def first
+            value.call
+          end
+
+          def second
+            value.call # steep:ignore NoMethod
+          end
+        end
+      RUBY
+    end
+
+    it "reports the introduced and cleared comments" do
+      is_expected.to include("introduces **1** <code>steep:ignore</code> comment, and clears **1** <code>steep:ignore</code> comment")
     end
   end
 end
