@@ -49,7 +49,7 @@ module Datadog
 
       def fetch_budget: (::Integer key) -> TraceBudget?
 
-      def emit_first_in_unit?: (::Integer key, Probe probe) -> bool
+      def emit_top?: (::Integer key, Probe probe) -> bool
 
       def emit_correlated?: (TraceBudget budget, Probe probe) -> bool
 
