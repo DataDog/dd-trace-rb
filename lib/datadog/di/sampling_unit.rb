@@ -9,8 +9,6 @@ module Datadog
     #
     # @api private
     class SamplingUnit
-      NONE = new(nil)
-
       # Resolves the unit enclosing the current probe hit.
       #
       # @return [SamplingUnit]
@@ -34,6 +32,8 @@ module Datadog
       # Groups hits that share one emit-or-drop decision; nil when no trace is
       # active.
       attr_reader :key
+
+      NONE = new(nil)
     end
   end
 end
