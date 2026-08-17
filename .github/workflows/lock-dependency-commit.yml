@@ -73,14 +73,21 @@ jobs:
         with:
           scope: DataDog/dd-trace-rb
           policy: self.lock-dependency
-      # commit-only: this commits onto the contributor's own PR branch, which
-      # this workflow does not own and must never reset.
+      # This is the one caller that must NOT use .github/actions/signed-commit-pr.
+      # A local `uses: ./...` resolves from the checked-out workspace, which is the
+      # pull request's head_sha above, so routing this step through the composite
+      # would let a pull request rewrite the action body and run it with the
+      # privileged token minted just above. The pinned external action is immune to
+      # workspace contents. Staging is handled by the Stage changes step already,
+      # and this workflow commits onto a branch it does not own, so the composite's
+      # branch reset and pull request handling would be unused here anyway.
       - name: Commit changes
         if: steps.check.outputs.changed == 'true'
-        uses: ./.github/actions/signed-commit-pr
+        uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
         with:
-          token: ${{ steps.generate-token.outputs.token }}
+          repo: ${{ github.repository }}
           branch: ${{ github.event.workflow_run.head_branch }}
-          commit-only: true
-          add-paths: gemfiles
-          commit-message: "[🤖] Lock Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}"
+          file_pattern: "gemfiles/*"
+          commit_message: "[🤖] Lock Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}"
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
