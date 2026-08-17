@@ -223,6 +223,40 @@ jobs:
       # Step C: nothing changed. Must make no remote changes at all. This is
       # the check that catches the two silent no-op failure modes.
       # ---------------------------------------------------------------
+      # The generated directory is untracked in the checkout: it exists only
+      # because the steps above created it, so `git add tmp-validate` always
+      # stages 400 additions and `changed=true` is the correct answer. Removing
+      # it is what makes the next step a genuine no-op - the pathspec then
+      # matches nothing and nothing is staged, which is the state a real
+      # workflow is in when its generator produced no diff.
+      # A no-op run requires the files to be TRACKED in the checked-out commit
+      # with identical content. In the checkout above, tmp-validate/ is
+      # untracked - it exists only because the generator steps created it - so
+      # `git add` stages 400 additions and changed=true is the correct answer.
+      # Regenerating identical content does not help: untracked is untracked.
+      # Deleting the directory does not either, because `git add` on a pathspec
+      # matching nothing is fatal (exit 128).
+      #
+      # So the no-op run has to happen against a checkout of the target branch,
+      # where run 2 committed those files. That is also what a real workflow
+      # looks like on a no-change run: the generator rewrites tracked files with
+      # the content already committed.
+      - name: Check out the target branch for the no-op run
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          persist-credentials: false
+
+      - name: Confirm the working tree is clean
+        run: |
+          git status --porcelain -- tmp-validate > /tmp/dirty.txt
+          if [ -s /tmp/dirty.txt ]; then
+            echo "FAIL: expected a clean tree before the no-op run, got:"
+            head /tmp/dirty.txt
+            exit 1
+          fi
+          echo "Working tree is clean; the next run has nothing to stage."
+
       - name: Record branch head before no-op run
         id: before
         env:
