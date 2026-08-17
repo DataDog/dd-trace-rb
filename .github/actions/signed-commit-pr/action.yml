@@ -95,9 +95,14 @@ runs:
       shell: bash
       run: git diff --cached --stat
 
-    # Keeps the branch at one commit per run instead of accumulating one each
-    # time. Moves the remote ref only: resetting the local tree would discard
-    # what was just staged, leaving nothing to commit and the run still green.
+    # Required because createCommitOnBranch takes an expectedHeadOid that must
+    # equal the branch tip, and ghcommit-action always derives it from local
+    # HEAD, so a branch left where a previous run put it makes the mutation fail.
+    # Pointing it at HEAD also keeps the branch at one commit on top of the
+    # checkout instead of accumulating one per run.
+    #
+    # Moves the remote ref only: resetting the local tree would discard what was
+    # just staged, leaving nothing to commit and the run still green.
     - name: Reset branch
       if: steps.stage.outputs.changed == 'true' && inputs.commit-only != 'true'
       shell: bash
@@ -106,8 +111,7 @@ runs:
         REPO: ${{ github.repository }}
         BRANCH: ${{ inputs.branch }}
       run: |
-        # Local HEAD, not `base`: ghcommit-action always sends this as
-        # expectedHeadOid, and the two diverge once base moves after checkout.
+        # Local HEAD, not `base`: the two diverge once base moves after checkout.
         head_sha="$(git rev-parse HEAD)"
         echo "Pointing $BRANCH at $head_sha"
         # PATCH failure falls through to create, as a missing ref is 404 or 422.
