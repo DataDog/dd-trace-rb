@@ -39,16 +39,26 @@ jobs:
 
       # The base the pull request targets. A throwaway branch, never master, so
       # a mistake in the composite cannot touch a real branch.
-      - name: Create throwaway base branch
+      #
+      # Created only when absent, and never moved afterwards. An earlier
+      # revision force-PATCHed it to the current HEAD on every run, which
+      # retargeted the base under the open pull request and made GitHub close
+      # it - one second before the composite's PR step ran, so `gh pr list`
+      # found nothing and took the create path again. The base only has to be a
+      # stable commit for the target branch to be ahead of; it does not need to
+      # track this branch.
+      - name: Create throwaway base branch if absent
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
-          sha="$(git rev-parse HEAD)"
-          gh api --silent -X PATCH "repos/$REPO/git/refs/heads/$BASE_BRANCH" \
-            -F "sha=$sha" -F force=true \
-            || gh api --silent -X POST "repos/$REPO/git/refs" \
-                 -f "ref=refs/heads/$BASE_BRANCH" -f "sha=$sha"
+          if gh api --silent "repos/$REPO/git/refs/heads/$BASE_BRANCH" 2>/dev/null; then
+            echo "$BASE_BRANCH already exists, leaving it where it is."
+          else
+            gh api --silent -X POST "repos/$REPO/git/refs" \
+              -f "ref=refs/heads/$BASE_BRANCH" -f "sha=$(git rev-parse HEAD)"
+            echo "Created $BASE_BRANCH."
+          fi
 
       # The target branch is deliberately NOT deleted here. An earlier revision
       # deleted it so step A would exercise the PATCH-fails-then-POST fallback,
