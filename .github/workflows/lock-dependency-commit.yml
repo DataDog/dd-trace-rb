@@ -51,8 +51,10 @@ jobs:
           merge-multiple: true
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
-      # FIXME: The ghcommit-action does not pick up untracked/unstaged files
-      #        https://github.com/planetscale/ghcommit-action/issues/43
+      # Staged so that the change gate below can use `git diff --cached`.
+      # (ghcommit-action itself no longer needs this: it handles untracked files
+      # as of https://github.com/planetscale/ghcommit-action/issues/43, fixed
+      # upstream well before the version pinned here.)
       - name: Stage changes
         run: git add gemfiles
       - run: git diff --cached --color=always
@@ -71,13 +73,14 @@ jobs:
         with:
           scope: DataDog/dd-trace-rb
           policy: self.lock-dependency
+      # commit-only: this commits onto the contributor's own PR branch, which
+      # this workflow does not own and must never reset.
       - name: Commit changes
         if: steps.check.outputs.changed == 'true'
-        uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
+        uses: ./.github/actions/signed-commit-pr
         with:
-          repo: ${{ github.repository }}
+          token: ${{ steps.generate-token.outputs.token }}
           branch: ${{ github.event.workflow_run.head_branch }}
-          file_pattern: "gemfiles/*"
-          commit_message: "[🤖] Lock Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}"
-        env:
-          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          commit-only: true
+          add-paths: gemfiles
+          commit-message: "[🤖] Lock Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}"
