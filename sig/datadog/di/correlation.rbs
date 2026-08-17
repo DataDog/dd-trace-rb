@@ -25,7 +25,7 @@ module Datadog
 
       @global_limiter: Core::BorrowingTokenBucket
 
-      def initialize: (?max_entries: Integer, ?top_rate: (Float | Integer), ?global_rate: Numeric, ?per_probe_budget: Integer, ?all_budget: Integer) -> void
+      def initialize: (?max_entries: Integer, ?top_rate: (Float | Integer), ?global_rate: (Float | Integer), ?per_probe_budget: Integer, ?all_budget: Integer) -> void
 
       def emit?: (Probe probe, SamplingUnit sampling_unit) -> bool
 
