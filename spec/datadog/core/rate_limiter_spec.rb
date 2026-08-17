@@ -214,7 +214,7 @@ RSpec.describe Datadog::Core::TokenBucket do
 end
 
 RSpec.describe Datadog::Core::BorrowingTokenBucket do
-  subject(:bucket) { described_class.new(rate, max_tokens) }
+  subject(:bucket) { described_class.new(rate, max_tokens: max_tokens) }
 
   let(:rate) { 20 }
   let(:max_tokens) { 20 }
