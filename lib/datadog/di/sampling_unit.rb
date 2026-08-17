@@ -9,8 +9,6 @@ module Datadog
     #
     # @api private
     class SamplingUnit
-      NONE = new(nil)
-
       # Resolves the unit enclosing the current probe hit.
       #
       # @return [SamplingUnit]
@@ -22,7 +20,7 @@ module Datadog
           end
         end
 
-        NONE
+        new(nil)
       end
 
       # @param key [String, Integer, nil] the trace id, or nil when no trace is
