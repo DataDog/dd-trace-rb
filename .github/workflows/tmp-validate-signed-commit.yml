@@ -186,11 +186,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
-          ahead="$(gh api "repos/$REPO/compare/$BASE_BRANCH...$TARGET_BRANCH" \
+          # Measured against the checked-out SHA, not against $BASE_BRANCH. The
+          # composite resets the branch to local HEAD (ghcommit-action's
+          # expectedHeadOid is always `git rev-parse HEAD`), so "one commit on
+          # top of HEAD" is the actual invariant. Comparing against the base
+          # branch conflates a stacked commit with the base simply lagging this
+          # branch, which it does now that the base is created once and never
+          # moved: that reported ahead_by=2 for a correctly reset branch.
+          head_sha="$(git rev-parse HEAD)"
+          ahead="$(gh api "repos/$REPO/compare/$head_sha...$TARGET_BRANCH" \
             --jq '.ahead_by')"
-          echo "commits ahead of base: $ahead (expected 1)"
+          echo "commits ahead of checkout $head_sha: $ahead (expected 1)"
           if [ "$ahead" -ne 1 ]; then
             echo "FAIL: branch should hold exactly 1 commit, holds $ahead"
+            gh api "repos/$REPO/compare/$head_sha...$TARGET_BRANCH" \
+              --jq '.commits[] | "  \(.sha[0:10]) \(.commit.message | split("\n")[0])"'
             exit 1
           fi
           echo "PASS: rerun reset the branch instead of stacking a commit."
