@@ -1,0 +1,237 @@
+name: TEMP Validate signed-commit-pr
+
+# Throwaway workflow used to validate .github/actions/signed-commit-pr against
+# the live GitHub API before the composite action is merged. Delete this file
+# and the branches it writes to once validation is done.
+#
+# Uses `on: push` rather than `workflow_dispatch` because a workflow is only
+# dispatchable when a version of it carrying that trigger already exists on the
+# default branch. Push-triggered workflows run from the pushed ref's own file.
+#
+# Uses GITHUB_TOKEN rather than dd-octo-sts: every trust policy in
+# .github/chainguard pins both subject and job_workflow_ref to
+# refs/heads/master, so no token can be minted from a branch. The scopes granted
+# below match what the policies grant, so the composite is exercised
+# identically; only the token source differs.
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - tonycthsu/validate-signed-commit
+
+permissions: {}
+
+env:
+  TARGET_BRANCH: tmp/signed-commit-target
+  BASE_BRANCH: tmp/signed-commit-base
+  FILE_COUNT: "400"
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The base the pull request targets. A throwaway branch, never master, so
+      # a mistake in the composite cannot touch a real branch.
+      - name: Create throwaway base branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          sha="$(git rev-parse HEAD)"
+          gh api --silent -X PATCH "repos/$REPO/git/refs/heads/$BASE_BRANCH" \
+            -F "sha=$sha" -F force=true \
+            || gh api --silent -X POST "repos/$REPO/git/refs" \
+                 -f "ref=refs/heads/$BASE_BRANCH" -f "sha=$sha"
+
+      # Ensure the target branch does NOT exist, so step A exercises the
+      # PATCH-fails-then-POST fallback rather than the plain update path.
+      - name: Delete target branch if present
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh api -X DELETE "repos/$REPO/git/refs/heads/$TARGET_BRANCH" \
+            && echo "Deleted pre-existing $TARGET_BRANCH" \
+            || echo "$TARGET_BRANCH did not exist, which is the expected state."
+
+      # ---------------------------------------------------------------
+      # Check 2 setup: enough files that the old REST blob-per-file path
+      # would be slow. Synthetic, so this does not wait on the 9-Ruby
+      # bundle matrix.
+      # ---------------------------------------------------------------
+      - name: Generate files (run 1)
+        run: |
+          mkdir -p tmp-validate
+          for i in $(seq 1 "$FILE_COUNT"); do
+            echo "run 1 content for file $i" > "tmp-validate/file-$i.txt"
+          done
+          echo "Generated $FILE_COUNT files."
+
+      - name: Record start time
+        id: t0
+        run: echo "epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      # Step A: branch absent, PR absent -> creates both.
+      - name: A - first commit and PR
+        id: run1
+        uses: ./.github/actions/signed-commit-pr
+        with:
+          token: ${{ github.token }}
+          branch: ${{ env.TARGET_BRANCH }}
+          base: ${{ env.BASE_BRANCH }}
+          title: "[TEMP] signed-commit-pr validation"
+          body: "Throwaway validation PR. Safe to close and delete."
+          labels: dev/internal
+          add-paths: tmp-validate
+          commit-message: "[TEMP] validation run 1"
+
+      - name: Check 2 - report elapsed time for run 1
+        env:
+          T0: ${{ steps.t0.outputs.epoch }}
+        run: |
+          echo "Run 1 (${FILE_COUNT} files) took $(( $(date +%s) - T0 )) seconds."
+          echo "changed=${{ steps.run1.outputs.changed }}"
+          echo "commit-hash=${{ steps.run1.outputs.commit-hash }}"
+
+      - name: Check 1 - commit is signed and verified
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ steps.run1.outputs.commit-hash }}
+        run: |
+          verified="$(gh api "repos/$REPO/commits/$SHA" \
+            --jq '.commit.verification.verified')"
+          reason="$(gh api "repos/$REPO/commits/$SHA" \
+            --jq '.commit.verification.reason')"
+          echo "verified=$verified reason=$reason"
+          if [ "$verified" != "true" ]; then
+            echo "FAIL: commit is not verified (reason: $reason)"
+            exit 1
+          fi
+          echo "PASS: commit carries the Verified badge."
+
+      - name: Verify run 1 committed every file
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ steps.run1.outputs.commit-hash }}
+        run: |
+          # Guards the silent-truncation class of bug: a green run that commits
+          # only a subset of the intended files.
+          count="$(gh api "repos/$REPO/commits/$SHA" --jq '.files | length')"
+          echo "files in commit: $count (expected $FILE_COUNT)"
+          if [ "$count" -ne "$FILE_COUNT" ]; then
+            echo "FAIL: expected $FILE_COUNT files, commit has $count"
+            exit 1
+          fi
+          echo "PASS: all files present in a single commit."
+
+      # ---------------------------------------------------------------
+      # Step B: branch and PR now exist -> PATCH path, PR updated, and the
+      # branch must still hold exactly one commit on top of base.
+      # ---------------------------------------------------------------
+      - name: Generate files (run 2)
+        run: |
+          for i in $(seq 1 "$FILE_COUNT"); do
+            echo "run 2 content for file $i" > "tmp-validate/file-$i.txt"
+          done
+
+      - name: B - second commit, existing branch and PR
+        id: run2
+        uses: ./.github/actions/signed-commit-pr
+        with:
+          token: ${{ github.token }}
+          branch: ${{ env.TARGET_BRANCH }}
+          base: ${{ env.BASE_BRANCH }}
+          title: "[TEMP] signed-commit-pr validation"
+          body: "Throwaway validation PR, updated by run 2."
+          labels: dev/internal
+          add-paths: tmp-validate
+          commit-message: "[TEMP] validation run 2"
+
+      - name: Check 3 - PR updated, not stacked, single commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          open_count="$(gh pr list --repo "$REPO" --head "$TARGET_BRANCH" \
+            --base "$BASE_BRANCH" --state open --json number --jq 'length')"
+          echo "open PRs for branch: $open_count (expected 1)"
+          if [ "$open_count" -ne 1 ]; then
+            echo "FAIL: expected exactly 1 open PR, found $open_count"
+            exit 1
+          fi
+
+          ahead="$(gh api "repos/$REPO/compare/$BASE_BRANCH...$TARGET_BRANCH" \
+            --jq '.ahead_by')"
+          echo "commits ahead of base: $ahead (expected 1)"
+          if [ "$ahead" -ne 1 ]; then
+            echo "FAIL: branch should hold exactly 1 commit, holds $ahead"
+            exit 1
+          fi
+          echo "PASS: existing PR updated and branch reset to a single commit."
+
+      # ---------------------------------------------------------------
+      # Step C: nothing changed. Must make no remote changes at all. This is
+      # the check that catches the two silent no-op failure modes.
+      # ---------------------------------------------------------------
+      - name: Record branch head before no-op run
+        id: before
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "sha=$(gh api "repos/$REPO/git/refs/heads/$TARGET_BRANCH" \
+            --jq '.object.sha')" >> "$GITHUB_OUTPUT"
+
+      - name: C - no-op run, nothing staged
+        id: run3
+        uses: ./.github/actions/signed-commit-pr
+        with:
+          token: ${{ github.token }}
+          branch: ${{ env.TARGET_BRANCH }}
+          base: ${{ env.BASE_BRANCH }}
+          title: "[TEMP] signed-commit-pr validation"
+          body: "Should not be reached by the no-op run."
+          labels: dev/internal
+          add-paths: tmp-validate
+          commit-message: "[TEMP] validation run 3 (should not exist)"
+
+      - name: Check 4 - zero-change run made no remote changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BEFORE: ${{ steps.before.outputs.sha }}
+          CHANGED: ${{ steps.run3.outputs.changed }}
+        run: |
+          echo "changed output: '$CHANGED' (expected 'false')"
+          if [ "$CHANGED" != "false" ]; then
+            echo "FAIL: expected changed=false on a no-op run"
+            exit 1
+          fi
+
+          after="$(gh api "repos/$REPO/git/refs/heads/$TARGET_BRANCH" \
+            --jq '.object.sha')"
+          echo "branch head before=$BEFORE after=$after"
+          if [ "$after" != "$BEFORE" ]; then
+            echo "FAIL: no-op run moved the branch"
+            exit 1
+          fi
+
+          ahead="$(gh api "repos/$REPO/compare/$BASE_BRANCH...$TARGET_BRANCH" \
+            --jq '.ahead_by')"
+          if [ "$ahead" -ne 1 ]; then
+            echo "FAIL: no-op run changed commit count to $ahead"
+            exit 1
+          fi
+          echo "PASS: no-op run touched nothing."
+
+      - name: Summary
+        run: echo "All four validation checks passed."
