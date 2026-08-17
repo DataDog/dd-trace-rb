@@ -98,7 +98,9 @@ module Datadog
       # Component#start! assigns the now-current tracker here.
       attr_writer :code_tracker
 
+      # Process-wide snapshot rate limiter (Datadog::Core::TokenBucket).
       attr_reader :global_snapshot_rate_limiter
+      # Process-wide log rate limiter (Datadog::Core::TokenBucket).
       attr_reader :global_log_rate_limiter
 
       def capture_expression_evaluator
@@ -107,11 +109,7 @@ module Datadog
         )
       end
 
-      # Returns the process-wide rate limiter for the probe. Snapshot-producing
-      # probes (full snapshots or capture expressions) share the lower-rate
-      # snapshot bucket; all other probes share the log bucket. This mirrors the
-      # per-probe rate grouping in Probe#initialize, where capture_snapshot or a
-      # non-empty capture_expressions selects the low per-probe rate.
+      # Returns the process-wide rate limiter for the probe.
       #
       # @param probe [Probe] the probe whose invocation is being rate limited
       # @return [Datadog::Core::TokenBucket] the shared limiter for the probe's category
@@ -555,11 +553,6 @@ module Datadog
           end
 
           rate_limiter = probe.rate_limiter
-          # The per-probe limit is checked first so that a probe which is
-          # already per-probe-limited does not consume a global token. This
-          # keeps a single hot probe from draining the shared global budget
-          # for every other probe: the global limit only sees invocations the
-          # per-probe limit has already admitted.
           admitted = continue && (rate_limiter.nil? || rate_limiter.allow?)
           if admitted && !global_rate_limiter_for(probe).allow?
             admitted = false
@@ -830,8 +823,6 @@ module Datadog
         # and check that it is in fact set.
         return if probe.rate_limiter && !probe.rate_limiter.allow?
 
-        # Per-probe limit is checked first (see run_method_probe) so a
-        # per-probe-limited probe does not consume a global token.
         unless global_rate_limiter_for(probe).allow?
           logger.debug { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
           return

@@ -2082,11 +2082,6 @@ RSpec.describe Datadog::DI::Instrumenter do
 
   describe "global rate limiting" do
     describe "constants and limiters" do
-      it "defines the global snapshot and log rate limits" do
-        expect(described_class::GLOBAL_SNAPSHOT_RATE_LIMIT).to eq 20
-        expect(described_class::GLOBAL_LOG_RATE_LIMIT).to eq 5000
-      end
-
       it "builds token bucket limiters at those rates" do
         expect(instrumenter.global_snapshot_rate_limiter).to be_a(Datadog::Core::TokenBucket)
         expect(instrumenter.global_snapshot_rate_limiter.rate).to eq 20
