@@ -58,7 +58,7 @@ module Datadog
           if budget
             emit_correlated?(budget, probe)
           else
-            emit_first_in_unit?(key, probe)
+            emit_top?(key, probe)
           end
         end
       end
@@ -98,7 +98,7 @@ module Datadog
       # TOP gates to emit and seed the trace counters; on either gate's refusal,
       # marks the trace starved so every correlated probe in it also drops.
       # Must hold the lock.
-      def emit_first_in_unit?(key, probe)
+      def emit_top?(key, probe)
         unless global_limiter.available? && top_limiter.allow?
           store(key, TraceBudget.new(0, per_probe_budget))
           return false
