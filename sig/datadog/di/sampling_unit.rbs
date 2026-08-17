@@ -3,19 +3,11 @@ module Datadog
     class SamplingUnit
       @key: Integer?
 
-      @scope: Integer?
-
-      @source: Symbol
-
       def self.current: () -> SamplingUnit
 
-      def initialize: (Integer? key, Integer? scope, Symbol source) -> void
+      def initialize: (Integer? key) -> void
 
       attr_reader key: Integer?
-
-      attr_reader scope: Integer?
-
-      attr_reader source: Symbol
     end
   end
 end

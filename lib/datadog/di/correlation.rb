@@ -1,31 +1,57 @@
 # frozen_string_literal: true
 
-require "set"
+require_relative "../core/rate_limiter"
 
 module Datadog
   module DI
-    # Decides whether a Live Debugger probe hit emits a snapshot, sharing one
-    # decision across every hit in the same sampling unit and bounding how
-    # often a single probe emits within it.
+    # Decides whether a capturing Live Debugger probe hit emits a snapshot,
+    # coordinating the decision across every capturing probe that fires in the
+    # same trace so a chain emits together, and bounding total volume with
+    # process-wide budgets shared fairly across probes.
+    #
+    # Implements the mechanism in the Casual Correlation requirements: a per-
+    # process TOP rate limit and a borrowing GLOBAL rate limit gate the first
+    # capturing probe in a trace (the top probe); per-trace per-probe and all
+    # counters bound how much each established trace emits.
     #
     # @api private
     class Correlation
-      # Upper bound on retained sampling units and scopes; the oldest entry is
-      # evicted when the bound is exceeded.
+      # Upper bound on retained per-trace budgets; the oldest trace is evicted
+      # when the bound is exceeded.
       DEFAULT_MAX_ENTRIES = 4096
 
-      # Builds a sampler bounded to +max_entries+ retained sampling units and
-      # scopes.
-      #
-      # @param max_entries [Integer] bound for the decision and scope maps
-      def initialize(max_entries: DEFAULT_MAX_ENTRIES)
+      # Snapshots per second, process-wide, that may establish an emitting
+      # trace. Non-borrowing.
+      TOP_RATE = 10
+
+      # Snapshots per second, process-wide, across all emits. Borrowing: a trace
+      # that has started emitting keeps emitting after the budget is spent.
+      GLOBAL_RATE = 20
+
+      # Snapshots one probe may emit within one trace.
+      PER_PROBE_BUDGET = 5
+
+      # Snapshots all probes together may emit within one trace.
+      ALL_BUDGET = 20
+
+      # @param max_entries [Integer] bound for the per-trace budget ledger
+      # @param top_rate [Numeric] TOP rate limit, snapshots/second
+      # @param global_rate [Numeric] GLOBAL rate limit, snapshots/second
+      # @param per_probe_budget [Integer] per-probe per-trace emission counter
+      # @param all_budget [Integer] all-probe per-trace emission counter
+      def initialize(max_entries: DEFAULT_MAX_ENTRIES, top_rate: TOP_RATE,
+        global_rate: GLOBAL_RATE, per_probe_budget: PER_PROBE_BUDGET,
+        all_budget: ALL_BUDGET)
         @max_entries = max_entries
+        @per_probe_budget = per_probe_budget
+        @all_budget = all_budget
         @lock = Mutex.new
-        @sampling_unit_decisions = {}
-        @cap_scopes = {}
+        @trace_budgets = {}
+        @top_limiter = Core::TokenBucket.new(top_rate)
+        @global_limiter = Core::BorrowingTokenBucket.new(global_rate)
       end
 
-      # Decides whether this probe hit emits a snapshot.
+      # Decides whether this capturing probe hit emits a snapshot.
       #
       # @param probe [Datadog::DI::Probe]
       # @param sampling_unit [Datadog::DI::SamplingUnit]
@@ -34,77 +60,122 @@ module Datadog
         key = sampling_unit.key
         return per_probe(probe) if key.nil?
 
-        scope = sampling_unit.scope || key
         lock.synchronize do
-          return false unless sampling_unit_decision(key) { per_probe(probe) }
-
-          cap_admit(scope, probe.id)
+          budget = fetch_budget(key)
+          if budget
+            correlated(budget, probe)
+          else
+            top(key, probe)
+          end
         end
       end
 
       private
 
-      # Serializes access to the decision and scope maps.
+      # Serializes access to the ledger and both rate limiters.
       attr_reader :lock
 
-      # Cached emit-or-drop decision, keyed by sampling unit.
-      attr_reader :sampling_unit_decisions
+      # Per-trace emission budgets, keyed by trace id. Bounded LRU.
+      attr_reader :trace_budgets
 
-      # Probe ids already emitted, keyed by scope.
-      attr_reader :cap_scopes
+      # Process-wide TOP rate limiter (non-borrowing).
+      attr_reader :top_limiter
 
-      # This sampler's retention bound for sampling units and scopes.
+      # Process-wide GLOBAL rate limiter (borrowing).
+      attr_reader :global_limiter
+
+      # This sampler's retention bound for per-trace budgets.
       attr_reader :max_entries
 
-      # Consults the probe's rate limiter, consuming a token; a probe with no
-      # limiter is permitted. Called once per sampling unit, so sibling probes
-      # inherit the cached decision.
+      # Per-probe per-trace emission counter start value.
+      attr_reader :per_probe_budget
+
+      # All-probe per-trace emission counter start value.
+      attr_reader :all_budget
+
+      # Consults the probe's own rate limiter for a hit with no active trace,
+      # consuming a token; a probe with no limiter is permitted. Capturing
+      # probes limit at 1/second here.
       def per_probe(probe)
         limiter = probe.rate_limiter
         limiter.nil? || limiter.allow?
       end
 
-      # Returns the cached decision for the sampling unit, computing and storing
-      # it on first use. Must hold @lock.
-      def sampling_unit_decision(key)
-        existing = sampling_unit_decisions[key]
-        unless existing.nil?
-          # Refresh recency: reinsert so the key moves to the end.
-          sampling_unit_decisions.delete(key)
-          sampling_unit_decisions[key] = existing
-          return existing
-        end
-
-        value = yield
-        sampling_unit_decisions[key] = value
-        evict(sampling_unit_decisions)
-        value
+      # Returns the trace's budget, refreshing its LRU recency; nil when the
+      # trace has no established unit yet. Must hold the lock.
+      def fetch_budget(key)
+        budget = trace_budgets.delete(key)
+        trace_budgets[key] = budget if budget
+        budget
       end
 
-      # Records the first emit of the probe within the scope. Returns true when
-      # newly admitted, false when the probe already emitted in this scope.
+      # First capturing probe in the trace. Passes the process-wide GLOBAL and
+      # TOP gates to emit and seed the trace counters; on either gate's refusal,
+      # marks the trace starved so every correlated probe in it also drops.
       # Must hold the lock.
-      def cap_admit(scope, probe_id)
-        probes = cap_scopes.delete(scope)
-        if probes
-          cap_scopes[scope] = probes
-        else
-          probes = (cap_scopes[scope] = Set.new)
-          evict(cap_scopes)
+      def top(key, probe)
+        unless global_limiter.available? && top_limiter.allow?
+          store(key, TraceBudget.new(0, per_probe_budget))
+          return false
         end
-        return false if probes.include?(probe_id)
 
-        probes << probe_id
+        global_limiter.consume
+        budget = TraceBudget.new(all_budget, per_probe_budget)
+        budget.admit(probe.id)
+        store(key, budget)
         true
       end
 
-      # Evicts the oldest entry when the map exceeds the bound. Ruby hashes
-      # preserve insertion order, so the first key is the oldest.
-      def evict(map)
-        return unless map.size > max_entries
+      # A capturing probe firing inside an established unit. Bounded by the
+      # per-probe and all counters; consumes GLOBAL on emit. Must hold the lock.
+      def correlated(budget, probe)
+        return false unless budget.admit(probe.id)
 
-        oldest = map.first
-        map.delete(oldest.first) if oldest
+        global_limiter.consume
+        true
+      end
+
+      # Stores the trace's budget, evicting the oldest trace when the ledger
+      # exceeds the bound. Ruby hashes preserve insertion order, so the first
+      # key is the oldest. Must hold the lock.
+      def store(key, budget)
+        trace_budgets[key] = budget
+        return unless trace_budgets.size > max_entries
+
+        oldest = trace_budgets.first
+        trace_budgets.delete(oldest.first) if oldest
+      end
+
+      # Per-trace emission counters: one all counter shared by every probe, and
+      # a per-probe counter that starts at +per_probe_limit+ for each distinct
+      # probe.
+      #
+      # @api private
+      class TraceBudget
+        # @param all [Integer] all-probe counter start value
+        # @param per_probe_limit [Integer] per-probe counter start value
+        def initialize(all, per_probe_limit)
+          @all = all
+          @per_probe_limit = per_probe_limit
+          @per_probe = {}
+        end
+
+        # Remaining all-probe counter.
+        attr_reader :all
+
+        # Consumes one per-probe and one all token for +probe_id+.
+        #
+        # @param probe_id [String]
+        # @return [Boolean] true when both counters had budget and were
+        #   consumed, false when either was exhausted
+        def admit(probe_id)
+          remaining = @per_probe.fetch(probe_id, @per_probe_limit)
+          return false if remaining <= 0 || @all <= 0
+
+          @per_probe[probe_id] = remaining - 1
+          @all -= 1
+          true
+        end
       end
     end
   end

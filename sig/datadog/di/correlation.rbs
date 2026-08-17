@@ -3,15 +3,29 @@ module Datadog
     class Correlation
       DEFAULT_MAX_ENTRIES: Integer
 
+      TOP_RATE: Integer
+
+      GLOBAL_RATE: Integer
+
+      PER_PROBE_BUDGET: Integer
+
+      ALL_BUDGET: Integer
+
       @max_entries: Integer
+
+      @per_probe_budget: Integer
+
+      @all_budget: Integer
 
       @lock: ::Thread::Mutex
 
-      @sampling_unit_decisions: Hash[Integer, bool]
+      @trace_budgets: Hash[Integer, TraceBudget]
 
-      @cap_scopes: Hash[Integer, Set[String]]
+      @top_limiter: Core::TokenBucket
 
-      def initialize: (?max_entries: Integer) -> void
+      @global_limiter: Core::BorrowingTokenBucket
+
+      def initialize: (?max_entries: Integer, ?top_rate: (Float | Integer), ?global_rate: Numeric, ?per_probe_budget: Integer, ?all_budget: Integer) -> void
 
       def emit?: (Probe probe, SamplingUnit sampling_unit) -> bool
 
@@ -19,19 +33,41 @@ module Datadog
 
       attr_reader lock: ::Thread::Mutex
 
-      attr_reader sampling_unit_decisions: Hash[Integer, bool]
+      attr_reader trace_budgets: Hash[Integer, TraceBudget]
 
-      attr_reader cap_scopes: Hash[Integer, Set[String]]
+      attr_reader top_limiter: Core::TokenBucket
+
+      attr_reader global_limiter: Core::BorrowingTokenBucket
 
       attr_reader max_entries: Integer
 
+      attr_reader per_probe_budget: Integer
+
+      attr_reader all_budget: Integer
+
       def per_probe: (Probe probe) -> bool
 
-      def sampling_unit_decision: (Integer key) { () -> bool } -> bool
+      def fetch_budget: (Integer key) -> TraceBudget?
 
-      def cap_admit: (Integer scope, String probe_id) -> bool
+      def top: (Integer key, Probe probe) -> bool
 
-      def evict: [K, V] (Hash[K, V] map) -> void
+      def correlated: (TraceBudget budget, Probe probe) -> bool
+
+      def store: (Integer key, TraceBudget budget) -> void
+
+      class TraceBudget
+        @all: Integer
+
+        @per_probe_limit: Integer
+
+        @per_probe: Hash[String, Integer]
+
+        def initialize: (Integer all, Integer per_probe_limit) -> void
+
+        attr_reader all: Integer
+
+        def admit: (String probe_id) -> bool
+      end
     end
   end
 end
