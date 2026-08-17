@@ -50,16 +50,14 @@ jobs:
             || gh api --silent -X POST "repos/$REPO/git/refs" \
                  -f "ref=refs/heads/$BASE_BRANCH" -f "sha=$sha"
 
-      # Ensure the target branch does NOT exist, so step A exercises the
-      # PATCH-fails-then-POST fallback rather than the plain update path.
-      - name: Delete target branch if present
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-        run: |
-          gh api -X DELETE "repos/$REPO/git/refs/heads/$TARGET_BRANCH" \
-            && echo "Deleted pre-existing $TARGET_BRANCH" \
-            || echo "$TARGET_BRANCH did not exist, which is the expected state."
+      # The target branch is deliberately NOT deleted here. An earlier revision
+      # deleted it so step A would exercise the PATCH-fails-then-POST fallback,
+      # but that path already passed in run 32017278231 (the 422 for a missing
+      # ref is visible in that log). Deleting the branch also makes GitHub
+      # auto-close the pull request that points at it, so `gh pr list` found
+      # nothing and the composite took its create path - which GITHUB_TOKEN is
+      # forbidden from doing. Leaving the branch in place is what allows the
+      # update path, and therefore check 3, to be reached at all.
 
       # ---------------------------------------------------------------
       # Check 2 setup: enough files that the old REST blob-per-file path
@@ -167,7 +165,27 @@ jobs:
           add-paths: tmp-validate
           commit-message: "[TEMP] validation run 2"
 
-      - name: Check 3 - PR updated, not stacked, single commit
+      # Split deliberately from the pull request assertion below. This is the
+      # half that guards the commit-stacking bug class (a reset that runs in the
+      # wrong order, or not at all, leaves one commit per run on the branch),
+      # and it needs no pull request and no PR-related token scope. Bundling it
+      # with the check below would mean a `gh pr edit` permission failure
+      # aborted the job before this ever ran.
+      - name: Check 3a - branch holds exactly one commit after rerun
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          ahead="$(gh api "repos/$REPO/compare/$BASE_BRANCH...$TARGET_BRANCH" \
+            --jq '.ahead_by')"
+          echo "commits ahead of base: $ahead (expected 1)"
+          if [ "$ahead" -ne 1 ]; then
+            echo "FAIL: branch should hold exactly 1 commit, holds $ahead"
+            exit 1
+          fi
+          echo "PASS: rerun reset the branch instead of stacking a commit."
+
+      - name: Check 3b - existing PR updated rather than duplicated
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -179,15 +197,7 @@ jobs:
             echo "FAIL: expected exactly 1 open PR, found $open_count"
             exit 1
           fi
-
-          ahead="$(gh api "repos/$REPO/compare/$BASE_BRANCH...$TARGET_BRANCH" \
-            --jq '.ahead_by')"
-          echo "commits ahead of base: $ahead (expected 1)"
-          if [ "$ahead" -ne 1 ]; then
-            echo "FAIL: branch should hold exactly 1 commit, holds $ahead"
-            exit 1
-          fi
-          echo "PASS: existing PR updated and branch reset to a single commit."
+          echo "PASS: existing pull request was updated, not duplicated."
 
       # ---------------------------------------------------------------
       # Step C: nothing changed. Must make no remote changes at all. This is
