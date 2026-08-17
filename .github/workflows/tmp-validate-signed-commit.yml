@@ -300,10 +300,15 @@ jobs:
             exit 1
           fi
 
-          ahead="$(gh api "repos/$REPO/compare/$BASE_BRANCH...$TARGET_BRANCH" \
+          # The branch head being unchanged above is already the assertion that
+          # matters. This only adds that the no-op run did not append a commit,
+          # so it compares against the head recorded before the run rather than
+          # against $BASE_BRANCH, which is pinned and lags this branch (the same
+          # stale reference point that made check 3a report ahead_by=2).
+          ahead="$(gh api "repos/$REPO/compare/$BEFORE...$TARGET_BRANCH" \
             --jq '.ahead_by')"
-          if [ "$ahead" -ne 1 ]; then
-            echo "FAIL: no-op run changed commit count to $ahead"
+          if [ "$ahead" -ne 0 ]; then
+            echo "FAIL: no-op run added $ahead commit(s)"
             exit 1
           fi
           echo "PASS: no-op run touched nothing."
