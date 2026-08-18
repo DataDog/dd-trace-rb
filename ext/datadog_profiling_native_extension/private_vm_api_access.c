@@ -2,50 +2,45 @@
 
 // This file exports functions used to access private Ruby VM APIs and internals.
 // To do this, it imports a few VM internal (private) headers.
+// We rely on the datadog-ruby_core_source gem to get access to private VM headers; see
+// https://github.com/DataDog/datadog-ruby_core_source for details.
 //
 // **Important Note**: Our medium/long-term plan is to stop relying on all private Ruby headers, and instead request and
 // contribute upstream changes so that they become official public VM APIs.
 //
 // In the meanwhile, be very careful when changing things here :)
 
-#ifdef RUBY_MJIT_HEADER
-  // Pick up internal structures from the private Ruby MJIT header file
-  #include RUBY_MJIT_HEADER
-#else
-  // The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
-  // the datadog-ruby_core_source gem to get access to private VM headers.
+#include <ruby/defines.h>
 
-  // We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
-  // See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
+// We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
+// See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wattributes"
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic ignored "-Wexpansion-to-defined"
+  #include <vm_core.h>
+#pragma GCC diagnostic pop
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+  #include <iseq.h>
+#pragma GCC diagnostic pop
+
+#ifndef NO_INTERNAL_CLASS_HEADER_INCLUDE
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
-  #pragma GCC diagnostic ignored "-Wattributes"
-  #pragma GCC diagnostic ignored "-Wpragmas"
-  #pragma GCC diagnostic ignored "-Wexpansion-to-defined"
-    #include <vm_core.h>
+    #include <internal/class.h>
   #pragma GCC diagnostic pop
+#endif
 
+#include <ruby.h>
+
+#ifndef NO_RACTOR_HEADER_INCLUDE
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
-    #include <iseq.h>
+    #include <ractor_core.h>
   #pragma GCC diagnostic pop
-
-  #ifndef NO_INTERNAL_CLASS_HEADER_INCLUDE
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wunused-parameter"
-      #include <internal/class.h>
-    #pragma GCC diagnostic pop
-  #endif
-
-  #include <ruby.h>
-
-  #ifndef NO_RACTOR_HEADER_INCLUDE
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wunused-parameter"
-      #include <ractor_core.h>
-    #pragma GCC diagnostic pop
-  #endif
-
 #endif
 
 // This file can't include datadog_ruby_common.h so we replicate this here
@@ -595,11 +590,6 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
     return i;
 }
 
-// Support code for older Rubies that cannot use the MJIT header
-#ifndef RUBY_MJIT_HEADER
-
-#define MJIT_STATIC // No-op on older Rubies
-
 // Taken from upstream include/ruby/backward/2/bool.h at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) Ruby developers <ruby-core@ruby-lang.org>
 // to support our custom rb_profile_frames (see above)
@@ -640,7 +630,6 @@ check_method_entry(VALUE obj, int can_be_svar) {
 
   return NULL;
 }
-#endif // RUBY_MJIT_HEADER
 
 // Identical to upstream rb_vm_frame_method_entry (vm_insnhelper.c) with two additions:
 // 1. FIXNUM_P check on ep[FLAGS] before each iteration to detect torn EPs
