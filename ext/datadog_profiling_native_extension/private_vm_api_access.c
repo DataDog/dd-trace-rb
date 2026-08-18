@@ -1084,3 +1084,15 @@ void* ddtrace_cme_cfunc_func(const rb_callable_method_entry_t *cme) {
 const char *ddtrace_cme_original_method_name(const rb_callable_method_entry_t *cme) {
   return rb_id2name(cme->def->original_id);
 }
+
+// This function is not present in the VM headers, but is a public symbol that can be invoked.
+int rb_objspace_internal_object_p(VALUE obj);
+
+int ddtrace_is_internal_object_p(VALUE obj) {
+  if (RB_SPECIAL_CONST_P(obj)) {
+    return 0; // immediates are never internal
+  } else {
+    // rb_objspace_internal_object_p() assumes non-immediate, so check that first above
+    return rb_objspace_internal_object_p(obj);
+  }
+}

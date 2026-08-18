@@ -91,3 +91,4 @@ VALUE ddtrace_location_base_label(const rb_callable_method_entry_t *cme, const r
 void* ddtrace_cme_cfunc_func(const rb_callable_method_entry_t *cme);
 const char *ddtrace_cme_original_method_name(const rb_callable_method_entry_t *cme);
 
+int ddtrace_is_internal_object_p(VALUE obj);
