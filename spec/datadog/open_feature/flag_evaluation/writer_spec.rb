@@ -831,7 +831,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_context_fields"}
       )
       expect(telemetry).to have_received(:inc).with(
-        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_field_length"}
+        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_value_length"}
       )
     ensure
       writer&.stop

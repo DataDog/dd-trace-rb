@@ -30,7 +30,7 @@ module Datadog
 
       private
 
-      def stamp_consent!: (untyped result, bool consent) -> void
+      def stamp_observe_full_evaluation_data!: (untyped result, bool observe_full_evaluation_data) -> void
     end
   end
 end

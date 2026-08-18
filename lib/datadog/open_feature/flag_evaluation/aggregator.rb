@@ -20,7 +20,7 @@ module Datadog
       class Aggregator
         # Cross-SDK context caps (RFC: "Kept aligned with the cross-SDK RFC").
         MAX_CONTEXT_FIELDS = 256
-        MAX_FIELD_LENGTH = 256
+        MAX_VALUE_LENGTH = 256
         MAX_KEY_LENGTH = 256
         MAX_LIST_ELEMENTS = 256
         MAX_STRUCTURE_PROPERTIES = 256
@@ -29,7 +29,7 @@ module Datadog
         # Truncation reason labels, surfaced on the `flagevaluation.context.truncated`
         # telemetry counter so operators can tell which cap was hit.
         REASON_MAX_CONTEXT_FIELDS = "max_context_fields"
-        REASON_MAX_FIELD_LENGTH = "max_field_length"
+        REASON_MAX_VALUE_LENGTH = "max_value_length"
         REASON_MAX_KEY_LENGTH = "max_key_length"
         REASON_MAX_LIST_ELEMENTS = "max_list_elements"
         REASON_MAX_STRUCTURE_PROPERTIES = "max_structure_properties"
@@ -96,18 +96,16 @@ module Datadog
             # `attrs` is already the bounded, flattened snapshot produced by the writer on
             # the evaluation thread. Key on it directly.
             context_key = canonical_context_key(attrs)
-            error_dimension = error_message
             full_key = [
-              flag_key, variant, allocation_key, runtime_default, error_dimension,
+              flag_key, variant, allocation_key, runtime_default, error_message,
               targeting_key, context_key, true,
             ]
           else
-            # Consent off: the error message is redacted to the error code on emit, so the
-            # error code is the bucket dimension (keying on the raw message would split
-            # buckets that serialize to identical rows and burn the per-flag cap).
-            error_dimension = error_code.to_s
+            # The error message is redacted to the error code on emit, so the error code
+            # is the bucket dimension (keying on the raw message would split buckets
+            # that serialize to identical rows and burn the per-flag cap).
             full_key = [
-              flag_key, variant, allocation_key, runtime_default, error_dimension,
+              flag_key, variant, allocation_key, runtime_default, error_code.to_s,
               targeting_key, false,
             ]
           end
@@ -240,8 +238,8 @@ module Datadog
             reasons << REASON_MAX_CONTEXT_FIELDS if output.size >= MAX_CONTEXT_FIELDS
             seen.delete(object_id)
           else
-            if value.is_a?(String) && value.length > MAX_FIELD_LENGTH
-              reasons << REASON_MAX_FIELD_LENGTH
+            if value.is_a?(String) && value.length > MAX_VALUE_LENGTH
+              reasons << REASON_MAX_VALUE_LENGTH
               return
             end
             output[prefix] = begin
@@ -321,9 +319,9 @@ module Datadog
           flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
           observe_full_evaluation_data: false, error_code: nil
         )
-          # Consent and the emitted error dimension are part of the degraded key so that
-          # consent-on and consent-off evaluations, and errors that redact to different
-          # codes, do not merge.
+          # observe_full_evaluation_data and the emitted error dimension are part of the
+          # degraded key so observe_full_evaluation_data-on/off evaluations and errors
+          # redacting to different codes do not merge.
           error_dimension = observe_full_evaluation_data ? error_message : error_code.to_s
           degraded_key = [
             flag_key, variant, allocation_key, runtime_default, error_dimension, observe_full_evaluation_data,
@@ -342,8 +340,8 @@ module Datadog
           end
 
           # Degraded entry omits targeting_key + context_attrs (schema omitempty fields),
-          # but carries consent and the error code so the writer can redact the error
-          # message correctly on emit.
+          # but carries observe_full_evaluation_data and the error code so the writer
+          # can redact the error message correctly on emit.
           @degraded[degraded_key] = new_entry(
             evaluation_time_ms,
             runtime_default: runtime_default,

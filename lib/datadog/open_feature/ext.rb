@@ -17,7 +17,7 @@ module Datadog
       # value so the writer (provider) and readers (EVP/metrics hooks) can't drift.
       METADATA_ALLOCATION_KEY = "__dd_allocation_key"
 
-      # Flag-metadata key for the consent value stamped from the UFC the
+      # Flag-metadata key for observe_full_evaluation_data, stamped from the UFC the
       # evaluation ran against. The hook reads only this key, never live config.
       METADATA_OBSERVE_FULL_EVALUATION_DATA = "observe_full_evaluation_data"
     end

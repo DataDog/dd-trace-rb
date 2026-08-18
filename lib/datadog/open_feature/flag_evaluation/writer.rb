@@ -312,30 +312,30 @@ module Datadog
         end
 
         # Build flagEvaluationEvent list from aggregation snapshot.
-        # Consent is read from the bucket key and AND-folded with the entry's
-        # consent as defense in depth.
+        # observe_full_evaluation_data is read from the bucket key and AND-folded
+        # with the entry's value as defense in depth.
         def build_events(snapshot)
           flush_time_ms = (Core::Utils::Time.now.to_f * 1000).to_i
           events = []
 
           snapshot[:full].each do |key, entry|
-            flag_key, variant, allocation_key, _runtime_default, _error_message, targeting_key, _ctx_key, consent = key
-            consent &&= entry[:observe_full_evaluation_data] == true
+            flag_key, variant, allocation_key, _runtime_default, _error_message, targeting_key, _ctx_key, observe_full_evaluation_data = key
+            observe_full_evaluation_data &&= entry[:observe_full_evaluation_data] == true
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
               targeting_key: targeting_key, entry: entry, flush_time_ms: flush_time_ms, tier: :full,
-              observe_full_evaluation_data: consent,
+              observe_full_evaluation_data: observe_full_evaluation_data,
             )
             events << event
           end
 
           snapshot[:degraded].each do |key, entry|
-            flag_key, variant, allocation_key, _runtime_default, _error_dimension, consent = key
-            consent &&= entry[:observe_full_evaluation_data] == true
+            flag_key, variant, allocation_key, _runtime_default, _error_dimension, observe_full_evaluation_data = key
+            observe_full_evaluation_data &&= entry[:observe_full_evaluation_data] == true
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
               targeting_key: nil, entry: entry, flush_time_ms: flush_time_ms, tier: :degraded,
-              observe_full_evaluation_data: consent,
+              observe_full_evaluation_data: observe_full_evaluation_data,
             )
             events << event
           end
@@ -358,10 +358,10 @@ module Datadog
 
           event["runtime_default_used"] = true if entry[:runtime_default]
 
-          # When consent is off the raw error message can carry raw context data
-          # (e.g. an evaluator exception echoing a targeting key), so emit the
-          # error code in its place to keep a stable signal without the raw data.
-          # When consent is on, emit the raw error message.
+          # When observe_full_evaluation_data is false the raw error message can carry
+          # raw context data (e.g. an evaluator exception echoing a targeting key), so emit
+          # the error code in its place to keep a stable signal without the raw data.
+          # When true, emit the raw error message.
           error_message = entry[:error_message]
           if error_message && !error_message.empty?
             if observe_full_evaluation_data
@@ -375,7 +375,7 @@ module Datadog
           event["variant"] = {"key" => variant} if variant && !variant.empty?
           event["allocation"] = {"key" => allocation_key} if allocation_key && !allocation_key.empty?
 
-          # Full-tier additionally carries targeting_key + the pruned evaluation context;
+          # Full-tier additionally carries targeting_key + the truncated evaluation context;
           # the degraded tier omits both.
           if tier == :full
             if targeting_key && !targeting_key.empty?

@@ -4,7 +4,7 @@ module Datadog
       class Aggregator
         MAX_CONTEXT_FIELDS: ::Integer
 
-        MAX_FIELD_LENGTH: ::Integer
+        MAX_VALUE_LENGTH: ::Integer
 
         MAX_KEY_LENGTH: ::Integer
 
@@ -48,7 +48,7 @@ module Datadog
 
         REASON_MAX_CONTEXT_FIELDS: ::String
 
-        REASON_MAX_FIELD_LENGTH: ::String
+        REASON_MAX_VALUE_LENGTH: ::String
 
         REASON_MAX_KEY_LENGTH: ::String
 
