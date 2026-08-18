@@ -162,7 +162,6 @@ bundle exec rspec spec/path/file_spec.rb:123  # Run specific test (only works fo
 
 - Pipe rspec output: `2>&1 | tee /tmp/rspec.log | grep -E 'Pending:|Failures:|Finished' -A 99`
 - Transport noise (`Internal error during Datadog::Tracing::Transport::HTTP::Client request`) is expected
-- Running profiling specs on macOS requires setting `DD_PROFILING_MACOS_TESTING=true`
 - `ProbeNotifierWorker#flush` blocks until queues are empty - never add `sleep` after it
 
 # Style
