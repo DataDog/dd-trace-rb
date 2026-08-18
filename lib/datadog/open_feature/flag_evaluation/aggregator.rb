@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "set"
+
 module Datadog
   module OpenFeature
     module FlagEvaluation
@@ -11,11 +13,27 @@ module Datadog
       # - Drop-and-count when degraded tier is full
       # - canonical_context_key: sorted type-tagged length-delimited encoding (no hash digest)
       # - Caps: global_cap=131_072 / per_flag_cap=10_000 / degraded_cap=32_768
-      # - Context pruning: 256 fields / 256 chars (matches flageval-worker backend limits)
+      #
+      # Context bounding: the writer applies `bounded_context_snapshot` on the evaluation
+      # thread before enqueue, so the queue only ever holds an already-bounded, flattened
+      # snapshot. `record` receives that snapshot and keys on it directly.
       class Aggregator
+        # Cross-SDK context caps (RFC: "Kept aligned with the cross-SDK RFC").
         MAX_CONTEXT_FIELDS = 256
         MAX_FIELD_LENGTH = 256
-        MAX_CONTEXT_DEPTH = 32
+        MAX_KEY_LENGTH = 256
+        MAX_LIST_ELEMENTS = 256
+        MAX_STRUCTURE_PROPERTIES = 256
+        MAX_SNAPSHOT_DEPTH = 4
+
+        # Truncation reason labels, surfaced on the `flagevaluation.context.truncated`
+        # telemetry counter so operators can tell which cap was hit.
+        REASON_MAX_CONTEXT_FIELDS = "max_context_fields"
+        REASON_MAX_FIELD_LENGTH = "max_field_length"
+        REASON_MAX_KEY_LENGTH = "max_key_length"
+        REASON_MAX_LIST_ELEMENTS = "max_list_elements"
+        REASON_MAX_STRUCTURE_PROPERTIES = "max_structure_properties"
+        REASON_MAX_SNAPSHOT_DEPTH = "max_snapshot_depth"
 
         # Type tags so values of different Ruby types never collide in the canonical key.
         CTX_TAG_STRING = "s"
@@ -23,11 +41,6 @@ module Datadog
         CTX_TAG_INTEGER = "i"
         CTX_TAG_FLOAT = "f"
         CTX_TAG_OTHER = "o"
-
-        # Context-truncation reason labels, surfaced on the `flagevaluation.context.truncated`
-        # telemetry counter so operators can tell which cap was hit.
-        REASON_MAX_CONTEXT_FIELDS = "max_context_fields"
-        REASON_MAX_FIELD_LENGTH = "max_field_length"
 
         EVAL_SCALE_TARGET_FLAGS = 2_500
         EVAL_SCALE_FULL_BUCKETS_PER_FLAG = 50
@@ -62,9 +75,6 @@ module Datadog
           @per_flag_full = Hash.new(0)
           @global_count = 0
           @dropped_degraded_overflow = 0
-          # reason (String) -> count, accumulated by prune_context_with_reasons and
-          # emitted by the writer on flush.
-          @context_truncated_counts = Hash.new(0)
         end
 
         # Record one evaluation event. Thread-safe. Called from the background writer.
@@ -83,21 +93,18 @@ module Datadog
           targeting_key = targeting_key.to_s
 
           if observe_full_evaluation_data
-            pruned_context, reasons = prune_context_with_reasons(attrs)
-            record_context_truncation(reasons)
-            context_key = canonical_context_key(pruned_context)
-            # Consent on: the raw error message is emitted, so it is the bucket dimension.
+            # `attrs` is already the bounded, flattened snapshot produced by the writer on
+            # the evaluation thread. Key on it directly.
+            context_key = canonical_context_key(attrs)
             error_dimension = error_message
             full_key = [
               flag_key, variant, allocation_key, runtime_default, error_dimension,
               targeting_key, context_key, true,
             ]
           else
-            pruned_context = nil
-            # Consent off: the error message is redacted to the error code on emit,
-            # so the error code (not the raw message) is the bucket dimension.
-            # Keying on the raw message would split buckets that serialize to
-            # identical rows and burn the per-flag cap on privacy-protected traffic.
+            # Consent off: the error message is redacted to the error code on emit, so the
+            # error code is the bucket dimension (keying on the raw message would split
+            # buckets that serialize to identical rows and burn the per-flag cap).
             error_dimension = error_code.to_s
             full_key = [
               flag_key, variant, allocation_key, runtime_default, error_dimension,
@@ -132,7 +139,7 @@ module Datadog
                 runtime_default: runtime_default,
                 error_message: error_message,
                 targeting_key: targeting_key,
-                context_attrs: pruned_context,
+                context_attrs: observe_full_evaluation_data ? attrs : nil,
                 observe_full_evaluation_data: observe_full_evaluation_data,
                 error_code: error_code
               )
@@ -149,85 +156,102 @@ module Datadog
         end
 
         # Flush aggregation maps, reset state, return snapshot.
-        # The overflow and context-truncation counts are included in the snapshot so the
-        # caller can emit them before they are reset (never reset-without-emit).
+        # The overflow count is included in the snapshot so the caller can emit it before
+        # it is reset (never reset-without-emit).
         def flush_and_reset
           @mutex.synchronize do
             full_snapshot = @full
             degraded_snapshot = @degraded
             dropped_snapshot = @dropped_degraded_overflow
-            context_truncated_snapshot = @context_truncated_counts
 
             @full = {}
             @degraded = {}
             @per_flag_full = Hash.new(0)
             @global_count = 0
             @dropped_degraded_overflow = 0
-            @context_truncated_counts = Hash.new(0)
 
-            {
-              full: full_snapshot,
-              degraded: degraded_snapshot,
-              dropped_degraded_overflow: dropped_snapshot,
-              context_truncated_counts: context_truncated_snapshot,
-            }
+            {full: full_snapshot, degraded: degraded_snapshot, dropped_degraded_overflow: dropped_snapshot}
           end
         end
 
-        # Prune context: keep first MAX_CONTEXT_FIELDS fields (sorted), skip string values >256 chars.
-        # Keys are sorted before pruning to ensure deterministic subset selection.
-        def prune_context(attrs)
-          self.class.prune_context(attrs)
-        end
+        # Bound and flatten the caller's evaluation context on the evaluation thread,
+        # before enqueue, so the async queue only ever holds an already-bounded snapshot.
+        # Returns the flattened (dot-notation) context and the set of truncation reasons
+        # hit, which the writer surfaces on the `flagevaluation.context.truncated` counter.
+        #
+        # Cost is O(kept) (bounded by the caps), never O(supplied): Ruby Hash iteration is
+        # deterministic insertion order, so the caps are enforced by stopping at the limit
+        # rather than by sorting the full input. This is the cross-SDK recommendation for
+        # languages with deterministic iteration (Ruby truncates; Go omits because its map
+        # iteration is randomized per call).
+        def self.bounded_context_snapshot(attrs)
+          return [{}, []] unless attrs.is_a?(Hash) && !attrs.empty?
 
-        # Prune context and report which caps were hit so the writer can emit a
-        # `flagevaluation.context.truncated` counter per reason. Returns the
-        # pruned context and the de-duplicated list of reasons hit.
-        def prune_context_with_reasons(attrs)
-          self.class.prune_context_with_reasons(attrs)
-        end
-
-        def self.prune_context(attrs)
-          pruned_context, = prune_context_with_reasons(attrs)
-          pruned_context
-        end
-
-        def self.prune_context_with_reasons(attrs)
-          flattened_context = flatten_context(attrs)
-          return [{}, []] if flattened_context.empty?
-
-          pruned_context = {}
-          reasons = []
-          count = 0
-          flattened_context.keys.sort.each do |key|
-            if count >= MAX_CONTEXT_FIELDS
-              reasons << REASON_MAX_CONTEXT_FIELDS
-              break
-            end
-
-            value = flattened_context[key]
-            if value.is_a?(String) && value.length > MAX_FIELD_LENGTH
-              reasons << REASON_MAX_FIELD_LENGTH
-              next
-            end
-
-            pruned_context[key] = value
-            count += 1
-          end
-
-          [pruned_context, reasons.uniq]
-        end
-
-        def self.flatten_context(attrs)
-          return {} unless attrs.is_a?(Hash) && !attrs.empty?
-
-          flattened_context = {}
+          flattened = {}
+          reasons = Set.new
           seen = {attrs.object_id => true}
           attrs.each do |key, value|
-            flatten_value(key.to_s, value, flattened_context, seen, 0)
+            break if flattened.size >= MAX_CONTEXT_FIELDS
+            bounded_flatten(key.to_s, value, flattened, seen, 0, reasons)
           end
-          flattened_context
+          reasons << REASON_MAX_CONTEXT_FIELDS if flattened.size >= MAX_CONTEXT_FIELDS
+          [flattened, reasons.to_a]
         end
+
+        def self.bounded_flatten(prefix, value, output, seen, depth, reasons)
+          return if value.nil?
+          return if output.size >= MAX_CONTEXT_FIELDS
+          return if depth > MAX_SNAPSHOT_DEPTH
+          return if prefix.length > MAX_KEY_LENGTH
+
+          case value
+          when Hash
+            return if value.empty?
+
+            object_id = value.object_id
+            return if seen[object_id]
+
+            seen[object_id] = true
+            walked = 0
+            value.each do |key, child_value|
+              break if output.size >= MAX_CONTEXT_FIELDS
+              break if walked >= MAX_STRUCTURE_PROPERTIES
+              bounded_flatten("#{prefix}.#{key}", child_value, output, seen, depth + 1, reasons)
+              walked += 1
+            end
+            reasons << REASON_MAX_STRUCTURE_PROPERTIES if value.size > MAX_STRUCTURE_PROPERTIES
+            reasons << REASON_MAX_CONTEXT_FIELDS if output.size >= MAX_CONTEXT_FIELDS
+            seen.delete(object_id)
+          when Array
+            return if value.empty?
+
+            object_id = value.object_id
+            return if seen[object_id]
+
+            seen[object_id] = true
+            reasons << REASON_MAX_LIST_ELEMENTS if value.size > MAX_LIST_ELEMENTS
+            walked = 0
+            value.each_with_index do |child_value, index|
+              break if output.size >= MAX_CONTEXT_FIELDS
+              break if walked >= MAX_LIST_ELEMENTS
+              bounded_flatten("#{prefix}.#{index}", child_value, output, seen, depth + 1, reasons)
+              walked += 1
+            end
+            reasons << REASON_MAX_CONTEXT_FIELDS if output.size >= MAX_CONTEXT_FIELDS
+            seen.delete(object_id)
+          else
+            if value.is_a?(String) && value.length > MAX_FIELD_LENGTH
+              reasons << REASON_MAX_FIELD_LENGTH
+              return
+            end
+            output[prefix] = begin
+              value.dup
+            rescue TypeError
+              value
+            end
+          end
+        end
+        private_class_method :bounded_flatten
 
         # Canonical context key: sorted type-tagged length-delimited encoding.
         # Each field is: 8-byte big-endian key length + key bytes + type-tag byte +
@@ -245,41 +269,7 @@ module Datadog
           buffer
         end
 
-        def self.flatten_value(prefix, value, output, seen, depth)
-          return if depth > MAX_CONTEXT_DEPTH
-
-          case value
-          when Hash
-            object_id = value.object_id
-            return if seen[object_id]
-
-            seen[object_id] = true
-            value.each do |key, child_value|
-              flatten_value("#{prefix}.#{key}", child_value, output, seen, depth + 1)
-            end
-            seen.delete(object_id)
-          when Array
-            object_id = value.object_id
-            return if seen[object_id]
-
-            seen[object_id] = true
-            value.each_with_index do |child_value, index|
-              flatten_value("#{prefix}.#{index}", child_value, output, seen, depth + 1)
-            end
-            seen.delete(object_id)
-          else
-            output[prefix] = value unless value.nil?
-          end
-        end
-        private_class_method :flatten_value
-
         private
-
-        # Accumulate context-truncation reasons into the per-flush counter. Called from
-        # `record` on the background writer thread (single writer), so no mutex is needed.
-        def record_context_truncation(reasons)
-          reasons.each { |reason| @context_truncated_counts[reason] += 1 }
-        end
 
         def context_value_bytes(value)
           tag, encoded = case value

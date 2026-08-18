@@ -58,6 +58,8 @@ module Datadog
 
         @dropped_pre_queue_overflow: ::Integer
 
+        @context_truncated_counts: ::Hash[::String, ::Integer]
+
         @service_context: ::Hash[::String, ::String]
 
         attr_reader service_context: ::Hash[::String, ::String]
@@ -80,12 +82,6 @@ module Datadog
 
         def build_service_context: () -> ::Hash[::String, ::String]
 
-        def snapshot_context_value: (
-          untyped value,
-          ::Hash[::Integer, bool] seen,
-          ::Integer depth
-        ) -> untyped
-
         def start_background_thread: () -> void
 
         def running?: () -> bool
@@ -105,6 +101,10 @@ module Datadog
         def read_and_reset_dropped_queue_overflow: () -> ::Integer
 
         def read_and_reset_dropped_pre_queue_overflow: () -> ::Integer
+
+        def read_and_reset_context_truncated_counts: () -> ::Hash[::String, ::Integer]
+
+        def record_context_truncation: (::Array[::String] reasons) -> void
 
         def emit_drop_counts: (::Integer dropped_queue, ::Integer dropped_overflow, ::Integer dropped_pre_queue) -> void
 

@@ -6,7 +6,13 @@ module Datadog
 
         MAX_FIELD_LENGTH: ::Integer
 
-        MAX_CONTEXT_DEPTH: ::Integer
+        MAX_KEY_LENGTH: ::Integer
+
+        MAX_LIST_ELEMENTS: ::Integer
+
+        MAX_STRUCTURE_PROPERTIES: ::Integer
+
+        MAX_SNAPSHOT_DEPTH: ::Integer
 
         EVAL_SCALE_TARGET_FLAGS: ::Integer
 
@@ -44,6 +50,14 @@ module Datadog
 
         REASON_MAX_FIELD_LENGTH: ::String
 
+        REASON_MAX_KEY_LENGTH: ::String
+
+        REASON_MAX_LIST_ELEMENTS: ::String
+
+        REASON_MAX_STRUCTURE_PROPERTIES: ::String
+
+        REASON_MAX_SNAPSHOT_DEPTH: ::String
+
         @global_cap: ::Integer
 
         @per_flag_cap: ::Integer
@@ -61,8 +75,6 @@ module Datadog
         @global_count: ::Integer
 
         @dropped_degraded_overflow: ::Integer
-
-        @context_truncated_counts: ::Hash[::String, ::Integer]
 
         attr_reader dropped_degraded_overflow: ::Integer
 
@@ -87,22 +99,15 @@ module Datadog
 
         def flush_and_reset: () -> ::Hash[::Symbol, untyped]
 
-        def prune_context: (::Hash[::String, untyped]? attrs) -> ::Hash[::String, untyped]
+        def self.bounded_context_snapshot: (::Hash[::String, untyped]? attrs) -> [::Hash[::String, untyped], ::Array[::String]]
 
-        def prune_context_with_reasons: (::Hash[::String, untyped]? attrs) -> [::Hash[::String, untyped], ::Array[::String]]
-
-        def self.prune_context: (::Hash[::String, untyped]? attrs) -> ::Hash[::String, untyped]
-
-        def self.prune_context_with_reasons: (::Hash[::String, untyped]? attrs) -> [::Hash[::String, untyped], ::Array[::String]]
-
-        def self.flatten_context: (::Hash[::String, untyped]? attrs) -> ::Hash[::String, untyped]
-
-        def self.flatten_value: (
+        def self.bounded_flatten: (
           ::String prefix,
           untyped value,
           ::Hash[::String, untyped] output,
           ::Hash[::Integer, bool] seen,
-          ::Integer depth
+          ::Integer depth,
+          ::Set[::String] reasons
         ) -> void
 
         def canonical_context_key: (::Hash[::String, untyped]? attrs) -> ::String
@@ -135,8 +140,6 @@ module Datadog
           ?observe_full_evaluation_data: bool,
           ?error_code: ::String?
         ) -> void
-
-        def record_context_truncation: (::Array[::String] reasons) -> void
       end
     end
   end

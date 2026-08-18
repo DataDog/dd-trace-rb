@@ -70,24 +70,24 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
 
   # context pruning
 
-  describe "#prune_context" do
+  describe ".bounded_context_snapshot" do
     it "skips string values exceeding 256 chars" do
       long_value = "x" * 257
       attrs = {"key" => long_value, "other" => "fine"}
-      pruned = aggregator.prune_context(attrs)
+      pruned, = described_class.bounded_context_snapshot(attrs)
       expect(pruned.keys).not_to include("key")
       expect(pruned.keys).to include("other")
     end
 
     it "flattens nested hashes and arrays with dot-notation keys" do
       attrs = {"profile" => {"plan" => "pro"}, "groups" => ["beta", "staff"]}
-      pruned = aggregator.prune_context(attrs)
+      pruned, = described_class.bounded_context_snapshot(attrs)
       expect(pruned).to include("profile.plan" => "pro", "groups.0" => "beta", "groups.1" => "staff")
     end
 
     it "omits nil values and keeps empty string values" do
       attrs = {"profile" => {"plan" => "pro", "" => 1, "what" => ""}, "groups" => ["beta", "staff", nil, ""]}
-      pruned = aggregator.prune_context(attrs)
+      pruned, = described_class.bounded_context_snapshot(attrs)
 
       expect(pruned).to include(
         "groups.0" => "beta",
@@ -103,19 +103,19 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     it "keeps string values of exactly 256 chars" do
       exact_value = "x" * 256
       attrs = {"key" => exact_value}
-      pruned = aggregator.prune_context(attrs)
+      pruned, = described_class.bounded_context_snapshot(attrs)
       expect(pruned.keys).to include("key")
     end
 
     it "caps at 256 fields" do
       attrs = 257.times.each_with_object({}) { |i, h| h["k#{i}"] = "v" }
-      pruned = aggregator.prune_context(attrs)
+      pruned, = described_class.bounded_context_snapshot(attrs)
       expect(pruned.size).to eq(256)
     end
 
-    it "drops keys after the sorted 256-field cap" do
+    it "keeps the first 256 fields in insertion order and drops the rest" do
       attrs = 257.times.each_with_object({}) { |i, h| h["k#{format("%03d", i)}"] = "v" }
-      pruned = aggregator.prune_context(attrs)
+      pruned, = described_class.bounded_context_snapshot(attrs)
       expected_keys = 256.times.map { |i| "k#{format("%03d", i)}" }
 
       expect(pruned.keys).to eq(expected_keys)
@@ -123,7 +123,8 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     end
 
     it "returns empty hash for nil input" do
-      expect(aggregator.prune_context(nil)).to eq({})
+      pruned, = described_class.bounded_context_snapshot(nil)
+      expect(pruned).to eq({})
     end
 
     it "does not recurse forever on cyclic hashes and arrays" do
@@ -132,7 +133,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       attrs["array"] = []
       attrs["array"] << attrs["array"]
 
-      pruned = aggregator.prune_context(attrs)
+      pruned, = described_class.bounded_context_snapshot(attrs)
 
       expect(pruned).to include("keep" => "ok")
       expect(pruned.keys.grep(/self|array/)).to be_empty
@@ -141,13 +142,14 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     it "drops context branches beyond the maximum nesting depth" do
       attrs = {"root" => {}}
       cursor = attrs["root"]
-      (described_class::MAX_CONTEXT_DEPTH + 2).times do |i|
+      (described_class::MAX_SNAPSHOT_DEPTH + 2).times do |i|
         cursor["level#{i}"] = {}
         cursor = cursor["level#{i}"]
       end
       cursor["leaf"] = "too-deep"
 
-      expect(aggregator.prune_context(attrs)).to eq({})
+      pruned, = described_class.bounded_context_snapshot(attrs)
+      expect(pruned).to eq({})
     end
   end
 

@@ -66,6 +66,7 @@ module Datadog
           @stopped = false
           @dropped_queue_overflow = 0
           @dropped_pre_queue_overflow = 0
+          @context_truncated_counts = Hash.new(0)
 
           self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
 
@@ -74,7 +75,8 @@ module Datadog
         end
 
         # Non-blocking enqueue from the finally hook. Drops + counts on overflow.
-        # Context flattening/pruning runs in the background writer, not on the caller eval thread.
+        # Context bounding runs here, on the caller's evaluation thread, so the queue
+        # only ever holds an already-bounded snapshot.
         def enqueue(**event)
           start_background_thread if forked?
 
@@ -88,7 +90,12 @@ module Datadog
 
           observe_full_evaluation_data = event[:observe_full_evaluation_data] == true
           attrs = event[:attrs]
-          attrs = (attrs.is_a?(Hash) && observe_full_evaluation_data) ? (snapshot_context_value(attrs, {}, 0) || {}) : {}
+          if attrs.is_a?(Hash) && observe_full_evaluation_data
+            attrs, reasons = Aggregator.bounded_context_snapshot(attrs)
+            record_context_truncation(reasons)
+          else
+            attrs = {}
+          end
           bounded_event = {
             flag_key: event[:flag_key],
             variant: event[:variant],
@@ -133,6 +140,7 @@ module Datadog
           @stopped = false
           @dropped_queue_overflow = 0
           @dropped_pre_queue_overflow = 0
+          @context_truncated_counts = Hash.new(0)
         end
 
         private
@@ -143,35 +151,6 @@ module Datadog
           ctx["env"] = config.env if config.env && !config.env.empty?
           ctx["version"] = config.version if config.version && !config.version.empty?
           ctx
-        end
-
-        def snapshot_context_value(value, seen, depth)
-          return if depth > Aggregator::MAX_CONTEXT_DEPTH
-
-          case value
-          when Hash
-            object_id = value.object_id
-            return if seen[object_id]
-
-            seen[object_id] = true
-            value.each_with_object({}) do |(key, child_value), snapshot|
-              snapshot[key.is_a?(String) ? key.dup : key] = snapshot_context_value(child_value, seen, depth + 1)
-            end.tap { seen.delete(object_id) }
-          when Array
-            object_id = value.object_id
-            return if seen[object_id]
-
-            seen[object_id] = true
-            value.map { |child_value| snapshot_context_value(child_value, seen, depth + 1) }.tap { seen.delete(object_id) }
-          when String
-            value.dup
-          else
-            begin
-              value.dup
-            rescue TypeError
-              value
-            end
-          end
         end
 
         def start_background_thread
@@ -256,7 +235,7 @@ module Datadog
           dropped_overflow = snapshot[:dropped_degraded_overflow].to_i
           dropped_queue = read_and_reset_dropped_queue_overflow
           dropped_pre_queue = read_and_reset_dropped_pre_queue_overflow
-          context_truncated_counts = snapshot[:context_truncated_counts] || {}
+          context_truncated_counts = read_and_reset_context_truncated_counts
 
           emit_drop_counts(dropped_queue, dropped_overflow, dropped_pre_queue)
           emit_context_truncated_counts(context_truncated_counts)
@@ -283,6 +262,24 @@ module Datadog
             count = @dropped_pre_queue_overflow
             @dropped_pre_queue_overflow = 0
             count
+          end
+        end
+
+        def read_and_reset_context_truncated_counts
+          @stop_mutex.synchronize do
+            counts = @context_truncated_counts
+            @context_truncated_counts = Hash.new(0)
+            counts
+          end
+        end
+
+        # Record context-truncation reasons from the bounded snapshot produced on the
+        # evaluation thread. Called from `enqueue`; the counts are emitted on flush.
+        def record_context_truncation(reasons)
+          return if reasons.empty?
+
+          @stop_mutex.synchronize do
+            reasons.each { |reason| @context_truncated_counts[reason] += 1 }
           end
         end
 

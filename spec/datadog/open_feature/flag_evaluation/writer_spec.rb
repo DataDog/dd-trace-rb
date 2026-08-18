@@ -304,23 +304,23 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(writer.send(:read_and_reset_dropped_pre_queue_overflow)).to eq(0)
     end
 
-    it "does not flatten or prune context before buffering" do
+    it "bounds and flattens context before buffering" do
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
       writer = described_class.new(transport: transport, logger: logger)
       raw = {"profile" => {"plan" => "pro"}, "oversized" => "x" * 257}
       300.times { |i| raw["z#{format("%03d", i)}"] = "v" }
 
-      expect(Datadog::OpenFeature::FlagEvaluation::Aggregator).not_to receive(:prune_context)
       writer.enqueue(
         flag_key: "f", variant: "on", allocation_key: "",
         targeting_key: "t", eval_time_ms: 1, attrs: raw, observe_full_evaluation_data: true,
       )
 
       queued = writer.instance_variable_get(:@queue).pop(true)
-      expect(queued[:attrs].size).to eq(302)
-      expect(queued[:attrs]).to have_key("profile")
-      expect(queued[:attrs]).to have_key("oversized")
-      expect(queued[:attrs]).not_to have_key("profile.plan")
+      # The queue holds a bounded (<=256 fields), flattened snapshot — not the raw nested context.
+      expect(queued[:attrs].size).to be <= 256
+      expect(queued[:attrs]).to have_key("profile.plan")
+      expect(queued[:attrs]).not_to have_key("profile")
+      expect(queued[:attrs]).not_to have_key("oversized")
     end
   end
 
@@ -444,9 +444,9 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       )
     end
 
-    # The emitted context must hold the PRUNED attrs (oversized strings removed, <=256 fields),
-    # not the raw attrs. Proven by inspecting the emitted payload, not the aggregator internals.
-    it "emits PRUNED context attrs in the payload (oversized strings removed, capped at 256 fields)" do
+    # The emitted context must hold the bounded attrs (oversized strings removed, <=256 fields),
+    # produced on the evaluation thread before enqueue.
+    it "emits bounded context attrs in the payload (oversized strings removed, capped at 256 fields)" do
       raw = {"keep" => "ok", "toobig" => "x" * 257}
       300.times { |i| raw["k#{format("%03d", i)}"] = "v" }
 
@@ -461,7 +461,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       emitted = payload["flagEvaluations"].first["context"]["evaluation"]
       expect(emitted.size).to eq(256)              # capped
       expect(emitted).not_to have_key("toobig")    # oversized string removed
-      # Deterministic subset = sorted-first 256 keys (so 'k000'..'k253' kept, 'keep'/'k254'+ cut).
+      # Deterministic subset = first 256 fields in insertion order.
       expect(emitted).to have_key("k000")
       expect(emitted).not_to have_key("k299")
     end
