@@ -73,6 +73,7 @@ runs:
         # Single line: ghcommit-action's file_pattern must not receive newlines.
         echo "paths=${paths[*]}" >> "$GITHUB_OUTPUT"
         # Keyed to the run so concurrent runs cannot land on the same scratch ref.
+        # Matrix jobs share a run id, so a matrix caller would need a further key.
         echo "scratch=$SCRATCH_PREFIX/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
         if git diff --cached --quiet; then
           echo "changed=false" >> "$GITHUB_OUTPUT"
