@@ -201,9 +201,9 @@ size_t ruby_obj_memsize_of(VALUE obj) {
 // Inspired by rb_class_of but without actually returning classes or potentially doing assertions
 static bool ruby_is_obj_with_class(VALUE obj) {
   if (!RB_SPECIAL_CONST_P(obj)) {
-    return true;
+    return RBASIC_CLASS(obj) != 0;
   }
-  if (obj == RUBY_Qfalse) {
+  else if (obj == RUBY_Qfalse) {
     return true;
   }
   else if (obj == RUBY_Qnil) {
