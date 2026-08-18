@@ -92,7 +92,7 @@ module Datadog
           attrs = event[:attrs]
           if attrs.is_a?(Hash) && observe_full_evaluation_data
             attrs, reasons = Aggregator.bounded_context_snapshot(attrs)
-            record_context_truncation(reasons)
+            record_truncation_reasons(reasons)
           else
             attrs = {}
           end
@@ -275,7 +275,7 @@ module Datadog
 
         # Record context-truncation reasons from the bounded snapshot produced on the
         # evaluation thread. Called from `enqueue`; the counts are emitted on flush.
-        def record_context_truncation(reasons)
+        def record_truncation_reasons(reasons)
           return if reasons.empty?
 
           @stop_mutex.synchronize do

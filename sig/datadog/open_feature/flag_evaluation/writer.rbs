@@ -104,7 +104,7 @@ module Datadog
 
         def read_and_reset_context_truncated_counts: () -> ::Hash[::String, ::Integer]
 
-        def record_context_truncation: (::Array[::String] reasons) -> void
+        def record_truncation_reasons: (::Array[::String] reasons) -> void
 
         def emit_drop_counts: (::Integer dropped_queue, ::Integer dropped_overflow, ::Integer dropped_pre_queue) -> void
 
