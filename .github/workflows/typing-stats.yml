@@ -5,7 +5,6 @@ on: # yamllint disable-line rule:truthy
 
 # TODO:
 # Upload the report somewhere not limited by the 64k char limit (maybe FPD ?) to be able to include links to the files
-# Compare the result with master to see if there are any progress/regression
 # Create a Datadog dashboard to track the progress on a larger timescale
 jobs:
   compute-stats:
@@ -66,13 +65,13 @@ jobs:
           mkdir -p "${{ github.workspace }}/tmp"
           ruby ${{ runner.temp }}/typing_stats_compute.rb >> "${{ runner.temp }}/typing-stats-current.json"
 
-      - name: Checkout base branch
+      - name: Checkout base commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: ${{ github.event.pull_request.base.ref }}
+          ref: ${{ github.event.pull_request.base.sha }}
 
-      - name: Run typing stats on base branch
+      - name: Run typing stats on base commit
         id: typing-stats-base
         env:
           STEEPFILE_PATH: ${{ github.workspace }}/Steepfile

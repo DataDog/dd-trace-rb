@@ -62,6 +62,18 @@ RSpec.describe "ActiveRecord instantiation instrumentation" do
         end
       end
 
+      # register_db_config_handler has no way to deregister, so restore the handler list
+      # here to avoid leaking into later specs. Guards itself since `around` wraps `before`.
+      around do |example|
+        unless defined?(ActiveRecord::DatabaseConfigurations.register_db_config_handler)
+          next example.run
+        end
+
+        handlers_before = ActiveRecord::DatabaseConfigurations.db_config_handlers.dup
+        example.run
+        ActiveRecord::DatabaseConfigurations.db_config_handlers = handlers_before
+      end
+
       it "only resolves database configuration once" do
         # `before { article }` has already resolved the database configuration
 

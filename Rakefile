@@ -55,6 +55,9 @@ DSM_ENABLED_LIBRARIES = [
   :karafka,
 ].freeze
 
+# The Rakefile is only for development, enable testing the profiler on macOS
+ENV["DD_PROFILING_MACOS_TESTING"] = "true"
+
 # rubocop:disable Metrics/BlockLength
 namespace :test do
   desc "Run all tests"
@@ -514,8 +517,8 @@ namespace :spec do
     task all: [:main, :ractors]
 
     task :compile_native_extensions do
-      # "bundle exec rake compile" currently only works on MRI Ruby on Linux
-      if RUBY_ENGINE == "ruby" && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("2.3.0")
+      # "bundle exec rake compile" currently only works on CRuby
+      if RUBY_ENGINE == "ruby"
         Rake::Task[:clean].invoke
         Rake::Task[:compile].invoke
       end
