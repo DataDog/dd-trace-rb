@@ -87,17 +87,23 @@ runs:
       shell: bash
       run: git diff --cached --stat
 
-    # The commit is built on a scratch branch rather than on `branch` itself,
-    # because createCommitOnBranch takes an expectedHeadOid that must equal the
-    # branch tip and ghcommit-action always derives it from local HEAD. Resetting
-    # `branch` to HEAD to satisfy that would leave it level with base for the
-    # duration of the commit, and GitHub closes an open pull request the moment
-    # its head holds nothing ahead of its base. `branch` is therefore only ever
-    # moved forward onto a finished commit, further down.
+    # The commit is built on a scratch branch rather than on `branch` itself
+    # because createCommitOnBranch can only append. Each run's commit is meant to
+    # replace the previous one, not stack on it, so `branch` has to be force-moved
+    # -- and the commit must already exist somewhere for that move to have a
+    # target. Committing in place instead would grow the branch by one full
+    # snapshot per run.
+    #
+    # Moving `branch` to HEAD first, then committing onto it, is the arrangement
+    # this replaces: it left the branch level with base for the duration of the
+    # commit, and GitHub closes an open pull request the moment its head holds
+    # nothing ahead of its base. `branch` is now only ever moved onto a finished
+    # commit, further down.
     #
     # Creates a remote ref only: resetting the local tree would discard what was
     # just staged, leaving nothing to commit and the run still green.
     - name: Create scratch branch
+      id: scratch
       if: steps.stage.outputs.changed == 'true'
       shell: bash
       env:
@@ -116,6 +122,7 @@ runs:
           gh api --silent -X PATCH "repos/$REPO/git/refs/heads/$SCRATCH" \
             -F "sha=$head_sha" -F force=true
         fi
+        echo "head-sha=$head_sha" >> "$GITHUB_OUTPUT"
 
     - name: Create signed commit
       id: commit
@@ -130,6 +137,12 @@ runs:
         commit_message: ${{ inputs.commit-message }}
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
+        # The expectedHeadOid the mutation is guarded by. ghcommit-action exposes
+        # no input for it, but the CLI reads GHCOMMIT_SHA and Docker actions
+        # inherit this block. Set explicitly so the guard is the SHA the scratch
+        # ref was just created at, rather than whatever the CLI's `git rev-parse
+        # HEAD` fallback resolves to.
+        GHCOMMIT_SHA: ${{ steps.scratch.outputs.head-sha }}
 
     # Single move onto a commit that already exists, so an open pull request on
     # `branch` never observes a head level with its base. Runs even when the
