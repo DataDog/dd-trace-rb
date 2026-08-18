@@ -1,0 +1,167 @@
+name: 'Signed commit and pull request'
+
+description: >-
+  Creates a GitHub-signed commit from the working tree via GraphQL, and opens or
+  updates a pull request for it.
+
+# Exists because create-pull-request with `sign-commits: true` rebuilds the
+# commit over REST, one blob and tree object per file: ~10 minutes on a
+# gemfiles/ refresh. `createCommitOnBranch` sends every file in one request, so
+# cost is flat in file count.
+#
+# Input names mirror create-pull-request so call sites read the same way.
+
+inputs:
+  token:
+    description: 'Token with contents:write and pull_requests:write.'
+    required: true
+  branch:
+    description: 'Branch to commit to. Reset to the checked-out commit, so it must be one this workflow owns.'
+    required: true
+  commit-message:
+    description: 'Commit message.'
+    required: true
+  add-paths:
+    description: >-
+      Paths to stage, separated by whitespace, newlines, or commas. Defaults to
+      everything. Note that commas are accepted here for parity with
+      create-pull-request, but are normalized to whitespace before reaching git,
+      which treats a comma as a literal character in a pathspec.
+    required: false
+    default: '.'
+  base:
+    description: 'Base branch for the pull request.'
+    required: true
+  title:
+    description: 'Pull request title.'
+    required: true
+  body:
+    description: 'Pull request body.'
+    required: true
+  labels:
+    description: 'Comma or newline separated labels to apply.'
+    required: false
+    default: ''
+
+outputs:
+  commit-hash:
+    description: 'Hash of the created commit, empty when nothing changed.'
+    value: ${{ steps.commit.outputs.commit-hash }}
+
+runs:
+  using: "composite"
+  steps:
+    # Runs before any remote ref is touched, so a no-op run changes nothing
+    # remotely: no reset, no empty commit, no empty PR.
+    #
+    # Both separators are flattened because either would silently commit a
+    # subset and still exit green: git treats a comma as a literal pathspec
+    # character, and `read -r -a` stops at the first newline.
+    - name: Stage changes
+      id: stage
+      shell: bash
+      env:
+        ADD_PATHS: ${{ inputs.add-paths }}
+      run: |
+        normalized="${ADD_PATHS//,/ }"
+        normalized="${normalized//$'\n'/ }"
+        read -r -a paths <<< "$normalized"
+        git add -- "${paths[@]}"
+        # Single line: ghcommit-action's file_pattern must not receive newlines.
+        echo "paths=${paths[*]}" >> "$GITHUB_OUTPUT"
+        if git diff --cached --quiet; then
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+          echo "No changes to commit."
+        else
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Show staged changes
+      if: steps.stage.outputs.changed == 'true'
+      shell: bash
+      run: git diff --cached --stat
+
+    # Required because createCommitOnBranch takes an expectedHeadOid that must
+    # equal the branch tip, and ghcommit-action always derives it from local
+    # HEAD, so a branch left where a previous run put it makes the mutation fail.
+    # Pointing it at HEAD also keeps the branch at one commit on top of the
+    # checkout instead of accumulating one per run.
+    #
+    # Moves the remote ref only: resetting the local tree would discard what was
+    # just staged, leaving nothing to commit and the run still green.
+    - name: Reset branch
+      if: steps.stage.outputs.changed == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        BRANCH: ${{ inputs.branch }}
+      run: |
+        # Local HEAD, not `base`: the two diverge once base moves after checkout.
+        head_sha="$(git rev-parse HEAD)"
+        echo "Pointing $BRANCH at $head_sha"
+        # PATCH failure falls through to create, as a missing ref is 404 or 422.
+        # The error stays visible so branch protection and token expiry are not
+        # hidden behind the POST's misleading "Reference already exists".
+        if ! gh api --silent -X PATCH "repos/$REPO/git/refs/heads/$BRANCH" \
+              -F "sha=$head_sha" -F force=true; then
+          echo "Could not update the branch, attempting to create it."
+          gh api --silent -X POST "repos/$REPO/git/refs" \
+            -f "ref=refs/heads/$BRANCH" -f "sha=$head_sha"
+        fi
+
+    - name: Create signed commit
+      id: commit
+      if: steps.stage.outputs.changed == 'true'
+      uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
+      with:
+        repo: ${{ github.repository }}
+        branch: ${{ inputs.branch }}
+        # Normalized form, not raw add-paths: this is split with `read -r -a`,
+        # which would keep only the first line and commit a subset.
+        file_pattern: ${{ steps.stage.outputs.paths }}
+        commit_message: ${{ inputs.commit-message }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+
+    # Reuses an open PR so reruns stay idempotent; `gh pr create` fails when one
+    # already exists.
+    #
+    # Matched on head repository owner as well as branch, because `--head` filters
+    # on name alone: a fork PR sharing the branch name would otherwise be edited
+    # in place of the one this action needs to open.
+    - name: Create or update pull request
+      if: steps.stage.outputs.changed == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        BRANCH: ${{ inputs.branch }}
+        BASE: ${{ inputs.base }}
+        TITLE: ${{ inputs.title }}
+        BODY: ${{ inputs.body }}
+        LABELS: ${{ inputs.labels }}
+      run: |
+        existing="$(gh pr list --repo "$REPO" --head "$BRANCH" --base "$BASE" \
+          --state open --json number,headRepositoryOwner \
+          --jq "[.[] | select(.headRepositoryOwner.login == \"${REPO%%/*}\")] | .[0].number // empty")"
+
+        args=()
+        if [ -n "$LABELS" ]; then
+          # Accept both comma and newline separation, as create-pull-request did.
+          while IFS= read -r label; do
+            label="$(echo "$label" | xargs)"
+            [ -n "$label" ] && args+=(--add-label "$label")
+          done <<< "${LABELS//,/$'\n'}"
+        fi
+
+        if [ -n "$existing" ]; then
+          echo "Updating pull request #$existing"
+          gh pr edit "$existing" --repo "$REPO" \
+            --title "$TITLE" --body "$BODY" "${args[@]}"
+          gh pr view "$existing" --repo "$REPO" --json url --jq .url
+        else
+          # --add-label is spelled --label on create.
+          gh pr create --repo "$REPO" --head "$BRANCH" --base "$BASE" \
+            --title "$TITLE" --body "$BODY" "${args[@]/--add-label/--label}"
+        fi

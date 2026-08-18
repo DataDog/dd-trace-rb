@@ -123,7 +123,6 @@ no external grant needed. No local trigger otherwise.
 
 - Always pipe stdout and stderr of `rspec` and `rake test:*` to `2>&1 | tee /tmp/full_rspec.log | grep -E 'Pending:|Failures:|Finished' -A 99` to get concise but complete test outputs.
 - Transport noise (`Internal error during Datadog::Tracing::Transport::HTTP::Client request`) is expected unless you are debugging transport logic.
-- Profiling specs fail on MacOS without additinal setup; ask user if they actually want to run them.
 - Thread leaks: use `rspec --seed <N>` and inspect `docs/DevelopmentGuide.md#ensuring-tests-dont-leak-resources`.
 - `docker compose run` failures: run `docker compose pull` before retrying.
 
