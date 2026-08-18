@@ -183,7 +183,6 @@ RSpec.describe Datadog::OpenFeature::Provider do
       allow(components).to receive(:open_feature).and_return(open_feature_component)
       allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(flag_eval_metrics_hook)
       allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(flag_eval_evp_hook)
-      # `evaluate` queries the span-enrichment hook via `enrich_span`; nil is a no-op.
       allow(open_feature_component).to receive(:span_enrichment_hook).and_return(nil)
     end
 
@@ -283,15 +282,13 @@ RSpec.describe Datadog::OpenFeature::Provider do
       let(:real_flag_eval_evp_hook) { Datadog::OpenFeature::Hooks::FlagEvalEVPHook.new(writer) }
 
       before do
-        # No bare sleep in shutdown synchronization: stub the background thread, drive flush manually.
         allow_any_instance_of(Datadog::OpenFeature::FlagEvaluation::Writer)
           .to receive(:start_background_thread).and_return(nil)
         allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(nil)
         allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(real_flag_eval_evp_hook)
         allow(logger).to receive(:debug)
 
-        # These tests verify the end-to-end emit path with raw values. Set consent
-        # to true so the targeting key and context are emitted as supplied.
+        # Set observe_full_evaluation_data to true so the targeting key and context are emitted as supplied.
         allow(engine).to receive(:observe_full_evaluation_data).and_return(true)
       end
 
@@ -306,8 +303,6 @@ RSpec.describe Datadog::OpenFeature::Provider do
           flag_key: "real-flag", default_value: "default", evaluation_context: evaluation_context
         )
 
-        # Drive the writer's drain manually (background thread stubbed) and assert the transport
-        # received the real flagevaluation built from the enqueued event.
         writer.send(:drain_and_flush)
         expect(evp_transport).to have_received(:send_flag_evaluations) do |payload|
           row = payload["flagEvaluations"].first

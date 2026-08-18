@@ -52,9 +52,9 @@ RSpec.describe "OpenFeature provider span enrichment (end-to-end)" do
   before do
     allow(Datadog::Tracing).to receive(:active_trace).and_return(trace_op)
 
-    # The provider stamps the consent value from the engine onto evaluation
+    # The provider stamps the observe_full_evaluation_data value from the engine onto evaluation
     # metadata. Default to the privacy-preserving value (false) for these
-    # span-enrichment tests, which do not test the consent path.
+    # span-enrichment tests, which do not test the observe_full_evaluation_data path.
     allow(engine).to receive(:observe_full_evaluation_data).and_return(false)
 
     # Resolve the engine and (when the gate is on) the span-enrichment hook

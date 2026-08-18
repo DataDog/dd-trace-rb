@@ -49,7 +49,6 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       )
     end
 
-    # Variant comes from evaluation_details.variant (the OpenFeature variant), NEVER the value.
     # The hook is never given the evaluated value, so it cannot accidentally emit it.
     it "enqueues the variant from evaluation_details.variant" do
       expect(writer).to receive(:enqueue).with(hash_including(variant: "on"))
@@ -61,13 +60,11 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
     end
 
-    # allocation_key read from metadata['__dd_allocation_key'] — the SAME source the OTel hook uses.
     it "enqueues allocation_key from the same metadata key the OTel hook reads" do
       expect(writer).to receive(:enqueue).with(hash_including(allocation_key: "alloc-9"))
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
     end
 
-    # eval-time read from the provider-stamped 'dd.eval.timestamp_ms' metadata key.
     it "enqueues eval_time_ms from the provider-stamped dd.eval.timestamp_ms metadata" do
       expect(writer).to receive(:enqueue).with(hash_including(eval_time_ms: 1_700_000_000_000))
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
@@ -99,8 +96,8 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
 
+    # The hook collaborates only with writer#enqueue; it has no aggregator reference.
     it "does NOT touch the aggregator on the hook path (only enqueues — async boundary)" do
-      # The hook collaborates ONLY with writer#enqueue; it has no aggregator reference at all.
       expect(hook.instance_variables).not_to include(:@aggregator)
       expect(writer).to receive(:enqueue).once
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
@@ -108,7 +105,6 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
   end
 
   describe "#finally — runtime-default + missing-metadata edge cases" do
-    # Fallback: when the provider did not stamp a timestamp, fall back to hook-fire time.
     it "falls back to a real hook-fire timestamp when dd.eval.timestamp_ms is absent" do
       details = build_evaluation_details(variant: "on")
       allow(Datadog::Core::Utils::Time).to receive(:now).and_return(::Time.at(1_650_000_000))
@@ -116,7 +112,6 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
 
-    # Concern: detect runtime default from ABSENT variant, passed through as nil (aggregator decides).
     it "passes a nil variant through unchanged (runtime-default signal preserved)" do
       details = build_evaluation_details(variant: nil)
       expect(writer).to receive(:enqueue).with(hash_including(variant: nil, runtime_default: true))
@@ -140,27 +135,27 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
     end
   end
 
-  describe "#finally — consent lifecycle" do
+  describe "#finally — observe_full_evaluation_data lifecycle" do
     let(:eval_context) { ::OpenFeature::SDK::EvaluationContext.new(targeting_key: "user-7", env: "prod") }
     let(:hook_context) { build_hook_context }
 
-    def details_with_consent(consent)
+    def details_with_observe_full_evaluation_data(observe_full_evaluation_data)
       metadata = {
         "dd.eval.timestamp_ms" => 1_700_000_000_000,
-        Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => consent,
+        Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => observe_full_evaluation_data,
       }
       build_evaluation_details(variant: "on", flag_metadata: metadata)
     end
 
-    it "reads consent from evaluation metadata, not from live config" do
-      details = details_with_consent(true)
+    it "reads observe_full_evaluation_data from evaluation metadata, not from live config" do
+      details = details_with_observe_full_evaluation_data(true)
       expect(writer).to receive(:enqueue).with(
         hash_including(observe_full_evaluation_data: true, attrs: {"env" => "prod"})
       )
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
 
-    it "treats absent consent as false (privacy-preserving default)" do
+    it "treats absent observe_full_evaluation_data as false (privacy-preserving default)" do
       details = build_evaluation_details(variant: "on", flag_metadata: {"dd.eval.timestamp_ms" => 1})
       expect(writer).to receive(:enqueue).with(
         hash_including(observe_full_evaluation_data: false, attrs: {})
@@ -168,27 +163,26 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
 
-    it "treats null consent as false" do
-      details = details_with_consent(nil)
+    it "treats null observe_full_evaluation_data as false" do
+      details = details_with_observe_full_evaluation_data(nil)
       expect(writer).to receive(:enqueue).with(
         hash_including(observe_full_evaluation_data: false, attrs: {})
       )
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
 
-    it "treats wrong-typed consent as false" do
-      details = details_with_consent("true")
+    it "treats wrong-typed observe_full_evaluation_data as false" do
+      details = details_with_observe_full_evaluation_data("true")
       expect(writer).to receive(:enqueue).with(
         hash_including(observe_full_evaluation_data: false, attrs: {})
       )
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
 
-    # Regression guard for the Java pilot's core lesson: consent must travel on the
-    # event, not be looked up from live config. The hook reads only metadata.
-    it "ignores gateway consent even when it disagrees with metadata" do
-      details = details_with_consent(false)
-      # Even if a global accessor returned true, the hook must use metadata's false.
+    # Regression guard: observe_full_evaluation_data must travel on the event, not be
+    # looked up from live config. The hook reads only metadata.
+    it "ignores gateway observe_full_evaluation_data even when it disagrees with metadata" do
+      details = details_with_observe_full_evaluation_data(false)
       expect(writer).to receive(:enqueue).with(
         hash_including(observe_full_evaluation_data: false, attrs: {})
       )

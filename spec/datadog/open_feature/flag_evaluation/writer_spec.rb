@@ -349,7 +349,6 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       end
 
       row = payload["flagEvaluations"].first
-      # Structural assertions: objects, not bare strings.
       expect(row["variant"]).to eq("key" => "on")
       expect(row["allocation"]).to eq("key" => "alloc-1")
       expect(row["targeting_key"]).to eq("user-42")
@@ -396,7 +395,6 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
     it "emits a degraded-tier row without targeting_key or context" do
       payload = captured_payload do |writer|
-        # Force overflow into the degraded tier with a tiny-capped aggregator.
         small = Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 10)
         writer.instance_variable_set(:@aggregator, small)
         writer.enqueue(
@@ -444,8 +442,6 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       )
     end
 
-    # The emitted context must hold the bounded attrs (oversized strings removed, <=256 fields),
-    # produced on the evaluation thread before enqueue.
     it "emits bounded context attrs in the payload (oversized strings removed, capped at 256 fields)" do
       raw = {"keep" => "ok", "toobig" => "x" * 257}
       300.times { |i| raw["k#{format("%03d", i)}"] = "v" }
@@ -461,7 +457,6 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       emitted = payload["flagEvaluations"].first["context"]["evaluation"]
       expect(emitted.size).to eq(256)              # capped
       expect(emitted).not_to have_key("toobig")    # oversized string removed
-      # Deterministic subset = first 256 fields in insertion order.
       expect(emitted).to have_key("k000")
       expect(emitted).not_to have_key("k299")
     end
@@ -659,7 +654,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     end
   end
 
-  # The aggregator's degraded-overflow count must be EMITTED before reset (not reset-without-emit).
+  # The degraded-overflow count must be emitted before reset (not reset-without-emit).
   describe "#flush_once emits degraded-overflow drops" do
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil) }
     let(:logger) { instance_double(Logger) }
@@ -669,7 +664,6 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
       writer = described_class.new(transport: transport, logger: logger, telemetry: telemetry)
 
-      # Inject an aggregator whose flush reports a degraded-overflow drop.
       fake_aggregator = instance_double(Datadog::OpenFeature::FlagEvaluation::Aggregator)
       allow(fake_aggregator).to receive(:flush_and_reset).and_return(
         {full: {}, degraded: {}, dropped_degraded_overflow: 7}
@@ -770,7 +764,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(wire).not_to include("jane.doe@datadoghq.com")
     end
 
-    it "omits the error key when consent is off and no error code is present" do
+    it "omits the error key when observe_full_evaluation_data is false and no error code is present" do
       payload = captured_payload do |writer|
         writer.enqueue(
           flag_key: "err-flag", variant: nil, allocation_key: "",
@@ -838,7 +832,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     end
   end
 
-  describe "degraded-tier consent handling" do
+  describe "degraded-tier observe_full_evaluation_data handling" do
     let(:logger) { instance_double(Logger, debug: nil) }
 
     def captured_payload
@@ -852,16 +846,14 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       payload
     end
 
-    it "redacts the error message to the error code in the degraded tier when consent is off" do
+    it "redacts the error message to the error code in the degraded tier when observe_full_evaluation_data is false" do
       payload = captured_payload do |writer|
         small = Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 10)
         writer.instance_variable_set(:@aggregator, small)
-        # First event fills the single full-tier slot (no error).
         writer.enqueue(
           flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
           targeting_key: "u1", eval_time_ms: realistic_eval_ms, attrs: {"x" => 1},
         )
-        # Second event overflows to degraded carrying an error + code (consent off).
         writer.enqueue(
           flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
           error_message: 'For input string: "jane@dd.com"', error_code: "TYPE_MISMATCH",
@@ -875,7 +867,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(wire).not_to include("jane@dd.com")
     end
 
-    it "emits the raw error message in the degraded tier when consent is on" do
+    it "emits the raw error message in the degraded tier when observe_full_evaluation_data is true" do
       payload = captured_payload do |writer|
         small = Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 10)
         writer.instance_variable_set(:@aggregator, small)

@@ -293,8 +293,8 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
     end
 
-    context "consent in the bucket key" do
-      it "puts consent-on and consent-off evaluations in distinct full-tier buckets" do
+    context "observe_full_evaluation_data in the bucket key" do
+      it "puts observe_full_evaluation_data-on and -off evaluations in distinct full-tier buckets" do
         aggregator.record(**base_event.merge(observe_full_evaluation_data: false))
         aggregator.record(**base_event.merge(observe_full_evaluation_data: true))
 
@@ -302,7 +302,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         expect(snapshot[:full].size).to eq(2)
       end
 
-      it "does not store context_attrs when consent is off" do
+      it "does not store context_attrs when observe_full_evaluation_data is false" do
         aggregator.record(**base_event.merge(attrs: {"env" => "prod"}, observe_full_evaluation_data: false))
 
         snapshot = aggregator.flush_and_reset
@@ -310,7 +310,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         expect(entry[:context_attrs]).to be_nil
       end
 
-      it "stores context_attrs when consent is on" do
+      it "stores context_attrs when observe_full_evaluation_data is true" do
         aggregator.record(**base_event.merge(attrs: {"env" => "prod"}, observe_full_evaluation_data: true))
 
         snapshot = aggregator.flush_and_reset
@@ -318,9 +318,8 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         expect(entry[:context_attrs]).to eq({"env" => "prod"})
       end
 
-      it "does not key on context when consent is off (high-cardinality context does not split buckets)" do
-        # Two evaluations with different context but consent off: one bucket, not two.
-        # This prevents the per-flag bucket cap from burning on privacy-protected traffic.
+      it "does not key on context when observe_full_evaluation_data is false (high-cardinality context does not split buckets)" do
+        # Prevents the per-flag bucket cap from burning on privacy-protected traffic.
         aggregator.record(**base_event.merge(attrs: {"request_id" => "a"}, observe_full_evaluation_data: false))
         aggregator.record(**base_event.merge(attrs: {"request_id" => "b"}, observe_full_evaluation_data: false))
 
@@ -329,10 +328,9 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         expect(snapshot[:full].values.first[:count]).to eq(2)
       end
 
-      it "keys consent-off buckets on the error code, not the raw error message" do
-        # Consent off redacts error.message to the error code on emit, so two
-        # evaluations whose raw messages differ but redact to the same code must
-        # merge (otherwise they serialize to identical rows and burn the per-flag cap).
+      it "keys observe_full_evaluation_data-off buckets on the error code, not the raw error message" do
+        # When observe_full_evaluation_data is false, error.message is redacted to the error code
+        # on emit, so evaluations whose raw messages differ but redact to the same code must merge.
         aggregator.record(**base_event.merge(
           error_message: 'For input string: "jane@dd.com"', error_code: "TYPE_MISMATCH",
           observe_full_evaluation_data: false
@@ -347,7 +345,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         expect(snapshot[:full].values.first[:count]).to eq(2)
       end
 
-      it "keys consent-on buckets on the raw error message" do
+      it "keys observe_full_evaluation_data-on buckets on the raw error message" do
         aggregator.record(**base_event.merge(error_message: "boom-a", observe_full_evaluation_data: true))
         aggregator.record(**base_event.merge(error_message: "boom-b", observe_full_evaluation_data: true))
 
@@ -380,8 +378,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       expect(aggregator_small.dropped_degraded_overflow).to eq(0)
     end
 
-    # The snapshot must CARRY the degraded-overflow count so the writer can emit it before
-    # reset (not reset-without-emit). The count must equal what dropped at flush time.
+    # The snapshot must carry the degraded-overflow count so the writer can emit it before reset.
     it "returns the degraded-overflow count in the snapshot so it can be emitted before reset" do
       aggregator_small = described_class.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 1)
       aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 1, attrs: {"x" => 1}, observe_full_evaluation_data: true)
