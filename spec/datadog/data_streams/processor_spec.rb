@@ -87,6 +87,7 @@ RSpec.describe Datadog::DataStreams::Processor do
     end
 
     it "does not discard buffered state when no fork occurred" do
+      processor.stop(true)
       processor.track_kafka_produce("orders", 0, 1, Datadog::Core::Utils::Time.now)
 
       processor.restart_flush_thread
