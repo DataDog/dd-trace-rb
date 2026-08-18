@@ -41,7 +41,7 @@ jobs:
           - name: ruby
             version: '2.5'
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}-gnu-gcc-g27019b38640025d7722ca3969437962037b5877f
+      image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}-gnu-gcc-g9b9386d296819d954c1eb665ac0c5b81169805e7
       env:
         BUNDLE_GEMFILE: gemfiles/${{ matrix.engine.name }}-${{ matrix.engine.version }}.gemfile
     steps:
