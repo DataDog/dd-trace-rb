@@ -55,12 +55,20 @@ module Datadog
             {}
           end
 
+          # Redact the error message before enqueue when observe_full_evaluation_data is
+          # false: evaluator exception messages can carry raw context data, so the raw text
+          # must never enter the async queue. Substitute the error code so operators keep
+          # a stable signal. (Matches Go/Java: redaction happens before the queue.)
+          error_message = extract_error_message(evaluation_details)
+          unless observe_full_evaluation_data
+            error_message = extract_error_code(evaluation_details)&.to_s
+          end
+
           writer.enqueue(
             flag_key: hook_context.flag_key,
             variant: evaluation_details.variant,
             allocation_key: extract_allocation_key(evaluation_details),
-            error_message: extract_error_message(evaluation_details),
-            error_code: extract_error_code(evaluation_details),
+            error_message: error_message,
             runtime_default: runtime_default?(evaluation_details),
             targeting_key: extract_targeting_key(hook_context.evaluation_context),
             eval_time_ms: eval_time_ms,

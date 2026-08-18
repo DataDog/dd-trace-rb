@@ -80,7 +80,7 @@ module Datadog
         # Record one evaluation event. Thread-safe. Called from the background writer.
         def record(
           flag_key:, variant:, allocation_key:, targeting_key:, eval_time_ms:, attrs:, error_message: nil,
-          runtime_default: nil, observe_full_evaluation_data: false, error_code: nil
+          runtime_default: nil, observe_full_evaluation_data: false
         )
           runtime_default = variant.nil? if runtime_default.nil?
           runtime_default = !!runtime_default
@@ -100,11 +100,10 @@ module Datadog
               targeting_key, context_key, true,
             ]
           else
-            # The error message is redacted to the error code on emit, so the error code
-            # is the bucket dimension (keying on the raw message would split buckets
-            # that serialize to identical rows and burn the per-flag cap).
+            # The error message is already redacted to the error code in the hook before
+            # enqueue, so error_message is the correct bucket dimension in both cases.
             full_key = [
-              flag_key, variant, allocation_key, runtime_default, error_code.to_s,
+              flag_key, variant, allocation_key, runtime_default, error_message,
               targeting_key, false,
             ]
           end
@@ -120,8 +119,7 @@ module Datadog
             per_flag_count = @per_flag_full[flag_key]
             if per_flag_count >= @per_flag_cap
               add_to_degraded(
-                flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
-                observe_full_evaluation_data: observe_full_evaluation_data, error_code: error_code
+                flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms
               )
               return
             end
@@ -137,16 +135,14 @@ module Datadog
                 error_message: error_message,
                 targeting_key: targeting_key,
                 context_attrs: observe_full_evaluation_data ? attrs : nil,
-                observe_full_evaluation_data: observe_full_evaluation_data,
-                error_code: error_code
+                observe_full_evaluation_data: observe_full_evaluation_data
               )
               @full[full_key] = entry
               @global_count += 1
             else
               # Route to degraded tier
               add_to_degraded(
-                flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
-                observe_full_evaluation_data: observe_full_evaluation_data, error_code: error_code
+                flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms
               )
             end
           end
@@ -293,7 +289,7 @@ module Datadog
 
         def new_entry(
           evaluation_time_ms, runtime_default:, error_message: nil, targeting_key: nil, context_attrs: nil,
-          observe_full_evaluation_data: false, error_code: nil
+          observe_full_evaluation_data: false
         )
           {
             count: 1,
@@ -301,7 +297,6 @@ module Datadog
             last_evaluation: evaluation_time_ms,
             runtime_default: runtime_default,
             error_message: error_message,
-            error_code: error_code,
             targeting_key: targeting_key,
             context_attrs: context_attrs,
             observe_full_evaluation_data: observe_full_evaluation_data,
@@ -315,15 +310,13 @@ module Datadog
         end
 
         def add_to_degraded(
-          flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
-          observe_full_evaluation_data: false, error_code: nil
+          flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms
         )
-          # observe_full_evaluation_data and the emitted error dimension are part of the
-          # degraded key so observe_full_evaluation_data-on/off evaluations and errors
-          # redacting to different codes do not merge.
-          error_dimension = observe_full_evaluation_data ? error_message : error_code.to_s
+          # Consent is intentionally not a degraded dimension: the degraded payload emits
+          # neither targeting_key nor context, so consent-differing rows would be
+          # byte-identical on the wire. (Matches Go/Java.)
           degraded_key = [
-            flag_key, variant, allocation_key, runtime_default, error_dimension, observe_full_evaluation_data,
+            flag_key, variant, allocation_key, runtime_default, error_message,
           ]
 
           if (entry = @degraded[degraded_key])
@@ -338,15 +331,11 @@ module Datadog
             return
           end
 
-          # Degraded entry omits targeting_key + context_attrs (schema omitempty fields),
-          # but carries observe_full_evaluation_data and the error code so the writer
-          # can redact the error message correctly on emit.
+          # Degraded entry omits targeting_key + context_attrs (schema omitempty fields).
           @degraded[degraded_key] = new_entry(
             evaluation_time_ms,
             runtime_default: runtime_default,
-            error_message: error_message,
-            observe_full_evaluation_data: observe_full_evaluation_data,
-            error_code: error_code
+            error_message: error_message
           )
         end
       end

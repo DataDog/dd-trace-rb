@@ -747,12 +747,11 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(wire).not_to include(raw_subject)
     end
 
-    it "redacts the error message to the error code so it cannot carry raw context" do
+    it "emits the error code in place of the raw error message when observe_full_evaluation_data is false" do
       payload = captured_payload do |writer|
         writer.enqueue(
           flag_key: "err-flag", variant: nil, allocation_key: "",
-          error_message: 'For input string: "jane.doe@datadoghq.com"',
-          error_code: "TYPE_MISMATCH",
+          error_message: "TYPE_MISMATCH",
           targeting_key: "jane.doe@datadoghq.com",
           eval_time_ms: realistic_eval_ms, attrs: {},
         )
@@ -760,15 +759,13 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       row = payload["flagEvaluations"].first
       expect(row["error"]).to eq("message" => "TYPE_MISMATCH")
-      wire = Datadog::Core::Encoding::JSONEncoder.encode(payload)
-      expect(wire).not_to include("jane.doe@datadoghq.com")
     end
 
     it "omits the error key when observe_full_evaluation_data is false and no error code is present" do
       payload = captured_payload do |writer|
         writer.enqueue(
           flag_key: "err-flag", variant: nil, allocation_key: "",
-          error_message: 'For input string: "jane.doe@datadoghq.com"',
+          error_message: nil,
           targeting_key: "jane.doe@datadoghq.com",
           eval_time_ms: realistic_eval_ms, attrs: {},
         )
@@ -776,8 +773,6 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       row = payload["flagEvaluations"].first
       expect(row).not_to have_key("error")
-      wire = Datadog::Core::Encoding::JSONEncoder.encode(payload)
-      expect(wire).not_to include("jane.doe@datadoghq.com")
     end
 
     it "hashes a non-UTF-8 targeting key over its UTF-8 bytes to match other SDKs" do
@@ -856,7 +851,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         )
         writer.enqueue(
           flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
-          error_message: 'For input string: "jane@dd.com"', error_code: "TYPE_MISMATCH",
+          error_message: "TYPE_MISMATCH",
           targeting_key: "u2", eval_time_ms: realistic_eval_ms, attrs: {"x" => 2},
         )
       end

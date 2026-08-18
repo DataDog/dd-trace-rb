@@ -329,14 +329,14 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
 
       it "keys observe_full_evaluation_data-off buckets on the error code, not the raw error message" do
-        # When observe_full_evaluation_data is false, error.message is redacted to the error code
-        # on emit, so evaluations whose raw messages differ but redact to the same code must merge.
+        # The hook redacts error_message to the error code before enqueue, so the aggregator
+        # receives the same error_message for both and they merge.
         aggregator.record(**base_event.merge(
-          error_message: 'For input string: "jane@dd.com"', error_code: "TYPE_MISMATCH",
+          error_message: "TYPE_MISMATCH",
           observe_full_evaluation_data: false
         ))
         aggregator.record(**base_event.merge(
-          error_message: 'For input string: "bob@dd.com"', error_code: "TYPE_MISMATCH",
+          error_message: "TYPE_MISMATCH",
           observe_full_evaluation_data: false
         ))
 

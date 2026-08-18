@@ -91,7 +91,8 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
     end
 
     it "enqueues error_message when present" do
-      details = build_evaluation_details(variant: nil, error_message: "flag not found")
+      details = build_evaluation_details(variant: nil, error_message: "flag not found",
+        flag_metadata: {"dd.eval.timestamp_ms" => 1, Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true})
       expect(writer).to receive(:enqueue).with(hash_including(error_message: "flag not found"))
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
@@ -189,12 +190,12 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
 
-    it "passes the error code so the writer can redact the error message" do
+    it "redacts the error message to the error code before enqueue when observe_full_evaluation_data is false" do
       details = build_evaluation_details(
         variant: nil, error_message: "boom", error_code: "TYPE_MISMATCH",
         flag_metadata: {"dd.eval.timestamp_ms" => 1}
       )
-      expect(writer).to receive(:enqueue).with(hash_including(error_code: "TYPE_MISMATCH"))
+      expect(writer).to receive(:enqueue).with(hash_including(error_message: "TYPE_MISMATCH"))
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
   end

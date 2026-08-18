@@ -101,7 +101,6 @@ module Datadog
             variant: event[:variant],
             allocation_key: event[:allocation_key],
             error_message: event[:error_message],
-            error_code: event[:error_code],
             runtime_default: event[:runtime_default],
             targeting_key: event[:targeting_key],
             eval_time_ms: event[:eval_time_ms],
@@ -220,7 +219,6 @@ module Datadog
                 error_message: event[:error_message],
                 runtime_default: event[:runtime_default],
                 observe_full_evaluation_data: event[:observe_full_evaluation_data],
-                error_code: event[:error_code],
               )
               drained += 1
             rescue ThreadError
@@ -338,17 +336,12 @@ module Datadog
 
           event["runtime_default_used"] = true if entry[:runtime_default]
 
-          # When observe_full_evaluation_data is false the raw error message can carry
-          # raw context data (e.g. an evaluator exception echoing a targeting key), so emit
-          # the error code in its place to keep a stable signal without the raw data.
-          # When true, emit the raw error message.
+          # The error message is already redacted in the hook before enqueue (raw message
+          # when observe_full_evaluation_data is true, error code when false), so emit
+          # it as-is.
           error_message = entry[:error_message]
           if error_message && !error_message.empty?
-            if observe_full_evaluation_data
-              event["error"] = {"message" => error_message}
-            elsif (error_code = entry[:error_code])
-              event["error"] = {"message" => error_code.to_s}
-            end
+            event["error"] = {"message" => error_message}
           end
 
           # variant + allocation are present in both tiers (omitempty per schema).
