@@ -84,7 +84,6 @@ module Datadog
         )
           runtime_default = variant.nil? if runtime_default.nil?
           runtime_default = !!runtime_default
-          observe_full_evaluation_data = observe_full_evaluation_data == true
 
           # Normalize nil/empty strings
           variant = variant.to_s
