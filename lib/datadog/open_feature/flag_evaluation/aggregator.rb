@@ -336,7 +336,7 @@ module Datadog
           # codes, do not merge.
           error_dimension = observe_full_evaluation_data ? error_message : error_code.to_s
           degraded_key = [
-            flag_key, variant, allocation_key, runtime_default, error_dimension, observe_full_evaluation_data
+            flag_key, variant, allocation_key, runtime_default, error_dimension, observe_full_evaluation_data,
           ]
 
           if (entry = @degraded[degraded_key])
