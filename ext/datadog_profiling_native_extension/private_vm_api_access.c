@@ -926,12 +926,20 @@ static bool is_metaclass(VALUE mod, VALUE* attached) {
   return false;
 }
 
-static VALUE alloc_free_rb_mod_name(VALUE mod) {
+VALUE ddtrace_alloc_free_rb_mod_name(VALUE mod) {
 #ifdef NO_ALLOC_FREE_MOD_NAME
-  return rb_attr_get(mod, rb_intern("__classpath__"));
+  VALUE name = rb_attr_get(mod, rb_intern("__classpath__"));
 #else
-  return rb_mod_name(mod);
+  VALUE name = rb_mod_name(mod);
 #endif
+  // While Module#const_set rejects empty strings,
+  // an empty String is possible if `rb_const_set(mod, "", val)` was used
+  // but that's not understandable so consider those anonymous too.
+  if (name == Qnil || RSTRING_LEN(name) == 0) {
+    return Qnil;
+  } else {
+    return name;
+  }
 }
 
 // Ruby 3.3+ has a `permanent_classpath` flag on rb_classext_struct.
@@ -945,6 +953,16 @@ static bool has_permanent_classpath(DDTRACE_UNUSED VALUE mod, DDTRACE_UNUSED VAL
 #else // 3.2 and older
   return memchr(RSTRING_PTR(mod_name), '#', RSTRING_LEN(mod_name)) == NULL;
 #endif
+}
+
+VALUE ddtrace_permanent_mod_name(VALUE mod) {
+  VALUE name = ddtrace_alloc_free_rb_mod_name(mod);
+
+  if (NIL_P(name) || !has_permanent_classpath(mod, name)) {
+    return Qnil;
+  } else {
+    return name;
+  }
 }
 
 #define ONLY_METHOD_NAME ((ssize_t) -1)
@@ -961,11 +979,12 @@ static ssize_t rb_gen_method_name(VALUE owner, VALUE method_name, char *buf, siz
   if (is_metaclass(owner, &mod)) {
     separator = '.';
   }
-  VALUE mod_name = alloc_free_rb_mod_name(mod);
+
+  VALUE mod_name = ddtrace_permanent_mod_name(mod);
 
   // Exclude non-permanent names (e.g. `#<Module:0x0123>::Foo`) which break flamegraph aggregation
   // since they contain addresses that differ across processes/runs.
-  if (NIL_P(mod_name) || !has_permanent_classpath(mod, mod_name)) {
+  if (NIL_P(mod_name)) {
     return ONLY_METHOD_NAME;
   }
 
