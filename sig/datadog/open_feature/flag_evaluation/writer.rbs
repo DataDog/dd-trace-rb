@@ -36,10 +36,6 @@ module Datadog
 
         REASON_PRE_QUEUE_OVERFLOW: ::String
 
-        REASON_MAX_CONTEXT_FIELDS: ::String
-
-        REASON_MAX_FIELD_LENGTH: ::String
-
         TARGETING_KEY_HASH_PREFIX: ::String
 
         @transport: Transport::HTTP
@@ -61,8 +57,6 @@ module Datadog
         @dropped_queue_overflow: ::Integer
 
         @dropped_pre_queue_overflow: ::Integer
-
-        @context_truncated_count: ::Integer
 
         @service_context: ::Hash[::String, ::String]
 
@@ -108,15 +102,13 @@ module Datadog
 
         def flush_once: () -> void
 
-        def take_dropped_queue_overflow: () -> ::Integer
+        def read_and_reset_dropped_queue_overflow: () -> ::Integer
 
-        def take_dropped_pre_queue_overflow: () -> ::Integer
-
-        def take_context_truncated_count: () -> ::Integer
+        def read_and_reset_dropped_pre_queue_overflow: () -> ::Integer
 
         def emit_drop_counts: (::Integer dropped_queue, ::Integer dropped_overflow, ::Integer dropped_pre_queue) -> void
 
-        def emit_context_truncated_counts: (::Integer context_truncated) -> void
+        def emit_context_truncated_counts: (::Hash[::String, ::Integer] context_truncated_counts) -> void
 
         def emit_degraded_counts: (::Integer degraded_count) -> void
 

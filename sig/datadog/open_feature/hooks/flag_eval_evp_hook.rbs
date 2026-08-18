@@ -28,7 +28,7 @@ module Datadog
 
         def extract_error_message: (untyped evaluation_details) -> ::String?
 
-        def extract_error_code: (untyped evaluation_details) -> untyped
+        def extract_error_code: (untyped evaluation_details) -> ::String?
 
         def runtime_default?: (untyped evaluation_details) -> bool
       end

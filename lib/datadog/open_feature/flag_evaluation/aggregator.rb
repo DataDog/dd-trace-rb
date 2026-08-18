@@ -24,6 +24,11 @@ module Datadog
         CTX_TAG_FLOAT = "f"
         CTX_TAG_OTHER = "o"
 
+        # Context-truncation reason labels, surfaced on the `flagevaluation.context.truncated`
+        # telemetry counter so operators can tell which cap was hit.
+        REASON_MAX_CONTEXT_FIELDS = "max_context_fields"
+        REASON_MAX_FIELD_LENGTH = "max_field_length"
+
         EVAL_SCALE_TARGET_FLAGS = 2_500
         EVAL_SCALE_FULL_BUCKETS_PER_FLAG = 50
         EVAL_SCALE_USERS_PER_FLAG = 1_000
@@ -57,16 +62,12 @@ module Datadog
           @per_flag_full = Hash.new(0)
           @global_count = 0
           @dropped_degraded_overflow = 0
+          # reason (String) -> count, accumulated by prune_context_with_reasons and
+          # emitted by the writer on flush.
+          @context_truncated_counts = Hash.new(0)
         end
 
         # Record one evaluation event. Thread-safe. Called from the background writer.
-        #
-        # observe_full_evaluation_data is the consent value stamped from the UFC
-        # that the evaluation ran against. It is part of the bucket key so that
-        # consent-on and consent-off evaluations do not merge. When consent is
-        # off, the context dimension is removed from the key and the context
-        # attributes are not stored: the context is omitted on emit, so keying on
-        # it would burn the per-flag bucket cap on privacy-protected traffic.
         def record(
           flag_key:, variant:, allocation_key:, targeting_key:, eval_time_ms:, attrs:, error_message: nil,
           runtime_default: nil, observe_full_evaluation_data: false, error_code: nil
@@ -82,20 +83,24 @@ module Datadog
           targeting_key = targeting_key.to_s
 
           if observe_full_evaluation_data
-            # Consent on: keep the context dimension in the key and store the
-            # pruned context attributes for emit.
-            pruned_context = prune_context(attrs)
+            pruned_context, reasons = prune_context_with_reasons(attrs)
+            record_context_truncation(reasons)
             context_key = canonical_context_key(pruned_context)
+            # Consent on: the raw error message is emitted, so it is the bucket dimension.
+            error_dimension = error_message
             full_key = [
-              flag_key, variant, allocation_key, runtime_default, error_message,
+              flag_key, variant, allocation_key, runtime_default, error_dimension,
               targeting_key, context_key, true,
             ]
           else
-            # Consent off: remove the context dimension from the key and do not
-            # store the context attributes. The context is omitted on emit.
             pruned_context = nil
+            # Consent off: the error message is redacted to the error code on emit,
+            # so the error code (not the raw message) is the bucket dimension.
+            # Keying on the raw message would split buckets that serialize to
+            # identical rows and burn the per-flag cap on privacy-protected traffic.
+            error_dimension = error_code.to_s
             full_key = [
-              flag_key, variant, allocation_key, runtime_default, error_message,
+              flag_key, variant, allocation_key, runtime_default, error_dimension,
               targeting_key, false,
             ]
           end
@@ -112,7 +117,7 @@ module Datadog
             if per_flag_count >= @per_flag_cap
               add_to_degraded(
                 flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
-                observe_full_evaluation_data: observe_full_evaluation_data
+                observe_full_evaluation_data: observe_full_evaluation_data, error_code: error_code
               )
               return
             end
@@ -137,29 +142,35 @@ module Datadog
               # Route to degraded tier
               add_to_degraded(
                 flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
-                observe_full_evaluation_data: observe_full_evaluation_data
+                observe_full_evaluation_data: observe_full_evaluation_data, error_code: error_code
               )
             end
           end
         end
 
         # Flush aggregation maps, reset state, return snapshot.
-        # Returns { full: Hash, degraded: Hash, dropped_degraded_overflow: Integer }.
-        # The overflow count is included in the snapshot so the caller can EMIT it before it is
-        # reset — the count is never reset-without-emit (backpressure stays observable).
+        # The overflow and context-truncation counts are included in the snapshot so the
+        # caller can emit them before they are reset (never reset-without-emit).
         def flush_and_reset
           @mutex.synchronize do
             full_snapshot = @full
             degraded_snapshot = @degraded
             dropped_snapshot = @dropped_degraded_overflow
+            context_truncated_snapshot = @context_truncated_counts
 
             @full = {}
             @degraded = {}
             @per_flag_full = Hash.new(0)
             @global_count = 0
             @dropped_degraded_overflow = 0
+            @context_truncated_counts = Hash.new(0)
 
-            {full: full_snapshot, degraded: degraded_snapshot, dropped_degraded_overflow: dropped_snapshot}
+            {
+              full: full_snapshot,
+              degraded: degraded_snapshot,
+              dropped_degraded_overflow: dropped_snapshot,
+              context_truncated_counts: context_truncated_snapshot,
+            }
           end
         end
 
@@ -169,23 +180,42 @@ module Datadog
           self.class.prune_context(attrs)
         end
 
+        # Prune context and report which caps were hit so the writer can emit a
+        # `flagevaluation.context.truncated` counter per reason. Returns the
+        # pruned context and the de-duplicated list of reasons hit.
+        def prune_context_with_reasons(attrs)
+          self.class.prune_context_with_reasons(attrs)
+        end
+
         def self.prune_context(attrs)
+          pruned_context, = prune_context_with_reasons(attrs)
+          pruned_context
+        end
+
+        def self.prune_context_with_reasons(attrs)
           flattened_context = flatten_context(attrs)
-          return {} if flattened_context.empty?
+          return [{}, []] if flattened_context.empty?
 
           pruned_context = {}
+          reasons = []
           count = 0
           flattened_context.keys.sort.each do |key|
-            break if count >= MAX_CONTEXT_FIELDS
+            if count >= MAX_CONTEXT_FIELDS
+              reasons << REASON_MAX_CONTEXT_FIELDS
+              break
+            end
 
             value = flattened_context[key]
-            # Skip oversized string values (mirrors flageval-worker pruning behavior).
-            next if value.is_a?(String) && value.length > MAX_FIELD_LENGTH
+            if value.is_a?(String) && value.length > MAX_FIELD_LENGTH
+              reasons << REASON_MAX_FIELD_LENGTH
+              next
+            end
 
             pruned_context[key] = value
             count += 1
           end
-          pruned_context
+
+          [pruned_context, reasons.uniq]
         end
 
         def self.flatten_context(attrs)
@@ -245,6 +275,12 @@ module Datadog
 
         private
 
+        # Accumulate context-truncation reasons into the per-flush counter. Called from
+        # `record` on the background writer thread (single writer), so no mutex is needed.
+        def record_context_truncation(reasons)
+          reasons.each { |reason| @context_truncated_counts[reason] += 1 }
+        end
+
         def context_value_bytes(value)
           tag, encoded = case value
           when String then [CTX_TAG_STRING, value.to_s]
@@ -293,11 +329,15 @@ module Datadog
 
         def add_to_degraded(
           flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
-          observe_full_evaluation_data: false
+          observe_full_evaluation_data: false, error_code: nil
         )
-          # Consent is part of the degraded key as defense in depth, so that
-          # consent-on and consent-off evaluations do not merge.
-          degraded_key = [flag_key, variant, allocation_key, runtime_default, error_message, observe_full_evaluation_data]
+          # Consent and the emitted error dimension are part of the degraded key so that
+          # consent-on and consent-off evaluations, and errors that redact to different
+          # codes, do not merge.
+          error_dimension = observe_full_evaluation_data ? error_message : error_code.to_s
+          degraded_key = [
+            flag_key, variant, allocation_key, runtime_default, error_dimension, observe_full_evaluation_data
+          ]
 
           if (entry = @degraded[degraded_key])
             observe(entry, evaluation_time_ms)
@@ -311,11 +351,15 @@ module Datadog
             return
           end
 
-          # Degraded entry omits targeting_key + context_attrs (schema omitempty fields)
+          # Degraded entry omits targeting_key + context_attrs (schema omitempty fields),
+          # but carries consent and the error code so the writer can redact the error
+          # message correctly on emit.
           @degraded[degraded_key] = new_entry(
             evaluation_time_ms,
             runtime_default: runtime_default,
-            error_message: error_message
+            error_message: error_message,
+            observe_full_evaluation_data: observe_full_evaluation_data,
+            error_code: error_code
           )
         end
       end

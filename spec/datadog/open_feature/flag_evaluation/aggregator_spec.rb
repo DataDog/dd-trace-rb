@@ -326,6 +326,32 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         expect(snapshot[:full].size).to eq(1)
         expect(snapshot[:full].values.first[:count]).to eq(2)
       end
+
+      it "keys consent-off buckets on the error code, not the raw error message" do
+        # Consent off redacts error.message to the error code on emit, so two
+        # evaluations whose raw messages differ but redact to the same code must
+        # merge (otherwise they serialize to identical rows and burn the per-flag cap).
+        aggregator.record(**base_event.merge(
+          error_message: 'For input string: "jane@dd.com"', error_code: "TYPE_MISMATCH",
+          observe_full_evaluation_data: false
+        ))
+        aggregator.record(**base_event.merge(
+          error_message: 'For input string: "bob@dd.com"', error_code: "TYPE_MISMATCH",
+          observe_full_evaluation_data: false
+        ))
+
+        snapshot = aggregator.flush_and_reset
+        expect(snapshot[:full].size).to eq(1)
+        expect(snapshot[:full].values.first[:count]).to eq(2)
+      end
+
+      it "keys consent-on buckets on the raw error message" do
+        aggregator.record(**base_event.merge(error_message: "boom-a", observe_full_evaluation_data: true))
+        aggregator.record(**base_event.merge(error_message: "boom-b", observe_full_evaluation_data: true))
+
+        snapshot = aggregator.flush_and_reset
+        expect(snapshot[:full].size).to eq(2)
+      end
     end
   end
 

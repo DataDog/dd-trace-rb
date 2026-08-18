@@ -4,7 +4,10 @@ require "spec_helper"
 require "datadog/open_feature/evaluation_engine"
 
 RSpec.describe Datadog::OpenFeature::EvaluationEngine do
-  before { allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_return(evaluator) }
+  before do
+    allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_return(evaluator)
+    allow(evaluator).to receive(:observe_full_evaluation_data).and_return(false)
+  end
 
   let(:engine) { described_class.new(reporter, telemetry: telemetry, logger: logger) }
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }

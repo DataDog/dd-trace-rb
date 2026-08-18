@@ -42,14 +42,13 @@ module Datadog
           eval_time_ms = metadata.is_a?(Hash) ? metadata["dd.eval.timestamp_ms"] : nil
           eval_time_ms ||= (Core::Utils::Time.now.to_f * 1000).to_i
 
-          # Read the consent value from the evaluation metadata, not from live config.
-          # The provider stamped this value from the UFC it evaluated against.
-          # Absent, null, false, or wrong-typed values all become false.
+          # Consent travels on the event metadata (stamped from the UFC the
+          # evaluation ran against), never read from live config.
           observe_full_evaluation_data = metadata.is_a?(Hash) ? metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] : nil
           observe_full_evaluation_data = false unless observe_full_evaluation_data == true
 
-          # When consent is off, the evaluation context is omitted on emit. Do not do
-          # the capture work on this hot path. Pass an empty hash to the writer.
+          # Skip the context capture on the hot path when consent is off; the
+          # context is omitted on emit so there is no copy work to do.
           attrs = if observe_full_evaluation_data
             extract_attributes(hook_context.evaluation_context)
           else
@@ -106,9 +105,7 @@ module Datadog
           evaluation_details.error_message
         end
 
-        # The error code is used to redact the error message when consent is off.
-        # The writer puts the error code in place of the raw message so the
-        # operator keeps a stable signal without the raw context data.
+        # Used to redact the error message to a stable signal when consent is off.
         def extract_error_code(evaluation_details)
           return unless evaluation_details.respond_to?(:error_code)
 

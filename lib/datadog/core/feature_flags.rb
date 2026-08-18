@@ -22,6 +22,20 @@ module Datadog
       # Base class is defined in the C extension, with Ruby methods added here
       class ResolutionDetails
         attr_writer :value
+        attr_writer :flag_metadata
+
+        # Preserve the C-defined `flag_metadata` reader (which returns the
+        # libdatadog-side metadata) so the SDK can stamp additional metadata
+        # onto a result without losing what the extension already carries.
+        if method_defined?(:flag_metadata)
+          alias_method :__c_flag_metadata, :flag_metadata
+
+          # Returns SDK-stamped metadata when present, otherwise the
+          # libdatadog-side metadata from the C extension.
+          def flag_metadata
+            defined?(@flag_metadata) ? @flag_metadata : __c_flag_metadata
+          end
+        end
 
         # Get the resolved value, with JSON parsing for object types
         #

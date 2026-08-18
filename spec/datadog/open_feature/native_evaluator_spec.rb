@@ -83,57 +83,44 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
   end
 
   describe "#observe_full_evaluation_data" do
-    def ufc(observe: :absent)
-      base = "{\"format\":\"SERVER\",\"environment\":{\"name\":\"test\"},\"flags\":{}}"
-      return base if observe == :absent
+    let(:base_ufc) { '{"format":"SERVER","environment":{"name":"test"},"flags":{}}' }
 
-      value = (observe == true) ? "true" : "false"
-      extra = "\"observeFullEvaluationData\":#{value}"
-      base.sub('{"format"', "{#{extra},\"format\"")
+    context "when the field is absent (privacy-preserving default)" do
+      it { expect(described_class.new(base_ufc).observe_full_evaluation_data).to be(false) }
     end
 
-    it "returns false when the field is absent (privacy-preserving default)" do
-      evaluator = described_class.new(ufc(observe: :absent))
-      expect(evaluator.observe_full_evaluation_data).to be(false)
+    context "when the field is false" do
+      let(:ufc) { '{"observeFullEvaluationData":false,"format":"SERVER","environment":{"name":"test"},"flags":{}}' }
+      it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(false) }
     end
 
-    it "returns false when the field is false" do
-      evaluator = described_class.new(ufc(observe: false))
-      expect(evaluator.observe_full_evaluation_data).to be(false)
+    context "when the field is true" do
+      let(:ufc) { '{"observeFullEvaluationData":true,"format":"SERVER","environment":{"name":"test"},"flags":{}}' }
+      it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(true) }
     end
 
-    it "returns true when the field is true" do
-      evaluator = described_class.new(ufc(observe: true))
-      expect(evaluator.observe_full_evaluation_data).to be(true)
+    context "when the field is explicit null" do
+      let(:ufc) { '{"format":"SERVER","observeFullEvaluationData":null,"environment":{"name":"test"},"flags":{}}' }
+      it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(false) }
     end
 
-    it "returns false when the field is explicit null" do
-      json = '{"format":"SERVER","observeFullEvaluationData":null,"environment":{"name":"test"},"flags":{}}'
-      evaluator = described_class.new(json)
-      expect(evaluator.observe_full_evaluation_data).to be(false)
+    context "when the field is wrong-typed (string)" do
+      let(:ufc) { '{"format":"SERVER","observeFullEvaluationData":"true","environment":{"name":"test"},"flags":{}}' }
+      it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(false) }
     end
 
-    it "returns false when the field is wrong-typed (string)" do
-      json = '{"format":"SERVER","observeFullEvaluationData":"true","environment":{"name":"test"},"flags":{}}'
-      evaluator = described_class.new(json)
-      expect(evaluator.observe_full_evaluation_data).to be(false)
+    # The field lives at the UFC root (sibling of `environment`), not on the environment object.
+    context "when the field is at the UFC root" do
+      let(:ufc) { '{"format":"SERVER","observeFullEvaluationData":true,"environment":{"name":"test"},"flags":{}}' }
+      it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(true) }
     end
 
-    it "reads the field from the UFC root, not from the environment object" do
-      # The environment object does not carry the field; the root does.
-      json = '{"format":"SERVER","observeFullEvaluationData":true,"environment":{"name":"test"},"flags":{}}'
-      evaluator = described_class.new(json)
-      expect(evaluator.observe_full_evaluation_data).to be(true)
+    context "when the JSON is malformed" do
+      it { expect(described_class.new("{not valid json").observe_full_evaluation_data).to be(false) }
     end
 
-    it "returns false and does not raise on malformed JSON" do
-      evaluator = described_class.new("{not valid json")
-      expect(evaluator.observe_full_evaluation_data).to be(false)
-    end
-
-    it "returns false for a nil configuration" do
-      evaluator = described_class.new(nil)
-      expect(evaluator.observe_full_evaluation_data).to be(false)
+    context "when the configuration is nil" do
+      it { expect(described_class.new(nil).observe_full_evaluation_data).to be(false) }
     end
   end
 end

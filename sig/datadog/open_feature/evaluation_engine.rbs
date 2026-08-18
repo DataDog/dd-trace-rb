@@ -27,6 +27,10 @@ module Datadog
       def observe_full_evaluation_data: () -> bool
 
       def reconfigure!: (::String? configuration) -> void
+
+      private
+
+      def stamp_consent!: (untyped result, bool consent) -> void
     end
   end
 end

@@ -301,7 +301,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         3,
         {reason: "pre_queue_overflow"}
       )
-      expect(writer.send(:take_dropped_pre_queue_overflow)).to eq(0)
+      expect(writer.send(:read_and_reset_dropped_pre_queue_overflow)).to eq(0)
     end
 
     it "does not flatten or prune context before buffering" do
@@ -784,6 +784,116 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(row).not_to have_key("error")
       wire = Datadog::Core::Encoding::JSONEncoder.encode(payload)
       expect(wire).not_to include("jane.doe@datadoghq.com")
+    end
+
+    it "hashes a non-UTF-8 targeting key over its UTF-8 bytes to match other SDKs" do
+      iso = "jane.doe@datadoghq.com".encode(Encoding::ISO_8859_1)
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "pii-flag", variant: "on", allocation_key: "alloc",
+          targeting_key: iso,
+          eval_time_ms: realistic_eval_ms, attrs: {},
+        )
+      end
+
+      row = payload["flagEvaluations"].first
+      expect(row["targeting_key"]).to eq(
+        "sha256_b4698f9b6d186781fa8dc59e533578fa2d8379a46b1cf6db85cda6aa9c99e51b"
+      )
+    end
+  end
+
+  describe "context-truncation telemetry" do
+    let(:logger) { instance_double(Logger, debug: nil) }
+    let(:telemetry) { spy("telemetry") }
+
+    it "emits a context-truncated counter per reason when caps are hit" do
+      transport = instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil)
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      writer = described_class.new(transport: transport, logger: logger, telemetry: telemetry)
+
+      # >256 fields hits the field-count cap.
+      wide_attrs = 257.times.each_with_object({}) { |i, h| h["k#{format("%03d", i)}"] = "v" }
+      writer.enqueue(
+        flag_key: "wide-flag", variant: "on", allocation_key: "",
+        targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: wide_attrs,
+        observe_full_evaluation_data: true,
+      )
+      # An oversized string value hits the field-length cap.
+      writer.enqueue(
+        flag_key: "long-flag", variant: "on", allocation_key: "",
+        targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: {"toobig" => "x" * 257},
+        observe_full_evaluation_data: true,
+      )
+      writer.send(:drain_and_flush)
+
+      expect(telemetry).to have_received(:inc).with(
+        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_context_fields"}
+      )
+      expect(telemetry).to have_received(:inc).with(
+        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_field_length"}
+      )
+    ensure
+      writer&.stop
+    end
+  end
+
+  describe "degraded-tier consent handling" do
+    let(:logger) { instance_double(Logger, debug: nil) }
+
+    def captured_payload
+      payload = nil
+      transport = instance_double(Datadog::OpenFeature::Transport::HTTP)
+      allow(transport).to receive(:send_flag_evaluations) { |p| payload = p }
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      writer = described_class.new(transport: transport, logger: logger)
+      yield writer
+      writer.send(:drain_and_flush)
+      payload
+    end
+
+    it "redacts the error message to the error code in the degraded tier when consent is off" do
+      payload = captured_payload do |writer|
+        small = Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 10)
+        writer.instance_variable_set(:@aggregator, small)
+        # First event fills the single full-tier slot (no error).
+        writer.enqueue(
+          flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
+          targeting_key: "u1", eval_time_ms: realistic_eval_ms, attrs: {"x" => 1},
+        )
+        # Second event overflows to degraded carrying an error + code (consent off).
+        writer.enqueue(
+          flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
+          error_message: 'For input string: "jane@dd.com"', error_code: "TYPE_MISMATCH",
+          targeting_key: "u2", eval_time_ms: realistic_eval_ms, attrs: {"x" => 2},
+        )
+      end
+
+      degraded_row = payload["flagEvaluations"].find { |r| !r.key?("targeting_key") }
+      expect(degraded_row["error"]).to eq("message" => "TYPE_MISMATCH")
+      wire = Datadog::Core::Encoding::JSONEncoder.encode(payload)
+      expect(wire).not_to include("jane@dd.com")
+    end
+
+    it "emits the raw error message in the degraded tier when consent is on" do
+      payload = captured_payload do |writer|
+        small = Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 10)
+        writer.instance_variable_set(:@aggregator, small)
+        writer.enqueue(
+          flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
+          targeting_key: "u1", eval_time_ms: realistic_eval_ms, attrs: {"x" => 1},
+          observe_full_evaluation_data: true,
+        )
+        writer.enqueue(
+          flag_key: "deg-flag", variant: "b", allocation_key: "alloc-x",
+          error_message: "boom", targeting_key: "u2",
+          eval_time_ms: realistic_eval_ms, attrs: {"x" => 2},
+          observe_full_evaluation_data: true,
+        )
+      end
+
+      degraded_row = payload["flagEvaluations"].find { |r| !r.key?("targeting_key") }
+      expect(degraded_row["error"]).to eq("message" => "boom")
     end
   end
 end

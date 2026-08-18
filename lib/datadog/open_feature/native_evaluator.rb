@@ -19,10 +19,8 @@ module Datadog
         @observe_full_evaluation_data = parse_observe_full_evaluation_data(configuration)
       end
 
-      # Consent value read from the UFC that this evaluator evaluated against.
-      # The hook reads this value from evaluation metadata, not from live config.
-      # Returns false when the value is absent, null, or wrong-typed. This is the
-      # privacy-preserving default.
+      # Consent read from the top level of the UFC. Absent, null, or wrong-typed
+      # values fall to the privacy-preserving default `false`.
       attr_reader :observe_full_evaluation_data
 
       # Returns the assignment for a given flag key based on the feature flags
@@ -50,12 +48,11 @@ module Datadog
 
       private
 
-      # Parse the consent boolean from the top level of the UFC JSON string.
-      # The field is a sibling of `environment`, not a field on it.
-      # Absent, null, or wrong-typed values return false. A malformed JSON
-      # string returns false and does not raise: the C extension does the full
-      # UFC parse and raises ReconfigurationError on truly bad input. The
-      # consent read must not be the cause that stops a pod from starting.
+      # Parse the consent boolean from the top level of the UFC JSON (a sibling
+      # of `environment`). Absent, null, or wrong-typed values return false.
+      # Malformed JSON returns false without raising: the C extension owns the
+      # full UFC parse and raises on truly bad input, so the consent read must
+      # never be what strands a pod on PROVIDER_NOT_READY.
       def parse_observe_full_evaluation_data(configuration)
         return false unless configuration.is_a?(String) && !configuration.empty?
 

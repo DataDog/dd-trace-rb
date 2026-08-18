@@ -121,10 +121,14 @@ module Datadog
         # Build metadata before branching so provider-returned details carry eval-entry time.
         flag_meta = build_flag_metadata(result, eval_time_ms)
 
-        # Stamp the consent value from the engine that did the evaluation. The hook reads
-        # this value from metadata, not from live config. This is the authoritative stamp:
-        # the C extension result has no flag_metadata setter, so consent goes here.
-        flag_meta[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] = engine.observe_full_evaluation_data
+        # Consent is stamped onto the result inside `EvaluationEngine#fetch_value`
+        # from the exact evaluator that performed the evaluation, so a Remote
+        # Config swap between evaluation and this point cannot change it. Fall
+        # back to the engine accessor only when the result did not carry consent
+        # (e.g. stubbed results in tests, or the not-configured path).
+        unless flag_meta.key?(Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA)
+          flag_meta[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] = engine.observe_full_evaluation_data
+        end
 
         if result.error?
           return sdk_error_details(default_value, result.error_code, result.error_message, result.reason, flag_meta)
@@ -144,6 +148,7 @@ module Datadog
           error_message: error_message
         )
         error_flag_meta = build_flag_metadata(error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i)
+        error_flag_meta[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] = false
 
         sdk_error_details(default_value, Ext::GENERAL, error_message, Ext::ERROR, error_flag_meta)
       end

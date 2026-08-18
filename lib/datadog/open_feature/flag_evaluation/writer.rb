@@ -43,12 +43,9 @@ module Datadog
         REASON_CARDINALITY_CAP = "cardinality_cap"
         REASON_PAYLOAD_LIMIT = "payload_limit"
         REASON_PRE_QUEUE_OVERFLOW = "pre_queue_overflow"
-        REASON_MAX_CONTEXT_FIELDS = "max_context_fields"
-        REASON_MAX_FIELD_LENGTH = "max_field_length"
 
-        # Literal prefix for the SHA-256 hash of the targeting key. The hash is
-        # unsalted SHA-256 over the raw UTF-8 bytes, lowercase hex, 71 chars total.
-        # This prefix is the cross-SDK contract: every SDK emits the same digest.
+        # Unsalted SHA-256 over the raw UTF-8 bytes of the targeting key, with the
+        # literal `sha256_` prefix. Every SDK must produce the same digest.
         TARGETING_KEY_HASH_PREFIX = "sha256_"
 
         # Service context fields for the batch wrapper.
@@ -69,7 +66,6 @@ module Datadog
           @stopped = false
           @dropped_queue_overflow = 0
           @dropped_pre_queue_overflow = 0
-          @context_truncated_count = 0
 
           self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
 
@@ -79,10 +75,6 @@ module Datadog
 
         # Non-blocking enqueue from the finally hook. Drops + counts on overflow.
         # Context flattening/pruning runs in the background writer, not on the caller eval thread.
-        #
-        # observe_full_evaluation_data is the consent value stamped from the UFC
-        # that the evaluation ran against. When consent is off, the context is
-        # omitted on emit, so the context copy work is skipped.
         def enqueue(**event)
           start_background_thread if forked?
 
@@ -141,7 +133,6 @@ module Datadog
           @stopped = false
           @dropped_queue_overflow = 0
           @dropped_pre_queue_overflow = 0
-          @context_truncated_count = 0
         end
 
         private
@@ -263,12 +254,12 @@ module Datadog
         def flush_once
           snapshot = @aggregator.flush_and_reset
           dropped_overflow = snapshot[:dropped_degraded_overflow].to_i
-          dropped_queue = take_dropped_queue_overflow
-          dropped_pre_queue = take_dropped_pre_queue_overflow
-          context_truncated = take_context_truncated_count
+          dropped_queue = read_and_reset_dropped_queue_overflow
+          dropped_pre_queue = read_and_reset_dropped_pre_queue_overflow
+          context_truncated_counts = snapshot[:context_truncated_counts] || {}
 
           emit_drop_counts(dropped_queue, dropped_overflow, dropped_pre_queue)
-          emit_context_truncated_counts(context_truncated)
+          emit_context_truncated_counts(context_truncated_counts)
 
           events = build_events(snapshot)
           emit_degraded_counts(snapshot[:degraded].values.sum { |entry| entry[:count].to_i })
@@ -279,8 +270,7 @@ module Datadog
           @logger.debug { "OpenFeature EVP: flush error: #{e.class}: #{e.message}" }
         end
 
-        # Read-and-reset the queue-overflow drop counter under the stop mutex.
-        def take_dropped_queue_overflow
+        def read_and_reset_dropped_queue_overflow
           @stop_mutex.synchronize do
             count = @dropped_queue_overflow
             @dropped_queue_overflow = 0
@@ -288,23 +278,10 @@ module Datadog
           end
         end
 
-        # Read-and-reset the pre-queue overflow counter. This counter fires when
-        # the queue is full before the bounded context copy, so a full queue is
-        # an O(1) drop, not a copy-then-discard.
-        def take_dropped_pre_queue_overflow
+        def read_and_reset_dropped_pre_queue_overflow
           @stop_mutex.synchronize do
             count = @dropped_pre_queue_overflow
             @dropped_pre_queue_overflow = 0
-            count
-          end
-        end
-
-        # Read-and-reset the context-truncated counter. The aggregator adds to
-        # this count when a context cap is hit during pruning.
-        def take_context_truncated_count
-          @stop_mutex.synchronize do
-            count = @context_truncated_count
-            @context_truncated_count = 0
             count
           end
         end
@@ -325,12 +302,12 @@ module Datadog
           end
         end
 
-        # Emit the context-truncated count with a reason label so the operator can
-        # tell which cap was hit.
-        def emit_context_truncated_counts(context_truncated)
-          return if context_truncated.zero?
-
-          record_telemetry_count(CONTEXT_TRUNCATED_METRIC, context_truncated, reason: REASON_MAX_CONTEXT_FIELDS)
+        # Emit one `flagevaluation.context.truncated` counter per truncation reason
+        # so operators can distinguish field-count pressure from long-value pressure.
+        def emit_context_truncated_counts(context_truncated_counts)
+          context_truncated_counts.each do |reason, count|
+            record_telemetry_count(CONTEXT_TRUNCATED_METRIC, count, reason: reason)
+          end
         end
 
         def emit_degraded_counts(degraded_count)
@@ -338,11 +315,8 @@ module Datadog
         end
 
         # Build flagEvaluationEvent list from aggregation snapshot.
-        # Full-tier entries include all optional fields; degraded entries omit targeting_key + context.
-        #
-        # Consent is read from the bucket key (and AND-folded with the entry value as
-        # defense in depth). When consent is off, the targeting key is hashed and the
-        # error message is redacted to the error code.
+        # Consent is read from the bucket key and AND-folded with the entry's
+        # consent as defense in depth.
         def build_events(snapshot)
           flush_time_ms = (Core::Utils::Time.now.to_f * 1000).to_i
           events = []
@@ -359,11 +333,12 @@ module Datadog
           end
 
           snapshot[:degraded].each do |key, entry|
-            flag_key, variant, allocation_key, _runtime_default, _error_message, _consent = key
+            flag_key, variant, allocation_key, _runtime_default, _error_dimension, consent = key
+            consent &&= entry[:observe_full_evaluation_data] == true
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
               targeting_key: nil, entry: entry, flush_time_ms: flush_time_ms, tier: :degraded,
-              observe_full_evaluation_data: false,
+              observe_full_evaluation_data: consent,
             )
             events << event
           end
@@ -386,11 +361,10 @@ module Datadog
 
           event["runtime_default_used"] = true if entry[:runtime_default]
 
-          # When consent is off, the error message can carry raw context data
-          # (for example, a NumberFormatException that echoes a targeting key).
-          # Put the error code in place of the raw message so the operator keeps
-          # a stable signal without the raw data. When consent is on, keep the
-          # raw error message.
+          # When consent is off the raw error message can carry raw context data
+          # (e.g. an evaluator exception echoing a targeting key), so emit the
+          # error code in its place to keep a stable signal without the raw data.
+          # When consent is on, emit the raw error message.
           error_message = entry[:error_message]
           if error_message && !error_message.empty?
             if observe_full_evaluation_data
@@ -408,15 +382,10 @@ module Datadog
           # the degraded tier omits both.
           if tier == :full
             if targeting_key && !targeting_key.empty?
-              event["targeting_key"] = if observe_full_evaluation_data
-                targeting_key
-              else
-                hash_targeting_key(targeting_key)
-              end
+              event["targeting_key"] =
+                observe_full_evaluation_data ? targeting_key : hash_targeting_key(targeting_key)
             end
 
-            # Context is emitted only when consent is on. When consent is off,
-            # the context_attrs are not stored, so this branch does not run.
             if observe_full_evaluation_data && entry[:context_attrs] && !entry[:context_attrs].empty?
               event["context"] = {"evaluation" => entry[:context_attrs]}
             end
@@ -425,11 +394,12 @@ module Datadog
           event
         end
 
-        # Unsalted SHA-256 over the raw UTF-8 bytes of the targeting key, with the
-        # literal `sha256_` prefix. Lowercase hex, 71 chars total. Every SDK must
-        # produce the same digest for the same targeting key.
+        # Unsalted SHA-256 over the UTF-8 bytes of the targeting key, with the
+        # `sha256_` prefix. The string is encoded to UTF-8 first so a targeting
+        # key in another Ruby encoding hashes to the same bytes other SDKs emit.
         def hash_targeting_key(targeting_key)
-          TARGETING_KEY_HASH_PREFIX + Digest::SHA256.hexdigest(targeting_key)
+          utf8 = targeting_key.encode(Encoding::UTF_8, invalid: :replace, undef: :replace)
+          TARGETING_KEY_HASH_PREFIX + Digest::SHA256.hexdigest(utf8)
         end
 
         def send_payload_batches(events)

@@ -17,9 +17,8 @@ module Datadog
       # value so the writer (provider) and readers (EVP/metrics hooks) can't drift.
       METADATA_ALLOCATION_KEY = "__dd_allocation_key"
 
-      # Flag-metadata key for the consent value that the evaluator stamps from
-      # the UFC it evaluated against. The hook reads only this key; it does not
-      # read live config. Unprefixed, snake_case: this is the cross-SDK contract.
+      # Flag-metadata key for the consent value stamped from the UFC the
+      # evaluation ran against. The hook reads only this key, never live config.
       METADATA_OBSERVE_FULL_EVALUATION_DATA = "observe_full_evaluation_data"
     end
   end
