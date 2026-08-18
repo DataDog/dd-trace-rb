@@ -92,7 +92,9 @@ module Datadog
           attrs = event[:attrs]
           if attrs.is_a?(Hash) && observe_full_evaluation_data
             attrs, reasons = Aggregator.bounded_context_snapshot(attrs)
-            record_truncation_reasons(reasons)
+            unless reasons.empty?
+              @stop_mutex.synchronize { reasons.each { |r| @context_truncated_counts[r] += 1 } }
+            end
           else
             attrs = {}
           end
@@ -238,10 +240,12 @@ module Datadog
           context_truncated_counts = read_and_reset_context_truncated_counts
 
           emit_drop_counts(dropped_queue, dropped_overflow, dropped_pre_queue)
-          emit_context_truncated_counts(context_truncated_counts)
+          context_truncated_counts.each do |reason, count|
+            record_telemetry_count(CONTEXT_TRUNCATED_METRIC, count, reason: reason)
+          end
 
           events = build_events(snapshot)
-          emit_degraded_counts(snapshot[:degraded].values.sum { |entry| entry[:count].to_i })
+          record_telemetry_count(ROWS_DEGRADED_METRIC, snapshot[:degraded].values.sum { |entry| entry[:count].to_i }, reason: REASON_CARDINALITY_CAP)
           return if events.empty?
 
           send_payload_batches(events)
@@ -273,16 +277,6 @@ module Datadog
           end
         end
 
-        # Record context-truncation reasons from the bounded snapshot produced on the
-        # evaluation thread. Called from `enqueue`; the counts are emitted on flush.
-        def record_truncation_reasons(reasons)
-          return if reasons.empty?
-
-          @stop_mutex.synchronize do
-            reasons.each { |reason| @context_truncated_counts[reason] += 1 }
-          end
-        end
-
         # Emit (log) the observable drop counts so backpressure is never silently lost.
         # Σ(emitted tier counts + these drops) == evaluations processed.
         def emit_drop_counts(dropped_queue, dropped_overflow, dropped_pre_queue)
@@ -297,18 +291,6 @@ module Datadog
               "pre_queue_overflow=#{dropped_pre_queue} " \
               "queue_overflow=#{dropped_queue} degraded_overflow=#{dropped_overflow}"
           end
-        end
-
-        # Emit one `flagevaluation.context.truncated` counter per truncation reason
-        # so operators can distinguish field-count pressure from long-value pressure.
-        def emit_context_truncated_counts(context_truncated_counts)
-          context_truncated_counts.each do |reason, count|
-            record_telemetry_count(CONTEXT_TRUNCATED_METRIC, count, reason: reason)
-          end
-        end
-
-        def emit_degraded_counts(degraded_count)
-          record_telemetry_count(ROWS_DEGRADED_METRIC, degraded_count, reason: REASON_CARDINALITY_CAP)
         end
 
         # Build flagEvaluationEvent list from aggregation snapshot.
@@ -438,7 +420,7 @@ module Datadog
           record_telemetry_count(ROWS_DEGRADED_METRIC, payload_limit_degraded, reason: REASON_PAYLOAD_LIMIT)
           record_telemetry_count(ROWS_DROPPED_METRIC, dropped_oversized, reason: REASON_PAYLOAD_LIMIT)
           record_telemetry_count(PAYLOAD_SPLITS_METRIC, payload_splits)
-          emit_payload_oversize_drops(dropped_oversized) if dropped_oversized.positive?
+          @logger.debug { "OpenFeature EVP: dropped events payload_oversize=#{dropped_oversized}" } if dropped_oversized.positive?
         end
 
         def send_payload_batch(events)
@@ -480,10 +462,6 @@ module Datadog
           degraded.delete("targeting_key")
           degraded.delete("context")
           degraded
-        end
-
-        def emit_payload_oversize_drops(dropped_oversized)
-          @logger.debug { "OpenFeature EVP: dropped events payload_oversize=#{dropped_oversized}" }
         end
 
         def event_count(event)
