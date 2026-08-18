@@ -202,27 +202,10 @@ size_t ruby_obj_memsize_of(VALUE obj) {
 static bool ruby_is_obj_with_class(VALUE obj) {
   if (!RB_SPECIAL_CONST_P(obj)) {
     return RBASIC_CLASS(obj) != 0;
-  }
-  else if (obj == RUBY_Qfalse) {
+  } else {
+    // Immediates always have a class
     return true;
   }
-  else if (obj == RUBY_Qnil) {
-    return true;
-  }
-  else if (obj == RUBY_Qtrue) {
-    return true;
-  }
-  else if (RB_FIXNUM_P(obj)) {
-    return true;
-  }
-  else if (RB_STATIC_SYM_P(obj)) {
-    return true;
-  }
-  else if (RB_FLONUM_P(obj)) {
-    return true;
-  }
-
-  return false;
 }
 
 // This function is not present in the VM headers, but is a public symbol that can be invoked.
