@@ -44,8 +44,6 @@ module Datadog
         REASON_PAYLOAD_LIMIT = "payload_limit"
         REASON_PRE_QUEUE_OVERFLOW = "pre_queue_overflow"
 
-        # Unsalted SHA-256 over the raw UTF-8 bytes of the targeting key, with the
-        # literal `sha256_` prefix. Every SDK must produce the same digest.
         TARGETING_KEY_HASH_PREFIX = "sha256_"
 
         # Service context fields for the batch wrapper.
