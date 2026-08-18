@@ -2,14 +2,15 @@
 
 // This file exports functions used to access private Ruby VM APIs and internals.
 // To do this, it imports a few VM internal (private) headers.
+// We rely on the datadog-ruby_core_source gem to get access to private VM headers; see
+// https://github.com/DataDog/datadog-ruby_core_source for details.
 //
 // **Important Note**: Our medium/long-term plan is to stop relying on all private Ruby headers, and instead request and
 // contribute upstream changes so that they become official public VM APIs.
 //
 // In the meanwhile, be very careful when changing things here :)
 
-// We rely on the datadog-ruby_core_source gem to get access to private VM headers; see
-// https://github.com/DataDog/datadog-ruby_core_source for details.
+#include <ruby/defines.h>
 
 // We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
 // See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
