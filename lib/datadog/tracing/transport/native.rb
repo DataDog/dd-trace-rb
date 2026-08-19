@@ -307,7 +307,7 @@ module Datadog
           private
 
           def prepare_span_events!(chunks)
-            native_events_supported = native_events_supported_with_fallback?
+            native_events_supported = native_events_supported?
 
             chunks.each do |spans|
               spans.each do |span|
@@ -320,16 +320,6 @@ module Datadog
             end
 
             native_events_supported
-          end
-
-          def native_events_supported_with_fallback?
-            native_events_supported?
-          rescue => e
-            # Unlike the HTTP transport, native can preserve this batch by
-            # encoding events as legacy JSON metadata. Do not cache the failure
-            # so a later agent response can enable typed events.
-            logger.debug { "Failed to determine native span events support: #{e.class} #{e.message}" }
-            false
           end
 
           # Warn, at most once per transport, when a batch contains span fields

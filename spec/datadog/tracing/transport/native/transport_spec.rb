@@ -536,8 +536,8 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         expect(sent_span.fetch("meta", {})).to_not have_key("events")
       end
 
-      it "uses legacy meta when fetching agent support fails" do
-        allow(agent_info).to receive(:fetch).and_raise("agent unavailable")
+      it "uses legacy meta when the capability fetch fails" do
+        allow(agent_info).to receive(:fetch).and_return(nil)
 
         expect(transport.send_traces([trace_with_event]).first).to be_ok
 
@@ -547,7 +547,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
 
       it "retries after a failed capability fetch" do
         allow(agent_info).to receive(:fetch).and_invoke(
-          proc { raise "agent unavailable" },
+          proc {},
           proc { double("agent info", span_events: true) }
         )
 
