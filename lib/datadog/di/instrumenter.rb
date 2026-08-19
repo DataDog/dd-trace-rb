@@ -2,6 +2,7 @@
 
 require_relative "../core/utils/time"
 require_relative "../ruby_version"
+require_relative "sampling_unit"
 require_relative "fatal_exceptions"
 require_relative "capture_expression_evaluator"
 
@@ -69,12 +70,13 @@ module Datadog
     #
     # @api private
     class Instrumenter
-      def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil)
+      def initialize(settings, serializer, logger, code_tracker: nil, correlation_sampler: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
         @telemetry = telemetry
         @code_tracker = code_tracker
+        @correlation_sampler = correlation_sampler
 
         @lock = Mutex.new
       end
@@ -84,6 +86,7 @@ module Datadog
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :code_tracker
+      attr_reader :correlation_sampler
 
       # The code tracker is a global singleton created lazily by
       # DI.activate_tracking. When DI is enabled after boot via remote
@@ -439,6 +442,30 @@ module Datadog
 
       attr_reader :lock
 
+      # Coordinated sampling gate. Returns true when the probe hit should emit a
+      # snapshot. Delegates the decision to the correlation sampler so probes
+      # in one sampling unit share it. Only capturing probes are coordinated;
+      # non-capturing probes keep their own per-probe rate limit. Fails open: if
+      # the correlation sampler is absent or the gate raises, fall back to the
+      # probe's own rate limiter.
+      def emit?(probe)
+        correlation_sampler = self.correlation_sampler
+        if correlation_sampler && probe.capturing?
+          begin
+            return correlation_sampler.emit?(probe, SamplingUnit.current)
+          rescue Exception => exc # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(exc)
+            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+            logger.debug { "[di-correlation] gate error, failing open to per-probe rate limit: #{exc.class}: #{exc.message}" }
+            telemetry&.report(exc, description: "Error in DI correlation gate")
+          end
+        end
+
+        rate_limiter = probe.rate_limiter
+        rate_limiter.nil? || rate_limiter.allow?
+      end
+
       # Body of the method probe wrapper. Extracted from the define_method
       # block in #hook_method so the begin/ensure structure can use normal
       # indentation. The original method is invoked with yield, calling the
@@ -528,8 +555,7 @@ module Datadog
             end
           end
 
-          rate_limiter = probe.rate_limiter
-          if continue and rate_limiter.nil? || rate_limiter.allow?
+          if continue && emit?(probe)
             # Arguments may be mutated by the method, therefore
             # they need to be serialized prior to method invocation.
             serialized_entry_args = if probe.capture_snapshot?
@@ -790,9 +816,7 @@ module Datadog
           end
         end
 
-        # In practice we should always have a rate limiter, but be safe
-        # and check that it is in fact set.
-        return if probe.rate_limiter && !probe.rate_limiter.allow?
+        return unless emit?(probe)
 
         # The context creation is relatively expensive and we don't
         # want to run it if the callback won't be executed due to the

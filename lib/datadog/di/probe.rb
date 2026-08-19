@@ -166,6 +166,15 @@ module Datadog
         !@capture_expressions.empty?
       end
 
+      # Whether the probe captures data: a full snapshot, or at least one
+      # capture expression. Coordinated sampling applies only to capturing
+      # probes; non-capturing probes keep their own per-probe rate limit.
+      #
+      # @return [Boolean]
+      def capturing?
+        capture_snapshot? || capture_expressions?
+      end
+
       def evaluate_at_entry?
         evaluate_at == :entry
       end
