@@ -98,40 +98,38 @@ module Datadog
       end
       private_class_method :decode
 
-      # Encode an unsigned 64-bit integer using LEB128 variable-length encoding.
+      # Encode a signed 64-bit integer using ZigZag + LEB128 variable-length encoding.
       #
-      # This implements unsigned LEB128 (Little Endian Base 128) encoding as specified
-      # in DWARF5 standard section 7.6:
-      # https://dwarfstd.org/doc/DWARF5.pdf#page=301
+      # dd-trace-go's DSM pathway encoder (internal/datastreams/propagator.go, via
+      # sketches-go's ddsketch/encoding package) ZigZag-maps the signed value before
+      # applying plain unsigned LEB128 (DWARF5 section 7.6:
+      # https://dwarfstd.org/doc/DWARF5.pdf#page=301). This implementation previously
+      # skipped the ZigZag step, which silently decoded to the wrong timestamp on any
+      # dd-trace-go consumer -- see https://github.com/DataDog/dd-trace-go/issues/5163.
       #
-      # Each byte uses 7 bits for data and 1 bit to indicate continuation.
-      # The high bit is set if more bytes follow, clear for the final byte.
+      # ZigZag maps signed values to unsigned ones so small-magnitude negative numbers
+      # still encode to few bytes: 0, -1, 1, -2, 2, ... -> 0, 1, 2, 3, 4, ...
       #
-      # @param value [Integer] Unsigned integer value to encode
+      # @param value [Integer] Signed integer value to encode
       # @return [String] Binary string of encoded bytes
       def encode_var_int_64(value)
+        zigzag = (value << 1) ^ (value >> 63)
         bytes = []
-        while value >= 0x80
-          bytes << ((value & 0x7F) | 0x80)
-          value >>= 7
+        while zigzag >= 0x80
+          bytes << ((zigzag & 0x7F) | 0x80)
+          zigzag >>= 7
         end
-        bytes << value
+        bytes << zigzag
         bytes.pack("C*")
       end
 
-      # Decode an unsigned LEB128 variable-length integer from IO stream.
+      # Decode a signed 64-bit integer encoded with ZigZag + LEB128 from an IO stream.
       #
-      # This implements unsigned LEB128 (Little Endian Base 128) decoding as specified
-      # in DWARF5 standard section 7.6:
-      # https://dwarfstd.org/doc/DWARF5.pdf#page=301
-      #
-      # VarInt format: Each byte uses 7 bits for data, 1 bit for continuation
-      # - High bit set = more bytes follow
-      # - High bit clear = final byte
-      # - Data bits accumulated in little-endian order
+      # See #encode_var_int_64 for why the ZigZag un-map is required to match
+      # dd-trace-go's wire format.
       #
       # @param io [StringIO] IO stream to read from
-      # @return [Integer, nil] Decoded unsigned integer, or nil if malformed
+      # @return [Integer, nil] Decoded signed integer, or nil if malformed
       def self.decode_varint(io)
         value = 0
         shift = 0
@@ -143,7 +141,7 @@ module Datadog
           value |= (byte & 0x7F) << shift
 
           # If high bit is clear, we're done
-          return value unless (byte & 0x80).nonzero?
+          return (value >> 1) ^ -(value & 1) unless (byte & 0x80).nonzero?
 
           shift += 7
 
