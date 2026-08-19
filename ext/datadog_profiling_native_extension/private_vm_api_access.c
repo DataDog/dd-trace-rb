@@ -1109,7 +1109,9 @@ int rb_objspace_internal_object_p(VALUE obj);
 
 int ddtrace_is_internal_object_p(VALUE obj) {
   if (RB_SPECIAL_CONST_P(obj)) {
-    return 0; // immediates are never internal
+    // Ruby special constants are not internal, except Qundef.
+    // See enum ruby_special_consts in CRuby.
+    return obj == Qundef;
   } else {
     // rb_objspace_internal_object_p() assumes non-immediate, so check that first above
     return rb_objspace_internal_object_p(obj);
