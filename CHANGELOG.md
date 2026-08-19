@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [2.41.0] - 2026-08-13
+
+### Added
+
+* Tracing: Integrations: Add support for `redis-rb` 6.0/RESP3. ([#6142][])
+* Tracing: Native trace export now supports structured span metadata. ([#6130][])
+
+### Changed
+
+* AppSec: Native trace export now encodes supported structured span metadata values without Ruby MessagePack encoding. ([#6132][])
+* Tracing: Native trace export now writes structured span metadata directly through libdatadog. ([#6133][])
+
+### Fixed
+
+* Profiling: Fix a rare crash (`SIGSEGV`) in the profiler that could occur when sampling a thread during `Thread.new`. ([#6173][])
+* Profiling: Fix possible crash in `sample_thread()` when `rb_id2str()` returns `Qfalse`. ([#6138][])
+* Tracing: Prevent runtime configuration telemetry from being rejected when header tags or sampling rules are updated remotely. ([#6126][])
+
 ## [2.40.0] - 2026-08-04
 
 ### Added
@@ -3735,7 +3753,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.40.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.41.0...master
+[2.41.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.40.0...v2.41.0
 [2.40.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.39.0...v2.40.0
 [2.39.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.38.0...v2.39.0
 [2.38.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.37.0...v2.38.0
@@ -5550,6 +5569,13 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#6097]: https://github.com/DataDog/dd-trace-rb/issues/6097
 [#6104]: https://github.com/DataDog/dd-trace-rb/issues/6104
 [#6116]: https://github.com/DataDog/dd-trace-rb/issues/6116
+[#6126]: https://github.com/DataDog/dd-trace-rb/issues/6126
+[#6130]: https://github.com/DataDog/dd-trace-rb/issues/6130
+[#6132]: https://github.com/DataDog/dd-trace-rb/issues/6132
+[#6133]: https://github.com/DataDog/dd-trace-rb/issues/6133
+[#6138]: https://github.com/DataDog/dd-trace-rb/issues/6138
+[#6142]: https://github.com/DataDog/dd-trace-rb/issues/6142
+[#6173]: https://github.com/DataDog/dd-trace-rb/issues/6173
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot

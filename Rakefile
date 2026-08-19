@@ -56,6 +56,9 @@ DSM_ENABLED_LIBRARIES = [
   :karafka,
 ].freeze
 
+# The Rakefile is only for development, enable testing the profiler on macOS
+ENV["DD_PROFILING_MACOS_TESTING"] = "true"
+
 # rubocop:disable Metrics/BlockLength
 namespace :test do
   desc "Run all tests"
@@ -101,6 +104,7 @@ namespace :spec do
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = "spec/**/*_spec.rb"
     t.exclude_pattern = "spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,error_tracking,rubocop,ai_guard}/**/*_spec.rb," \
+                        " spec/github/**/*_spec.rb," \
                         " spec/**/{auto_instrument,opentelemetry,process,ai_guard}_spec.rb," \
                         " spec/**/*_rails_spec.rb," \
                         " spec/datadog/core/environment/execution_spec.rb," \
@@ -119,6 +123,11 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:custom_cop) do |t, args|
     t.pattern = "spec/rubocop/**/*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
+  end
+
+  RSpec::Core::RakeTask.new(:github) do |t, args|
+    t.pattern = "spec/github/**/*_spec.rb"
     t.rspec_opts = args.to_a.join(" ")
   end
 
@@ -515,8 +524,8 @@ namespace :spec do
     task all: [:main, :ractors]
 
     task :compile_native_extensions do
-      # "bundle exec rake compile" currently only works on MRI Ruby on Linux
-      if RUBY_ENGINE == "ruby" && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("2.3.0")
+      # "bundle exec rake compile" currently only works on CRuby
+      if RUBY_ENGINE == "ruby"
         Rake::Task[:clean].invoke
         Rake::Task[:compile].invoke
       end

@@ -62,8 +62,8 @@ Gem::Specification.new do |spec|
   # rubies, see #1739 and #1336 for an extended discussion about this
   spec.add_dependency "msgpack"
 
-  # Used by the profiler native extension to support Ruby 2.5 and > 3.2, see NativeExtensionDesign.md for details
-  spec.add_dependency "datadog-ruby_core_source", "~> 3.5", ">= 3.5.4"
+  # Used by the profiler native extension, see NativeExtensionDesign.md for details
+  spec.add_dependency "datadog-ruby_core_source", "~> 3.5", ">= 3.5.5"
 
   # Used by appsec
   spec.add_dependency "libddwaf", "~> 1.30.0.0.0"
@@ -72,9 +72,7 @@ Gem::Specification.new do |spec|
   # (and yes we have a test for it)
   spec.add_dependency "libdatadog", "~> 40.0.0.2.0"
 
-  # Will no longer be a default gem on Ruby 4.0, see
-  # https://github.com/ruby/ruby/commit/d7e558e3c48c213d0e8bedca4fb547db55613f7c and
-  # https://stdgems.org/ .
+  # No longer a default gem on Ruby 4.0.
   # We support all versions of this gem and don't particularly require any version restriction.
   spec.add_dependency "logger"
 
