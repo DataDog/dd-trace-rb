@@ -162,6 +162,20 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         expect(calls).to eq([:tracestate] * 20)
         GC.start
       end
+
+      it "releases prepared meta_struct storage when links is not an array" do
+        span = make_ruby_span
+        span.set_metastruct_tag("_dd.stack", {frames: [{file: "app.rb", line: 42}]})
+        # Bypass the Ruby-level Array contract to exercise the C type check that
+        # runs after meta_struct storage has already been allocated.
+        span.instance_variable_set(:@links, "not an array")
+
+        20.times do
+          expect { tracer_span_class._native_from_span(span) }
+            .to raise_error(TypeError, /rb_links/)
+        end
+        GC.start
+      end
     end
 
     context "with non-string meta values (mixed hash)" do

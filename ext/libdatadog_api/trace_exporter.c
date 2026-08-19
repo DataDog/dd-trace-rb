@@ -898,7 +898,14 @@ static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
    * state. rb_protect guarantees partial C-owned snapshots are reclaimed if a
    * default proc, to_hash, validation, or allocation raises. */
   VALUE rb_links = rb_ivar_get(span, at_links_id);
-  ENFORCE_TYPE(rb_links, T_ARRAY);
+  if (RB_UNLIKELY(!RB_TYPE_P(rb_links, T_ARRAY))) {
+    /* Read @links after prepare_metastruct so a meta_struct callback that
+     * reassigns it is honoured. That ordering means this raise happens with
+     * C-owned metastruct storage already allocated, which the caller's
+     * free_raw_span ensure handler does not reclaim. */
+    free_prepared_metastruct(&metastruct);
+    ENFORCE_TYPE(rb_links, T_ARRAY);
+  }
   span_links_snapshot links_snapshot = {
     .rb_links = rb_links,
   };
