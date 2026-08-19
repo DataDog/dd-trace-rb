@@ -1676,65 +1676,21 @@ bool thread_context_collector_sample_allocation(VALUE self_instance, per_thread_
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
+  // The type is guaranteed non-internal here because of the ddtrace_is_internal_object_p() check in on_newobj_event()
   enum ruby_value_type type = rb_type(new_object);
 
   // Tag samples with the VM internal types
   ddog_CharSlice ruby_vm_type = ruby_value_type_to_char_slice(type);
 
-  // Since this is stack allocated, be careful about moving it
+  // klass is guaranteed non-zero here because of the ddtrace_is_internal_object_p() check in on_newobj_event()
+  VALUE klass = rb_class_of(new_object);
+  VALUE name = ddtrace_alloc_free_rb_mod_name(klass);
+
   ddog_CharSlice class_name;
-  char imemo_type[100];
-
-  if (
-    type == RUBY_T_OBJECT   ||
-    type == RUBY_T_CLASS    ||
-    type == RUBY_T_MODULE   ||
-    type == RUBY_T_FLOAT    ||
-    type == RUBY_T_STRING   ||
-    type == RUBY_T_REGEXP   ||
-    type == RUBY_T_ARRAY    ||
-    type == RUBY_T_HASH     ||
-    type == RUBY_T_STRUCT   ||
-    type == RUBY_T_BIGNUM   ||
-    type == RUBY_T_FILE     ||
-    type == RUBY_T_DATA     ||
-    type == RUBY_T_MATCH    ||
-    type == RUBY_T_COMPLEX  ||
-    type == RUBY_T_RATIONAL ||
-    type == RUBY_T_NIL      ||
-    type == RUBY_T_TRUE     ||
-    type == RUBY_T_FALSE    ||
-    type == RUBY_T_SYMBOL   ||
-    type == RUBY_T_FIXNUM
-  ) {
-    VALUE klass = rb_class_of(new_object);
-
-    // Ruby sometimes plays a bit fast and loose with some of its internal objects, e.g.
-    // `rb_str_tmp_frozen_acquire` allocates a string with no class (klass=0).
-    // Thus, we need to make sure there's actually a class before getting its name.
-
-    if (klass != 0) {
-      VALUE name = ddtrace_alloc_free_rb_mod_name(klass);
-      if (name != Qnil) {
-        class_name = char_slice_from_ruby_string(name);
-      } else {
-        class_name = ruby_value_type_to_class_name(type);
-      }
-    } else {
-      // Fallback for objects with no class. Objects with no class are a way for the Ruby VM to mark them
-      // as internal objects; see rb_objspace_internal_object_p for details.
-      class_name = ruby_value_type_to_class_name(type);
-    }
-  } else if (type == RUBY_T_IMEMO) {
-    const char *imemo_string = imemo_kind(new_object);
-    if (imemo_string != NULL) {
-      snprintf(imemo_type, 100, "(VM Internal, T_IMEMO, %s)", imemo_string);
-      class_name = (ddog_CharSlice) {.ptr = imemo_type, .len = strlen(imemo_type)};
-    } else { // Ruby < 3
-      class_name = DDOG_CHARSLICE_C("(VM Internal, T_IMEMO)");
-    }
+  if (name != Qnil) {
+    class_name = char_slice_from_ruby_string(name);
   } else {
-    class_name = ruby_vm_type; // For other weird internal things we just use the VM type
+    class_name = ruby_value_type_to_class_name(type);
   }
 
   bool needs_after_allocation = track_object(state->recorder_instance, new_object, sample_weight, class_name);

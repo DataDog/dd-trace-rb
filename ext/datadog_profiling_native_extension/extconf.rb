@@ -202,9 +202,6 @@ $defs << "-DNO_INTERNAL_CLASS_HEADER_INCLUDE" if RUBY_VERSION < "3"
 # On older Rubies, there are no Ractors
 $defs << "-DNO_RACTORS" if RUBY_VERSION < "3"
 
-# On older Rubies, rb_imemo_name did not exist
-$defs << "-DNO_IMEMO_NAME" if RUBY_VERSION < "3"
-
 # On older Rubies, objects would not move
 $defs << "-DNO_T_MOVED" if RUBY_VERSION < "2.7"
 

@@ -1376,6 +1376,13 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
     return;
   }
 
+  // Don't sample internal objects, it's unsafe to add them in a ObjectSpace::WeakMap
+  rb_trace_arg_t *data = rb_tracearg_from_tracepoint(Qnil);
+  VALUE new_object = rb_tracearg_object(data);
+  if (ddtrace_is_internal_object_p(new_object)) {
+    return;
+  }
+
   // From here on, we've decided to go ahead with the sample, which is way less common than skipping it
 
   discrete_dynamic_sampler_before_sample(

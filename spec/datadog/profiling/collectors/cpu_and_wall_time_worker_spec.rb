@@ -830,10 +830,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # Regression test: Some internal Ruby classes use a `rb_str_tmp_frozen_acquire` function which allocates a
         # weird "intermediate" string object that has its class pointer set to 0.
         #
-        # When such an object gets sampled, we need to take care not to try to resolve its class name.
+        # Such objects are internal objects, and are thus skipped in `on_newobj_event` -- we must never try to
+        # resolve their class name.
         #
-        # In practice, this test is actually validating behavior of the `ThreadContext` collector, but we can only
-        # really trigger this situation when using the allocation tracepoint, which lives in the `CpuAndWallTimeWorker`.
+        # We can only really trigger this situation when using the allocation tracepoint, which lives in the
+        # `CpuAndWallTimeWorker`.
         it "does not crash" do
           start
 
@@ -846,48 +847,19 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           eval("proc { def self.foo; rand; end; foo }.call", binding, __FILE__, __LINE__)
         end
 
-        context "on Ruby 2.x" do
-          before { skip "Behavior only applies on Ruby 2.x" unless RubyVersion.is?("< 3") }
+        # Internal VM objects are skipped in `on_newobj_event`, as it's not safe to track them for heap profiling.
+        it "does not record internal VM objects" do
+          start
 
-          it "records internal VM objects, not including their specific kind" do
-            start
+          something_that_triggers_creation_of_imemo_objects
 
-            something_that_triggers_creation_of_imemo_objects
+          cpu_and_wall_time_worker.stop
 
-            cpu_and_wall_time_worker.stop
+          samples = samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
 
-            imemo_samples =
-              samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
-                .select { |s| s.labels.fetch(:"allocation class", "") == "(VM Internal, T_IMEMO)" }
-
-            expect(imemo_samples.size).to be >= 1 # We should always get some T_IMEMO objects
-          end
-        end
-
-        context "on Ruby 3+" do
-          before { skip "Behavior only applies on Ruby 3+" if RubyVersion.is?("< 3") }
-
-          it "records internal VM objects, including their specific kind" do
-            start
-
-            something_that_triggers_creation_of_imemo_objects
-
-            cpu_and_wall_time_worker.stop
-
-            imemo_samples =
-              samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
-                .select { |s| s.labels.fetch(:"allocation class", "").start_with?("(VM Internal, T_IMEMO") }
-
-            expect(imemo_samples.size).to be >= 1 # We should always get some T_IMEMO objects
-
-            # To avoid coupling too much on VM internals we check that at each of the found allocation classes are
-            # a known member of the imemo_type enum (even if we don't exactly match on which one)
-            expect(imemo_samples.map { |s| s.labels.fetch(:"allocation class") }).to all(
-              match(
-                /(env|cref|svar|throw_data|ifunc|memo|ment|iseq|tmpbuf|ast|parser_strterm|callinfo|callcache|constcache|fields)/
-              )
-            )
-          end
+          # Guard against this expectation passing just because nothing at all was sampled
+          expect(samples).to_not be_empty
+          expect(samples.map { |s| s.labels[:"ruby vm type"] }).to_not include "T_IMEMO"
         end
       end
     end
