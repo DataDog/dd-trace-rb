@@ -20,9 +20,9 @@
 #endif
 
 static ID fiber_context_slot;
-static const int BIG_ENDIAN_PACK_FLAGS = INTEGER_PACK_MSWORD_FIRST | INTEGER_PACK_BIG_ENDIAN;
+DDTRACE_UNUSED static const int BIG_ENDIAN_PACK_FLAGS = INTEGER_PACK_MSWORD_FIRST | INTEGER_PACK_BIG_ENDIAN;
 
-static bool otel_context_enabled = false;
+DDTRACE_UNUSED static bool otel_context_enabled = false;
 
 static VALUE native_set(VALUE _self, VALUE trace_id, VALUE span_id, VALUE local_root_span_id);
 static VALUE native_supported_p(VALUE _self);
