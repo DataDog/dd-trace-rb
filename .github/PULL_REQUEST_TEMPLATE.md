@@ -10,8 +10,6 @@ run the test suite, write new integrations, and more.
 **Motivation:**
 <!-- What inspired you to submit this pull request? -->
 
-<!-- (Changelogs are now kept in-tree using the `changelog/add.rb` nano tool) -->
-
 **Additional Notes:**
 <!--
 If you used AI, have you read and understood what AI wrote?
