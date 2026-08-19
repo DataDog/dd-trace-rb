@@ -1663,6 +1663,37 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         expect(single_sample.labels.fetch(:"allocation class")).to eq "ThreadContextSpec::TestStruct"
       end
     end
+
+    context "when sampling an instance of an anonymous class" do
+      let(:anonymous_class) { Class.new }
+
+      it "includes the correct ruby vm type for the passed object" do
+        sample_allocation(weight: 123, new_object: anonymous_class.new)
+
+        expect(single_sample.labels.fetch(:"ruby vm type")).to eq "T_OBJECT"
+      end
+
+      # Anonymous classes have no name, so we fall back to the name of the VM type instead of the
+      # `#<Class:0x0000...>` form, which would need an allocation and we should not allocate in on_newobj_event().
+      # Also the address differs across processes/runs and thus would break aggregation.
+      it "reports the class name of the VM type for the passed object" do
+        sample_allocation(weight: 123, new_object: anonymous_class.new)
+
+        expect(single_sample.labels.fetch(:"allocation class")).to eq "Object"
+      end
+
+      context "when the anonymous class has a named superclass" do
+        let(:anonymous_class) { Class.new(ThreadContextSpec::TestClass) }
+
+        before { stub_const("ThreadContextSpec::TestClass", Class.new) }
+
+        it "reports the class name of the VM type, not the name of the superclass" do
+          sample_allocation(weight: 123, new_object: anonymous_class.new)
+
+          expect(single_sample.labels.fetch(:"allocation class")).to eq "Object"
+        end
+      end
+    end
   end
 
   describe "#sample_skipped_allocation_samples" do
