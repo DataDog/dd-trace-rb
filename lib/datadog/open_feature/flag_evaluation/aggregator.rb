@@ -34,6 +34,7 @@ module Datadog
         REASON_MAX_LIST_ELEMENTS = "max_list_elements"
         REASON_MAX_STRUCTURE_PROPERTIES = "max_structure_properties"
         REASON_MAX_SNAPSHOT_DEPTH = "max_snapshot_depth"
+        REASON_CYCLE = "cycle"
 
         # Type tags so values of different Ruby types never collide in the canonical key.
         CTX_TAG_STRING = "s"
@@ -194,7 +195,10 @@ module Datadog
         def self.bounded_flatten(prefix, value, output, seen, depth, reasons)
           return if value.nil?
           return if output.size >= MAX_CONTEXT_FIELDS
-          return if depth > MAX_SNAPSHOT_DEPTH
+          if depth >= MAX_SNAPSHOT_DEPTH
+            reasons << REASON_MAX_SNAPSHOT_DEPTH
+            return
+          end
           return if prefix.length > MAX_KEY_LENGTH
 
           case value
@@ -202,7 +206,10 @@ module Datadog
             return if value.empty?
 
             object_id = value.object_id
-            return if seen[object_id]
+            if seen[object_id]
+              reasons << REASON_CYCLE
+              return
+            end
 
             seen[object_id] = true
             walked = 0
@@ -219,7 +226,10 @@ module Datadog
             return if value.empty?
 
             object_id = value.object_id
-            return if seen[object_id]
+            if seen[object_id]
+              reasons << REASON_CYCLE
+              return
+            end
 
             seen[object_id] = true
             reasons << REASON_MAX_LIST_ELEMENTS if value.size > MAX_LIST_ELEMENTS

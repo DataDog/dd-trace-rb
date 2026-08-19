@@ -368,6 +368,8 @@ module Datadog
         # `sha256_` prefix. The string is encoded to UTF-8 first so a targeting
         # key in another Ruby encoding hashes to the same bytes other SDKs emit.
         def hash_targeting_key(targeting_key)
+          return "" if targeting_key.empty?
+
           utf8 = targeting_key.encode(Encoding::UTF_8, invalid: :replace, undef: :replace)
           TARGETING_KEY_HASH_PREFIX + Digest::SHA256.hexdigest(utf8)
         end

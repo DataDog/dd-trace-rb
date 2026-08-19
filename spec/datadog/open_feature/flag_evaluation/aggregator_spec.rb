@@ -133,10 +133,11 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       attrs["array"] = []
       attrs["array"] << attrs["array"]
 
-      pruned, = described_class.bounded_context_snapshot(attrs)
+      pruned, reasons = described_class.bounded_context_snapshot(attrs)
 
       expect(pruned).to include("keep" => "ok")
       expect(pruned.keys.grep(/self|array/)).to be_empty
+      expect(reasons).to include("cycle")
     end
 
     it "drops context branches beyond the maximum nesting depth" do

@@ -720,6 +720,19 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(row["targeting_key"].length).to eq(71)
     end
 
+    it "omits the targeting key when it is empty (does not invent a pseudo-subject)" do
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "pii-flag", variant: "on", allocation_key: "alloc",
+          targeting_key: "",
+          eval_time_ms: realistic_eval_ms, attrs: {},
+        )
+      end
+
+      row = payload["flagEvaluations"].first
+      expect(row).not_to have_key("targeting_key")
+    end
+
     it "omits the context entirely (absent key, not nil, not {})" do
       payload = captured_payload do |writer|
         writer.enqueue(

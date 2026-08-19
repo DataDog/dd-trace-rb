@@ -58,6 +58,8 @@ module Datadog
 
         REASON_MAX_SNAPSHOT_DEPTH: ::String
 
+        REASON_CYCLE: ::String
+
         @global_cap: ::Integer
 
         @per_flag_cap: ::Integer
