@@ -43,7 +43,7 @@ module Datadog
         def track_kafka_consume: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> true
         def set_produce_checkpoint: (type: ::String, destination: ::String, ?manual_checkpoint: bool, ?tags: ::Hash[::String, ::String]) ?{ (::String, ::String) -> void } -> ::String?
         def set_consume_checkpoint: (type: ::String, source: ::String, ?manual_checkpoint: bool, ?tags: ::Hash[::String, ::String]) ?{ (::String) -> ::String? } -> ::String?
-        def restart_flush_thread: () -> untyped
+        def restart_flush_thread: () -> bool?
 
         private
 

@@ -72,13 +72,12 @@ module Datadog
         perform
       end
 
-      # Restarts the flush thread if a fork has been detected since this processor was
-      # created. Called by Components#after_fork. Safe to call even when no fork occurred:
-      # #perform (via Workers::Async::Thread) only restarts the worker when +forked?+ is true.
-      #
-      # Deliberately not named +after_fork+: Workers::Async::Thread already defines a
-      # protected +after_fork+ template method that #perform's internal restart path
-      # (+restart_after_fork+) calls on every restart -- overriding it here would recurse.
+      # Restarts the flush thread if a fork has been detected since this processor was created.
+      # Called by Components#after_fork. Safe to call even when no fork occurred: #perform (via
+      # Workers::Async::Thread) only restarts the worker when +forked?+ is true. Deliberately not
+      # named +after_fork+: Workers::Async::Thread already defines a protected +after_fork+
+      # template method that #perform's internal restart path (+restart_after_fork+) calls on
+      # every restart -- overriding it here would recurse.
       def restart_flush_thread
         discard_inherited_state_after_fork! if forked?
         perform
