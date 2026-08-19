@@ -2,7 +2,7 @@
 
 require "rspec"
 
-RSpec.shared_examples "tracing dynamic simple option" do |name:, env_var:, config_key:, value:, config_object: nil|
+RSpec.shared_examples "tracing dynamic simple option" do |name:, env_var:, config_key:, value:, telemetry_value:, config_object: nil|
   let(:option) { described_class.new }
   let(:configuration_object) { config_object || Datadog.configuration.tracing }
   let(:new_value) { value }
@@ -20,6 +20,10 @@ RSpec.shared_examples "tracing dynamic simple option" do |name:, env_var:, confi
       expect { call }.to change { configuration_object.public_send(config_key) }.from(old_value).to(value)
     end
 
+    it "returns the telemetry value" do
+      is_expected.to eq(telemetry_value)
+    end
+
     it "declares environment variable name as #{env_var}" do
       expect(option.env_var).to eq(env_var)
     end
@@ -34,6 +38,12 @@ RSpec.shared_examples "tracing dynamic simple option" do |name:, env_var:, confi
       it "restores original value before dynamic configuration #{config_key}" do
         expect { option.call(nil) }.to change { configuration_object.public_send(config_key) }.from(value).to(old_value)
       end
+
+      it "returns nil" do
+        call
+
+        expect(option.call(nil)).to be_nil
+      end
     end
   end
 end
@@ -43,7 +53,8 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::LogInjectionEnabled do
     name: "log_injection_enabled",
     env_var: "DD_LOGS_INJECTION",
     config_key: :log_injection,
-    value: false
+    value: false,
+    telemetry_value: false
 end
 
 RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingHeaderTags do
@@ -51,6 +62,7 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingHeaderTags do
     name: "tracing_header_tags",
     env_var: "DD_TRACE_HEADER_TAGS",
     config_key: :header_tags,
+    telemetry_value: "my-header:my-tag",
     value: RSpec::Matchers::BuiltIn::Match.new(->(header_tags) { header_tags.to_s == "my-header:my-tag" }) do
       let(:old_value) { ->(header_tags) { header_tags.to_s == "" } }
       let(:new_value) { [{"header" => "my-header", "tag_name" => "my-tag"}] }
@@ -59,9 +71,14 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingHeaderTags do
   context "with multiple values in tracing_header_tags" do
     let(:new_value) { [{"header" => "h1", "tag_name" => "t1"}, {"header" => "h2", "tag_name" => ""}] }
 
-    it "process the value list" do
+    it "applies the parsed list and returns the comma-separated telemetry value" do
       expect(configuration_object).to receive(:set_option).with(:header_tags, ["h1:t1", "h2:"], any_args)
-      option.call(new_value)
+
+      expect(option.call(new_value)).to eq("h1:t1,h2:")
+    end
+
+    it "does not mutate the remote configuration value" do
+      expect { option.call(new_value) }.not_to change { new_value }
     end
   end
 end
@@ -72,6 +89,7 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingSamplingRate do
     env_var: "DD_TRACE_SAMPLE_RATE",
     config_key: :default_rate,
     value: 0.2,
+    telemetry_value: 0.2,
     config_object: Datadog.configuration.tracing.sampling
 
   it "reconfigures the live sampler" do
@@ -88,6 +106,7 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingSamplingRules do
     env_var: "DD_TRACE_SAMPLING_RULES",
     config_key: :rules,
     value: RSpec::Matchers::BuiltIn::Match.new(->(rules) { rules == '[{"sample_rate":1}]' }),
+    telemetry_value: '[{"sample_rate":1}]',
     config_object: Datadog.configuration.tracing.sampling do
       let(:new_value) { [{sample_rate: 1}] }
     end
@@ -102,6 +121,7 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingSamplingRules do
           rules == '[{"sample_rate":1,"tags":{"k":"v"}}]'
         end
       ),
+      telemetry_value: '[{"sample_rate":1,"tags":{"k":"v"}}]',
       config_object: Datadog.configuration.tracing.sampling do
         # Match the shape Remote Config delivers: JSON.parse produces string keys
         # throughout, which is what TracingSamplingRules#call reads via rule['tags'].

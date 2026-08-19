@@ -91,6 +91,23 @@ only-tracing:
     DD_BENCHMARKS_CONFIGURATION: only-tracing
     DD_TRACE_ENABLED: "true"
 
+only-tracing-with-tracecontext-extract:
+  extends: .macrobenchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-tracing-with-tracecontext-extract
+    DD_TRACE_ENABLED: "true"
+    K6_ENDPOINT: "/root/trace-context-benchmark"
+    K6_TRACE_CONTEXT_ENABLED: "true"
+
+only-tracing-without-tracecontext-extract:
+  extends: .macrobenchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-tracing-without-tracecontext-extract
+    DD_TRACE_ENABLED: "true"
+    DD_TRACE_PROPAGATION_STYLE_EXTRACT: "datadog,baggage"
+    K6_ENDPOINT: "/root/trace-context-benchmark"
+    K6_TRACE_CONTEXT_ENABLED: "true"
+
 only-profiling:
   extends: .macrobenchmarks
   variables:
