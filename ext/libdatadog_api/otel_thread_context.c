@@ -81,8 +81,8 @@ void otel_thread_context_init(VALUE core_module) {
   #endif
 
   #ifdef HAVE_RUBY_THREAD_STORAGE_API
-    // SUSPENDED fires on every GVL release, so if thread that calls set and then enters a C extension
-    // that releases the GVL and does something, the slot becomes empty for the whole duration.
+    // SUSPENDED fires on every GVL release: a thread that calls `set` and then enters a C
+    // extension that releases the GVL publishes no context for the duration of that call.
     static void on_thread_suspended(
       DDTRACE_UNUSED rb_event_flag_t event,
       DDTRACE_UNUSED const rb_internal_thread_event_data_t *event_data,
