@@ -50,6 +50,8 @@ module Datadog
 
       def timestamp_now: () -> Integer
 
+      def evaluation_deadline_ns: () -> Integer?
+
       def active_trace: () -> Datadog::Tracing::TraceSegment?
       def active_span: () -> Datadog::Tracing::SpanOperation?
     end
