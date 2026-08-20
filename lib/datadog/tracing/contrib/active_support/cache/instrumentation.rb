@@ -41,7 +41,8 @@ module Datadog
             # @param action [String] type of cache operation. Will be set as the span resource.
             # @param key [Object] redis cache key. Used for actions with a single key locator.
             # @param multi_key [Array<Object>] list of redis cache keys. Used for actions with a multiple key locators.
-            def trace(action, store, key: nil, multi_key: nil)
+            # @param namespace [Object] cache key namespace, as configured on the store or for this call.
+            def trace(action, store, key: nil, multi_key: nil, namespace: nil)
               return yield unless enabled?
 
               # create a new ``Span`` and add it to the tracing context
@@ -57,9 +58,16 @@ module Datadog
 
                 span.set_tag(Ext::TAG_CACHE_BACKEND, store) if store
 
-                set_cache_key(span, key, multi_key) if Datadog.configuration.tracing[:active_support][:cache_key].enabled
+                cache_key_enabled = Datadog.configuration.tracing[:active_support][:cache_key].enabled
+                set_cache_key(span, key, multi_key) if cache_key_enabled
 
-                yield
+                begin
+                  yield
+                ensure
+                  # A callable namespace is only known once ActiveSupport has normalized the key,
+                  # which it does while running the operation.
+                  set_cache_namespace_tag(span, namespace) if cache_key_enabled
+                end
               end
             end
 
@@ -91,6 +99,15 @@ module Datadog
                 cache_key = Core::Utils.truncate(resolved_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
                 span.set_tag(Ext::TAG_CACHE_KEY, cache_key)
               end
+            end
+
+            # A callable is never invoked here, as instrumentation must not call customer code.
+            # The value {ResolveNamespace} captured when ActiveSupport resolved it is used instead.
+            def set_cache_namespace_tag(span, namespace)
+              namespace = Thread.current[RESOLVED_NAMESPACE_KEY] if namespace.respond_to?(:call)
+              return unless namespace
+
+              span.set_tag(Ext::TAG_CACHE_NAMESPACE, Core::Utils.truncate(namespace, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE))
             end
 
             def enabled?
@@ -132,6 +149,17 @@ module Datadog
                 # DEV: used to remove the module ('*::') part of a constant name.
                 @store_name = self.class.name.demodulize.underscore
               end
+
+              # Mirrors the precedence `ActiveSupport::Cache::Store#namespace_key` applies: options
+              # passed to the call itself win over the ones the store was configured with, and
+              # `namespace: nil` for the call disables the one of the store.
+              def dd_cache_namespace(call_options)
+                if call_options.is_a?(::Hash) && call_options.key?(:namespace)
+                  call_options[:namespace]
+                else
+                  options[:namespace]
+                end
+              end
             end
 
             # Defines the the legacy monkey-patching instrumentation for ActiveSupport cache read_multi
@@ -143,7 +171,17 @@ module Datadog
               def read_multi(*keys, **options, &block)
                 return super if Instrumentation.nested_multiread?
 
-                Instrumentation.trace(Ext::RESOURCE_CACHE_MGET, dd_store_name, multi_key: keys) { super }
+                # Rails also accepts the options as a trailing hash. The split is kept in
+                # separate locals because the bare `super` below forwards `keys` and `options`.
+                trailing_options = keys[-1] if keys[-1].instance_of?(Hash)
+                names = trailing_options ? keys[0..-2] : keys
+
+                Instrumentation.trace(
+                  Ext::RESOURCE_CACHE_MGET,
+                  dd_store_name,
+                  multi_key: names,
+                  namespace: dd_cache_namespace(trailing_options || options),
+                ) { super }
               end
             end
 
@@ -154,7 +192,12 @@ module Datadog
               def fetch(*args, &block)
                 return super if Instrumentation.nested_read?
 
-                Instrumentation.trace(Ext::RESOURCE_CACHE_GET, dd_store_name, key: args[0]) { super }
+                Instrumentation.trace(
+                  Ext::RESOURCE_CACHE_GET,
+                  dd_store_name,
+                  key: args[0],
+                  namespace: dd_cache_namespace(args[1]),
+                ) { super }
               end
             end
 
@@ -167,8 +210,15 @@ module Datadog
               def fetch_multi(*args, **options, &block)
                 return super if Instrumentation.nested_multiread?
 
-                keys = args[-1].instance_of?(Hash) ? args[0..-2] : args
-                Instrumentation.trace(Ext::RESOURCE_CACHE_MGET, dd_store_name, multi_key: keys) { super }
+                trailing_options = args[-1] if args[-1].instance_of?(Hash)
+                keys = trailing_options ? args[0..-2] : args
+
+                Instrumentation.trace(
+                  Ext::RESOURCE_CACHE_MGET,
+                  dd_store_name,
+                  multi_key: keys,
+                  namespace: dd_cache_namespace(trailing_options || options),
+                ) { super }
               end
             end
 
@@ -179,6 +229,57 @@ module Datadog
                 polyfill_options = options&.dup || {}
                 polyfill_options[:store] = self.class.name
                 super(operation, key, polyfill_options)
+              end
+            end
+
+            RESOLVED_NAMESPACE_KEY = "datadog_active_support_cache_resolved_namespace"
+
+            # `#namespace_key` returns the key it is given prefixed with `"#{namespace}:"`, so the
+            # namespace is whatever it put in front of that key. It is the single place ActiveSupport
+            # applies the namespace, and exists since Rails 5.2; older versions inline it into
+            # `#normalize_key`, where the key is not yet expanded and the prefix cannot be isolated.
+            module ResolveNamespace
+              private
+
+              def namespace_key(key, _options = nil)
+                super.tap do |namespaced_key|
+                  next unless key.is_a?(::String) && namespaced_key.is_a?(::String)
+
+                  namespace_size = namespaced_key.bytesize - key.bytesize - 1
+                  Thread.current[RESOLVED_NAMESPACE_KEY] =
+                    (namespace_size < 0) ? nil : namespaced_key.byteslice(0, namespace_size)
+                end
+              end
+            end
+
+            DELETE_NAMESPACE_KEY = "datadog_active_support_cache_delete_namespace"
+
+            # ActiveSupport only forwards the call options to the `#delete` event since Rails 8, so
+            # on older versions the namespace never reaches the payload. `#delete` itself still has
+            # both the store options and the ones given to the call, so the namespace is carried
+            # from there to the event.
+            module BackfillDeleteNamespace
+              include InstanceMethods
+
+              def delete(name, options = nil)
+                previous = Thread.current[DELETE_NAMESPACE_KEY]
+                namespace = dd_cache_namespace(options)
+                # A callable is the one namespace `#delete` cannot report on these versions:
+                # putting one in the payload would let Rails' debug logging normalize the key
+                # with it, invoking it once more.
+                Thread.current[DELETE_NAMESPACE_KEY] = namespace.respond_to?(:call) ? nil : namespace
+                super
+              ensure
+                Thread.current[DELETE_NAMESPACE_KEY] = previous
+              end
+
+              def instrument(operation, key, call_options = nil)
+                return super unless call_options.nil?
+
+                namespace = Thread.current[DELETE_NAMESPACE_KEY]
+                return super unless namespace
+
+                super(operation, key, {namespace: namespace})
               end
             end
 
