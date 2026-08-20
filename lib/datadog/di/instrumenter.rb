@@ -556,7 +556,7 @@ module Datadog
           admitted = continue && (rate_limiter.nil? || rate_limiter.allow?)
           if admitted && !global_rate_limiter_for(probe).allow?
             admitted = false
-            logger.debug { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
+            logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
           end
           if admitted
             # Arguments may be mutated by the method, therefore
@@ -824,7 +824,7 @@ module Datadog
         return if probe.rate_limiter && !probe.rate_limiter.allow?
 
         unless global_rate_limiter_for(probe).allow?
-          logger.debug { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
+          logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
           return
         end
 

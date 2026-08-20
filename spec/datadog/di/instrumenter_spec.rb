@@ -5,9 +5,9 @@ require "datadog/di/serializer"
 require "datadog/di/probe"
 require "datadog/di/capture_expression"
 require "datadog/di/proc_responder"
+require "datadog/di/logger"
 require_relative "hook_line"
 require_relative "hook_method"
-require "logger"
 
 # The examples below use a local code tracker when they set line probes,
 # for better test encapsulation and to avoid having to clear/reset global state.
@@ -39,9 +39,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     Datadog::DI::Serializer.new(settings, redactor)
   end
 
-  let(:logger) do
-    instance_double(Logger)
-  end
+  di_logger_double
 
   let(:instrumenter) do
     described_class.new(settings, serializer, logger, code_tracker: code_tracker)
@@ -2135,7 +2133,6 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       context "when the global limit rejects" do
         before do
-          allow(logger).to receive(:debug)
           expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_return(false)
         end
 
@@ -2147,7 +2144,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(HookTestClass.new.hook_test_method).to eq 42
 
           expect(observed_calls.length).to eq 0
-          expect(logger).to have_received(:debug) do |&block|
+          expect(logger).to have_received(:trace) do |&block|
             expect(block.call).to match(/global rate limit/)
           end
         end
@@ -2202,7 +2199,6 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       context "when the global limit rejects" do
         before do
-          allow(logger).to receive(:debug)
           expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_return(false)
         end
 
@@ -2216,7 +2212,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           HookLineTestClass.new.test_method
 
           expect(observed_calls).to be_empty
-          expect(logger).to have_received(:debug) do |&block|
+          expect(logger).to have_received(:trace) do |&block|
             expect(block.call).to match(/global rate limit/)
           end
         end
