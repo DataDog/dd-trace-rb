@@ -220,6 +220,52 @@ static void unintern_or_raise(heap_recorder *, ddog_prof_ManagedStringId);
 static void unintern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_ManagedStringId ids);
 static VALUE get_ruby_string_or_raise(heap_recorder*, ddog_prof_ManagedStringId);
 
+// The following global variables are initialized at startup to save expensive lookups later.
+// They are not expected to be mutated outside of init.
+static VALUE class_weak_map = Qnil;
+static ID aref_id = Qnil;
+static ID aset_id = Qnil;
+
+void collectors_heap_recorder_init(void) {
+  rb_global_variable(&class_weak_map);
+
+  VALUE module_object_space = rb_const_get(rb_cObject, rb_intern("ObjectSpace"));
+  class_weak_map = rb_const_get(module_object_space, rb_intern("WeakMap"));
+  aref_id = rb_intern("[]");
+  aset_id = rb_intern("[]=");
+}
+
+// Native wrapper to create a new `ObjectSpace::WeakMap`.
+//
+// Because an `ObjectSpace::WeakMap` entry is dropped as soon as *either* its key or its value is garbage
+// collected, pairing a key that can never be collected (such as a fixnum) with the object of interest as the
+// value gives us a weak reference: reading the key back returns the object while it's alive, and nothing once
+// it's been collected.
+static VALUE ruby_weak_map_new(void) {
+  return rb_class_new_instance(0, NULL, class_weak_map);
+}
+
+// Native wrapper to get an object from an `ObjectSpace::WeakMap`.
+// Returns the object on success and nil if the entry is gone, meaning
+// the object has been garbage collected.
+// We never store nil as a value, see ruby_weak_map_set(), so nil unambiguously means "the value was garbage collected".
+//
+// Note: GVL can be released and other threads may get to run before this method returns
+static VALUE ruby_weak_map_get(VALUE weak_map, VALUE key) {
+  return rb_funcall(weak_map, aref_id, 1, key);
+}
+
+// Native wrapper to add an entry to an `ObjectSpace::WeakMap`.
+// Raises RuntimeError if passed nil as a value.
+//
+// Note: GVL can be released and other threads may get to run before this method returns
+static void ruby_weak_map_set(VALUE weak_map, VALUE key, VALUE value) {
+  if (value == Qnil) {
+    raise_error(rb_eRuntimeError, "Can't use nil as the value in the WeakMap, otherwise #[] can't differentiate alive vs nil value");
+  }
+  rb_funcall(weak_map, aset_id, 2, key, value);
+}
+
 // ==========================
 // Heap Recorder External API
 //

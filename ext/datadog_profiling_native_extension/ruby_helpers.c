@@ -7,19 +7,10 @@
 
 // The following global variables are initialized at startup to save expensive lookups later.
 // They are not expected to be mutated outside of init.
-static VALUE class_weak_map = Qnil;
-static ID aref_id = Qnil;
-static ID aset_id = Qnil;
 static ID inspect_id = Qnil;
 static ID to_s_id = Qnil;
 
 void ruby_helpers_init(void) {
-  rb_global_variable(&class_weak_map);
-
-  VALUE module_object_space = rb_const_get(rb_cObject, rb_intern("ObjectSpace"));
-  class_weak_map = rb_const_get(module_object_space, rb_intern("WeakMap"));
-  aref_id = rb_intern("[]");
-  aset_id = rb_intern("[]=");
   inspect_id = rb_intern("inspect");
   to_s_id = rb_intern("to_s");
 }
@@ -114,24 +105,6 @@ void private_raise_enforce_syserr(
   } else {
     private_grab_gvl_and_raise(Qnil, syserr_errno, format, expression, file, line, function_name);
   }
-}
-
-// See notes on header for important details
-VALUE ruby_weak_map_new(void) {
-  return rb_class_new_instance(0, NULL, class_weak_map);
-}
-
-// See notes on header for important details
-void ruby_weak_map_set(VALUE weak_map, VALUE key, VALUE value) {
-  if (value == Qnil) {
-    raise_error(rb_eRuntimeError, "Can't use nil as the value in the WeakMap, otherwise #[] can't differentiate alive vs nil value");
-  }
-  rb_funcall(weak_map, aset_id, 2, key, value);
-}
-
-// See notes on header for important details
-VALUE ruby_weak_map_get(VALUE weak_map, VALUE key) {
-  return rb_funcall(weak_map, aref_id, 1, key);
 }
 
 // Not part of public headers but is externed from Ruby

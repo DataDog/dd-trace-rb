@@ -79,28 +79,6 @@ NORETURN(void private_raise_enforce_syserr(
   const char *function_name
 ));
 
-// Native wrapper to create a new `ObjectSpace::WeakMap`.
-//
-// Because an `ObjectSpace::WeakMap` entry is dropped as soon as *either* its key or its value is garbage
-// collected, pairing a key that can never be collected (such as a fixnum) with the object of interest as the
-// value gives us a weak reference: reading the key back returns the object while it's alive, and nothing once
-// it's been collected.
-VALUE ruby_weak_map_new(void);
-
-// Native wrapper to add an entry to an `ObjectSpace::WeakMap`.
-// Raises RuntimeError if passed nil as a value.
-//
-// Note: GVL can be released and other threads may get to run before this method returns
-void ruby_weak_map_set(VALUE weak_map, VALUE key, VALUE value);
-
-// Native wrapper to get an object from an `ObjectSpace::WeakMap`.
-// Returns the object on success and nil if the entry is gone, meaning
-// the object has been garbage collected.
-// We never store nil as a value, see ruby_weak_map_set(), so nil unambiguously means "the value was garbage collected".
-//
-// Note: GVL can be released and other threads may get to run before this method returns
-VALUE ruby_weak_map_get(VALUE weak_map, VALUE key);
-
 // Native wrapper to get the approximate/estimated current size of the passed
 // object.
 size_t ruby_obj_memsize_of(VALUE obj);
