@@ -9,7 +9,7 @@
   extern __thread const uint8_t *otel_thread_ctx_v1;
 
   static void otel_ctx_handle_free(void *handle) {
-    ddog_otel_thread_ctx_free((struct ddog_ThreadContextHandle *) handle);
+    ddog_otel_thread_ctx_free((ddog_ThreadContextHandle *) handle);
   }
 
   static const rb_data_type_t otel_ctx_handle_t = {
@@ -20,7 +20,6 @@
 #endif
 
 static ID fiber_context_slot;
-DDTRACE_UNUSED static const int BIG_ENDIAN_PACK_FLAGS = INTEGER_PACK_MSWORD_FIRST | INTEGER_PACK_BIG_ENDIAN;
 
 DDTRACE_UNUSED static bool otel_context_enabled = false;
 
@@ -43,19 +42,19 @@ void otel_thread_context_init(VALUE core_module) {
 }
 
 #ifdef __linux__
-  static struct ddog_ThreadContextHandle *get_fiber_handle_for(VALUE thread) {
+  static ddog_ThreadContextHandle *get_fiber_handle_for(VALUE thread) {
     VALUE obj = rb_thread_local_aref(thread, fiber_context_slot);
 
-    if (!RB_TYPE_P(obj, T_DATA) || !RTYPEDDATA_P(obj) || RTYPEDDATA_TYPE(obj) != &otel_ctx_handle_t) return NULL;
+    if (!rb_typeddata_is_kind_of(obj, &otel_ctx_handle_t)) return NULL;
 
     return RTYPEDDATA_DATA(obj);
   }
 
-  static struct ddog_ThreadContextHandle *get_current_fiber_handle(void) {
+  static ddog_ThreadContextHandle *get_current_fiber_handle(void) {
     return get_fiber_handle_for(rb_thread_current());
   }
 
-  static void store_current_fiber_handle(struct ddog_ThreadContextHandle *handle) {
+  static void store_current_fiber_handle(ddog_ThreadContextHandle *handle) {
     VALUE obj = TypedData_Wrap_Struct(rb_cObject, &otel_ctx_handle_t, handle);
     rb_thread_local_aset(rb_thread_current(), fiber_context_slot, obj);
   }
@@ -96,7 +95,7 @@ void otel_thread_context_init(VALUE core_module) {
       const rb_internal_thread_event_data_t *event_data,
       DDTRACE_UNUSED void *user_data
     ) {
-      struct ddog_ThreadContextHandle *handle = get_fiber_handle_for(event_data->thread);
+      ddog_ThreadContextHandle *handle = get_fiber_handle_for(event_data->thread);
 
       if (handle != NULL) ddog_otel_thread_ctx_attach(handle);
     }
@@ -109,7 +108,7 @@ void otel_thread_context_init(VALUE core_module) {
     DDTRACE_UNUSED ID mid,
     DDTRACE_UNUSED VALUE klass
   ) {
-    struct ddog_ThreadContextHandle *handle = get_current_fiber_handle();
+    ddog_ThreadContextHandle *handle = get_current_fiber_handle();
 
     if (handle != NULL) {
       ddog_otel_thread_ctx_attach(handle);
@@ -166,11 +165,12 @@ static VALUE native_set(
     uint8_t span_id_bytes[8];
     uint8_t local_root_span_id_bytes[8];
 
+    const int BIG_ENDIAN_PACK_FLAGS = INTEGER_PACK_MSWORD_FIRST | INTEGER_PACK_BIG_ENDIAN;
     rb_integer_pack(trace_id, trace_id_bytes, sizeof(trace_id_bytes), 1, 0, BIG_ENDIAN_PACK_FLAGS);
     rb_integer_pack(span_id, span_id_bytes, sizeof(span_id_bytes), 1, 0, BIG_ENDIAN_PACK_FLAGS);
     rb_integer_pack(local_root_span_id, local_root_span_id_bytes, sizeof(local_root_span_id_bytes), 1, 0, BIG_ENDIAN_PACK_FLAGS);
 
-    struct ddog_ThreadContextHandle *handle = get_current_fiber_handle();
+    ddog_ThreadContextHandle *handle = get_current_fiber_handle();
 
     if (handle == NULL) {
       handle = ddog_otel_thread_ctx_new(&trace_id_bytes, &span_id_bytes, 0, &local_root_span_id_bytes);
