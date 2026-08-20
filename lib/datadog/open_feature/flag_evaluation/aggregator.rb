@@ -26,14 +26,10 @@ module Datadog
         MAX_STRUCTURE_PROPERTIES = 256
         MAX_SNAPSHOT_DEPTH = 4
 
-        # Total nodes the walker may visit for one context, including interior Hash and
-        # Array nodes that produce no output. The per-level caps above bound the branching
-        # factor but not the product of it: a depth-4 tree that yields no leaves visits up
-        # to MAX_STRUCTURE_PROPERTIES ** MAX_SNAPSHOT_DEPTH nodes while `flattened` stays
-        # empty, so a cap on output size alone never stops the walk. Shared subtrees make
-        # such a context cheap to build, because cycle detection only rejects ancestors on
-        # the current path. This budget bounds the walk itself.
-        MAX_VISITED_NODES = MAX_CONTEXT_FIELDS * MAX_STRUCTURE_PROPERTIES
+        # The per-dimension caps match Go and Java. This additional total-node budget
+        # bounds leaf-free shared subtrees, which do not increase the retained field count.
+        # It still permits every retained field to sit at the maximum snapshot depth.
+        MAX_VISITED_NODES = MAX_CONTEXT_FIELDS * (MAX_SNAPSHOT_DEPTH + 1)
 
         # Truncation reason labels, surfaced on the `flagevaluation.context.truncated`
         # telemetry counter so operators can tell which cap was hit.
@@ -105,9 +101,7 @@ module Datadog
           error_message = error_message.to_s
           targeting_key = targeting_key.to_s
 
-          # Both branches build the same arity in the same field order, so `build_events`
-          # can destructure one fixed shape. Consent-off carries no context, so its
-          # context_key slot is nil rather than absent.
+          # Keep one key shape; the disabled path uses nil for context_key.
           context_key = observe_full_evaluation_data ? canonical_context_key(attrs) : nil
           full_key = [
             flag_key, variant, allocation_key, runtime_default, error_message,
@@ -192,7 +186,8 @@ module Datadog
           # Single-element array so the recursion shares one mutable counter.
           budget = [MAX_VISITED_NODES]
           attrs.each do |key, value|
-            key = key.to_s
+            key = context_key_string(key)
+            next unless key
             next if key == excluded_key
 
             if flattened.size >= MAX_CONTEXT_FIELDS
@@ -208,12 +203,28 @@ module Datadog
               reasons << REASON_MAX_VISITED_NODES
               break
             end
-
             walked += 1
+            if key.length > MAX_KEY_LENGTH
+              reasons << REASON_MAX_KEY_LENGTH
+              next
+            end
+
+            key = key.encode(Encoding::UTF_8, invalid: :replace, undef: :replace)
             bounded_flatten(key, value, flattened, seen, 0, reasons, budget)
           end
           [flattened, reasons.to_a]
         end
+
+        def self.context_key_string(key)
+          case key
+          when String then String.new(key)
+          when Symbol then key.to_s
+          end
+        rescue
+          # Unsupported caller keys must not break flag evaluation.
+          nil
+        end
+        private_class_method :context_key_string
 
         def self.bounded_flatten(prefix, value, output, seen, depth, reasons, budget)
           # Charge every node first, before any early return. A node that exits early still
@@ -264,7 +275,15 @@ module Datadog
               end
 
               walked += 1
-              bounded_flatten("#{prefix}.#{key}", child_value, output, seen, depth + 1, reasons, budget)
+              child_key = context_key_string(key)
+              next unless child_key
+              if prefix.length + 1 + child_key.length > MAX_KEY_LENGTH
+                reasons << REASON_MAX_KEY_LENGTH
+                next
+              end
+
+              child_key = child_key.encode(Encoding::UTF_8, invalid: :replace, undef: :replace)
+              bounded_flatten("#{prefix}.#{child_key}", child_value, output, seen, depth + 1, reasons, budget)
             end
             seen.delete(object_id)
           when Array
@@ -295,14 +314,26 @@ module Datadog
             end
             seen.delete(object_id)
           else
-            if value.is_a?(String) && value.length > MAX_VALUE_LENGTH
-              reasons << REASON_MAX_VALUE_LENGTH
+            if value.is_a?(String)
+              begin
+                string_value = String.new(value)
+                if string_value.length > MAX_VALUE_LENGTH
+                  reasons << REASON_MAX_VALUE_LENGTH
+                  return
+                end
+
+                output[prefix] = string_value.encode(
+                  Encoding::UTF_8, invalid: :replace, undef: :replace
+                ).freeze
+              rescue
+                # Unsupported caller values must not break flag evaluation.
+              end
               return
             end
-            output[prefix] = begin
-              value.dup
-            rescue TypeError
-              value
+
+            case value
+            when TrueClass, FalseClass, Integer, Float
+              output[prefix] = value
             end
           end
         end
@@ -339,7 +370,8 @@ module Datadog
 
         # 8-byte big-endian length prefix + raw bytes. Unambiguous field boundary.
         def length_delimited(string)
-          bytes = string.encode(Encoding::BINARY, invalid: :replace, undef: :replace)
+          utf8 = string.encode(Encoding::UTF_8, invalid: :replace, undef: :replace)
+          bytes = utf8.dup.force_encoding(Encoding::BINARY)
           byte_length = bytes.bytesize
           # Build 8-byte big-endian length
           length_bytes = String.new("", encoding: Encoding::BINARY)
@@ -370,9 +402,7 @@ module Datadog
         def add_to_degraded(
           flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms
         )
-          # Consent is intentionally not a degraded dimension: the degraded payload emits
-          # neither targeting_key nor context, so consent-differing rows would be
-          # byte-identical on the wire. (Matches Go/Java.)
+          # Degraded rows omit targeting_key and context, matching Go and Java.
           degraded_key = [
             flag_key, variant, allocation_key, runtime_default, error_message,
           ]

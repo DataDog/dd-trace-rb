@@ -2,6 +2,24 @@ module Datadog
   module OpenFeature
     module FlagEvaluation
       class Aggregator
+        type context = ::Hash[::String, any]
+        type full_key = [::String, ::String, ::String, bool, ::String, ::String, ::String?, bool]
+        type degraded_key = [::String, ::String, ::String, bool, ::String]
+        type entry = {
+          count: ::Integer,
+          first_evaluation: ::Integer,
+          last_evaluation: ::Integer,
+          runtime_default: bool,
+          error_message: ::String?,
+          targeting_key: ::String?,
+          context_attrs: context?
+        }
+        type snapshot = {
+          full: ::Hash[full_key, entry],
+          degraded: ::Hash[degraded_key, entry],
+          dropped_degraded_overflow: ::Integer
+        }
+
         MAX_CONTEXT_FIELDS: ::Integer
 
         MAX_VALUE_LENGTH: ::Integer
@@ -72,9 +90,9 @@ module Datadog
 
         @mutex: ::Thread::Mutex
 
-        @full: ::Hash[::Array[untyped], ::Hash[::Symbol, untyped]]
+        @full: ::Hash[full_key, entry]
 
-        @degraded: ::Hash[::Array[untyped], ::Hash[::Symbol, untyped]]
+        @degraded: ::Hash[degraded_key, entry]
 
         @per_flag_full: ::Hash[::String, ::Integer]
 
@@ -96,34 +114,36 @@ module Datadog
           allocation_key: ::String?,
           targeting_key: ::String?,
           eval_time_ms: ::Integer,
-          attrs: ::Hash[::String, untyped]?,
+          attrs: context?,
           ?error_message: ::String?,
           ?runtime_default: bool?,
           ?observe_full_evaluation_data: bool
         ) -> void
 
-        def flush_and_reset: () -> ::Hash[::Symbol, untyped]
+        def flush_and_reset: () -> snapshot
 
         def self.bounded_context_snapshot: (
-          ::Hash[::String, untyped]? attrs,
+          context? attrs,
           ?excluded_key: ::String?
-        ) -> [::Hash[::String, untyped], ::Array[::String]]
+        ) -> [context, ::Array[::String]]
 
-        def canonical_context_key: (::Hash[::String, untyped]? attrs) -> ::String
+        def canonical_context_key: (context? attrs) -> ::String
 
         private
 
+        def self.context_key_string: (any key) -> ::String?
+
         def self.bounded_flatten: (
           ::String prefix,
-          untyped value,
-          ::Hash[::String, untyped] output,
+          any value,
+          context output,
           ::Hash[::Integer, bool] seen,
           ::Integer depth,
           ::Set[::String] reasons,
           ::Array[::Integer] budget
         ) -> void
 
-        def context_value_bytes: (untyped value) -> ::String
+        def context_value_bytes: (any value) -> ::String
 
         def length_delimited: (::String string) -> ::String
 
@@ -132,10 +152,10 @@ module Datadog
           runtime_default: bool,
           ?error_message: ::String?,
           ?targeting_key: ::String?,
-          ?context_attrs: ::Hash[::String, untyped]?
-        ) -> ::Hash[::Symbol, untyped]
+          ?context_attrs: context?
+        ) -> entry
 
-        def observe: (::Hash[::Symbol, untyped] entry, ::Integer evaluation_time_ms) -> void
+        def observe: (entry entry, ::Integer evaluation_time_ms) -> void
 
         def add_to_degraded: (
           ::String flag_key,

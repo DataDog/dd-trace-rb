@@ -82,17 +82,6 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
     end
 
-    it "passes the SDK fields hash to the writer without copying it" do
-      sdk_context = ::OpenFeature::SDK::EvaluationContext.new(targeting_key: "user-9", tier: "gold")
-      hook_ctx = build_hook_context(evaluation_context: sdk_context)
-
-      expect(writer).to receive(:enqueue) do |event|
-        expect(event[:targeting_key]).to eq("user-9")
-        expect(event[:attrs]).to equal(sdk_context.fields)
-      end
-      hook.finally(hook_context: hook_ctx, evaluation_details: evaluation_details)
-    end
-
     it "enqueues error_message when present" do
       details = build_evaluation_details(variant: nil, error_message: "flag not found",
         flag_metadata: {"dd.eval.timestamp_ms" => 1, Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true})
@@ -162,38 +151,20 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
 
-    it "treats absent observe_full_evaluation_data as false (privacy-preserving default)" do
-      details = build_evaluation_details(variant: "on", flag_metadata: {"dd.eval.timestamp_ms" => 1})
-      expect(writer).to receive(:enqueue).with(
-        hash_including(observe_full_evaluation_data: false, attrs: {})
-      )
-      hook.finally(hook_context: hook_context, evaluation_details: details)
-    end
+    it "treats every value except true as a privacy-preserving false" do
+      details = [
+        build_evaluation_details(variant: "on", flag_metadata: {"dd.eval.timestamp_ms" => 1}),
+        details_with_observe_full_evaluation_data(false),
+        details_with_observe_full_evaluation_data(nil),
+        details_with_observe_full_evaluation_data("true"),
+      ]
 
-    it "treats null observe_full_evaluation_data as false" do
-      details = details_with_observe_full_evaluation_data(nil)
-      expect(writer).to receive(:enqueue).with(
-        hash_including(observe_full_evaluation_data: false, attrs: {})
-      )
-      hook.finally(hook_context: hook_context, evaluation_details: details)
-    end
-
-    it "treats wrong-typed observe_full_evaluation_data as false" do
-      details = details_with_observe_full_evaluation_data("true")
-      expect(writer).to receive(:enqueue).with(
-        hash_including(observe_full_evaluation_data: false, attrs: {})
-      )
-      hook.finally(hook_context: hook_context, evaluation_details: details)
-    end
-
-    # Regression guard: observe_full_evaluation_data must travel on the event, not be
-    # looked up from live config. The hook reads only metadata.
-    it "ignores gateway observe_full_evaluation_data even when it disagrees with metadata" do
-      details = details_with_observe_full_evaluation_data(false)
-      expect(writer).to receive(:enqueue).with(
-        hash_including(observe_full_evaluation_data: false, attrs: {})
-      )
-      hook.finally(hook_context: hook_context, evaluation_details: details)
+      details.each do |evaluation_details|
+        expect(writer).to receive(:enqueue).with(
+          hash_including(observe_full_evaluation_data: false, attrs: {})
+        )
+        hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
+      end
     end
 
     it "redacts the error message to the error code before enqueue when observe_full_evaluation_data is false" do
@@ -209,7 +180,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
     # the raw message. With no code there is nothing to substitute, and the raw text
     # must be dropped rather than passed through. Evaluator exception messages can
     # carry raw context data, so a pass-through here would put PII on the async queue.
-    it "drops the error message entirely when consent is off and there is no error code" do
+    it "drops the error message when full evaluation data is disabled and there is no error code" do
       details = build_evaluation_details(
         variant: nil, error_message: "user jane.doe@datadoghq.com not in segment", error_code: nil,
         flag_metadata: {"dd.eval.timestamp_ms" => 1}
@@ -221,28 +192,18 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
 
-    it "falls back to the error code when consent is on and the error message is empty" do
-      details = build_evaluation_details(
-        variant: nil, error_message: "", error_code: "TYPE_MISMATCH",
-        flag_metadata: {
-          "dd.eval.timestamp_ms" => 1,
-          Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
-        }
-      )
-      expect(writer).to receive(:enqueue).with(hash_including(error_message: "TYPE_MISMATCH"))
-      hook.finally(hook_context: hook_context, evaluation_details: details)
-    end
-
-    it "falls back to the error code when consent is on and the error message is nil" do
-      details = build_evaluation_details(
-        variant: nil, error_message: nil, error_code: "TYPE_MISMATCH",
-        flag_metadata: {
-          "dd.eval.timestamp_ms" => 1,
-          Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
-        }
-      )
-      expect(writer).to receive(:enqueue).with(hash_including(error_message: "TYPE_MISMATCH"))
-      hook.finally(hook_context: hook_context, evaluation_details: details)
+    it "uses the error code when full evaluation data is enabled and the error message is blank" do
+      [nil, ""].each do |error_message|
+        details = build_evaluation_details(
+          variant: nil, error_message: error_message, error_code: "TYPE_MISMATCH",
+          flag_metadata: {
+            "dd.eval.timestamp_ms" => 1,
+            Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
+          }
+        )
+        expect(writer).to receive(:enqueue).with(hash_including(error_message: "TYPE_MISMATCH"))
+        hook.finally(hook_context: hook_context, evaluation_details: details)
+      end
     end
   end
 end

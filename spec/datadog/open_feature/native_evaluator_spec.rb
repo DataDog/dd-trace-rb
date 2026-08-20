@@ -94,7 +94,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
       it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(false) }
     end
 
-    context "when the field is true" do
+    context "when the UFC root field is true" do
       let(:ufc) { '{"observeFullEvaluationData":true,"format":"SERVER","environment":{"name":"test"},"flags":{}}' }
       it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(true) }
     end
@@ -107,12 +107,6 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
     context "when the field is wrong-typed (string)" do
       let(:ufc) { '{"format":"SERVER","observeFullEvaluationData":"true","environment":{"name":"test"},"flags":{}}' }
       it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(false) }
-    end
-
-    # The field lives at the UFC root (sibling of `environment`), not on the environment object.
-    context "when the field is at the UFC root" do
-      let(:ufc) { '{"format":"SERVER","observeFullEvaluationData":true,"environment":{"name":"test"},"flags":{}}' }
-      it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(true) }
     end
 
     context "when the JSON is malformed" do

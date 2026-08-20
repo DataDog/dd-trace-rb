@@ -43,6 +43,7 @@ module Datadog
         REASON_CARDINALITY_CAP = "cardinality_cap"
         REASON_PAYLOAD_LIMIT = "payload_limit"
         REASON_PRE_QUEUE_OVERFLOW = "pre_queue_overflow"
+        REASON_SERIALIZATION_ERROR = "serialization_error"
 
         # Must equal OpenFeature::SDK::EvaluationContext::TARGETING_KEY. Duplicated as a
         # literal rather than referenced because the SDK is an optional dependency and
@@ -82,9 +83,7 @@ module Datadog
         def enqueue(**event)
           start_background_thread if forked?
 
-          # Pre-queue capacity check: a full queue is an O(1) drop + counter, not
-          # a copy-then-discard. Do the bounded context copy only when the queue
-          # has room.
+          # Avoid snapshot work when the queue is already full.
           if @queue.size >= QUEUE_SIZE
             @stop_mutex.synchronize { @dropped_pre_queue_overflow += 1 }
             return
@@ -101,13 +100,13 @@ module Datadog
             attrs = {}
           end
           bounded_event = {
-            flag_key: event[:flag_key],
-            variant: event[:variant],
-            allocation_key: event[:allocation_key],
-            error_message: event[:error_message],
+            flag_key: snapshot_string(event[:flag_key]),
+            variant: snapshot_string(event[:variant]),
+            allocation_key: snapshot_string(event[:allocation_key]),
+            error_message: snapshot_string(event[:error_message]),
             runtime_default: event[:runtime_default],
-            targeting_key: event[:targeting_key],
-            eval_time_ms: event[:eval_time_ms],
+            targeting_key: snapshot_string(event[:targeting_key]),
+            eval_time_ms: snapshot_integer(event[:eval_time_ms]),
             attrs: attrs,
             observe_full_evaluation_data: observe_full_evaluation_data,
           }
@@ -150,10 +149,29 @@ module Datadog
 
         def build_service_context
           config = Datadog.configuration
-          ctx = {"service" => config.service.to_s}
-          ctx["env"] = config.env if config.env && !config.env.empty?
-          ctx["version"] = config.version if config.version && !config.version.empty?
+          ctx = {"service" => snapshot_string(config.service) || ""}
+          env = snapshot_string(config.env)
+          version = snapshot_string(config.version)
+          ctx["env"] = env if env && !env.empty?
+          ctx["version"] = version if version && !version.empty?
           ctx
+        end
+
+        def snapshot_string(value)
+          return unless value
+
+          string = value.is_a?(String) ? value : value.to_s
+          String.new(string).encode(Encoding::UTF_8, invalid: :replace, undef: :replace).freeze
+        rescue
+          # Unsupported caller values must not break flag evaluation.
+          nil
+        end
+
+        def snapshot_integer(value)
+          integer = value.to_i
+          integer.is_a?(Integer) ? integer : 0
+        rescue
+          0
         end
 
         def start_background_thread
@@ -308,9 +326,7 @@ module Datadog
             events << event
           end
 
-          # The degraded key carries no consent dimension by design: the degraded payload
-          # emits neither targeting_key nor context, so consent-differing rows would be
-          # byte-identical on the wire.
+          # Degraded rows omit targeting_key and context, so the policy is not a key dimension.
           snapshot[:degraded].each do |key, entry|
             flag_key, variant, allocation_key, _runtime_default, _error_dimension = key
             event = build_event(
@@ -328,7 +344,7 @@ module Datadog
           flag_key:, variant:, allocation_key:, targeting_key:, entry:, flush_time_ms:, tier:,
           observe_full_evaluation_data:
         )
-          # @type var event: ::Hash[::String, untyped]
+          # @type var event: ::Hash[::String, any]
           event = {
             "timestamp" => flush_time_ms,
             "flag" => {"key" => flag_key},
@@ -386,11 +402,19 @@ module Datadog
           batch = []
           batch_size = base_payload_size
           dropped_oversized = 0
+          dropped_serialization = 0
           payload_limit_degraded = 0
           payload_splits = 0
 
           events.each do |event|
-            encoded_event = encoded_event_for_payload(event, base_payload_size)
+            begin
+              encoded_event = encoded_event_for_payload(event, base_payload_size)
+            rescue => e
+              # Keep one malformed event from discarding the complete flush snapshot.
+              dropped_serialization += event_count(event)
+              @logger.debug { "OpenFeature EVP: dropped event serialization_error=#{e.class}" }
+              next
+            end
             unless encoded_event
               dropped_oversized += event_count(event)
               next
@@ -415,6 +439,7 @@ module Datadog
           send_payload_batch(batch) unless batch.empty?
           record_telemetry_count(ROWS_DEGRADED_METRIC, payload_limit_degraded, reason: REASON_PAYLOAD_LIMIT)
           record_telemetry_count(ROWS_DROPPED_METRIC, dropped_oversized, reason: REASON_PAYLOAD_LIMIT)
+          record_telemetry_count(ROWS_DROPPED_METRIC, dropped_serialization, reason: REASON_SERIALIZATION_ERROR)
           record_telemetry_count(PAYLOAD_SPLITS_METRIC, payload_splits)
           @logger.debug { "OpenFeature EVP: dropped events payload_oversize=#{dropped_oversized}" } if dropped_oversized.positive?
         end

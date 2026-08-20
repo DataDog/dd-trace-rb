@@ -27,7 +27,7 @@ module Datadog
         # evaluator read itself raises.
         observe_full_evaluation_data = false
         # Snapshot the evaluator once: a concurrent reconfigure! must not retroactively
-        # apply a different environment's consent policy to this evaluation.
+        # apply a different environment's full-evaluation-data policy to this evaluation.
         evaluator = @evaluator
         observe_full_evaluation_data = evaluator.observe_full_evaluation_data == true
 

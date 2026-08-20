@@ -161,9 +161,9 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       end
     end
 
-    # The downgrade direction is the dangerous one: a stale consent-on snapshot would
-    # emit a raw targeting key and raw context after the customer revoked consent.
-    context "when consent is revoked while an evaluation is in flight" do
+    # The in-flight evaluation keeps the policy from the evaluator that performed it;
+    # reconfiguration must not replace that snapshot retroactively.
+    context "when full evaluation data is disabled while an evaluation is in flight" do
       before do
         allow(telemetry).to receive(:report)
         allow(replacement_evaluator).to receive(:observe_full_evaluation_data).and_return(false)
@@ -178,7 +178,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       let(:replacement_evaluator) { instance_double(Datadog::OpenFeature::NativeEvaluator) }
       let(:error) { RuntimeError.new("Crash") }
 
-      it "keeps the consent-on snapshot from the evaluator that performed the evaluation" do
+      it "keeps the enabled policy from the evaluator that performed the evaluation" do
         expect(evaluator).to receive(:observe_full_evaluation_data).once.and_return(true)
         expect(replacement_evaluator).not_to receive(:observe_full_evaluation_data)
 

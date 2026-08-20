@@ -318,6 +318,31 @@ RSpec.describe Datadog::OpenFeature::Provider do
         writer.stop
       end
 
+      it "protects targeting data through the SDK hook and Writer by default" do
+        result = Datadog::OpenFeature::ResolutionDetails.new(
+          value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
+          flag_metadata: {},
+          allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false
+        )
+        allow(engine).to receive(:fetch_value).and_return(result)
+
+        client.fetch_string_value(
+          flag_key: "protected-flag", default_value: "default", evaluation_context: evaluation_context
+        )
+
+        writer.send(:drain_and_flush)
+        expect(evp_transport).to have_received(:send_flag_evaluations) do |payload|
+          row = payload["flagEvaluations"].first
+          expect(row["targeting_key"]).to eq(
+            "sha256_c6c289e49e9c05b2145860387b73bcb18df43fb09a1e4a4a9713c76c88bb541b"
+          )
+          expect(row).not_to have_key("context")
+          expect(Datadog::Core::Encoding::JSONEncoder.encode(payload)).not_to include("user-1")
+        end
+      ensure
+        writer.stop
+      end
+
       it "marks SDK-final type mismatches as runtime defaults in the emitted row" do
         result = Datadog::OpenFeature::ResolutionDetails.new(
           value: 123, reason: "TARGETING_MATCH", variant: "variant-a",
