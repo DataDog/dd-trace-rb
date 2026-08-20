@@ -140,6 +140,23 @@ module Datadog
                 o.env "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE"
               end
 
+              # Maximum wall-clock time, in milliseconds, allowed for
+              # evaluating a single probe condition (`when`) or template
+              # segment. When evaluation exceeds this budget it is aborted
+              # and reported as an evaluation error (non-empty
+              # evaluationErrors, no captured user data) rather than
+              # producing a fully-captured snapshot.
+              #
+              # This bounds the realistic expensive non-regex evaluation
+              # paths (collection filter/all/any). The `matches` operator is
+              # separately bounded by the per-match Regexp timeout
+              # (Evaluator::MATCHES_TIMEOUT_SECONDS).
+              option :max_time_to_evaluate_ms do |o|
+                o.type :int
+                o.default 50
+                o.env "DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS"
+              end
+
               # Settings in the 'internal' group are for internal Datadog
               # use only, and are needed to test dynamic instrumentation or
               # experiment with features not released to customers.
