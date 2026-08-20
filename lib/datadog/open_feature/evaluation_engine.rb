@@ -56,7 +56,11 @@ module Datadog
         result = ResolutionDetails.build_error(
           value: default_value, error_code: Ext::GENERAL, error_message: "#{e.class}: #{e.message}"
         )
-        with_observe_full_evaluation_data(result, observe_full_evaluation_data)
+        # `== true` is load-bearing, not redundant. Steep treats a local read in a rescue
+        # body as possibly-unassigned, so it types this variable `(nil | bool)` here even
+        # though both bindings above precede any raise. Coercing at the use site is what
+        # narrows it to `bool`; an annotation on either assignment does not.
+        with_observe_full_evaluation_data(result, observe_full_evaluation_data == true)
       end
 
       # NOTE: In a currect implementation configuration is expected to be a raw
