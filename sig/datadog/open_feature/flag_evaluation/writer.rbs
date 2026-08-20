@@ -121,7 +121,7 @@ module Datadog
           observe_full_evaluation_data: bool
         ) -> ::Hash[::String, untyped]
 
-        def hash_targeting_key: (::String targeting_key) -> ::String
+        def prefixed_targeting_key_digest: (::String targeting_key) -> ::String
 
         def send_payload_batches: (::Array[::Hash[::String, untyped]] events) -> void
 

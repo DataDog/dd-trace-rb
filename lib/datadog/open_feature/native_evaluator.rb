@@ -58,7 +58,10 @@ module Datadog
 
         parsed = JSON.parse(configuration)
         parsed.is_a?(Hash) && parsed["observeFullEvaluationData"] == true
-      rescue JSON::ParserError
+      rescue
+        # Deliberately broad (bare rescue catches StandardError): this cosmetic read
+        # must never reject a UFC that the C extension accepts, so any failure here
+        # falls to the safe default.
         false
       end
 

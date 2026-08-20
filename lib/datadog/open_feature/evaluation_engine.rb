@@ -23,8 +23,11 @@ module Datadog
       end
 
       def fetch_value(flag_key, default_value:, expected_type:, evaluation_context: nil)
-        # Keep the policy bound to the evaluator that performs this evaluation.
+        # Pre-bound to the safe default so the rescue below can still read it if the
+        # evaluator read itself raises.
         observe_full_evaluation_data = false
+        # Snapshot the evaluator once: a concurrent reconfigure! must not retroactively
+        # apply a different environment's consent policy to this evaluation.
         evaluator = @evaluator
         observe_full_evaluation_data = evaluator.observe_full_evaluation_data == true
 
@@ -53,7 +56,7 @@ module Datadog
         result = ResolutionDetails.build_error(
           value: default_value, error_code: Ext::GENERAL, error_message: "#{e.class}: #{e.message}"
         )
-        with_observe_full_evaluation_data(result, observe_full_evaluation_data == true)
+        with_observe_full_evaluation_data(result, observe_full_evaluation_data)
       end
 
       # NOTE: In a currect implementation configuration is expected to be a raw

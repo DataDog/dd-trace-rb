@@ -904,7 +904,10 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(wire).not_to include("jane@dd.com")
     end
 
-    it "emits the raw error message in the degraded tier when observe_full_evaluation_data is true" do
+    # The degraded key carries no consent dimension, so the degraded tier always emits
+    # with consent off. It emits the error message it was given and never emits
+    # targeting_key or context, whatever the evaluation's consent was.
+    it "emits the error message it was given in the degraded tier and omits targeting_key and context" do
       payload = captured_payload do |writer|
         small = Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 10)
         writer.instance_variable_set(:@aggregator, small)
@@ -923,6 +926,71 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       degraded_row = payload["flagEvaluations"].find { |r| !r.key?("targeting_key") }
       expect(degraded_row["error"]).to eq("message" => "boom")
+      expect(degraded_row).not_to have_key("targeting_key")
+      expect(degraded_row).not_to have_key("context")
+    end
+
+    it "omits targeting_key and context in the degraded tier even when consent is on" do
+      raw_subject = "jane.doe@datadoghq.com"
+      payload = captured_payload do |writer|
+        small = Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 10)
+        writer.instance_variable_set(:@aggregator, small)
+        writer.enqueue(
+          flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
+          targeting_key: "u1", eval_time_ms: realistic_eval_ms, attrs: {"x" => 1},
+          observe_full_evaluation_data: true,
+        )
+        writer.enqueue(
+          flag_key: "deg-flag", variant: "b", allocation_key: "alloc-x",
+          targeting_key: raw_subject, eval_time_ms: realistic_eval_ms,
+          attrs: {"user_email" => raw_subject},
+          observe_full_evaluation_data: true,
+        )
+      end
+
+      degraded_row = payload["flagEvaluations"].find { |r| !r.key?("targeting_key") }
+      expect(degraded_row).not_to have_key("context")
+    end
+  end
+
+  describe "emit-time context redaction" do
+    let(:realistic_eval_ms) { 1_700_000_000_000 }
+
+    # The writer's emit-time check is the last line of defense before the wire. The
+    # aggregator already blanks context_attrs when consent is off, so this state is not
+    # reachable through `record`. A stubbed snapshot is the only way to reach build_event
+    # with a populated context and consent off, and it is what makes this guard testable
+    # rather than merely present.
+    it "omits the context when a full-tier entry carries context_attrs but consent is off" do
+      payload = nil
+      transport = instance_double(Datadog::OpenFeature::Transport::HTTP)
+      allow(transport).to receive(:send_flag_evaluations) { |p| payload = p }
+      logger = instance_double(Datadog::Core::Logger, debug: nil, warn: nil, error: nil)
+
+      raw_subject = "jane.doe@datadoghq.com"
+      # full-tier key shape: flag, variant, allocation, runtime_default, error_message,
+      # targeting_key, context_key, observe_full_evaluation_data
+      key = ["pii-flag", "on", "alloc", false, "", raw_subject, nil, false]
+      entry = {
+        count: 1, first_evaluation: realistic_eval_ms, last_evaluation: realistic_eval_ms,
+        runtime_default: false, error_message: "", targeting_key: raw_subject,
+        context_attrs: {"env" => "prod", "user_email" => raw_subject},
+        observe_full_evaluation_data: false,
+      }
+      snapshot = {full: {key => entry}, degraded: {}, dropped_degraded_overflow: 0}
+
+      writer = described_class.new(transport: transport, logger: logger)
+      aggregator = writer.instance_variable_get(:@aggregator)
+      allow(aggregator).to receive(:flush_and_reset).and_return(snapshot, {full: {}, degraded: {}, dropped_degraded_overflow: 0})
+
+      writer.send(:drain_and_flush)
+      writer.stop
+
+      row = payload["flagEvaluations"].first
+      expect(row).not_to have_key("context")
+      expect(row["targeting_key"]).to start_with("sha256_")
+      wire = Datadog::Core::Encoding::JSONEncoder.encode(payload)
+      expect(wire).not_to include(raw_subject)
     end
   end
 end

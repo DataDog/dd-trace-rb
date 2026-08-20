@@ -291,15 +291,12 @@ module Datadog
         end
 
         # Build flagEvaluationEvent list from aggregation snapshot.
-        # observe_full_evaluation_data is read from the bucket key and AND-folded
-        # with the entry's value as defense in depth.
         def build_events(snapshot)
           flush_time_ms = (Core::Utils::Time.now.to_f * 1000).to_i
           events = []
 
           snapshot[:full].each do |key, entry|
             flag_key, variant, allocation_key, _runtime_default, _error_message, targeting_key, _ctx_key, observe_full_evaluation_data = key
-            observe_full_evaluation_data &&= entry[:observe_full_evaluation_data] == true
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
               targeting_key: targeting_key, entry: entry, flush_time_ms: flush_time_ms, tier: :full,
@@ -308,13 +305,15 @@ module Datadog
             events << event
           end
 
+          # The degraded key carries no consent dimension by design: the degraded payload
+          # emits neither targeting_key nor context, so consent-differing rows would be
+          # byte-identical on the wire.
           snapshot[:degraded].each do |key, entry|
-            flag_key, variant, allocation_key, _runtime_default, _error_dimension, observe_full_evaluation_data = key
-            observe_full_evaluation_data &&= entry[:observe_full_evaluation_data] == true
+            flag_key, variant, allocation_key, _runtime_default, _error_dimension = key
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
               targeting_key: nil, entry: entry, flush_time_ms: flush_time_ms, tier: :degraded,
-              observe_full_evaluation_data: observe_full_evaluation_data,
+              observe_full_evaluation_data: false,
             )
             events << event
           end
@@ -354,7 +353,7 @@ module Datadog
           if tier == :full
             if targeting_key && !targeting_key.empty?
               event["targeting_key"] =
-                observe_full_evaluation_data ? targeting_key : hash_targeting_key(targeting_key)
+                observe_full_evaluation_data ? targeting_key : prefixed_targeting_key_digest(targeting_key)
             end
 
             if observe_full_evaluation_data && entry[:context_attrs] && !entry[:context_attrs].empty?
@@ -368,9 +367,9 @@ module Datadog
         # Unsalted SHA-256 over the UTF-8 bytes of the targeting key, with the
         # `sha256_` prefix. The string is encoded to UTF-8 first so a targeting
         # key in another Ruby encoding hashes to the same bytes other SDKs emit.
-        def hash_targeting_key(targeting_key)
-          return "" if targeting_key.empty?
-
+        # Distinct from SpanEnrichmentHook::Codec.hash_targeting_key, which emits a
+        # bare digest for a different wire format on the span track.
+        def prefixed_targeting_key_digest(targeting_key)
           utf8 = targeting_key.encode(Encoding::UTF_8, invalid: :replace, undef: :replace)
           TARGETING_KEY_HASH_PREFIX + Digest::SHA256.hexdigest(utf8)
         end

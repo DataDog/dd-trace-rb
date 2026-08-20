@@ -204,5 +204,29 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       expect(writer).to receive(:enqueue).with(hash_including(error_message: "TYPE_MISMATCH"))
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
+
+    it "falls back to the error code when consent is on and the error message is empty" do
+      details = build_evaluation_details(
+        variant: nil, error_message: "", error_code: "TYPE_MISMATCH",
+        flag_metadata: {
+          "dd.eval.timestamp_ms" => 1,
+          Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
+        }
+      )
+      expect(writer).to receive(:enqueue).with(hash_including(error_message: "TYPE_MISMATCH"))
+      hook.finally(hook_context: hook_context, evaluation_details: details)
+    end
+
+    it "falls back to the error code when consent is on and the error message is nil" do
+      details = build_evaluation_details(
+        variant: nil, error_message: nil, error_code: "TYPE_MISMATCH",
+        flag_metadata: {
+          "dd.eval.timestamp_ms" => 1,
+          Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
+        }
+      )
+      expect(writer).to receive(:enqueue).with(hash_including(error_message: "TYPE_MISMATCH"))
+      hook.finally(hook_context: hook_context, evaluation_details: details)
+    end
   end
 end

@@ -28,7 +28,10 @@ module Datadog
 
       private
 
-      def with_observe_full_evaluation_data: (untyped result, bool observe_full_evaluation_data) -> untyped
+      def with_observe_full_evaluation_data: (
+        (ResolutionDetails | Core::FeatureFlags::ResolutionDetails) result,
+        bool observe_full_evaluation_data
+      ) -> (ResolutionDetails | Core::FeatureFlags::ResolutionDetails)
     end
   end
 end
