@@ -5,6 +5,10 @@ module Datadog
 
       @configuration: Core::FeatureFlags::Configuration
 
+      @observe_full_evaluation_data: bool
+
+      attr_reader observe_full_evaluation_data: bool
+
       def initialize: (::String configuration) -> void
 
       def get_assignment: (
@@ -15,6 +19,8 @@ module Datadog
       ) -> (Core::FeatureFlags::ResolutionDetails | ResolutionDetails)
 
       private
+
+      def parse_observe_full_evaluation_data: (::String? configuration) -> bool
 
       def invalid_flag_configuration?: (Core::FeatureFlags::ResolutionDetails result) -> bool
 

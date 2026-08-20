@@ -40,6 +40,10 @@ module Datadog
 
         REASON_SERIALIZATION_ERROR: ::String
 
+        TARGETING_KEY_FIELD: ::String
+
+        TARGETING_KEY_HASH_PREFIX: ::String
+
         @transport: Transport::HTTP
 
         @logger: Core::Logger
@@ -83,6 +87,7 @@ module Datadog
           ?runtime_default: bool?,
           ?targeting_key: any,
           ?attrs: Aggregator::raw_context?,
+          ?observe_full_evaluation_data: bool,
           **any event
         ) -> void
 
@@ -130,8 +135,11 @@ module Datadog
           targeting_key: ::String?,
           entry: Aggregator::entry,
           flush_time_ms: ::Integer,
-          tier: ::Symbol
+          tier: ::Symbol,
+          observe_full_evaluation_data: bool
         ) -> event
+
+        def prefixed_targeting_key_digest: (::String targeting_key) -> ::String
 
         def send_payload_batches: (::Array[event] events) -> void
 

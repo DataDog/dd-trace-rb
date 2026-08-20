@@ -14,8 +14,9 @@ module Datadog
       # - canonical_context_key: sorted type-tagged length-delimited encoding (no hash digest)
       # - Caps: global_cap=131_072 / per_flag_cap=10_000 / degraded_cap=32_768
       #
-      # The writer applies `bounded_context_snapshot` on the evaluation thread before
-      # enqueue, so the queue only holds an already-bounded, flattened snapshot.
+      # Context bounding: the writer applies `bounded_context_snapshot` on the evaluation
+      # thread before enqueue, so the queue only ever holds an already-bounded, flattened
+      # snapshot. `record` receives that snapshot and keys on it directly.
       class Aggregator
         # Cross-SDK context caps (RFC: "Kept aligned with the cross-SDK RFC").
         MAX_CONTEXT_FIELDS = 256
@@ -86,10 +87,13 @@ module Datadog
         # Record one evaluation event. Thread-safe. Called from the background writer.
         def record(
           flag_key:, variant:, allocation_key:, targeting_key:, eval_time_ms:, attrs:, error_message: nil,
-          runtime_default: nil
+          runtime_default: nil, observe_full_evaluation_data: false
         )
           runtime_default = variant.nil? if runtime_default.nil?
           runtime_default = !!runtime_default
+          # Normalize to a strict boolean so it is a stable bucket-key dimension and a
+          # trustworthy entry value; the writer emits raw PII on the true branch.
+          observe_full_evaluation_data = observe_full_evaluation_data == true
 
           # Normalize nil/empty strings
           variant = variant.to_s
@@ -97,9 +101,13 @@ module Datadog
           error_message = error_message.to_s
           targeting_key = targeting_key.to_s
 
-          context_key = canonical_context_key(attrs)
+          # Keep one key shape; the disabled path uses nil for context_key.
+          context_key = observe_full_evaluation_data ? canonical_context_key(attrs) : nil
           # @type var full_key: full_key
-          full_key = [flag_key, variant, allocation_key, runtime_default, error_message, targeting_key, context_key]
+          full_key = [
+            flag_key, variant, allocation_key, runtime_default, error_message,
+            targeting_key, context_key, observe_full_evaluation_data,
+          ]
           evaluation_time_ms = eval_time_ms.to_i
 
           @mutex.synchronize do
@@ -127,7 +135,7 @@ module Datadog
                 runtime_default: runtime_default,
                 error_message: error_message,
                 targeting_key: targeting_key,
-                context_attrs: attrs
+                context_attrs: observe_full_evaluation_data ? attrs : nil
               )
               @full[full_key] = entry
               @global_count += 1
@@ -169,7 +177,7 @@ module Datadog
         # sorting or scanning the full input. This is the cross-SDK recommendation for
         # languages with deterministic iteration (Ruby truncates; Go omits because its map
         # iteration is randomized per call).
-        def self.bounded_context_snapshot(attrs)
+        def self.bounded_context_snapshot(attrs, excluded_key: nil)
           return [{}, []] unless attrs.is_a?(Hash) && !attrs.empty?
 
           flattened = {}
@@ -181,6 +189,7 @@ module Datadog
           attrs.each do |key, value|
             key = context_key_string(key)
             next unless key
+            next if key == excluded_key
 
             if flattened.size >= MAX_CONTEXT_FIELDS
               reasons << REASON_MAX_CONTEXT_FIELDS
@@ -397,8 +406,11 @@ module Datadog
         def add_to_degraded(
           flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms
         )
+          # Degraded rows omit targeting_key and context, matching Go and Java.
           # @type var degraded_key: degraded_key
-          degraded_key = [flag_key, variant, allocation_key, runtime_default, error_message]
+          degraded_key = [
+            flag_key, variant, allocation_key, runtime_default, error_message,
+          ]
 
           if (entry = @degraded[degraded_key])
             observe(entry, evaluation_time_ms)
@@ -412,7 +424,7 @@ module Datadog
             return
           end
 
-          # Degraded entries omit targeting_key and context_attrs.
+          # targeting_key + context_attrs are omitempty in the schema.
           @degraded[degraded_key] = new_entry(
             evaluation_time_ms,
             runtime_default: runtime_default,

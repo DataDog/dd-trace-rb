@@ -7,7 +7,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
   before do
     stub_const("Datadog::Core::FeatureFlags::Configuration", configuration_class)
     allow(Datadog::Core::FeatureFlags::Configuration)
-      .to receive(:new).with(configuration_json).and_return(configuration)
+      .to receive(:new).and_return(configuration)
     allow(configuration).to receive(:get_assignment).with(flag_key, expected_type, context).and_return(assignment)
   end
 
@@ -79,6 +79,42 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
 
         expect(result).to be(assignment)
       end
+    end
+  end
+
+  describe "#observe_full_evaluation_data" do
+    let(:base_ufc) { '{"format":"SERVER","environment":{"name":"test"},"flags":{}}' }
+
+    context "when the field is absent (privacy-preserving default)" do
+      it { expect(described_class.new(base_ufc).observe_full_evaluation_data).to be(false) }
+    end
+
+    context "when the field is false" do
+      let(:ufc) { '{"observeFullEvaluationData":false,"format":"SERVER","environment":{"name":"test"},"flags":{}}' }
+      it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(false) }
+    end
+
+    context "when the UFC root field is true" do
+      let(:ufc) { '{"observeFullEvaluationData":true,"format":"SERVER","environment":{"name":"test"},"flags":{}}' }
+      it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(true) }
+    end
+
+    context "when the field is explicit null" do
+      let(:ufc) { '{"format":"SERVER","observeFullEvaluationData":null,"environment":{"name":"test"},"flags":{}}' }
+      it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(false) }
+    end
+
+    context "when the field is wrong-typed (string)" do
+      let(:ufc) { '{"format":"SERVER","observeFullEvaluationData":"true","environment":{"name":"test"},"flags":{}}' }
+      it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(false) }
+    end
+
+    context "when the JSON is malformed" do
+      it { expect(described_class.new("{not valid json").observe_full_evaluation_data).to be(false) }
+    end
+
+    context "when the configuration is nil" do
+      it { expect(described_class.new(nil).observe_full_evaluation_data).to be(false) }
     end
   end
 end
