@@ -88,6 +88,40 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
       end
     end
 
+    context "when a serial id appears on a later evaluation of the same allocation" do
+      before { allow(Datadog::OpenFeature::Exposures::Deduplicator).to receive(:new).and_call_original }
+
+      let(:result_with_serial_id) do
+        Datadog::OpenFeature::ResolutionDetails.new(
+          value: 4,
+          allocation_key: "4-for-john-doe",
+          variant: "4",
+          serial_id: 0,
+          flag_metadata: {
+            "allocationKey" => "4-for-john-doe",
+            "variationType" => "number",
+            "doLog" => true,
+          },
+          log?: true,
+          error?: false
+        )
+      end
+
+      it "enqueues a second event" do
+        expect(worker).to receive(:enqueue).twice.and_return(true)
+
+        expect(reporter.report(result, flag_key: "feature_flag", context: context)).to be(true)
+        expect(reporter.report(result_with_serial_id, flag_key: "feature_flag", context: context)).to be(true)
+      end
+
+      it "does not enqueue the same serial id twice" do
+        expect(worker).to receive(:enqueue).once.and_return(true)
+
+        expect(reporter.report(result_with_serial_id, flag_key: "feature_flag", context: context)).to be(true)
+        expect(reporter.report(result_with_serial_id, flag_key: "feature_flag", context: context)).to be(false)
+      end
+    end
+
     context "when evaluation context is nil" do
       it "skips enqueueing exposure" do
         expect(deduplicator).not_to receive(:duplicate?)

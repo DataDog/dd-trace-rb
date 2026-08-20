@@ -8,11 +8,18 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
 
   let(:now) { Time.utc(2025, 1, 1, 0, 0, 0) }
   let(:event) { described_class.build(result, flag_key: "feature_flag", context: context) }
+  let(:serial_id) { nil }
+  let(:context) do
+    instance_double(
+      "OpenFeature::SDK::EvaluationContext", targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"}
+    )
+  end
   let(:result) do
     Datadog::OpenFeature::ResolutionDetails.new(
       value: 4,
       allocation_key: "4-for-john-doe",
       variant: "4",
+      serial_id: serial_id,
       flag_metadata: {
         "allocationKey" => "4-for-john-doe",
         "variationType" => "number",
@@ -76,6 +83,38 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
 
       it { expect(event).to eq(expected) }
     end
+
+    context "when result has a serial id" do
+      let(:serial_id) { 7 }
+      let(:expected) do
+        {
+          timestamp: 1_735_689_600_000,
+          allocation: {key: "4-for-john-doe"},
+          flag: {key: "feature_flag"},
+          variant: {key: "4"},
+          subject: {id: "john-doe", attributes: {}},
+          serial_id: 7,
+        }
+      end
+
+      it { expect(event).to eq(expected) }
+    end
+
+    context "when result has a serial id of zero" do
+      let(:serial_id) { 0 }
+      let(:expected) do
+        {
+          timestamp: 1_735_689_600_000,
+          allocation: {key: "4-for-john-doe"},
+          flag: {key: "feature_flag"},
+          variant: {key: "4"},
+          subject: {id: "john-doe", attributes: {}},
+          serial_id: 0,
+        }
+      end
+
+      it { expect(event).to eq(expected) }
+    end
   end
 
   describe ".cache_key" do
@@ -92,7 +131,25 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
 
     it "returns cache value based on allocation and variant" do
       expect(described_class.cache_value(result, flag_key: "feature_flag", context: context))
-        .to eq("4-for-john-doe:4")
+        .to eq("4-for-john-doe:4:")
+    end
+
+    context "when result has a serial id" do
+      let(:serial_id) { 7 }
+
+      it "returns cache value based on allocation, variant and serial id" do
+        expect(described_class.cache_value(result, flag_key: "feature_flag", context: context))
+          .to eq("4-for-john-doe:4:7")
+      end
+    end
+
+    context "when result has a serial id of zero" do
+      let(:serial_id) { 0 }
+
+      it "returns a value that differs from the value without a serial id" do
+        expect(described_class.cache_value(result, flag_key: "feature_flag", context: context))
+          .to eq("4-for-john-doe:4:0")
+      end
     end
   end
 end
