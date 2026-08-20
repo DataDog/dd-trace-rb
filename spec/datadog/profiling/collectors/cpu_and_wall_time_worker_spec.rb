@@ -977,6 +977,37 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(total_size).to eq test_num_allocated_object * expected_size_of_object
       end
 
+      context "internal VM objects" do
+        let(:something_that_triggers_creation_of_imemo_objects) do
+          eval("proc { def self.foo; rand; end; foo }.call", binding, __FILE__, __LINE__)
+        end
+
+        # Internal objects are skipped by the heap profiler (see `start_heap_allocation_recording()`) because tracking
+        # them would mean adding them to a `ObjectSpace::WeakMap`, which is not safe. They are still allocation
+        # sampled, as that is safe and useful.
+        it "records them as allocation samples but never as heap samples" do
+          start
+
+          something_that_triggers_creation_of_imemo_objects
+
+          # Force a GC so that any tracked object would be old enough to show up in the heap profile
+          GC.start
+
+          cpu_and_wall_time_worker.stop
+
+          internal_samples = samples_from_pprof(recorder.serialize!).select do |sample|
+            sample.labels.fetch(:"allocation class", "").start_with?("(VM Internal")
+          end
+
+          # Guard against this passing just because no internal object was sampled at all
+          expect(internal_samples).to_not be_empty
+          expect(internal_samples.map { |sample| sample.values[:"alloc-samples"] || 0 }.sum).to be > 0
+
+          expect(internal_samples.map { |sample| sample.values[:"heap-live-samples"] || 0 }.sum).to eq 0
+          expect(internal_samples.map { |sample| sample.values[:"heap-live-size"] || 0 }.sum).to eq 0
+        end
+      end
+
       describe "heap cleanup after GC" do
         let(:options) { {dynamic_sampling_rate_enabled: false} }
 

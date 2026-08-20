@@ -3,6 +3,7 @@
 #include "ruby_helpers.h"
 #include "collectors_stack.h"
 #include "libdatadog_helpers.h"
+#include "private_vm_api_access.h"
 #include "time_helpers.h"
 
 // note on calloc vs ruby_xcalloc use:
@@ -397,6 +398,19 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
       // See notes on `heap_recorder_update` for details.
       || heap_recorder->updating
     ) {
+    heap_recorder->recording_skipped = true;
+    return false;
+  }
+
+  // Do not sample internal objects in the heap profiler because
+  // they are added to a ObjectSpace::WeakMap, which would not be safe.
+  // This means we ignore internal objects samples for the heap profiler,
+  // which is a trade-off discussed in https://github.com/DataDog/dd-trace-rb/pull/6176#discussion_r3819776251
+  //
+  // Note this is checked after the sample rate above, as the sample rate is in number of allocation profiler samples,
+  // not in number of non-internal samples. Like the skips above, num_recordings_skipped is not reset here, so the
+  // next allocation sample still gets a chance to be tracked.
+  if (ddtrace_is_internal_object_p(new_obj)) {
     heap_recorder->recording_skipped = true;
     return false;
   }

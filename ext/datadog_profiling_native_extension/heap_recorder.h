@@ -99,6 +99,9 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder);
 // This heap allocation recording needs to be ended via ::end_heap_allocation_recording
 // before it will become fully committed and able to be iterated on.
 //
+// Some objects are never tracked (e.g. internal objects, or because of the sample rate); this is handled internally
+// by skipping the recording, so callers always need to pair this with ::end_heap_allocation_recording anyway.
+//
 // @param new_obj
 //   The newly allocated Ruby object/value.
 // @param weight
