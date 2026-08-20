@@ -41,6 +41,7 @@ RSpec.describe "ActiveRecord instrumentation" do
       expect(span.service).to eq("mysql2")
       expect(span.name).to eq("mysql2.query")
       expect(span.type).to eq("sql")
+      expect(span.get_tag("span.kind")).to eq("client")
       expect(span.resource.strip).to eq("SELECT COUNT(*) FROM `articles`")
       expect(span.get_tag("active_record.db.vendor")).to eq("mysql2")
       expect(span.get_tag("db.instance")).to eq("mysql")

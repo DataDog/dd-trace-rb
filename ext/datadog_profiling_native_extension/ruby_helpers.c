@@ -198,36 +198,6 @@ size_t ruby_obj_memsize_of(VALUE obj) {
   }
 }
 
-// Inspired by rb_class_of but without actually returning classes or potentially doing assertions
-static bool ruby_is_obj_with_class(VALUE obj) {
-  if (!RB_SPECIAL_CONST_P(obj)) {
-    return true;
-  }
-  if (obj == RUBY_Qfalse) {
-    return true;
-  }
-  else if (obj == RUBY_Qnil) {
-    return true;
-  }
-  else if (obj == RUBY_Qtrue) {
-    return true;
-  }
-  else if (RB_FIXNUM_P(obj)) {
-    return true;
-  }
-  else if (RB_STATIC_SYM_P(obj)) {
-    return true;
-  }
-  else if (RB_FLONUM_P(obj)) {
-    return true;
-  }
-
-  return false;
-}
-
-// This function is not present in the VM headers, but is a public symbol that can be invoked.
-int rb_objspace_internal_object_p(VALUE obj);
-
 #ifdef NO_RB_OBJ_INFO
   const char* safe_object_info(DDTRACE_UNUSED VALUE obj) { return "(No rb_obj_info for current Ruby)"; }
 #else
@@ -239,8 +209,7 @@ int rb_objspace_internal_object_p(VALUE obj);
 #endif
 
 VALUE ruby_safe_inspect(VALUE obj) {
-  if (!ruby_is_obj_with_class(obj))       return rb_str_new_cstr("(Not an object)");
-  if (rb_objspace_internal_object_p(obj)) return rb_sprintf("(VM Internal, %s)", safe_object_info(obj));
+  if (ddtrace_is_internal_object_p(obj))  return rb_sprintf("(VM Internal, %s)", safe_object_info(obj));
   // @ivoanjo: I saw crashes on Ruby 3.1.4 when trying to #inspect matchdata objects. I'm not entirely sure why this
   // is needed, but since we only use this method for debug purposes I put in this alternative and decided not to
   // dig deeper.

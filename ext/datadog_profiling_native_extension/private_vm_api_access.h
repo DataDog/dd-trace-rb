@@ -86,8 +86,19 @@ VALUE current_fiber_for(VALUE thread);
 
 void self_test_current_fiber_for(void);
 
+// Returns the module name without allocating, or nil if the module is anonymous (i.e., Module#name is nil).
+// Never returns an empty String (returns nil instead if it the name would be empty).
+// Also consider ddtrace_permanent_mod_name().
+//
+// Use this instead of rb_class2name() or rb_mod_name() which can trigger allocations
+VALUE ddtrace_alloc_free_rb_mod_name(VALUE mod);
+// Same as `ddtrace_alloc_free_rb_mod_name` but additionally returns nil (filters out)
+// if the module does not have a permanent name (e.g. `#<Module:0x0123>::Foo`).
+VALUE ddtrace_permanent_mod_name(VALUE mod);
+
 ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq, char *buf, size_t buf_size);
 VALUE ddtrace_location_base_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq);
 void* ddtrace_cme_cfunc_func(const rb_callable_method_entry_t *cme);
 const char *ddtrace_cme_original_method_name(const rb_callable_method_entry_t *cme);
 
+int ddtrace_is_internal_object_p(VALUE obj);
