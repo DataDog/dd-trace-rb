@@ -133,8 +133,7 @@ module Datadog
           runtime_default: bool,
           ?error_message: ::String?,
           ?targeting_key: ::String?,
-          ?context_attrs: ::Hash[::String, untyped]?,
-          ?observe_full_evaluation_data: bool
+          ?context_attrs: ::Hash[::String, untyped]?
         ) -> ::Hash[::Symbol, untyped]
 
         def observe: (::Hash[::Symbol, untyped] entry, ::Integer evaluation_time_ms) -> void

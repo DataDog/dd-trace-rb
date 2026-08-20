@@ -975,7 +975,6 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         count: 1, first_evaluation: realistic_eval_ms, last_evaluation: realistic_eval_ms,
         runtime_default: false, error_message: "", targeting_key: raw_subject,
         context_attrs: {"env" => "prod", "user_email" => raw_subject},
-        observe_full_evaluation_data: false,
       }
       snapshot = {full: {key => entry}, degraded: {}, dropped_degraded_overflow: 0}
 

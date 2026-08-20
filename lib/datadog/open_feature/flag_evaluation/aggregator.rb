@@ -140,8 +140,7 @@ module Datadog
                 runtime_default: runtime_default,
                 error_message: error_message,
                 targeting_key: targeting_key,
-                context_attrs: observe_full_evaluation_data ? attrs : nil,
-                observe_full_evaluation_data: observe_full_evaluation_data
+                context_attrs: observe_full_evaluation_data ? attrs : nil
               )
               @full[full_key] = entry
               @global_count += 1
@@ -350,10 +349,7 @@ module Datadog
           length_bytes + bytes
         end
 
-        def new_entry(
-          evaluation_time_ms, runtime_default:, error_message: nil, targeting_key: nil, context_attrs: nil,
-          observe_full_evaluation_data: false
-        )
+        def new_entry(evaluation_time_ms, runtime_default:, error_message: nil, targeting_key: nil, context_attrs: nil)
           {
             count: 1,
             first_evaluation: evaluation_time_ms,
@@ -362,7 +358,6 @@ module Datadog
             error_message: error_message,
             targeting_key: targeting_key,
             context_attrs: context_attrs,
-            observe_full_evaluation_data: observe_full_evaluation_data,
           }
         end
 
