@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "data_streams/ext"
 require_relative "data_streams/processor"
 require_relative "data_streams/pathway_context"
 require_relative "core/utils/time"
