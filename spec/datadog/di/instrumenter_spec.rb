@@ -2077,5 +2077,74 @@ RSpec.describe Datadog::DI::Instrumenter do
         end.not_to raise_error
       end
     end
+
+    describe "condition evaluation timeout" do
+      before do
+        Object.const_set(:DITimeoutClass, Class.new do
+          def test_method(arg1)
+            arg1.length
+          end
+        end)
+      end
+
+      after do
+        Object.send(:remove_const, :DITimeoutClass)
+      end
+
+      # `arg1.filter(@it >= 0).length > 0` — a collection filter over the
+      # first positional argument. With a zero evaluation budget the
+      # cooperative deadline inside #filter fires immediately, aborting
+      # condition evaluation before any capture happens.
+      let(:probe) do
+        src, regexps = Datadog::DI::EL::Compiler.new.compile(
+          "gt" => [
+            {
+              "len" => {
+                "filter" => [
+                  {"ref" => "arg1"},
+                  {"ge" => [{"ref" => "@it"}, 0]},
+                ],
+              },
+            },
+            0,
+          ],
+        )
+        condition = Datadog::DI::EL::Expression.new("arg1.filter(@it >= 0).length > 0", src, regexps: regexps)
+        Datadog::DI::Probe.new(
+          id: 1, type: :log, type_name: "DITimeoutClass", method_name: "test_method",
+          condition: condition,
+        )
+      end
+
+      let(:responder) do
+        double("responder").tap do |r|
+          allow(r).to receive(:probe_executed_callback)
+        end
+      end
+
+      it "aborts condition evaluation as an evaluation-error snapshot with no captures" do
+        allow(settings.dynamic_instrumentation).to receive(:max_time_to_evaluate_ms).and_return(0)
+        allow(logger).to receive(:debug)
+
+        allow(telemetry).to receive(:report)
+
+        expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "evaluation_timeouts", 1)
+
+        expect(responder).to receive(:probe_condition_evaluation_failed_callback) do |context, exc|
+          expect(exc).to be_a(Datadog::DI::Error::EvaluationTimeout)
+        end
+        expect(responder).not_to receive(:probe_executed_callback)
+
+
+        begin
+          instrumenter.hook_method(probe, responder)
+          # The condition timeout is caught by DI; the customer method
+          # runs normally and no captured snapshot is produced.
+          expect { DITimeoutClass.new.test_method([1, 2, 3]) }.not_to raise_error
+        ensure
+          instrumenter.unhook_method(probe)
+        end
+      end
+    end
   end
 end
