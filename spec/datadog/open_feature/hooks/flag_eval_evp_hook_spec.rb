@@ -205,6 +205,22 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
 
+    # Every other redaction example supplies an error code, so the substitution masks
+    # the raw message. With no code there is nothing to substitute, and the raw text
+    # must be dropped rather than passed through. Evaluator exception messages can
+    # carry raw context data, so a pass-through here would put PII on the async queue.
+    it "drops the error message entirely when consent is off and there is no error code" do
+      details = build_evaluation_details(
+        variant: nil, error_message: "user jane.doe@datadoghq.com not in segment", error_code: nil,
+        flag_metadata: {"dd.eval.timestamp_ms" => 1}
+      )
+      expect(writer).to receive(:enqueue) do |event|
+        expect(event[:error_message]).to be_nil
+        expect(event[:observe_full_evaluation_data]).to be(false)
+      end
+      hook.finally(hook_context: hook_context, evaluation_details: details)
+    end
+
     it "falls back to the error code when consent is on and the error message is empty" do
       details = build_evaluation_details(
         variant: nil, error_message: "", error_code: "TYPE_MISMATCH",

@@ -992,4 +992,15 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(wire).not_to include(raw_subject)
     end
   end
+
+  describe "TARGETING_KEY_FIELD" do
+    # The writer cannot reference the SDK constant: the SDK is an optional dependency
+    # and this file loads without it. If the SDK renames the field, the exclusion in
+    # bounded_context_snapshot silently stops matching and the targeting key lands in
+    # context.evaluation as raw PII. This assertion is what catches that.
+    it "equals the OpenFeature SDK targeting-key field name" do
+      expect(described_class::TARGETING_KEY_FIELD)
+        .to eq(::OpenFeature::SDK::EvaluationContext::TARGETING_KEY.to_s)
+    end
+  end
 end

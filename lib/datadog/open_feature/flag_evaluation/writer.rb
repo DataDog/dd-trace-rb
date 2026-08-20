@@ -44,6 +44,11 @@ module Datadog
         REASON_PAYLOAD_LIMIT = "payload_limit"
         REASON_PRE_QUEUE_OVERFLOW = "pre_queue_overflow"
 
+        # Must equal OpenFeature::SDK::EvaluationContext::TARGETING_KEY. Duplicated as a
+        # literal rather than referenced because the SDK is an optional dependency and
+        # this file loads without it. If the two drift, the targeting key stops being
+        # excluded from the context snapshot and lands in context.evaluation as raw PII,
+        # so a spec asserts the equality.
         TARGETING_KEY_FIELD = "targeting_key"
         TARGETING_KEY_HASH_PREFIX = "sha256_"
 
