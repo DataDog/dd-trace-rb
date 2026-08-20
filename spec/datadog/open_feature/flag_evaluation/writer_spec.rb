@@ -139,6 +139,76 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
     let(:logger) { instance_double(Logger, debug: nil) }
 
+    it "wakes an idle worker when an event is enqueued" do
+      stub_const("#{described_class}::DRAIN_INTERVAL_SECONDS", 10)
+      allow(transport).to receive(:send_flag_evaluations)
+      worker_waiting = Queue.new
+      allow_any_instance_of(ConditionVariable).to receive(:wait).and_wrap_original do |method, *args|
+        worker_waiting << true
+        method.call(*args)
+      end
+      drained = Queue.new
+      allow_any_instance_of(described_class).to receive(:drain_queue).and_wrap_original do |method, *args, **kwargs|
+        count = kwargs.empty? ? method.call(*args) : method.call(*args, **kwargs)
+        drained << count
+        count
+      end
+
+      writer = described_class.new(transport: transport, logger: logger)
+      try_wait_until(seconds: 1) { worker_waiting.pop(true) unless worker_waiting.empty? }
+      writer.enqueue(
+        flag_key: "wake-drain", variant: "on", allocation_key: "",
+        targeting_key: "user-1", eval_time_ms: realistic_eval_ms, attrs: {},
+      )
+
+      count = try_wait_until(seconds: 1) { drained.pop(true) unless drained.empty? }
+      expect(count).to eq(1)
+    ensure
+      writer&.stop
+    end
+
+    it "drains consecutive bounded batches without waiting while the queue remains nonempty" do
+      stub_const("#{described_class}::DRAIN_INTERVAL_SECONDS", 10)
+      stub_const("#{described_class}::MAX_DRAIN_EVENTS_PER_CYCLE", 2)
+      allow(transport).to receive(:send_flag_evaluations)
+      drain_started = Queue.new
+      release_drain = Queue.new
+      drained = Queue.new
+      block_first_drain = true
+      allow_any_instance_of(described_class).to receive(:drain_queue).and_wrap_original do |method, *args, **kwargs|
+        if block_first_drain
+          block_first_drain = false
+          drain_started << true
+          release_drain.pop
+        end
+        count = kwargs.empty? ? method.call(*args) : method.call(*args, **kwargs)
+        drained << count
+        count
+      end
+
+      writer = described_class.new(transport: transport, logger: logger)
+      writer.enqueue(
+        flag_key: "backlog-drain", variant: "on", allocation_key: "",
+        targeting_key: "user-0", eval_time_ms: realistic_eval_ms, attrs: {},
+      )
+      try_wait_until(seconds: 1) { drain_started.pop(true) unless drain_started.empty? }
+
+      4.times do |i|
+        writer.enqueue(
+          flag_key: "backlog-drain", variant: "on", allocation_key: "",
+          targeting_key: "user-#{i + 1}", eval_time_ms: realistic_eval_ms + i + 1, attrs: {},
+        )
+      end
+      release_drain << true
+
+      drained_count = try_wait_until(seconds: 1) { drained.size if drained.size >= 3 }
+      expect(drained_count).to be >= 3
+      expect(3.times.map { drained.pop(true) }).to eq([2, 2, 1])
+    ensure
+      release_drain << true if release_drain&.empty?
+      writer&.stop
+    end
+
     it "flushes a bounded drain cycle before the queue is empty" do
       stub_const("#{described_class}::MAX_DRAIN_EVENTS_PER_CYCLE", 2)
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
