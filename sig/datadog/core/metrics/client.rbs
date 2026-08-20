@@ -47,6 +47,8 @@ module Datadog
 
         private
 
+        def statsd_transport_from_env?: () -> bool
+
         def dogstatsd_version: () -> untyped
 
         IGNORED_STATSD_ONLY_ONCE: untyped
