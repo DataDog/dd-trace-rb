@@ -100,6 +100,7 @@ module Datadog
             attrs: attrs,
           }
           @queue.push(bounded_event, true)
+          @stop_mutex.synchronize { @stop_cond.signal }
           start_background_thread unless running?
         rescue ThreadError
           # Queue full — drop and count (best-effort, same as Go: drop-and-count). The count is
@@ -200,7 +201,7 @@ module Datadog
 
         def wait_for_next_cycle
           @stop_mutex.synchronize do
-            return if @stopped
+            return if @stopped || !@queue.empty?
 
             @stop_cond.wait(@stop_mutex, DRAIN_INTERVAL_SECONDS)
           end
