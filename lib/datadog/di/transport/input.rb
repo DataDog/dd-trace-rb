@@ -8,6 +8,7 @@ require_relative "../../core/transport/request"
 require_relative "../../core/transport/transport"
 require_relative "../error"
 require_relative "../fatal_exceptions"
+require_relative "../snapshot_pruner"
 require_relative "http/input"
 
 module Datadog
@@ -73,9 +74,18 @@ module Datadog
             encoded_snapshots = []
             payload.each do |snapshot|
               encoded = encoder.encode(snapshot)
-              if encoded.length > MAX_SERIALIZED_SNAPSHOT_SIZE
-                logger.debug { "di: dropping too big snapshot" }
-                next
+              if encoded.bytesize > MAX_SERIALIZED_SNAPSHOT_SIZE
+                # Prune the snapshot's captured values to fit under the
+                # per-event cap before dropping it, so a portion of the
+                # captured data is still sent. Drop only when pruning
+                # cannot bring the snapshot under the cap.
+                pruned = SnapshotPruner.prune(snapshot, MAX_SERIALIZED_SNAPSHOT_SIZE)
+                if pruned.nil?
+                  logger.debug { "di: dropping too big snapshot (pruning did not fit)" }
+                  next
+                end
+                telemetry&.inc("dynamic_instrumentation", "snapshots_pruned_by_payload_size", 1)
+                encoded = pruned
               end
               encoded_snapshots << encoded
             rescue Exception => exc # standard:disable Lint/RescueException
