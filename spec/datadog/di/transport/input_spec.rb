@@ -172,8 +172,51 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           expect(chunked_payload.length).to be < 1_000
           expect(chunked_payload.length).to be > 100
         end
-        expect_lazy_log(logger, :debug, "di: dropping too big snapshot")
+        expect_lazy_log(logger, :debug, "di: dropping too big snapshot (pruning did not fit)")
         transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
+      end
+    end
+
+    context "when an individual snapshot exceeds the cap but can be pruned" do
+      before do
+        stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE", 2_000)
+      end
+
+      let(:oversized_snapshot) do
+        {
+          debugger: {
+            snapshot: {
+              probe: { id: "big-probe" },
+              captures: {
+                lines: { 42 => {
+                  locals: { big: { type: "String", value: "x" * 10_000 },
+                    small: { type: "Integer", value: "1" } },
+                  arguments: { self: { type: "String", value: "self" } },
+                } },
+              },
+            },
+          },
+        }
+      end
+
+      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+      it "prunes the snapshot instead of dropping it and counts the prune" do
+        allow(logger).to receive(:debug)
+        expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "snapshots_pruned_by_payload_size", 1)
+
+        chunks = []
+        expect(transport).to receive(:send_input_chunk).once do |chunked_payload, serialized_tags|
+          chunks << chunked_payload
+        end
+
+        transport.send_input([oversized_snapshot], tags,
+          on_serialization_error: noop_serialization_error_handler)
+
+        # The pruned snapshot is sent (not dropped) and fits under the cap.
+        expect(chunks.length).to eq(1)
+        expect(chunks.first.bytesize).to be <= 2_000
+        expect(chunks.first).to include("\"pruned\":true")
       end
     end
   end
