@@ -53,7 +53,7 @@ module Datadog
 
       def capture_expression_evaluator: () -> CaptureExpressionEvaluator
 
-      def global_rate_limiter_for: (Probe probe) -> Datadog::Core::TokenBucket
+      def probe_global_rate_limiter: (Probe probe) -> Datadog::Core::TokenBucket
 
       def hook_method: (Probe probe, untyped responder) -> void
 

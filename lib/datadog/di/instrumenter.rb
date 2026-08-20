@@ -111,9 +111,9 @@ module Datadog
 
       # Returns the process-wide rate limiter for the probe.
       #
-      # @param probe [Probe] the probe whose invocation is being rate limited
+      # @param [Probe] probe the probe whose invocation is being rate limited
       # @return [Datadog::Core::TokenBucket] the shared limiter for the probe's category
-      def global_rate_limiter_for(probe)
+      def probe_global_rate_limiter(probe)
         if probe.capture_snapshot? || probe.capture_expressions?
           global_snapshot_rate_limiter
         else
@@ -554,7 +554,7 @@ module Datadog
 
           rate_limiter = probe.rate_limiter
           admitted = continue && (rate_limiter.nil? || rate_limiter.allow?)
-          if admitted && !global_rate_limiter_for(probe).allow?
+          if admitted && !probe_global_rate_limiter(probe).allow?
             admitted = false
             logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
           end
@@ -823,7 +823,7 @@ module Datadog
         # and check that it is in fact set.
         return if probe.rate_limiter && !probe.rate_limiter.allow?
 
-        unless global_rate_limiter_for(probe).allow?
+        unless probe_global_rate_limiter(probe).allow?
           logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
           return
         end

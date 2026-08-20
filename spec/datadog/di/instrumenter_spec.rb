@@ -2088,7 +2088,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    describe "#global_rate_limiter_for" do
+    describe "#probe_global_rate_limiter" do
       let(:snapshot_probe) do
         Datadog::DI::Probe.new(id: 1, type: :log, type_name: "HookTestClass",
           method_name: "hook_test_method", capture_snapshot: true)
@@ -2106,17 +2106,17 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       it "returns the snapshot limiter for capturing probes" do
-        expect(instrumenter.global_rate_limiter_for(snapshot_probe))
+        expect(instrumenter.probe_global_rate_limiter(snapshot_probe))
           .to be(instrumenter.global_snapshot_rate_limiter)
       end
 
       it "returns the snapshot limiter for capture-expression-only probes" do
-        expect(instrumenter.global_rate_limiter_for(capture_expression_probe))
+        expect(instrumenter.probe_global_rate_limiter(capture_expression_probe))
           .to be(instrumenter.global_snapshot_rate_limiter)
       end
 
       it "returns the log limiter for non-capturing probes" do
-        expect(instrumenter.global_rate_limiter_for(log_probe))
+        expect(instrumenter.probe_global_rate_limiter(log_probe))
           .to be(instrumenter.global_log_rate_limiter)
       end
     end
