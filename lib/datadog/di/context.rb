@@ -16,7 +16,8 @@ module Datadog
         serialized_entry_args: nil,
         entry_capture_expressions: nil,
         entry_capture_evaluation_errors: nil,
-        return_value: nil, duration: nil, exception: nil)
+        return_value: nil, duration: nil, exception: nil,
+        deadline_ns: nil)
         @probe = probe
         @settings = settings
         @serializer = serializer
@@ -30,6 +31,7 @@ module Datadog
         @return_value = return_value
         @duration = duration
         @exception = exception
+        @deadline_ns = deadline_ns
       end
 
       attr_reader :probe
@@ -60,6 +62,12 @@ module Datadog
 
       # Exception raised by the method, if any, for a method probe
       attr_reader :exception
+
+      # Wall-time deadline (CLOCK_MONOTONIC nanoseconds) for evaluating
+      # this invocation's condition or template. Set by the instrumenter
+      # before condition evaluation and by the probe notification builder
+      # before template evaluation. nil disables the cooperative bound.
+      attr_accessor :deadline_ns
 
       def serialized_locals
         # TODO cache?
