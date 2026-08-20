@@ -492,6 +492,7 @@ module Datadog
                 locals: serializer.combine_args(args, kwargs, target_self),
                 target_self: target_self,
                 probe: probe, settings: settings, serializer: serializer,
+                deadline_ns: evaluation_deadline_ns,
               )
               continue = condition.satisfied?(context)
             rescue Exception => exc # standard:disable Lint/RescueException
@@ -501,6 +502,11 @@ module Datadog
               # these exceptions are propagated.
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
                 !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+              if exc.is_a?(DI::Error::EvaluationTimeout)
+                telemetry&.inc("dynamic_instrumentation", "evaluation_timeouts", 1)
+                logger.debug { "di: probe #{probe.id}: condition evaluation timed out" }
+              end
 
               if context
                 # We want to report evaluation errors for conditions
@@ -752,7 +758,7 @@ module Datadog
 
         if condition = probe.condition
           begin
-            context = build_trace_point_context(probe, tp)
+            context = build_trace_point_context(probe, tp, deadline_ns: evaluation_deadline_ns)
             return unless condition.satisfied?(context)
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
@@ -761,6 +767,11 @@ module Datadog
             # these exceptions are propagated.
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
               !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+            if exc.is_a?(DI::Error::EvaluationTimeout)
+              telemetry&.inc("dynamic_instrumentation", "evaluation_timeouts", 1)
+              logger.debug { "di: probe #{probe.id}: condition evaluation timed out" }
+            end
 
             if context
               # We want to report evaluation errors for conditions
@@ -811,7 +822,7 @@ module Datadog
         # TODO test this path
       end
 
-      def build_trace_point_context(probe, tp)
+      def build_trace_point_context(probe, tp, deadline_ns: nil)
         stack = caller_locations
         # We have two helper methods being invoked from the trace point
         # handler block, remove them from the stack.
@@ -826,7 +837,18 @@ module Datadog
           serializer: serializer,
           path: tp.path,
           caller_locations: stack,
+          deadline_ns: deadline_ns,
         )
+      end
+
+      # Resolves a per-invocation wall-time deadline for evaluating a
+      # probe condition, from the configured evaluation timeout setting.
+      # Returns nil when no evaluation timeout is configured, leaving
+      # condition evaluation unbounded.
+      def evaluation_deadline_ns
+        budget_ms = settings.dynamic_instrumentation.max_time_to_evaluate_ms
+        return nil unless budget_ms
+        ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) + budget_ms * 1_000_000
       end
 
       # Circuit breaker: disables the probe if total CPU time consumed by

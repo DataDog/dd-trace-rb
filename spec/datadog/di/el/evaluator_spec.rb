@@ -146,6 +146,108 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     end
   end
 
+  describe "#filter, #all, #any evaluation deadline" do
+    let(:compiler) { Datadog::DI::EL::Compiler.new }
+
+    let(:settings) { instance_double("settings", dynamic_instrumentation: nil).as_null_object }
+    let(:serializer) { instance_double("serializer").as_null_object }
+
+    # `largeCollection.filter(@it >= 0)` — the collection-filter shape used by
+    # the system test, exercising the cooperative deadline inside #filter.
+    let(:filter_expr) do
+      src, regexps = compiler.compile({
+        "filter" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 0]}],
+      })
+      Datadog::DI::EL::Expression.new("collection.filter(@it >= 0)", src, regexps: regexps)
+    end
+
+    # `largeCollection.all(@it >= 0)` and `...any(@it >= 0)` exercise #all/#any.
+    let(:all_expr) do
+      src, regexps = compiler.compile({
+        "all" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 0]}],
+      })
+      Datadog::DI::EL::Expression.new("collection.all(@it >= 0)", src, regexps: regexps)
+    end
+
+    let(:any_expr) do
+      src, regexps = compiler.compile({
+        "any" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 0]}],
+      })
+      Datadog::DI::EL::Expression.new("collection.any(@it >= 0)", src, regexps: regexps)
+    end
+
+    def context_with(collection, deadline_ns:)
+      Datadog::DI::Context.new(
+        probe: nil, settings: settings, serializer: serializer,
+        locals: {collection: collection}, deadline_ns: deadline_ns
+      )
+    end
+
+    context "with the deadline already in the past" do
+      let(:collection) { Array.new(1000) { |i| i } }
+      let(:deadline_ns) { Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond) - 1 }
+
+      it "#filter raises EvaluationTimeout without consuming the whole collection" do
+        expect { filter_expr.satisfied?(context_with(collection, deadline_ns: deadline_ns)) }
+          .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+      end
+
+      it "#all raises EvaluationTimeout" do
+        expect { all_expr.satisfied?(context_with(collection, deadline_ns: deadline_ns)) }
+          .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+      end
+
+      it "#any raises EvaluationTimeout" do
+        expect { any_expr.satisfied?(context_with(collection, deadline_ns: deadline_ns)) }
+          .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+      end
+    end
+
+    context "with no deadline" do
+      let(:collection) { Array.new(1000) { |i| i } }
+
+      it "#filter returns the selected items (behavior unchanged)" do
+        # @it >= 0 is true for every element, so the filtered result is
+        # the whole collection and no timeout is raised.
+        expect(filter_expr.satisfied?(context_with(collection, deadline_ns: nil))).to be(true)
+      end
+    end
+
+    context "with the deadline far in the future" do
+      let(:collection) { Array.new(1000) { |i| i } }
+      let(:deadline_ns) { Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond) + 60_000_000_000 }
+
+      it "#filter completes without timing out" do
+        expect(filter_expr.satisfied?(context_with(collection, deadline_ns: deadline_ns))).to be(true)
+      end
+    end
+
+    context "with the deadline crossed midway through the collection" do
+      let(:collection) { Array.new(1000) { |i| i } }
+
+      # The cooperative check fires every EVALUATION_DEADLINE_CHECK_INTERVAL items.
+      # Drive Process.clock_gettime so the first check (i=0) is before the
+      # deadline and the second check (i=64) is after it, proving the bound
+      # engages mid-iteration rather than at the first item.
+      it "#filter raises after the first interval's worth of items" do
+        deadline_ns = 1_000_000_000
+        checks = 0
+        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC, :nanosecond) do
+          checks += 1
+          checks <= 1 ? deadline_ns - 1 : deadline_ns + 1
+        end
+        # Going through #satisfied? sets @context on the evaluator (the
+        # compiled evaluate method does this), so #filter can read the
+        # per-invocation deadline. The two-phase stub makes the first
+        # check pass and the second fail, so the raise is not immediate.
+        expect do
+          filter_expr.satisfied?(context_with(collection, deadline_ns: deadline_ns))
+        end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
+        expect(checks).to be >= 2
+      end
+    end
+  end
+
   describe Datadog::DI::EL::Compiler do
     let(:compiler) { described_class.new }
 
