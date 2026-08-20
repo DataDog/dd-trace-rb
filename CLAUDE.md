@@ -153,7 +153,7 @@ See `docs/` for:
 
 ```bash
 bundle exec rake test:main              # Smoke tests
-bundle exec rake standard typecheck     # Lint and type check
+bundle exec rake rubocop typecheck      # Lint and type check
 bundle exec steep check [sources]       # Type check (sources = files or dirs, optional)
 bundle exec rspec spec/path/file_spec.rb:123  # Run specific test (only works for test:main specs; see "Running Tests")
 ```
@@ -166,7 +166,7 @@ bundle exec rspec spec/path/file_spec.rb:123  # Run specific test (only works fo
 
 # Style
 
-Enforced by StandardRB: `bundle exec rake standard:fix`
+Prefer `bundle exec rubocop` or `bundle exec rake rubocop`; RuboCop checks a strict superset of the Standard rules. Use `bundle exec rubocop --autocorrect` or `bundle exec rake rubocop:fix` to apply automatic fixes. CI also requires the StandardRB subset to pass; `bundle exec rake standard rubocop` runs both checks.
 
 Additional team preferences:
 - Trailing commas in multi-line arrays, hashes, and arguments
