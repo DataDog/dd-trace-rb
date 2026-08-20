@@ -1,0 +1,13 @@
+module Datadog
+  module DI
+    module SnapshotPruner
+      PRUNED: Hash[String | Symbol, bool]
+
+      PRUNED_BYTES: Integer
+
+      def self.prune: (Hash snapshot, Integer max_size) -> (::String | nil)
+
+      def self.collect_captured_entries: (Hash captures) -> Array[[Hash, Symbol]]
+    end
+  end
+end
