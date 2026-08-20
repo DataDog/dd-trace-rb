@@ -19,8 +19,6 @@ module Datadog
         @observe_full_evaluation_data = parse_observe_full_evaluation_data(configuration)
       end
 
-      # observe_full_evaluation_data read from the top level of the UFC. Absent, null,
-      # or wrong-typed values fall to the privacy-preserving default `false`.
       attr_reader :observe_full_evaluation_data
 
       # Returns the assignment for a given flag key based on the feature flags

@@ -229,10 +229,8 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       expect(pruned).to eq({})
     end
 
-    # The per-level caps bound the branching factor but not their product. A leaf-free
-    # tree keeps the output empty, so an output-size cap alone never stops the walk.
-    # Shared subtrees make such a context cheap to build, because cycle detection only
-    # rejects ancestors on the current path, not siblings.
+    # Exercises MAX_VISITED_NODES: this context yields no leaves, so the output-size
+    # caps never fire and only the visit budget stops the walk.
     context "with a leaf-free tree of shared subtrees" do
       let(:attrs) do
         level = 256.times.map { |i| ["k#{i}", nil] }.to_h

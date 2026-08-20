@@ -79,8 +79,6 @@ module Datadog
         end
 
         # Non-blocking enqueue from the finally hook. Drops + counts on overflow.
-        # Context bounding runs here, on the caller's evaluation thread, so the queue
-        # only ever holds an already-bounded snapshot.
         def enqueue(**event)
           start_background_thread if forked?
 

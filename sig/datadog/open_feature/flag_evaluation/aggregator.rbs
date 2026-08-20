@@ -113,7 +113,6 @@ module Datadog
 
         private
 
-        # Declared private to match `private_class_method :bounded_flatten`.
         def self.bounded_flatten: (
           ::String prefix,
           untyped value,

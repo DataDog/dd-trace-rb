@@ -30,8 +30,6 @@ module Datadog
         if method_defined?(:flag_metadata)
           alias_method :__c_flag_metadata, :flag_metadata
 
-          # Returns SDK-stamped metadata when present, otherwise the
-          # libdatadog-side metadata from the C extension.
           def flag_metadata
             defined?(@flag_metadata) ? @flag_metadata : __c_flag_metadata
           end

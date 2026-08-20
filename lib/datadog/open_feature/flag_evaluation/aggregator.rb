@@ -174,8 +174,8 @@ module Datadog
 
         # Bound and flatten the caller's evaluation context on the evaluation thread,
         # before enqueue, so the async queue only ever holds an already-bounded snapshot.
-        # Returns the flattened (dot-notation) context and the set of truncation reasons
-        # hit, which the writer surfaces on the `flagevaluation.context.truncated` counter.
+        # Returns the flattened (dot-notation) context and the truncation reasons hit,
+        # which the writer surfaces on the `flagevaluation.context.truncated` counter.
         #
         # Work is bounded by the field and structure caps. Ruby Hash iteration is
         # deterministic insertion order, so traversal stops at the limits instead of
@@ -389,7 +389,7 @@ module Datadog
             return
           end
 
-          # Degraded entry omits targeting_key + context_attrs (schema omitempty fields).
+          # targeting_key + context_attrs are omitempty in the schema.
           @degraded[degraded_key] = new_entry(
             evaluation_time_ms,
             runtime_default: runtime_default,

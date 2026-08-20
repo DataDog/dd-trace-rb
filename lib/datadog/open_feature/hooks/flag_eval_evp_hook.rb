@@ -47,8 +47,7 @@ module Datadog
           observe_full_evaluation_data = metadata.is_a?(Hash) ? metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] : nil
           observe_full_evaluation_data = false unless observe_full_evaluation_data == true
 
-          # Skip the context capture on the hot path when observe_full_evaluation_data is
-          # false; the context is omitted on emit so there is no copy work to do.
+          # The context is omitted on emit when consent is off, so skip the copy entirely.
           attrs = if observe_full_evaluation_data
             extract_attributes(hook_context.evaluation_context)
           else

@@ -56,10 +56,8 @@ module Datadog
         result = ResolutionDetails.build_error(
           value: default_value, error_code: Ext::GENERAL, error_message: "#{e.class}: #{e.message}"
         )
-        # `== true` is load-bearing, not redundant. Steep treats a local read in a rescue
-        # body as possibly-unassigned, so it types this variable `(nil | bool)` here even
-        # though both bindings above precede any raise. Coercing at the use site is what
-        # narrows it to `bool`; an annotation on either assignment does not.
+        # `== true` is load-bearing: Steep types this local as `(nil | bool)` in a rescue
+        # body, and coercing at the use site is what narrows it to `bool`.
         with_observe_full_evaluation_data(result, observe_full_evaluation_data == true)
       end
 
