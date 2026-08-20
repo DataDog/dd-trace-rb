@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "set"
+
 module Datadog
   module OpenFeature
     module FlagEvaluation
@@ -11,11 +13,33 @@ module Datadog
       # - Drop-and-count when degraded tier is full
       # - canonical_context_key: sorted type-tagged length-delimited encoding (no hash digest)
       # - Caps: global_cap=131_072 / per_flag_cap=10_000 / degraded_cap=32_768
-      # - Context pruning: 256 fields / 256 chars (matches flageval-worker backend limits)
+      #
+      # The writer applies `bounded_context_snapshot` on the evaluation thread before
+      # enqueue, so the queue only holds an already-bounded, flattened snapshot.
       class Aggregator
+        # Cross-SDK context caps (RFC: "Kept aligned with the cross-SDK RFC").
         MAX_CONTEXT_FIELDS = 256
-        MAX_FIELD_LENGTH = 256
-        MAX_CONTEXT_DEPTH = 32
+        MAX_VALUE_LENGTH = 256
+        MAX_KEY_LENGTH = 256
+        MAX_LIST_ELEMENTS = 256
+        MAX_STRUCTURE_PROPERTIES = 256
+        MAX_SNAPSHOT_DEPTH = 4
+
+        # The per-dimension caps match Go and Java. This additional total-node budget
+        # bounds leaf-free shared subtrees, which do not increase the retained field count.
+        # It still permits every retained field to sit at the maximum snapshot depth.
+        MAX_VISITED_NODES = MAX_CONTEXT_FIELDS * (MAX_SNAPSHOT_DEPTH + 1)
+
+        # Truncation reason labels, surfaced on the `flagevaluation.context.truncated`
+        # telemetry counter so operators can tell which cap was hit.
+        REASON_MAX_CONTEXT_FIELDS = "max_context_fields"
+        REASON_MAX_VALUE_LENGTH = "max_value_length"
+        REASON_MAX_KEY_LENGTH = "max_key_length"
+        REASON_MAX_LIST_ELEMENTS = "max_list_elements"
+        REASON_MAX_STRUCTURE_PROPERTIES = "max_structure_properties"
+        REASON_MAX_SNAPSHOT_DEPTH = "max_snapshot_depth"
+        REASON_MAX_VISITED_NODES = "max_visited_nodes"
+        REASON_CYCLE = "cycle"
 
         # Type tags so values of different Ruby types never collide in the canonical key.
         CTX_TAG_STRING = "s"
@@ -73,11 +97,8 @@ module Datadog
           error_message = error_message.to_s
           targeting_key = targeting_key.to_s
 
-          # Context pruning + canonical key (see prune_context and canonical_context_key).
-          # Runs in the background writer so caller eval threads do not pay the flatten/prune cost.
-          pruned_context = prune_context(attrs)
-          context_key = canonical_context_key(pruned_context)
-
+          context_key = canonical_context_key(attrs)
+          # @type var full_key: full_key
           full_key = [flag_key, variant, allocation_key, runtime_default, error_message, targeting_key, context_key]
           evaluation_time_ms = eval_time_ms.to_i
 
@@ -90,7 +111,9 @@ module Datadog
 
             per_flag_count = @per_flag_full[flag_key]
             if per_flag_count >= @per_flag_cap
-              add_to_degraded(flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms)
+              add_to_degraded(
+                flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms
+              )
               return
             end
 
@@ -104,21 +127,22 @@ module Datadog
                 runtime_default: runtime_default,
                 error_message: error_message,
                 targeting_key: targeting_key,
-                context_attrs: pruned_context
+                context_attrs: attrs
               )
               @full[full_key] = entry
               @global_count += 1
             else
               # Route to degraded tier
-              add_to_degraded(flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms)
+              add_to_degraded(
+                flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms
+              )
             end
           end
         end
 
         # Flush aggregation maps, reset state, return snapshot.
-        # Returns { full: Hash, degraded: Hash, dropped_degraded_overflow: Integer }.
-        # The overflow count is included in the snapshot so the caller can EMIT it before it is
-        # reset — the count is never reset-without-emit (backpressure stays observable).
+        # The overflow count is included in the snapshot so the caller can emit it before
+        # it is reset (never reset-without-emit).
         def flush_and_reset
           @mutex.synchronize do
             full_snapshot = @full
@@ -135,41 +159,180 @@ module Datadog
           end
         end
 
-        # Prune context: keep first MAX_CONTEXT_FIELDS fields (sorted), skip string values >256 chars.
-        # Keys are sorted before pruning to ensure deterministic subset selection.
-        def prune_context(attrs)
-          self.class.prune_context(attrs)
-        end
+        # Bound and flatten the caller's evaluation context on the evaluation thread,
+        # before enqueue, so the async queue only ever holds an already-bounded snapshot.
+        # Returns the flattened (dot-notation) context and the truncation reasons hit,
+        # which the writer surfaces on the `flagevaluation.context.truncated` counter.
+        #
+        # Work is bounded by the field and structure caps. Ruby Hash iteration is
+        # deterministic insertion order, so traversal stops at the limits instead of
+        # sorting or scanning the full input. This is the cross-SDK recommendation for
+        # languages with deterministic iteration (Ruby truncates; Go omits because its map
+        # iteration is randomized per call).
+        def self.bounded_context_snapshot(attrs)
+          return [{}, []] unless attrs.is_a?(Hash) && !attrs.empty?
 
-        def self.prune_context(attrs)
-          flattened_context = flatten_context(attrs)
-          return {} if flattened_context.empty?
-
-          pruned_context = {}
-          count = 0
-          flattened_context.keys.sort.each do |key|
-            break if count >= MAX_CONTEXT_FIELDS
-
-            value = flattened_context[key]
-            # Skip oversized string values (mirrors flageval-worker pruning behavior).
-            next if value.is_a?(String) && value.length > MAX_FIELD_LENGTH
-
-            pruned_context[key] = value
-            count += 1
-          end
-          pruned_context
-        end
-
-        def self.flatten_context(attrs)
-          return {} unless attrs.is_a?(Hash) && !attrs.empty?
-
-          flattened_context = {}
+          flattened = {}
+          reasons = Set.new
           seen = {attrs.object_id => true}
+          walked = 0
+          # Single-element array so the recursion shares one mutable counter.
+          budget = [MAX_VISITED_NODES]
           attrs.each do |key, value|
-            flatten_value(key.to_s, value, flattened_context, seen, 0)
+            key = context_key_string(key)
+            next unless key
+
+            if flattened.size >= MAX_CONTEXT_FIELDS
+              reasons << REASON_MAX_CONTEXT_FIELDS
+              reasons << REASON_MAX_STRUCTURE_PROPERTIES if walked >= MAX_STRUCTURE_PROPERTIES
+              break
+            end
+            if walked >= MAX_STRUCTURE_PROPERTIES
+              reasons << REASON_MAX_STRUCTURE_PROPERTIES
+              break
+            end
+            if budget[0] <= 0
+              reasons << REASON_MAX_VISITED_NODES
+              break
+            end
+            walked += 1
+            if key.length > MAX_KEY_LENGTH
+              reasons << REASON_MAX_KEY_LENGTH
+              next
+            end
+
+            key = key.encode(Encoding::UTF_8, invalid: :replace, undef: :replace)
+            bounded_flatten(key, value, flattened, seen, 0, reasons, budget)
           end
-          flattened_context
+          [flattened, reasons.to_a]
+        rescue
+          # Caller-controlled container implementations must not interrupt flag evaluation.
+          [{}, []]
         end
+
+        def self.context_key_string(key)
+          case key
+          when String then String.new(key)
+          when Symbol then key.to_s
+          end
+        rescue
+          # Unsupported caller keys must not break flag evaluation.
+          nil
+        end
+        private_class_method :context_key_string
+
+        def self.bounded_flatten(prefix, value, output, seen, depth, reasons, budget)
+          # Charge every node first, before any early return. A node that exits early still
+          # cost a call, and the cheap exits (nil leaves especially) are exactly what an
+          # adversarial context is made of.
+          if budget[0] <= 0
+            reasons << REASON_MAX_VISITED_NODES
+            return
+          end
+          budget[0] -= 1
+
+          return if value.nil?
+          if output.size >= MAX_CONTEXT_FIELDS
+            reasons << REASON_MAX_CONTEXT_FIELDS
+            return
+          end
+          if depth >= MAX_SNAPSHOT_DEPTH
+            reasons << REASON_MAX_SNAPSHOT_DEPTH
+            return
+          end
+          if prefix.length > MAX_KEY_LENGTH
+            reasons << REASON_MAX_KEY_LENGTH
+            return
+          end
+
+          case value
+          when Hash
+            return if value.empty?
+
+            object_id = value.object_id
+            if seen[object_id]
+              reasons << REASON_CYCLE
+              return
+            end
+
+            seen[object_id] = true
+            reasons << REASON_MAX_STRUCTURE_PROPERTIES if value.size > MAX_STRUCTURE_PROPERTIES
+            walked = 0
+            value.each do |key, child_value|
+              if output.size >= MAX_CONTEXT_FIELDS
+                reasons << REASON_MAX_CONTEXT_FIELDS
+                break
+              end
+              break if walked >= MAX_STRUCTURE_PROPERTIES
+              if budget[0] <= 0
+                reasons << REASON_MAX_VISITED_NODES
+                break
+              end
+
+              walked += 1
+              child_key = context_key_string(key)
+              next unless child_key
+              if prefix.length + 1 + child_key.length > MAX_KEY_LENGTH
+                reasons << REASON_MAX_KEY_LENGTH
+                next
+              end
+
+              child_key = child_key.encode(Encoding::UTF_8, invalid: :replace, undef: :replace)
+              bounded_flatten("#{prefix}.#{child_key}", child_value, output, seen, depth + 1, reasons, budget)
+            end
+            seen.delete(object_id)
+          when Array
+            return if value.empty?
+
+            object_id = value.object_id
+            if seen[object_id]
+              reasons << REASON_CYCLE
+              return
+            end
+
+            seen[object_id] = true
+            reasons << REASON_MAX_LIST_ELEMENTS if value.size > MAX_LIST_ELEMENTS
+            walked = 0
+            value.each_with_index do |child_value, index|
+              if output.size >= MAX_CONTEXT_FIELDS
+                reasons << REASON_MAX_CONTEXT_FIELDS
+                break
+              end
+              break if walked >= MAX_LIST_ELEMENTS
+              if budget[0] <= 0
+                reasons << REASON_MAX_VISITED_NODES
+                break
+              end
+
+              walked += 1
+              bounded_flatten("#{prefix}.#{index}", child_value, output, seen, depth + 1, reasons, budget)
+            end
+            seen.delete(object_id)
+          else
+            if value.is_a?(String)
+              begin
+                string_value = String.new(value)
+                if string_value.length > MAX_VALUE_LENGTH
+                  reasons << REASON_MAX_VALUE_LENGTH
+                  return
+                end
+
+                output[prefix] = string_value.encode(
+                  Encoding::UTF_8, invalid: :replace, undef: :replace
+                ).freeze
+              rescue
+                # Unsupported caller values must not break flag evaluation.
+              end
+              return
+            end
+
+            case value
+            when TrueClass, FalseClass, Integer, Float
+              output[prefix] = value
+            end
+          end
+        end
+        private_class_method :bounded_flatten
 
         # Canonical context key: sorted type-tagged length-delimited encoding.
         # Each field is: 8-byte big-endian key length + key bytes + type-tag byte +
@@ -187,34 +350,6 @@ module Datadog
           buffer
         end
 
-        def self.flatten_value(prefix, value, output, seen, depth)
-          return if depth > MAX_CONTEXT_DEPTH
-
-          case value
-          when Hash
-            object_id = value.object_id
-            return if seen[object_id]
-
-            seen[object_id] = true
-            value.each do |key, child_value|
-              flatten_value("#{prefix}.#{key}", child_value, output, seen, depth + 1)
-            end
-            seen.delete(object_id)
-          when Array
-            object_id = value.object_id
-            return if seen[object_id]
-
-            seen[object_id] = true
-            value.each_with_index do |child_value, index|
-              flatten_value("#{prefix}.#{index}", child_value, output, seen, depth + 1)
-            end
-            seen.delete(object_id)
-          else
-            output[prefix] = value unless value.nil?
-          end
-        end
-        private_class_method :flatten_value
-
         private
 
         def context_value_bytes(value)
@@ -230,7 +365,8 @@ module Datadog
 
         # 8-byte big-endian length prefix + raw bytes. Unambiguous field boundary.
         def length_delimited(string)
-          bytes = string.encode(Encoding::BINARY, invalid: :replace, undef: :replace)
+          utf8 = string.encode(Encoding::UTF_8, invalid: :replace, undef: :replace)
+          bytes = utf8.dup.force_encoding(Encoding::BINARY)
           byte_length = bytes.bytesize
           # Build 8-byte big-endian length
           length_bytes = String.new("", encoding: Encoding::BINARY)
@@ -258,7 +394,10 @@ module Datadog
           entry[:last_evaluation] = evaluation_time_ms if evaluation_time_ms > entry[:last_evaluation]
         end
 
-        def add_to_degraded(flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms)
+        def add_to_degraded(
+          flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms
+        )
+          # @type var degraded_key: degraded_key
           degraded_key = [flag_key, variant, allocation_key, runtime_default, error_message]
 
           if (entry = @degraded[degraded_key])
@@ -273,7 +412,7 @@ module Datadog
             return
           end
 
-          # Degraded entry omits targeting_key + context_attrs (schema omitempty fields)
+          # Degraded entries omit targeting_key and context_attrs.
           @degraded[degraded_key] = new_entry(
             evaluation_time_ms,
             runtime_default: runtime_default,
