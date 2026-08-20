@@ -1,8 +1,8 @@
 require "spec_helper"
 
-require "datadog/core/otel_thread_context"
+require "datadog/tracing/otel_thread_context"
 
-RSpec.describe Datadog::Core::OTelThreadContext, if: PlatformHelpers.linux? do
+RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? do
   describe ".set" do
     def decode_context(raw)
       return unless raw

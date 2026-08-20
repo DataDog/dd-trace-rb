@@ -1,5 +1,5 @@
 module Datadog
-  module Core
+  module Tracing
     module OTelThreadContext
       def self.supported?: () -> bool
 

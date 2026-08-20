@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Datadog
-  module Core
+  module Tracing
     # Publishes a per-thread OpenTelemetry context record into a thread-local slot,
     # so an out-of-process reader (e.g. the eBPF profiler) can discover it.
     #

@@ -13,7 +13,7 @@
   }
 
   static const rb_data_type_t otel_ctx_handle_t = {
-    .wrap_struct_name = "Datadog::Core::OTelThreadContext handle",
+    .wrap_struct_name = "Datadog::Tracing::OTelThreadContext handle",
     .function = {.dfree = otel_ctx_handle_free},
     .flags = RUBY_TYPED_FREE_IMMEDIATELY,
   };
@@ -28,10 +28,10 @@ static VALUE native_supported_p(VALUE _self);
 static VALUE native_enable(VALUE _self);
 static VALUE native_read(VALUE _self);
 
-void otel_thread_context_init(VALUE core_module) {
+void otel_thread_context_init(VALUE tracing_module) {
   fiber_context_slot = rb_intern("__dd_otel_fiber_context");
 
-  VALUE otel_thread_context_module = rb_define_module_under(core_module, "OTelThreadContext");
+  VALUE otel_thread_context_module = rb_define_module_under(tracing_module, "OTelThreadContext");
 
   rb_define_singleton_method(otel_thread_context_module, "_native_enable", native_enable, 0);
   rb_define_singleton_method(otel_thread_context_module, "_native_set", native_set, 3);

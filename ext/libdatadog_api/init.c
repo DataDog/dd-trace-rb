@@ -25,9 +25,9 @@ void DDTRACE_EXPORT Init_libdatadog_api(void) {
   library_config_init(core_module);
   ddsketch_init(core_module);
   feature_flags_init(core_module);
-  otel_thread_context_init(core_module);
   di_init(datadog_module);
 
   VALUE tracing_module = rb_define_module_under(datadog_module, "Tracing");
   trace_exporter_init(tracing_module);
+  otel_thread_context_init(tracing_module);
 }
