@@ -26,6 +26,15 @@ module Datadog
         MAX_STRUCTURE_PROPERTIES = 256
         MAX_SNAPSHOT_DEPTH = 4
 
+        # Total nodes the walker may visit for one context, including interior Hash and
+        # Array nodes that produce no output. The per-level caps above bound the branching
+        # factor but not the product of it: a depth-4 tree that yields no leaves visits up
+        # to MAX_STRUCTURE_PROPERTIES ** MAX_SNAPSHOT_DEPTH nodes while `flattened` stays
+        # empty, so a cap on output size alone never stops the walk. Shared subtrees make
+        # such a context cheap to build, because cycle detection only rejects ancestors on
+        # the current path. This budget bounds the walk itself.
+        MAX_VISITED_NODES = MAX_CONTEXT_FIELDS * MAX_STRUCTURE_PROPERTIES
+
         # Truncation reason labels, surfaced on the `flagevaluation.context.truncated`
         # telemetry counter so operators can tell which cap was hit.
         REASON_MAX_CONTEXT_FIELDS = "max_context_fields"
@@ -34,6 +43,7 @@ module Datadog
         REASON_MAX_LIST_ELEMENTS = "max_list_elements"
         REASON_MAX_STRUCTURE_PROPERTIES = "max_structure_properties"
         REASON_MAX_SNAPSHOT_DEPTH = "max_snapshot_depth"
+        REASON_MAX_VISITED_NODES = "max_visited_nodes"
         REASON_CYCLE = "cycle"
 
         # Type tags so values of different Ruby types never collide in the canonical key.
@@ -85,6 +95,9 @@ module Datadog
         )
           runtime_default = variant.nil? if runtime_default.nil?
           runtime_default = !!runtime_default
+          # Normalize to a strict boolean so it is a stable bucket-key dimension and a
+          # trustworthy entry value; the writer emits raw PII on the true branch.
+          observe_full_evaluation_data = observe_full_evaluation_data == true
 
           # Normalize nil/empty strings
           variant = variant.to_s
@@ -92,22 +105,14 @@ module Datadog
           error_message = error_message.to_s
           targeting_key = targeting_key.to_s
 
-          if observe_full_evaluation_data
-            # `attrs` is already the bounded, flattened snapshot produced by the writer on
-            # the evaluation thread. Key on it directly.
-            context_key = canonical_context_key(attrs)
-            full_key = [
-              flag_key, variant, allocation_key, runtime_default, error_message,
-              targeting_key, context_key, true,
-            ]
-          else
-            # The error message is already redacted to the error code in the hook before
-            # enqueue, so error_message is the correct bucket dimension in both cases.
-            full_key = [
-              flag_key, variant, allocation_key, runtime_default, error_message,
-              targeting_key, false,
-            ]
-          end
+          # Both branches build the same arity in the same field order, so `build_events`
+          # can destructure one fixed shape. Consent-off carries no context, so its
+          # context_key slot is nil rather than absent.
+          context_key = observe_full_evaluation_data ? canonical_context_key(attrs) : nil
+          full_key = [
+            flag_key, variant, allocation_key, runtime_default, error_message,
+            targeting_key, context_key, observe_full_evaluation_data,
+          ]
           evaluation_time_ms = eval_time_ms.to_i
 
           @mutex.synchronize do
@@ -185,6 +190,8 @@ module Datadog
           reasons = Set.new
           seen = {attrs.object_id => true}
           walked = 0
+          # Single-element array so the recursion shares one mutable counter.
+          budget = [MAX_VISITED_NODES]
           attrs.each do |key, value|
             key = key.to_s
             next if key == excluded_key
@@ -198,14 +205,27 @@ module Datadog
               reasons << REASON_MAX_STRUCTURE_PROPERTIES
               break
             end
+            if budget[0] <= 0
+              reasons << REASON_MAX_VISITED_NODES
+              break
+            end
 
             walked += 1
-            bounded_flatten(key, value, flattened, seen, 0, reasons)
+            bounded_flatten(key, value, flattened, seen, 0, reasons, budget)
           end
           [flattened, reasons.to_a]
         end
 
-        def self.bounded_flatten(prefix, value, output, seen, depth, reasons)
+        def self.bounded_flatten(prefix, value, output, seen, depth, reasons, budget)
+          # Charge every node first, before any early return. A node that exits early still
+          # cost a call, and the cheap exits (nil leaves especially) are exactly what an
+          # adversarial context is made of.
+          if budget[0] <= 0
+            reasons << REASON_MAX_VISITED_NODES
+            return
+          end
+          budget[0] -= 1
+
           return if value.nil?
           if output.size >= MAX_CONTEXT_FIELDS
             reasons << REASON_MAX_CONTEXT_FIELDS
@@ -239,9 +259,13 @@ module Datadog
                 break
               end
               break if walked >= MAX_STRUCTURE_PROPERTIES
+              if budget[0] <= 0
+                reasons << REASON_MAX_VISITED_NODES
+                break
+              end
 
               walked += 1
-              bounded_flatten("#{prefix}.#{key}", child_value, output, seen, depth + 1, reasons)
+              bounded_flatten("#{prefix}.#{key}", child_value, output, seen, depth + 1, reasons, budget)
             end
             seen.delete(object_id)
           when Array
@@ -262,9 +286,13 @@ module Datadog
                 break
               end
               break if walked >= MAX_LIST_ELEMENTS
+              if budget[0] <= 0
+                reasons << REASON_MAX_VISITED_NODES
+                break
+              end
 
               walked += 1
-              bounded_flatten("#{prefix}.#{index}", child_value, output, seen, depth + 1, reasons)
+              bounded_flatten("#{prefix}.#{index}", child_value, output, seen, depth + 1, reasons, budget)
             end
             seen.delete(object_id)
           else

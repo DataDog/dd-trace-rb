@@ -14,6 +14,8 @@ module Datadog
 
         MAX_SNAPSHOT_DEPTH: ::Integer
 
+        MAX_VISITED_NODES: ::Integer
+
         EVAL_SCALE_TARGET_FLAGS: ::Integer
 
         EVAL_SCALE_FULL_BUCKETS_PER_FLAG: ::Integer
@@ -57,6 +59,8 @@ module Datadog
         REASON_MAX_STRUCTURE_PROPERTIES: ::String
 
         REASON_MAX_SNAPSHOT_DEPTH: ::String
+
+        REASON_MAX_VISITED_NODES: ::String
 
         REASON_CYCLE: ::String
 
@@ -105,18 +109,20 @@ module Datadog
           ?excluded_key: ::String?
         ) -> [::Hash[::String, untyped], ::Array[::String]]
 
+        def canonical_context_key: (::Hash[::String, untyped]? attrs) -> ::String
+
+        private
+
+        # Declared private to match `private_class_method :bounded_flatten`.
         def self.bounded_flatten: (
           ::String prefix,
           untyped value,
           ::Hash[::String, untyped] output,
           ::Hash[::Integer, bool] seen,
           ::Integer depth,
-          ::Set[::String] reasons
+          ::Set[::String] reasons,
+          ::Array[::Integer] budget
         ) -> void
-
-        def canonical_context_key: (::Hash[::String, untyped]? attrs) -> ::String
-
-        private
 
         def context_value_bytes: (untyped value) -> ::String
 

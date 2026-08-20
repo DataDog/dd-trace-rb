@@ -228,6 +228,58 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       pruned, = described_class.bounded_context_snapshot(attrs)
       expect(pruned).to eq({})
     end
+
+    # The per-level caps bound the branching factor but not their product. A leaf-free
+    # tree keeps the output empty, so an output-size cap alone never stops the walk.
+    # Shared subtrees make such a context cheap to build, because cycle detection only
+    # rejects ancestors on the current path, not siblings.
+    context "with a leaf-free tree of shared subtrees" do
+      let(:attrs) do
+        level = 256.times.map { |i| ["k#{i}", nil] }.to_h
+        3.times { level = 256.times.map { |i| ["k#{i}", level] }.to_h }
+        level
+      end
+
+      it "stops the walk on the visited-node budget instead of running to completion" do
+        pruned, reasons = described_class.bounded_context_snapshot(attrs)
+
+        expect(pruned).to eq({})
+        expect(reasons).to include("max_visited_nodes")
+      end
+
+      it "completes well inside a request-latency budget" do
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        described_class.bounded_context_snapshot(attrs)
+        elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+
+        expect(elapsed).to be < 1.0
+      end
+
+      it "visits no more nodes than the budget allows" do
+        visited = 0
+        original = described_class.method(:bounded_flatten)
+        allow(described_class).to receive(:bounded_flatten) do |*args|
+          visited += 1
+          original.call(*args)
+        end
+
+        described_class.bounded_context_snapshot(attrs)
+
+        expect(visited).to eq(described_class::MAX_VISITED_NODES)
+      end
+    end
+
+    it "still flattens a normal nested context in full" do
+      attrs = {"env" => "prod", "user" => {"id" => "u1", "tier" => "gold"}, "tags" => ["a", "b"]}
+
+      pruned, reasons = described_class.bounded_context_snapshot(attrs)
+
+      expect(pruned).to eq(
+        "env" => "prod", "user.id" => "u1", "user.tier" => "gold",
+        "tags.0" => "a", "tags.1" => "b"
+      )
+      expect(reasons).to be_empty
+    end
   end
 
   # record + two-tier aggregation
