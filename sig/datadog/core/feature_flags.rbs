@@ -15,7 +15,7 @@ module Datadog
       end
 
       class ResolutionDetails
-        type metadata_t = ::Hash[::String, ::String]
+        type metadata_t = ::Hash[::String, (::String | bool)]
 
         @value: Datadog::Helpers::json
 

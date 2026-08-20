@@ -100,9 +100,7 @@ module Datadog
           return {} unless evaluation_context.respond_to?(:fields)
 
           fields = evaluation_context.fields
-          return {} unless fields.is_a?(Hash)
-
-          fields.reject { |k, _| k.to_s == ::OpenFeature::SDK::EvaluationContext::TARGETING_KEY }
+          fields.is_a?(Hash) ? fields : {}
         end
 
         def extract_allocation_key(evaluation_details)

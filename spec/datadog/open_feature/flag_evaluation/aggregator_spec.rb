@@ -107,10 +107,86 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       expect(pruned.keys).to include("key")
     end
 
+    it "keeps exactly 256 fields without reporting truncation" do
+      attrs = 256.times.each_with_object({}) { |i, h| h["k#{i}"] = "v" }
+      pruned, reasons = described_class.bounded_context_snapshot(attrs)
+
+      expect(pruned.size).to eq(256)
+      expect(reasons).not_to include("max_context_fields")
+    end
+
     it "caps at 256 fields" do
       attrs = 257.times.each_with_object({}) { |i, h| h["k#{i}"] = "v" }
-      pruned, = described_class.bounded_context_snapshot(attrs)
+      pruned, reasons = described_class.bounded_context_snapshot(attrs)
+
       expect(pruned.size).to eq(256)
+      expect(reasons).to include("max_context_fields")
+    end
+
+    it "bounds inspected root properties even when values are discarded" do
+      attrs = 256.times.each_with_object({}) { |i, h| h["k#{i}"] = nil }
+      attrs["unvisited"] = "value"
+      pruned, reasons = described_class.bounded_context_snapshot(attrs)
+
+      expect(pruned).to eq({})
+      expect(reasons).to include("max_structure_properties")
+    end
+
+    it "omits an excluded root key during bounded traversal" do
+      attrs = {"targeting_key" => "user-1", "env" => "prod"}
+      pruned, = described_class.bounded_context_snapshot(attrs, excluded_key: "targeting_key")
+
+      expect(pruned).to eq("env" => "prod")
+    end
+
+    it "keeps keys of exactly 256 chars without reporting truncation" do
+      key = "k" * 256
+      pruned, reasons = described_class.bounded_context_snapshot({key => "value"})
+
+      expect(pruned).to eq(key => "value")
+      expect(reasons).to be_empty
+    end
+
+    it "reports keys exceeding 256 chars" do
+      attrs = {"k" * 257 => "value"}
+      pruned, reasons = described_class.bounded_context_snapshot(attrs)
+
+      expect(pruned).to eq({})
+      expect(reasons).to include("max_key_length")
+    end
+
+    it "keeps exactly 256 nested properties without reporting truncation" do
+      nested = 256.times.each_with_object({}) { |i, properties| properties["k#{i}"] = "v" }
+      pruned, reasons = described_class.bounded_context_snapshot({"root" => nested})
+
+      expect(pruned.size).to eq(256)
+      expect(reasons).to be_empty
+    end
+
+    it "bounds inspected nested properties even when values are discarded" do
+      nested = 256.times.each_with_object({}) { |i, properties| properties["k#{i}"] = nil }
+      nested["unvisited"] = "value"
+      pruned, reasons = described_class.bounded_context_snapshot({"root" => nested})
+
+      expect(pruned).to eq({})
+      expect(reasons).to include("max_structure_properties")
+    end
+
+    it "keeps exactly 256 list elements without reporting truncation" do
+      values = 256.times.map { |i| "v#{i}" }
+      pruned, reasons = described_class.bounded_context_snapshot({"values" => values})
+
+      expect(pruned.size).to eq(256)
+      expect(reasons).to be_empty
+    end
+
+    it "bounds inspected list elements even when values are discarded" do
+      values = Array.new(256)
+      values << "unvisited"
+      pruned, reasons = described_class.bounded_context_snapshot({"values" => values})
+
+      expect(pruned).to eq({})
+      expect(reasons).to include("max_list_elements")
     end
 
     it "keeps the first 256 fields in insertion order and drops the rest" do

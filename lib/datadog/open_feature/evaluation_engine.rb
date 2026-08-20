@@ -23,25 +23,26 @@ module Datadog
       end
 
       def fetch_value(flag_key, default_value:, expected_type:, evaluation_context: nil)
+        # Keep the policy bound to the evaluator that performs this evaluation.
+        observe_full_evaluation_data = false
+        evaluator = @evaluator
+        observe_full_evaluation_data = evaluator.observe_full_evaluation_data == true
+
         unless ALLOWED_TYPES.include?(expected_type)
           message = "unknown type #{expected_type.inspect}, allowed types #{ALLOWED_TYPES.join(", ")}"
-          return ResolutionDetails.build_error(
+          result = ResolutionDetails.build_error(
             value: default_value, error_code: Ext::UNKNOWN_TYPE, error_message: message
           )
+
+          return with_observe_full_evaluation_data(result, observe_full_evaluation_data)
         end
 
-        # Snapshot the evaluator once so the result and the observe_full_evaluation_data
-        # value stamped onto it come from the same configuration. A `reconfigure!` swap
-        # between reading `@evaluator` and calling `get_assignment` would otherwise let a
-        # later Remote Config update retroactively change the observe_full_evaluation_data
-        # applied to an evaluation that ran under the previous config.
-        evaluator = @evaluator
         context = evaluation_context&.fields.to_h
         result = evaluator.get_assignment(
           flag_key, default_value: default_value, context: context, expected_type: expected_type
         )
 
-        stamp_observe_full_evaluation_data!(result, evaluator.observe_full_evaluation_data)
+        result = with_observe_full_evaluation_data(result, observe_full_evaluation_data)
 
         @reporter.report(result, flag_key: flag_key, context: evaluation_context)
 
@@ -49,16 +50,10 @@ module Datadog
       rescue => e
         @telemetry.report(e, description: "OpenFeature: Failed to fetch flag value")
 
-        ResolutionDetails.build_error(
+        result = ResolutionDetails.build_error(
           value: default_value, error_code: Ext::GENERAL, error_message: "#{e.class}: #{e.message}"
         )
-      end
-
-      # observe_full_evaluation_data from the UFC the current evaluator holds. Returns
-      # false before configuration is present or when the value is absent, null, or
-      # wrong-typed (the privacy-preserving default).
-      def observe_full_evaluation_data
-        @evaluator.observe_full_evaluation_data
+        with_observe_full_evaluation_data(result, observe_full_evaluation_data == true)
       end
 
       # NOTE: In a currect implementation configuration is expected to be a raw
@@ -85,11 +80,15 @@ module Datadog
 
       # Stamps observe_full_evaluation_data onto the result metadata so the hook
       # reads it from the event, not live config.
-      def stamp_observe_full_evaluation_data!(result, observe_full_evaluation_data)
-        return unless result.respond_to?(:flag_metadata=)
+      def with_observe_full_evaluation_data(result, observe_full_evaluation_data)
+        return result unless result.respond_to?(:flag_metadata=)
 
+        result = result.dup if result.frozen?
         metadata = result.flag_metadata || {}
-        result.flag_metadata = metadata.merge(Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => observe_full_evaluation_data)
+        result.flag_metadata = metadata.merge(
+          Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => observe_full_evaluation_data
+        )
+        result
       end
     end
   end

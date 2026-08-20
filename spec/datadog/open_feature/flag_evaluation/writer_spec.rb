@@ -442,7 +442,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       )
     end
 
-    it "emits bounded context attrs in the payload (oversized strings removed, capped at 256 fields)" do
+    it "emits context bounded by inspected properties before enqueue" do
       raw = {"keep" => "ok", "toobig" => "x" * 257}
       300.times { |i| raw["k#{format("%03d", i)}"] = "v" }
 
@@ -455,7 +455,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       end
 
       emitted = payload["flagEvaluations"].first["context"]["evaluation"]
-      expect(emitted.size).to eq(256)              # capped
+      expect(emitted.size).to eq(255)              # rejected value consumes one inspected-property slot
       expect(emitted).not_to have_key("toobig")    # oversized string removed
       expect(emitted).to have_key("k000")
       expect(emitted).not_to have_key("k299")
@@ -789,7 +789,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     end
 
     it "hashes a non-UTF-8 targeting key over its UTF-8 bytes to match other SDKs" do
-      iso = "jane.doe@datadoghq.com".encode(Encoding::ISO_8859_1)
+      iso = "josé@datadoghq.com".encode(Encoding::ISO_8859_1)
       payload = captured_payload do |writer|
         writer.enqueue(
           flag_key: "pii-flag", variant: "on", allocation_key: "alloc",
@@ -800,7 +800,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       row = payload["flagEvaluations"].first
       expect(row["targeting_key"]).to eq(
-        "sha256_b4698f9b6d186781fa8dc59e533578fa2d8379a46b1cf6db85cda6aa9c99e51b"
+        "sha256_4cc077537cc6902477f44195b98aaf13687f9d90ce37e9d6f70cb1ede363201c"
       )
     end
   end
@@ -827,6 +827,12 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: {"toobig" => "x" * 257},
         observe_full_evaluation_data: true,
       )
+      # An oversized key hits the key-length cap.
+      writer.enqueue(
+        flag_key: "long-key-flag", variant: "on", allocation_key: "",
+        targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: {"k" * 257 => "value"},
+        observe_full_evaluation_data: true,
+      )
       writer.send(:drain_and_flush)
 
       expect(telemetry).to have_received(:inc).with(
@@ -834,6 +840,29 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       )
       expect(telemetry).to have_received(:inc).with(
         "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_value_length"}
+      )
+      expect(telemetry).to have_received(:inc).with(
+        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_key_length"}
+      )
+    ensure
+      writer&.stop
+    end
+
+    it "does not emit truncation telemetry for exactly 256 fields" do
+      transport = instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil)
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      writer = described_class.new(transport: transport, logger: logger, telemetry: telemetry)
+      attrs = 256.times.each_with_object({}) { |i, fields| fields["k#{i}"] = "v" }
+
+      writer.enqueue(
+        flag_key: "exact-flag", variant: "on", allocation_key: "",
+        targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: attrs,
+        observe_full_evaluation_data: true,
+      )
+      writer.send(:drain_and_flush)
+
+      expect(telemetry).not_to have_received(:inc).with(
+        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_context_fields"}
       )
     ensure
       writer&.stop

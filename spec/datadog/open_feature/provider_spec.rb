@@ -108,7 +108,8 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       let(:details) do
         Datadog::OpenFeature::ResolutionDetails.new(
-          value: "{}", reason: "MATCH", variant: "blue", flag_metadata: {},
+          value: "{}", reason: "MATCH", variant: "blue",
+          flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true},
           allocation_key: "joe", extra_logging: {}, log?: true, error?: false
         )
       end
@@ -118,6 +119,9 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
         expect(result.value).to eq("default" => true)
         expect(result.reason).to eq("ERROR")
+        expect(result.flag_metadata).to include(
+          Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true
+        )
       end
     end
   end
@@ -287,15 +291,13 @@ RSpec.describe Datadog::OpenFeature::Provider do
         allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(nil)
         allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(real_flag_eval_evp_hook)
         allow(logger).to receive(:debug)
-
-        # Set observe_full_evaluation_data to true so the targeting key and context are emitted as supplied.
-        allow(engine).to receive(:observe_full_evaluation_data).and_return(true)
       end
 
       it "enqueues an event into the Writer when the SDK client evaluates successfully" do
         result = Datadog::OpenFeature::ResolutionDetails.new(
           value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
-          flag_metadata: {}, allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false
+          flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true},
+          allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false
         )
         allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -319,7 +321,8 @@ RSpec.describe Datadog::OpenFeature::Provider do
       it "marks SDK-final type mismatches as runtime defaults in the emitted row" do
         result = Datadog::OpenFeature::ResolutionDetails.new(
           value: 123, reason: "TARGETING_MATCH", variant: "variant-a",
-          flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
+          flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true},
+          allocation_key: nil, extra_logging: {}, log?: false, error?: false
         )
         allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -358,6 +361,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       expect(res.flag_metadata["dd.eval.timestamp_ms"]).to eq(1_700_000_000_000)
       expect(res.flag_metadata["existing"]).to eq("kept")
+      expect(res.flag_metadata[Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA]).to be(false)
     end
 
     it "does not mutate the engine result metadata when stamping evaluation metadata" do

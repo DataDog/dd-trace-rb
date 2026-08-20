@@ -44,6 +44,7 @@ module Datadog
         REASON_PAYLOAD_LIMIT = "payload_limit"
         REASON_PRE_QUEUE_OVERFLOW = "pre_queue_overflow"
 
+        TARGETING_KEY_FIELD = "targeting_key"
         TARGETING_KEY_HASH_PREFIX = "sha256_"
 
         # Service context fields for the batch wrapper.
@@ -89,7 +90,7 @@ module Datadog
           observe_full_evaluation_data = event[:observe_full_evaluation_data] == true
           attrs = event[:attrs]
           if attrs.is_a?(Hash) && observe_full_evaluation_data
-            attrs, reasons = Aggregator.bounded_context_snapshot(attrs)
+            attrs, reasons = Aggregator.bounded_context_snapshot(attrs, excluded_key: TARGETING_KEY_FIELD)
             unless reasons.empty?
               @stop_mutex.synchronize { reasons.each { |r| @context_truncated_counts[r] += 1 } }
             end

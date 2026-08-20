@@ -112,6 +112,7 @@ module Datadog
         # Stamp evaluation entry time once, here on the eval thread. The EVP path uses this for
         # accurate first/last_evaluation bounds instead of a later hook-fire clock read.
         eval_time_ms = (Core::Utils::Time.now.to_f * 1000).to_i
+        flag_meta = nil
 
         engine = OpenFeature.engine
         return component_not_configured_default(default_value, eval_time_ms) if engine.nil?
@@ -120,15 +121,6 @@ module Datadog
 
         # Build metadata before branching so provider-returned details carry eval-entry time.
         flag_meta = build_flag_metadata(result, eval_time_ms)
-
-        # observe_full_evaluation_data is stamped onto the result inside
-        # `EvaluationEngine#fetch_value` from the exact evaluator that performed the
-        # evaluation, so a Remote Config swap between evaluation and this point cannot
-        # change it. Fall back to the engine accessor only when the result did not carry
-        # observe_full_evaluation_data (e.g. stubbed results in tests, or the not-configured path).
-        unless flag_meta.key?(Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA)
-          flag_meta[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] = engine.observe_full_evaluation_data
-        end
 
         if result.error?
           return sdk_error_details(default_value, result.error_code, result.error_message, result.reason, flag_meta)
@@ -147,8 +139,10 @@ module Datadog
           error_code: Ext::GENERAL,
           error_message: error_message
         )
-        error_flag_meta = build_flag_metadata(error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i)
-        error_flag_meta[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] = false
+        error_flag_meta = flag_meta
+        error_flag_meta ||= build_flag_metadata(
+          error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i
+        )
 
         sdk_error_details(default_value, Ext::GENERAL, error_message, Ext::ERROR, error_flag_meta)
       end
@@ -183,6 +177,8 @@ module Datadog
 
       def build_flag_metadata(result, eval_time_ms)
         metadata = result.flag_metadata&.dup || {}
+        metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] =
+          metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] == true
         allocation_key = result.allocation_key
         metadata[Ext::METADATA_ALLOCATION_KEY] = allocation_key if allocation_key && !allocation_key.empty?
 

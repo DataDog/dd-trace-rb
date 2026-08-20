@@ -36,6 +36,8 @@ module Datadog
 
         REASON_PRE_QUEUE_OVERFLOW: ::String
 
+        TARGETING_KEY_FIELD: ::String
+
         TARGETING_KEY_HASH_PREFIX: ::String
 
         @transport: Transport::HTTP

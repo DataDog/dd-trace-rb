@@ -173,33 +173,52 @@ module Datadog
         # Returns the flattened (dot-notation) context and the set of truncation reasons
         # hit, which the writer surfaces on the `flagevaluation.context.truncated` counter.
         #
-        # Cost is O(kept) (bounded by the caps), never O(supplied): Ruby Hash iteration is
-        # deterministic insertion order, so the caps are enforced by stopping at the limit
-        # rather than by sorting the full input. This is the cross-SDK recommendation for
+        # Work is bounded by the field and structure caps. Ruby Hash iteration is
+        # deterministic insertion order, so traversal stops at the limits instead of
+        # sorting or scanning the full input. This is the cross-SDK recommendation for
         # languages with deterministic iteration (Ruby truncates; Go omits because its map
         # iteration is randomized per call).
-        def self.bounded_context_snapshot(attrs)
+        def self.bounded_context_snapshot(attrs, excluded_key: nil)
           return [{}, []] unless attrs.is_a?(Hash) && !attrs.empty?
 
           flattened = {}
           reasons = Set.new
           seen = {attrs.object_id => true}
+          walked = 0
           attrs.each do |key, value|
-            break if flattened.size >= MAX_CONTEXT_FIELDS
-            bounded_flatten(key.to_s, value, flattened, seen, 0, reasons)
+            key = key.to_s
+            next if key == excluded_key
+
+            if flattened.size >= MAX_CONTEXT_FIELDS
+              reasons << REASON_MAX_CONTEXT_FIELDS
+              reasons << REASON_MAX_STRUCTURE_PROPERTIES if walked >= MAX_STRUCTURE_PROPERTIES
+              break
+            end
+            if walked >= MAX_STRUCTURE_PROPERTIES
+              reasons << REASON_MAX_STRUCTURE_PROPERTIES
+              break
+            end
+
+            walked += 1
+            bounded_flatten(key, value, flattened, seen, 0, reasons)
           end
-          reasons << REASON_MAX_CONTEXT_FIELDS if flattened.size >= MAX_CONTEXT_FIELDS
           [flattened, reasons.to_a]
         end
 
         def self.bounded_flatten(prefix, value, output, seen, depth, reasons)
           return if value.nil?
-          return if output.size >= MAX_CONTEXT_FIELDS
+          if output.size >= MAX_CONTEXT_FIELDS
+            reasons << REASON_MAX_CONTEXT_FIELDS
+            return
+          end
           if depth >= MAX_SNAPSHOT_DEPTH
             reasons << REASON_MAX_SNAPSHOT_DEPTH
             return
           end
-          return if prefix.length > MAX_KEY_LENGTH
+          if prefix.length > MAX_KEY_LENGTH
+            reasons << REASON_MAX_KEY_LENGTH
+            return
+          end
 
           case value
           when Hash
@@ -212,15 +231,18 @@ module Datadog
             end
 
             seen[object_id] = true
+            reasons << REASON_MAX_STRUCTURE_PROPERTIES if value.size > MAX_STRUCTURE_PROPERTIES
             walked = 0
             value.each do |key, child_value|
-              break if output.size >= MAX_CONTEXT_FIELDS
+              if output.size >= MAX_CONTEXT_FIELDS
+                reasons << REASON_MAX_CONTEXT_FIELDS
+                break
+              end
               break if walked >= MAX_STRUCTURE_PROPERTIES
-              bounded_flatten("#{prefix}.#{key}", child_value, output, seen, depth + 1, reasons)
+
               walked += 1
+              bounded_flatten("#{prefix}.#{key}", child_value, output, seen, depth + 1, reasons)
             end
-            reasons << REASON_MAX_STRUCTURE_PROPERTIES if value.size > MAX_STRUCTURE_PROPERTIES
-            reasons << REASON_MAX_CONTEXT_FIELDS if output.size >= MAX_CONTEXT_FIELDS
             seen.delete(object_id)
           when Array
             return if value.empty?
@@ -235,12 +257,15 @@ module Datadog
             reasons << REASON_MAX_LIST_ELEMENTS if value.size > MAX_LIST_ELEMENTS
             walked = 0
             value.each_with_index do |child_value, index|
-              break if output.size >= MAX_CONTEXT_FIELDS
+              if output.size >= MAX_CONTEXT_FIELDS
+                reasons << REASON_MAX_CONTEXT_FIELDS
+                break
+              end
               break if walked >= MAX_LIST_ELEMENTS
-              bounded_flatten("#{prefix}.#{index}", child_value, output, seen, depth + 1, reasons)
+
               walked += 1
+              bounded_flatten("#{prefix}.#{index}", child_value, output, seen, depth + 1, reasons)
             end
-            reasons << REASON_MAX_CONTEXT_FIELDS if output.size >= MAX_CONTEXT_FIELDS
             seen.delete(object_id)
           else
             if value.is_a?(String) && value.length > MAX_VALUE_LENGTH

@@ -75,18 +75,21 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
         expect(event).to include(
           flag_key: "my-flag",
           targeting_key: "user-7",
-          attrs: {"env" => "prod"},
+          attrs: {"targeting_key" => "user-7", "env" => "prod"},
         )
         expect(event).not_to have_key(:reason)
       end
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
     end
 
-    it "extracts targeting key and attrs from a real SDK evaluation context" do
+    it "passes the SDK fields hash to the writer without copying it" do
       sdk_context = ::OpenFeature::SDK::EvaluationContext.new(targeting_key: "user-9", tier: "gold")
       hook_ctx = build_hook_context(evaluation_context: sdk_context)
 
-      expect(writer).to receive(:enqueue).with(hash_including(targeting_key: "user-9", attrs: {"tier" => "gold"}))
+      expect(writer).to receive(:enqueue) do |event|
+        expect(event[:targeting_key]).to eq("user-9")
+        expect(event[:attrs]).to equal(sdk_context.fields)
+      end
       hook.finally(hook_context: hook_ctx, evaluation_details: evaluation_details)
     end
 
@@ -151,7 +154,10 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
     it "reads observe_full_evaluation_data from evaluation metadata, not from live config" do
       details = details_with_observe_full_evaluation_data(true)
       expect(writer).to receive(:enqueue).with(
-        hash_including(observe_full_evaluation_data: true, attrs: {"env" => "prod"})
+        hash_including(
+          observe_full_evaluation_data: true,
+          attrs: {"targeting_key" => "user-7", "env" => "prod"}
+        )
       )
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end

@@ -100,7 +100,10 @@ module Datadog
 
         def flush_and_reset: () -> ::Hash[::Symbol, untyped]
 
-        def self.bounded_context_snapshot: (::Hash[::String, untyped]? attrs) -> [::Hash[::String, untyped], ::Array[::String]]
+        def self.bounded_context_snapshot: (
+          ::Hash[::String, untyped]? attrs,
+          ?excluded_key: ::String?
+        ) -> [::Hash[::String, untyped], ::Array[::String]]
 
         def self.bounded_flatten: (
           ::String prefix,

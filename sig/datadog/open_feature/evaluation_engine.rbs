@@ -24,13 +24,11 @@ module Datadog
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> (ResolutionDetails | Core::FeatureFlags::ResolutionDetails)
 
-      def observe_full_evaluation_data: () -> bool
-
       def reconfigure!: (::String? configuration) -> void
 
       private
 
-      def stamp_observe_full_evaluation_data!: (untyped result, bool observe_full_evaluation_data) -> void
+      def with_observe_full_evaluation_data: (untyped result, bool observe_full_evaluation_data) -> untyped
     end
   end
 end
