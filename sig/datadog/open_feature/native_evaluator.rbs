@@ -1,24 +1,30 @@
 module Datadog
   module OpenFeature
     class NativeEvaluator
-      INVALID_FLAG_CONFIGURATION_ERROR_MESSAGE: ::String
-
       @configuration: Core::FeatureFlags::Configuration
+      @variant_type_mismatch_flags: ::Hash[::String, ::Array[::Symbol]]
+      @invalid_regex_flags: ::Hash[::String, bool]
 
       def initialize: (::String configuration) -> void
 
       def get_assignment: (
         ::String flag_key,
-        default_value: untyped,
+        default_value: ::OpenFeature::SDK::Provider::ResolutionDetails::value_t,
         context: ::OpenFeature::SDK::EvaluationContext::fields_t,
         expected_type: ::Symbol
       ) -> (Core::FeatureFlags::ResolutionDetails | ResolutionDetails)
 
       private
 
-      def invalid_flag_configuration?: (Core::FeatureFlags::ResolutionDetails result) -> bool
+      def find_flag_validation_errors: (::String configuration) -> [::Hash[::String, ::Array[::Symbol]], ::Hash[::String, bool]]
 
-      def invalid_flag_configuration_error: (untyped default_value) -> ResolutionDetails
+      def flag_has_invalid_regex?: (::Hash[::String, Datadog::Helpers::json] flag) -> bool
+
+      def invalid_regex_condition?: (Datadog::Helpers::json condition) -> bool
+
+      def expected_types_for: (Datadog::Helpers::json variation_type) -> (::Array[::Symbol]?)
+
+      def variant_value_matches?: (Datadog::Helpers::json variation_type, Datadog::Helpers::json value) -> bool
     end
   end
 end

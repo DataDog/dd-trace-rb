@@ -16,6 +16,7 @@ RSpec.describe "gem release process" do
            |\.git-blame-ignore-revs
            |\.gitattributes
            |\.gitignore
+           |\.gitmodules
            |\.gitlab-ci.yml
            |\.pryrc
            |\.rspec
