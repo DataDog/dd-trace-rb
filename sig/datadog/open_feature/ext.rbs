@@ -18,6 +18,8 @@ module Datadog
       PROVIDER_NOT_READY: ::String
 
       METADATA_ALLOCATION_KEY: ::String
+
+      METADATA_OBSERVE_FULL_EVALUATION_DATA: ::String
     end
   end
 end

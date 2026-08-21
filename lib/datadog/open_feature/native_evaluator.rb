@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "json"
 require_relative "../core/feature_flags"
 require_relative "ext"
 require_relative "resolution_details"
@@ -15,7 +16,10 @@ module Datadog
       #       in the format expected by `libdatadog` without any modifications
       def initialize(configuration)
         @configuration = Core::FeatureFlags::Configuration.new(configuration)
+        @observe_full_evaluation_data = parse_observe_full_evaluation_data(configuration)
       end
+
+      attr_reader :observe_full_evaluation_data
 
       # Returns the assignment for a given flag key based on the feature flags
       # configuration
@@ -41,6 +45,23 @@ module Datadog
       end
 
       private
+
+      # Parse observe_full_evaluation_data from the top level of the UFC JSON (a sibling
+      # of `environment`). Absent, null, or wrong-typed values return false.
+      # Malformed JSON returns false without raising: the C extension owns the
+      # full UFC parse and raises on truly bad input, so this read must
+      # never be what strands a pod on PROVIDER_NOT_READY.
+      def parse_observe_full_evaluation_data(configuration)
+        return false unless configuration.is_a?(String) && !configuration.empty?
+
+        parsed = JSON.parse(configuration)
+        parsed.is_a?(Hash) && parsed["observeFullEvaluationData"] == true
+      rescue
+        # Deliberately broad (bare rescue catches StandardError): this cosmetic read
+        # must never reject a UFC that the C extension accepts, so any failure here
+        # falls to the safe default.
+        false
+      end
 
       def invalid_flag_configuration?(result)
         result.reason == Ext::DEFAULT &&

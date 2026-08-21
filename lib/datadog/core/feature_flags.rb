@@ -18,10 +18,21 @@ module Datadog
       class Configuration # rubocop:disable Lint/EmptyClass
       end
 
+      # Keeps Ruby-stamped metadata ahead of the native reader even when the C
+      # extension defines its methods after this file is loaded.
+      module ResolutionDetailsFlagMetadata
+        def flag_metadata
+          defined?(@flag_metadata) ? @flag_metadata : super
+        end
+      end
+
       # Resolution details for a feature flag evaluation
       # Base class is defined in the C extension, with Ruby methods added here
       class ResolutionDetails
         attr_writer :value
+        attr_writer :flag_metadata
+
+        prepend ResolutionDetailsFlagMetadata
 
         # Get the resolved value, with JSON parsing for object types
         #

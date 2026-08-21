@@ -13,22 +13,24 @@ module Datadog
         def initialize: (FlagEvaluation::Writer? writer) -> void
 
         def finally: (
-          hook_context: untyped,
-          evaluation_details: untyped,
-          **untyped _opts
+          hook_context: ::OpenFeature::SDK::Hooks::HookContext,
+          evaluation_details: ::OpenFeature::SDK::EvaluationDetails,
+          **any _opts
         ) -> void
 
         private
 
-        def extract_targeting_key: (untyped evaluation_context) -> ::String?
+        def extract_targeting_key: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> ::String?
 
-        def extract_attributes: (untyped evaluation_context) -> ::Hash[::String, untyped]
+        def extract_attributes: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> ::Hash[::String, any]
 
-        def extract_allocation_key: (untyped evaluation_details) -> ::String?
+        def extract_allocation_key: (::OpenFeature::SDK::EvaluationDetails evaluation_details) -> ::String?
 
-        def extract_error_message: (untyped evaluation_details) -> ::String?
+        def extract_error_message: (::OpenFeature::SDK::EvaluationDetails evaluation_details) -> ::String?
 
-        def runtime_default?: (untyped evaluation_details) -> bool
+        def extract_error_code: (::OpenFeature::SDK::EvaluationDetails evaluation_details) -> ::String?
+
+        def runtime_default?: (::OpenFeature::SDK::EvaluationDetails evaluation_details) -> bool
       end
     end
   end

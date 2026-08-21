@@ -25,6 +25,13 @@ module Datadog
       ) -> (ResolutionDetails | Core::FeatureFlags::ResolutionDetails)
 
       def reconfigure!: (::String? configuration) -> void
+
+      private
+
+      def with_observe_full_evaluation_data: (
+        (ResolutionDetails | Core::FeatureFlags::ResolutionDetails) result,
+        bool observe_full_evaluation_data
+      ) -> (ResolutionDetails | Core::FeatureFlags::ResolutionDetails)
     end
   end
 end

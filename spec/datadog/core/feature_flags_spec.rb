@@ -88,6 +88,12 @@ RSpec.describe Datadog::Core::FeatureFlags do
           expect(result.error_code).to be_nil
           expect(result.error_message).to be_nil
         end
+
+        it "returns Ruby-stamped metadata instead of the native metadata" do
+          expect do
+            result.flag_metadata = {"observe_full_evaluation_data" => true}
+          end.to change(result, :flag_metadata).from({}).to("observe_full_evaluation_data" => true)
+        end
       end
 
       context "when flag is missing" do

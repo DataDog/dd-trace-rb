@@ -146,6 +146,13 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       expect(reasons).to include("max_structure_properties")
     end
 
+    it "omits an excluded root key during bounded traversal" do
+      attrs = {"targeting_key" => "user-1", "env" => "prod"}
+      snapshot, = described_class.bounded_context_snapshot(attrs, excluded_key: "targeting_key")
+
+      expect(snapshot).to eq("env" => "prod")
+    end
+
     it "keeps keys of exactly 256 chars without reporting truncation" do
       key = "k" * 256
       snapshot, reasons = described_class.bounded_context_snapshot({key => "value"})
@@ -171,7 +178,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
 
       snapshot, reasons = described_class.bounded_context_snapshot(
-        "root" => {"k" * 10_000 => "value"}
+        {"root" => {"k" * 10_000 => "value"}}
       )
 
       expect(snapshot).to eq({})
@@ -252,7 +259,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
 
       snapshot, = described_class.bounded_context_snapshot(
-        custom_string.new("key") => custom_string.new("value")
+        {custom_string.new("key") => custom_string.new("value")}
       )
       expect(snapshot).to eq("key" => "value")
     end
@@ -284,7 +291,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       invalid_array << "value"
 
       expect(described_class.bounded_context_snapshot(invalid_hash)).to eq([{}, []])
-      expect(described_class.bounded_context_snapshot("array" => invalid_array)).to eq([{}, []])
+      expect(described_class.bounded_context_snapshot({"array" => invalid_array})).to eq([{}, []])
     end
 
     it "drops context branches beyond the maximum nesting depth" do
@@ -359,8 +366,8 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
 
     context 'two evaluations differing only by context value type (int 1 vs string "1")' do
       it "creates two distinct full-tier buckets (type-tagged canonical key)" do
-        aggregator.record(**base_event.merge(attrs: {"x" => 1}))
-        aggregator.record(**base_event.merge(attrs: {"x" => "1"}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 1}, observe_full_evaluation_data: true))
+        aggregator.record(**base_event.merge(attrs: {"x" => "1"}, observe_full_evaluation_data: true))
 
         snapshot = aggregator.flush_and_reset
         expect(snapshot[:full].size).to eq(2)
@@ -399,10 +406,10 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
 
       it "routes to degraded when global_cap is reached with a new bucket" do
         # First two fill the full tier
-        aggregator.record(**base_event.merge(attrs: {"x" => 1}))
-        aggregator.record(**base_event.merge(attrs: {"x" => 2}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 1}, observe_full_evaluation_data: true))
+        aggregator.record(**base_event.merge(attrs: {"x" => 2}, observe_full_evaluation_data: true))
         # Third has different context — full tier full — routes to degraded
-        aggregator.record(**base_event.merge(attrs: {"x" => 3}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 3}, observe_full_evaluation_data: true))
 
         snapshot = aggregator.flush_and_reset
         expect(snapshot[:full].size).to eq(2)
@@ -410,9 +417,9 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
 
       it "counts full-tier attempts before global cap routing" do
-        aggregator.record(**base_event.merge(attrs: {"x" => 1}))
-        aggregator.record(**base_event.merge(attrs: {"x" => 2}))
-        aggregator.record(**base_event.merge(attrs: {"x" => 3}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 1}, observe_full_evaluation_data: true))
+        aggregator.record(**base_event.merge(attrs: {"x" => 2}, observe_full_evaluation_data: true))
+        aggregator.record(**base_event.merge(attrs: {"x" => 3}, observe_full_evaluation_data: true))
 
         per_flag_full = aggregator.instance_variable_get(:@per_flag_full)
         expect(per_flag_full["my-flag"]).to eq(3)
@@ -424,10 +431,10 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       let(:per_flag_cap) { 2 }
 
       it "routes to degraded when per_flag_cap is reached for a flag" do
-        aggregator.record(**base_event.merge(attrs: {"x" => 1}))
-        aggregator.record(**base_event.merge(attrs: {"x" => 2}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 1}, observe_full_evaluation_data: true))
+        aggregator.record(**base_event.merge(attrs: {"x" => 2}, observe_full_evaluation_data: true))
         # Third bucket for same flag: per_flag_cap exceeded
-        aggregator.record(**base_event.merge(attrs: {"x" => 3}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 3}, observe_full_evaluation_data: true))
 
         snapshot = aggregator.flush_and_reset
         expect(snapshot[:full].size).to eq(2)
@@ -442,12 +449,12 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
 
       it "increments dropped counter beyond degraded_cap" do
         # First event: goes to full tier (cap=1, one slot)
-        aggregator.record(**base_event.merge(attrs: {"x" => 1}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 1}, observe_full_evaluation_data: true))
         # Second event: different context, full tier full → goes to degraded.
         # creates the one allowed degraded bucket
-        aggregator.record(**base_event.merge(attrs: {"x" => 2}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 2}, observe_full_evaluation_data: true))
         # Third event: different schema-visible error.message → degraded full → DROPPED
-        aggregator.record(**base_event.merge(attrs: {"x" => 3}, error_message: "boom"))
+        aggregator.record(**base_event.merge(attrs: {"x" => 3}, error_message: "boom", observe_full_evaluation_data: true))
 
         expect(aggregator.dropped_degraded_overflow).to eq(1)
       end
@@ -458,14 +465,47 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       let(:per_flag_cap) { 1 }
 
       it "degraded entry has no targeting_key or context_attrs" do
-        aggregator.record(**base_event.merge(attrs: {"x" => 1}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 1}, observe_full_evaluation_data: true))
         # Force overflow to degraded
-        aggregator.record(**base_event.merge(attrs: {"x" => 2}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 2}, observe_full_evaluation_data: true))
 
         snapshot = aggregator.flush_and_reset
         degraded_entry = snapshot[:degraded].values.first
         expect(degraded_entry[:targeting_key]).to be_nil
         expect(degraded_entry[:context_attrs]).to be_nil
+      end
+    end
+
+    context "observe_full_evaluation_data in the bucket key" do
+      it "separates policy states and retains context only when enabled" do
+        aggregator.record(**base_event.merge(attrs: {"env" => "prod"}, observe_full_evaluation_data: false))
+        aggregator.record(**base_event.merge(attrs: {"env" => "prod"}, observe_full_evaluation_data: true))
+
+        entries = aggregator.flush_and_reset[:full]
+        disabled_entry = entries.find { |key, _entry| key.last == false }.last
+        enabled_entry = entries.find { |key, _entry| key.last == true }.last
+
+        expect(entries.size).to eq(2)
+        expect(disabled_entry[:context_attrs]).to be_nil
+        expect(enabled_entry[:context_attrs]).to eq("env" => "prod")
+      end
+
+      it "does not key on context when observe_full_evaluation_data is false (high-cardinality context does not split buckets)" do
+        # Prevents the per-flag bucket cap from burning on privacy-protected traffic.
+        aggregator.record(**base_event.merge(attrs: {"request_id" => "a"}, observe_full_evaluation_data: false))
+        aggregator.record(**base_event.merge(attrs: {"request_id" => "b"}, observe_full_evaluation_data: false))
+
+        snapshot = aggregator.flush_and_reset
+        expect(snapshot[:full].size).to eq(1)
+        expect(snapshot[:full].values.first[:count]).to eq(2)
+      end
+
+      it "keys observe_full_evaluation_data-on buckets on the raw error message" do
+        aggregator.record(**base_event.merge(error_message: "boom-a", observe_full_evaluation_data: true))
+        aggregator.record(**base_event.merge(error_message: "boom-b", observe_full_evaluation_data: true))
+
+        snapshot = aggregator.flush_and_reset
+        expect(snapshot[:full].size).to eq(2)
       end
     end
   end
@@ -486,9 +526,9 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
 
     it "resets dropped_degraded_overflow counter after flush" do
       aggregator_small = described_class.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 1)
-      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 1, attrs: {"x" => 1})
-      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 2, attrs: {"x" => 2})
-      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 3, attrs: {"x" => 3})
+      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 1, attrs: {"x" => 1}, observe_full_evaluation_data: true)
+      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 2, attrs: {"x" => 2}, observe_full_evaluation_data: true)
+      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 3, attrs: {"x" => 3}, observe_full_evaluation_data: true)
       aggregator_small.flush_and_reset
       expect(aggregator_small.dropped_degraded_overflow).to eq(0)
     end
@@ -496,11 +536,11 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     # The snapshot must carry the degraded-overflow count so the writer can emit it before reset.
     it "returns the degraded-overflow count in the snapshot so it can be emitted before reset" do
       aggregator_small = described_class.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 1)
-      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 1, attrs: {"x" => 1})
-      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 2, attrs: {"x" => 2})
+      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 1, attrs: {"x" => 1}, observe_full_evaluation_data: true)
+      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 2, attrs: {"x" => 2}, observe_full_evaluation_data: true)
       aggregator_small.record(
         flag_key: "f", variant: "v", allocation_key: "", error_message: "boom",
-        targeting_key: "", eval_time_ms: 3, attrs: {"x" => 3}
+        targeting_key: "", eval_time_ms: 3, attrs: {"x" => 3}, observe_full_evaluation_data: true
       )
 
       snapshot = aggregator_small.flush_and_reset

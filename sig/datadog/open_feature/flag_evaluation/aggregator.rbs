@@ -5,7 +5,7 @@ module Datadog
         type context_value = ::String | bool | ::Integer | ::Float
         type context = ::Hash[::String, context_value]
         type raw_context = ::Hash[any, any]
-        type full_key = [::String, ::String, ::String, bool, ::String, ::String, ::String]
+        type full_key = [::String, ::String, ::String, bool, ::String, ::String, ::String?, bool]
         type degraded_key = [::String, ::String, ::String, bool, ::String]
         type entry = {
           count: ::Integer,
@@ -118,12 +118,16 @@ module Datadog
           eval_time_ms: ::Integer,
           attrs: context?,
           ?error_message: ::String?,
-          ?runtime_default: bool?
+          ?runtime_default: bool?,
+          ?observe_full_evaluation_data: bool
         ) -> void
 
         def flush_and_reset: () -> snapshot
 
-        def self.bounded_context_snapshot: (raw_context? attrs) -> [context, ::Array[::String]]
+        def self.bounded_context_snapshot: (
+          raw_context? attrs,
+          ?excluded_key: ::String?
+        ) -> [context, ::Array[::String]]
 
         def canonical_context_key: (context? attrs) -> ::String
 

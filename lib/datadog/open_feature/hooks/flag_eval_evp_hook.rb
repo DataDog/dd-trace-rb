@@ -42,15 +42,42 @@ module Datadog
           eval_time_ms = metadata.is_a?(Hash) ? metadata["dd.eval.timestamp_ms"] : nil
           eval_time_ms ||= (Core::Utils::Time.now.to_f * 1000).to_i
 
+          # observe_full_evaluation_data travels on the event metadata (stamped from
+          # the UFC the evaluation ran against), never read from live config.
+          observe_full_evaluation_data = metadata.is_a?(Hash) ? metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] : nil
+          observe_full_evaluation_data = false unless observe_full_evaluation_data == true
+
+          # Skip the context snapshot when full evaluation data is disabled.
+          attrs = if observe_full_evaluation_data
+            extract_attributes(hook_context.evaluation_context)
+          else
+            {}
+          end
+
+          # Redact the error message before enqueue when observe_full_evaluation_data is
+          # false: evaluator exception messages can carry raw context data, so the raw text
+          # must never enter the async queue. Substitute the error code so operators keep
+          # a stable signal. (Matches Go/Java: redaction happens before the queue.)
+          # When observe_full_evaluation_data is true, fall back to the error code if the
+          # provider populated only that (some providers do).
+          error_message = extract_error_message(evaluation_details)
+          error_code = extract_error_code(evaluation_details)
+          if observe_full_evaluation_data
+            error_message = error_code&.to_s if (error_message.nil? || error_message.empty?) && error_code
+          else
+            error_message = error_code&.to_s
+          end
+
           writer.enqueue(
             flag_key: hook_context.flag_key,
             variant: evaluation_details.variant,
             allocation_key: extract_allocation_key(evaluation_details),
-            error_message: extract_error_message(evaluation_details),
+            error_message: error_message,
             runtime_default: runtime_default?(evaluation_details),
             targeting_key: extract_targeting_key(hook_context.evaluation_context),
             eval_time_ms: eval_time_ms,
-            attrs: extract_attributes(hook_context.evaluation_context),
+            attrs: attrs,
+            observe_full_evaluation_data: observe_full_evaluation_data,
           )
         end
 
@@ -72,9 +99,7 @@ module Datadog
           return {} unless evaluation_context.respond_to?(:fields)
 
           fields = evaluation_context.fields
-          return {} unless fields.is_a?(Hash)
-
-          fields.reject { |k, _| k.to_s == ::OpenFeature::SDK::EvaluationContext::TARGETING_KEY }
+          fields.is_a?(Hash) ? fields : {}
         end
 
         def extract_allocation_key(evaluation_details)
@@ -88,6 +113,12 @@ module Datadog
           return unless evaluation_details.respond_to?(:error_message)
 
           evaluation_details.error_message
+        end
+
+        def extract_error_code(evaluation_details)
+          return unless evaluation_details.respond_to?(:error_code)
+
+          evaluation_details.error_code
         end
 
         def runtime_default?(evaluation_details)

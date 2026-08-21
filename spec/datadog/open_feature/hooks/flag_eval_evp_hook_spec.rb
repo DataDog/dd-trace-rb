@@ -41,11 +41,14 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
     let(:evaluation_details) do
       build_evaluation_details(
         variant: "on",
-        flag_metadata: {"__dd_allocation_key" => "alloc-9", "dd.eval.timestamp_ms" => 1_700_000_000_000},
+        flag_metadata: {
+          "__dd_allocation_key" => "alloc-9",
+          "dd.eval.timestamp_ms" => 1_700_000_000_000,
+          Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
+        },
       )
     end
 
-    # Variant comes from evaluation_details.variant (the OpenFeature variant), NEVER the value.
     # The hook is never given the evaluated value, so it cannot accidentally emit it.
     it "enqueues the variant from evaluation_details.variant" do
       expect(writer).to receive(:enqueue).with(hash_including(variant: "on"))
@@ -57,13 +60,11 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
     end
 
-    # allocation_key read from metadata['__dd_allocation_key'] — the SAME source the OTel hook uses.
     it "enqueues allocation_key from the same metadata key the OTel hook reads" do
       expect(writer).to receive(:enqueue).with(hash_including(allocation_key: "alloc-9"))
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
     end
 
-    # eval-time read from the provider-stamped 'dd.eval.timestamp_ms' metadata key.
     it "enqueues eval_time_ms from the provider-stamped dd.eval.timestamp_ms metadata" do
       expect(writer).to receive(:enqueue).with(hash_including(eval_time_ms: 1_700_000_000_000))
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
@@ -74,29 +75,22 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
         expect(event).to include(
           flag_key: "my-flag",
           targeting_key: "user-7",
-          attrs: {"env" => "prod"},
+          attrs: {"targeting_key" => "user-7", "env" => "prod"},
         )
         expect(event).not_to have_key(:reason)
       end
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
     end
 
-    it "extracts targeting key and attrs from a real SDK evaluation context" do
-      sdk_context = ::OpenFeature::SDK::EvaluationContext.new(targeting_key: "user-9", tier: "gold")
-      hook_ctx = build_hook_context(evaluation_context: sdk_context)
-
-      expect(writer).to receive(:enqueue).with(hash_including(targeting_key: "user-9", attrs: {"tier" => "gold"}))
-      hook.finally(hook_context: hook_ctx, evaluation_details: evaluation_details)
-    end
-
     it "enqueues error_message when present" do
-      details = build_evaluation_details(variant: nil, error_message: "flag not found")
+      details = build_evaluation_details(variant: nil, error_message: "flag not found",
+        flag_metadata: {"dd.eval.timestamp_ms" => 1, Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true})
       expect(writer).to receive(:enqueue).with(hash_including(error_message: "flag not found"))
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
 
+    # The hook collaborates only with writer#enqueue; it has no aggregator reference.
     it "does NOT touch the aggregator on the hook path (only enqueues — async boundary)" do
-      # The hook collaborates ONLY with writer#enqueue; it has no aggregator reference at all.
       expect(hook.instance_variables).not_to include(:@aggregator)
       expect(writer).to receive(:enqueue).once
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
@@ -104,7 +98,6 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
   end
 
   describe "#finally — runtime-default + missing-metadata edge cases" do
-    # Fallback: when the provider did not stamp a timestamp, fall back to hook-fire time.
     it "falls back to a real hook-fire timestamp when dd.eval.timestamp_ms is absent" do
       details = build_evaluation_details(variant: "on")
       allow(Datadog::Core::Utils::Time).to receive(:now).and_return(::Time.at(1_650_000_000))
@@ -112,7 +105,6 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
 
-    # Concern: detect runtime default from ABSENT variant, passed through as nil (aggregator decides).
     it "passes a nil variant through unchanged (runtime-default signal preserved)" do
       details = build_evaluation_details(variant: nil)
       expect(writer).to receive(:enqueue).with(hash_including(variant: nil, runtime_default: true))
@@ -133,6 +125,85 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       ctx = build_hook_context(flag_key: "f", evaluation_context: nil)
       expect(writer).to receive(:enqueue).with(hash_including(targeting_key: nil, attrs: {}))
       expect { hook.finally(hook_context: ctx, evaluation_details: details) }.not_to raise_error
+    end
+  end
+
+  describe "#finally — observe_full_evaluation_data lifecycle" do
+    let(:eval_context) { ::OpenFeature::SDK::EvaluationContext.new(targeting_key: "user-7", env: "prod") }
+    let(:hook_context) { build_hook_context }
+
+    def details_with_observe_full_evaluation_data(observe_full_evaluation_data)
+      metadata = {
+        "dd.eval.timestamp_ms" => 1_700_000_000_000,
+        Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => observe_full_evaluation_data,
+      }
+      build_evaluation_details(variant: "on", flag_metadata: metadata)
+    end
+
+    it "reads observe_full_evaluation_data from evaluation metadata, not from live config" do
+      details = details_with_observe_full_evaluation_data(true)
+      expect(writer).to receive(:enqueue).with(
+        hash_including(
+          observe_full_evaluation_data: true,
+          attrs: {"targeting_key" => "user-7", "env" => "prod"}
+        )
+      )
+      hook.finally(hook_context: hook_context, evaluation_details: details)
+    end
+
+    it "treats every value except true as a privacy-preserving false" do
+      details = [
+        build_evaluation_details(variant: "on", flag_metadata: {"dd.eval.timestamp_ms" => 1}),
+        details_with_observe_full_evaluation_data(false),
+        details_with_observe_full_evaluation_data(nil),
+        details_with_observe_full_evaluation_data("true"),
+      ]
+
+      details.each do |evaluation_details|
+        expect(writer).to receive(:enqueue).with(
+          hash_including(observe_full_evaluation_data: false, attrs: {})
+        )
+        hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
+      end
+    end
+
+    it "redacts the error message to the error code before enqueue when observe_full_evaluation_data is false" do
+      details = build_evaluation_details(
+        variant: nil, error_message: "boom", error_code: "TYPE_MISMATCH",
+        flag_metadata: {"dd.eval.timestamp_ms" => 1}
+      )
+      expect(writer).to receive(:enqueue).with(hash_including(error_message: "TYPE_MISMATCH"))
+      hook.finally(hook_context: hook_context, evaluation_details: details)
+    end
+
+    # Every other redaction example supplies an error code, so the substitution masks
+    # the raw message. With no code there is nothing to substitute, and the raw text
+    # must be dropped rather than passed through. Evaluator exception messages can
+    # carry raw context data, so a pass-through here would put PII on the async queue.
+    it "drops the error message when full evaluation data is disabled and there is no error code" do
+      details = build_evaluation_details(
+        variant: nil, error_message: "user jane.doe@datadoghq.com not in segment", error_code: nil,
+        flag_metadata: {"dd.eval.timestamp_ms" => 1}
+      )
+      expect(writer).to receive(:enqueue) do |event|
+        expect(event[:error_message]).to be_nil
+        expect(event[:observe_full_evaluation_data]).to be(false)
+      end
+      hook.finally(hook_context: hook_context, evaluation_details: details)
+    end
+
+    it "uses the error code when full evaluation data is enabled and the error message is blank" do
+      [nil, ""].each do |error_message|
+        details = build_evaluation_details(
+          variant: nil, error_message: error_message, error_code: "TYPE_MISMATCH",
+          flag_metadata: {
+            "dd.eval.timestamp_ms" => 1,
+            Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
+          }
+        )
+        expect(writer).to receive(:enqueue).with(hash_including(error_message: "TYPE_MISMATCH"))
+        hook.finally(hook_context: hook_context, evaluation_details: details)
+      end
     end
   end
 end

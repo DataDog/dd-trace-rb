@@ -14,10 +14,18 @@ module Datadog
         ) -> ResolutionDetails
       end
 
+      module ResolutionDetailsFlagMetadata
+        @flag_metadata: ResolutionDetails::metadata_t
+
+        def flag_metadata: () -> ResolutionDetails::metadata_t
+      end
+
       class ResolutionDetails
-        type metadata_t = ::Hash[::String, ::String]
+        type metadata_t = ::Hash[::String, (::String | bool)]
 
         @value: Datadog::Helpers::json
+
+        @flag_metadata: metadata_t
 
         def flag_type: () -> ::Symbol?
 
@@ -26,6 +34,10 @@ module Datadog
         def value: () -> untyped
 
         def value=: (untyped) -> untyped
+
+        def flag_metadata: () -> metadata_t
+
+        def flag_metadata=: (metadata_t) -> metadata_t
 
         def variant: () -> ::String?
 
@@ -42,8 +54,6 @@ module Datadog
         def error?: () -> bool
 
         def log?: () -> bool
-
-        def flag_metadata: () -> metadata_t
 
         private
 
