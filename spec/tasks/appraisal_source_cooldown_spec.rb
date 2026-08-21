@@ -2,11 +2,6 @@ require "spec_helper"
 require "appraisal/appraisal"
 require_relative "../../appraisal/source_options"
 
-# `appraisal/generate.rb` patches Appraisal's DSL so a supply-chain cooldown
-# window can be declared on the `source` line of every generated gemfile.
-# Appraisal owns that rendering, so these specs pin the behaviour we depend on:
-# an upstream change that drops the options would otherwise silently disable
-# cooldown across all generated gemfiles.
 RSpec.describe "Appraisal source cooldown rendering" do
   subject(:gemfile) { Appraisal::Gemfile.new }
 

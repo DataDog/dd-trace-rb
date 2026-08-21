@@ -1,11 +1,9 @@
-# Appraisal's `BundlerDSL#source` takes a URL and nothing else, so declaring a
-# cooldown window on it raises `ArgumentError` and never reaches a gemfile.
-# Carry the options through and render them back out.
-
 require 'appraisal/appraisal'
 
 module Appraisal
   module SourceOptions
+    # Appraisal's `BundlerDSL#source` takes a URL and nothing else
+    # Change to carry the options through and render them back out.
     def source(source, options = {}, &block)
       return super(source, &block) if block
 
