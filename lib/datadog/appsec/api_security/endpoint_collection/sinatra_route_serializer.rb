@@ -8,7 +8,7 @@ module Datadog
         module SinatraRouteSerializer
           module_function
 
-          def serialize(route, method:, path_prefix: '')
+          def serialize(route, method:, path_prefix: "")
             path = path_prefix + route.safe_string
 
             {
@@ -16,7 +16,7 @@ module Datadog
               resource_name: "#{method} #{path}",
               operation_name: "http.request",
               method: method,
-              path: path
+              path: path,
             }
           end
         end

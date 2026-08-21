@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../core/configuration/ext'
-require_relative '../core/environment/socket'
+require_relative "../core/configuration/ext"
+require_relative "../core/environment/socket"
 
 module Datadog
   module OpenTelemetry
@@ -14,24 +14,24 @@ module Datadog
 
         @settings.tags&.each do |key, value| # steep:ignore
           otel_key = case key
-          when 'service' then 'service.name'
-          when 'env' then 'deployment.environment'
-          when 'version' then 'service.version'
+          when "service" then "service.name"
+          when "env" then "deployment.environment"
+          when "version" then "service.version"
           else key
           end
           resource_attributes[otel_key] = value
         end
 
-        resource_attributes['service.name'] = @settings.service_without_fallback || resource_attributes['service.name'] || Datadog::Core::Environment::Ext::FALLBACK_SERVICE_NAME # steep:ignore
-        resource_attributes['deployment.environment'] = @settings.env if @settings.env # steep:ignore
-        resource_attributes['service.version'] = @settings.version if @settings.version # steep:ignore
+        resource_attributes["service.name"] = @settings.service_without_fallback || resource_attributes["service.name"] || Datadog::Core::Environment::Ext::FALLBACK_SERVICE_NAME # steep:ignore
+        resource_attributes["deployment.environment"] = @settings.env if @settings.env # steep:ignore
+        resource_attributes["service.version"] = @settings.version if @settings.version # steep:ignore
 
         hostname = Datadog::Core::Environment::Socket.resolved_hostname(@settings) # steep:ignore
         if hostname
           if hostname == @settings.hostname # steep:ignore
-            resource_attributes['host.name'] = hostname
-          elsif !resource_attributes.key?('host.name')
-            resource_attributes['host.name'] = hostname
+            resource_attributes["host.name"] = hostname
+          elsif !resource_attributes.key?("host.name")
+            resource_attributes["host.name"] = hostname
           end
         end
 

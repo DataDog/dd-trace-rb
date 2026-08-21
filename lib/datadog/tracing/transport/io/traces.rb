@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../transport/traces'
-require_relative '../../../core/transport/parcel'
-require_relative 'response'
-require_relative 'client'
+require_relative "../../transport/traces"
+require_relative "../../../core/transport/parcel"
+require_relative "response"
+require_relative "client"
 
 module Datadog
   module Tracing
@@ -27,7 +27,7 @@ module Datadog
             ENCODED_IDS = [
               :trace_id,
               :span_id,
-              :parent_id
+              :parent_id,
             ].freeze
 
             # Encodes a list of traces

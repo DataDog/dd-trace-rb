@@ -11,9 +11,9 @@ end
 class HookLineRecursiveTestClass
   def recursive(depth)
     if depth > 0        # Line 13
-      recursive(depth - 1) + '-'
+      recursive(depth - 1) + "-"
     else
-      '+'
+      "+"
     end
   end
 

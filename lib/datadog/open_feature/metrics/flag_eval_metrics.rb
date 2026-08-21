@@ -5,28 +5,28 @@ module Datadog
     module Metrics
       # Records flag evaluation metrics via OpenTelemetry
       class FlagEvalMetrics
-        METER_NAME = 'ddtrace.openfeature'
-        METRIC_NAME = 'feature_flag.evaluations'
-        METRIC_UNIT = '{evaluation}'
-        METRIC_DESCRIPTION = 'Number of feature flag evaluations'
+        METER_NAME = "ddtrace.openfeature"
+        METRIC_NAME = "feature_flag.evaluations"
+        METRIC_UNIT = "{evaluation}"
+        METRIC_DESCRIPTION = "Number of feature flag evaluations"
 
-        ATTR_FLAG_KEY = 'feature_flag.key'
-        ATTR_VARIANT = 'feature_flag.result.variant'
-        ATTR_REASON = 'feature_flag.result.reason'
-        ATTR_ALLOCATION_KEY = 'feature_flag.result.allocation_key'
-        ATTR_ERROR_TYPE = 'error.type'
+        ATTR_FLAG_KEY = "feature_flag.key"
+        ATTR_VARIANT = "feature_flag.result.variant"
+        ATTR_REASON = "feature_flag.result.reason"
+        ATTR_ALLOCATION_KEY = "feature_flag.result.allocation_key"
+        ATTR_ERROR_TYPE = "error.type"
 
-        DEFAULT_ERROR_TYPE = 'general'
+        DEFAULT_ERROR_TYPE = "general"
 
         ERROR_TYPE_MAP = {
-          'FLAG_NOT_FOUND' => 'flag_not_found',
-          'TYPE_MISMATCH' => 'type_mismatch',
-          'PARSE_ERROR' => 'parse_error',
-          'PROVIDER_NOT_READY' => 'provider_not_ready',
-          'TARGETING_KEY_MISSING' => 'targeting_key_missing',
-          'INVALID_CONTEXT' => 'invalid_context',
-          'PROVIDER_FATAL' => 'provider_fatal',
-          'GENERAL' => DEFAULT_ERROR_TYPE,
+          "FLAG_NOT_FOUND" => "flag_not_found",
+          "TYPE_MISMATCH" => "type_mismatch",
+          "PARSE_ERROR" => "parse_error",
+          "PROVIDER_NOT_READY" => "provider_not_ready",
+          "TARGETING_KEY_MISSING" => "targeting_key_missing",
+          "INVALID_CONTEXT" => "invalid_context",
+          "PROVIDER_FATAL" => "provider_fatal",
+          "GENERAL" => DEFAULT_ERROR_TYPE,
         }.freeze
 
         # Reasons that should not include allocation_key in metrics
@@ -40,7 +40,7 @@ module Datadog
           @mutex = Mutex.new
 
           unless @enabled
-            @logger.debug { 'OpenFeature: OTel metrics not enabled (DD_METRICS_OTEL_ENABLED=false), flag evaluation metrics disabled' }
+            @logger.debug { "OpenFeature: OTel metrics not enabled (DD_METRICS_OTEL_ENABLED=false), flag evaluation metrics disabled" }
           end
         end
 
@@ -60,7 +60,7 @@ module Datadog
           counter.add(1, attributes: attributes)
         rescue => e
           @logger.debug { "OpenFeature: Failed to record evaluation metric: #{e.class}: #{e.message}" }
-          @telemetry.report(e, description: 'OpenFeature: Failed to record evaluation metric')
+          @telemetry.report(e, description: "OpenFeature: Failed to record evaluation metric")
         end
 
         private
@@ -92,9 +92,9 @@ module Datadog
           meter_provider = defined?(::OpenTelemetry) ? ::OpenTelemetry.meter_provider : nil
           return meter_provider if sdk_meter_provider?(meter_provider)
 
-          @logger.debug { 'OpenFeature: Initializing OTel meter provider directly' }
-          require 'opentelemetry-metrics-sdk'
-          require 'datadog/opentelemetry/metrics'
+          @logger.debug { "OpenFeature: Initializing OTel meter provider directly" }
+          require "opentelemetry-metrics-sdk"
+          require "datadog/opentelemetry/metrics"
           Datadog::OpenTelemetry::Metrics.initialize!(Datadog.send(:components))
 
           meter_provider = ::OpenTelemetry.meter_provider
@@ -133,7 +133,7 @@ module Datadog
 
         def normalize_reason(reason)
           reason = reason.to_s
-          reason.empty? ? 'unknown' : reason.downcase
+          reason.empty? ? "unknown" : reason.downcase
         end
 
         def normalize_error_type(error_code)

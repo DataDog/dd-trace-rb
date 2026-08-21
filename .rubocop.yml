@@ -18,26 +18,26 @@ AllCops:
     - lib/datadog/**/vendor/**/*
     - lib/datadog/profiling/ext/exec_monkey_patch.rb
     - vendor/bundle/**/*
+    - "*.rb" # test files at the root
   NewCops: disable
   SuggestExtensions: false
 
+# The cops disabled below should stay in sync with .standard_todo.yml's
+# "**/**" ignore list (Layout/LeadingCommentSpace has an extra reason
+# there) so it stays clear which tool is, or is not, enforcing each cop.
+
+# Keep method-call commas disabled while their style remains under discussion.
 Style/TrailingCommaInArguments:
   Enabled: false
 
+# Require a comma in array and hash literals when the closing delimiter is on
+# its own line.
+
 Style/TrailingCommaInArrayLiteral:
-  Enabled: false
+  EnforcedStyleForMultiline: diff_comma
 
 Style/TrailingCommaInHashLiteral:
-  Enabled: false
-
-Style/StringLiterals:
-  Enabled: false
-
-Style/QuotedSymbols:
-  EnforcedStyle: double_quotes
-
-Style/StringLiteralsInInterpolation:
-  Enabled: false
+  EnforcedStyleForMultiline: diff_comma
 
 Layout/LeadingCommentSpace:
   Enabled: false

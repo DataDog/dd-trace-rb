@@ -1,4 +1,4 @@
-FROM ghcr.io/datadog/images-rb/engines/ruby:2.4-gnu-gcc
+FROM ghcr.io/datadog/images-rb/engines/ruby:2.4-gnu-gcc-g9b9386d296819d954c1eb665ac0c5b81169805e7
 
 # Add stretch repos
 RUN sed -i 's/jessie/stretch/g' /etc/apt/sources.list

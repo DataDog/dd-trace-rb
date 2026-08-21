@@ -1,64 +1,64 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/statsd'
+require "datadog/statsd"
 
 # All the doubles in this file are simple pass through values.
 # There's no value in making them verifying doubles.
 RSpec.describe Datadog::Tracing do
-  let(:returned) { double('delegated return value') }
+  let(:returned) { double("delegated return value") }
 
-  describe '.active_span' do
+  describe ".active_span" do
     subject(:active_span) { described_class.active_span }
 
-    it 'delegates to the tracer' do
+    it "delegates to the tracer" do
       expect(Datadog.send(:components).tracer).to receive(:active_span).and_return(returned)
       expect(active_span).to eq(returned)
     end
   end
 
-  describe '.active_trace' do
+  describe ".active_trace" do
     subject(:active_trace) { described_class.active_trace }
 
-    it 'delegates to the tracer' do
+    it "delegates to the tracer" do
       expect(Datadog.send(:components).tracer).to receive(:active_trace)
       active_trace
     end
   end
 
-  describe '.keep!' do
+  describe ".keep!" do
     subject(:keep!) { described_class.keep! }
 
-    context 'with an active trace' do
+    context "with an active trace" do
       let!(:trace) do
-        described_class.trace('test.trace')
+        described_class.trace("test.trace")
       end
 
-      it 'delegates to the active trace' do
+      it "delegates to the active trace" do
         expect(Datadog.send(:components).tracer.active_trace).to receive(:keep!)
         keep!
       end
     end
 
-    context 'without an active trace' do
-      it 'does not perform any operation' do
+    context "without an active trace" do
+      it "does not perform any operation" do
         expect { keep! }.to_not raise_error
       end
     end
   end
 
-  describe '.continue_trace!' do
+  describe ".continue_trace!" do
     subject(:continue_trace!) { described_class.continue_trace!(digest, &block) }
-    let(:digest) { double('digest') }
+    let(:digest) { double("digest") }
     let(:block) { -> {} }
 
-    it 'delegates to the tracer' do
+    it "delegates to the tracer" do
       expect(Datadog.send(:components).tracer).to receive(:continue_trace!)
         .with(digest) { |&b| expect(b).to be(block) }.and_return(returned)
       expect(continue_trace!).to eq(returned)
     end
   end
 
-  describe '.trace' do
+  describe ".trace" do
     subject(:trace) do
       described_class.trace(
         name,
@@ -74,18 +74,18 @@ RSpec.describe Datadog::Tracing do
       )
     end
 
-    let(:name) { double('name') }
-    let(:continue_from) { double('continue_from') }
-    let(:on_error) { double('on_error') }
-    let(:resource) { double('resource') }
-    let(:service) { double('service') }
-    let(:start_time) { double('start_time') }
-    let(:tags) { double('tags') }
-    let(:type) { double('type') }
+    let(:name) { double("name") }
+    let(:continue_from) { double("continue_from") }
+    let(:on_error) { double("on_error") }
+    let(:resource) { double("resource") }
+    let(:service) { double("service") }
+    let(:start_time) { double("start_time") }
+    let(:tags) { double("tags") }
+    let(:type) { double("type") }
     let(:id) { double(1) }
     let(:block) { -> {} }
 
-    it 'delegates to the tracer' do
+    it "delegates to the tracer" do
       expect(Datadog.send(:components).tracer).to receive(:trace)
         .with(
           name,
@@ -103,31 +103,31 @@ RSpec.describe Datadog::Tracing do
     end
   end
 
-  describe '.reject!' do
+  describe ".reject!" do
     subject(:reject!) { described_class.reject! }
-    context 'with an active trace' do
+    context "with an active trace" do
       let!(:trace) do
-        described_class.trace('test.trace')
+        described_class.trace("test.trace")
       end
 
-      it 'delegates to the active trace' do
+      it "delegates to the active trace" do
         expect(Datadog.send(:components).tracer.active_trace).to receive(:reject!).and_return(returned)
         expect(reject!).to eq(returned)
       end
     end
 
-    context 'without an active trace' do
-      it 'does not perform any operation' do
+    context "without an active trace" do
+      it "does not perform any operation" do
         expect { reject! }.to_not raise_error
       end
     end
   end
 
-  describe '.log_correlation' do
+  describe ".log_correlation" do
     subject(:log_correlation) { described_class.log_correlation }
 
     # rubocop:disable RSpec/MessageChain
-    it 'delegates to the active correlation' do
+    it "delegates to the active correlation" do
       # DEV: Datadog::Tracer#active_correlation returns a new object on every invocation.
       # Once we memoize `Datadog::Correlation#identifier_from_digest`, we can simplify this
       # `receive_message_chain` assertion to `expect(Datadog.tracer.active_correlation).to receive(:to_log_format)`
@@ -137,20 +137,20 @@ RSpec.describe Datadog::Tracing do
     end
     # rubocop:enable RSpec/MessageChain
 
-    context 'with tracing disabled' do
+    context "with tracing disabled" do
       before do
         allow(Datadog.send(:components).tracer).to receive(:enabled).and_return(false)
       end
 
-      it 'returns an empty string' do
-        expect(log_correlation).to eq('')
+      it "returns an empty string" do
+        expect(log_correlation).to eq("")
       end
     end
   end
 
-  describe '.shutdown!' do
+  describe ".shutdown!" do
     subject(:shutdown!) { described_class.shutdown! }
-    it 'delegates to global components' do
+    it "delegates to global components" do
       allow(Datadog.send(:components).tracer).to receive(:shutdown!)
 
       shutdown!
@@ -159,46 +159,46 @@ RSpec.describe Datadog::Tracing do
     end
   end
 
-  describe '.logger' do
+  describe ".logger" do
     subject(:logger) { described_class.logger }
-    it 'returns the global logger' do
+    it "returns the global logger" do
       expect(logger).to be(Datadog.logger)
     end
   end
 
-  describe '.correlation' do
+  describe ".correlation" do
     subject(:correlation) { described_class.correlation }
 
-    it 'delegates to the tracer' do
+    it "delegates to the tracer" do
       expect(described_class.send(:tracer)).to receive(:active_correlation).and_return(returned)
       expect(correlation).to eq(returned)
     end
 
-    context 'when dd-trace-rb is not initialized' do
+    context "when dd-trace-rb is not initialized" do
       before do
         expect(Datadog.send(:components, allow_initialization: false)).to be nil
       end
 
-      it 'does not cause components to be initialized' do
-        expect(correlation.span_id).to eq '0'
+      it "does not cause components to be initialized" do
+        expect(correlation.span_id).to eq "0"
         expect(Datadog.send(:components, allow_initialization: false)).to be nil
       end
     end
   end
 
-  describe '.before_flush' do
+  describe ".before_flush" do
     subject(:before_flush) { described_class.before_flush(*processors, &block) }
-    let(:processors) { [double('processor')] }
+    let(:processors) { [double("processor")] }
     let(:block) { -> {} }
-    it 'delegates to the global pipeline' do
+    it "delegates to the global pipeline" do
       expect(Datadog::Tracing::Pipeline).to receive(:before_flush).with(*processors) { |&b| expect(b).to be(block) }
       before_flush
     end
   end
 
-  describe '.enabled?' do
+  describe ".enabled?" do
     subject(:enabled?) { described_class.enabled? }
-    it 'delegates to the tracer' do
+    it "delegates to the tracer" do
       expect(described_class.send(:tracer)).to receive(:enabled)
       enabled?
     end

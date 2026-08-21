@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'ext'
-require_relative 'distributed/propagation'
+require_relative "../patcher"
+require_relative "ext"
+require_relative "distributed/propagation"
 
 module Datadog
   module Tracing
@@ -19,16 +19,16 @@ module Datadog
           end
 
           def patch
-            require_relative 'producer'
-            require_relative 'middleware'
+            require_relative "producer"
+            require_relative "middleware"
 
             ::WaterDrop::Producer.prepend(Producer)
-            ::WaterDrop.instrumentation.subscribe('producer.configured') do |event|
+            ::WaterDrop.instrumentation.subscribe("producer.configured") do |event|
               producer = event[:producer]
               add_middleware(producer)
 
               if Datadog.configuration.data_streams.enabled
-                producer.monitor.subscribe('message.acknowledged') do |ack_event|
+                producer.monitor.subscribe("message.acknowledged") do |ack_event|
                   if Datadog::DataStreams.enabled?
                     payload = ack_event.payload
                     Datadog::DataStreams.track_kafka_produce(payload[:topic], payload[:partition], payload[:offset])

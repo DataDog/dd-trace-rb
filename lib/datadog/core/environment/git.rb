@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../git/ext'
-require_relative '../utils/url'
+require_relative "../git/ext"
+require_relative "../utils/url"
 
 module Datadog
   module Core

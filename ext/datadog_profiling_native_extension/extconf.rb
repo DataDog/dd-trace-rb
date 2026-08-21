@@ -94,9 +94,9 @@ append_cflags "-Wno-error=typedef-redefinition" if ENV["DATADOG_GEM_CI"] == "tru
 # * by msgpack, another datadog gem dependency
 #   (https://github.com/msgpack/msgpack-ruby/blob/18ce08f6d612fe973843c366ac9a0b74c4e50599/ext/msgpack/extconf.rb#L8)
 # @ivoanjo: We could probably start using C11/gnu11 for non macOS-too but it's somewhat hard to validate so I chickened out for now
-append_cflags RUBY_PLATFORM.include?('darwin') ? '-std=gnu11' : '-std=gnu99'
+append_cflags RUBY_PLATFORM.include?("darwin") ? "-std=gnu11" : "-std=gnu99"
 
-# Gets really noisy when we include the MJIT header, let's omit it (TODO: Use #pragma GCC diagnostic instead?)
+# Gets really noisy when we include the private VM headers, let's omit it (TODO: Use #pragma GCC diagnostic instead?)
 append_cflags "-Wno-unused-function"
 
 # Allow defining variables at any point in a function
@@ -139,28 +139,8 @@ end
 
 have_func "malloc_stats"
 
-# Used to get native filenames (dladdr1 is preferred, so we only check for the other if not available)
-# Note it's possible none are available
-if have_header("dlfcn.h")
-  (have_struct_member("struct link_map", "l_name", "link.h") && have_func("dladdr1")) ||
-    have_func("dladdr")
-end
-
 # On older Rubies, there was no primitive mutex and condition variable implemented in `thread_sync.rb` (internal)
 $defs << "-DNO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE" if RUBY_VERSION < "4"
-
-# On Ruby 4, we can't ask the object_id from IMEMOs (https://github.com/ruby/ruby/pull/13347)
-$defs << "-DNO_IMEMO_OBJECT_ID" unless RUBY_VERSION < "4"
-
-# On Ruby 4, we need to defer calling rb_obj_id during heap allocation recording
-# because it's not safe to mutate objects during the newobj tracepoint
-# (see https://bugs.ruby-lang.org/issues/21710)
-$defs << "-DUSE_DEFERRED_HEAP_ALLOCATION_RECORDING" unless RUBY_VERSION < "4"
-
-# On Ruby 4.0, we've seen crashes when computing the memsize of a class/module/iclass:
-# rb_obj_memsize_of walks the per-namespace class extensions (classext_memsize), which seem to sometimes be in an inconsistent state
-# (see https://github.com/DataDog/dd-trace-rb/issues/5936)
-$defs << "-DNO_SAFE_CLASS_MEMSIZE" unless RUBY_VERSION < "4"
 
 # This symbol is exclusively visible on certain Ruby versions: 2.6 to 3.2, as well as 3.4 (but not 4.0+)
 # It's only used to get extra information about an object when a failure happens, so it's a "very nice to have" but not
@@ -173,8 +153,8 @@ $defs << "-DNO_POSTPONED_TRIGGER" if RUBY_VERSION < "3.3"
 # On older Rubies, M:N threads were not available
 $defs << "-DNO_MN_THREADS_AVAILABLE" if RUBY_VERSION < "3.3"
 
-# On older Rubies, we did not need to include the ractor header (this was built into the MJIT header)
-$defs << "-DNO_RACTOR_HEADER_INCLUDE" if RUBY_VERSION < "3.3"
+# On Rubies before 3.0, there were no Ractors, so there's no need to include the ractor header at all
+$defs << "-DNO_RACTOR_HEADER_INCLUDE" if RUBY_VERSION < "3"
 
 # On older Rubies, some of the Ractor internal APIs were directly accessible
 $defs << "-DUSE_RACTOR_INTERNAL_APIS_DIRECTLY" if RUBY_VERSION < "3.3"
@@ -182,8 +162,17 @@ $defs << "-DUSE_RACTOR_INTERNAL_APIS_DIRECTLY" if RUBY_VERSION < "3.3"
 # On older Rubies, there was no GVL instrumentation API and APIs created to support it
 $defs << "-DNO_GVL_INSTRUMENTATION" if RUBY_VERSION < "3.2"
 
+# On older Rubies, rb_class_attached_object is not available
+$defs << "-DNO_CLASS_ATTACHED_OBJECT" if RUBY_VERSION < "3.2"
+
+# On older Rubies, rb_mod_name allocates (rb_str_dup); use rb_attr_get(__classpath__) instead
+$defs << "-DNO_ALLOC_FREE_MOD_NAME" if RUBY_VERSION < "2.7"
+
 # rb_internal_thread_specific_*()
 $defs << "-DHAVE_RUBY_THREAD_STORAGE_API" if RUBY_VERSION >= "3.3"
+
+# RCLASS_EXT(mod)->permanent_classpath
+$defs << "-DHAVE_PERMANENT_CLASSPATH" if RUBY_VERSION >= "3.3"
 
 # On older Rubies, there was no struct rb_native_thread. See private_vm_api_acccess.c for details.
 $defs << "-DNO_RB_NATIVE_THREAD" if RUBY_VERSION < "3.2"
@@ -206,6 +195,9 @@ $defs << "-DNO_THREAD_TID" if RUBY_VERSION < "3.1"
 
 # On older Rubies, there was no jit_return member on the rb_control_frame_t struct
 $defs << "-DNO_JIT_RETURN" if RUBY_VERSION < "3.1"
+
+# internal/class.h is available since 3.0
+$defs << "-DNO_INTERNAL_CLASS_HEADER_INCLUDE" if RUBY_VERSION < "3"
 
 # On older Rubies, there are no Ractors
 $defs << "-DNO_RACTORS" if RUBY_VERSION < "3"
@@ -241,85 +233,57 @@ end
 # When requiring, we need to use the exact same string, including the version and the platform.
 EXTENSION_NAME = "datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}".freeze
 
-if Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER
-  mjit_header_file_name = "rb_mjit_min_header-#{RUBY_VERSION}.h"
+# We rely on the datadog-ruby_core_source gem to get access to private VM headers.
+# This gem ships source code copies of these VM headers for the different Ruby VM versions;
+# see https://github.com/DataDog/datadog-ruby_core_source for details
 
-  # Validate that the mjit header can actually be compiled on this system. We learned via
-  # https://github.com/DataDog/dd-trace-rb/issues/1799 and https://github.com/DataDog/dd-trace-rb/issues/1792
-  # that even if the header seems to exist, it may not even compile.
-  # `have_macro` actually tries to compile a file that mentions the given macro, so if this passes, we should be good to
-  # use the MJIT header.
-  # Finally, the `COMMON_HEADERS` conflict with the MJIT header so we need to temporarily disable them for this check.
-  original_common_headers = MakeMakefile::COMMON_HEADERS
-  MakeMakefile::COMMON_HEADERS = "".freeze
-  unless have_macro("RUBY_MJIT_H", mjit_header_file_name)
-    skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::COMPILATION_BROKEN)
-  end
-  MakeMakefile::COMMON_HEADERS = original_common_headers
+create_header
 
-  $defs << "-DRUBY_MJIT_HEADER='\"#{mjit_header_file_name}\"'"
+require "datadog/ruby_core_source"
+dir_config("ruby") # allow user to pass in non-standard core include directory
 
-  # NOTE: This needs to come after all changes to $defs
-  create_header
-
-  # Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
-  # See the comment on the same flag below for why this is done last.
-  append_cflags "-Wunused-parameter"
-
-  create_makefile EXTENSION_NAME
-else
-  # The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
-  # the datadog-ruby_core_source gem to get access to private VM headers.
-  # This gem ships source code copies of these VM headers for the different Ruby VM versions;
-  # see https://github.com/DataDog/datadog-ruby_core_source for details
-
-  create_header
-
-  require "datadog/ruby_core_source"
-  dir_config("ruby") # allow user to pass in non-standard core include directory
-
-  # This is a workaround for a weird issue...
-  #
-  # The mkmf tool defines a `with_cppflags` helper that datadog-ruby_core_source uses. This helper temporarily
-  # replaces `$CPPFLAGS` (aka the C pre-processor [not c++!] flags) with a different set when doing something.
-  #
-  # The datadog-ruby_core_source gem uses `with_cppflags` during makefile generation to inject extra headers into the
-  # path. But because `with_cppflags` replaces `$CPPFLAGS`, well, the default `$CPPFLAGS` are not included in the
-  # makefile.
-  #
-  # This is a problem because the default `$CPPFLAGS` carries configuration that was set when Ruby was being built.
-  # Thus, if we ignore it, we don't compile the profiler with the exact same configuration as Ruby.
-  # In practice, this can generate crashes and weird bugs if the Ruby configuration is tweaked in a manner that
-  # changes some of the internal structures that the profiler relies on. Concretely, setting for instance
-  # `VM_CHECK_MODE=1` when building Ruby will trigger this issue (because somethings in structures the profiler reads
-  # are ifdef'd out using this setting).
-  #
-  # To workaround this issue, we override `with_cppflags` for datadog-ruby_core_source to still include `$CPPFLAGS`.
-  Datadog::RubyCoreSource.define_singleton_method(:with_cppflags) do |newflags, &block|
-    super("#{newflags} #{$CPPFLAGS}", &block)
-  end
-
-  Datadog::RubyCoreSource
-    .create_makefile_with_core(
-      proc do
-        headers_available =
-          have_header("vm_core.h") &&
-          have_header("iseq.h") &&
-          (RUBY_VERSION < "3.3" || have_header("ractor_core.h"))
-
-        if headers_available
-          # Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
-          # This is added as late as possible because in some Rubies we support (e.g. 3.3), adding this flag before
-          # checking if internal VM headers are available causes those checks to fail because of this warning (and not
-          # because the headers are not available.)
-          append_cflags "-Wunused-parameter"
-        end
-
-        headers_available
-      end,
-      EXTENSION_NAME,
-    )
+# This is a workaround for a weird issue...
+#
+# The mkmf tool defines a `with_cppflags` helper that datadog-ruby_core_source uses. This helper temporarily
+# replaces `$CPPFLAGS` (aka the C pre-processor [not c++!] flags) with a different set when doing something.
+#
+# The datadog-ruby_core_source gem uses `with_cppflags` during makefile generation to inject extra headers into the
+# path. But because `with_cppflags` replaces `$CPPFLAGS`, well, the default `$CPPFLAGS` are not included in the
+# makefile.
+#
+# This is a problem because the default `$CPPFLAGS` carries configuration that was set when Ruby was being built.
+# Thus, if we ignore it, we don't compile the profiler with the exact same configuration as Ruby.
+# In practice, this can generate crashes and weird bugs if the Ruby configuration is tweaked in a manner that
+# changes some of the internal structures that the profiler relies on. Concretely, setting for instance
+# `VM_CHECK_MODE=1` when building Ruby will trigger this issue (because somethings in structures the profiler reads
+# are ifdef'd out using this setting).
+#
+# To workaround this issue, we override `with_cppflags` for datadog-ruby_core_source to still include `$CPPFLAGS`.
+Datadog::RubyCoreSource.define_singleton_method(:with_cppflags) do |newflags, &block|
+  super("#{newflags} #{$CPPFLAGS}", &block)
 end
+
+Datadog::RubyCoreSource
+  .create_makefile_with_core(
+    proc do
+      headers_available =
+        have_header("vm_core.h") &&
+        have_header("iseq.h", "vm_core.h") &&
+        # These are only used on Ruby 3+
+        (RUBY_VERSION < "3" || have_header("ractor_core.h") && have_header("internal/class.h"))
+
+      if headers_available
+        # Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
+        # This is added as late as possible because in some Rubies we support (e.g. 3.3), adding this flag before
+        # checking if internal VM headers are available causes those checks to fail because of this warning (and not
+        # because the headers are not available.)
+        append_cflags "-Wunused-parameter"
+      end
+
+      headers_available
+    end,
+    EXTENSION_NAME,
+  )
 
 # rubocop:enable Style/GlobalVars
 # rubocop:enable Style/StderrPuts

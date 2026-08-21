@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../core/environment/ext'
+require_relative "../../core/environment/ext"
 
-require_relative 'ext'
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -21,7 +21,7 @@ module Datadog
           Ext::Distributed::TAG_ORIGIN => true,
           Core::Environment::Ext::TAG_VERSION => true,
           Ext::HTTP::TAG_STATUS_CODE => true,
-          Ext::NET::TAG_HOSTNAME => true
+          Ext::NET::TAG_HOSTNAME => true,
         }.freeze
 
         # Return the tag with the given key, nil if it doesn't exist.

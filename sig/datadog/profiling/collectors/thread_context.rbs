@@ -10,6 +10,7 @@ module Datadog
           waiting_for_gvl_threshold_ns: ::Integer,
           otel_context_enabled: (::Symbol? | bool),
           native_filenames_enabled: bool,
+          show_classes: bool,
         ) -> void
 
         def self._native_initialize: (
@@ -21,6 +22,7 @@ module Datadog
           waiting_for_gvl_threshold_ns: ::Integer,
           otel_context_enabled: (::Symbol? | bool),
           native_filenames_enabled: bool,
+          show_classes: bool,
           overhead_filename: ::String,
         ) -> void
 
@@ -32,6 +34,7 @@ module Datadog
           ?waiting_for_gvl_threshold_ns: ::Integer,
           ?otel_context_enabled: (::Symbol? | bool),
           ?native_filenames_enabled: bool,
+          ?show_classes: bool,
           ?trigger_global_reset: bool,
           **untyped
         ) -> Datadog::Profiling::Collectors::ThreadContext
@@ -51,8 +54,6 @@ module Datadog
         private
 
         def safely_extract_context_key_from: (untyped tracer) -> ::Symbol?
-
-        def validate_native_filenames: (bool native_filenames_enabled) -> bool
       end
     end
   end

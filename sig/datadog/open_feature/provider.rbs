@@ -89,6 +89,14 @@ module Datadog
         ::Integer eval_time_ms
       ) -> ::Hash[::String, untyped]
 
+      def enrich_span: (
+        ::String flag_key,
+        (ResolutionDetails | Core::FeatureFlags::ResolutionDetails) result,
+        ::OpenFeature::SDK::EvaluationContext? evaluation_context
+      ) -> void
+
+      def span_enrichment_hook: () -> Hooks::SpanEnrichmentHook?
+
     end
   end
 end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../integration'
-require_relative 'patcher'
+require_relative "../integration"
+require_relative "patcher"
 
 module Datadog
   module AppSec
@@ -11,16 +11,16 @@ module Datadog
         class Integration
           include Datadog::AppSec::Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new('1.8')
+          MINIMUM_VERSION = Gem::Version.new("1.8")
 
           register_as :rest_client
 
           def self.gem_name
-            'rest-client'
+            "rest-client"
           end
 
           def self.version
-            Gem.loaded_specs['rest-client']&.version
+            Gem.loaded_specs["rest-client"]&.version
           end
 
           def self.loaded?

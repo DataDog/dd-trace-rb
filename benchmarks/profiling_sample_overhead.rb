@@ -1,9 +1,9 @@
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require_relative 'benchmarks_helper'
+require_relative "benchmarks_helper"
 
 class CaptureFlush
   attr_reader :flush
@@ -66,21 +66,21 @@ pp({
 unless VALIDATE_BENCHMARK_MODE
   # Generate output for bp-analyzer parser:
   # https://github.com/DataDog/benchmarking-platform-tools/blob/main/bp-analyzer/cli/src/src/converter/benchmark_ips.py
-  require 'json'
-  file = "#{File.basename(__FILE__, '.rb')}-results.json"
+  require "json"
+  file = "#{File.basename(__FILE__, ".rb")}-results.json"
   json = [
     {
       # Invert since higher must be better
       item: "profiling - 1 / cpu sampling overhead",
-      samples: [1 / cpu_sampling_overhead]
+      samples: [1 / cpu_sampling_overhead],
     },
     {
       item: "profiling - samples",
-      samples: [samples]
+      samples: [samples],
     },
     {
       item: "profiling - skipped samples",
-      samples: [inactive_thread_samples_skipped]
+      samples: [inactive_thread_samples_skipped],
     },
   ]
   File.write(file, JSON.dump(json))

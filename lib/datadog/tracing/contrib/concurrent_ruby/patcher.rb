@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
+require_relative "../patcher"
 
 module Datadog
   module Tracing
@@ -17,11 +17,11 @@ module Datadog
           end
 
           def patch
-            require_relative 'future_patch'
+            require_relative "future_patch"
             patch_future
-            require_relative 'promises_future_patch'
+            require_relative "promises_future_patch"
             patch_promises_future
-            require_relative 'async_patch'
+            require_relative "async_patch"
             async_patch
           end
 

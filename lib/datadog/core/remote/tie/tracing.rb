@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../tie'
+require_relative "../tie"
 
 module Datadog
   module Core
@@ -17,18 +17,18 @@ module Datadog
 
             # TODO: this is not thread-consistent
             ready = Datadog::Core::Remote.active_remote.healthy
-            status = ready ? 'ready' : 'disconnected'
+            status = ready ? "ready" : "disconnected"
 
-            span.set_tag('_dd.rc.client_id', Datadog::Core::Remote.active_remote.client.id)
-            span.set_tag('_dd.rc.status', status)
+            span.set_tag("_dd.rc.client_id", Datadog::Core::Remote.active_remote.client.id)
+            span.set_tag("_dd.rc.status", status)
 
             if boot.barrier != :pass
-              span.set_tag('_dd.rc.boot.time', boot.time)
+              span.set_tag("_dd.rc.boot.time", boot.time)
 
               if boot.barrier == :timeout
-                span.set_tag('_dd.rc.boot.timeout', true)
+                span.set_tag("_dd.rc.boot.timeout", true)
               else
-                span.set_tag('_dd.rc.boot.ready', ready)
+                span.set_tag("_dd.rc.boot.ready", ready)
               end
             end
           end

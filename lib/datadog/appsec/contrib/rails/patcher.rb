@@ -1,18 +1,18 @@
 # frozen_string_literal: true
 
-require_relative '../../../core/utils/only_once'
+require_relative "../../../core/utils/only_once"
 
-require_relative 'framework'
-require_relative '../../response'
-require_relative '../rack/request_middleware'
-require_relative '../rack/request_body_middleware'
-require_relative 'gateway/watcher'
-require_relative 'gateway/request'
-require_relative 'patches/render_to_body_patch'
-require_relative 'patches/process_action_patch'
-require_relative '../../api_security/endpoint_collection/rails_collector'
+require_relative "framework"
+require_relative "../../response"
+require_relative "../rack/request_middleware"
+require_relative "../rack/request_body_middleware"
+require_relative "gateway/watcher"
+require_relative "gateway/request"
+require_relative "patches/render_to_body_patch"
+require_relative "patches/process_action_patch"
+require_relative "../../api_security/endpoint_collection/rails_collector"
 
-require_relative '../../../tracing/contrib/rack/middlewares'
+require_relative "../../../tracing/contrib/rack/middlewares"
 
 module Datadog
   module AppSec
@@ -108,7 +108,7 @@ module Datadog
           end
 
           def inspect_middlewares(app)
-            Datadog.logger.debug { +'Rails middlewares: ' << app.middleware.map(&:inspect).inspect }
+            Datadog.logger.debug { +"Rails middlewares: " << app.middleware.map(&:inspect).inspect }
           end
 
           def patch_after_initialize
@@ -133,11 +133,11 @@ module Datadog
               end
 
               # Rails 7.1 adds `after_routes_loaded` hook
-              if Datadog::AppSec::Contrib::Rails::Patcher.target_version < Gem::Version.new('7.1')
+              if Datadog::AppSec::Contrib::Rails::Patcher.target_version < Gem::Version.new("7.1")
                 Datadog::AppSec::Contrib::Rails::Patcher.report_routes_via_telemetry(::Rails.application.routes.routes)
               end
             rescue => e
-              error_message = 'Failed to get application routes'
+              error_message = "Failed to get application routes"
               Datadog.logger.error("#{error_message}, #{e.class}: #{e.message}")
               AppSec.telemetry.report(e, description: error_message)
             end
@@ -147,7 +147,7 @@ module Datadog
             ::ActiveSupport.on_load(:after_routes_loaded) do
               Datadog::AppSec::Contrib::Rails::Patcher.report_routes_via_telemetry(::Rails.application.routes.routes)
             rescue => e
-              error_message = 'Failed to get application routes'
+              error_message = "Failed to get application routes"
               Datadog.logger.error("#{error_message}, #{e.class}: #{e.message}")
               AppSec.telemetry.report(e, description: error_message)
             end
@@ -156,7 +156,7 @@ module Datadog
           def report_routes_via_telemetry(routes)
             # We do not support Rails 4.x for Endpoint Collection,
             # mainly because the Route#verb was a Regexp before Rails 5.0
-            return if target_version < Gem::Version.new('5.0')
+            return if target_version < Gem::Version.new("5.0")
             return unless Datadog.configuration.appsec.api_security.endpoint_collection.enabled
             return unless AppSec.telemetry
 
@@ -166,7 +166,7 @@ module Datadog
               )
             end
           rescue => e
-            AppSec.telemetry&.report(e, description: 'failed to report application endpoints')
+            AppSec.telemetry&.report(e, description: "failed to report application endpoints")
           end
 
           def setup_security

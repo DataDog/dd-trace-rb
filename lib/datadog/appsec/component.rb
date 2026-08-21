@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative 'security_engine/engine'
-require_relative 'security_engine/runner'
-require_relative 'processor/rule_loader'
-require_relative 'actions_handler'
-require_relative 'thread_safe_ref'
+require_relative "security_engine/engine"
+require_relative "security_engine/runner"
+require_relative "processor/rule_loader"
+require_relative "actions_handler"
+require_relative "thread_safe_ref"
 
 module Datadog
   module AppSec
@@ -14,21 +14,21 @@ module Datadog
         def build_appsec_component(settings, telemetry:)
           return if !settings.respond_to?(:appsec) || !settings.appsec.enabled
 
-          ffi_version = Gem.loaded_specs['ffi']&.version
+          ffi_version = Gem.loaded_specs["ffi"]&.version
           unless ffi_version
-            Datadog.logger.warn('FFI gem is not loaded, AppSec will be disabled.')
-            telemetry.error('AppSec: Component not loaded, due to missing FFI gem')
+            Datadog.logger.warn("FFI gem is not loaded, AppSec will be disabled.")
+            telemetry.error("AppSec: Component not loaded, due to missing FFI gem")
 
             return
           end
 
-          if RubyVersion.is?('>= 3.3') && ffi_version < Gem::Version.new('1.16.0')
+          if RubyVersion.is?(">= 3.3") && ffi_version < Gem::Version.new("1.16.0")
             Datadog.logger.warn(
-              'AppSec is not supported in Ruby versions above 3.3.0 when using `ffi` versions older than 1.16.0, ' \
-              'and will be forcibly disabled due to a memory leak in `ffi`. ' \
-              'Please upgrade your `ffi` version to 1.16.0 or higher.'
+              "AppSec is not supported in Ruby versions above 3.3.0 when using `ffi` versions older than 1.16.0, " \
+              "and will be forcibly disabled due to a memory leak in `ffi`. " \
+              "Please upgrade your `ffi` version to 1.16.0 or higher."
             )
-            telemetry.error('AppSec: Component not loaded, ffi version is leaky with ruby > 3.3.0')
+            telemetry.error("AppSec: Component not loaded, ffi version is leaky with ruby > 3.3.0")
 
             return
           end
@@ -63,9 +63,9 @@ module Datadog
         private
 
         def require_libddwaf(telemetry:)
-          require('libddwaf')
+          require("libddwaf")
         rescue LoadError => e
-          libddwaf_platform = Gem.loaded_specs['libddwaf']&.platform || 'unknown'
+          libddwaf_platform = Gem.loaded_specs["libddwaf"]&.platform || "unknown"
           ruby_platforms = Gem.platforms.map(&:to_s)
 
           error_message = "libddwaf failed to load - installed platform: #{libddwaf_platform}, " \

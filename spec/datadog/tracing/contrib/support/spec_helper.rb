@@ -1,14 +1,14 @@
-require 'spec_helper'
+require "spec_helper"
 
-require_relative 'matchers'
-require_relative 'resolver_helpers'
-require_relative 'tracer_helpers'
+require_relative "matchers"
+require_relative "resolver_helpers"
+require_relative "tracer_helpers"
 
 RSpec.configure do |config|
   config.include Contrib::TracerHelpers
   # Raise error when patching an integration fails.
   # This can be disabled by unstubbing +CommonMethods#on_patch_error+
-  require 'datadog/tracing/contrib/patcher'
+  require "datadog/tracing/contrib/patcher"
   config.before do
     allow_any_instance_of(Datadog::Tracing::Contrib::Patcher::CommonMethods).to(receive(:on_patch_error)) { |_, e| raise e }
   end

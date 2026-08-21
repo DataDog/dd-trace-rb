@@ -1,4 +1,4 @@
-require 'datadog/tracing/contrib/support/spec_helper'
+require "datadog/tracing/contrib/support/spec_helper"
 
 # Load integrations so they're available
 %w[
@@ -13,15 +13,15 @@ rescue LoadError
   # If library isn't available, it can't be instrumented.
 end
 
-require 'datadog/tracing'
-require 'datadog/tracing/tracer'
-require 'datadog/tracing/transport/http'
-require 'datadog/tracing/transport/io'
+require "datadog/tracing"
+require "datadog/tracing/tracer"
+require "datadog/tracing/transport/http"
+require "datadog/tracing/transport/io"
 
 # Tests that combine the core library with integrations,
 # whose examples don't belong exclusively to either.
-RSpec.describe 'transport with integrations' do
-  describe 'when sending traces' do
+RSpec.describe "transport with integrations" do
+  describe "when sending traces" do
     before do
       Datadog.configure do |c|
         # Activate all outbound integrations...
@@ -40,18 +40,18 @@ RSpec.describe 'transport with integrations' do
       allow(logger).to receive(:error)
     end
 
-    shared_examples_for 'an uninstrumented transport' do
+    shared_examples_for "an uninstrumented transport" do
       before do
         expect_any_instance_of(Datadog::Tracing::Tracer).to_not receive(:trace)
         expect_any_instance_of(Datadog::Tracing::Tracer).to_not receive(:start_span)
       end
 
-      describe '#send_traces' do
+      describe "#send_traces" do
         subject(:send_traces) { transport.send_traces(traces) }
 
         let(:traces) { get_test_traces(1) }
 
-        it 'does not produce traces for itself' do
+        it "does not produce traces for itself" do
           send_traces
         end
       end
@@ -59,29 +59,29 @@ RSpec.describe 'transport with integrations' do
 
     let(:logger) { logger_allowing_debug }
 
-    context 'given the default transport' do
+    context "given the default transport" do
       let(:transport) { Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) }
 
-      it_behaves_like 'an uninstrumented transport'
+      it_behaves_like "an uninstrumented transport"
     end
 
-    context 'given an Unix socket transport' do
+    context "given an Unix socket transport" do
       let(:transport) do
         Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) do |t|
-          t.adapter :unix, '/tmp/ddagent/trace.sock'
+          t.adapter :unix, "/tmp/ddagent/trace.sock"
         end
       end
 
-      it_behaves_like 'an uninstrumented transport'
+      it_behaves_like "an uninstrumented transport"
     end
 
-    context 'given an IO transport' do
+    context "given an IO transport" do
       let(:transport) { Datadog::Tracing::Transport::IO.default(out: out) }
       let(:out) { instance_double(::IO) }
 
       before { allow(out).to receive(:puts) }
 
-      it_behaves_like 'an uninstrumented transport'
+      it_behaves_like "an uninstrumented transport"
     end
   end
 end

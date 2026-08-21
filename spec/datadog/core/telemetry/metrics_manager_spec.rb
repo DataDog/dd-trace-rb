@@ -1,6 +1,6 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/telemetry/metrics_manager'
+require "datadog/core/telemetry/metrics_manager"
 
 RSpec.describe Datadog::Core::Telemetry::MetricsManager do
   subject(:manager) { described_class.new(aggregation_interval: interval, enabled: enabled) }
@@ -15,22 +15,22 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
 
   let(:interval) { 10 }
   let(:enabled) { true }
-  let(:namespace) { 'namespace' }
-  let(:metric_name) { 'metric_name' }
+  let(:namespace) { "namespace" }
+  let(:metric_name) { "metric_name" }
   let(:value) { 5 }
-  let(:tags) { {tag1: 'val1', tag2: 'val2'} }
+  let(:tags) { {tag1: "val1", tag2: "val2"} }
   let(:common) { true }
 
-  describe '#inc' do
+  describe "#inc" do
     subject(:inc) { manager.inc(namespace, metric_name, value, tags: tags, common: common) }
 
-    it 'creates a new collection' do
+    it "creates a new collection" do
       expect { inc }.to change(collections, :size).from(0).to(1)
       expect(first_collection.namespace).to eq(namespace)
       expect(first_collection.interval).to eq(interval)
     end
 
-    it 'forwards the action to the collection' do
+    it "forwards the action to the collection" do
       collection = double(:collection)
       expect(Datadog::Core::Telemetry::MetricsCollection).to receive(:new).and_return(collection)
       expect(collection).to receive(:inc).with(metric_name, value, tags: tags, common: common)
@@ -38,34 +38,34 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
       inc
     end
 
-    context 'with different namespaces' do
-      it 'creates collection per namespace' do
+    context "with different namespaces" do
+      it "creates collection per namespace" do
         inc
 
-        expect { manager.inc('another_namespace', metric_name, value, tags: tags, common: common) }
+        expect { manager.inc("another_namespace", metric_name, value, tags: tags, common: common) }
           .to change(collections, :size).from(1).to(2)
       end
     end
 
-    context 'when disabled' do
+    context "when disabled" do
       let(:enabled) { false }
 
-      it 'does nothing' do
+      it "does nothing" do
         expect { inc }.not_to change(collections, :size)
       end
     end
   end
 
-  describe '#dec' do
+  describe "#dec" do
     subject(:dec) { manager.dec(namespace, metric_name, value, tags: tags, common: common) }
 
-    it 'creates a new collection' do
+    it "creates a new collection" do
       expect { dec }.to change(collections, :size).from(0).to(1)
       expect(first_collection.namespace).to eq(namespace)
       expect(first_collection.interval).to eq(interval)
     end
 
-    it 'forwards the action to the collection' do
+    it "forwards the action to the collection" do
       collection = double(:collection)
       expect(Datadog::Core::Telemetry::MetricsCollection).to receive(:new).and_return(collection)
       expect(collection).to receive(:dec).with(metric_name, value, tags: tags, common: common)
@@ -73,25 +73,25 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
       dec
     end
 
-    context 'when disabled' do
+    context "when disabled" do
       let(:enabled) { false }
 
-      it 'does nothing' do
+      it "does nothing" do
         expect { dec }.not_to change(collections, :size)
       end
     end
   end
 
-  describe '#gauge' do
+  describe "#gauge" do
     subject(:gauge) { manager.gauge(namespace, metric_name, value, tags: tags, common: common) }
 
-    it 'creates a new collection' do
+    it "creates a new collection" do
       expect { gauge }.to change(collections, :size).from(0).to(1)
       expect(first_collection.namespace).to eq(namespace)
       expect(first_collection.interval).to eq(interval)
     end
 
-    it 'forwards the action to the collection' do
+    it "forwards the action to the collection" do
       collection = double(:collection)
       expect(Datadog::Core::Telemetry::MetricsCollection).to receive(:new).and_return(collection)
       expect(collection).to receive(:gauge).with(metric_name, value, tags: tags, common: common)
@@ -99,34 +99,34 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
       gauge
     end
 
-    context 'with different namespaces' do
-      it 'creates collection per namespace' do
+    context "with different namespaces" do
+      it "creates collection per namespace" do
         gauge
 
-        expect { manager.gauge('another_namespace', metric_name, value, tags: tags, common: common) }
+        expect { manager.gauge("another_namespace", metric_name, value, tags: tags, common: common) }
           .to change(collections, :size).from(1).to(2)
       end
     end
 
-    context 'when disabled' do
+    context "when disabled" do
       let(:enabled) { false }
 
-      it 'does nothing' do
+      it "does nothing" do
         expect { gauge }.not_to change(collections, :size)
       end
     end
   end
 
-  describe '#rate' do
+  describe "#rate" do
     subject(:rate) { manager.rate(namespace, metric_name, value, tags: tags, common: common) }
 
-    it 'creates a new collection' do
+    it "creates a new collection" do
       expect { rate }.to change(collections, :size).from(0).to(1)
       expect(first_collection.namespace).to eq(namespace)
       expect(first_collection.interval).to eq(interval)
     end
 
-    it 'forwards the action to the collection' do
+    it "forwards the action to the collection" do
       collection = double(:collection)
       expect(Datadog::Core::Telemetry::MetricsCollection).to receive(:new).and_return(collection)
       expect(collection).to receive(:rate).with(metric_name, value, tags: tags, common: common)
@@ -134,34 +134,34 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
       rate
     end
 
-    context 'with different namespaces' do
-      it 'creates collection per namespace' do
+    context "with different namespaces" do
+      it "creates collection per namespace" do
         rate
 
-        expect { manager.rate('another_namespace', metric_name, value, tags: tags, common: common) }
+        expect { manager.rate("another_namespace", metric_name, value, tags: tags, common: common) }
           .to change(collections, :size).from(1).to(2)
       end
     end
 
-    context 'when disabled' do
+    context "when disabled" do
       let(:enabled) { false }
 
-      it 'does nothing' do
+      it "does nothing" do
         expect { rate }.not_to change(collections, :size)
       end
     end
   end
 
-  describe '#distribution' do
+  describe "#distribution" do
     subject(:distribution) { manager.distribution(namespace, metric_name, value, tags: tags, common: common) }
 
-    it 'creates a new collection' do
+    it "creates a new collection" do
       expect { distribution }.to change(collections, :size).from(0).to(1)
       expect(first_collection.namespace).to eq(namespace)
       expect(first_collection.interval).to eq(interval)
     end
 
-    it 'forwards the action to the collection' do
+    it "forwards the action to the collection" do
       collection = double(:collection)
       expect(Datadog::Core::Telemetry::MetricsCollection).to receive(:new).and_return(collection)
       expect(collection).to receive(:distribution).with(metric_name, value, tags: tags, common: common)
@@ -169,28 +169,28 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
       distribution
     end
 
-    context 'with different namespaces' do
-      it 'creates collection per namespace' do
+    context "with different namespaces" do
+      it "creates collection per namespace" do
         distribution
 
-        expect { manager.distribution('another_namespace', metric_name, value, tags: tags, common: common) }
+        expect { manager.distribution("another_namespace", metric_name, value, tags: tags, common: common) }
           .to change(collections, :size).from(1).to(2)
       end
     end
 
-    context 'when disabled' do
+    context "when disabled" do
       let(:enabled) { false }
 
-      it 'does nothing' do
+      it "does nothing" do
         expect { distribution }.not_to change(collections, :size)
       end
     end
   end
 
-  describe '#flush!' do
+  describe "#flush!" do
     subject(:flush!) { manager.flush! }
 
-    it 'forwards flush to the collections' do
+    it "forwards flush to the collections" do
       events = [double(:event)]
 
       collection = double(:collection)
@@ -202,18 +202,18 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
       expect(flush!).to eq(events)
     end
 
-    context 'when disabled' do
+    context "when disabled" do
       let(:enabled) { false }
 
-      it 'does nothing' do
+      it "does nothing" do
         expect(Datadog::Core::Telemetry::MetricsCollection).to_not receive(:new)
 
         expect(flush!).to eq([])
       end
     end
 
-    context 'concurrently creating and flushing namespaces' do
-      it 'flushes all metrics' do
+    context "concurrently creating and flushing namespaces" do
+      it "flushes all metrics" do
         mutex = Mutex.new
 
         threads_count = 5
@@ -243,10 +243,10 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
     end
   end
 
-  describe '#disable!' do
+  describe "#disable!" do
     subject(:disable!) { manager.disable! }
 
-    it 'disables the manager' do
+    it "disables the manager" do
       expect { disable! }.to change(manager, :enabled).from(true).to(false)
     end
   end

@@ -22,7 +22,8 @@ module Datadog
           end
         end
 
-        def self.frozen_dup(v)
+        # Steep: https://github.com/soutaro/steep/issues/2001
+        def self.frozen_dup(v) # steep:ignore MethodBodyTypeMismatch
           # For the case of a String we use the methods -@
           # That method are only for String objects
           # they are faster and chepaer on the memory side.

@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/appsec/spec_helper'
-require 'rack/test'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/appsec/spec_helper"
+require "rack/test"
 
-require 'sinatra/base'
-require 'sinatra/json'
-require 'datadog/tracing'
-require 'datadog/appsec'
+require "sinatra/base"
+require "sinatra/json"
+require "datadog/tracing"
+require "datadog/appsec"
 
-RSpec.describe 'Schema extraction for API security in Sinatra' do
+RSpec.describe "Schema extraction for API security in Sinatra" do
   include Rack::Test::Methods
 
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
@@ -32,25 +32,25 @@ RSpec.describe 'Schema extraction for API security in Sinatra' do
       config.appsec.ruleset = {
         rules: [
           {
-            id: 'rasp-003-001',
-            name: 'SQL Injection',
+            id: "rasp-003-001",
+            name: "SQL Injection",
             tags: {
-              type: 'sql_injection',
-              category: 'exploit',
-              module: 'rasp'
+              type: "sql_injection",
+              category: "exploit",
+              module: "rasp",
             },
             conditions: [
               {
-                operator: 'sqli_detector',
+                operator: "sqli_detector",
                 parameters: {
-                  resource: [{address: 'server.db.statement'}],
-                  params: [{address: 'server.request.query'}],
-                  db_type: [{address: 'server.db.system'}]
-                }
-              }
+                  resource: [{address: "server.db.statement"}],
+                  params: [{address: "server.request.query"}],
+                  db_type: [{address: "server.db.system"}],
+                },
+              },
             ],
-            on_match: ['block']
-          }
+            on_match: ["block"],
+          },
         ],
         processors: [
           {
@@ -63,40 +63,40 @@ RSpec.describe 'Schema extraction for API security in Sinatra' do
                   inputs: [
                     {
                       address: "waf.context.processor",
-                      key_path: ["extract-schema"]
-                    }
+                      key_path: ["extract-schema"],
+                    },
                   ],
                   type: "boolean",
-                  value: true
-                }
-              }
+                  value: true,
+                },
+              },
             ],
             parameters: {
               mappings: [
                 {
                   inputs: [{address: "server.request.body"}],
-                  output: "_dd.appsec.s.req.body"
+                  output: "_dd.appsec.s.req.body",
                 },
                 {
                   inputs: [{address: "server.request.cookies"}],
-                  output: "_dd.appsec.s.req.cookies"
+                  output: "_dd.appsec.s.req.cookies",
                 },
                 {
                   inputs: [{address: "server.request.query"}],
-                  output: "_dd.appsec.s.req.query"
+                  output: "_dd.appsec.s.req.query",
                 },
                 {
                   inputs: [{address: "server.request.path_params"}],
-                  output: "_dd.appsec.s.req.params"
+                  output: "_dd.appsec.s.req.params",
                 },
                 {
                   inputs: [{address: "server.response.body"}],
-                  output: "_dd.appsec.s.res.body"
-                }
-              ]
+                  output: "_dd.appsec.s.res.body",
+                },
+              ],
             },
             evaluate: false,
-            output: true
+            output: true,
           },
           {
             id: "extract-headers",
@@ -108,30 +108,30 @@ RSpec.describe 'Schema extraction for API security in Sinatra' do
                   inputs: [
                     {
                       address: "waf.context.processor",
-                      key_path: ["extract-schema"]
-                    }
+                      key_path: ["extract-schema"],
+                    },
                   ],
                   type: "boolean",
-                  value: true
-                }
-              }
+                  value: true,
+                },
+              },
             ],
             parameters: {
               mappings: [
                 {
                   inputs: [{address: "server.request.headers.no_cookies"}],
-                  output: "_dd.appsec.s.req.headers"
+                  output: "_dd.appsec.s.req.headers",
                 },
                 {
                   inputs: [{address: "server.response.headers.no_cookies"}],
-                  output: "_dd.appsec.s.res.headers"
-                }
-              ]
+                  output: "_dd.appsec.s.res.headers",
+                },
+              ],
             },
             evaluate: false,
-            output: true
+            output: true,
           },
-        ]
+        ],
       }
     end
 
@@ -146,7 +146,7 @@ RSpec.describe 'Schema extraction for API security in Sinatra' do
 
   let(:http_service_entry_span) do
     Datadog::Tracing::Transport::TraceFormatter.format!(trace)
-    spans.find { |s| s.name == 'rack.request' }
+    spans.find { |s| s.name == "rack.request" }
   end
 
   let(:app) do
@@ -156,8 +156,8 @@ RSpec.describe 'Schema extraction for API security in Sinatra' do
       # Newer versions of sinatra have a host restriction by default
       set :host_authorization, permitted_hosts: []
 
-      get '/product' do
-        json(id: 1, name: 'Widget', price: 29.99)
+      get "/product" do
+        json(id: 1, name: "Widget", price: 29.99)
       end
     end
 
@@ -166,20 +166,20 @@ RSpec.describe 'Schema extraction for API security in Sinatra' do
 
   subject(:response) { last_response }
 
-  context 'when API security is enabled' do
-    before { get('/product') }
+  context "when API security is enabled" do
+    before { get("/product") }
 
-    it 'extracts request and response body schema' do
+    it "extracts request and response body schema" do
       expect(response).to be_ok
-      expect(http_service_entry_span.tags).to have_key('_dd.appsec.s.res.body')
+      expect(http_service_entry_span.tags).to have_key("_dd.appsec.s.res.body")
     end
 
-    it 'reports api_security.request.schema telemetry with framework tag' do
+    it "reports api_security.request.schema telemetry with framework tag" do
       expect(telemetry).to have_received(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
-        'api_security.request.schema',
+        "api_security.request.schema",
         1,
-        tags: {framework: 'sinatra'}
+        tags: {framework: "sinatra"}
       )
     end
   end
