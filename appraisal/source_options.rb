@@ -5,27 +5,19 @@
 # `ArgumentError` on load and could never reach a generated gemfile. Store the
 # options alongside the URL and render them back out.
 #
-# `source_entry_for_dup` is aliased at class-definition time and `Gemfile#dup`
-# builds a fresh object, so this patches the class rather than the singleton the
-# way `generate.rb` does for `eval_gemfile`/`gemspec`.
+# Prepended rather than reopened so the block form can delegate upstream with
+# `super`, and so nothing is redefined out from under the original class.
 
 require 'appraisal/appraisal'
 
 module Appraisal
-  class BundlerDSL
-    # Remove the upstream definitions first so redefining them here does not
-    # emit "method redefined" warnings under `-w`.
-    remove_method(:source) if method_defined?(:source)
-    remove_method(:source_entry) if private_method_defined?(:source_entry)
-
+  module SourceOptions
     def source(source, options = {}, &block)
-      if block_given?
-        @source_blocks[source] ||=
-          Source.new(source).tap { |g| g.git_sources = @git_sources.dup }
-        @source_blocks[source].run(&block)
-      else
-        @sources << [source, options]
-      end
+      # The block form declares a scoped source block rather than a top-level
+      # `source` line; upstream handles it and options do not apply.
+      return super(source, &block) if block
+
+      @sources << [source, options]
     end
 
     private
@@ -41,6 +33,12 @@ module Appraisal
       end.join("\n")
     end
 
+    # `BundlerDSL` aliases this at class-definition time, so the alias still
+    # points at the original renderer and `Gemfile#dup` — which replays through
+    # it — would emit the raw `[url, options]` array. Re-alias here so the dup
+    # path resolves to the definition above.
     alias_method :source_entry_for_dup, :source_entry
   end
+
+  BundlerDSL.prepend(SourceOptions)
 end
