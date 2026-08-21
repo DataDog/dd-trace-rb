@@ -1,6 +1,3 @@
-# Delay resolving gem versions published within the cooldown window, so a
-# compromised or typosquatted release has time to be noticed. Override a
-# single run with `BUNDLE_COOLDOWN=0` (or any other number of days).
 source 'https://rubygems.org', cooldown: 2
 
 gemspec path: '..'
