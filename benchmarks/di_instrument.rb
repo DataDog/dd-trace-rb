@@ -1,16 +1,22 @@
 #
 # "Instrumentation" part of Dynamic Instrumentation benchmarks.
 #
-# Each instrumented configuration is measured with two probe rate-limit
-# settings to decompose the wrapper's per-call cost:
+# Each instrumented configuration is measured with three variants that
+# decompose the wrapper's per-call cost. All use a benchmark-only global
+# limiter (see BenchInstrumenter/ToggleLimiter) whose admission the
+# benchmark controls, so each variant isolates one branch of the per-call
+# path:
 #
-#   rate_limit=1_000_000  - the per-probe limiter admits every call, and the
-#                           benchmark neutralizes the process-wide global
-#                           limiter (BenchInstrumenter), so every probe
-#                           invocation fires the full path (firing).
-#   rate_limit=1          - one token initially + 1/sec refill. At the
-#                           benchmark's call rate, ~99.999% of invocations
-#                           hit the rate-limited skip branch (skip).
+#   rate_limit=1M, global admit   - per-probe and global limiter both admit,
+#                                   so every call fires the full path
+#                                   (firing).
+#   rate_limit=1M, global reject  - per-probe admits, global limiter rejects,
+#                                   so every call takes the global-rate-limit
+#                                   skip branch (global reject).
+#   rate_limit=1                  - one token initially + 1/sec refill, so
+#                                   ~99.999% of calls hit the per-probe skip
+#                                   branch before the global limiter is
+#                                   consulted (skip).
 #
 # The skip-path number is the dominant production overhead, since real
 # workloads vastly exceed any per-probe rate limit. The firing-path number
@@ -97,20 +103,25 @@ class DIInstrumentBenchmark
     end
   end
 
-  # The process-wide global rate limiters are orthogonal admission control;
-  # they must not pollute per-call wrapper-cost measurement. Override the
-  # public probe_global_rate_limiter seam to admit every call, restoring the
-  # firing-path measurement from before the global limiters existed.
-  # Production wiring is unchanged; this subclass is benchmark-only.
-  module AlwaysAllow
-    def self.allow?(*)
-      true
+  # The process-wide global rate limiters are orthogonal admission control
+  # and must not pollute per-call wrapper-cost measurement. BenchInstrumenter
+  # overrides the public probe_global_rate_limiter seam to return a limiter
+  # whose admission the benchmark toggles, so a single instrumenter isolates
+  # the firing branch (admit) and the global-reject branch (reject).
+  # Production wiring is unchanged; these are benchmark-only.
+  module ToggleLimiter
+    class << self
+      attr_accessor :admit
+      def allow?(*)
+        @admit
+      end
     end
+    self.admit = true
   end
 
   class BenchInstrumenter < Datadog::DI::Instrumenter
     def probe_global_rate_limiter(*)
-      AlwaysAllow
+      ToggleLimiter
     end
   end
 
@@ -154,18 +165,22 @@ class DIInstrumentBenchmark
       x.compare!
     end
 
-    # Method instrumentation is run twice with deliberately extreme rate
-    # limits to decompose the wrapper's per-call cost:
+    # Method instrumentation is run in three variants that decompose the
+    # wrapper's per-call cost. The benchmark toggles global-limiter
+    # admission (ToggleLimiter) so each variant isolates one branch:
     #
-    #   rate_limit=1_000_000  - benchmark runs below the token-bucket
-    #                           ceiling, every call fires the full snapshot
-    #                           path. Measures firing-path cost.
-    #   rate_limit=1          - one token initially + one refill per second.
-    #                           At ~100k calls/sec, ~99.999% of calls hit
-    #                           the rate-limited skip branch. Measures
-    #                           skip-path cost (the dominant production
-    #                           overhead, since real workloads vastly exceed
-    #                           any per-probe rate limit).
+    #   rate_limit=1M, global admit   - both limiters admit, every call
+    #                                   fires the full snapshot path.
+    #                                   Measures firing-path cost.
+    #   rate_limit=1M, global reject  - per-probe admits, global limiter
+    #                                   rejects, every call takes the
+    #                                   global-rate-limit skip branch.
+    #                                   Measures global-reject cost.
+    #   rate_limit=1                  - per-probe limiter rejects ~99.999% of
+    #                                   calls before the global limiter is
+    #                                   consulted. Measures per-probe skip
+    #                                   cost (the dominant production
+    #                                   overhead).
     #
     # Note: this benchmark does not set capture_snapshot, so the firing
     # variant exercises Context construction + responder dispatch but not
@@ -247,6 +262,40 @@ class DIInstrumentBenchmark
 
     instrumenter.unhook(probe)
 
+    # Per-probe limiter admits (rate_limit=1M); global limiter rejects, so
+    # every call takes the global-rate-limit skip branch (nothing fires).
+    calls = 0
+    ToggleLimiter.admit = false
+    probe = Datadog::DI::Probe.new(id: 1, type: :log,
+      type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
+      rate_limit: 1_000_000,)
+    responder = Datadog::DI::ProcResponder.new(executed_proc)
+    rv = instrumenter.hook_method(probe, responder)
+    unless rv
+      raise "Method probe was not successfully installed (rate_limit=1M, global reject)"
+    end
+
+    Benchmark.ips do |x|
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
+      x.config(
+        **benchmark_time,
+      )
+
+      x.report("method instrumentation - rate_limit=1M (global reject)") do
+        Target.new.test_method
+      end
+
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.compare!
+    end
+
+    if calls != 0
+      raise "Method instrumentation (rate_limit=1M, global reject): expected 0 firing calls, got #{calls}"
+    end
+
+    instrumenter.unhook(probe)
+    ToggleLimiter.admit = true
+
     # We benchmark untargeted and targeted trace points; untargeted ones
     # are prohibited by default, permit them.
     # In order to install untargeted trace point, we currently need to
@@ -319,6 +368,38 @@ class DIInstrumentBenchmark
     end
 
     instrumenter.unhook(probe)
+
+    # Per-probe limiter admits (rate_limit=1M); global limiter rejects, so
+    # every call takes the global-rate-limit skip branch (nothing fires).
+    calls = 0
+    ToggleLimiter.admit = false
+    probe = Datadog::DI::Probe.new(id: 1, type: :log,
+      file: file, line_no: line + 1, rate_limit: 1_000_000,)
+    responder = Datadog::DI::ProcResponder.new(executed_proc)
+    rv = instrumenter.hook_line(probe, responder)
+    unless rv
+      raise "Line probe (untargeted, rate_limit=1M, global reject) was not successfully installed"
+    end
+
+    Benchmark.ips do |x|
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
+      x.config(
+        **benchmark_time,
+      )
+      x.report("line instrumentation - untargeted - rate_limit=1M (global reject)") do
+        Target.new.test_method_for_line_probe
+      end
+
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.compare!
+    end
+
+    if calls != 0
+      raise "Line instrumentation (untargeted, rate_limit=1M, global reject): expected 0 firing calls, got #{calls}"
+    end
+
+    instrumenter.unhook(probe)
+    ToggleLimiter.admit = true
 
     Datadog::DI.activate_tracking!
     configure do |c|
@@ -399,6 +480,40 @@ class DIInstrumentBenchmark
     if calls > 100 && !VALIDATE_BENCHMARK_MODE
       raise "Targeted line instrumentation (rate_limit=1): rate limit not enforced, got #{calls} firing calls"
     end
+
+    instrumenter.unhook(probe)
+
+    # Per-probe limiter admits (rate_limit=1M); global limiter rejects, so
+    # every call takes the global-rate-limit skip branch (nothing fires).
+    calls = 0
+    ToggleLimiter.admit = false
+    probe = Datadog::DI::Probe.new(id: 1, type: :log,
+      file: targeted_file, line_no: targeted_line + 1, rate_limit: 1_000_000,)
+    responder = Datadog::DI::ProcResponder.new(executed_proc)
+    rv = instrumenter.hook_line(probe, responder)
+    unless rv
+      raise "Line probe (targeted, rate_limit=1M, global reject) was not successfully installed"
+    end
+
+    Benchmark.ips do |x|
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
+      x.config(
+        **benchmark_time,
+      )
+
+      x.report("line instrumentation - targeted - rate_limit=1M (global reject)") do
+        DITarget.new.test_method_for_line_probe
+      end
+
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.compare!
+    end
+
+    if calls != 0
+      raise "Targeted line instrumentation (rate_limit=1M, global reject): expected 0 firing calls, got #{calls}"
+    end
+
+    ToggleLimiter.admit = true
 
     # Now, remove all installed hooks and check that the performance of
     # target code is approximately what it was prior to hook installation.
