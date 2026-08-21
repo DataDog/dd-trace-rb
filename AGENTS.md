@@ -228,7 +228,6 @@ Ruby idioms:
 
 - Pipe `rspec` and `rake test:*` output through `2>&1 | tee /tmp/full_rspec.log | grep -E 'Pending:|Failures:|Finished' -A 99` for concise but complete results.
 - Transport noise (`Internal error during Datadog::Tracing::Transport::HTTP::Client request`) is expected unless debugging transport logic.
-- Profiling specs fail on macOS without additional setup; ask whether they should be run.
 - Thread leaks: use `rspec --seed <N>` and inspect `docs/DevelopmentGuide.md#ensuring-tests-dont-leak-resources`.
 - `docker compose run` failures: run `docker compose pull` before retrying.
 - `ProbeNotifierWorker#flush` blocks until queues are empty; never add `sleep` after it.

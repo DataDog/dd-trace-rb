@@ -2,50 +2,45 @@
 
 // This file exports functions used to access private Ruby VM APIs and internals.
 // To do this, it imports a few VM internal (private) headers.
+// We rely on the datadog-ruby_core_source gem to get access to private VM headers; see
+// https://github.com/DataDog/datadog-ruby_core_source for details.
 //
 // **Important Note**: Our medium/long-term plan is to stop relying on all private Ruby headers, and instead request and
 // contribute upstream changes so that they become official public VM APIs.
 //
 // In the meanwhile, be very careful when changing things here :)
 
-#ifdef RUBY_MJIT_HEADER
-  // Pick up internal structures from the private Ruby MJIT header file
-  #include RUBY_MJIT_HEADER
-#else
-  // The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
-  // the datadog-ruby_core_source gem to get access to private VM headers.
+#include <ruby/defines.h>
 
-  // We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
-  // See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
+// We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
+// See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wattributes"
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic ignored "-Wexpansion-to-defined"
+  #include <vm_core.h>
+#pragma GCC diagnostic pop
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+  #include <iseq.h>
+#pragma GCC diagnostic pop
+
+#ifndef NO_INTERNAL_CLASS_HEADER_INCLUDE
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
-  #pragma GCC diagnostic ignored "-Wattributes"
-  #pragma GCC diagnostic ignored "-Wpragmas"
-  #pragma GCC diagnostic ignored "-Wexpansion-to-defined"
-    #include <vm_core.h>
+    #include <internal/class.h>
   #pragma GCC diagnostic pop
+#endif
 
+#include <ruby.h>
+
+#ifndef NO_RACTOR_HEADER_INCLUDE
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
-    #include <iseq.h>
+    #include <ractor_core.h>
   #pragma GCC diagnostic pop
-
-  #ifndef NO_INTERNAL_CLASS_HEADER_INCLUDE
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wunused-parameter"
-      #include <internal/class.h>
-    #pragma GCC diagnostic pop
-  #endif
-
-  #include <ruby.h>
-
-  #ifndef NO_RACTOR_HEADER_INCLUDE
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wunused-parameter"
-      #include <ractor_core.h>
-    #pragma GCC diagnostic pop
-  #endif
-
 #endif
 
 // This file can't include datadog_ruby_common.h so we replicate this here
@@ -59,6 +54,7 @@
 #include "private_vm_api_access.h"
 
 static inline const rb_callable_method_entry_t* get_cfunc_method_entry(const rb_control_frame_t *cfp);
+static const rb_callable_method_entry_t* safe_vm_frame_method_entry(const rb_control_frame_t *cfp);
 
 // MRI has a similar rb_thread_ptr() function which we can't call it directly
 // because Ruby does not expose the thread_data_type publicly.
@@ -525,7 +521,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
                 continue;
             }
 
-            cme = rb_vm_frame_method_entry(cfp);
+            cme = safe_vm_frame_method_entry(cfp);
 
             // Upstream (Ruby 4.0) does:
             // if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
@@ -594,11 +590,6 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
     return i;
 }
 
-// Support code for older Rubies that cannot use the MJIT header
-#ifndef RUBY_MJIT_HEADER
-
-#define MJIT_STATIC // No-op on older Rubies
-
 // Taken from upstream include/ruby/backward/2/bool.h at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) Ruby developers <ruby-core@ruby-lang.org>
 // to support our custom rb_profile_frames (see above)
@@ -640,30 +631,34 @@ check_method_entry(VALUE obj, int can_be_svar) {
   return NULL;
 }
 
-// Taken from upstream vm_insnhelper.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
-// Copyright (C) 2007 Koichi Sasada
-// to support our custom rb_profile_frames (see above)
+// Identical to upstream rb_vm_frame_method_entry (vm_insnhelper.c) with two additions:
+// 1. FIXNUM_P check on ep[FLAGS] before each iteration to detect torn EPs
+// 2. NULL check on ep after VM_ENV_PREV_EP
 //
-// While older Rubies may have this function, the symbol is not exported which leads to dynamic loader issues, e.g.
-// `dyld: lazy symbol binding failed: Symbol not found: _rb_vm_frame_method_entry`.
-//
-// Modifications: None
-MJIT_STATIC const rb_callable_method_entry_t *
-rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
+// When the profiler's signal handler interrupts vm_make_env_each (vm.c) mid-escape,
+// a child frame's SPECVAL can still point to the parent's old stack EP whose flags
+// slot has been overwritten with (VALUE)env for GC marking.
+static const rb_callable_method_entry_t *
+safe_vm_frame_method_entry(const rb_control_frame_t *cfp)
 {
     const VALUE *ep = cfp->ep;
     rb_callable_method_entry_t *me;
 
-    while (!VM_ENV_LOCAL_P(ep)) {
+    // Torn-EP check before VM_ENV_LOCAL_P, check_method_entry, and VM_ENV_PREV_EP
+    // dereference ep
+    while (FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS]) && !VM_ENV_LOCAL_P(ep)) {
         if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) {
             return me;
         }
         ep = VM_ENV_PREV_EP(ep);
+        if (ep == NULL) return NULL;
     }
+
+    // If we exited because of a torn EP (failed FIXNUM_P), bail out
+    if (!FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS])) return NULL;
 
     return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
 }
-#endif // RUBY_MJIT_HEADER
 
 // Optimized version of rb_vm_frame_method_entry() for cfunc frames.
 // Cfunc frames always have VM_ENV_FLAG_LOCAL set, so ep[-2] is the cme directly
@@ -920,12 +915,20 @@ static bool is_metaclass(VALUE mod, VALUE* attached) {
   return false;
 }
 
-static VALUE alloc_free_rb_mod_name(VALUE mod) {
+VALUE ddtrace_alloc_free_rb_mod_name(VALUE mod) {
 #ifdef NO_ALLOC_FREE_MOD_NAME
-  return rb_attr_get(mod, rb_intern("__classpath__"));
+  VALUE name = rb_attr_get(mod, rb_intern("__classpath__"));
 #else
-  return rb_mod_name(mod);
+  VALUE name = rb_mod_name(mod);
 #endif
+  // While Module#const_set rejects empty strings,
+  // an empty String is possible if `rb_const_set(mod, "", val)` was used
+  // but that's not understandable so consider those anonymous too.
+  if (name == Qnil || RSTRING_LEN(name) == 0) {
+    return Qnil;
+  } else {
+    return name;
+  }
 }
 
 // Ruby 3.3+ has a `permanent_classpath` flag on rb_classext_struct.
@@ -939,6 +942,16 @@ static bool has_permanent_classpath(DDTRACE_UNUSED VALUE mod, DDTRACE_UNUSED VAL
 #else // 3.2 and older
   return memchr(RSTRING_PTR(mod_name), '#', RSTRING_LEN(mod_name)) == NULL;
 #endif
+}
+
+VALUE ddtrace_permanent_mod_name(VALUE mod) {
+  VALUE name = ddtrace_alloc_free_rb_mod_name(mod);
+
+  if (NIL_P(name) || !has_permanent_classpath(mod, name)) {
+    return Qnil;
+  } else {
+    return name;
+  }
 }
 
 #define ONLY_METHOD_NAME ((ssize_t) -1)
@@ -955,11 +968,12 @@ static ssize_t rb_gen_method_name(VALUE owner, VALUE method_name, char *buf, siz
   if (is_metaclass(owner, &mod)) {
     separator = '.';
   }
-  VALUE mod_name = alloc_free_rb_mod_name(mod);
+
+  VALUE mod_name = ddtrace_permanent_mod_name(mod);
 
   // Exclude non-permanent names (e.g. `#<Module:0x0123>::Foo`) which break flamegraph aggregation
   // since they contain addresses that differ across processes/runs.
-  if (NIL_P(mod_name) || !has_permanent_classpath(mod, mod_name)) {
+  if (NIL_P(mod_name)) {
     return ONLY_METHOD_NAME;
   }
 
@@ -1077,4 +1091,18 @@ void* ddtrace_cme_cfunc_func(const rb_callable_method_entry_t *cme) {
 
 const char *ddtrace_cme_original_method_name(const rb_callable_method_entry_t *cme) {
   return rb_id2name(cme->def->original_id);
+}
+
+// This function is not present in the VM headers, but is a public symbol that can be invoked.
+int rb_objspace_internal_object_p(VALUE obj);
+
+bool ddtrace_is_internal_object_p(VALUE obj) {
+  if (RB_SPECIAL_CONST_P(obj)) {
+    // Ruby special constants are not internal, except Qundef.
+    // See enum ruby_special_consts in CRuby.
+    return obj == Qundef;
+  } else {
+    // rb_objspace_internal_object_p() assumes non-immediate, so check that first above
+    return rb_objspace_internal_object_p(obj);
+  }
 }

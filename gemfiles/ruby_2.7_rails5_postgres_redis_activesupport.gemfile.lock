@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.41.0.dev)
+    datadog (2.42.0.dev)
       cgi
-      datadog-ruby_core_source (~> 3.5, >= 3.5.4)
-      libdatadog (~> 39.0.0.1.0)
+      datadog-ruby_core_source (~> 3.5, >= 3.5.5)
+      libdatadog (~> 40.0.0.2.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -70,7 +70,7 @@ GEM
       bigdecimal
       rexml
     crass (1.0.6)
-    datadog-ruby_core_source (3.5.4)
+    datadog-ruby_core_source (3.5.5)
     date (3.3.3)
     diff-lcs (1.6.2)
     docile (1.4.1)
@@ -89,14 +89,14 @@ GEM
     hashdiff (1.2.1)
     i18n (1.12.0)
       concurrent-ruby (~> 1.0)
-    io-console (0.8.2)
+    io-console (0.9.2)
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
-    libdatadog (39.0.0.1.0)
-    libdatadog (39.0.0.1.0-aarch64-linux)
-    libdatadog (39.0.0.1.0-arm64-darwin)
-    libdatadog (39.0.0.1.0-x86_64-linux)
+    libdatadog (40.0.0.2.0)
+    libdatadog (40.0.0.2.0-aarch64-linux)
+    libdatadog (40.0.0.2.0-arm64-darwin)
+    libdatadog (40.0.0.2.0-x86_64-linux)
     libddwaf (1.30.0.0.2-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-arm64-darwin)
@@ -124,7 +124,7 @@ GEM
     method_source (1.1.0)
     mini_mime (1.1.2)
     minitest (5.17.0)
-    msgpack (1.8.3)
+    msgpack (1.8.4)
     net-imap (0.3.4)
       date
       net-protocol
@@ -198,7 +198,7 @@ GEM
       redis-store (>= 1.2, < 2)
     redis-store (1.9.2)
       redis (>= 4, < 6)
-    reline (0.6.3)
+    reline (0.7.0)
       io-console (~> 0.5)
     request_store (1.5.1)
       rack (>= 1.4)
@@ -249,7 +249,7 @@ GEM
     websocket-driver (0.7.5)
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
-    zstd-ruby (2.0.6)
+    zstd-ruby (2.0.8)
 
 PLATFORMS
   aarch64-linux

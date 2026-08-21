@@ -1665,8 +1665,8 @@ bool thread_context_collector_prepare_sample_inside_signal_handler(void) {
   return prepare_sample_thread(current_thread, &thread_context->sampling_buffer);
 }
 
-// This method gets called from inside the RUBY_INTERNAL_EVENT_NEWOBJ tracepoint so it should never allocate in the
-// Ruby heap.
+// This method gets called from inside the RUBY_INTERNAL_EVENT_NEWOBJ tracepoint so it should neither allocate in the
+// Ruby heap nor release the GVL (https://github.com/DataDog/dd-trace-rb/pull/4240).
 //
 // Returns true if the after_allocation needs to be called (to do work that can't be done from inside the
 // tracepoint, such as allocate new objects), and false if it doesn't
@@ -1714,13 +1714,10 @@ bool thread_context_collector_sample_allocation(VALUE self_instance, per_thread_
     // Thus, we need to make sure there's actually a class before getting its name.
 
     if (klass != 0) {
-      const char *name = rb_class2name(klass);
-      size_t name_length = name != NULL ? strlen(name) : 0;
-
-      if (name_length > 0) {
-        class_name = (ddog_CharSlice) {.ptr = name, .len = name_length};
+      VALUE name = ddtrace_alloc_free_rb_mod_name(klass);
+      if (name != Qnil) {
+        class_name = char_slice_from_ruby_string(name);
       } else {
-        // @ivoanjo: I'm not sure this can ever happen, but just-in-case
         class_name = ruby_value_type_to_class_name(type);
       }
     } else {

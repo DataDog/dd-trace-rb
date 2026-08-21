@@ -221,7 +221,14 @@ end
 end
 
 build_coverage_matrix('redis', [3, 4])
-build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' => nil })
+build_coverage_matrix('rack', 1..2, meta: {
+  # rack-contrib >= 2.0.0 requires Rack::MediaType (Rack 2.0+); 1.8.0 is the
+  # newest release supporting Rack 1.x (see .bundler-audit.yml).
+  1 => { 'rack-contrib' => '1.8.0' },
+  2 => { 'rack-contrib' => nil },
+  :latest => { 'rack-contrib' => nil },
+  'rack-test' => nil,
+})
 
 [2, 3, 4].each do |n|
   appraise "sinatra-#{n}" do

@@ -41,6 +41,7 @@ RSpec.describe "ActiveRecord instrumentation" do
       expect(span.service).to eq("mysql2")
       expect(span.name).to eq("mysql2.query")
       expect(span.type).to eq("sql")
+      expect(span.get_tag("span.kind")).to eq("client")
       expect(span.resource.strip).to eq("SELECT COUNT(*) FROM `articles`")
       expect(span.get_tag("active_record.db.vendor")).to eq("mysql2")
       expect(span.get_tag("db.instance")).to eq("mysql")
@@ -75,6 +76,14 @@ RSpec.describe "ActiveRecord instrumentation" do
           before do
             if PlatformHelpers.jruby?
               skip("JRuby doesn't support ObjectSpace._id2ref, which is required for makara connection lookup.")
+            end
+
+            if ::ActiveRecord::VERSION::STRING >= "7.2"
+              # makara (>= 0.6.0.pre, the only version available for Ruby 3+) calls
+              # `ActiveRecord::ConnectionAdapters::SchemaCache.new(@proxy)` with one argument, but
+              # ActiveRecord 7.2 changed `SchemaCache#initialize` to take zero arguments. makara has had no
+              # release since 0.6.0.pre, so there is no compatible version to upgrade to.
+              skip("makara is incompatible with ActiveRecord 7.2+ (SchemaCache.new arity mismatch)")
             end
 
             @original_config = if defined?(::ActiveRecord::Base.connection_db_config)
