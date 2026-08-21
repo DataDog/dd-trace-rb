@@ -14,6 +14,12 @@ module Datadog
         ) -> ResolutionDetails
       end
 
+      module ResolutionDetailsFlagMetadata
+        @flag_metadata: ResolutionDetails::metadata_t
+
+        def flag_metadata: () -> ResolutionDetails::metadata_t
+      end
+
       class ResolutionDetails
         type metadata_t = ::Hash[::String, (::String | bool)]
 
@@ -50,8 +56,6 @@ module Datadog
         def log?: () -> bool
 
         private
-
-        def __c_flag_metadata: () -> metadata_t
 
         def json?: (untyped) -> bool
       end
