@@ -69,16 +69,6 @@ static int heap_record_cmp_st(st_data_t, st_data_t);
 static st_index_t heap_record_hash_st(st_data_t);
 static const struct st_hash_type st_hash_type_heap_record = { .compare = heap_record_cmp_st, .hash = heap_record_hash_st };
 
-// An object record is used for storing data about currently tracked live objects
-typedef struct {
-  long record_id;
-  heap_record *heap_record;
-  live_object_data object_data;
-} object_record;
-static object_record* object_record_new(long, heap_record*, live_object_data);
-static void object_record_free(heap_recorder*, object_record*, bool should_unintern);
-static VALUE object_record_inspect(heap_recorder*, object_record*);
-
 // A pending recording is used to defer adding the object to the `weak_objects` map: doing so is a Ruby method
 // call that allocates, and neither of those is safe to do during on_newobj_event
 typedef struct {
@@ -87,6 +77,16 @@ typedef struct {
   heap_record *heap_record;
   live_object_data object_data;
 } pending_recording;
+
+// An object record is used for storing data about currently tracked live objects
+typedef struct {
+  long record_id;
+  heap_record *heap_record;
+  live_object_data object_data;
+} object_record;
+static object_record* object_record_new(pending_recording *pending);
+static void object_record_free(heap_recorder*, object_record*, bool should_unintern);
+static VALUE object_record_inspect(heap_recorder*, object_record*);
 
 #define MAX_PENDING_RECORDINGS 256
 
@@ -537,7 +537,7 @@ void heap_recorder_commit_pending_recordings(heap_recorder *heap_recorder) {
     // Nil it out as we don't need it anymore, and we should not keep it alive longer than necessary
     pending->object_ref = Qnil;
 
-    object_record *record = object_record_new(pending->record_id, pending->heap_record, pending->object_data);
+    object_record *record = object_record_new(pending);
 
     commit_recording(heap_recorder, pending->heap_record, record);
   }
@@ -969,11 +969,11 @@ static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, obj
 // =================
 // Object Record API
 // =================
-object_record* object_record_new(long record_id, heap_record *heap_record, live_object_data object_data) {
+object_record* object_record_new(pending_recording *pending) {
   object_record *record = calloc(1, sizeof(object_record)); // See "note on calloc vs ruby_xcalloc use" above
-  record->record_id = record_id;
-  record->heap_record = heap_record;
-  record->object_data = object_data;
+  record->record_id = pending->record_id;
+  record->heap_record = pending->heap_record;
+  record->object_data = pending->object_data;
   return record;
 }
 
