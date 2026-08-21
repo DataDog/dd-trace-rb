@@ -161,6 +161,43 @@ Under `gemfiles/` there are two layers of lockfiles:
 
 The two layers are independent Bundler resolutions of overlapping gem sets and will drift on shared gems without active sync.
 
+**Cooldown**
+
+Gemfiles declare a cooldown window on their `source` line:
+
+```ruby
+source 'https://rubygems.org', cooldown: 2
+```
+
+Bundler will not resolve to a gem version published within that window, so a
+compromised or typosquatted release has a couple of days to be noticed and
+yanked before it can reach a lockfile. It applies to every Bundler command, not
+just the `dependency:` tasks, and needs no setup on your part.
+
+This requires Bundler 4.0.13+, which ships with Ruby 3.2 and later. Gemfiles for
+Ruby 2.5 through 3.1 omit the keyword and resolve exactly as they always have.
+
+Most of the time you will not notice it: a window only bites when a gem's newest
+release is younger than it, so the overwhelming majority of regenerations
+produce identical lockfiles. When it does apply, Bundler says so:
+
+```
+The following gem versions were skipped by the cooldown setting:
+  * example 2.1.0 (available in 1 day), resolved 2.0.9 instead
+```
+
+To take a release that is still inside the window — an urgent security patch,
+say — set `BUNDLE_COOLDOWN` for that run. `0` disables the window entirely, and
+any other number overrides its length:
+
+```bash
+BUNDLE_COOLDOWN=0 bundle exec rake dependency:lock
+```
+
+`BUNDLE_COOLDOWN` is Bundler's own setting and takes precedence over the
+gemfile, so it works with any Bundler command. It applies only to the run you
+set it on.
+
 **Task surfaces**
 
 Two rake namespaces, with different intents:
