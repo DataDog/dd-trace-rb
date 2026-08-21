@@ -120,6 +120,11 @@ jobs:
           lockfile: ${{ needs.build.outputs.lockfile }}
           cache-key: ${{ needs.build.outputs.cache-key }}
       - run: bundle exec rake dependency:audit
+      - name: Link to fix instructions
+        if: failure()
+        env:
+          DOC_URL: ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/docs/DevelopmentGuide.md#dependency-audit-bundler-audit
+        run: echo "::error::See $DOC_URL for how to reproduce this locally and how to fix or document a CVE finding."
 
   checksum-coverage:
     name: checksum-coverage
