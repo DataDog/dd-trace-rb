@@ -124,7 +124,10 @@ jobs:
         if: failure()
         env:
           DOC_URL: ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/docs/DevelopmentGuide.md#dependency-audit-bundler-audit
-        run: echo "::error::See $DOC_URL for how to reproduce this locally and how to fix or document a CVE finding."
+        run: |
+          if [ -f tmp/dependency_audit_findings.json ]; then
+            echo "::error::See $DOC_URL for how to reproduce this locally and how to fix or document a CVE finding."
+          fi
 
   checksum-coverage:
     name: checksum-coverage
