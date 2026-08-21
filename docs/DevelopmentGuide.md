@@ -370,6 +370,24 @@ docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb rhysd/actionlint -color
 docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth token) ghcr.io/woodruffw/zizmor --min-severity low .
 ```
 
+#### Dependency audit (bundler-audit)
+
+The `bundler-audit` CI job scans every appraisal lockfile for gems with known
+high/critical CVE advisories. To reproduce locally:
+
+```bash
+bundle exec rake dependency:audit
+```
+
+If it fails:
+
+1. Preferred fix: upgrade the flagged gem to a patched version (e.g. `bundle update GEM_NAME` under the affected appraisal's `BUNDLE_GEMFILE`, then regenerate lockfiles with `bundle exec rake dependency:generate`).
+2. If no patched version exists for the Ruby/framework constraint in that appraisal, document the exception in `.bundler-audit.yml`:
+   - Prefer `ignore_gem_versions` (scoped to the exact pinned gem+version, so bumping the gem later makes the finding reappear instead of staying silently hidden).
+   - Use the top-level `ignore` list (by advisory id) only as a last resort, since it suppresses the advisory for any gem/version.
+   - Every entry must include a reason explaining what pins the gem and why it can't be upgraded.
+3. The job log and the `tmp/dependency_audit_findings.json` artifact list the specific advisory id(s), gem(s), and affected lockfile(s).
+
 ## Accessing Environment Variables
 
 If you need to access any environment variables via `ENV`, please see
