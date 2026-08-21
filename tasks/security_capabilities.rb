@@ -15,6 +15,11 @@ module SecurityCapabilities
   CHECKSUM_MIN_VERSION = Gem::Version.new("3.1")
   COOLDOWN_MIN_VERSION = Gem::Version.new("3.2")
 
+  # Days a published gem version must age before it can be resolved into a
+  # lockfile. Overridable per-run with `BUNDLE_COOLDOWN`, which bundler reads
+  # natively and which takes precedence over this default.
+  COOLDOWN_DAYS = 2
+
   def for_version(version_string)
     version = Gem::Version.new(version_string)
     {
