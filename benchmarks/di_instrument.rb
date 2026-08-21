@@ -4,8 +4,10 @@
 # Each instrumented configuration is measured with two probe rate-limit
 # settings to decompose the wrapper's per-call cost:
 #
-#   rate_limit=1_000_000  - benchmark runs below the bucket ceiling, every
-#                           probe invocation fires the full path (firing).
+#   rate_limit=1_000_000  - the per-probe limiter admits every call, and the
+#                           benchmark neutralizes the process-wide global
+#                           limiter (BenchInstrumenter), so every probe
+#                           invocation fires the full path (firing).
 #   rate_limit=1          - one token initially + 1/sec refill. At the
 #                           benchmark's call rate, ~99.999% of invocations
 #                           hit the rate-limited skip branch (skip).
@@ -95,6 +97,23 @@ class DIInstrumentBenchmark
     end
   end
 
+  # The process-wide global rate limiters are orthogonal admission control;
+  # they must not pollute per-call wrapper-cost measurement. Override the
+  # public probe_global_rate_limiter seam to admit every call, restoring the
+  # firing-path measurement from before the global limiters existed.
+  # Production wiring is unchanged; this subclass is benchmark-only.
+  module AlwaysAllow
+    def self.allow?(*)
+      true
+    end
+  end
+
+  class BenchInstrumenter < Datadog::DI::Instrumenter
+    def probe_global_rate_limiter(*)
+      AlwaysAllow
+    end
+  end
+
   attr_reader :instrumenter
 
   def logger
@@ -111,7 +130,7 @@ class DIInstrumentBenchmark
     # so the instrumenter's logger.trace calls on the global-rate-limit
     # skip path resolve; stdlib Logger has no trace method.
     di_logger = Datadog::DI::Logger.new(settings, logger)
-    @instrumenter = Datadog::DI::Instrumenter.new(settings, serializer, di_logger,
+    @instrumenter = BenchInstrumenter.new(settings, serializer, di_logger,
       code_tracker: Datadog::DI.code_tracker)
   end
 
@@ -185,8 +204,8 @@ class DIInstrumentBenchmark
       raise "Method instrumentation (rate_limit=1M) did not work - callback was never invoked"
     end
 
-    if calls < 1000 && !VALIDATE_BENCHMARK_MODE
-      raise "Method instrumentation (rate_limit=1M): expected at least 1000 firing calls, got #{calls}"
+    if calls < 100_000 && !VALIDATE_BENCHMARK_MODE
+      raise "Method instrumentation (rate_limit=1M): expected at least 100_000 firing calls, got #{calls}"
     end
 
     instrumenter.unhook(probe)
@@ -263,8 +282,8 @@ class DIInstrumentBenchmark
       raise "Line instrumentation (untargeted, rate_limit=1M) did not work - callback was never invoked"
     end
 
-    if calls < 1000 && !VALIDATE_BENCHMARK_MODE
-      raise "Line instrumentation (untargeted, rate_limit=1M): expected at least 1000 firing calls, got #{calls}"
+    if calls < 100_000 && !VALIDATE_BENCHMARK_MODE
+      raise "Line instrumentation (untargeted, rate_limit=1M): expected at least 100_000 firing calls, got #{calls}"
     end
 
     instrumenter.unhook(probe)
@@ -344,8 +363,8 @@ class DIInstrumentBenchmark
       raise "Targeted line instrumentation (rate_limit=1M) did not work - callback was never invoked"
     end
 
-    if calls < 1000 && !VALIDATE_BENCHMARK_MODE
-      raise "Targeted line instrumentation (rate_limit=1M): expected at least 1000 firing calls, got #{calls}"
+    if calls < 100_000 && !VALIDATE_BENCHMARK_MODE
+      raise "Targeted line instrumentation (rate_limit=1M): expected at least 100_000 firing calls, got #{calls}"
     end
 
     instrumenter.unhook(probe)
