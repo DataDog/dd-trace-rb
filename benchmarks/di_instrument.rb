@@ -69,6 +69,7 @@ require "datadog"
 # Need to require datadog/di explicitly because dynamic instrumentation is not
 # currently integrated into the Ruby tracer due to being under development.
 require "datadog/di"
+require "datadog/di/logger"
 require "datadog/di/proc_responder"
 
 class DIInstrumentBenchmark
@@ -106,7 +107,11 @@ class DIInstrumentBenchmark
 
     redactor = Datadog::DI::Redactor.new(settings)
     serializer = Datadog::DI::Serializer.new(settings, redactor)
-    @instrumenter = Datadog::DI::Instrumenter.new(settings, serializer, logger,
+    # Wrap in the DI::Logger facade (as lib/datadog/di/component.rb does)
+    # so the instrumenter's logger.trace calls on the global-rate-limit
+    # skip path resolve; stdlib Logger has no trace method.
+    di_logger = Datadog::DI::Logger.new(settings, logger)
+    @instrumenter = Datadog::DI::Instrumenter.new(settings, serializer, di_logger,
       code_tracker: Datadog::DI.code_tracker)
   end
 
