@@ -141,7 +141,7 @@ Tests must be run via `bundle exec rake test:TASK_KEY`, not bare `bundle exec rs
 
 ## Docker
 
-- AppSec integration tests need Ruby 3.4. Use Ruby 3.4 installed locally or `docker compose run --rm tracer-3.4 /bin/bash`, then run the rake task inside.
+- AppSec integration tests need Ruby 3.3. Use Ruby 3.3 installed locally or `docker compose run --rm tracer-3.3 /bin/bash`, then run the rake task inside.
 - `test:main` and `bundle exec rspec spec/datadog/profiling` can run locally on any Ruby for quick feedback.
 - If Bundler fails inside the container after a dependency update, run `bundle install` and retry the rake task once before investigating further.
 
