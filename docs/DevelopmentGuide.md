@@ -373,11 +373,10 @@ docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth tok
 #### Dependency audit (bundler-audit)
 
 The `bundler-audit` CI job scans appraisal lockfiles eligible for audit
-(Ruby 3.1+; see `SecurityCapabilities::AUDIT_MIN_VERSION`) for gems with
+(Ruby 3.1+) for gems with
 high/critical CVE advisories, plus any advisory the pinned scanner can't
 score (e.g. CVSS-v4-only advisories come back with a `nil` criticality and
-are treated as failing too). To reproduce locally, using the same Gemfile as
-CI (`bundler-audit` is only declared in `gemfiles/ruby-4.0.gemfile`):
+are treated as failing too). To reproduce locally, run:
 
 ```bash
 BUNDLE_GEMFILE=gemfiles/ruby-4.0.gemfile bundle exec rake dependency:audit
