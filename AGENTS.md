@@ -17,41 +17,41 @@ This repository is the source code of a Ruby gem created by Datadog to provide D
 
 # Project Structure
 
-- @lib/ - Ruby code that's shipped by this gem
-- @ext/ - Native code that's shipped by this gem
-- @sig/ - RBS signatures maintained with Steep
-- @spec/ - RSpec suites mirroring @lib/
-- @Matrixfile, @appraisal/ - Test matrix gemset specification
-- @gemfiles/ - Generated gemfiles from the matrix (no direct editing)
-- @.github, @tasks/github.rake, @.gitlab-ci.yml, @.gitlab - CI
-- @lib/datadog/appsec - app & api protection implementation (formerly known as appsec)
-- @lib/datadog/appsec/contrib - app & api protection integrations with third-party libraries
-- @lib/datadog/core - product-agnostic glue and shared code
-- @lib/datadog/error_tracking - error tracking
-- @lib/datadog/kit - shared product features
-- @lib/datadog/data_streams - Data Streams Monitoring
-- @lib/datadog/di - dynamic instrumentation (`docs/DynamicInstrumentation.md`)
-- @lib/datadog/open_feature - an implementation of OpenFeature Provider https://openfeature.dev/docs/reference/sdks/server/ruby. Before modifying OpenFeature code, specs, or signatures, read and follow `lib/datadog/open_feature/AGENTS.md`.
-- @lib/datadog/opentelemetry - support OpenTelemetry API for tracing and metrics (`docs/OpenTelemetry.md`)
-- @lib/datadog/profiling - profiling
-- @lib/datadog/tracing - distributed tracing
-- @lib/datadog/tracing/contrib - distributed tracing integrations with third-party libraries
-- @ext/datadog_profiling_native_extension - C extension for profiling
-- @ext/libdatadog_api - C bindings for the Rust [libdatadog](github.com/DataDog/libdatadog) library
-- @docs/ - Authoritative developer guides. Includes API documentation, upgrade guides, etc.
+- `lib/` - Ruby code that's shipped by this gem
+- `ext/` - Native code that's shipped by this gem
+- `sig/` - RBS signatures maintained with Steep
+- `spec/` - RSpec suites mirroring `lib/`
+- `Matrixfile`, `appraisal/` - Test matrix gemset specification
+- `gemfiles/` - Generated gemfiles from the matrix (no direct editing)
+- `.github`, `tasks/github.rake`, `.gitlab-ci.yml`, `.gitlab` - CI
+- `lib/datadog/appsec` - app & api protection implementation (formerly known as appsec)
+- `lib/datadog/appsec/contrib` - app & api protection integrations with third-party libraries
+- `lib/datadog/core` - product-agnostic glue and shared code
+- `lib/datadog/error_tracking` - error tracking
+- `lib/datadog/kit` - shared product features
+- `lib/datadog/data_streams` - Data Streams Monitoring
+- `lib/datadog/di` - dynamic instrumentation (`docs/DynamicInstrumentation.md`)
+- `lib/datadog/open_feature` - an implementation of OpenFeature Provider https://openfeature.dev/docs/reference/sdks/server/ruby. Before modifying OpenFeature code, specs, or signatures, read and follow `lib/datadog/open_feature/AGENTS.md`.
+- `lib/datadog/opentelemetry` - support OpenTelemetry API for tracing and metrics (`docs/OpenTelemetry.md`)
+- `lib/datadog/profiling` - profiling
+- `lib/datadog/tracing` - distributed tracing
+- `lib/datadog/tracing/contrib` - distributed tracing integrations with third-party libraries
+- `ext/datadog_profiling_native_extension` - C extension for profiling
+- `ext/libdatadog_api` - C bindings for the Rust [libdatadog](github.com/DataDog/libdatadog) library
+- `docs/` - Authoritative developer guides. Includes API documentation, upgrade guides, etc.
 
 ## Noteworthy paths
 
-- @lib/datadog.rb - Gem entry point
-- @lib/datadog/auto_instrument.rb, @**/preload.rb - Alternative gem entry points (`docs/AutoInstrumentation.md`)
-- @lib/datadog/core/configuration/components.rb @lib/datadog/*/component.rb - global gem wiring and initialization
-- @**/settings.rb - user configuration definition
-- @**/ext.rb - constants for each subsystem
-- @lib/datadog/core/telemetry/ - self telemetry for this gem (`docs/TelemetryDevelopment.md`)
+- `lib/datadog.rb` - Gem entry point
+- `lib/datadog/auto_instrument.rb`, `**/preload.rb` - Alternative gem entry points (`docs/AutoInstrumentation.md`)
+- `lib/datadog/core/configuration/components.rb` `lib/datadog/*/component.rb` - global gem wiring and initialization
+- `**/settings.rb` - user configuration definition
+- `**/ext.rb` - constants for each subsystem
+- `lib/datadog/core/telemetry/` - self telemetry for this gem (`docs/TelemetryDevelopment.md`)
 
 ## Integration pattern
 
-Each framework integration (@lib/datadog/*/contrib/) follows a common pattern:
+Each framework integration (`lib/datadog/*/contrib/`) follows a common pattern:
 1. `patcher.rb` - Modifies framework behavior
 2. `integration.rb` - Describes the integration
 3. `ext.rb` - Constants specific to the integration
