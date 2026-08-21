@@ -6,7 +6,7 @@ RSpec::Matchers.define :be_signature_compatible_with do |real_method|
 
   failure_message do |wrapper_method|
     "expected #{wrapper_method.name} #{wrapper_method.parameters.inspect} to be signature-compatible " \
-      "with #{real_method.name} #{real_method.parameters.inspect}, but: #{@violations.join(', ')}"
+      "with #{real_method.name} #{real_method.parameters.inspect}, but: #{@violations.join(", ")}"
   end
 end
 
@@ -51,14 +51,14 @@ module Datadog
       real_positional_slots = real_req + count(real_params, :opt)
 
       if (has?(real_params, :rest) || real_positional_slots > wrapper_positional_slots) && !has?(wrapper_params, :rest)
-        violations << 'wrapper does not forward extra positional args the real method accepts (missing *args)'
+        violations << "wrapper does not forward extra positional args the real method accepts (missing *args)"
       end
       if has?(wrapper_params, :rest) && !has?(real_params, :rest) && real_positional_slots <= wrapper_positional_slots
-        violations << 'wrapper accepts extra positional args the real method does not (unexpected *args)'
+        violations << "wrapper accepts extra positional args the real method does not (unexpected *args)"
       end
       if wrapper_positional_slots > real_positional_slots && !has?(real_params, :rest)
-        violations << 'wrapper declares more positional args than the real method accepts; ' \
-          'bare `super` would forward them even when unset (unset optional args)'
+        violations << "wrapper declares more positional args than the real method accepts; " \
+          "bare `super` would forward them even when unset (unset optional args)"
       end
 
       violations
@@ -79,11 +79,11 @@ module Datadog
       end
 
       if has?(real_params, :keyrest) && !has?(wrapper_params, :keyrest)
-        violations << 'wrapper does not forward extra keyword args the real method accepts (missing **kwargs)'
+        violations << "wrapper does not forward extra keyword args the real method accepts (missing **kwargs)"
       end
       real_has_any_keywords = has?(real_params, :key) || has?(real_params, :keyreq) || has?(real_params, :keyrest)
       if has?(wrapper_params, :keyrest) && !real_has_any_keywords
-        violations << 'wrapper accepts extra keyword args the real method does not (unexpected **kwargs)'
+        violations << "wrapper accepts extra keyword args the real method does not (unexpected **kwargs)"
       end
 
       wrapper_key = names(wrapper_params, :key)
@@ -91,7 +91,7 @@ module Datadog
       unrecognized_optional_kw = wrapper_key - real_key - real_keyreq
       if !unrecognized_optional_kw.empty? && !has?(real_params, :keyrest)
         violations << "wrapper declares optional keywords the real method doesn't accept: #{unrecognized_optional_kw}; " \
-          'bare `super` would forward them even when unset'
+          "bare `super` would forward them even when unset"
       end
 
       violations

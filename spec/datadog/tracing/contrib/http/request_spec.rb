@@ -538,8 +538,8 @@ RSpec.describe "net/http requests" do
     end
   end
 
-  describe 'wrapper signature parity with Net::HTTP' do
-    it 'wraps #request compatibly with Net::HTTP#request' do
+  describe "wrapper signature parity with Net::HTTP" do
+    it "wraps #request compatibly with Net::HTTP#request" do
       # Fetching the UnboundMethod via Net::HTTP (rather than the InstanceMethods module directly)
       # is required for `super_method` to work below -- a method obtained straight from the module
       # has no ancestor chain to walk. Since :http is already instrumented by the outer `before`

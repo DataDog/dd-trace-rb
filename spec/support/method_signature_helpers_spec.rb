@@ -3,9 +3,9 @@ RSpec.describe Datadog::MethodSignatureHelpers do
     Class.new { define_method(:m, &block) }.instance_method(:m)
   end
 
-  describe '.compatibility_violations' do
-    context 'exact match' do
-      it 'is compatible' do
+  describe ".compatibility_violations" do
+    context "exact match" do
+      it "is compatible" do
         wrapper = method_for { |a, b = 1| }
         real = method_for { |a, b = 1| }
 
@@ -13,8 +13,8 @@ RSpec.describe Datadog::MethodSignatureHelpers do
       end
     end
 
-    context 'pure pass-through wrapper' do
-      it 'is compatible with any real method' do
+    context "pure pass-through wrapper" do
+      it "is compatible with any real method" do
         wrapper = method_for { |*args, **kwargs, &block| }
         real = method_for { |a, b:, c: 1| }
 
@@ -22,8 +22,8 @@ RSpec.describe Datadog::MethodSignatureHelpers do
       end
     end
 
-    context 'wrapper requires more positional args than the real method' do
-      it 'flags it' do
+    context "wrapper requires more positional args than the real method" do
+      it "flags it" do
         wrapper = method_for { |a, b| }
         real = method_for { |a| }
 
@@ -32,8 +32,8 @@ RSpec.describe Datadog::MethodSignatureHelpers do
       end
     end
 
-    context 'wrapper narrows a required positional arg to optional (drops it)' do
-      it 'flags it, since bare super would forward the default even when unset' do
+    context "wrapper narrows a required positional arg to optional (drops it)" do
+      it "flags it, since bare super would forward the default even when unset" do
         wrapper = method_for { |a = nil| }
         real = method_for {}
 
@@ -42,8 +42,8 @@ RSpec.describe Datadog::MethodSignatureHelpers do
       end
     end
 
-    context 'real method accepts more positional args than the wrapper forwards' do
-      it 'flags a missing *args' do
+    context "real method accepts more positional args than the wrapper forwards" do
+      it "flags a missing *args" do
         wrapper = method_for { |a| }
         real = method_for { |a, b| }
 
@@ -52,8 +52,8 @@ RSpec.describe Datadog::MethodSignatureHelpers do
       end
     end
 
-    context 'wrapper accepts a required keyword the real method does not require' do
-      it 'flags it' do
+    context "wrapper accepts a required keyword the real method does not require" do
+      it "flags it" do
         wrapper = method_for { |topic:| }
         real = method_for {}
 
@@ -62,8 +62,8 @@ RSpec.describe Datadog::MethodSignatureHelpers do
       end
     end
 
-    context 'real method requires a keyword the wrapper does not declare' do
-      it 'flags it' do
+    context "real method requires a keyword the wrapper does not declare" do
+      it "flags it" do
         wrapper = method_for { |topic:| }
         real = method_for { |topic:, partition:| }
 
@@ -72,8 +72,8 @@ RSpec.describe Datadog::MethodSignatureHelpers do
       end
     end
 
-    context 'real method requires a keyword but the wrapper has **kwargs to forward it' do
-      it 'is compatible' do
+    context "real method requires a keyword but the wrapper has **kwargs to forward it" do
+      it "is compatible" do
         wrapper = method_for { |topic:, **kwargs| }
         real = method_for { |topic:, partition:| }
 
@@ -81,8 +81,8 @@ RSpec.describe Datadog::MethodSignatureHelpers do
       end
     end
 
-    context 'wrapper mirrors the real method optional keyword exactly' do
-      it 'is compatible' do
+    context "wrapper mirrors the real method optional keyword exactly" do
+      it "is compatible" do
         wrapper = method_for { |timeout: nil| }
         real = method_for { |timeout: nil| }
 
@@ -90,8 +90,8 @@ RSpec.describe Datadog::MethodSignatureHelpers do
       end
     end
 
-    context 'wrapper declares an optional keyword the real method does not accept at all' do
-      it 'flags it, since bare super would forward it even when unset' do
+    context "wrapper declares an optional keyword the real method does not accept at all" do
+      it "flags it, since bare super would forward it even when unset" do
         wrapper = method_for { |timeout: nil| }
         real = method_for {}
 
@@ -100,8 +100,8 @@ RSpec.describe Datadog::MethodSignatureHelpers do
       end
     end
 
-    context 'real method has an open keyword surface the wrapper fails to forward' do
-      it 'flags a missing **kwargs' do
+    context "real method has an open keyword surface the wrapper fails to forward" do
+      it "flags a missing **kwargs" do
         wrapper = method_for {}
         real = method_for { |**kwargs| }
 
@@ -110,8 +110,8 @@ RSpec.describe Datadog::MethodSignatureHelpers do
       end
     end
 
-    context 'wrapper has **kwargs but the real method has no keyword surface' do
-      it 'flags an unexpected **kwargs' do
+    context "wrapper has **kwargs but the real method has no keyword surface" do
+      it "flags an unexpected **kwargs" do
         wrapper = method_for { |**kwargs| }
         real = method_for {}
 
