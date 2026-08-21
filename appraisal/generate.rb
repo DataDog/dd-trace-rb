@@ -16,10 +16,23 @@ require 'bundler'
 require 'appraisal/appraisal'
 
 require_relative '../tasks/appraisal_conversion'
+require_relative '../tasks/security_capabilities'
+require_relative 'source_options'
 
 gemfile = Appraisal::Gemfile.new.tap do |g|
   # Support `eval_gemfile` for `Bundler::DSL`
   g.define_singleton_method(:eval_gemfile) { |file| load(file) }
+
+  # Apply a cooldown window so freshly published gem versions are not resolved
+  # into lockfiles before anyone has had a chance to notice a compromised or
+  # typosquatted release. Bundler only supports this from 3.2+ (bundler 4.0.13),
+  # so on older runtimes the keyword is omitted entirely and those gemfiles keep
+  # resolving exactly as they do today.
+  if SecurityCapabilities.for_version(RUBY_VERSION)[:cooldown]
+    g.define_singleton_method(:source) do |src, options = {}, &block|
+      super(src, options.merge(cooldown: SecurityCapabilities::COOLDOWN_DAYS), &block)
+    end
+  end
 
   # The base gemfiles under `gemfiles/` declare `gemspec path: '..'` so Bundler
   # can resolve datadog.gemspec when those files are loaded directly via
