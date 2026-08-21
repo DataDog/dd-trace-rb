@@ -14,6 +14,7 @@ module SecurityCapabilities
   AUDIT_MIN_VERSION = Gem::Version.new("3.1")
   CHECKSUM_MIN_VERSION = Gem::Version.new("3.1")
   COOLDOWN_MIN_VERSION = Gem::Version.new("3.2")
+  COOLDOWN_DAYS = 2
 
   def for_version(version_string)
     version = Gem::Version.new(version_string)
