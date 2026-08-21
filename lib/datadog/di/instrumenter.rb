@@ -70,8 +70,12 @@ module Datadog
     #
     # @api private
     class Instrumenter
+      # Maximum number of capturing-probe snapshots admitted per second across the
+      # whole process.
       GLOBAL_SNAPSHOT_RATE_LIMIT = 20
 
+      # Maximum number of non-capturing probe emissions admitted per second across
+      # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
       def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil)
