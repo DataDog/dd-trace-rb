@@ -199,7 +199,7 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
         "jdbc:x://?a=b",
         "jdbc:x://;a=b",
         "jdbc:x:///database",
-        "jdbc:x://user:password@"
+        "jdbc:x://user:password@",
       ].each do |malformed_uri|
         context "with #{malformed_uri.inspect}" do
           let(:uri) { malformed_uri }
@@ -224,7 +224,7 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
         "host:12:34",
         "[2001:db8::1",
         "2001:db8::1",
-        "[[2001:db8::1]]:1234"
+        "[[2001:db8::1]]:1234",
       ].each do |authority|
         context "with #{authority.inspect}" do
           let(:uri) { "jdbc:x://#{authority}/database" }
@@ -310,7 +310,7 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
         "jdbc:",
         "jdbc:x:",
         "jdbc:://host/database",
-        "jdbc:x:/host/database"
+        "jdbc:x:/host/database",
       ].each do |input|
         context "with #{input.inspect}" do
           let(:uri) { input }
