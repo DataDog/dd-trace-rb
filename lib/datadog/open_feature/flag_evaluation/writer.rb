@@ -87,10 +87,16 @@ module Datadog
         )
           start_background_thread if forked?
 
-          # Avoid snapshot work when the queue is already full.
+          # Avoid snapshot work when the queue is already full. Give the
+          # consumer one scheduler turn to drain an already-signaled backlog
+          # before dropping the event.
           if @queue.size >= QUEUE_SIZE
-            @stop_mutex.synchronize { @dropped_pre_queue_overflow += 1 }
-            return
+            @stop_mutex.synchronize { @stop_cond.signal }
+            Thread.pass
+            if @queue.size >= QUEUE_SIZE
+              @stop_mutex.synchronize { @dropped_pre_queue_overflow += 1 }
+              return
+            end
           end
 
           observe_full_evaluation_data = observe_full_evaluation_data == true

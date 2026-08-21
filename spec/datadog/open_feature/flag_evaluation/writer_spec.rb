@@ -56,6 +56,28 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         expect(payload["flagEvaluations"].first["flag"]["key"]).to eq("my-flag")
       end
     end
+
+    it "lets the consumer drain a saturated queue before dropping the event" do
+      stub_const("#{described_class}::QUEUE_SIZE", 1)
+      allow(transport).to receive(:send_flag_evaluations)
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      writer = described_class.new(transport: transport, logger: logger)
+
+      writer.enqueue(
+        flag_key: "my-flag", targeting_key: "user-1",
+        eval_time_ms: realistic_eval_ms, attrs: {},
+      )
+      expect(Thread).to receive(:pass) { writer.send(:drain_queue) }
+      writer.enqueue(
+        flag_key: "my-flag", targeting_key: "user-2",
+        eval_time_ms: realistic_eval_ms + 1, attrs: {},
+      )
+      writer.send(:drain_and_flush)
+
+      expect(transport).to have_received(:send_flag_evaluations) do |payload|
+        expect(payload["flagEvaluations"].sum { |row| row["evaluation_count"] }).to eq(2)
+      end
+    end
   end
 
   describe "#stop drains and flushes a sleeping worker" do
