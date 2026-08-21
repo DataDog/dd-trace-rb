@@ -384,7 +384,7 @@ BUNDLE_GEMFILE=gemfiles/ruby-4.0.gemfile bundle exec rake dependency:audit
 
 If it fails:
 
-1. Preferred fix: upgrade the flagged gem to a patched version (e.g. `bundle update GEM_NAME` under the affected appraisal's `BUNDLE_GEMFILE`), then re-lock with `bundle exec rake dependency:lock`.
+1. Preferred fix: `BUNDLE_GEMFILE=<affected gemfile> bundle update GEM_NAME` (or `bundle lock --update GEM_NAME`) to upgrade the flagged gem to a patched version. Plain `bundle exec rake dependency:lock` will not move the version on its own.
 2. If no patched version exists for the Ruby/framework constraint in that appraisal, document the exception in `.bundler-audit.yml`:
    - Prefer `ignore_gem_versions` (scoped to the exact pinned gem+version, so bumping the gem later makes the finding reappear instead of staying silently hidden).
    - Use the top-level `ignore` list (by advisory id) only as a last resort, since it suppresses the advisory for any gem/version.
