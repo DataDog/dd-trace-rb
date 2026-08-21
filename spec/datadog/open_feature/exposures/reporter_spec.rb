@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "open_feature/sdk"
 require "datadog/open_feature/exposures/reporter"
 
 RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
@@ -17,7 +18,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
   let(:deduplicator) { instance_double(Datadog::OpenFeature::Exposures::Deduplicator) }
   let(:context) do
     instance_double(
-      "OpenFeature::SDK::EvaluationContext", targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"}
+      OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"}
     )
   end
   let(:result) do

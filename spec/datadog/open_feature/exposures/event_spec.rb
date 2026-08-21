@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "open_feature/sdk"
 require "datadog/open_feature/exposures/event"
 
 RSpec.describe Datadog::OpenFeature::Exposures::Event do
@@ -11,7 +12,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
   let(:serial_id) { nil }
   let(:context) do
     instance_double(
-      "OpenFeature::SDK::EvaluationContext", targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"}
+      OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"}
     )
   end
   let(:result) do
@@ -34,7 +35,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
     context "when context contains nested fields" do
       let(:context) do
         instance_double(
-          "OpenFeature::SDK::EvaluationContext",
+          OpenFeature::SDK::EvaluationContext,
           targeting_key: "john-doe",
           fields: {
             "targeting_key" => "john-doe",
@@ -68,7 +69,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
     context "when context does not contain extra fields" do
       let(:context) do
         instance_double(
-          "OpenFeature::SDK::EvaluationContext", targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"}
+          OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"}
         )
       end
       let(:expected) do
@@ -118,7 +119,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
   end
 
   describe ".cache_key" do
-    let(:context) { instance_double("OpenFeature::SDK::EvaluationContext", targeting_key: "john-doe") }
+    let(:context) { instance_double(OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe") }
 
     it "returns cache key based on flag and targeting key" do
       expect(described_class.cache_key(result, flag_key: "feature_flag", context: context))
@@ -127,7 +128,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
   end
 
   describe ".cache_value" do
-    let(:context) { instance_double("OpenFeature::SDK::EvaluationContext", targeting_key: "john-doe") }
+    let(:context) { instance_double(OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe") }
 
     it "returns cache value based on allocation and variant" do
       expect(described_class.cache_value(result, flag_key: "feature_flag", context: context))
