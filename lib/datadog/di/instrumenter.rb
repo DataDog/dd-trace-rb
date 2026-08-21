@@ -120,7 +120,7 @@ module Datadog
       # @param probe [Probe] the probe whose invocation is being rate limited
       # @return [Datadog::Core::TokenBucket] the shared limiter for the probe's category
       def probe_global_rate_limiter(probe)
-        if probe.capture_snapshot? || probe.capture_expressions?
+        if probe.capturing?
           global_snapshot_rate_limiter
         else
           global_log_rate_limiter
