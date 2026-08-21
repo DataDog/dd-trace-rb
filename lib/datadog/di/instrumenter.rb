@@ -98,9 +98,11 @@ module Datadog
       # Component#start! assigns the now-current tracker here.
       attr_writer :code_tracker
 
-      # Process-wide snapshot rate limiter (Datadog::Core::TokenBucket).
+      # Process-wide snapshot rate limiter.
+      # @return [Datadog::Core::TokenBucket]
       attr_reader :global_snapshot_rate_limiter
-      # Process-wide log rate limiter (Datadog::Core::TokenBucket).
+      # Process-wide log rate limiter.
+      # @return [Datadog::Core::TokenBucket]
       attr_reader :global_log_rate_limiter
 
       def capture_expression_evaluator
@@ -111,7 +113,7 @@ module Datadog
 
       # Returns the process-wide rate limiter for the probe.
       #
-      # @param [Probe] probe the probe whose invocation is being rate limited
+      # @param probe [Probe] the probe whose invocation is being rate limited
       # @return [Datadog::Core::TokenBucket] the shared limiter for the probe's category
       def probe_global_rate_limiter(probe)
         if probe.capture_snapshot? || probe.capture_expressions?
