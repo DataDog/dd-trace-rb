@@ -21,6 +21,10 @@ module Datadog
                 super
 
                 span.resource = payload[:api]
+              end
+
+              def on_finish(span, _event, _id, payload)
+                super
 
                 span.set_tag(Ext::TAG_REQUEST_SIZE, payload[:request_size]) if payload.key?(:request_size)
                 span.set_tag(Ext::TAG_RESPONSE_SIZE, payload[:response_size]) if payload.key?(:response_size)

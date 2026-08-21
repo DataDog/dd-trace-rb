@@ -12,7 +12,7 @@ module Datadog
           # @public_api
           class Settings < Contrib::Configuration::Settings
             DEFAULT_HEADERS = {
-              response: %w[Content-Type X-Request-ID]
+              response: %w[Content-Type X-Request-ID],
             }.freeze
 
             option :enabled do |o|

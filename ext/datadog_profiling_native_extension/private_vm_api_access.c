@@ -2,42 +2,45 @@
 
 // This file exports functions used to access private Ruby VM APIs and internals.
 // To do this, it imports a few VM internal (private) headers.
+// We rely on the datadog-ruby_core_source gem to get access to private VM headers; see
+// https://github.com/DataDog/datadog-ruby_core_source for details.
 //
 // **Important Note**: Our medium/long-term plan is to stop relying on all private Ruby headers, and instead request and
 // contribute upstream changes so that they become official public VM APIs.
 //
 // In the meanwhile, be very careful when changing things here :)
 
-#ifdef RUBY_MJIT_HEADER
-  // Pick up internal structures from the private Ruby MJIT header file
-  #include RUBY_MJIT_HEADER
-#else
-  // The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
-  // the datadog-ruby_core_source gem to get access to private VM headers.
+#include <ruby/defines.h>
 
-  // We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
-  // See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
+// We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
+// See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wattributes"
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic ignored "-Wexpansion-to-defined"
+  #include <vm_core.h>
+#pragma GCC diagnostic pop
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+  #include <iseq.h>
+#pragma GCC diagnostic pop
+
+#ifndef NO_INTERNAL_CLASS_HEADER_INCLUDE
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
-  #pragma GCC diagnostic ignored "-Wattributes"
-  #pragma GCC diagnostic ignored "-Wpragmas"
-  #pragma GCC diagnostic ignored "-Wexpansion-to-defined"
-    #include <vm_core.h>
+    #include <internal/class.h>
   #pragma GCC diagnostic pop
+#endif
 
+#include <ruby.h>
+
+#ifndef NO_RACTOR_HEADER_INCLUDE
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
-    #include <iseq.h>
+    #include <ractor_core.h>
   #pragma GCC diagnostic pop
-
-  #include <ruby.h>
-
-  #ifndef NO_RACTOR_HEADER_INCLUDE
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wunused-parameter"
-      #include <ractor_core.h>
-    #pragma GCC diagnostic pop
-  #endif
 #endif
 
 // This file can't include datadog_ruby_common.h so we replicate this here
@@ -49,6 +52,9 @@
 
 #define PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
 #include "private_vm_api_access.h"
+
+static inline const rb_callable_method_entry_t* get_cfunc_method_entry(const rb_control_frame_t *cfp);
+static const rb_callable_method_entry_t* safe_vm_frame_method_entry(const rb_control_frame_t *cfp);
 
 // MRI has a similar rb_thread_ptr() function which we can't call it directly
 // because Ruby does not expose the thread_data_type publicly.
@@ -74,18 +80,6 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
   #else
     return thread_struct_from_object(thread)->thread_id;
   #endif
-}
-
-size_t sizeof_rb_iseq_t(void) {
-  return sizeof(rb_iseq_t);
-}
-
-VALUE ddtrace_iseq_base_label(const void *iseq) {
-  return rb_iseq_base_label((const rb_iseq_t *)iseq);
-}
-
-VALUE ddtrace_iseq_path(const void *iseq) {
-  return rb_iseq_path((const rb_iseq_t *)iseq);
 }
 
 // Queries if the current thread is the owner of the global VM lock.
@@ -527,42 +521,30 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
                 continue;
             }
 
+            cme = safe_vm_frame_method_entry(cfp);
+
+            // Upstream (Ruby 4.0) does:
+            // if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
+            //   buff[i] = (VALUE)cme;
+            // } else {
+            //   buff[i] = (VALUE)cfp->iseq;
+            // }
+            // We get both the iseq and CME because we need both to format like Ruby backtraces
+
             stack_buffer[i].same_frame =
               stack_buffer[i].is_ruby_frame &&
-              stack_buffer[i].as.ruby_frame.iseq == (VALUE) cfp->iseq &&
-              stack_buffer[i].as.ruby_frame.caching_pc == cfp->pc;
+              stack_buffer[i].as.ruby_frame.iseq == cfp->iseq &&
+              stack_buffer[i].as.ruby_frame.caching_pc == cfp->pc &&
+              stack_buffer[i].cme == cme;
 
             if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
               i++;
               continue;
             }
 
-            // dd-trace-rb NOTE:
-            // Upstream Ruby has code here to retrieve the rb_callable_method_entry_t (cme) and in some cases to use it
-            // instead of the iseq.
-            // In practice, they are usually the same; the difference is that when you have e.g. block, one gets you a
-            // reference to the block, and the other to the method containing the block.
-            // This would be important if we used `rb_profile_frame_label` and wanted the "block in foo" label instead
-            // of just "foo". But we're currently using `rb_profile_frame_base_label` which I believe is always the same
-            // between the rb_callable_method_entry_t and the iseq. Thus, to simplify a bit our logic and reduce a bit
-            // the overhead, we always use the iseq here.
-            //
-            // @ivoanjo: I've left the upstream Ruby code commented out below for reference, so it's more obvious that
-            // we're diverging, and we can easily compare and experiment with the upstream version in the future.
-            //
-            // cme = rb_vm_frame_method_entry(cfp);
-
-            // if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ &&
-            //   // Fix: Do not use callable method entry when iseq is for an eval.
-            //   // TL;DR: This fix is needed for us to match the Ruby reference API information in the
-            //   // "when sampling an eval/instance eval inside an object" spec.
-            //   cfp->iseq->body->type != ISEQ_TYPE_EVAL) {
-            //     buff[i] = (VALUE)cme;
-            // }
-            // else {
-            stack_buffer[i].as.ruby_frame.iseq = (VALUE)cfp->iseq;
+            stack_buffer[i].as.ruby_frame.iseq = cfp->iseq;
             stack_buffer[i].as.ruby_frame.caching_pc = (void *) cfp->pc;
-            // }
+            stack_buffer[i].cme = cme;
 
             // The topmost frame may not have an updated PC because the JIT
             // may not have set one.  The JIT compiler will update the PC
@@ -582,7 +564,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
             i++;
         }
         else {
-            cme = rb_vm_frame_method_entry(cfp);
+            cme = get_cfunc_method_entry(cfp);
             if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
                 if (start > 0) {
                     start--;
@@ -591,16 +573,14 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
 
                 stack_buffer[i].same_frame =
                   !stack_buffer[i].is_ruby_frame &&
-                  stack_buffer[i].as.native_frame.caching_cme == (VALUE) cme;
+                  stack_buffer[i].cme == cme;
 
                 if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
                   i++;
                   continue;
                 }
 
-                stack_buffer[i].as.native_frame.caching_cme = (VALUE)cme;
-                stack_buffer[i].as.native_frame.method_id = cme->def->original_id;
-                stack_buffer[i].as.native_frame.function = cme->def->body.cfunc.func;
+                stack_buffer[i].cme = cme;
                 stack_buffer[i].is_ruby_frame = false;
                 i++;
             }
@@ -609,11 +589,6 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
 
     return i;
 }
-
-// Support code for older Rubies that cannot use the MJIT header
-#ifndef RUBY_MJIT_HEADER
-
-#define MJIT_STATIC // No-op on older Rubies
 
 // Taken from upstream include/ruby/backward/2/bool.h at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) Ruby developers <ruby-core@ruby-lang.org>
@@ -636,48 +611,64 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
 // to support our custom rb_profile_frames (see above)
 // Modifications:
 // * Removed debug checks (they were ifdef'd out anyway)
+// * Optimized to avoid recursion
 static rb_callable_method_entry_t *
-check_method_entry(VALUE obj, int can_be_svar)
-{
-    if (obj == Qfalse) return NULL;
+check_method_entry(VALUE obj, int can_be_svar) {
+  if (obj == Qfalse) {
+    return NULL;
+  }
 
-    switch (imemo_type(obj)) {
-      case imemo_ment:
-        return (rb_callable_method_entry_t *)obj;
-      case imemo_cref:
-        return NULL;
-      case imemo_svar:
-        if (can_be_svar) {
-            return check_method_entry(((struct vm_svar *)obj)->cref_or_me, FALSE);
-        }
-        // fallthrough
-      default:
-        return NULL;
+  enum imemo_type type = imemo_type(obj);
+  if (type == imemo_ment) {
+    return (rb_callable_method_entry_t *)obj;
+  } else if (can_be_svar && type == imemo_svar) {
+    VALUE cref_or_me = ((struct vm_svar *)obj)->cref_or_me;
+    if (imemo_type(cref_or_me) == imemo_ment) {
+      return (rb_callable_method_entry_t *)cref_or_me;
     }
+  }
+
+  return NULL;
 }
 
-// Taken from upstream vm_insnhelper.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
-// Copyright (C) 2007 Koichi Sasada
-// to support our custom rb_profile_frames (see above)
+// Identical to upstream rb_vm_frame_method_entry (vm_insnhelper.c) with two additions:
+// 1. FIXNUM_P check on ep[FLAGS] before each iteration to detect torn EPs
+// 2. NULL check on ep after VM_ENV_PREV_EP
 //
-// While older Rubies may have this function, the symbol is not exported which leads to dynamic loader issues, e.g.
-// `dyld: lazy symbol binding failed: Symbol not found: _rb_vm_frame_method_entry`.
-//
-// Modifications: None
-MJIT_STATIC const rb_callable_method_entry_t *
-rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
+// When the profiler's signal handler interrupts vm_make_env_each (vm.c) mid-escape,
+// a child frame's SPECVAL can still point to the parent's old stack EP whose flags
+// slot has been overwritten with (VALUE)env for GC marking.
+static const rb_callable_method_entry_t *
+safe_vm_frame_method_entry(const rb_control_frame_t *cfp)
 {
     const VALUE *ep = cfp->ep;
     rb_callable_method_entry_t *me;
 
-    while (!VM_ENV_LOCAL_P(ep)) {
-        if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) return me;
+    // Torn-EP check before VM_ENV_LOCAL_P, check_method_entry, and VM_ENV_PREV_EP
+    // dereference ep
+    while (FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS]) && !VM_ENV_LOCAL_P(ep)) {
+        if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) {
+            return me;
+        }
         ep = VM_ENV_PREV_EP(ep);
+        if (ep == NULL) return NULL;
     }
+
+    // If we exited because of a torn EP (failed FIXNUM_P), bail out
+    if (!FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS])) return NULL;
 
     return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
 }
-#endif // RUBY_MJIT_HEADER
+
+// Optimized version of rb_vm_frame_method_entry() for cfunc frames.
+// Cfunc frames always have VM_ENV_FLAG_LOCAL set, so ep[-2] is the cme directly
+// with no EP chain walk needed. The only complication is cfuncs that set $~ or $_
+// (e.g. Regexp#match, String#gsub) which replace ep[-2] with an imemo_svar wrapping
+// the cme - in that case svar->cref_or_me is always the cme (never a cref).
+static inline const rb_callable_method_entry_t *
+get_cfunc_method_entry(const rb_control_frame_t *cfp) {
+  return check_method_entry(cfp->ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
+}
 
 #ifndef NO_RACTORS
   // This API and definition are exported as a public symbol by the VM BUT the function header is not defined in any public header, so we
@@ -750,7 +741,7 @@ VALUE invoke_location_for(VALUE thread, int *line_location) {
   if (iseq == NULL) return Qnil;
 
   *line_location = NUM2INT(rb_iseq_first_lineno(iseq));
-  return rb_iseq_path(iseq);
+  return ddtrace_iseq_path(iseq);
 }
 
 void self_test_mn_enabled(void) {
@@ -879,7 +870,239 @@ bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)
   void self_test_current_fiber_for(void) { } // Nothing to do
 #endif
 
-bool pathobj_is_null(VALUE iseq) {
-  const rb_iseq_t *iseq_ptr = (const rb_iseq_t *) iseq;
-  return ISEQ_BODY(iseq_ptr)->location.pathobj == 0;
+// Variant of functions related to Thread::Backtrace::Location#label in Ruby 4.0
+// (location_label(), rb_gen_method_name(), calculate_iseq_label()),
+// but formatting using a C buffer instead of allocating Ruby Strings.
+// Also, those functions are static functions in vm_backtrace.c so not reusable.
+// There is also AFAIK no reasonable way to create a rb_backtrace_location_t from outside that file.
+
+// Return true if a given location is a C method or supposed to behave like one.
+static bool location_cfunc_p(const rb_callable_method_entry_t *cme) {
+  if (!cme) return false;
+
+  switch (cme->def->type) {
+    case VM_METHOD_TYPE_CFUNC:
+      return true;
+    // Upstream, but we don't want that behavior:
+    // case VM_METHOD_TYPE_ISEQ:
+    //   return is_internal_location(loc->cme->def->body.iseq.iseqptr);
+    default:
+      return false;
+  }
+}
+
+// RCLASS_SINGLETON_P() is only defined on Ruby 3.4+, so we have a copy for older versions
+static bool ddtrace_RCLASS_SINGLETON_P(VALUE klass) {
+  return RB_TYPE_P(klass, T_CLASS) && FL_TEST_RAW(klass, FL_SINGLETON);
+}
+
+static VALUE get_class_attached_object(VALUE klass) {
+#ifndef NO_CLASS_ATTACHED_OBJECT
+  return rb_class_attached_object(klass);
+#else
+  return rb_ivar_get(klass, rb_intern("__attached__"));
+#endif
+}
+
+static bool is_metaclass(VALUE mod, VALUE* attached) {
+  if (ddtrace_RCLASS_SINGLETON_P(mod)) {
+    VALUE attached_object = get_class_attached_object(mod);
+    if (RB_TYPE_P(attached_object, T_CLASS) || RB_TYPE_P(attached_object, T_MODULE)) {
+      *attached = attached_object;
+      return true;
+    }
+  }
+  return false;
+}
+
+VALUE ddtrace_alloc_free_rb_mod_name(VALUE mod) {
+#ifdef NO_ALLOC_FREE_MOD_NAME
+  VALUE name = rb_attr_get(mod, rb_intern("__classpath__"));
+#else
+  VALUE name = rb_mod_name(mod);
+#endif
+  // While Module#const_set rejects empty strings,
+  // an empty String is possible if `rb_const_set(mod, "", val)` was used
+  // but that's not understandable so consider those anonymous too.
+  if (name == Qnil || RSTRING_LEN(name) == 0) {
+    return Qnil;
+  } else {
+    return name;
+  }
+}
+
+// Ruby 3.3+ has a `permanent_classpath` flag on rb_classext_struct.
+// Checking for '#' in the name is equivalent on older Rubies:
+// non-permanent names contain '#' from `#<Module:0x...>` or `#<Class:0x...>` prefixes.
+static bool has_permanent_classpath(DDTRACE_UNUSED VALUE mod, DDTRACE_UNUSED VALUE mod_name) {
+#if defined(RCLASS_PERMANENT_CLASSPATH_P) // 4.0+
+  return RCLASS_PERMANENT_CLASSPATH_P(mod);
+#elif defined(HAVE_PERMANENT_CLASSPATH) // 3.3 - 3.4
+  return RCLASS_EXT(mod)->permanent_classpath;
+#else // 3.2 and older
+  return memchr(RSTRING_PTR(mod_name), '#', RSTRING_LEN(mod_name)) == NULL;
+#endif
+}
+
+VALUE ddtrace_permanent_mod_name(VALUE mod) {
+  VALUE name = ddtrace_alloc_free_rb_mod_name(mod);
+
+  if (NIL_P(name) || !has_permanent_classpath(mod, name)) {
+    return Qnil;
+  } else {
+    return name;
+  }
+}
+
+#define ONLY_METHOD_NAME ((ssize_t) -1)
+#define BUFFER_OUT_OF_SPACE ((ssize_t) -2)
+#define NO_METHOD_NAME ((ssize_t) -3)
+
+static ssize_t rb_gen_method_name(VALUE owner, VALUE method_name, char *buf, size_t buf_size) {
+  if (!(RB_TYPE_P(owner, T_CLASS) || RB_TYPE_P(owner, T_MODULE))) {
+    return ONLY_METHOD_NAME;
+  }
+
+  VALUE mod = owner;
+  char separator = '#';
+  if (is_metaclass(owner, &mod)) {
+    separator = '.';
+  }
+
+  VALUE mod_name = ddtrace_permanent_mod_name(mod);
+
+  // Exclude non-permanent names (e.g. `#<Module:0x0123>::Foo`) which break flamegraph aggregation
+  // since they contain addresses that differ across processes/runs.
+  if (NIL_P(mod_name)) {
+    return ONLY_METHOD_NAME;
+  }
+
+  size_t mod_name_len = RSTRING_LEN(mod_name);
+  size_t method_name_len = RSTRING_LEN(method_name);
+  size_t total = mod_name_len + 1 + method_name_len;
+  if (total <= buf_size) {
+    memcpy(buf, RSTRING_PTR(mod_name), mod_name_len);
+    buf[mod_name_len] = separator;
+    memcpy(buf + mod_name_len + 1, RSTRING_PTR(method_name), method_name_len);
+    return total;
+  } else {
+    return BUFFER_OUT_OF_SPACE;
+  }
+}
+
+static ssize_t calculate_iseq_label(VALUE owner, const rb_iseq_t *iseq, char *buf, size_t buf_size) {
+  switch (ISEQ_BODY(iseq)->type) {
+    case ISEQ_TYPE_TOP:
+    case ISEQ_TYPE_CLASS:
+    case ISEQ_TYPE_MAIN:
+      // Just the method name, not `Object#<top (required)>`
+      return ONLY_METHOD_NAME;
+
+    case ISEQ_TYPE_METHOD:
+      return rb_gen_method_name(owner, ISEQ_BODY(iseq)->location.label, buf, buf_size);
+
+#ifdef ISEQ_TYPE_PLAIN /* 2.5 does not have it */
+    case ISEQ_TYPE_PLAIN:
+#endif
+    case ISEQ_TYPE_BLOCK: {
+      // CRuby uses "block in Foo#bar" and ""block (N levels) in Foo#bar" in backtraces.
+      // We use "Foo#bar (block)" because it's much faster and looks better in the UI.
+      const rb_iseq_t* method_iseq = ISEQ_BODY(iseq)->local_iseq;
+
+      static const char suffix[] = " (block)";
+      size_t suffix_len = sizeof(suffix) - 1;
+
+      // Only use the result if there is enough space for both parts
+      ssize_t written = calculate_iseq_label(owner, method_iseq, buf, buf_size);
+      if (written > 0 && (written + suffix_len) <= buf_size) {
+        memcpy(buf + written, suffix, suffix_len);
+        return written + suffix_len;
+      } else if (written == ONLY_METHOD_NAME) {
+        VALUE method_name = rb_iseq_base_label(method_iseq);
+        size_t method_name_len = RSTRING_LEN(method_name);
+        if ((method_name_len + suffix_len) <= buf_size) {
+          memcpy(buf, RSTRING_PTR(method_name), method_name_len);
+          memcpy(buf + method_name_len, suffix, suffix_len);
+          return method_name_len + suffix_len;
+        }
+      }
+
+      return BUFFER_OUT_OF_SPACE;
+    }
+
+    case ISEQ_TYPE_RESCUE:
+    case ISEQ_TYPE_ENSURE:
+    case ISEQ_TYPE_EVAL:
+      iseq = ISEQ_BODY(iseq)->parent_iseq;
+      return calculate_iseq_label(owner, iseq, buf, buf_size);
+
+    default:
+      // Upstream: rb_bug("calculate_iseq_label: unreachable");
+      return ONLY_METHOD_NAME;
+  }
+}
+
+// MRI: location_label()
+// C methods don't have an iseq, only Ruby methods have
+ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq, char *buf, size_t buf_size) {
+  if (location_cfunc_p(cme)) {
+    VALUE method_name = rb_id2str(cme->def->original_id);
+    if (method_name == Qfalse) {
+      return NO_METHOD_NAME;
+    }
+    return rb_gen_method_name(cme->owner, method_name, buf, buf_size);
+  } else {
+    VALUE owner = cme ? cme->owner : Qnil;
+    return calculate_iseq_label(owner, iseq, buf, buf_size);
+  }
+}
+
+// Returns a String or Qfalse (like rb_id2str())
+VALUE ddtrace_location_base_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq) {
+  if (location_cfunc_p(cme)) {
+    return rb_id2str(cme->def->original_id);
+  } else {
+    return rb_iseq_base_label(iseq);
+  }
+}
+
+// Always returns a String
+VALUE ddtrace_iseq_base_label(const rb_iseq_t *iseq) {
+  return rb_iseq_base_label(iseq);
+}
+
+// Always returns a String
+// See https://github.com/ruby/ruby/blob/75aeb225b8558ff908ea78bf608dfbba09bdc2f9/iseq.c#L564-L565
+VALUE ddtrace_iseq_path(const rb_iseq_t *iseq) {
+  return rb_iseq_path(iseq);
+}
+
+size_t sizeof_rb_iseq_t(void) {
+  return sizeof(rb_iseq_t);
+}
+
+size_t sizeof_rb_callable_method_entry_t(void) {
+  return sizeof(rb_callable_method_entry_t);
+}
+
+void* ddtrace_cme_cfunc_func(const rb_callable_method_entry_t *cme) {
+  return cme->def->body.cfunc.func;
+}
+
+const char *ddtrace_cme_original_method_name(const rb_callable_method_entry_t *cme) {
+  return rb_id2name(cme->def->original_id);
+}
+
+// This function is not present in the VM headers, but is a public symbol that can be invoked.
+int rb_objspace_internal_object_p(VALUE obj);
+
+bool ddtrace_is_internal_object_p(VALUE obj) {
+  if (RB_SPECIAL_CONST_P(obj)) {
+    // Ruby special constants are not internal, except Qundef.
+    // See enum ruby_special_consts in CRuby.
+    return obj == Qundef;
+  } else {
+    // rb_objspace_internal_object_p() assumes non-immediate, so check that first above
+    return rb_objspace_internal_object_p(obj);
+  }
 }

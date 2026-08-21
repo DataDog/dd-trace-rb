@@ -103,4 +103,37 @@ RSpec.describe Datadog::DataStreams::PathwayContext do
       end
     end
   end
+
+  describe "cross-SDK wire compatibility with dd-trace-go" do
+    # Regression test for https://github.com/DataDog/dd-trace-go/issues/5163: dd-trace-go's
+    # internal/datastreams.Encode/Decode ZigZag-map the two pathway timestamps (reusing
+    # sketches-go's signed varint helper), but this file previously used plain unsigned
+    # LEB128, so any dd-trace-go consumer would silently decode the wrong timestamp for
+    # every message produced by this gem.
+    #
+    # This fixture is the real base64 output of dd-trace-go v2.9.0's own
+    # `Pathway{hash: 424242, pathwayStart: time.UnixMilli(1786000000123),
+    # edgeStart: time.UnixMilli(1786000005456)}.EncodeBase64()` -- generated and verified
+    # against the actual (unmodified) dd-trace-go source, not reimplemented here.
+    let(:go_encoded_fixture) { "MnkGAAAAAAD2kare+meg5are+mc=" }
+
+    it "decodes a real dd-trace-go-encoded pathway to the correct timestamps" do
+      decoded = described_class.decode_b64(go_encoded_fixture)
+
+      expect(decoded).not_to be_nil
+      expect(decoded.hash).to eq(424242)
+      expect((decoded.pathway_start.to_f * 1000).round).to eq(1786000000123)
+      expect((decoded.current_edge_start.to_f * 1000).round).to eq(1786000005456)
+    end
+
+    it "produces wire-identical output to dd-trace-go for the same input" do
+      context = described_class.new(
+        hash_value: 424242,
+        pathway_start: Time.at(1786000000.123),
+        current_edge_start: Time.at(1786000005.456)
+      )
+
+      expect(context.encode_b64).to eq(go_encoded_fixture)
+    end
+  end
 end

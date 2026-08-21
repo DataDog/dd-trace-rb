@@ -13,6 +13,10 @@ module Datadog
 
           AUTH_COMMANDS: ::Array["AUTH" | "auth"]
 
+          CONNECTION_SETUP_COMMANDS: ::Set[::String]
+
+          CLIENT_CONNECTION_SETUP_SUBCOMMANDS: ::Set[::String]
+
           MULTI_VERB_COMMANDS: untyped
 
           def self?.format_arg: (untyped arg) -> untyped
@@ -22,6 +26,8 @@ module Datadog
           def self?.get_verb: (untyped command_args) -> (nil | untyped | ::String)
 
           def self?.auth_command?: (untyped command_args) -> (false | untyped)
+          def self?.hello_auth_command?: (any command_args) -> bool
+          def self?.connection_setup_command?: (any command_args) -> bool
           def self?.resolve_command_args: (untyped command_args) -> untyped
         end
       end

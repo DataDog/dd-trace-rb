@@ -78,6 +78,64 @@ RSpec.describe Datadog::Tracing::Remote do
         end
       end
 
+      context "and tracing header tags configured" do
+        let(:config) do
+          {
+            "lib_config" => {
+              "tracing_header_tags" => [
+                {"header" => "X-Test-Header", "tag_name" => "test_header_rc"},
+                {"header" => "Content-Length", "tag_name" => ""},
+              ],
+            },
+          }
+        end
+
+        it "sends the comma-separated applied value to telemetry" do
+          expect(Datadog.send(:components).telemetry).to receive(:client_configuration_change!)
+            .with(contain_exactly(
+              ["DD_LOGS_INJECTION", nil],
+              ["DD_TRACE_HEADER_TAGS", "X-Test-Header:test_header_rc,Content-Length:"],
+              ["DD_TRACE_SAMPLE_RATE", nil],
+              ["DD_TRACE_SAMPLING_RULES", nil],
+            ))
+
+          process_config
+
+          expect(content.apply_state).to eq(2)
+          expect(content.apply_error).to be_nil
+        end
+      end
+
+      context "and tracing sampling rules configured" do
+        let(:config) do
+          {
+            "lib_config" => {
+              "tracing_sampling_rules" => [
+                {
+                  "sample_rate" => 1.0,
+                  "tags" => [{"key" => "service", "value_glob" => "web-*"}],
+                },
+              ],
+            },
+          }
+        end
+
+        it "sends the JSON applied value to telemetry" do
+          expect(Datadog.send(:components).telemetry).to receive(:client_configuration_change!)
+            .with(contain_exactly(
+              ["DD_LOGS_INJECTION", nil],
+              ["DD_TRACE_HEADER_TAGS", nil],
+              ["DD_TRACE_SAMPLE_RATE", nil],
+              ["DD_TRACE_SAMPLING_RULES", "[{\"sample_rate\":1.0,\"tags\":{\"service\":\"web-*\"}}]"],
+            ))
+
+          process_config
+
+          expect(content.apply_state).to eq(2)
+          expect(content.apply_error).to be_nil
+        end
+      end
+
       context "and dynamic_instrumentation_enabled is configured" do
         let(:symbol_database) do
           instance_double(

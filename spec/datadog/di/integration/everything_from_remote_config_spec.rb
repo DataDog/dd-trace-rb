@@ -559,7 +559,7 @@ RSpec.describe "DI integration from remote config" do
     context "line probe with path containing extra prefix directories" do
       let(:probe_spec) do
         {id: "11", name: "bar", type: "LOG_PROBE", where: {
-          sourceFile: "junk/prefix/instrumentation_integration_test_class.rb", lines: [42]
+          sourceFile: "junk/prefix/instrumentation_integration_test_class.rb", lines: [42],
         }}
       end
 
@@ -578,7 +578,7 @@ RSpec.describe "DI integration from remote config" do
     context "line probe received targeting loaded code not in code tracker" do
       let(:probe_spec) do
         {id: "11", name: "bar", type: "LOG_PROBE", where: {
-          sourceFile: "instrumentation_integration_test_class.rb", lines: [42]
+          sourceFile: "instrumentation_integration_test_class.rb", lines: [42],
         }}
       end
 

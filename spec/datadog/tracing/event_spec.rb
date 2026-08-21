@@ -67,7 +67,7 @@ RSpec.describe Datadog::Tracing::Event do
       let(:subscriptions) do
         [
           proc { |*_args| },
-          proc { |*_args| }
+          proc { |*_args| },
         ]
       end
 

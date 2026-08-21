@@ -41,7 +41,7 @@ jobs:
           - name: ruby
             version: '2.5'
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}-gnu-gcc-g47f47df86aeb379fb8b31dc6ad91a91bb3c97516
+      image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}-gnu-gcc-g9b9386d296819d954c1eb665ac0c5b81169805e7
       env:
         BUNDLE_GEMFILE: gemfiles/${{ matrix.engine.name }}-${{ matrix.engine.version }}.gemfile
     steps:
@@ -96,8 +96,7 @@ jobs:
           policy: self.update-latest-dependency
 
       - name: Create Pull Request
-        id: cpr
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        uses: ./.github/actions/signed-commit-pr
         with:
           token: ${{ steps.generate-token.outputs.token }}
           branch: auto-generate/update-latest-dependencies
@@ -105,8 +104,7 @@ jobs:
           base: master
           labels: dev/internal, integrations
           commit-message: "[🤖] Update Latest Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          delete-branch: true
-          sign-commits: true
+          add-paths: gemfiles
           body: |
             _This is an auto-generated PR from [here](https://github.com/DataDog/dd-trace-rb/blob/master/.github/workflows/update-latest-dependency.yml), which creates a pull request that will be continually updated with new changes until it is merged or closed)_
 

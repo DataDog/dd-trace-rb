@@ -96,6 +96,8 @@ RSpec.describe Datadog::Profiling::Component do
             .to receive(:waiting_for_gvl_threshold_ns).and_return(:threshold_ns_config)
           expect(settings.profiling.advanced)
             .to receive(:native_filenames_enabled).and_return(:native_filenames_enabled_config)
+          expect(settings.profiling.advanced)
+            .to receive(:experimental_show_classes_enabled).and_return(:experimental_show_classes_enabled_config)
 
           expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new).with(
             recorder: dummy_stack_recorder,
@@ -105,6 +107,7 @@ RSpec.describe Datadog::Profiling::Component do
             waiting_for_gvl_threshold_ns: :threshold_ns_config,
             otel_context_enabled: false,
             native_filenames_enabled: :native_filenames_enabled_config,
+            show_classes: :experimental_show_classes_enabled_config,
           )
 
           build_profiler_component
@@ -342,7 +345,6 @@ RSpec.describe Datadog::Profiling::Component do
         context "when heap profiling is enabled", ruby: ">= 2.7" do
           # Universally supported ruby version for allocation profiling by default
           let(:testing_version) { "3.3.0" }
-          let(:heap_size_profiling_available) { RubyVersion.is?("< 4") } # Currently incompatible with Ruby 4
 
           before do
             settings.profiling.advanced.experimental_heap_enabled = true
@@ -365,17 +367,20 @@ RSpec.describe Datadog::Profiling::Component do
             end
           end
 
-          context "on Ruby 4.1 or newer" do
-            let(:testing_version) { "4.1.0" }
+          # See https://bugs.ruby-lang.org/issues/19529 -- ObjectSpace::WeakMap could corrupt itself during compaction
+          ["3.1.0", "3.1.3", "3.2.0", "3.2.2"].each do |version_with_weak_map_bug|
+            context "on Ruby #{version_with_weak_map_bug}" do
+              let(:testing_version) { version_with_weak_map_bug }
 
-            it "initializes StackRecorder without heap sampling support and warns" do
-              expect(Datadog::Profiling::StackRecorder).to receive(:new)
-                .with(hash_including(heap_samples_enabled: false, heap_size_enabled: false))
-                .and_call_original
+              it "initializes StackRecorder without heap sampling support and warns" do
+                expect(Datadog::Profiling::StackRecorder).to receive(:new)
+                  .with(hash_including(heap_samples_enabled: false, heap_size_enabled: false))
+                  .and_call_original
 
-              expect(logger).to receive(:warn).with(/Heap profiling is currently incompatible with Ruby 4.1/)
+                expect(logger).to receive(:warn).with(/upgrade to Ruby >= 3.1.4 or >= 3.2.3/)
 
-              build_profiler_component
+                build_profiler_component
+              end
             end
           end
 
@@ -402,7 +407,7 @@ RSpec.describe Datadog::Profiling::Component do
 
             it "initializes StackRecorder with heap sampling support and warns" do
               expect(Datadog::Profiling::StackRecorder).to receive(:new)
-                .with(hash_including(heap_samples_enabled: true, heap_size_enabled: heap_size_profiling_available))
+                .with(hash_including(heap_samples_enabled: true, heap_size_enabled: true))
                 .and_call_original
 
               expect(logger).to receive(:debug).with(/Ractors.+stopping/)
@@ -412,17 +417,32 @@ RSpec.describe Datadog::Profiling::Component do
               build_profiler_component
             end
 
+            # See https://bugs.ruby-lang.org/issues/19529 -- these are the first versions with the WeakMap fix
+            ["3.1.4", "3.2.3"].each do |version_with_weak_map_fix|
+              context "on Ruby #{version_with_weak_map_fix}" do
+                let(:testing_version) { version_with_weak_map_fix }
+
+                before { allow(logger).to receive(:debug) }
+
+                it "initializes StackRecorder with heap sampling support" do
+                  expect(Datadog::Profiling::StackRecorder).to receive(:new)
+                    .with(hash_including(heap_samples_enabled: true, heap_size_enabled: true))
+                    .and_call_original
+
+                  build_profiler_component
+                end
+              end
+            end
+
             context "on Ruby 4.0 or newer" do
               let(:testing_version) { "4.0.0" }
 
               before { allow(logger).to receive(:debug) }
 
-              it "initializes StackRecorder with heap sampling but without heap size profiling support and logs" do
+              it "initializes StackRecorder with heap sampling support" do
                 expect(Datadog::Profiling::StackRecorder).to receive(:new)
-                  .with(hash_including(heap_samples_enabled: true, heap_size_enabled: false))
+                  .with(hash_including(heap_samples_enabled: true, heap_size_enabled: true))
                   .and_call_original
-
-                expect(logger).to receive(:info).with(/Heap live size profiling is currently incompatible with Ruby 4/)
 
                 build_profiler_component
               end

@@ -54,7 +54,7 @@ RSpec.describe Datadog::Tracing::Contrib do
     "sucker_punch" => "SuckerPunch",
     "trilogy" => "Trilogy",
     "karafka" => "Karafka",
-    "waterdrop" => "WaterDrop"
+    "waterdrop" => "WaterDrop",
   }
 
   Dir.chdir("#{root}/lib/datadog/tracing/contrib") do |pwd|

@@ -62,7 +62,24 @@ module Datadog
 
         super()
         self.loop_base_interval = interval
+        # Without this, a preload-then-fork deployment model (e.g. Puma cluster mode with
+        # preload_app!, or Sidekiq Enterprise's sidekiqswarm with SIDEKIQ_PRELOAD_APP) leaves
+        # every forked child with a dead flush thread: Ruby threads don't survive fork, and the
+        # default FORK_POLICY_STOP means #perform would otherwise just mark the worker stopped
+        # instead of restarting it. See #restart_flush_thread.
+        self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
 
+        perform
+      end
+
+      # Restarts the flush thread if a fork has been detected since this processor was created.
+      # Called by Components#after_fork. Safe to call even when no fork occurred: #perform (via
+      # Workers::Async::Thread) only restarts the worker when +forked?+ is true. Deliberately not
+      # named +after_fork+: Workers::Async::Thread already defines a protected +after_fork+
+      # template method that #perform's internal restart path (+restart_after_fork+) calls on
+      # every restart -- overriding it here would recurse.
+      def restart_flush_thread
+        discard_inherited_state_after_fork! if forked?
         perform
       end
 
@@ -79,7 +96,7 @@ module Datadog
             topic: topic,
             partition: partition,
             offset: offset,
-            timestamp_ns: (now.to_f * 1e9).to_i
+            timestamp_ns: (now.to_f * 1e9).to_i,
           }
         )
         true
@@ -98,7 +115,7 @@ module Datadog
             topic: topic,
             partition: partition,
             offset: offset,
-            timestamp: now
+            timestamp: now,
           }
         )
         true
@@ -186,7 +203,7 @@ module Datadog
 
         bucket[:latest_produce_offsets][partition_key] = [
           event[:offset],
-          bucket[:latest_produce_offsets][partition_key] || 0
+          bucket[:latest_produce_offsets][partition_key] || 0,
         ].max
       end
 
@@ -196,7 +213,7 @@ module Datadog
           partition: event[:partition],
           offset: event[:offset],
           timestamp: event[:timestamp],
-          timestamp_sec: event[:timestamp].to_f
+          timestamp_sec: event[:timestamp].to_f,
         }
 
         timestamp_ns = (event[:timestamp].to_f * 1e9).to_i
@@ -216,7 +233,7 @@ module Datadog
             expected_offset: previous_offset + 1,
             actual_offset: event[:offset],
             gap_size: event[:offset] - previous_offset - 1,
-            timestamp_sec: event[:timestamp].to_f
+            timestamp_sec: event[:timestamp].to_f,
           }
         end
 
@@ -302,6 +319,20 @@ module Datadog
         PathwayContext.decode_b64(encoded_ctx)
       end
 
+      # A fork copies whatever was buffered in the parent (unflushed events, aggregated
+      # buckets, consumer stats) into the child. If the parent process is still alive and
+      # flushing (e.g. a supervisor process that stays up after forking workers), letting
+      # the child flush that same inherited data as well would double-report it to the
+      # agent. Discard it instead: losing a few seconds of pre-fork stats is preferable to
+      # corrupting pipeline throughput/lag numbers with duplicates.
+      def discard_inherited_state_after_fork!
+        @event_buffer.pop
+        @stats_mutex.synchronize do
+          @buckets.clear
+          @consumer_stats.clear
+        end
+      end
+
       def flush_stats
         stats_buckets = @stats_mutex.synchronize do
           return if @buckets.empty? && @consumer_stats.empty?
@@ -321,7 +352,7 @@ module Datadog
           "TracerVersion" => Datadog::VERSION::STRING,
           "Lang" => "ruby",
           "Stats" => stats_buckets,
-          "Hostname" => hostname
+          "Hostname" => hostname,
         } # : ::Hash[::String, (::String | ::Array[::String])]
 
         payload["ProcessTags"] = Core::Environment::Process.tags if @settings.experimental_propagate_process_tags_enabled
@@ -400,7 +431,7 @@ module Datadog
             full_pathway_latency_sec: full_pathway_latency_sec,
             payload_size: payload_size,
             tags: tags,
-            timestamp_sec: timestamp_sec
+            timestamp_sec: timestamp_sec,
           }
         )
         true
@@ -449,14 +480,14 @@ module Datadog
             topic, partition = key.split(":", 2)
             backlogs << {
               "Tags" => ["type:kafka_produce", "topic:#{topic}", "partition:#{partition}"],
-              "Value" => offset
+              "Value" => offset,
             }
           end
           bucket[:latest_commit_offsets].each do |key, offset|
             group, topic, partition = key.split(":", 3)
             backlogs << {
               "Tags" => ["type:kafka_commit", "consumer_group:#{group}", "topic:#{topic}", "partition:#{partition}"],
-              "Value" => offset
+              "Value" => offset,
             }
           end
 
@@ -464,7 +495,7 @@ module Datadog
             "Start" => bucket_time_ns,
             "Duration" => @bucket_size_ns,
             "Stats" => bucket_stats,
-            "Backlogs" => backlogs + serialize_consumer_backlogs
+            "Backlogs" => backlogs + serialize_consumer_backlogs,
           }
         end
 
@@ -479,9 +510,9 @@ module Datadog
             "Tags" => [
               "type:kafka_commit",
               "topic:#{stat[:topic]}",
-              "partition:#{stat[:partition]}"
+              "partition:#{stat[:partition]}",
             ],
-            "Value" => stat[:offset]
+            "Value" => stat[:offset],
           }
         end
       end
@@ -494,7 +525,7 @@ module Datadog
         {
           pathway_stats: {},
           latest_produce_offsets: {},
-          latest_commit_offsets: {}
+          latest_commit_offsets: {},
         }
       end
 
@@ -503,7 +534,7 @@ module Datadog
           edge_latency: Datadog::Core::DDSketch.new,
           full_pathway_latency: Datadog::Core::DDSketch.new,
           payload_size_sum: 0,
-          payload_size_count: 0
+          payload_size_count: 0,
         }
       end
     end

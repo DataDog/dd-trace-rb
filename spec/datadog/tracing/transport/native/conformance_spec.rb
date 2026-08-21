@@ -4,6 +4,8 @@ require "datadog/tracing/transport/native"
 require "datadog/tracing/span"
 require "datadog/tracing/trace_segment"
 require "datadog/tracing/transport/trace_formatter"
+require "datadog/appsec"
+require "datadog/appsec/actions_handler/serializable_backtrace"
 require "socket"
 require "msgpack"
 
@@ -157,6 +159,7 @@ RSpec.describe "Native transport wire-level conformance" do
       ).tap do |span|
         (attrs[:meta] || {}).each { |k, v| span.set_tag(k, v) }
         (attrs[:metrics] || {}).each { |k, v| span.set_metric(k, v) }
+        (attrs[:metastruct] || {}).each { |k, v| span.set_metastruct_tag(k, v) }
       end
     end
     Datadog::Tracing::TraceSegment.new(spans, id: trace_id, root_span_id: spans.first.id)
@@ -241,6 +244,97 @@ RSpec.describe "Native transport wire-level conformance" do
       expect(metrics["_dd.measured"]).to eq(1.0)
       expect(metrics["_sampling_priority_v1"]).to eq(2.0)
       expect(metrics["custom.metric"]).to eq(42.5)
+    end
+
+    it "preserves structured metadata as per-key MessagePack blobs" do
+      trace = make_trace([{
+        name: "op",
+        metastruct: {
+          :"_dd.stack" => {
+            "frames" => [{"file" => "app.rb", "line" => 42}],
+            "enabled" => true,
+          },
+          "ai_guard" => {
+            "messages" => ["hello", nil],
+            "score" => 0.75,
+            :enabled => false,
+            "negative" => -9_223_372_036_854_775_808,
+            "unsigned" => 18_446_744_073_709_551_615,
+            "binary" => "\x00\xff".b,
+            "transcoded" => (+"caf\xe9").force_encoding(Encoding::ISO_8859_1),
+          },
+        },
+      }])
+
+      decoded = send_and_decode([trace])
+      metastruct = decoded.first.first["meta_struct"]
+
+      expect(MessagePack.unpack(metastruct["_dd.stack"])).to eq(
+        "frames" => [{"file" => "app.rb", "line" => 42}],
+        "enabled" => true,
+      )
+      expect(MessagePack.unpack(metastruct["ai_guard"])).to eq(
+        "messages" => ["hello", nil],
+        "score" => 0.75,
+        "enabled" => false,
+        "negative" => -9_223_372_036_854_775_808,
+        "unsigned" => 18_446_744_073_709_551_615,
+        "binary" => "\x00\xff".b,
+        "transcoded" => "café",
+      )
+    end
+
+    it "preserves AppSec serializable backtraces" do
+      backtrace = Datadog::AppSec::ActionsHandler::SerializableBacktrace.new(
+        locations: caller_locations(0, 1),
+        stack_id: "stack-1",
+      )
+      trace = make_trace([{
+        name: "op",
+        metastruct: {"_dd.stack" => {"exploit" => [backtrace]}},
+      }])
+
+      decoded = send_and_decode([trace])
+      stack = MessagePack.unpack(decoded.first.first["meta_struct"]["_dd.stack"])
+      serialized_backtrace = stack.fetch("exploit").first
+
+      expect(serialized_backtrace).to include(
+        "id" => "stack-1",
+        "language" => "ruby",
+      )
+      expect(serialized_backtrace.fetch("frames")).to contain_exactly(
+        include("file" => __FILE__, "line" => an_instance_of(Integer)),
+      )
+    end
+
+    it "snapshots string bytes before later Ruby normalisation mutates or relocates them" do
+      text = +"original text"
+      binary = +"\x00\xff".b
+      relocated = +"short"
+      backtrace = Datadog::AppSec::ActionsHandler::SerializableBacktrace.new(
+        locations: [],
+        stack_id: "stack-1",
+      )
+      backtrace.define_singleton_method(:to_h) do
+        text.setbyte(0, "X".ord)
+        binary.setbyte(0, 0x7f)
+        relocated.replace("relocated " * 100)
+        {"id" => "stack-1", "language" => "ruby", "frames" => []}
+      end
+      trace = make_trace([{
+        name: "op",
+        metastruct: {"mutation" => [text, binary, relocated, backtrace]},
+      }])
+
+      decoded = send_and_decode([trace])
+      values = MessagePack.unpack(decoded.first.first["meta_struct"]["mutation"])
+
+      expect(values).to eq([
+        "original text",
+        "\x00\xff".b,
+        "short",
+        {"id" => "stack-1", "language" => "ruby", "frames" => []},
+      ])
     end
   end
 
