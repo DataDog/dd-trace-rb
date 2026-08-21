@@ -31,6 +31,10 @@ module Datadog
 
           private
 
+          def self.single_host_location: (String location) -> String
+
+          def self.valid_host?: (String? host) -> bool
+
           def self.database_from_path: (String? path) -> String?
 
           def self.database_from_properties: (String? properties) -> String?
