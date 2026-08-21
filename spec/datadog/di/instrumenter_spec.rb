@@ -2150,6 +2150,32 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
+      context "when the global snapshot limit rejects a capturing probe" do
+        let(:probe) do
+          Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
+            id: 1, type: :log, capture_snapshot: true)
+        end
+
+        before do
+          expect(instrumenter.global_snapshot_rate_limiter).to receive(:allow?).and_return(false)
+        end
+
+        it "does not invoke the callback and draws from the snapshot bucket" do
+          expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
+
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(observed_calls.length).to eq 0
+          expect(logger).to have_received(:trace) do |&block|
+            expect(block.call).to match(/global rate limit/)
+          end
+        end
+      end
+
       context "when the per-probe limit rejects" do
         let(:probe) do
           Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
@@ -2204,6 +2230,33 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         it "does not invoke the callback" do
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+
+          hook_line(probe) do |payload|
+            observed_calls << payload
+          end
+
+          HookLineTestClass.new.test_method
+
+          expect(observed_calls).to be_empty
+          expect(logger).to have_received(:trace) do |&block|
+            expect(block.call).to match(/global rate limit/)
+          end
+        end
+      end
+
+      context "when the global snapshot limit rejects a capturing probe" do
+        let(:probe) do
+          Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3, id: 1, type: :log,
+            capture_snapshot: true)
+        end
+
+        before do
+          expect(instrumenter.global_snapshot_rate_limiter).to receive(:allow?).and_return(false)
+        end
+
+        it "does not invoke the callback and draws from the snapshot bucket" do
+          expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+          expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
           hook_line(probe) do |payload|
             observed_calls << payload
