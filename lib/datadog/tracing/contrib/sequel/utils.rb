@@ -64,18 +64,35 @@ module Datadog
             # The returned Hash guarantees the existence of all keys,
             # but Hash values can be `nil` when not parseable from the URL.
             #
-            # @param uri [String] the JDBC URL to parse
+            # @param uri [String, nil] the JDBC URL to parse
             # @return [Hash{Symbol => String, nil}]
             #   - `:host` — host value when `subname` uses URI-style authority syntax: `//host[:port]`
             #   - `:port` — port when `subname` uses URI-style authority syntax: `//host[:port]`
             #   - `:database` — best-effort database name
             def parse_jdbc_uri(uri)
               result = {host: nil, port: nil, database: nil}
-              return result unless uri.valid_encoding?
+              return result unless uri.is_a?(String) && uri.valid_encoding?
 
               if uri.bytesize > MAX_JDBC_URI_BYTES
+                # Strip userinfo before truncation. Otherwise, an `@` beyond the limit could be
+                # discarded and leave a credential prefix looking like a valid authority/host.
+                authority_marker = uri.index("//")
+                if authority_marker
+                  authority_start = authority_marker + 2
+                  authority_end = [
+                    uri.index("/", authority_start),
+                    uri.index(";", authority_start),
+                    uri.index("?", authority_start),
+                  ].compact.min || uri.length
+                  userinfo_end = uri.rindex("@", authority_end - 1)
+
+                  if userinfo_end && userinfo_end >= authority_start
+                    uri = uri[0...authority_start] + uri[(userinfo_end + 1)..-1].to_s
+                  end
+                end
+
                 # Keep one extra byte, then let `chop` safely remove multi-byte unicode characters.
-                uri = uri.byteslice(0, MAX_JDBC_URI_BYTES + 1).chop
+                uri = uri.byteslice(0, MAX_JDBC_URI_BYTES + 1).chop if uri.bytesize > MAX_JDBC_URI_BYTES
               end
 
               match = JDBC_URI_PATTERN.match(uri)

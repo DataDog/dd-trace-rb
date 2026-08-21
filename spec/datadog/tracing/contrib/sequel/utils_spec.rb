@@ -139,6 +139,15 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
       end
     end
 
+    context "with nil input" do
+      let(:uri) { nil }
+
+      it "returns all-nil without raising" do
+        expect { parsed }.not_to raise_error
+        expect(parsed).to eq(host: nil, port: nil, database: nil)
+      end
+    end
+
     context "authority containing user-info" do
       let(:uri) { "jdbc:mysql://user:password@db-host:3306/orders" }
 
@@ -293,6 +302,14 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
         expect(uri.bytesize).to eq(maximum_size + 2)
         expect(described_class.parse_jdbc_uri(uri))
           .to eq(host: "db-host", port: nil, database: "orders")
+      end
+
+      it "removes userinfo before truncating an authority" do
+        uri = "jdbc:mysql://user:#{"secret," * 1_200}@db-host:3306/orders"
+
+        expect(uri.index("@")).to be > maximum_size
+        expect(described_class.parse_jdbc_uri(uri))
+          .to eq(host: "db-host", port: "3306", database: "orders")
       end
     end
 
