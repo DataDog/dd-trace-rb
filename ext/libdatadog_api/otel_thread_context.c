@@ -80,13 +80,29 @@ void otel_thread_context_init(VALUE tracing_module) {
   #endif
 
   #ifdef HAVE_RUBY_THREAD_STORAGE_API
-    // SUSPENDED fires on every GVL release: a thread that calls `set` and then enters a C
-    // extension that releases the GVL publishes no context for the duration of that call.
+    // This function is declared in internal/thread.h.
+    // It returns 0 when the current thread sits in a blocking region.
+    int ruby_thread_has_gvl_p(void);
+
+    static bool in_blocking_region(void) {
+      #ifdef HAVE_RUBY_THREAD_HAS_GVL_P
+        return ruby_thread_has_gvl_p() == 0;
+      #else
+        return false;
+      #endif
+    }
+
+    // Under M:N a Ruby thread can migrate between native threads,
+    // so we need to detach the context when the Ruby thread gets suspended.
     static void on_thread_suspended(
       DDTRACE_UNUSED rb_event_flag_t event,
       DDTRACE_UNUSED const rb_internal_thread_event_data_t *event_data,
       DDTRACE_UNUSED void *user_data
     ) {
+      // Ruby pins threads that release GVL to call into a native extension,
+      // so we know the thread will not migrate.
+      if (in_blocking_region()) return;
+
       ddog_otel_thread_ctx_detach();
     }
 
@@ -129,8 +145,6 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
       rb_add_event_hook(on_thread_end, RUBY_EVENT_THREAD_END, Qnil);
     #endif
 
-    // Under M:N, a Ruby thread migrates between OS threads.
-    // We use thread storage to store a pointer to the OTel thread context record.
     #ifdef HAVE_RUBY_THREAD_STORAGE_API
       rb_internal_thread_add_event_hook(on_thread_suspended, RUBY_INTERNAL_THREAD_EVENT_SUSPENDED, NULL);
       rb_internal_thread_add_event_hook(on_thread_resumed, RUBY_INTERNAL_THREAD_EVENT_RESUMED, NULL);

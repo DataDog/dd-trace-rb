@@ -99,6 +99,7 @@ EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".fr
 have_func("rb_iseq_type")
 
 $defs << "-DHAVE_RUBY_THREAD_STORAGE_API" if RUBY_VERSION >= "3.3"
+$defs << "-DHAVE_RUBY_THREAD_HAS_GVL_P" if have_func("ruby_thread_has_gvl_p")
 
 create_makefile(EXTENSION_NAME)
 
