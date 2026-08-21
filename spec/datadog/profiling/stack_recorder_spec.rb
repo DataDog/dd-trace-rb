@@ -40,8 +40,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     described_class::Testing._native_slot_two_mutex_locked?(stack_recorder)
   end
 
-  def is_object_recorded?(obj_id)
-    described_class::Testing._native_is_object_recorded?(stack_recorder, obj_id)
+  def is_object_recorded?(record_id)
+    described_class::Testing._native_is_object_recorded?(stack_recorder, record_id)
   end
 
   def recorder_after_gc_step
@@ -382,13 +382,15 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
+      # Returns the record id the heap recorder is using to track `obj`, or nil if the allocation wasn't sampled
       def sample_allocation(obj)
         # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
         described_class::Testing._native_track_object(stack_recorder, obj, sample_rate, obj.class.name)
         Datadog::Profiling::Collectors::Stack::Testing
           ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
-        # On Ruby 4+, heap recordings are deferred and need to be finalized after the sample is recorded
-        described_class::Testing._native_finalize_pending_heap_recordings(stack_recorder)
+        # Heap recordings are deferred and need to be committed after the sample is recorded
+        described_class::Testing._native_commit_pending_heap_recordings(stack_recorder)
+        described_class::Testing._native_record_id_for(stack_recorder, obj)
       end
 
       def introduce_distinct_stacktraces(i, obj)
@@ -400,7 +402,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
 
       before do
-        skip "Heap profiling relies on ObjectSpace._id2ref, removed in Ruby 4.1" if RubyVersion.is?(">= 4.1")
+        # NOTE: This needs to be checked before the allocations below, since those already go through the heap
+        # recorder. (See `Profiling::Component.enable_heap_profiling?` for the versions we actually support.)
+        if (heap_samples_enabled || heap_size_enabled) && RubyVersion.is?("< 3.1")
+          skip "Heap profiling is only supported on Ruby >= 3.1"
+        end
 
         allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
           {"z" => -1, "y" => "-2", "x" => false}, Object.new]
@@ -461,10 +467,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           samples.reject { |s| s.value?(:"heap-live-samples") }
         end
 
-        before do
-          skip "Heap profiling is only supported on Ruby >= 2.7" unless RubyVersion.is?(">= 2.7")
-        end
-
         it "include the stack and sample counts for the objects still left alive" do
           skip_asan_flaky
 
@@ -488,8 +490,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect(hash_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_hash) * sample_rate)
         end
 
-        # Regression test for https://github.com/DataDog/dd-trace-rb/issues/5936,
-        # see comments on `ruby_obj_memsize_of` for details
+        # Regression test for https://github.com/DataDog/dd-trace-rb/issues/5936: on Ruby 4, sizing a class walks the
+        # per-namespace class extensions, which used to crash the VM when we handed it an object resurrected via
+        # `ObjectSpace._id2ref`. We no longer use `_id2ref`, so this is expected to report a real size everywhere.
         context "for class objects" do
           let(:a_class) { Class.new }
 
@@ -498,17 +501,13 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             GC.start # Age the class past the current GC gen so it is reported as a live heap object (gen_age > 0)
           end
 
-          it "tracks the class without crashing and reports a size that is safe for the current Ruby" do
+          it "tracks the class without crashing and reports its size" do
             skip_asan_flaky
 
             class_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "Class" }
             expect(class_sample).to_not be_nil
 
-            if RubyVersion.is?(">= 4")
-              expect(class_sample.values[:"heap-live-size"]).to eq(0)
-            else
-              expect(class_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_class) * sample_rate)
-            end
+            expect(class_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_class) * sample_rate)
           end
         end
 
@@ -712,25 +711,25 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           end
         end
 
-        describe "pending heap recordings cleanup", ruby: ">= 4" do
+        describe "pending heap recordings cleanup" do
           def has_pending_recordings?
             described_class::Testing._native_debug_heap_recorder(stack_recorder).to_h.dig(:state, :pending_recordings_count) > 0
           end
 
-          def track_object_without_finalize(obj)
+          def track_object_without_commit(obj)
             described_class::Testing._native_track_object(stack_recorder, obj, sample_rate, obj.class.name)
             Datadog::Profiling::Collectors::Stack::Testing
               ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
           end
 
-          it "clears pending recordings after finalization" do
+          it "clears pending recordings after committing" do
             test_object = Object.new
 
-            track_object_without_finalize(test_object)
+            track_object_without_commit(test_object)
 
             expect(has_pending_recordings?).to be true
 
-            described_class::Testing._native_finalize_pending_heap_recordings(stack_recorder)
+            described_class::Testing._native_commit_pending_heap_recordings(stack_recorder)
 
             expect(has_pending_recordings?).to be false
           end
@@ -738,12 +737,12 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           it "clears all pending recordings after multiple allocations" do
             3.times do
               test_object = Object.new
-              track_object_without_finalize(test_object)
+              track_object_without_commit(test_object)
             end
 
             expect(has_pending_recordings?).to be true
 
-            described_class::Testing._native_finalize_pending_heap_recordings(stack_recorder)
+            described_class::Testing._native_commit_pending_heap_recordings(stack_recorder)
 
             expect(has_pending_recordings?).to be false
           end
@@ -751,19 +750,23 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
         describe "#recorder_after_gc_step" do
           def sample_and_clear
-            test_object = Object.new
-            test_object_id = test_object.object_id
-            sample_allocation(test_object)
-            # Let's replace the test_object reference with another object, so that the original one can be GC'd
-            test_object = Object.new # rubocop:disable Lint/UselessAssignment
+            # The object is allocated and sampled on a separate thread which we immediately join. Once that thread
+            # is gone, so are its machine stack and registers, so there is nowhere left for a stale reference to
+            # the object to hide from Ruby's conservative garbage collector -- only the record id (an Integer)
+            # crosses back to us.
+            #
+            # Doing this on the main thread instead made these examples flaky on CI: the object would survive the
+            # GC below and the recorder would (correctly!) keep reporting it. That's the same class of problem the
+            # enclosing `before` documents, see https://bugs.ruby-lang.org/issues/19460.
+            record_id = Thread.new { sample_allocation(Object.new) }.value
             GC.start
-            test_object_id
+            record_id
           end
 
           before do
             GC.disable
 
-            @object_ids = Array.new(4) { sample_and_clear }
+            @record_ids = Array.new(4) { sample_and_clear }
           end
 
           after { GC.enable }
@@ -773,25 +776,20 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
             it "clears young dead objects with age 1 and 2, but not older objects" do
               # Every object is still being tracked at this point
-              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
+              expect(@record_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
 
               recorder_after_gc_step
 
               # Young objects should no longer be tracked, but older objects are still kept
-              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, false, false]
+              expect(@record_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, false, false]
 
               stack_recorder.serialize
 
               GC.enable
               GC.start
 
-              # Sanity check: All the objects should've been garbage collected
-              @object_ids.map do |object_id|
-                expect { ObjectSpace._id2ref(object_id) }.to raise_error(RangeError)
-              end
-
               # Older objects are only cleared at serialization time
-              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]
+              expect(@record_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]
             end
 
             context "when there's a heap serialization ongoing" do
@@ -800,12 +798,12 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
                 described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
 
-                test_object_id = sample_and_clear
+                test_record_id = sample_and_clear
 
                 expect do
                   described_class::Testing._native_heap_recorder_reset_last_update(stack_recorder)
                   recorder_after_gc_step
-                end.to_not change { is_object_recorded?(test_object_id) }.from(true)
+                end.to_not change { is_object_recorded?(test_record_id) }.from(true)
 
                 described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
 
@@ -813,34 +811,34 @@ RSpec.describe Datadog::Profiling::StackRecorder do
                 expect do
                   described_class::Testing._native_heap_recorder_reset_last_update(stack_recorder)
                   recorder_after_gc_step
-                end.to change { is_object_recorded?(test_object_id) }.from(true).to(false)
+                end.to change { is_object_recorded?(test_record_id) }.from(true).to(false)
               end
             end
 
             it "enforces a minimum time between heap updates" do
               skip_asan_flaky
 
-              test_object_id_1 = sample_and_clear
+              test_record_id_1 = sample_and_clear
 
-              expect { recorder_after_gc_step }.to change { is_object_recorded?(test_object_id_1) }.from(true).to(false)
+              expect { recorder_after_gc_step }.to change { is_object_recorded?(test_record_id_1) }.from(true).to(false)
 
-              test_object_id_2 = sample_and_clear
+              test_record_id_2 = sample_and_clear
 
-              expect { recorder_after_gc_step }.to_not change { is_object_recorded?(test_object_id_2) }.from(true)
+              expect { recorder_after_gc_step }.to_not change { is_object_recorded?(test_record_id_2) }.from(true)
             end
 
             it "does not apply the minimum time between heap updates when serializing" do
               skip_asan_flaky
 
-              test_object_id_1 = sample_and_clear
+              test_record_id_1 = sample_and_clear
 
-              expect { recorder_after_gc_step }.to change { is_object_recorded?(test_object_id_1) }.from(true).to(false)
+              expect { recorder_after_gc_step }.to change { is_object_recorded?(test_record_id_1) }.from(true).to(false)
 
-              test_object_id_2 = sample_and_clear
+              test_record_id_2 = sample_and_clear
 
-              expect { recorder_after_gc_step }.to_not change { is_object_recorded?(test_object_id_2) }.from(true)
+              expect { recorder_after_gc_step }.to_not change { is_object_recorded?(test_record_id_2) }.from(true)
 
-              expect { serialize }.to change { is_object_recorded?(test_object_id_2) }.from(true).to(false)
+              expect { serialize }.to change { is_object_recorded?(test_record_id_2) }.from(true).to(false)
             end
           end
 
@@ -851,17 +849,17 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               skip_asan_flaky
 
               # Every object is still being tracked at this point
-              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
+              expect(@record_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
 
               recorder_after_gc_step
 
               # No change -- all objects are still being tracked
-              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
+              expect(@record_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
 
               stack_recorder.serialize
 
               # All objects are finally cleared
-              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]
+              expect(@record_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]
             end
           end
         end
@@ -1050,8 +1048,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       let(:heap_size_enabled) { true }
 
       before do
-        skip "Heap profiling is only supported on Ruby >= 2.7" unless RubyVersion.is?(">= 2.7")
-        skip "Heap profiling relies on ObjectSpace._id2ref, removed in Ruby 4.1" if RubyVersion.is?(">= 4.1")
+        skip "Heap profiling is only supported on Ruby >= 3.1" unless RubyVersion.is?(">= 3.1")
       end
 
       def sample_allocation(obj)
@@ -1060,8 +1057,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         Datadog::Profiling::Collectors::Stack::Testing._native_sample(
           Thread.current, stack_recorder, {"alloc-samples" => 1, "heap_sample" => true}, [], [],
         )
-        # On Ruby 4+, heap recordings are deferred and need to be finalized after the sample is recorded
-        described_class::Testing._native_finalize_pending_heap_recordings(stack_recorder)
+        # Heap recordings are deferred and need to be committed after the sample is recorded
+        described_class::Testing._native_commit_pending_heap_recordings(stack_recorder)
       end
 
       it "includes heap recorder snapshot" do

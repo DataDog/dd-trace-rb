@@ -1096,7 +1096,7 @@ const char *ddtrace_cme_original_method_name(const rb_callable_method_entry_t *c
 // This function is not present in the VM headers, but is a public symbol that can be invoked.
 int rb_objspace_internal_object_p(VALUE obj);
 
-int ddtrace_is_internal_object_p(VALUE obj) {
+bool ddtrace_is_internal_object_p(VALUE obj) {
   if (RB_SPECIAL_CONST_P(obj)) {
     // Ruby special constants are not internal, except Qundef.
     // See enum ruby_special_consts in CRuby.
