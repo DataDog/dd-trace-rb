@@ -240,7 +240,7 @@ GEM
     tzinfo (1.2.11)
       thread_safe (~> 0.1)
     warning (1.6.0)
-    webmock (3.26.2)
+    webmock (3.26.3)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
