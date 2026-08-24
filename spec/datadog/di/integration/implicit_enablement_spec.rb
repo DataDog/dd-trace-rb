@@ -420,14 +420,29 @@ RSpec.describe "DI implicit enablement integration" do
       )
     end
 
+    # service/env set at construction (not in-place mutation) so config_matches?
+    # can resolve the service+env target below.
+    let(:settings) do
+      Datadog::Core::Configuration::Settings.new.tap do |s|
+        s.remote.enabled = true
+        s.dynamic_instrumentation.internal.development = true
+        s.dynamic_instrumentation.internal.propagate_all_exceptions = true
+        s.service = "web"
+        s.env = "prod"
+      end
+    end
+
     let(:repository) do
       instance_double(Datadog::Core::Remote::Configuration::Repository, contents: contents)
     end
 
-    before do
-      settings.service = "web"
-      settings.env = "prod"
-      allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+    before { allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true) }
+
+    def repository_with(*hashes)
+      instance_double(
+        Datadog::Core::Remote::Configuration::Repository,
+        contents: hashes.each_with_index.map { |h, i| apm_content("c#{i}", h) },
+      )
     end
 
     context "with a single org-wide enable" do
@@ -439,7 +454,7 @@ RSpec.describe "DI implicit enablement integration" do
       it "starts the component end-to-end" do
         expect(component.started?).to be false
 
-        Datadog::Tracing::Remote.process_configs(repository)
+        Datadog::Tracing::Remote.merge_and_apply_configs(repository)
 
         expect(component.started?).to be true
         expect(contents.first.apply_state).to eq(2)
@@ -459,11 +474,43 @@ RSpec.describe "DI implicit enablement integration" do
       it "does not start the component (most-specific false wins) and marks both applied" do
         expect(component.started?).to be false
 
-        Datadog::Tracing::Remote.process_configs(repository)
+        Datadog::Tracing::Remote.merge_and_apply_configs(repository)
 
         expect(component.started?).to be false
         expect(contents.map(&:apply_state)).to eq([2, 2])
       end
+    end
+
+    it "stops the component when a later merge resolves to false" do
+      Datadog::Tracing::Remote.merge_and_apply_configs(
+        repository_with({"service_target" => {"service" => "*", "env" => "*"},
+          "lib_config" => {"dynamic_instrumentation_enabled" => true}}),
+      )
+      expect(component.started?).to be true
+
+      Datadog::Tracing::Remote.merge_and_apply_configs(
+        repository_with(
+          {"service_target" => {"service" => "*", "env" => "*"},
+           "lib_config" => {"dynamic_instrumentation_enabled" => true}},
+          {"service_target" => {"service" => "web", "env" => "prod"},
+           "lib_config" => {"dynamic_instrumentation_enabled" => false}},
+        ),
+      )
+      expect(component.started?).to be false
+    end
+
+    it "inherits dynamic_instrumentation_enabled from the org config when the service+env config omits it" do
+      # org (less specific) enables DI; the service+env (more specific) config
+      # sets only a sampling rate, so DI is inherited from org and the component starts.
+      Datadog::Tracing::Remote.merge_and_apply_configs(
+        repository_with(
+          {"service_target" => {"service" => "*", "env" => "*"},
+           "lib_config" => {"dynamic_instrumentation_enabled" => true}},
+          {"service_target" => {"service" => "web", "env" => "prod"},
+           "lib_config" => {"tracing_sampling_rate" => 0.5}},
+        ),
+      )
+      expect(component.started?).to be true
     end
   end
 end

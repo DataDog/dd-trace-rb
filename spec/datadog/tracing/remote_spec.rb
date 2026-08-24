@@ -299,9 +299,19 @@ RSpec.describe Datadog::Tracing::Remote do
     it "returns an empty hash for no configs" do
       expect(remote.merge_lib_configs([])).to eq({})
     end
+
+    it "skips nil field values" do
+      ordered = [{"lib_config" => {"x" => nil, "y" => 1}}]
+      expect(remote.merge_lib_configs(ordered)).to eq("y" => 1)
+    end
+
+    it "skips a config whose lib_config is missing or not a hash" do
+      ordered = [{"lib_config" => nil}, {}, {"lib_config" => {"x" => 1}}]
+      expect(remote.merge_lib_configs(ordered)).to eq("x" => 1)
+    end
   end
 
-  describe "#process_configs" do
+  describe "#merge_and_apply_configs" do
     def content_for(config_id, config)
       Datadog::Core::Remote::Configuration::Content.parse(
         path: "datadog/1/APM_TRACING/#{config_id}/lib_config",
@@ -331,7 +341,7 @@ RSpec.describe Datadog::Tracing::Remote do
         expect(Datadog::DI::Remote).to receive(:handle_rc_enablement).once.with(false, repository)
         allow(Datadog::SymbolDatabase::Remote).to receive(:deferred_products).and_return([])
 
-        remote.process_configs(repository)
+        remote.merge_and_apply_configs(repository)
 
         expect(contents.map(&:apply_state)).to eq([2, 2])
       end
@@ -351,7 +361,7 @@ RSpec.describe Datadog::Tracing::Remote do
         expect(Datadog::DI::Remote).to receive(:handle_rc_enablement).once.with(false, repository)
         allow(Datadog::SymbolDatabase::Remote).to receive(:deferred_products).and_return([])
 
-        remote.process_configs(repository)
+        remote.merge_and_apply_configs(repository)
       end
     end
 
@@ -366,7 +376,7 @@ RSpec.describe Datadog::Tracing::Remote do
       it "drops it from the merge but still marks it applied, and does not touch DI" do
         expect(Datadog::DI::Remote).not_to receive(:handle_rc_enablement)
 
-        remote.process_configs(repository)
+        remote.merge_and_apply_configs(repository)
 
         expect(contents.first.apply_state).to eq(2)
       end
@@ -385,11 +395,84 @@ RSpec.describe Datadog::Tracing::Remote do
       let(:contents) { [good, bad] }
 
       it "marks the malformed content errored and still applies the good one" do
-        remote.process_configs(repository)
+        remote.merge_and_apply_configs(repository)
 
         expect(good.apply_state).to eq(2)
         expect(bad.apply_state).to eq(3)
         expect(bad.apply_error).to include("JSON")
+      end
+    end
+
+    context "with a non-APM_TRACING content present" do
+      let(:other) do
+        Datadog::Core::Remote::Configuration::Content.parse(
+          path: "datadog/1/OTHER_PRODUCT/x/name",
+          content: "{}",
+        )
+      end
+      let(:apm) do
+        content_for("org", {"service_target" => {"service" => "*", "env" => "*"}, "lib_config" => {}})
+      end
+      let(:contents) { [other, apm] }
+
+      it "skips the non-APM_TRACING content and applies the APM_TRACING one" do
+        remote.merge_and_apply_configs(repository)
+
+        expect(apm.apply_state).to eq(2)
+        expect(other.apply_state).to eq(1) # UNACKNOWLEDGED: never touched
+      end
+    end
+
+    context "with no APM_TRACING contents (last config removed)" do
+      let(:contents) { [] }
+
+      it "applies an empty merged config, resetting the dynamic options and not touching DI" do
+        expect(Datadog::DI::Remote).not_to receive(:handle_rc_enablement)
+        expect(Datadog.send(:components).telemetry).to receive(:client_configuration_change!)
+          .with(contain_exactly(
+            ["DD_LOGS_INJECTION", nil],
+            ["DD_TRACE_HEADER_TAGS", nil],
+            ["DD_TRACE_SAMPLE_RATE", nil],
+            ["DD_TRACE_SAMPLING_RULES", nil],
+          ))
+
+        remote.merge_and_apply_configs(repository)
+      end
+    end
+
+    context "when applying the merged config raises" do
+      let(:contents) do
+        [content_for("org", {"service_target" => {"service" => "*", "env" => "*"},
+                            "lib_config" => {"dynamic_instrumentation_enabled" => true}})]
+      end
+
+      it "marks all parsed contents errored" do
+        allow(Datadog::DI::Remote).to receive(:handle_rc_enablement).and_raise("boom")
+
+        remote.merge_and_apply_configs(repository)
+
+        expect(contents.first.apply_state).to eq(3)
+        expect(contents.first.apply_error).to include("boom")
+      end
+    end
+
+    context "diagnostics" do
+      let(:contents) do
+        [
+          content_for("org", {"service_target" => {"service" => "*", "env" => "*"}, "lib_config" => {}}),
+          content_for("other", {"service_target" => {"service" => "other", "env" => "prod"}, "lib_config" => {}}),
+        ]
+      end
+
+      it "emits the APM_TRACING RC diagnostic lines" do
+        messages = []
+        allow(Datadog.logger).to receive(:debug) { |*args, &blk| messages << (blk ? blk.call : args.first) }
+
+        remote.merge_and_apply_configs(repository)
+
+        expect(messages).to include(a_string_matching(/received 2 config\(s\)/))
+        expect(messages).to include(a_string_matching(/config org scope=org priority=1/))
+        expect(messages).to include(a_string_matching(/dropped config other/))
       end
     end
   end
