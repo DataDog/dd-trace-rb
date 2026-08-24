@@ -22,7 +22,9 @@ module Datadog
       GLOBAL_RATE = 20
 
       # Snapshots one probe may emit within one trace.
-      PER_PROBE_BUDGET = 5
+      # Set to 1 to pass current system tests; the implementation supports a
+      # higher limit for more snapshot emissions per probe.
+      PER_PROBE_BUDGET = 1
 
       # Snapshots all probes together may emit within one trace.
       ALL_BUDGET = 20
