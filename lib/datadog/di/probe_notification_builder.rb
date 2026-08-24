@@ -377,6 +377,9 @@ module Datadog
             # we can also determine which thread identifier to send
             # (Thread#native_thread_id or something else).
             thread_id: nil,
+            # Execution-context generation token, paired with thread_id: a reused
+            # thread id is distinguishable by a different generation.
+            generation: DI::ThreadGeneration.current,
             version: 2,
           },
           # TODO add tests that the trace/span id is correctly propagated

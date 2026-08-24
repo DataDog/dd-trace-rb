@@ -251,6 +251,11 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       )
     end
 
+    it "includes the execution-context generation token in the logger object" do
+      expect(payload[:logger][:generation]).to be_an(Integer)
+      expect(payload[:logger][:generation]).to eq(Datadog::DI::ThreadGeneration.current)
+    end
+
     context "with template" do
       let(:probe) do
         Datadog::DI::Probe.new(id: "123", type: :log, file: "X", line_no: 1,
@@ -288,6 +293,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             method: nil,
             name: "X",
             thread_id: nil,
+            generation: Integer,
             thread_name: "Thread.main",
             version: 2,
           },
@@ -339,6 +345,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             method: nil,
             name: "X",
             thread_id: nil,
+            generation: Integer,
             thread_name: "Thread.main",
             version: 2,
           },
@@ -415,6 +422,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             method: nil,
             name: "X",
             thread_id: nil,
+            generation: Integer,
             thread_name: "Thread.main",
             version: 2,
           },

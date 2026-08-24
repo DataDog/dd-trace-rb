@@ -1,0 +1,18 @@
+module Datadog
+  module DI
+    module ThreadGeneration
+      STATE: State
+
+      def self.current: () -> Integer
+
+      class State
+        @generations: untyped
+        @counter: Integer
+        @lock: Thread::Mutex
+
+        def initialize: () -> void
+        def current: (?Thread thread) -> Integer
+      end
+    end
+  end
+end
