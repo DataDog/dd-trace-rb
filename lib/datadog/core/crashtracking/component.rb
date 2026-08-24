@@ -47,7 +47,8 @@ module Datadog
           return unless exception &&
             !exception.is_a?(SystemExit) &&
             !exception.is_a?(SignalException) &&
-            !exception.is_a?(NoMemoryError)
+            !exception.is_a?(NoMemoryError) &&
+            !exception.is_a?(SystemStackError)
 
           begin
             crashtracker = Datadog.send(:components, allow_initialization: false)&.crashtracker

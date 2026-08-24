@@ -124,6 +124,11 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
       described_class.report_unhandled_exception(NoMemoryError.new)
     end
 
+    it "does not report SystemStackError" do
+      expect(crashtracker).to_not receive(:report_unhandled_exception)
+      described_class.report_unhandled_exception(SystemStackError.new)
+    end
+
     it "does not report SignalException" do
       expect(crashtracker).to_not receive(:report_unhandled_exception)
       described_class.report_unhandled_exception(SignalException.new("TERM"))
