@@ -411,4 +411,59 @@ RSpec.describe "DI implicit enablement integration" do
       expect(component.probe_manager.probe_repository.installed_probes.keys).to include("test-probe-earlier-poll")
     end
   end
+
+  describe "RC enables DI via merged org/env-level (multi-config) configs" do
+    def apm_content(config_id, hash)
+      Datadog::Core::Remote::Configuration::Content.parse(
+        path: "datadog/1/APM_TRACING/#{config_id}/lib_config",
+        content: JSON.dump(hash),
+      )
+    end
+
+    let(:repository) do
+      instance_double(Datadog::Core::Remote::Configuration::Repository, contents: contents)
+    end
+
+    before do
+      settings.service = "web"
+      settings.env = "prod"
+      allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+    end
+
+    context "with a single org-wide enable" do
+      let(:contents) do
+        [apm_content("org", {"service_target" => {"service" => "*", "env" => "*"},
+          "lib_config" => {"dynamic_instrumentation_enabled" => true}})]
+      end
+
+      it "starts the component end-to-end" do
+        expect(component.started?).to be false
+
+        Datadog::Tracing::Remote.process_configs(repository)
+
+        expect(component.started?).to be true
+        expect(contents.first.apply_state).to eq(2)
+      end
+    end
+
+    context "when a service+env override disables what the org-wide config enables" do
+      let(:contents) do
+        [
+          apm_content("org", {"service_target" => {"service" => "*", "env" => "*"},
+            "lib_config" => {"dynamic_instrumentation_enabled" => true}}),
+          apm_content("svc", {"service_target" => {"service" => "web", "env" => "prod"},
+            "lib_config" => {"dynamic_instrumentation_enabled" => false}}),
+        ]
+      end
+
+      it "does not start the component (most-specific false wins) and marks both applied" do
+        expect(component.started?).to be false
+
+        Datadog::Tracing::Remote.process_configs(repository)
+
+        expect(component.started?).to be false
+        expect(contents.map(&:apply_state)).to eq([2, 2])
+      end
+    end
+  end
 end

@@ -15,10 +15,20 @@ module Datadog
           1 << 13, # APM_TRACING_LOGS_INJECTION: Dynamic trace logs injection configuration
           1 << 14, # APM_TRACING_HTTP_HEADER_TAGS: Dynamic trace HTTP header tags configuration
           1 << 29, # APM_TRACING_SAMPLE_RULES: Dynamic trace sampling rules configuration
+          1 << 45, # APM_TRACING_MULTICONFIG: merge multiple org/env-level APM_TRACING configs
           # APM_TRACING_ENABLE_DYNAMIC_INSTRUMENTATION (bit 38) is declared in
           # DI::Remote.capabilities, not here, so it is registered only when DI
           # is not explicitly disabled and the runtime supports DI.
         ].freeze
+
+        # Human-readable scope label per specificity priority, for diagnostics.
+        SCOPE_LABELS = {
+          5 => "service+env",
+          4 => "service",
+          3 => "env",
+          2 => "cluster",
+          1 => "org",
+        }.freeze
 
         def products
           [PRODUCT]
@@ -28,9 +38,130 @@ module Datadog
           CAPABILITIES
         end
 
-        def process_config(config, content, repository = nil)
-          lib_config = config["lib_config"]
+        # Merge and apply every active APM_TRACING config in the repository.
+        #
+        # Org/env-level (multi-config) remote enablement delivers several
+        # APM_TRACING configs in parallel — a (service, env)-specific one, an
+        # env-wide one, and/or an org-wide `*` one. They are merged so that, for
+        # each lib_config field, the value from the most-specific matching config
+        # wins. The repository already holds the full current set (deleted
+        # configs are pruned from it), so the merge is recomputed from scratch on
+        # every dispatch; no separate config map is kept.
+        def process_configs(repository)
+          service = Datadog.configuration.service
+          env = Datadog.configuration.env
 
+          # @type var parsed: Array[[::Datadog::Core::Remote::Configuration::Content, ::Hash[::String, untyped]]]
+          parsed = []
+          repository.contents.each do |content|
+            next unless content.path.product == PRODUCT
+
+            begin
+              parsed << [content, parse_content(content)]
+            rescue => e
+              content.errored("#{e.class}: #{e.message}: #{Array(e.backtrace).join("\n")}")
+            end
+          end
+          return if parsed.empty?
+
+          Datadog.logger.debug { "APM_TRACING RC: received #{parsed.length} config(s)" }
+
+          applicable = parsed.select do |content, config|
+            if config_matches?(config, service, env)
+              Datadog.logger.debug do
+                "APM_TRACING RC: config #{content.path.config_id} " \
+                  "scope=#{SCOPE_LABELS[config_priority(config)]} priority=#{config_priority(config)}"
+              end
+              true
+            else
+              Datadog.logger.debug do
+                "APM_TRACING RC: dropped config #{content.path.config_id} " \
+                  "(service_target=#{config["service_target"].inspect}, self=#{service}/#{env})"
+              end
+              false
+            end
+          end
+
+          # Most-specific first; ties broken by config id (ascending) for a
+          # deterministic merge.
+          ordered = applicable.sort_by { |content, config| [-config_priority(config), content.path.config_id] }
+          merged = merge_lib_configs(ordered.map { |_content, config| config })
+
+          apply_lib_config(merged, repository)
+
+          parsed.each { |content, _config| content.applied }
+        rescue => e
+          parsed&.each do |content, _config|
+            content.errored("#{e.class}: #{e.message}: #{Array(e.backtrace).join("\n")}")
+          end
+        end
+
+        # Apply a single already-parsed config. Retained as the single-config
+        # entry point used directly by callers and tests; the production receiver
+        # path goes through {process_configs}, which merges first.
+        def process_config(config, content, repository = nil)
+          apply_lib_config(config["lib_config"], repository)
+          content.applied
+        rescue => e
+          content.errored("#{e.class}: #{e.message}: #{Array(e.backtrace).join("\n")}")
+        end
+
+        # Whether a config targets this tracer. A concrete (non-`*`) service or
+        # env that differs from ours excludes the config; `*` and an absent
+        # service_target match anything.
+        def config_matches?(config, service, env)
+          target = config["service_target"]
+          return true unless target.is_a?(Hash)
+
+          target_service = target["service"]
+          target_env = target["env"]
+          return false if target_service && target_service != "*" && target_service != service
+          return false if target_env && target_env != "*" && target_env != env
+
+          true
+        end
+
+        # Specificity of a config: service+env (5) > service (4) > env (3) >
+        # cluster (2) > org (1). A target counts as concrete only when present
+        # and not `*`. Matches the reference tracers (Java, Go).
+        def config_priority(config)
+          target = config["service_target"]
+          service = target.is_a?(Hash) ? target["service"] : nil
+          env = target.is_a?(Hash) ? target["env"] : nil
+          single_service = !service.nil? && service != "*"
+          single_env = !env.nil? && env != "*"
+
+          return 5 if single_service && single_env
+          return 4 if single_service
+          return 3 if single_env
+          return 2 unless config["k8s_target_v2"].nil?
+
+          1
+        end
+
+        # Merge lib_configs from configs ordered most-specific first: for each
+        # field, the first (most-specific) non-nil value wins. Fields are
+        # independent, so a lower-priority config can supply a field the
+        # higher-priority one omits.
+        def merge_lib_configs(ordered_configs)
+          merged = {}
+          ordered_configs.each do |config|
+            lib_config = config["lib_config"]
+            next unless lib_config.is_a?(Hash)
+
+            lib_config.each do |key, value|
+              next if value.nil?
+
+              merged[key] = value unless merged.key?(key)
+            end
+          end
+          merged
+        end
+
+        # Apply one lib_config: map the dynamic OPTIONS to telemetry, drive DI
+        # enablement from `dynamic_instrumentation_enabled`, and report the
+        # configuration change to telemetry.
+        def apply_lib_config(lib_config, repository)
           env_vars = Datadog::Tracing::Configuration::Dynamic::OPTIONS.map do |name, env_var, option|
             value = lib_config[name]
 
@@ -69,33 +200,22 @@ module Datadog
               components&.symbol_database&.stop_for_di_disable
               components&.remote&.remove_products(*di_products)
             end
+
+            Datadog.logger.debug { "APM_TRACING RC: merged dynamic_instrumentation_enabled=#{di_enabled}" }
           end
 
-          content.applied
-
-          # allow_initialization: false because process_config runs on the
-          # remote-config worker thread. If components haven't been built yet
-          # (e.g. during a teardown/reset window), the default `true` would
-          # synchronously build the entire component tree from this thread.
-          # The &. chain matches the pattern used by DI::Remote.handle_rc_enablement
-          # in the same dispatch path.
+          # allow_initialization: false because this runs on the remote-config
+          # worker thread. If components haven't been built yet (e.g. during a
+          # teardown/reset window), the default `true` would synchronously build
+          # the entire component tree from this thread. The &. chain matches the
+          # pattern used by DI::Remote.handle_rc_enablement in the same dispatch
+          # path.
           Datadog.send(:components, allow_initialization: false)&.telemetry&.client_configuration_change!(env_vars)
-        rescue => e
-          content.errored("#{e.class}: #{e.message}: #{Array(e.backtrace).join("\n")}")
         end
 
         def receivers(_telemetry)
           receiver do |repository, _changes|
-            # DEV: Filter our by product. Given it will be very common
-            # DEV: we can filter this out before we receive the data in this method.
-            # DEV: Apply this refactor to AppSec as well if implemented.
-            repository.contents.map do |content|
-              case content.path.product
-              when PRODUCT
-                config = parse_content(content)
-                process_config(config, content, repository)
-              end
-            end
+            process_configs(repository)
           end
         end
 
