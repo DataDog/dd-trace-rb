@@ -325,8 +325,7 @@ VALUE thread_name_for(VALUE thread) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 static inline int
-calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
-{
+calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id) {
   VM_ASSERT(iseq);
   VM_ASSERT(ISEQ_BODY(iseq));
   VM_ASSERT(ISEQ_BODY(iseq)->iseq_encoded);
@@ -402,8 +401,7 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
 // to support our custom rb_profile_frames (see below)
 // Modifications: None
 static inline int
-calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
-{
+calc_lineno(const rb_iseq_t *iseq, const VALUE *pc) {
   int lineno;
   if (calc_pos(iseq, pc, &lineno, NULL)) {
     return lineno;
@@ -679,8 +677,7 @@ check_method_entry(VALUE obj, int can_be_svar) {
 // a child frame's SPECVAL can still point to the parent's old stack EP whose flags
 // slot has been overwritten with (VALUE)env for GC marking.
 static const rb_callable_method_entry_t *
-safe_vm_frame_method_entry(const rb_control_frame_t *cfp)
-{
+safe_vm_frame_method_entry(const rb_control_frame_t *cfp) {
   const VALUE *ep = cfp->ep;
   rb_callable_method_entry_t *me;
 
@@ -739,8 +736,7 @@ get_cfunc_method_entry(const rb_control_frame_t *cfp) {
   // to allow us to ensure that we're always operating on the main ractor (if Ruby has ractors)
   // Modifications:
   // * None
-  bool ddtrace_rb_ractor_main_p(void)
-  {
+  bool ddtrace_rb_ractor_main_p(void) {
     if (ruby_single_main_ractor) {
       return true;
     }
