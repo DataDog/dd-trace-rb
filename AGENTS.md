@@ -99,6 +99,7 @@ no external grant needed. No local trigger otherwise.
 
 ## Never
 
+- Write code comment, unless explicitly requested or instructed
 - Use `git commit --amend` unless the user explicitly and clearly requests it; create a new commit by default
 - Push commits to a remote unless the user explicitly requests it
 - Commit secrets, tokens, or credentials
