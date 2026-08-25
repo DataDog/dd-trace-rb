@@ -2,7 +2,8 @@
 
 Inline RBS keeps a file's types in the `.rb` itself as comments the rbs-inline
 transpiler reads, in place of a separate `sig/*.rbs`. It has two comment
-syntaxes: methods take `# @rbs`, attributes take a trailing `#:`.
+syntaxes for methods: doc-style `# @rbs` annotations and compact
+`#: (...) -> ...` signatures. Attributes take a trailing `#:`.
 
 ## Rules
 
@@ -12,9 +13,13 @@ syntaxes: methods take `# @rbs`, attributes take a trailing `#:`.
   `inline: true` when some information can't yet live inline; Steep reads both
 - SHOULD keep a file inline only when it is small and self-contained; otherwise
   mirror it in `sig/`
-- MUST type every method with `# @rbs` – one `# @rbs <param>:` line per parameter
-  plus a `# @rbs return:` line; NEVER mix in the compact `#: (...) -> ...` method-type form
-- ALWAYS give a `# @rbs return:` line, `void` included – NEVER leave the return implicit
+- SHOULD use doc-style annotations for new method signatures – one
+  `# @rbs <param>:` line per parameter plus a `# @rbs return:` line
+- MUST NOT rewrite an existing valid compact `#: (...) -> ...` signature solely
+  for style
+- NEVER mix doc-style and compact annotations on the same method
+- When using doc-style annotations, ALWAYS give a `# @rbs return:` line, `void`
+  included – NEVER leave the return implicit
 - Attributes have no `# @rbs` form – MUST type them with a trailing `#: Type`, their
   only inline syntax
 
@@ -37,13 +42,20 @@ def name=(name)
 end
 ```
 
-One style per method – don't mix the compact method-type with `# @rbs`:
+Prefer doc-style annotations for new signatures, preserve existing compact
+signatures, and don't mix the forms on the same method:
 
 ```ruby
-# Good – every parameter and the return in `# @rbs` form
+# Good – preferred for new signatures
 # @rbs key: String
 # @rbs value: String
 # @rbs return: void
+def set_tag(key, value)
+  tags[key] = value
+end
+
+# Good – preserve an existing compact signature
+#: (String, String) -> void
 def set_tag(key, value)
   tags[key] = value
 end
