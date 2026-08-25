@@ -82,7 +82,7 @@ class SmokeTest < Test::Unit::TestCase
   BINARY = File.expand_path("compiled/require-skill", __dir__)
   GUARD_ARGV = ["write-rbs", 'sig/.*\.rbs$|vendor/rbs/.*\.rbs$'].freeze
 
-  RUNNERS = {"cruby" => ["ruby", HOOK]}
+  RUNNERS = {"cruby" => ["ruby", "--disable-gems", HOOK]}
   RUNNERS["binary"] = [BINARY] if File.executable?(BINARY)
 
   SCENARIOS = [

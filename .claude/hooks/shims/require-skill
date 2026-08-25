@@ -7,4 +7,4 @@ if [ -x "$compiled" ]; then
     exec "$compiled" "$@"
 fi
 
-exec ruby "$hooks/require-skill.rb" "$@"
+exec ruby --disable-gems "$hooks/require-skill.rb" "$@"
