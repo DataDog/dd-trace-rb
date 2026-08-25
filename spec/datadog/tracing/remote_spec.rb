@@ -32,7 +32,9 @@ RSpec.describe Datadog::Tracing::Remote do
     context "with an empty content" do
       let(:config) { {} }
 
-      it "sets errored apply state" do
+      it "sets errored apply state and reports to telemetry" do
+        expect(Datadog.send(:components).telemetry).to receive(:report)
+          .with(kind_of(StandardError), description: "Failed to apply APM_TRACING remote config")
         process_config
         expect(content.apply_state).to eq(3)
         expect(content.apply_error).to include("Error") & include("process_config")
@@ -394,7 +396,10 @@ RSpec.describe Datadog::Tracing::Remote do
       end
       let(:contents) { [good, bad] }
 
-      it "marks the malformed content errored and still applies the good one" do
+      it "marks the malformed content errored, reports to telemetry, and still applies the good one" do
+        expect(Datadog.send(:components).telemetry).to receive(:report)
+          .with(kind_of(StandardError), description: "Failed to parse APM_TRACING remote config")
+
         remote.merge_and_apply_configs(repository)
 
         expect(good.apply_state).to eq(2)
@@ -446,8 +451,10 @@ RSpec.describe Datadog::Tracing::Remote do
                             "lib_config" => {"dynamic_instrumentation_enabled" => true}})]
       end
 
-      it "marks all parsed contents errored" do
+      it "marks all parsed contents errored and reports to telemetry" do
         allow(Datadog::DI::Remote).to receive(:handle_rc_enablement).and_raise("boom")
+        expect(Datadog.send(:components).telemetry).to receive(:report)
+          .with(kind_of(StandardError), description: "Failed to apply APM_TRACING remote configs")
 
         remote.merge_and_apply_configs(repository)
 

@@ -63,6 +63,10 @@ module Datadog
               parsed << [content, parse_content(content)]
             rescue => e
               Datadog.logger.debug { "APM_TRACING RC: skipping unparseable config: #{e.class}: #{e.message}" }
+              Datadog.send(:components, allow_initialization: false)&.telemetry&.report(
+                e,
+                description: "Failed to parse APM_TRACING remote config",
+              )
               content.errored("#{e.class}: #{e.message}: #{Array(e.backtrace).join("\n")}")
             end
           end
@@ -98,6 +102,10 @@ module Datadog
           nil
         rescue => e
           Datadog.logger.debug { "APM_TRACING RC: failed to apply configs: #{e.class}: #{e.message}" }
+          Datadog.send(:components, allow_initialization: false)&.telemetry&.report(
+            e,
+            description: "Failed to apply APM_TRACING remote configs",
+          )
           parsed&.each do |content, _config|
             content.errored("#{e.class}: #{e.message}: #{Array(e.backtrace).join("\n")}")
           end
@@ -118,6 +126,10 @@ module Datadog
           nil
         rescue => e
           Datadog.logger.debug { "APM_TRACING RC: failed to apply config: #{e.class}: #{e.message}" }
+          Datadog.send(:components, allow_initialization: false)&.telemetry&.report(
+            e,
+            description: "Failed to apply APM_TRACING remote config",
+          )
           content.errored("#{e.class}: #{e.message}: #{Array(e.backtrace).join("\n")}")
           nil
         end
