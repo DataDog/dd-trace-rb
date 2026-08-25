@@ -95,6 +95,7 @@ module Datadog
         def build_service_context: () -> ::Hash[::String, ::String]
 
         def snapshot_string: (any value) -> ::String?
+        def snapshot_targeting_key: (any value) -> ::String?
         def snapshot_integer: (any value) -> ::Integer
 
         def start_background_thread: () -> void

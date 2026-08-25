@@ -95,7 +95,7 @@ module Datadog
             allocation_key: snapshot_string(allocation_key),
             error_message: snapshot_string(error_message),
             runtime_default: runtime_default,
-            targeting_key: snapshot_string(targeting_key),
+            targeting_key: snapshot_targeting_key(targeting_key),
             eval_time_ms: snapshot_integer(eval_time_ms),
             attrs: attrs,
           }
@@ -154,6 +154,18 @@ module Datadog
           String.new(string).encode(Encoding::UTF_8, invalid: :replace, undef: :replace).freeze
         rescue
           # Unsupported caller values must not break flag evaluation.
+          nil
+        end
+
+        def snapshot_targeting_key(value)
+          return unless value.is_a?(String)
+
+          string = String.new(value)
+          return unless string.valid_encoding?
+
+          string.encode!(Encoding::UTF_8)
+          string.freeze
+        rescue EncodingError
           nil
         end
 

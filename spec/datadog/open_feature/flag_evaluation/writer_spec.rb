@@ -416,7 +416,21 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(row["context"]).to eq("evaluation" => {"env" => "prod", "tier" => "gold"})
     end
 
-    it "normalizes malformed strings before serialization" do
+    it "transcodes valid targeting keys to UTF-8 before serialization" do
+      targeting_key = "caf\u00E9".encode(Encoding::ISO_8859_1)
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "encoding-flag", variant: "on", allocation_key: "alloc",
+          targeting_key: targeting_key, eval_time_ms: realistic_eval_ms, attrs: {},
+        )
+      end
+
+      emitted_targeting_key = payload["flagEvaluations"].first["targeting_key"]
+      expect(emitted_targeting_key).to eq("caf\u00E9")
+      expect(emitted_targeting_key.encoding).to eq(Encoding::UTF_8)
+    end
+
+    it "omits malformed targeting keys and normalizes other malformed strings" do
       malformed = +"\xFF"
       malformed.force_encoding(Encoding::UTF_8)
       payload = captured_payload do |writer|
@@ -428,9 +442,20 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       end
 
       row = payload["flagEvaluations"].first
-      expect(row["targeting_key"]).to eq("\uFFFD")
+      expect(row).not_to have_key("targeting_key")
       expect(row["error"]).to eq("message" => "\uFFFD")
       expect(row["context"]).to eq("evaluation" => {"value" => "\uFFFD"})
+    end
+
+    it "omits non-String targeting keys" do
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "encoding-flag", variant: "on", allocation_key: "alloc",
+          targeting_key: 42, eval_time_ms: realistic_eval_ms, attrs: {},
+        )
+      end
+
+      expect(payload["flagEvaluations"].first).not_to have_key("targeting_key")
     end
 
     it "copies String subclasses before transport serialization" do
