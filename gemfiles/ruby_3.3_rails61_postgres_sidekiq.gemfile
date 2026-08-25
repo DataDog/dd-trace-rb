@@ -33,11 +33,11 @@ gem "lograge", "~> 0.11"
 gem "rails_semantic_logger", "~> 4.0"
 gem "net-smtp"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

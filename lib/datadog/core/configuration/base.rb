@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'options'
+require_relative "options"
 
 module Datadog
   module Core
@@ -86,7 +86,7 @@ module Datadog
 
           # Retrieves a nested option from a list of symbols
           def dig(*options)
-            raise ArgumentError, 'expected at least one option' if options.empty?
+            raise ArgumentError, "expected at least one option" if options.empty?
 
             options.inject(self) do |receiver, option|
               receiver.send(option)

@@ -1,4 +1,4 @@
-require_relative 'platform_helpers'
+require_relative "platform_helpers"
 
 # Adds support for running each RSpec examples in a forked process.
 # All before/after/around hooks also run in the forked process.
@@ -157,7 +157,7 @@ module ForkableExample
   # We patch all methods, so we can delegate them to the same object in the parent process.
   module ExecutionResult
     # No need to patch methods ending in `?`, since they don't have side effects.
-    ::RSpec::Core::Example::ExecutionResult.instance_methods(false).reject { |m| m.to_s.end_with?('?') }.each do |method|
+    ::RSpec::Core::Example::ExecutionResult.instance_methods(false).reject { |m| m.to_s.end_with?("?") }.each do |method|
       ForkableExample.patch(self, method, :execution_result)
     end
   end

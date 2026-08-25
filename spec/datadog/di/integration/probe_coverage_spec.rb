@@ -1,5 +1,5 @@
-require 'datadog/di/spec_helper'
-require 'datadog/di'
+require "datadog/di/spec_helper"
+require "datadog/di"
 
 # The line-probe pre-load case is the one that historically did not
 # work in Ruby DI: a customer who created a line probe in the Datadog
@@ -22,7 +22,7 @@ require 'datadog/di'
 # couples this spec to the same CRuby Module#name cache behavior that
 # PR #5872 addresses for SymDB.
 
-RSpec.describe 'DI probe coverage across enablement timing' do
+RSpec.describe "DI probe coverage across enablement timing" do
   di_test
 
   let(:diagnostics_transport) do
@@ -85,25 +85,25 @@ RSpec.describe 'DI probe coverage across enablement timing' do
     Datadog::DI.deactivate_tracking!
   end
 
-  describe 'line probe' do
-    context 'code loaded BEFORE implicit enablement' do
+  describe "line probe" do
+    context "code loaded BEFORE implicit enablement" do
       # The historically-broken case. With backfill_registry running at
       # activate_tracking time, the iseq for the target file is
       # recovered after the fact and the line probe installs and fires.
 
       let(:probe) do
         Datadog::DI::Probe.new(
-          id: 'line-probe-21-pre',
+          id: "line-probe-21-pre",
           type: :log,
-          file: 'probe_coverage_line_pre_target_class.rb',
+          file: "probe_coverage_line_pre_target_class.rb",
           line_no: 13, # `answer = 42` in the pre-fixture
           capture_snapshot: false,
         )
       end
 
-      it 'fires when the target line executes' do
+      it "fires when the target line executes" do
         # 1. Code loaded — tracking NOT yet active.
-        load File.join(File.dirname(__FILE__), 'probe_coverage_line_pre_target_class.rb')
+        load File.join(File.dirname(__FILE__), "probe_coverage_line_pre_target_class.rb")
         expect(Datadog::DI.code_tracking_active?).to be false
 
         # 2. RC enable signal — activates tracking (which backfills the
@@ -123,28 +123,28 @@ RSpec.describe 'DI probe coverage across enablement timing' do
       end
     end
 
-    context 'code loaded AFTER implicit enablement' do
+    context "code loaded AFTER implicit enablement" do
       # The historically-working case. Code-tracking trace point captures
       # the iseq via :script_compiled as the file is loaded.
 
       let(:probe) do
         Datadog::DI::Probe.new(
-          id: 'line-probe-21-post',
+          id: "line-probe-21-post",
           type: :log,
-          file: 'probe_coverage_line_post_target_class.rb',
+          file: "probe_coverage_line_post_target_class.rb",
           line_no: 10, # `answer = 42` in the post-fixture
           capture_snapshot: false,
         )
       end
 
-      it 'fires when the target line executes' do
+      it "fires when the target line executes" do
         # 1. RC enable signal — activates tracking, starts the component.
         simulate_rc_enablement
         expect(Datadog::DI.code_tracking_active?).to be true
 
         # 2. Customer code loaded after enablement — :script_compiled
         #    trace point captures it.
-        load File.join(File.dirname(__FILE__), 'probe_coverage_line_post_target_class.rb')
+        load File.join(File.dirname(__FILE__), "probe_coverage_line_post_target_class.rb")
 
         # 3. Probe arrives — installs.
         probe_manager.add_probe(probe)
@@ -158,23 +158,23 @@ RSpec.describe 'DI probe coverage across enablement timing' do
     end
   end
 
-  describe 'method probe' do
-    context 'code loaded BEFORE implicit enablement' do
+  describe "method probe" do
+    context "code loaded BEFORE implicit enablement" do
       # Method probes use Module#prepend, which works regardless of
       # code-tracking timing. Regression coverage.
 
       let(:probe) do
         Datadog::DI::Probe.new(
-          id: 'method-probe-22-pre',
+          id: "method-probe-22-pre",
           type: :log,
-          type_name: 'ProbeCoverageMethodPreTargetClass',
-          method_name: 'target_method',
+          type_name: "ProbeCoverageMethodPreTargetClass",
+          method_name: "target_method",
           capture_snapshot: false,
         )
       end
 
-      it 'fires when the target method is invoked' do
-        load File.join(File.dirname(__FILE__), 'probe_coverage_method_pre_target_class.rb')
+      it "fires when the target method is invoked" do
+        load File.join(File.dirname(__FILE__), "probe_coverage_method_pre_target_class.rb")
         simulate_rc_enablement
 
         probe_manager.add_probe(probe)
@@ -186,20 +186,20 @@ RSpec.describe 'DI probe coverage across enablement timing' do
       end
     end
 
-    context 'code loaded AFTER implicit enablement' do
+    context "code loaded AFTER implicit enablement" do
       let(:probe) do
         Datadog::DI::Probe.new(
-          id: 'method-probe-22-post',
+          id: "method-probe-22-post",
           type: :log,
-          type_name: 'ProbeCoverageMethodPostTargetClass',
-          method_name: 'target_method',
+          type_name: "ProbeCoverageMethodPostTargetClass",
+          method_name: "target_method",
           capture_snapshot: false,
         )
       end
 
-      it 'fires when the target method is invoked' do
+      it "fires when the target method is invoked" do
         simulate_rc_enablement
-        load File.join(File.dirname(__FILE__), 'probe_coverage_method_post_target_class.rb')
+        load File.join(File.dirname(__FILE__), "probe_coverage_method_post_target_class.rb")
 
         probe_manager.add_probe(probe)
         component.probe_notifier_worker.flush

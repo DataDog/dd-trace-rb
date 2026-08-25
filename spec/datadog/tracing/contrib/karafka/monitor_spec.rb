@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/contrib/support/spec_helper'
+require "datadog/tracing/contrib/support/spec_helper"
 
-require 'karafka'
-require 'datadog'
+require "karafka"
+require "datadog"
 
-RSpec.describe 'Karafka monitor' do
+RSpec.describe "Karafka monitor" do
   before do
     Datadog.configure do |c|
       c.tracing.instrument :karafka, {distributed_tracing: true}
@@ -19,10 +19,10 @@ RSpec.describe 'Karafka monitor' do
     Datadog.registry[:karafka].reset_configuration!
   end
 
-  describe '.instrument' do
-    context 'when the event is not traceable' do
-      it 'does not create a trace' do
-        Karafka.monitor.instrument('worker.completed')
+  describe ".instrument" do
+    context "when the event is not traceable" do
+      it "does not create a trace" do
+        Karafka.monitor.instrument("worker.completed")
 
         # NOTE: This helper doesn't workt with `change` matcher well.
         expect(traces).to have(0).items
@@ -30,29 +30,43 @@ RSpec.describe 'Karafka monitor' do
       end
     end
 
-    context 'when the event is traceable' do
-      let(:job) do
-        instance_double(Karafka::Processing::Jobs::Consume, class: Class.new, executor: executor, messages: messages)
+    context "when the event is traceable" do
+      let(:consume_job_class) do
+        if defined?(Karafka::Processing::ConsumerGroups::Jobs::Consume) # Karafka 2.6
+          Karafka::Processing::ConsumerGroups::Jobs::Consume
+        else
+          Karafka::Processing::Jobs::Consume
+        end
       end
-      let(:executor) { instance_double(Karafka::Processing::Executor, topic: topic, partition: 1) }
-      let(:topic) { instance_double(Karafka::Routing::Topic, consumer: 'Consumer', name: 'topic_name') }
+      let(:executor_class) do
+        if defined?(Karafka::Processing::ConsumerGroups::Executor) # Karafka 2.6
+          Karafka::Processing::ConsumerGroups::Executor
+        else
+          Karafka::Processing::Executor
+        end
+      end
+      let(:job) do
+        instance_double(consume_job_class, class: consume_job_class, executor: executor, messages: messages)
+      end
+      let(:executor) { instance_double(executor_class, topic: topic, partition: 1) }
+      let(:topic) { instance_double(Karafka::Routing::Topic, consumer: "Consumer", name: "topic_name") }
       let(:messages) { [instance_double(Karafka::Messages::Messages, metadata: metadata)] }
       let(:metadata) { instance_double(Karafka::Messages::Metadata, offset: 42) }
 
-      it 'traces a consumer job' do
-        Karafka.monitor.instrument('worker.processed', {job: job})
+      it "traces a consumer job" do
+        Karafka.monitor.instrument("worker.processed", {job: job})
 
         expect(traces).to have(1).item
         expect(spans).to have(1).item
 
-        expect(spans[0].resource).to eq('Consumer#consume')
+        expect(spans[0].resource).to eq("Consumer#consume")
         expect(spans[0].tags).to include(
           Datadog::Tracing::Contrib::Karafka::Ext::TAG_MESSAGE_COUNT => 1,
           Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => 1,
           Datadog::Tracing::Contrib::Karafka::Ext::TAG_OFFSET => 42,
-          Datadog::Tracing::Contrib::Karafka::Ext::TAG_CONSUMER => 'Consumer',
-          'messaging.destination' => 'topic_name',
-          'messaging.system' => Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM
+          Datadog::Tracing::Contrib::Karafka::Ext::TAG_CONSUMER => "Consumer",
+          "messaging.destination" => "topic_name",
+          "messaging.system" => Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM
         )
       end
     end

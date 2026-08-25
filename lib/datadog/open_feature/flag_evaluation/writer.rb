@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative 'aggregator'
-require_relative '../../core/encoding'
-require_relative '../../core/evp'
-require_relative '../../core/utils/time'
-require_relative '../../core/workers/async'
+require_relative "aggregator"
+require_relative "../../core/encoding"
+require_relative "../../core/evp"
+require_relative "../../core/utils/time"
+require_relative "../../core/workers/async"
 
 module Datadog
   module OpenFeature
@@ -29,15 +29,15 @@ module Datadog
         QUEUE_SIZE = 4_096
         MAX_DRAIN_EVENTS_PER_CYCLE = 1_024
         PAYLOAD_SIZE_LIMIT_BYTES = Core::EVP::PAYLOAD_SIZE_LIMIT_BYTES
-        TELEMETRY_NAMESPACE = 'tracers'
-        ROWS_DROPPED_METRIC = 'flagevaluation.rows.dropped'
-        ROWS_DEGRADED_METRIC = 'flagevaluation.rows.degraded'
-        PAYLOAD_SPLITS_METRIC = 'flagevaluation.payload.splits'
+        TELEMETRY_NAMESPACE = "tracers"
+        ROWS_DROPPED_METRIC = "flagevaluation.rows.dropped"
+        ROWS_DEGRADED_METRIC = "flagevaluation.rows.degraded"
+        PAYLOAD_SPLITS_METRIC = "flagevaluation.payload.splits"
 
-        REASON_QUEUE_OVERFLOW = 'queue_overflow'
-        REASON_DEGRADED_CAP = 'degraded_cap'
-        REASON_CARDINALITY_CAP = 'cardinality_cap'
-        REASON_PAYLOAD_LIMIT = 'payload_limit'
+        REASON_QUEUE_OVERFLOW = "queue_overflow"
+        REASON_DEGRADED_CAP = "degraded_cap"
+        REASON_CARDINALITY_CAP = "cardinality_cap"
+        REASON_PAYLOAD_LIMIT = "payload_limit"
 
         # Service context fields for the batch wrapper.
         attr_reader :service_context
@@ -98,7 +98,7 @@ module Datadog
 
           return true if join(SHUTDOWN_TIMEOUT_SECONDS)
 
-          @logger.debug { 'OpenFeature EVP: writer did not stop gracefully; terminating worker thread' }
+          @logger.debug { "OpenFeature EVP: writer did not stop gracefully; terminating worker thread" }
           terminate
         end
 
@@ -117,9 +117,9 @@ module Datadog
 
         def build_service_context
           config = Datadog.configuration
-          ctx = {'service' => config.service.to_s}
-          ctx['env'] = config.env if config.env && !config.env.empty?
-          ctx['version'] = config.version if config.version && !config.version.empty?
+          ctx = {"service" => config.service.to_s}
+          ctx["env"] = config.env if config.env && !config.env.empty?
+          ctx["version"] = config.version if config.version && !config.version.empty?
           ctx
         end
 
@@ -261,7 +261,7 @@ module Datadog
           record_telemetry_count(ROWS_DROPPED_METRIC, dropped_overflow, reason: REASON_DEGRADED_CAP)
 
           @logger.debug do
-            'OpenFeature EVP: dropped events ' \
+            "OpenFeature EVP: dropped events " \
               "queue_overflow=#{dropped_queue} degraded_overflow=#{dropped_overflow}"
           end
         end
@@ -300,27 +300,27 @@ module Datadog
         def build_event(flag_key:, variant:, allocation_key:, targeting_key:, entry:, flush_time_ms:, tier:)
           # @type var event: ::Hash[::String, untyped]
           event = {
-            'timestamp' => flush_time_ms,
-            'flag' => {'key' => flag_key},
-            'first_evaluation' => entry[:first_evaluation],
-            'last_evaluation' => entry[:last_evaluation],
-            'evaluation_count' => entry[:count],
+            "timestamp" => flush_time_ms,
+            "flag" => {"key" => flag_key},
+            "first_evaluation" => entry[:first_evaluation],
+            "last_evaluation" => entry[:last_evaluation],
+            "evaluation_count" => entry[:count],
           }
 
-          event['runtime_default_used'] = true if entry[:runtime_default]
-          event['error'] = {'message' => entry[:error_message]} if entry[:error_message] && !entry[:error_message].empty?
+          event["runtime_default_used"] = true if entry[:runtime_default]
+          event["error"] = {"message" => entry[:error_message]} if entry[:error_message] && !entry[:error_message].empty?
 
           # variant + allocation are present in both tiers (omitempty per schema).
-          event['variant'] = {'key' => variant} if variant && !variant.empty?
-          event['allocation'] = {'key' => allocation_key} if allocation_key && !allocation_key.empty?
+          event["variant"] = {"key" => variant} if variant && !variant.empty?
+          event["allocation"] = {"key" => allocation_key} if allocation_key && !allocation_key.empty?
 
           # Full-tier additionally carries targeting_key + the pruned evaluation context;
           # the degraded tier omits both.
           if tier == :full
-            event['targeting_key'] = targeting_key if targeting_key && !targeting_key.empty?
+            event["targeting_key"] = targeting_key if targeting_key && !targeting_key.empty?
 
             if entry[:context_attrs] && !entry[:context_attrs].empty?
-              event['context'] = {'evaluation' => entry[:context_attrs]}
+              event["context"] = {"evaluation" => entry[:context_attrs]}
             end
           end
 
@@ -330,7 +330,7 @@ module Datadog
         def send_payload_batches(events)
           context_json = Core::Encoding::JSONEncoder.encode(@service_context)
           payload_prefix = "{\"context\":#{context_json},\"flagEvaluations\":["
-          payload_suffix = ']}'
+          payload_suffix = "]}"
           base_payload_size = payload_prefix.bytesize + payload_suffix.bytesize
 
           batch = []
@@ -372,8 +372,8 @@ module Datadog
         def send_payload_batch(events)
           response = @transport.send_flag_evaluations(
             {
-              'context' => @service_context,
-              'flagEvaluations' => events,
+              "context" => @service_context,
+              "flagEvaluations" => events,
             }
           )
           if response.respond_to?(:ok?) && !response.ok?
@@ -402,11 +402,11 @@ module Datadog
         end
 
         def degrade_event_for_payload_limit(event)
-          return unless event.key?('targeting_key') || event.key?('context')
+          return unless event.key?("targeting_key") || event.key?("context")
 
           degraded = event.dup
-          degraded.delete('targeting_key')
-          degraded.delete('context')
+          degraded.delete("targeting_key")
+          degraded.delete("context")
           degraded
         end
 
@@ -415,7 +415,7 @@ module Datadog
         end
 
         def event_count(event)
-          count = event['evaluation_count'].to_i
+          count = event["evaluation_count"].to_i
           count.positive? ? count : 1
         end
 

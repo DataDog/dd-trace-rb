@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative 'all_sampler'
-require_relative 'rate_sampler'
-require_relative 'rate_by_service_sampler'
+require_relative "ext"
+require_relative "all_sampler"
+require_relative "rate_sampler"
+require_relative "rate_by_service_sampler"
 
 module Datadog
   module Tracing

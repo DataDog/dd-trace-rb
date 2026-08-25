@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'logger'
+require "logger"
 
 module Datadog
   module Core
@@ -9,7 +9,7 @@ module Datadog
     # - adds last caller stack-trace info to know where the message comes from
     # @public_api
     class Logger < ::Logger
-      PREFIX = 'datadog'
+      PREFIX = "datadog"
 
       def initialize(*args, &block)
         super
@@ -18,7 +18,7 @@ module Datadog
       end
 
       def add(severity, message = nil, progname = nil, &block)
-        where = ''
+        where = ""
 
         # We are in debug mode, or this is an error, add stack trace to help debugging
         if debug? || severity >= ::Logger::ERROR

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'datadog/symbol_database/component'
-require 'datadog/symbol_database/uploader'
-require 'datadog/symbol_database/scope_batcher'
-require 'datadog/symbol_database/transport/http'
+require "datadog/symbol_database/component"
+require "datadog/symbol_database/uploader"
+require "datadog/symbol_database/scope_batcher"
+require "datadog/symbol_database/transport/http"
 
 # Isolated regression spec for Component#initialize Uploader instantiation.
 #
@@ -14,16 +14,16 @@ RSpec.describe Datadog::SymbolDatabase::Component do
   let(:settings) do
     Datadog::Core::Configuration::Settings.new.tap do |s|
       s.symbol_database.enabled = true
-      s.service = 'test-service'
-      s.env = 'test'
-      s.version = '1.0'
+      s.service = "test-service"
+      s.env = "test"
+      s.version = "1.0"
     end
   end
 
   let(:agent_settings) do
     instance_double(
       Datadog::Core::Configuration::AgentSettings,
-      hostname: 'localhost',
+      hostname: "localhost",
       port: 8126,
       timeout_seconds: 30,
       ssl: false,
@@ -42,11 +42,11 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     )
   end
 
-  describe '#initialize' do
+  describe "#initialize" do
     # Regression: component.rb called Uploader.new with positional args after
     # Uploader#initialize was renamed to keyword-only (settings:, agent_settings:,
     # logger:), raising ArgumentError on every Component construction.
-    it 'does not raise when constructing the real Uploader' do
+    it "does not raise when constructing the real Uploader" do
       expect { described_class.new(settings, agent_settings, logger) }.not_to raise_error
     end
   end

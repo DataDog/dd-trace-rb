@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# rubocop:disable Style/*
+# rubocop:disable Style
 
 require 'uri'
 
@@ -173,4 +173,4 @@ module Datadog
   end
 end
 
-# rubocop:enable Style/*
+# rubocop:enable Style

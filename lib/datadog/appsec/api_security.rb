@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'api_security/sampler'
+require_relative "api_security/sampler"
 
 module Datadog
   module AppSec

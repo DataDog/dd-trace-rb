@@ -21,15 +21,15 @@ The trace library uses Docker Compose to create a Ruby environment to develop an
 
 To start a development environment, choose a target Ruby version.
 Some of the development tooling is only defined for the recent MRI versions,
-therefore we suggest using Ruby 3.4 unless you specifically need a different
+therefore we suggest using Ruby 4.0 unless you specifically need a different
 version. Run the following:
 
 ```bash
 # In the root directory of the project...
 cd ~/dd-trace-rb
 
-# Create and start a Ruby 3.4 test environment with its dependencies
-docker compose run --rm tracer-3.4 /bin/bash
+# Create and start a Ruby 4.0 test environment with its dependencies
+docker compose run --rm tracer-4.0 /bin/bash
 
 # Then inside the container (e.g. `root@2a73c6d8673e:/app`)...
 # Install the library dependencies
@@ -369,6 +369,27 @@ docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb rhysd/actionlint -color
 ```bash
 docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth token) ghcr.io/woodruffw/zizmor --min-severity low .
 ```
+
+#### Dependency audit (bundler-audit)
+
+The `bundler-audit` CI job scans appraisal lockfiles eligible for audit
+(Ruby 3.1+) for gems with
+high/critical CVE advisories, plus any advisory the pinned scanner can't
+score (e.g. CVSS-v4-only advisories come back with a `nil` criticality and
+are treated as failing too). To reproduce locally, run:
+
+```bash
+BUNDLE_GEMFILE=gemfiles/ruby-4.0.gemfile bundle exec rake dependency:audit
+```
+
+If it fails:
+
+1. Preferred fix: `BUNDLE_GEMFILE=<affected gemfile> bundle update GEM_NAME` (or `bundle lock --update GEM_NAME`) to upgrade the flagged gem to a patched version. Plain `bundle exec rake dependency:lock` will not move the version on its own.
+2. If no patched version exists for the Ruby/framework constraint in that appraisal, document the exception in `.bundler-audit.yml`:
+   - Prefer `ignore_gem_versions` (scoped to the exact pinned gem+version, so bumping the gem later makes the finding reappear instead of staying silently hidden).
+   - Use the top-level `ignore` list (by advisory id) only as a last resort, since it suppresses the advisory for any gem/version.
+   - Every entry must include a reason explaining what pins the gem and why it can't be upgraded.
+3. The job log only prints the finding count; run the command above locally to see the actual advisory id(s), gem(s), and affected lockfile(s), or inspect `tmp/dependency_audit_findings.json` after a local run.
 
 ## Accessing Environment Variables
 

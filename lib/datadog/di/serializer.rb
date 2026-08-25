@@ -50,6 +50,13 @@ module Datadog
       # return a safe stub rather than tear the process down.
       SERIALIZABLE_FATAL_EXCEPTION_CLASSES = [SystemExit, SignalException].freeze
 
+      # Placeholder emitted by #serialize_value_for_message in place of a value
+      # whose identifier or type matches the redaction configuration. This
+      # mirrors, for the human-readable log-probe message path, the
+      # notCapturedReason: "redactedIdent"/"redactedType" gating that
+      # #serialize_value applies on the snapshot path.
+      REDACTED_VALUE_FOR_MESSAGE = "[redacted]"
+
       # Third-party library integration / custom serializers.
       #
       # Dynamic instrumentation has limited payload sizes, and for efficiency
@@ -131,9 +138,12 @@ module Datadog
       # in upstream code.
       def serialize_args(args, kwargs, target_self,
         depth: settings.dynamic_instrumentation.max_capture_depth,
-        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count)
+        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
+        length: nil,
+        collection_size: nil)
         combined = combine_args(args, kwargs, target_self)
-        serialize_vars(combined, depth: depth, attribute_count: attribute_count)
+        serialize_vars(combined, depth: depth, attribute_count: attribute_count,
+          length: length, collection_size: collection_size)
       end
 
       # Serializes variables captured by a line probe.
@@ -142,9 +152,12 @@ module Datadog
       # of executed code.
       def serialize_vars(vars,
         depth: settings.dynamic_instrumentation.max_capture_depth,
-        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count)
+        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
+        length: nil,
+        collection_size: nil)
         vars.each_with_object({}) do |(k, v), agg|
-          agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count)
+          agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count,
+            length: length, collection_size: collection_size)
         end
       end
 
@@ -163,6 +176,8 @@ module Datadog
       def serialize_value(value, name: nil,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: nil,
+        length: nil,
+        collection_size: nil,
         type: nil)
         attribute_count ||= settings.dynamic_instrumentation.max_capture_attribute_count
         cls = type || value.class
@@ -235,7 +250,8 @@ module Datadog
             #
             # Truncate binary data BEFORE escaping to avoid cutting mid-escape-sequence.
             # For regular strings, the limit is applied to string length in characters.
-            max = settings.dynamic_instrumentation.max_capture_string_length
+            length ||= settings.dynamic_instrumentation.max_capture_string_length
+            max = length
 
             if value.encoding == Encoding::BINARY || !value.valid_encoding?
               # Truncate binary data BEFORE escaping to avoid cutting mid-escape-sequence
@@ -263,7 +279,8 @@ module Datadog
             if depth <= 0
               serialized.update(notCapturedReason: "depth")
             else
-              max = settings.dynamic_instrumentation.max_capture_collection_size
+              collection_size ||= settings.dynamic_instrumentation.max_capture_collection_size
+              max = collection_size
               if max != 0 && value.length > max
                 serialized.update(notCapturedReason: "collectionSize", size: value.length)
                 # same steep failure with array slices.
@@ -271,7 +288,7 @@ module Datadog
                 value = value[0...max] || []
               end
               entries = value.map do |elt|
-                serialize_value(elt, depth: depth - 1)
+                serialize_value(elt, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count)
               end
               serialized.update(elements: entries)
             end
@@ -279,7 +296,8 @@ module Datadog
             if depth <= 0
               serialized.update(notCapturedReason: "depth")
             else
-              max = settings.dynamic_instrumentation.max_capture_collection_size
+              collection_size ||= settings.dynamic_instrumentation.max_capture_collection_size
+              max = collection_size
               cur = 0
               entries = []
               value.each do |k, v|
@@ -288,7 +306,8 @@ module Datadog
                   break
                 end
                 cur += 1
-                entries << [serialize_value(k, depth: depth - 1), serialize_value(v, name: k, depth: depth - 1)]
+                entries << [serialize_value(k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count),
+                  serialize_value(v, name: k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count)]
               end
               serialized.update(entries: entries)
             end
@@ -327,7 +346,7 @@ module Datadog
                   break
                 end
                 cur += 1
-                fields[ivar] = serialize_value(value.instance_variable_get(ivar), name: ivar, depth: depth - 1)
+                fields[ivar] = serialize_value(value.instance_variable_get(ivar), name: ivar, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count)
               end
               serialized.update(fields: fields)
             end
@@ -363,33 +382,41 @@ module Datadog
       #
       # We also use the Ruby-like syntax for symbols, which don't exist
       # in other languages.
-      def serialize_value_for_message(value, depth = 1)
+      #
+      # +name+, when given, is the identifier the template expression
+      # references at its top level; a redacted identifier yields the
+      # redaction placeholder, mirroring #serialize_value on the snapshot path.
+      def serialize_value_for_message(value, depth: 1, name: nil)
         # This method is more verbose than "normal" Ruby code to avoid
         # array allocations.
+
+        return REDACTED_VALUE_FOR_MESSAGE if redactor.redact_type?(value)
+        return REDACTED_VALUE_FOR_MESSAGE if name && redactor.redact_identifier?(name)
+
         case value
         when NilClass
-          'nil'
+          "nil"
         when Integer, Float, TrueClass, FalseClass, Time, Date
           value.to_s
         when String
           serialize_string_or_symbol_for_message(value)
         when Symbol
-          ':' + serialize_string_or_symbol_for_message(value) # steep:ignore ArgumentTypeMismatch
+          ":" + serialize_string_or_symbol_for_message(value) # steep:ignore ArgumentTypeMismatch
         when Array
-          return '...' if depth <= 0
+          return "..." if depth <= 0
 
           max = max_capture_collection_size_for_message
           if value.length > max
             value_ = value[0...max - 1] || []
-            value_ << '...'
+            value_ << "..."
             value_ << value[-1]
             value = value_
           end
-          '[' + value.map do |item|
-            serialize_value_for_message(item, depth - 1)
-          end.join(', ') + ']'
+          "[" + value.map do |item|
+            serialize_value_for_message(item, depth: depth - 1)
+          end.join(", ") + "]"
         when Hash
-          return '...' if depth <= 0
+          return "..." if depth <= 0
 
           max = max_capture_collection_size_for_message
           keys = value.keys
@@ -401,15 +428,20 @@ module Datadog
             truncated = true
           end
           serialized = keys.map do |key|
-            "#{serialize_value_for_message(key, depth - 1)} => #{serialize_value_for_message(value[key], depth - 1)}"
+            serialized_value = if (String === key || Symbol === key) && redactor.redact_identifier?(key)
+              REDACTED_VALUE_FOR_MESSAGE
+            else
+              serialize_value_for_message(value[key], depth: depth - 1)
+            end
+            "#{serialize_value_for_message(key, depth: depth - 1)} => #{serialized_value}"
           end
           if truncated
             serialized[serialized.length] = serialized[serialized.length - 1]
-            serialized[serialized.length - 2] = '...'
+            serialized[serialized.length - 2] = "..."
           end
           "{#{serialized.join(", ")}}"
         else
-          return '...' if depth <= 0
+          return "..." if depth <= 0
 
           vars = value.instance_variables
           truncated = false
@@ -423,14 +455,19 @@ module Datadog
           serialized = vars.map do |var|
             # +var+ here is always the instance variable name which is a
             # symbol, we do not need to run it through our serializer.
-            "#{var}=#{serialize_value_for_message(value.send(:instance_variable_get, var), depth - 1)}"
+            serialized_value = if redactor.redact_identifier?(var)
+              REDACTED_VALUE_FOR_MESSAGE
+            else
+              serialize_value_for_message(value.send(:instance_variable_get, var), depth: depth - 1)
+            end
+            "#{var}=#{serialized_value}"
           end
           if truncated
             serialized << serialized.last
-            serialized[-2] = '...'
+            serialized[-2] = "..."
           end
           serialized = if serialized.any?
-            ' ' + serialized.join(' ')
+            " " + serialized.join(" ")
           end
           "#<#{class_name(value.class)}#{serialized}>"
         end
@@ -489,7 +526,7 @@ module Datadog
             if max % 2 == 0
               upper += 1
             end
-            value[0...max / 2 - 1] + '...' + value[upper...length] # steep:ignore NoMethod
+            value[0...max / 2 - 1] + "..." + value[upper...length] # steep:ignore NoMethod
           end
         else
           value
@@ -531,7 +568,7 @@ module Datadog
           when 0x27 # '
             "\\'"
           when 0x5C # \
-            '\\\\'
+            "\\\\"
           when 0x20..0x7E # Printable ASCII (space through ~)
             byte.chr
           else

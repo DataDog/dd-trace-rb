@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'datadog_interceptor'
+require_relative "datadog_interceptor"
 
 module Datadog
   module Tracing

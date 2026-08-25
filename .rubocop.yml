@@ -1,0 +1,43 @@
+require:
+  - standard
+  - standard-custom
+  - standard-performance
+  - rubocop-performance
+
+inherit_gem:
+  standard: config/base.yml
+  standard-custom: config/base.yml
+  standard-performance: config/base.yml
+
+AllCops:
+  TargetRubyVersion: 2.5
+  Exclude:
+    - appraisal/**/**
+    - gemfiles/**/**
+    - integration/**/**
+    - lib/datadog/**/vendor/**/*
+    - lib/datadog/profiling/ext/exec_monkey_patch.rb
+    - vendor/bundle/**/*
+    - "*.rb" # test files at the root
+  NewCops: disable
+  SuggestExtensions: false
+
+# The cops disabled below should stay in sync with .standard_todo.yml's
+# "**/**" ignore list (Layout/LeadingCommentSpace has an extra reason
+# there) so it stays clear which tool is, or is not, enforcing each cop.
+
+# Keep method-call commas disabled while their style remains under discussion.
+Style/TrailingCommaInArguments:
+  Enabled: false
+
+# Require a comma in array and hash literals when the closing delimiter is on
+# its own line.
+
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: diff_comma
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: diff_comma
+
+Layout/LeadingCommentSpace:
+  Enabled: false

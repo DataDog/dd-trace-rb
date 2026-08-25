@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'set'
-require_relative 'subscription'
+require "set"
+require_relative "subscription"
 
 module Datadog
   module Tracing

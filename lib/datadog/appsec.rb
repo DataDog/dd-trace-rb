@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative 'appsec/configuration'
-require_relative 'appsec/extensions'
-require_relative 'appsec/context'
-require_relative 'appsec/ext'
-require_relative 'appsec/utils'
+require_relative "appsec/configuration"
+require_relative "appsec/extensions"
+require_relative "appsec/context"
+require_relative "appsec/ext"
+require_relative "appsec/utils"
 
 module Datadog
   # Namespace for Datadog AppSec instrumentation
@@ -54,15 +54,15 @@ module Datadog
 end
 
 # Integrations
-require_relative 'appsec/contrib/rack/integration'
-require_relative 'appsec/contrib/sinatra/integration'
-require_relative 'appsec/contrib/rails/integration'
-require_relative 'appsec/contrib/active_record/integration'
-require_relative 'appsec/contrib/devise/integration'
-require_relative 'appsec/contrib/graphql/integration'
-require_relative 'appsec/contrib/faraday/integration'
-require_relative 'appsec/contrib/excon/integration'
-require_relative 'appsec/contrib/rest_client/integration'
-require_relative 'appsec/contrib/aws_lambda/integration'
+require_relative "appsec/contrib/rack/integration"
+require_relative "appsec/contrib/sinatra/integration"
+require_relative "appsec/contrib/rails/integration"
+require_relative "appsec/contrib/active_record/integration"
+require_relative "appsec/contrib/devise/integration"
+require_relative "appsec/contrib/graphql/integration"
+require_relative "appsec/contrib/faraday/integration"
+require_relative "appsec/contrib/excon/integration"
+require_relative "appsec/contrib/rest_client/integration"
+require_relative "appsec/contrib/aws_lambda/integration"
 
-require_relative 'appsec/autoload'
+require_relative "appsec/autoload"

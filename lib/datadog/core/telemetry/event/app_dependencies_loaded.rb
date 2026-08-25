@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'base'
+require_relative "base"
 
 module Datadog
   module Core
@@ -9,7 +9,7 @@ module Datadog
         # Telemetry class for the 'app-dependencies-loaded' event
         class AppDependenciesLoaded < Base
           def type
-            'app-dependencies-loaded'
+            "app-dependencies-loaded"
           end
 
           def payload

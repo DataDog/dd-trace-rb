@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../core/transport/http/api/endpoint'
+require_relative "../../../core/transport/http/api/endpoint"
 
 module Datadog
   module DI
@@ -9,7 +9,7 @@ module Datadog
         module Input
           module API
             class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
-              HEADER_CONTENT_TYPE = 'Content-Type'
+              HEADER_CONTENT_TYPE = "Content-Type"
 
               attr_reader \
                 :encoder

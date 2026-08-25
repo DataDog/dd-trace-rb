@@ -1,29 +1,29 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog'
-require 'datadog/tracing/transport/statistics'
+require "datadog"
+require "datadog/tracing/transport/statistics"
 
 RSpec.describe Datadog::Tracing::Transport::Statistics do
-  context 'when implemented by a class' do
+  context "when implemented by a class" do
     subject(:object) { stats_class.new }
 
     let(:stats_class) do
-      stub_const('TestObject', Class.new { include Datadog::Tracing::Transport::Statistics })
+      stub_const("TestObject", Class.new { include Datadog::Tracing::Transport::Statistics })
     end
 
-    describe '#initialize' do
+    describe "#initialize" do
       it { is_expected.to have_attributes(stats: kind_of(Datadog::Tracing::Transport::Statistics::Counts)) }
     end
 
-    describe '#update_stats_from_response!' do
+    describe "#update_stats_from_response!" do
       subject(:update) { object.update_stats_from_response!(response) }
 
       let(:response) { instance_double(Datadog::Core::Transport::Response) }
 
       before { allow(Datadog.health_metrics).to receive(:send_metrics) }
 
-      context 'when the response' do
-        context 'is OK' do
+      context "when the response" do
+        context "is OK" do
           before do
             allow(response).to receive(:ok?).and_return(true)
             allow(response).to receive(:internal_error?).and_return(false)
@@ -50,7 +50,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
           end
         end
 
-        context 'is a client error' do
+        context "is a client error" do
           before do
             allow(response).to receive(:ok?).and_return(false)
             allow(response).to receive(:client_error?).and_return(true)
@@ -79,7 +79,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
           end
         end
 
-        context 'is a server error' do
+        context "is a server error" do
           before do
             allow(response).to receive(:ok?).and_return(false)
             allow(response).to receive(:client_error?).and_return(false)
@@ -108,7 +108,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
           end
         end
 
-        context 'is an internal error' do
+        context "is an internal error" do
           before do
             allow(response).to receive(:ok?).and_return(false)
             allow(response).to receive(:client_error?).and_return(false)
@@ -139,13 +139,13 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
       end
     end
 
-    describe '#metrics_for_response' do
+    describe "#metrics_for_response" do
       subject(:metrics_for_response) { object.metrics_for_response(response) }
 
       let(:response) { instance_double(Datadog::Core::Transport::Response) }
 
-      context 'when the response' do
-        context 'is OK' do
+      context "when the response" do
+        context "is OK" do
           before do
             allow(response).to receive(:ok?).and_return(true)
             allow(response).to receive(:internal_error?).and_return(false)
@@ -163,7 +163,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
           end
         end
 
-        context 'is a client error' do
+        context "is a client error" do
           before do
             allow(response).to receive(:ok?).and_return(false)
             allow(response).to receive(:client_error?).and_return(true)
@@ -183,7 +183,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
           end
         end
 
-        context 'is a server error' do
+        context "is a server error" do
           before do
             allow(response).to receive(:ok?).and_return(false)
             allow(response).to receive(:client_error?).and_return(false)
@@ -203,7 +203,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
           end
         end
 
-        context 'is an internal error' do
+        context "is an internal error" do
           before do
             allow(response).to receive(:ok?).and_return(false)
             allow(response).to receive(:client_error?).and_return(false)
@@ -225,7 +225,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
       end
     end
 
-    describe '#update_stats_from_exception!' do
+    describe "#update_stats_from_exception!" do
       subject(:update) { object.update_stats_from_exception!(exception) }
 
       let(:exception) { instance_double(StandardError) }
@@ -253,7 +253,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
       end
     end
 
-    describe '#metrics_for_exception' do
+    describe "#metrics_for_exception" do
       subject(:metrics_for_exception) { object.metrics_for_exception(exception) }
 
       let(:exception) { instance_double(StandardError) }
@@ -275,7 +275,7 @@ end
 RSpec.describe Datadog::Tracing::Transport::Statistics::Counts do
   subject(:counts) { described_class.new }
 
-  describe '#initialize' do
+  describe "#initialize" do
     it do
       is_expected.to have_attributes(
         success: 0,
@@ -287,10 +287,10 @@ RSpec.describe Datadog::Tracing::Transport::Statistics::Counts do
     end
   end
 
-  describe '#reset!' do
+  describe "#reset!" do
     subject(:reset!) { counts.reset! }
 
-    context 'when the counts have been incremented' do
+    context "when the counts have been incremented" do
       before do
         counts.success += 1
         counts.client_error += 1
@@ -299,7 +299,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics::Counts do
         counts.consecutive_errors += 1
       end
 
-      it 'resets them all to 0' do
+      it "resets them all to 0" do
         reset!
         expect(counts.success).to eq(0)
         expect(counts.client_error).to eq(0)

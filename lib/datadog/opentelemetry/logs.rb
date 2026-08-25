@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative 'signal_configuration'
+require_relative "ext"
+require_relative "signal_configuration"
 
 module Datadog
   module OpenTelemetry
@@ -40,7 +40,7 @@ module Datadog
       private
 
       def disable_log_injection
-        @logger.warn('OTel logs enabled: disabling Datadog log injection to prevent duplicate trace correlation fields')
+        @logger.warn("OTel logs enabled: disabling Datadog log injection to prevent duplicate trace correlation fields")
         Datadog.configure do |c|
           c.tracing.log_injection = false # steep:ignore
         end
@@ -57,11 +57,11 @@ module Datadog
       end
 
       def default_logs_endpoint
-        "#{@agent_ssl ? 'https' : 'http'}://#{@agent_host}:4318/v1/logs"
+        "#{@agent_ssl ? "https" : "http"}://#{@agent_host}:4318/v1/logs"
       end
 
       def configure_otlp_exporter(provider)
-        require_relative 'sdk/logs_exporter'
+        require_relative "sdk/logs_exporter"
 
         logs_config = @settings.opentelemetry.logs
         endpoint = config_or_exporter_fallback(

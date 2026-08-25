@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative 'ext'
-require_relative '../ext'
-require_relative '../integration'
-require_relative '../patcher'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "ext"
+require_relative "../ext"
+require_relative "../integration"
+require_relative "../patcher"
 
 module Datadog
   module Tracing
@@ -22,9 +22,9 @@ module Datadog
           end
 
           def patch
-            require 'uri'
-            require 'json'
-            require_relative 'quantize'
+            require "uri"
+            require "json"
+            require_relative "quantize"
 
             transport_module::Client.prepend(DatadogPin)
             transport_module::Client.prepend(Client)
@@ -155,7 +155,7 @@ module Datadog
           # `Elasticsearch` namespace renamed to `Elastic` in version 8.0.0 of the transport gem:
           # @see https://github.com/elastic/elastic-transport-ruby/commit/ef804cbbd284f2a82d825221f87124f8b5ff823c
           def transport_module
-            if Integration.version >= Gem::Version.new('8.0.0')
+            if Integration.version >= Gem::Version.new("8.0.0")
               ::Elastic::Transport
             else
               ::Elasticsearch::Transport

@@ -3,14 +3,37 @@ module Datadog
     module Contrib
       module Sequel
         module Utils
+          type connection_options = {
+            ?host: String?,
+            ?port: (Integer | String)?,
+            ?database: String?,
+            ?uri: String?,
+            ?url: String?
+          }
+
+          interface _Database
+            def opts: () -> connection_options?
+          end
+
+          JDBC_URI_PATTERN: Regexp
+          DATABASE_PROPERTY_PATTERN: Regexp
+
           def self.adapter_name: (untyped database) -> untyped
           def self.database_type: (untyped database) -> untyped
 
+          def self.parse_jdbc_uri: (String? uri) -> { host: String?, port: String?, database: String? }
+
           def self.parse_opts: (untyped sql, untyped opts, untyped db_opts, ?untyped? dataset) -> { name: untyped, query: untyped, prepared_name: untyped, database: untyped, host: untyped }
+
+          def self.connection_metadata: (_Database db) -> { host: String?, port: String?, database: String? }
 
           def self.set_common_tags: (untyped span, untyped db) -> untyped
 
           private
+
+          def self.database_from_path: (String? path) -> String?
+
+          def self.database_from_properties: (String? properties) -> String?
 
           def self.datadog_configuration: () -> untyped
 

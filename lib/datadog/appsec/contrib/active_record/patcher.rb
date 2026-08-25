@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'instrumentation'
+require_relative "instrumentation"
 
 module Datadog
   module AppSec
@@ -52,7 +52,7 @@ module Datadog
           end
 
           def patch_sqlite3_adapter
-            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new('7.1')
+            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
               Instrumentation::InternalExecQueryAdapterPatch
             elsif ::ActiveRecord.gem_version.segments.first == 4
               Instrumentation::Rails4ExecQueryAdapterPatch
@@ -65,7 +65,7 @@ module Datadog
           end
 
           def patch_mysql2_adapter
-            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new('7.1')
+            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
               Instrumentation::InternalExecQueryAdapterPatch
             elsif ::ActiveRecord.gem_version.segments.first == 4
               Instrumentation::Rails4ExecQueryAdapterPatch
@@ -85,7 +85,7 @@ module Datadog
             end
 
             if defined?(::ActiveRecord::ConnectionAdapters::JdbcAdapter)
-              instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new('7.1')
+              instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
                 Instrumentation::InternalExecQueryAdapterPatch
               elsif ::ActiveRecord.gem_version.segments.first == 4
                 Instrumentation::Rails4ExecQueryAdapterPatch

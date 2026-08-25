@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
-require_relative 'fatal_exceptions'
+require_relative "fatal_exceptions"
 
 module Datadog
   module DI
     module ProbeFileLoader
       module_function def load_now_or_later
         if Datadog::Core::Contrib::Rails::Utils.railtie_supported?
-          Datadog.logger.debug('di: loading probe_file_loader/railtie')
-          require_relative 'probe_file_loader/railtie'
+          Datadog.logger.debug("di: loading probe_file_loader/railtie")
+          require_relative "probe_file_loader/railtie"
         else
           load_now
         end
@@ -22,7 +22,7 @@ module Datadog
       module_function def load_now
         should_propagate = false
 
-        probe_file_path = DATADOG_ENV['DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE']
+        probe_file_path = DATADOG_ENV["DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE"]
         if probe_file_path.nil? || probe_file_path.empty?
           return
         end

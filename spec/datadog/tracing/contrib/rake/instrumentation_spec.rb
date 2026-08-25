@@ -1,12 +1,12 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/analytics_examples'
-require 'datadog/tracing/contrib/svc_src_examples'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/tracing/contrib/analytics_examples"
+require "datadog/tracing/contrib/svc_src_examples"
 
-require 'securerandom'
-require 'rake'
-require 'rake/tasklib'
-require 'datadog'
-require 'datadog/tracing/contrib/rake/patcher'
+require "securerandom"
+require "rake"
+require "rake/tasklib"
+require "datadog"
+require "datadog/tracing/contrib/rake/patcher"
 
 RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
   let(:configuration_options) { {enabled: true, tasks: instrumented_task_names} }
@@ -15,7 +15,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
   let(:task_body) { proc { |task, args| spy.call(task, args) } }
   let(:task_arg_names) { [] }
   let(:task_class) do
-    stub_const('RakeInstrumentationTestTask', Class.new(Rake::TaskLib)).tap do |task_class|
+    stub_const("RakeInstrumentationTestTask", Class.new(Rake::TaskLib)).tap do |task_class|
       tb = task_body
       task_class.send(:define_method, :initialize) do |name = task_name, *args|
         task(name, *args, &tb)
@@ -23,10 +23,10 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
     end
   end
   let(:task) { Rake::Task[task_name] }
-  let(:spy) { double('spy') }
+  let(:spy) { double("spy") }
 
   before do
-    skip('Rake integration incompatible.') unless Datadog::Tracing::Contrib::Rake::Integration.compatible?
+    skip("Rake integration incompatible.") unless Datadog::Tracing::Contrib::Rake::Integration.compatible?
 
     # Reset options (that might linger from other tests)
     Datadog.configuration.tracing[:rake].reset!
@@ -54,13 +54,13 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
 
       # Rake prior to version 12.0 doesn't clear args when #clear is invoked.
       # Perform a more invasive reset, to make sure its reusable.
-      if Gem::Version.new(Rake::VERSION) < Gem::Version.new('12.0')
+      if Gem::Version.new(Rake::VERSION) < Gem::Version.new("12.0")
         Rake::Task[task_name].instance_variable_set(:@arg_names, nil)
       end
     end
   end
 
-  describe '#invoke' do
+  describe "#invoke" do
     subject(:invoke) { task.invoke(*args) }
 
     before do
@@ -71,57 +71,57 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
     let(:invoke_span) { spans.find { |s| s.name == Datadog::Tracing::Contrib::Rake::Ext::SPAN_INVOKE } }
     let(:execute_span) { spans.find { |s| s.name == Datadog::Tracing::Contrib::Rake::Ext::SPAN_EXECUTE } }
 
-    shared_examples_for 'a single task execution' do
-      it 'contains invoke and execute spans' do
+    shared_examples_for "a single task execution" do
+      it "contains invoke and execute spans" do
         expect(spans).to have(2).items
       end
 
-      context 'when service_name is overridden' do
-        let(:configuration_options) { super().merge(service_name: 'custom-rake') }
-        it_behaves_like 'tags _dd.svc_src', 'rake' do
+      context "when service_name is overridden" do
+        let(:configuration_options) { super().merge(service_name: "custom-rake") }
+        it_behaves_like "tags _dd.svc_src", "rake" do
           let(:span) { invoke_span }
         end
       end
 
-      describe '\'rake.invoke\' span' do
+      describe "'rake.invoke' span" do
         it do
           expect(invoke_span.name).to eq(Datadog::Tracing::Contrib::Rake::Ext::SPAN_INVOKE)
           expect(invoke_span.resource).to eq(task_name.to_s)
           expect(invoke_span.parent_id).to eq(0)
           expect(invoke_span.service).to eq(tracer.default_service)
           expect(invoke_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-            .to eq('rake')
+            .to eq("rake")
           expect(invoke_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-            .to eq('invoke')
+            .to eq("invoke")
         end
 
-        it_behaves_like 'analytics for integration' do
+        it_behaves_like "analytics for integration" do
           let(:span) { invoke_span }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Rake::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Rake::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
-        it_behaves_like 'measured span for integration', true do
+        it_behaves_like "measured span for integration", true do
           let(:span) { invoke_span }
         end
       end
 
-      describe '\'rake.execute\' span' do
+      describe "'rake.execute' span" do
         it do
           expect(execute_span.name).to eq(Datadog::Tracing::Contrib::Rake::Ext::SPAN_EXECUTE)
           expect(execute_span.resource).to eq(task_name.to_s)
           expect(execute_span.parent_id).to eq(invoke_span.id)
           expect(execute_span.service).to eq(tracer.default_service)
-          expect(execute_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rake')
+          expect(execute_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("rake")
           expect(execute_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-            .to eq('execute')
+            .to eq("execute")
           expect(execute_span.get_tag(Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE))
             .to be nil
         end
       end
     end
 
-    shared_examples 'a successful single task execution' do
+    shared_examples "a successful single task execution" do
       before do
         expect(spy).to receive(:call) do |invocation_task, invocation_args|
           expect(invocation_task).to eq(task)
@@ -131,14 +131,14 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
         invoke
       end
 
-      it_behaves_like 'a single task execution' do
-        describe '\'rake.invoke\' span' do
+      it_behaves_like "a single task execution" do
+        describe "'rake.invoke' span" do
           it "has no error'" do
             expect(invoke_span).to_not have_error
           end
         end
 
-        describe '\'rake.execute\' span' do
+        describe "'rake.execute' span" do
           it "has no error'" do
             expect(execute_span).to_not have_error
           end
@@ -146,29 +146,29 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
       end
     end
 
-    shared_examples 'a failed single task execution' do
+    shared_examples "a failed single task execution" do
       before do
-        expect(spy).to(receive(:call)) { raise error_class, 'oops' }
+        expect(spy).to(receive(:call)) { raise error_class, "oops" }
         expect(task).to receive(:shutdown_tracer!).with(no_args).twice.and_call_original
-        expect { task.invoke(*args) }.to raise_error('oops')
+        expect { task.invoke(*args) }.to raise_error("oops")
       end
 
       let(:error_class) { Class.new(StandardError) }
 
-      it_behaves_like 'a single task execution' do
-        describe '\'rake.invoke\' span' do
-          it 'has error' do
+      it_behaves_like "a single task execution" do
+        describe "'rake.invoke' span" do
+          it "has error" do
             expect(invoke_span).to have_error
-            expect(invoke_span).to have_error_message('oops')
+            expect(invoke_span).to have_error_message("oops")
             expect(invoke_span).to have_error_type(error_class.to_s)
             expect(invoke_span).to have_error_stack
           end
         end
 
-        describe '\'rake.execute\' span' do
-          it 'has error' do
+        describe "'rake.execute' span" do
+          it "has error" do
             expect(execute_span).to have_error
-            expect(execute_span).to have_error_message('oops')
+            expect(execute_span).to have_error_message("oops")
             expect(execute_span).to have_error_type(error_class.to_s)
             expect(execute_span).to have_error_stack
           end
@@ -176,7 +176,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
       end
     end
 
-    context 'for a task' do
+    context "for a task" do
       let(:args_hash) { {} }
       let(:task_arg_names) { args_hash.keys }
       let(:args) { args_hash.values }
@@ -188,23 +188,23 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
 
       before { define_task! }
 
-      it 'returns task return value' do
+      it "returns task return value" do
         allow(spy).to receive(:call)
         expect(invoke).to contain_exactly(task_body)
       end
 
-      context 'without args' do
-        it_behaves_like 'a successful single task execution' do
-          describe '\'rake.invoke\' span tags' do
+      context "without args" do
+        it_behaves_like "a successful single task execution" do
+          describe "'rake.invoke' span tags" do
             it do
               expect(invoke_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES))
                 .to eq([].to_s)
               expect(invoke_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_INVOKE_ARGS))
-                .to eq(['?'].to_s)
+                .to eq(["?"].to_s)
             end
           end
 
-          describe '\'rake.execute\' span tags' do
+          describe "'rake.execute' span tags" do
             it do
               expect(execute_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES))
                 .to be nil
@@ -214,17 +214,17 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
           end
         end
 
-        it_behaves_like 'a failed single task execution' do
-          describe '\'rake.invoke\' span tags' do
+        it_behaves_like "a failed single task execution" do
+          describe "'rake.invoke' span tags" do
             it do
               expect(invoke_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES))
                 .to eq([].to_s)
               expect(invoke_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_INVOKE_ARGS))
-                .to eq(['?'].to_s)
+                .to eq(["?"].to_s)
             end
           end
 
-          describe '\'rake.execute\' span tags' do
+          describe "'rake.execute' span tags" do
             it do
               expect(execute_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES))
                 .to be nil
@@ -235,50 +235,50 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
         end
       end
 
-      context 'with args' do
+      context "with args" do
         let(:args_hash) { {one: 1, two: 2, three: 3} }
 
-        it_behaves_like 'a successful single task execution' do
-          describe '\'rake.invoke\' span tags' do
+        it_behaves_like "a successful single task execution" do
+          describe "'rake.invoke' span tags" do
             it do
               expect(invoke_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES))
                 .to eq([:one, :two, :three].to_s)
               expect(invoke_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_INVOKE_ARGS))
-                .to eq(['?'].to_s)
+                .to eq(["?"].to_s)
             end
           end
 
-          describe '\'rake.execute\' span tags' do
+          describe "'rake.execute' span tags" do
             it do
               expect(execute_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES))
                 .to be nil
               expect(execute_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_EXECUTE_ARGS))
-                .to eq({one: '?', two: '?', three: '?'}.to_s)
+                .to eq({one: "?", two: "?", three: "?"}.to_s)
             end
           end
         end
-        it_behaves_like 'a failed single task execution' do
-          describe '\'rake.invoke\' span tags' do
+        it_behaves_like "a failed single task execution" do
+          describe "'rake.invoke' span tags" do
             it do
               expect(invoke_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES))
                 .to eq([:one, :two, :three].to_s)
               expect(invoke_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_INVOKE_ARGS))
-                .to eq(['?'].to_s)
+                .to eq(["?"].to_s)
             end
           end
 
-          describe '\'rake.execute\' span tags' do
+          describe "'rake.execute' span tags" do
             it do
               expect(execute_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES))
                 .to be nil
               expect(execute_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_EXECUTE_ARGS))
-                .to eq({one: '?', two: '?', three: '?'}.to_s)
+                .to eq({one: "?", two: "?", three: "?"}.to_s)
             end
           end
         end
       end
 
-      context 'with a prerequisite task' do
+      context "with a prerequisite task" do
         let(:prerequisite_task_name) { :test_rake_instrumentation_prerequisite }
         let(:instrumented_task_names) { [task_name, prerequisite_task_name] }
         let(:prerequisite_task_execute_span) do
@@ -301,7 +301,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
           end
         end
         let(:prerequisite_task_body) { proc { |task, args| prerequisite_spy.call(task, args) } }
-        let(:prerequisite_spy) { double('prerequisite spy') }
+        let(:prerequisite_spy) { double("prerequisite spy") }
         let(:prerequisite_task) { Rake::Task[prerequisite_task_name] }
 
         let(:define_task!) do
@@ -328,37 +328,37 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
           invoke
         end
 
-        it 'contains invoke, execute, and prerequisite spans' do
+        it "contains invoke, execute, and prerequisite spans" do
           expect(spans).to have(3).items
         end
 
-        describe '\'rake.invoke\' span' do
+        describe "'rake.invoke' span" do
           it do
             expect(invoke_span.name).to eq(Datadog::Tracing::Contrib::Rake::Ext::SPAN_INVOKE)
             expect(invoke_span.resource).to eq(task_name.to_s)
             expect(invoke_span.parent_id).to eq(0)
             expect(invoke_span.service).to eq(tracer.default_service)
             expect(invoke_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-              .to eq('rake')
+              .to eq("rake")
             expect(invoke_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-              .to eq('invoke')
+              .to eq("invoke")
             expect(invoke_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES))
               .to eq([].to_s)
             expect(invoke_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_INVOKE_ARGS))
-              .to eq(['?'].to_s)
+              .to eq(["?"].to_s)
           end
         end
 
-        describe 'prerequisite \'rake.execute\' span' do
+        describe "prerequisite 'rake.execute' span" do
           it do
             expect(prerequisite_task_execute_span.name).to eq(Datadog::Tracing::Contrib::Rake::Ext::SPAN_EXECUTE)
             expect(prerequisite_task_execute_span.resource).to eq(prerequisite_task_name.to_s)
             expect(prerequisite_task_execute_span.parent_id).to eq(invoke_span.id)
             expect(prerequisite_task_execute_span.service).to eq(tracer.default_service)
             expect(prerequisite_task_execute_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-              .to eq('rake')
+              .to eq("rake")
             expect(prerequisite_task_execute_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-              .to eq('execute')
+              .to eq("execute")
             expect(prerequisite_task_execute_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES))
               .to be nil
             expect(prerequisite_task_execute_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_EXECUTE_ARGS))
@@ -366,16 +366,16 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
           end
         end
 
-        describe 'task \'rake.execute\' span' do
+        describe "task 'rake.execute' span" do
           it do
             expect(execute_span.name).to eq(Datadog::Tracing::Contrib::Rake::Ext::SPAN_EXECUTE)
             expect(execute_span.resource).to eq(task_name.to_s)
             expect(execute_span.parent_id).to eq(invoke_span.id)
             expect(execute_span.service).to eq(tracer.default_service)
             expect(execute_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-              .to eq('rake')
+              .to eq("rake")
             expect(execute_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-              .to eq('execute')
+              .to eq("execute")
             expect(execute_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES))
               .to be nil
             expect(execute_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_EXECUTE_ARGS))
@@ -384,17 +384,17 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
         end
       end
 
-      context 'defined by a class' do
+      context "defined by a class" do
         let(:define_task!) do
           reset_task!(task_name)
           task_class.new(task_name, *task_arg_names)
         end
 
-        it_behaves_like 'a successful single task execution'
-        it_behaves_like 'a failed single task execution'
+        it_behaves_like "a successful single task execution"
+        it_behaves_like "a failed single task execution"
       end
 
-      context 'when tracing is disabled' do
+      context "when tracing is disabled" do
         before do
           Datadog.configure { |c| c.tracing.enabled = false }
           expect(Datadog.logger).to_not receive(:error)
@@ -403,18 +403,18 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
           expect(spy).to receive(:call)
         end
 
-        it 'returns task return value' do
+        it "returns task return value" do
           allow(spy).to receive(:call)
           expect(invoke).to contain_exactly(task_body)
         end
 
-        it 'runs the task without tracing' do
+        it "runs the task without tracing" do
           expect { invoke }.to_not raise_error
           expect(spans.length).to eq(0)
         end
       end
 
-      context 'with no instrumented tasks configured' do
+      context "with no instrumented tasks configured" do
         let(:instrumented_task_names) { [] }
 
         before do
@@ -424,12 +424,12 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
           expect(spy).to receive(:call)
         end
 
-        it 'returns task return value' do
+        it "returns task return value" do
           allow(spy).to receive(:call)
           expect(invoke).to contain_exactly(task_body)
         end
 
-        it 'runs the task without tracing' do
+        it "runs the task without tracing" do
           expect { invoke }.to_not raise_error
           expect(spans.length).to eq(0)
         end

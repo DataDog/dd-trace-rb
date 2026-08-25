@@ -1,33 +1,33 @@
 # frozen_string_literal: true
 
-require_relative 'agent_settings_resolver'
-require_relative 'components_state'
-require_relative 'ext'
-require_relative 'deprecations'
-require_relative '../diagnostics/environment_logger'
-require_relative '../diagnostics/health'
-require_relative '../logger'
-require_relative '../runtime/metrics'
-require_relative '../telemetry/component'
-require_relative '../workers/runtime_metrics'
-require_relative '../remote/component'
-require_relative '../utils/at_fork_monkey_patch'
-require_relative '../utils/spawn_monkey_patch'
-require_relative '../utils/only_once'
-require_relative '../../tracing/component'
-require_relative '../../profiling/component'
-require_relative '../../appsec/component'
-require_relative '../../ai_guard/component'
-require_relative '../../di/component'
-require_relative '../../symbol_database'
-require_relative '../../symbol_database/component'
-require_relative '../../open_feature/component'
-require_relative '../../error_tracking/component'
-require_relative '../crashtracking/component'
-require_relative '../environment/agent_info'
-require_relative '../environment/identity'
-require_relative '../process_discovery'
-require_relative '../../data_streams/processor'
+require_relative "agent_settings_resolver"
+require_relative "components_state"
+require_relative "ext"
+require_relative "deprecations"
+require_relative "../diagnostics/environment_logger"
+require_relative "../diagnostics/health"
+require_relative "../logger"
+require_relative "../runtime/metrics"
+require_relative "../telemetry/component"
+require_relative "../workers/runtime_metrics"
+require_relative "../remote/component"
+require_relative "../utils/at_fork_monkey_patch"
+require_relative "../utils/spawn_monkey_patch"
+require_relative "../utils/only_once"
+require_relative "../../tracing/component"
+require_relative "../../profiling/component"
+require_relative "../../appsec/component"
+require_relative "../../ai_guard/component"
+require_relative "../../di/component"
+require_relative "../../symbol_database"
+require_relative "../../symbol_database/component"
+require_relative "../../open_feature/component"
+require_relative "../../error_tracking/component"
+require_relative "../crashtracking/component"
+require_relative "../environment/agent_info"
+require_relative "../environment/identity"
+require_relative "../process_discovery"
+require_relative "../../data_streams/processor"
 
 module Datadog
   module Core
@@ -237,7 +237,7 @@ module Datadog
 
           # Load the core Rails Railtie when Rails is present so all products benefit from Rails-specific setup.
           if defined?(::Rails::Railtie)
-            require_relative '../contrib/rails/railtie'
+            require_relative "../contrib/rails/railtie"
           end
         end
 
@@ -248,6 +248,7 @@ module Datadog
           crashtracker&.update_on_fork
           ProcessDiscovery.after_fork
           symbol_database&.after_fork!
+          data_streams&.restart_flush_thread
         end
 
         # Hot-swaps with a new sampler.
@@ -290,6 +291,10 @@ module Datadog
             if settings.dynamic_instrumentation.enabled || old_state&.di_implicitly_enabled?
               DI.activate_tracking
               dynamic_instrumentation.start!
+              remote&.add_products(
+                *Datadog::DI::Remote.products,
+                *Datadog::SymbolDatabase::Remote.deferred_products(settings),
+              )
             end
           end
 
@@ -348,13 +353,13 @@ module Datadog
           # have direct ownership of it.
           old_statsd = [
             runtime_metrics.metrics.statsd,
-            health_metrics.statsd
+            health_metrics.statsd,
           ].compact.uniq
 
           new_statsd = if replacement
             [
               replacement.runtime_metrics.metrics.statsd,
-              replacement.health_metrics.statsd
+              replacement.health_metrics.statsd,
             ].compact.uniq
           else
             []

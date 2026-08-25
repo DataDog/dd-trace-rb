@@ -66,15 +66,15 @@
     "integration": "concurrent_ruby",
     "package": "concurrent-ruby",
     "source": "rubygems.org",
-    "min_tested": "1.3.7",
-    "max_tested": "1.3.7"
+    "min_tested": "1.3.8",
+    "max_tested": "1.3.8"
   },
   {
     "integration": "dalli",
     "package": "dalli",
     "source": "rubygems.org",
     "min_tested": "2.7.11",
-    "max_tested": "5.0.5"
+    "max_tested": "5.0.6"
   },
   {
     "integration": "delayed_job",
@@ -88,7 +88,7 @@
     "package": "elasticsearch",
     "source": "rubygems.org",
     "min_tested": "7.17.11",
-    "max_tested": "9.4.3"
+    "max_tested": "9.5.0"
   },
   {
     "integration": "ethon",
@@ -102,7 +102,7 @@
     "package": "excon",
     "source": "rubygems.org",
     "min_tested": "0.109.0",
-    "max_tested": "1.5.0"
+    "max_tested": "1.7.0"
   },
   {
     "integration": "faraday",
@@ -180,7 +180,7 @@
     "package": "karafka",
     "source": "rubygems.org",
     "min_tested": "2.0.41",
-    "max_tested": "2.5.9"
+    "max_tested": "2.6.0"
   },
   {
     "integration": "kicks",
@@ -208,7 +208,7 @@
     "package": "mongo",
     "source": "rubygems.org",
     "min_tested": "2.11.0",
-    "max_tested": "2.24.1"
+    "max_tested": "2.25.0"
   },
   {
     "integration": "mysql2",
@@ -278,7 +278,7 @@
     "package": "redis",
     "source": "rubygems.org",
     "min_tested": "3.3.5",
-    "max_tested": "5.4.1"
+    "max_tested": "6.0.0"
   },
   {
     "integration": "resque",
@@ -348,7 +348,7 @@
     "package": "stripe",
     "source": "rubygems.org",
     "min_tested": "5.15.0",
-    "max_tested": "19.3.0"
+    "max_tested": "19.4.0"
   },
   {
     "integration": "sucker_punch",
@@ -369,6 +369,6 @@
     "package": "waterdrop",
     "source": "rubygems.org",
     "min_tested": "2.6.14",
-    "max_tested": "2.10.2"
+    "max_tested": "2.10.3"
   }
 ]

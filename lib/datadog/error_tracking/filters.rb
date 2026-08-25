@@ -32,7 +32,7 @@ module Datadog
       end
 
       def datadog_code?(file_path)
-        file_path.include?('lib/datadog/')
+        file_path.include?("lib/datadog/")
       end
 
       def third_party_code?(file_path)
@@ -48,9 +48,9 @@ module Datadog
       def generate_filter(to_instrument_scope, handled_errors_include = nil)
         case to_instrument_scope
         # If DD_ERROR_TRACKING_HANDLED_ERRORS is set
-        when 'all'
+        when "all"
           proc { |file_path| !datadog_code?(file_path) }
-        when 'user'
+        when "user"
           # If DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE is set
           if handled_errors_include
             proc { |file_path|
@@ -59,7 +59,7 @@ module Datadog
           else
             proc { |file_path| user_code?(file_path) }
           end
-        when 'third_party'
+        when "third_party"
           if handled_errors_include
             proc { |file_path|
               third_party_code?(file_path) || file_included?(file_path, handled_errors_include)

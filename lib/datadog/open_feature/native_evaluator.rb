@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require_relative '../core/feature_flags'
-require_relative 'ext'
-require_relative 'resolution_details'
+require_relative "../core/feature_flags"
+require_relative "ext"
+require_relative "resolution_details"
 
 module Datadog
   module OpenFeature
     # This class is an interface of evaluation logic using native extension
     class NativeEvaluator
-      INVALID_FLAG_CONFIGURATION_ERROR_MESSAGE = 'flag configuration is invalid or unsupported'
+      INVALID_FLAG_CONFIGURATION_ERROR_MESSAGE = "flag configuration is invalid or unsupported"
 
       # NOTE: In a currect implementation configuration is expected to be a raw
       #       JSON string containing feature flags (straight from the remote config)
