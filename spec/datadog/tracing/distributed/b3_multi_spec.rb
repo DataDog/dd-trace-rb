@@ -37,7 +37,7 @@ RSpec.shared_examples "B3 Multi distributed format" do
         [-1, 0],
         [0, 0],
         [1, 1],
-        [2, 1]
+        [2, 1],
       ].each do |value, expected|
         context "with sampling priority #{value}" do
           let(:digest) do
@@ -162,7 +162,7 @@ RSpec.shared_examples "B3 Multi distributed format" do
             let(:data) do
               {
                 prepare_key["x-b3-traceid"] => invalid_trace_id,
-                prepare_key["x-b3-spanid"] => 20000.to_s(16)
+                prepare_key["x-b3-spanid"] => 20000.to_s(16),
               }
             end
 

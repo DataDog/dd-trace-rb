@@ -21,7 +21,8 @@ module Datadog
           endpoint_collection_enabled:,
           waiting_for_gvl_threshold_ns:,
           otel_context_enabled:,
-          native_filenames_enabled:
+          native_filenames_enabled:,
+          show_classes:
         )
           tracer_context_key = safely_extract_context_key_from(tracer)
           self.class._native_initialize(
@@ -32,7 +33,8 @@ module Datadog
             endpoint_collection_enabled: endpoint_collection_enabled,
             waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
             otel_context_enabled: otel_context_enabled,
-            native_filenames_enabled: validate_native_filenames(native_filenames_enabled),
+            native_filenames_enabled: native_filenames_enabled,
+            show_classes: show_classes,
             overhead_filename: __FILE__,
           )
         end
@@ -45,6 +47,7 @@ module Datadog
           waiting_for_gvl_threshold_ns: 10_000_000,
           otel_context_enabled: false,
           native_filenames_enabled: true,
+          show_classes: false,
           trigger_global_reset: true,
           **options
         )
@@ -56,6 +59,7 @@ module Datadog
             waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
             otel_context_enabled: otel_context_enabled,
             native_filenames_enabled: native_filenames_enabled,
+            show_classes: show_classes,
             **options,
           )
 
@@ -89,17 +93,6 @@ module Datadog
 
           context = provider.instance_variable_get(:@context)
           context&.instance_variable_get(:@key)
-        end
-
-        def validate_native_filenames(native_filenames_enabled)
-          if native_filenames_enabled && !Datadog::Profiling::Collectors::Stack._native_filenames_available?
-            Datadog.logger.debug(
-              "Native filenames are enabled, but the required dladdr API was not available. Disabling native filenames."
-            )
-            false
-          else
-            native_filenames_enabled
-          end
         end
       end
     end

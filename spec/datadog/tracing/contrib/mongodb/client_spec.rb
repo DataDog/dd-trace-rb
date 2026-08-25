@@ -295,7 +295,7 @@ RSpec.describe "Mongo::Client instrumentation" do
         let(:params) do
           [
             {name: "Steve", hobbies: ["hiking", "tennis", "fly fishing"]},
-            {name: "Sally", hobbies: ["skiing", "stamp collecting"]}
+            {name: "Sally", hobbies: ["skiing", "stamp collecting"]},
           ]
         end
 
@@ -383,7 +383,7 @@ RSpec.describe "Mongo::Client instrumentation" do
       let(:documents) do
         [
           {name: "Steve", hobbies: ["hiking", "tennis", "fly fishing"]},
-          {name: "Sally", hobbies: ["skiing", "stamp collecting"]}
+          {name: "Sally", hobbies: ["skiing", "stamp collecting"]},
         ]
       end
 
@@ -441,7 +441,7 @@ RSpec.describe "Mongo::Client instrumentation" do
       let(:documents) do
         [
           {name: "Steve", hobbies: ["hiking", "tennis", "fly fishing"]},
-          {name: "Sally", hobbies: ["skiing", "stamp collecting"]}
+          {name: "Sally", hobbies: ["skiing", "stamp collecting"]},
         ]
       end
 

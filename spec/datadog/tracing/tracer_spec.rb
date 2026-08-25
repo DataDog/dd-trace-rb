@@ -416,7 +416,7 @@ RSpec.describe Datadog::Tracing::Tracer do
                   grandparent,
                   parent,
                   child,
-                  grandchild
+                  grandchild,
                 ].all? { |s| s.trace_id == grandparent.trace_id }
               ).to be true
               expect(grandparent.parent_id).to eq(0)
@@ -427,7 +427,7 @@ RSpec.describe Datadog::Tracing::Tracer do
               expect(
                 [
                   great_uncle,
-                  second_cousin
+                  second_cousin,
                 ].all? { |s| s.trace_id == great_uncle.trace_id }
               ).to be true
               expect(great_uncle.parent_id).to eq(0)
@@ -966,8 +966,10 @@ RSpec.describe Datadog::Tracing::Tracer do
           expect(trace).to have_attributes(
             origin: digest.trace_origin,
             sampling_priority: digest.trace_sampling_priority,
-            trace_state: "my-state",
-            trace_state_unknown_fields: "any;field",
+            trace_state: an_object_having_attributes(
+              unknown_vendors: "my-state",
+              datadog: an_object_having_attributes(unknown_fields: "any;field")
+            ),
           )
           expect(digest.span_remote).to be true
           expect(trace.to_digest.span_remote).to be false
@@ -1291,7 +1293,7 @@ RSpec.describe Datadog::Tracing::Tracer do
     it "sets span tags for the respective baggage key after formatting" do
       trace_digest = Datadog::Tracing::Contrib::HTTP.extract(
         {
-          "baggage" => "user.id=test-id,session.id=session-123,foo=bar"
+          "baggage" => "user.id=test-id,session.id=session-123,foo=bar",
         }
       )
 

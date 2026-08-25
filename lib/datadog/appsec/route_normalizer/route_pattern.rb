@@ -31,7 +31,7 @@ module Datadog
         OPTIONAL_GROUP_SIGILS = [
           GROUP_OPEN_CHAR,
           GROUP_CLOSE_CHAR,
-          OPTIONAL_GROUP_SUFFIX_CHAR
+          OPTIONAL_GROUP_SUFFIX_CHAR,
         ].join
 
         NAMED_PARAM_PREFIX_CHAR = ":"
@@ -41,14 +41,14 @@ module Datadog
           NAMED_PARAM_PREFIX_CHAR,
           GLOB_PARAM_PREFIX_CHAR,
           GROUP_OPEN_CHAR,
-          GROUP_CLOSE_CHAR
+          GROUP_CLOSE_CHAR,
         ].join
 
         PARAM_NAME_CHARS = [*"a".."z", *"A".."Z", *"0".."9", "_"].join
 
         EXCLUDED_PARAM_NAME_TERMINATOR_CHARS = [
           PARAM_NAME_CHARS,
-          PATTERN_STRUCTURE_CHARS
+          PATTERN_STRUCTURE_CHARS,
         ].join
 
         MAX_RESOLVE_LENGTH = 8192

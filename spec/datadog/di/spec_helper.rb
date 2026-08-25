@@ -48,7 +48,7 @@ module DIHelpers
           "v" => 1,
         },
         "hashes" => {"sha256" => Digest::SHA256.hexdigest(encoded)},
-        "length" => encoded.length
+        "length" => encoded.length,
       }
     end
 
@@ -248,7 +248,7 @@ module ProbeNotifierWorkerLeakDetector
   end
 
   def stop(*args)
-    ProbeNotifierWorkerLeakDetector.workers.delete_if do |(worker, example)|
+    ProbeNotifierWorkerLeakDetector.workers.delete_if do |(worker, _example)|
       worker == self
     end
     super

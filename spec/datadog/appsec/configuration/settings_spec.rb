@@ -434,6 +434,34 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       end
     end
 
+    describe "#agentic_onboarding" do
+      context "when DD_APPSEC_AGENTIC_ONBOARDING is not defined" do
+        around do |example|
+          ClimateControl.modify("DD_APPSEC_AGENTIC_ONBOARDING" => nil) do
+            example.run
+          end
+        end
+
+        it { expect(settings.appsec.agentic_onboarding).to eq("") }
+      end
+
+      context "when DD_APPSEC_AGENTIC_ONBOARDING is defined" do
+        around do |example|
+          ClimateControl.modify("DD_APPSEC_AGENTIC_ONBOARDING" => "arbitrary-marker-value") do
+            example.run
+          end
+        end
+
+        it { expect(settings.appsec.agentic_onboarding).to eq("arbitrary-marker-value") }
+      end
+    end
+
+    describe "#agentic_onboarding=" do
+      before { settings.appsec.agentic_onboarding = "arbitrary-marker-value" }
+
+      it { expect(settings.appsec.agentic_onboarding).to eq("arbitrary-marker-value") }
+    end
+
     describe "#obfuscator_key_regex" do
       subject(:obfuscator_key_regex) { settings.appsec.obfuscator_key_regex }
 
@@ -894,7 +922,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         [
           {method_name: :html, env_var: "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML"},
           {method_name: :json, env_var: "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON"},
-          {method_name: :text, env_var: "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT"}
+          {method_name: :text, env_var: "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT"},
         ].each do |test_info|
           describe "##{test_info[:method_name]}" do
             context "when #{test_info[:env_var]}" do

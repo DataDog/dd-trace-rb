@@ -105,6 +105,7 @@ module Datadog
           waiting_for_gvl_threshold_ns: settings.profiling.advanced.waiting_for_gvl_threshold_ns,
           otel_context_enabled: settings.profiling.advanced.preview_otel_context_enabled,
           native_filenames_enabled: settings.profiling.advanced.native_filenames_enabled,
+          show_classes: settings.profiling.advanced.experimental_show_classes_enabled,
         )
       end
 
@@ -226,11 +227,13 @@ module Datadog
           return false
         end
 
-        # Heap profiling relies on `ObjectSpace._id2ref`, which was removed on Ruby 4.1
-        # (https://bugs.ruby-lang.org/issues/22135).
-        if RubyVersion.is?(">= 4.1")
+        # Heap profiling tracks live objects using an `ObjectSpace::WeakMap`, which could corrupt its internal
+        # state during compaction before these versions (https://bugs.ruby-lang.org/issues/19529).
+        if RubyVersion.is?("< 3.1.4") || RubyVersion.is?(">= 3.2", "< 3.2.3")
           logger.warn(
-            "Heap profiling is currently incompatible with Ruby 4.1+ and has been disabled."
+            "Current Ruby version (#{RUBY_VERSION}) cannot support heap profiling due to a VM bug. " \
+            "Please upgrade to Ruby >= 3.1.4 or >= 3.2.3 in order to use this feature. " \
+            "Heap profiling has been disabled."
           )
           return false
         end
@@ -251,17 +254,7 @@ module Datadog
       private_class_method def self.enable_heap_size_profiling?(settings, heap_profiling_enabled, logger)
         heap_size_profiling_enabled = settings.profiling.advanced.experimental_heap_size_enabled
 
-        return false unless heap_profiling_enabled && heap_size_profiling_enabled
-
-        if RubyVersion.is?(">= 4")
-          logger.info(
-            "Heap live size profiling is currently incompatible with Ruby 4 and has been disabled. " \
-            "Heap live objects is not affected and remains enabled."
-          )
-          return false
-        end
-
-        true
+        heap_profiling_enabled && heap_size_profiling_enabled
       end
 
       private_class_method def self.no_signals_workaround_enabled?(settings, logger) # rubocop:disable Metrics/MethodLength

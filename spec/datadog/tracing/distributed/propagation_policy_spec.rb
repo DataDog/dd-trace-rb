@@ -73,6 +73,18 @@ RSpec.describe Datadog::Tracing::Distributed::PropagationPolicy do
             it { expect(result).to be true }
           end
         end
+
+        context "when there is a distributed ai_guard event" do
+          before do
+            allow(Datadog.configuration.apm.tracing).to receive(:enabled).and_return(false)
+            allow(Datadog.configuration.ai_guard).to receive(:enabled).and_return(true)
+          end
+
+          let(:trace) { Datadog::Tracing::TraceOperation.new(tags: {"_dd.p.ts" => "20"}) }
+          let(:result) { described_class.enabled?(trace: trace) }
+
+          it { expect(result).to be true }
+        end
       end
     end
 

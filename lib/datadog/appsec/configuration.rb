@@ -20,7 +20,7 @@ module Datadog
         AUTO_USER_INSTRUMENTATION_MODES = [
           DISABLED_AUTO_USER_INSTRUMENTATION_MODE,
           ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE,
-          IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE
+          IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE,
         ].freeze
         AUTO_USER_INSTRUMENTATION_MODES_ALIASES = {
           "ident" => IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE,
@@ -31,7 +31,7 @@ module Datadog
         SAFE_TRACK_USER_EVENTS_MODE = "safe"
         EXTENDED_TRACK_USER_EVENTS_MODE = "extended"
         APPSEC_VALID_TRACK_USER_EVENTS_MODE = [
-          SAFE_TRACK_USER_EVENTS_MODE, EXTENDED_TRACK_USER_EVENTS_MODE
+          SAFE_TRACK_USER_EVENTS_MODE, EXTENDED_TRACK_USER_EVENTS_MODE,
         ].freeze
         APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES = ["1", "true"].concat(
           APPSEC_VALID_TRACK_USER_EVENTS_MODE
@@ -50,6 +50,15 @@ module Datadog
                 o.type :bool
                 o.env "DD_APPSEC_ENABLED"
                 o.default false
+              end
+
+              # NOTE: Marker set by the agentic onboarding tooling.
+              #       Has no effect here — we just report its value in telemetry,
+              #       so onboarding can be detected at runtime
+              option :agentic_onboarding do |o|
+                o.type :string
+                o.env "DD_APPSEC_AGENTIC_ONBOARDING"
+                o.default ""
               end
 
               define_method(:instrument) do |integration_name|
