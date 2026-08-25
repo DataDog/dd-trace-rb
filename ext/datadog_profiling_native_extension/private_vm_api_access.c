@@ -65,7 +65,9 @@ static const rb_callable_method_entry_t* safe_vm_frame_method_entry(const rb_con
 // if the argument passed in is not actually a `Thread` instance.
 static inline rb_thread_t *thread_struct_from_object(VALUE thread) {
   static const rb_data_type_t *thread_data_type = NULL;
-  if (UNLIKELY(thread_data_type == NULL)) thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
+  if (UNLIKELY(thread_data_type == NULL)) {
+    thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
+  }
 
   return (rb_thread_t *) rb_check_typeddata(thread, thread_data_type);
 }
@@ -75,7 +77,9 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
   #ifndef NO_RB_NATIVE_THREAD
     struct rb_native_thread* native_thread = thread_struct_from_object(thread)->nt;
     // This can be NULL on Ruby 3.3 with MN threads (RUBY_MN_THREADS=1)
-    if (native_thread == NULL) return 0;
+    if (native_thread == NULL) {
+      return 0;
+    }
     return native_thread->thread_id;
   #else
     return thread_struct_from_object(thread)->thread_id;
@@ -127,13 +131,17 @@ bool is_current_thread_holding_the_gvl(void) {
         GET_VM()->gvl.owner;
       #endif
 
-    if (current_owner == NULL) return (current_gvl_owner) {.valid = false};
+    if (current_owner == NULL) {
+      return (current_gvl_owner) {.valid = false};
+    }
 
     #ifndef NO_RB_NATIVE_THREAD
       struct rb_native_thread* current_owner_native_thread = current_owner->nt;
 
       // This can be NULL on Ruby 3.3 with MN threads (RUBY_MN_THREADS=1)
-      if (current_owner_native_thread == NULL) return (current_gvl_owner) {.valid = false};
+      if (current_owner_native_thread == NULL) {
+        return (current_gvl_owner) {.valid = false};
+      }
 
       return (current_gvl_owner) {.valid = true, .owner = current_owner_native_thread->thread_id};
     #else
@@ -176,7 +184,9 @@ bool is_current_thread_holding_the_gvl(void) {
     bool gvl_acquired = vm->gvl.acquired != 0;
     rb_thread_t *current_owner = vm->running_thread;
 
-    if (!gvl_acquired || current_owner == NULL) return (current_gvl_owner) {.valid = false};
+    if (!gvl_acquired || current_owner == NULL) {
+      return (current_gvl_owner) {.valid = false};
+    }
 
     return (current_gvl_owner) {.valid = true, .owner = current_owner->thread_id};
   }
@@ -195,7 +205,9 @@ uint64_t native_thread_id_for(VALUE thread) {
   #if !defined(NO_THREAD_TID) && defined(RB_THREAD_T_HAS_NATIVE_ID)
     #ifndef NO_RB_NATIVE_THREAD
       struct rb_native_thread* native_thread = thread_struct_from_object(thread)->nt;
-      if (native_thread == NULL) return 0;
+      if (native_thread == NULL) {
+        return 0;
+      }
       return native_thread->tid;
     #else
       return thread_struct_from_object(thread)->tid;
@@ -207,7 +219,9 @@ uint64_t native_thread_id_for(VALUE thread) {
       uint64_t result;
       // On macOS, this gives us the same identifier that shows up in activity monitor
       int error = pthread_threadid_np(pthread_id, &result);
-      if (error) rb_syserr_fail(error, "Unexpected failure in pthread_threadid_np");
+      if (error) {
+        rb_syserr_fail(error, "Unexpected failure in pthread_threadid_np");
+      }
       return result;
     #else
       // Fallback, when we have nothing better (e.g. on Ruby < 3.1 on Linux)
@@ -324,12 +338,18 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
       return 0;
     }
     #ifndef NO_INT_FIRST_LINENO // Ruby 3.2+
-      if (lineno) *lineno = ISEQ_BODY(iseq)->location.first_lineno;
+      if (lineno) {
+        *lineno = ISEQ_BODY(iseq)->location.first_lineno;
+      }
     #else
-      if (lineno) *lineno = FIX2INT(ISEQ_BODY(iseq)->location.first_lineno);
+      if (lineno) {
+        *lineno = FIX2INT(ISEQ_BODY(iseq)->location.first_lineno);
+      }
     #endif
 #ifdef USE_ISEQ_NODE_ID
-    if (node_id) *node_id = -1;
+    if (node_id) {
+      *node_id = -1;
+    }
 #endif
     return 1;
   }
@@ -360,11 +380,17 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
     // `n > ISEQ_BODY(iseq)->iseq_size)`.
     //
     // To work around this and any other potential issues, we validate here that the bytecode position is sane.
-    if (RB_UNLIKELY(n < 0 || n > ISEQ_BODY(iseq)->iseq_size)) return 0;
+    if (RB_UNLIKELY(n < 0 || n > ISEQ_BODY(iseq)->iseq_size)) {
+      return 0;
+    }
 
-    if (lineno) *lineno = rb_iseq_line_no(iseq, pos);
+    if (lineno) {
+      *lineno = rb_iseq_line_no(iseq, pos);
+    }
 #ifdef USE_ISEQ_NODE_ID
-    if (node_id) *node_id = rb_iseq_node_id(iseq, pos);
+    if (node_id) {
+      *node_id = rb_iseq_node_id(iseq, pos);
+    }
 #endif
     return 1;
   }
@@ -379,7 +405,9 @@ static inline int
 calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 {
   int lineno;
-  if (calc_pos(iseq, pc, &lineno, NULL)) return lineno;
+  if (calc_pos(iseq, pc, &lineno, NULL)) {
+    return lineno;
+  }
   return 0;
 }
 
@@ -448,19 +476,27 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
   // As of this writing, we don't support profiling with MN enabled, and this only happens in that mode, but as we
   // probably want to experiment with it in the future, I've decided to import https://github.com/ruby/ruby/pull/9310
   // here.
-  if (ec == NULL) return 0;
+  if (ec == NULL) {
+    return 0;
+  }
 
   // Avoid sampling dead threads
-  if (th->status == THREAD_KILLED) return 0;
+  if (th->status == THREAD_KILLED) {
+    return 0;
+  }
 
   const rb_control_frame_t *cfp = ec->cfp;
 
   // This happens on newly-created threads (we even had a flaky test because of it)
-  if (cfp == NULL) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
+  if (cfp == NULL) {
+    return PLACEHOLDER_STACK_IN_NATIVE_CODE;
+  }
 
   // I suspect this won't happen for ddtrace, but just-in-case we've imported a potential fix for
   // https://github.com/ruby/ruby/pull/13643 by assuming that these can be NULL/zero with the cfp being non-NULL yet.
-  if (ec->vm_stack == NULL || ec->vm_stack_size == 0) return 0;
+  if (ec->vm_stack == NULL || ec->vm_stack_size == 0) {
+    return 0;
+  }
 
   const rb_control_frame_t *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
   #ifndef NO_JIT_RETURN
@@ -470,7 +506,9 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
 
   // `vm_backtrace.c` includes this check in several methods. This happens on newly-created threads, and may
   // also (not entirely sure) happen on dead threads
-  if (end_cfp == NULL) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
+  if (end_cfp == NULL) {
+    return PLACEHOLDER_STACK_IN_NATIVE_CODE;
+  }
 
   // Fix: Skip dummy frame that shows up in main thread.
   //
@@ -486,7 +524,9 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
   end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
   // See comment on `record_placeholder_stack_in_native_code` for a full explanation of what this means (and why we don't just return 0)
-  if (end_cfp <= cfp) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
+  if (end_cfp <= cfp) {
+    return PLACEHOLDER_STACK_IN_NATIVE_CODE;
+  }
 
   // This is the position just after the top of the stack -- e.g. where a new frame pushed on the stack would end up.
   const rb_control_frame_t *top_sentinel = RUBY_VM_NEXT_CONTROL_FRAME(cfp);
@@ -651,11 +691,15 @@ safe_vm_frame_method_entry(const rb_control_frame_t *cfp)
       return me;
     }
     ep = VM_ENV_PREV_EP(ep);
-    if (ep == NULL) return NULL;
+    if (ep == NULL) {
+      return NULL;
+    }
   }
 
   // If we exited because of a torn EP (failed FIXNUM_P), bail out
-  if (!FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS])) return NULL;
+  if (!FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS])) {
+    return NULL;
+  }
 
   return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
 }
@@ -719,17 +763,23 @@ static const rb_iseq_t *maybe_thread_invoke_proc_iseq(VALUE thread_value) {
   rb_thread_t *thread = thread_struct_from_object(thread_value);
 
   #ifndef NO_THREAD_INVOKE_ARG // Ruby 2.6+
-    if (thread->invoke_type != thread_invoke_type_proc) return NULL;
+    if (thread->invoke_type != thread_invoke_type_proc) {
+      return NULL;
+    }
 
     VALUE proc = thread->invoke_arg.proc.proc;
   #else
-    if (thread->first_func || !thread->first_proc) return NULL;
+    if (thread->first_func || !thread->first_proc) {
+      return NULL;
+    }
 
     VALUE proc = thread->first_proc;
   #endif
 
   const rb_iseq_t *iseq = rb_proc_get_iseq(proc, 0);
-  if (iseq == NULL) return NULL;
+  if (iseq == NULL) {
+    return NULL;
+  }
 
   rb_iseq_check(iseq);
   return iseq;
@@ -738,7 +788,9 @@ static const rb_iseq_t *maybe_thread_invoke_proc_iseq(VALUE thread_value) {
 VALUE invoke_location_for(VALUE thread, int *line_location) {
   const rb_iseq_t *iseq = maybe_thread_invoke_proc_iseq(thread);
 
-  if (iseq == NULL) return Qnil;
+  if (iseq == NULL) {
+    return Qnil;
+  }
 
   *line_location = NUM2INT(rb_iseq_first_lineno(iseq));
   return ddtrace_iseq_path(iseq);
@@ -861,7 +913,9 @@ bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)
       expected_current_fiber = current_fiber_for(rb_thread_current());
     }
 
-    if (expected_current_fiber != actual_current_fiber) rb_raise(rb_eRuntimeError, "current_fiber_for() self-test failed");
+    if (expected_current_fiber != actual_current_fiber) {
+      rb_raise(rb_eRuntimeError, "current_fiber_for() self-test failed");
+    }
   }
 #else
   NORETURN(VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread));
@@ -878,7 +932,9 @@ bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)
 
 // Return true if a given location is a C method or supposed to behave like one.
 static bool location_cfunc_p(const rb_callable_method_entry_t *cme) {
-  if (!cme) return false;
+  if (!cme) {
+    return false;
+  }
 
   switch (cme->def->type) {
     case VM_METHOD_TYPE_CFUNC:
