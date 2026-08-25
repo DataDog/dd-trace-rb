@@ -1,90 +1,76 @@
-# Hooks
+# Hooks Guide
 
-Claude Code hooks for this repo. A hook is a small script Claude Code runs
-around tool calls — here, one Ruby file per hook.
+This is a short guide explaining code organization and conventions. For the
+complete Claude hooks documentation please follow the [official documentation]
 
-## Writing a hook
+## Code organization
 
-A hook is two files: `<name>.rb` holds the runtime, `<name>.test.rb` holds its
-tests. The runtime stays pure so it compiles cleanly; the test file
-`require_relative`s it and drives it. Loading it that way would run the hook, so
-its last line guards against firing under the test:
-
-```ruby
-# runs as a hook or a compiled binary, but not when required by the test
-Runner.new(ARGV).run($stdin.read) unless $PROGRAM_NAME.end_with?(".test.rb")
+```text
+.claude/
+├── settings.json        <-- hooks registration
+└── hooks/
+    ├── Makefile         <-- the hook compilation and tests
+    ├── <name>.rb        <-- the hook code
+    ├── <name>.test.rb   <-- the hook tests
+    ├── shims/
+    │   └── <name>       <-- the file used in a settings as a hook script
+    └── compiled/
+        └── <name>       <-- the hook code as compiled binary (optional)
 ```
 
-Run the hook the way Claude Code does, with the payload as JSON on stdin:
+For simplicity of development and maintenance each hook is written and tested
+in Ruby. The **hook is a single file** that is self-contained and doesn't have any
+external dependency (at least for now)
 
-```sh
-ruby <name>.rb <args>
+The hook **tests are also a single file** that represents _unit_ tests and _smoke_
+(integration) tests. To avoid bloating for a relative simple matter, both unit and
+smoke tests co-live in the same test file
+
+Each hook exposes an _executable_ shim-file that is encapsulates knowledge about
+optional compiled binary file. And the compiled binary is stored under `compiled/`
+folder under the same name
+
+> [!IMPORTANT]
+> Do not use `.rb` file in the settings directly, point to the `shim` that will
+> handle pure Ruby and optionally compiled hook binary
+
+For binary compilation [Spinel] is used, but be aware that **not all Ruby features
+and methods are currently supported** and that might require you to adjust your
+script
+
+> [!NOTE]
+> Currently there is no shared library for hooks, but if it will emerge, shared
+> files should be isolated from the root folder in `lib/` or similar folder
+
+## Naming conventions
+
+For the hook name a simple framework is suggested: a dash-separated verb (or action)
+and a subject, for instance: `require-skill`, `load-file`, `reject-read`
+
+## Tests
+
+Right now `Test::Unit` is the default testing framework used for both Ruby and
+compiled binary testing.
+
+The logic behind the smoke tests is the following: for the same input the `.rb`
+file and compiled binary must produce the same output, with the `.rb` file acting
+as the reference implementation.
+
+> [!IMPORTANT]
+> Re-run `make` after changing the hook code to rebuild it, as running tests does
+> not re-compile the binaries
+
+To run all tests execute
+
+```console
+.claude/hooks$ make test
 ```
 
-## Testing
+and to test a single hook, you can run the following
 
-```sh
-make test               # every hook's tests (unit + smoke), under CRuby
-ruby <name>.test.rb     # a single hook
+```console
+.claude/hooks$ ruby <name>.test.rb
 ```
 
-Each test file carries two suites. The **unit** suite exercises the hook's logic
-in process. The **smoke** suite runs the hook end to end as a subprocess against
-a set of scenarios, once per available runner: CRuby always, and the compiled
-binary when one is present. CRuby is the oracle — the binary must match it byte
-for byte, so a miscompile shows up as a divergence. With no binary built, smoke
-runs CRuby only and says so.
-
-## Shims
-
-`settings.json` — the repo's Claude Code config, where hooks are one of the
-things you wire up — never points at a Ruby file directly. It points at a shim in
-`shims/`, which runs the compiled binary when one exists and falls back to plain
-Ruby otherwise. That keeps the wiring stable whether or not a native build
-(below) is present:
-
-```sh
-"command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/shims/<name>\" <args>"
-```
-
-## Native compilation
-
-Ruby's cold start is slow for something that fires on every tool call, so a hook
-can be compiled ahead of time into a standalone native binary with [Spinel],
-which starts roughly thirty times faster. Spinel is not on `PATH` by default;
-build it once, then compile:
-
-```sh
-make bootstrap   # fetch + build Spinel into ~/.cache/spinel (one-time)
-make compile     # every hook -> compiled/<name>
-```
-
-The result lands in `compiled/<name>`, and the shim prefers it automatically.
-Binaries are architecture- and OS-specific, so `compiled/` is gitignored —
-everyone builds their own, and plain Ruby remains the portable fallback.
-
-Spinel only supports a subset of Ruby, so mind the gaps (see [Spinel] for what
-compiles). Because the binary is architecture-specific and compiled separately
-from CRuby, re-verify after any hook change: `make compile && make test`. The
-smoke suite then diffs the fresh binary against CRuby and fails on any
-divergence.
-
-## Hooks in this repo
-
-### require-skill
-
-Loads a required skill before Claude edits a matching path, so the skill's
-guidance is in context first. It matches the `Edit` and `Write` tools, where
-Claude hand-authors file content. It deliberately does not match `Bash`: shell
-tools like `sed`, `cp`, `mv`, and `tee` transform or copy existing bytes rather
-than author new content, so there is nothing for the skill to guide, and reliably
-detecting a write to a guarded path inside an arbitrary command line is not
-feasible.
-
-## Links
-
-The [Claude Code hooks guide][hooks] covers the payload shape and decision
-protocol, and [Spinel] documents what compiles and what does not.
-
-[hooks]: https://docs.claude.com/en/docs/claude-code/hooks
+[official documentation]: https://code.claude.com/docs/en/hooks
 [Spinel]: https://github.com/matz/spinel
