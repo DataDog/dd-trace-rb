@@ -2,11 +2,39 @@ module Datadog
   module OpenFeature
     module FlagEvaluation
       class Aggregator
+        type context_value = ::String | bool | ::Integer | ::Float
+        type context = ::Hash[::String, context_value]
+        type raw_context = ::Hash[any, any]
+        type full_key = [::String, ::String, ::String, bool, ::String, ::String, ::String]
+        type degraded_key = [::String, ::String, ::String, bool, ::String]
+        type entry = {
+          count: ::Integer,
+          first_evaluation: ::Integer,
+          last_evaluation: ::Integer,
+          runtime_default: bool,
+          error_message: ::String?,
+          targeting_key: ::String?,
+          context_attrs: context?
+        }
+        type snapshot = {
+          full: ::Hash[full_key, entry],
+          degraded: ::Hash[degraded_key, entry],
+          dropped_degraded_overflow: ::Integer
+        }
+
         MAX_CONTEXT_FIELDS: ::Integer
 
-        MAX_FIELD_LENGTH: ::Integer
+        MAX_VALUE_LENGTH: ::Integer
 
-        MAX_CONTEXT_DEPTH: ::Integer
+        MAX_KEY_LENGTH: ::Integer
+
+        MAX_LIST_ELEMENTS: ::Integer
+
+        MAX_STRUCTURE_PROPERTIES: ::Integer
+
+        MAX_SNAPSHOT_DEPTH: ::Integer
+
+        MAX_VISITED_NODES: ::Integer
 
         EVAL_SCALE_TARGET_FLAGS: ::Integer
 
@@ -40,6 +68,22 @@ module Datadog
 
         CTX_TAG_OTHER: ::String
 
+        REASON_MAX_CONTEXT_FIELDS: ::String
+
+        REASON_MAX_VALUE_LENGTH: ::String
+
+        REASON_MAX_KEY_LENGTH: ::String
+
+        REASON_MAX_LIST_ELEMENTS: ::String
+
+        REASON_MAX_STRUCTURE_PROPERTIES: ::String
+
+        REASON_MAX_SNAPSHOT_DEPTH: ::String
+
+        REASON_MAX_VISITED_NODES: ::String
+
+        REASON_CYCLE: ::String
+
         @global_cap: ::Integer
 
         @per_flag_cap: ::Integer
@@ -48,9 +92,9 @@ module Datadog
 
         @mutex: ::Thread::Mutex
 
-        @full: ::Hash[::Array[untyped], ::Hash[::Symbol, untyped]]
+        @full: ::Hash[full_key, entry]
 
-        @degraded: ::Hash[::Array[untyped], ::Hash[::Symbol, untyped]]
+        @degraded: ::Hash[degraded_key, entry]
 
         @per_flag_full: ::Hash[::String, ::Integer]
 
@@ -72,32 +116,32 @@ module Datadog
           allocation_key: ::String?,
           targeting_key: ::String?,
           eval_time_ms: ::Integer,
-          attrs: ::Hash[::String, untyped]?,
+          attrs: context?,
           ?error_message: ::String?,
           ?runtime_default: bool?
         ) -> void
 
-        def flush_and_reset: () -> ::Hash[::Symbol, untyped]
+        def flush_and_reset: () -> snapshot
 
-        def prune_context: (::Hash[::String, untyped]? attrs) -> ::Hash[::String, untyped]
+        def self.bounded_context_snapshot: (raw_context? attrs) -> [context, ::Array[::String]]
 
-        def self.prune_context: (::Hash[::String, untyped]? attrs) -> ::Hash[::String, untyped]
-
-        def self.flatten_context: (::Hash[::String, untyped]? attrs) -> ::Hash[::String, untyped]
-
-        def self.flatten_value: (
-          ::String prefix,
-          untyped value,
-          ::Hash[::String, untyped] output,
-          ::Hash[::Integer, bool] seen,
-          ::Integer depth
-        ) -> void
-
-        def canonical_context_key: (::Hash[::String, untyped]? attrs) -> ::String
+        def canonical_context_key: (context? attrs) -> ::String
 
         private
 
-        def context_value_bytes: (untyped value) -> ::String
+        def self.context_key_string: (any key) -> ::String?
+
+        def self.bounded_flatten: (
+          ::String prefix,
+          any value,
+          context output,
+          ::Hash[::Integer, bool] seen,
+          ::Integer depth,
+          ::Set[::String] reasons,
+          ::Array[::Integer] budget
+        ) -> void
+
+        def context_value_bytes: (context_value value) -> ::String
 
         def length_delimited: (::String string) -> ::String
 
@@ -106,10 +150,10 @@ module Datadog
           runtime_default: bool,
           ?error_message: ::String?,
           ?targeting_key: ::String?,
-          ?context_attrs: ::Hash[::String, untyped]?
-        ) -> ::Hash[::Symbol, untyped]
+          ?context_attrs: context?
+        ) -> entry
 
-        def observe: (::Hash[::Symbol, untyped] entry, ::Integer evaluation_time_ms) -> void
+        def observe: (entry entry, ::Integer evaluation_time_ms) -> void
 
         def add_to_degraded: (
           ::String flag_key,

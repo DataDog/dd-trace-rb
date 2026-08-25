@@ -56,6 +56,7 @@ class OpenFeatureFlagevaluationBenchmark
     @writer.instance_variable_set(:@aggregator, Datadog::OpenFeature::FlagEvaluation::Aggregator.new)
     @writer.instance_variable_set(:@queue, SizedQueue.new(Datadog::OpenFeature::FlagEvaluation::Writer::QUEUE_SIZE))
     @writer.instance_variable_set(:@stop_mutex, Mutex.new)
+    @writer.instance_variable_set(:@stop_cond, ConditionVariable.new)
     @writer.instance_variable_set(:@dropped_queue_overflow, 0)
     @writer.define_singleton_method(:start_background_thread) {}
 
