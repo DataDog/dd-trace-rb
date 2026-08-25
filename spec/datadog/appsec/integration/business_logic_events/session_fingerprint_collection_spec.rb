@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/appsec/spec_helper'
-require 'rack/test'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/appsec/spec_helper"
+require "rack/test"
 
-require 'datadog/tracing'
-require 'datadog/appsec'
-require 'datadog/kit/appsec/events'
+require "datadog/tracing"
+require "datadog/appsec"
+require "datadog/kit/appsec/events"
 
-RSpec.describe 'Session fingerprint collection for business events' do
+RSpec.describe "Session fingerprint collection for business events" do
   include Rack::Test::Methods
 
   before do
@@ -48,7 +48,7 @@ RSpec.describe 'Session fingerprint collection for business events' do
 
   let(:http_service_entry_span) do
     Datadog::Tracing::Transport::TraceFormatter.format!(trace)
-    spans.find { |s| s.name == 'rack.request' }
+    spans.find { |s| s.name == "rack.request" }
   end
 
   let(:app) do
@@ -56,20 +56,20 @@ RSpec.describe 'Session fingerprint collection for business events' do
       use Datadog::Tracing::Contrib::Rack::TraceMiddleware
       use Datadog::AppSec::Contrib::Rack::RequestMiddleware
 
-      map '/with-track-login-success' do
+      map "/with-track-login-success" do
         run(
           lambda do |_env|
             Datadog::Kit::AppSec::Events.track_login_success(
-              Datadog::Tracing.active_trace, Datadog::Tracing.active_span, user: {id: '42'}
+              Datadog::Tracing.active_trace, Datadog::Tracing.active_span, user: {id: "42"}
             )
 
-            [200, {'Content-Type' => 'text/html'}, ['OK']]
+            [200, {"Content-Type" => "text/html"}, ["OK"]]
           end
         )
       end
 
-      map '/without-track-login-success' do
-        run ->(_env) { [200, {'Content-Type' => 'text/html'}, ['OK']] }
+      map "/without-track-login-success" do
+        run ->(_env) { [200, {"Content-Type" => "text/html"}, ["OK"]] }
       end
     end
 
@@ -78,21 +78,21 @@ RSpec.describe 'Session fingerprint collection for business events' do
 
   subject(:response) { last_response }
 
-  context 'when business event was pushed' do
-    before { get('/with-track-login-success') }
+  context "when business event was pushed" do
+    before { get("/with-track-login-success") }
 
-    it 'collects session fingerprint' do
+    it "collects session fingerprint" do
       expect(response).to be_ok
-      expect(http_service_entry_span.tags).to include('_dd.appsec.fp.session' => String)
+      expect(http_service_entry_span.tags).to include("_dd.appsec.fp.session" => String)
     end
   end
 
-  context 'when business event was not pushed' do
-    before { get('/without-track-login-success') }
+  context "when business event was not pushed" do
+    before { get("/without-track-login-success") }
 
-    it 'does not collect session fingerprint' do
+    it "does not collect session fingerprint" do
       expect(response).to be_ok
-      expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.fp.session')
+      expect(http_service_entry_span.tags).not_to have_key("_dd.appsec.fp.session")
     end
   end
 end

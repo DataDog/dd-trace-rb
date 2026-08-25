@@ -14,6 +14,8 @@ module Datadog
         target_self: nil,
         path: nil, caller_locations: nil,
         serialized_entry_args: nil,
+        entry_capture_expressions: nil,
+        entry_capture_evaluation_errors: nil,
         return_value: nil, duration: nil, exception: nil)
         @probe = probe
         @settings = settings
@@ -23,6 +25,8 @@ module Datadog
         @path = path
         @caller_locations = caller_locations
         @serialized_entry_args = serialized_entry_args
+        @entry_capture_expressions = entry_capture_expressions
+        @entry_capture_evaluation_errors = entry_capture_evaluation_errors
         @return_value = return_value
         @duration = duration
         @exception = exception
@@ -44,6 +48,10 @@ module Datadog
 
       attr_reader :serialized_entry_args
 
+      attr_reader :entry_capture_expressions
+
+      attr_reader :entry_capture_evaluation_errors
+
       # Return value for the method, for a method probe
       attr_reader :return_value
 
@@ -55,9 +63,7 @@ module Datadog
 
       def serialized_locals
         # TODO cache?
-        locals && serializer.serialize_vars(locals,
-          depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-          attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
+        locals && serializer.serialize_vars(locals, **probe.snapshot_serializer_limits(settings))
       end
 
       def fetch(var_name)

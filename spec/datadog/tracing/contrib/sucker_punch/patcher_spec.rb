@@ -1,10 +1,10 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/analytics_examples'
-require 'datadog/tracing/contrib/svc_src_examples'
-require 'sucker_punch'
-require 'datadog'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/tracing/contrib/analytics_examples"
+require "datadog/tracing/contrib/svc_src_examples"
+require "sucker_punch"
+require "datadog"
 
-RSpec.describe 'sucker_punch instrumentation' do
+RSpec.describe "sucker_punch instrumentation" do
   let(:configuration_options) { {} }
 
   before do
@@ -57,30 +57,30 @@ RSpec.describe 'sucker_punch instrumentation' do
     fetch_traces(tracer).sum { |trace| trace.spans.length }
   end
 
-  context 'successful job' do
+  context "successful job" do
     subject(:dummy_worker_success) { worker_class.perform_async }
 
     let(:job_span) { spans.find { |s| s.resource[/PROCESS/] } }
     let(:enqueue_span) { spans.find { |s| s.resource[/ENQUEUE/] } }
     let(:span) { spans.first }
 
-    it_behaves_like 'measured span for integration', true do
+    it_behaves_like "measured span for integration", true do
       before do
         dummy_worker_success
         try_wait_until { get_spans_count == 2 }
       end
     end
 
-    it 'generates two spans, one for pushing to enqueue and one for the job itself' do
+    it "generates two spans, one for pushing to enqueue and one for the job itself" do
       is_expected.to be true
       try_wait_until { get_spans_count == 2 }
       expect(spans.length).to eq(2)
     end
 
-    context 'when service_name is overridden' do
-      let(:configuration_options) { {service_name: 'custom-sucker_punch'} }
+    context "when service_name is overridden" do
+      let(:configuration_options) { {service_name: "custom-sucker_punch"} }
 
-      it_behaves_like 'tags _dd.svc_src', 'sucker_punch' do
+      it_behaves_like "tags _dd.svc_src", "sucker_punch" do
         let(:span) { spans.find { |s| s.resource[/PROCESS/] } }
         before do
           dummy_worker_success
@@ -89,88 +89,88 @@ RSpec.describe 'sucker_punch instrumentation' do
       end
     end
 
-    it 'instruments successful job' do
+    it "instruments successful job" do
       is_expected.to be true
       try_wait_until { get_spans_count == 2 }
 
       expect(job_span.service).to eq(tracer.default_service)
-      expect(job_span.name).to eq('sucker_punch.perform')
+      expect(job_span.name).to eq("sucker_punch.perform")
       expect(job_span.resource).to eq("PROCESS #{worker_class}")
-      expect(job_span.get_tag('sucker_punch.queue')).to eq(worker_class.to_s)
+      expect(job_span.get_tag("sucker_punch.queue")).to eq(worker_class.to_s)
       expect(job_span.status).not_to eq(Datadog::Tracing::Metadata::Ext::Errors::STATUS)
-      expect(job_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sucker_punch')
-      expect(job_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('perform')
+      expect(job_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("sucker_punch")
+      expect(job_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq("perform")
     end
 
-    it 'instruments successful enqueuing' do
+    it "instruments successful enqueuing" do
       is_expected.to be true
       try_wait_until { get_spans_count == 2 }
 
       expect(enqueue_span.service).to eq(tracer.default_service)
-      expect(enqueue_span.name).to eq('sucker_punch.perform_async')
+      expect(enqueue_span.name).to eq("sucker_punch.perform_async")
       expect(enqueue_span.resource).to eq("ENQUEUE #{worker_class}")
-      expect(enqueue_span.get_tag('sucker_punch.queue')).to eq(worker_class.to_s)
-      expect(enqueue_span.get_metric('_dd.measured')).to eq(1.0)
-      expect(enqueue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sucker_punch')
-      expect(enqueue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('perform_async')
+      expect(enqueue_span.get_tag("sucker_punch.queue")).to eq(worker_class.to_s)
+      expect(enqueue_span.get_metric("_dd.measured")).to eq(1.0)
+      expect(enqueue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("sucker_punch")
+      expect(enqueue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq("perform_async")
     end
   end
 
-  context 'failed job' do
+  context "failed job" do
     subject(:dummy_worker_fail) { worker_class.perform_async(:fail) }
 
     let(:job_span) { spans.find { |s| s.resource[/PROCESS/] } }
     let(:span) { spans.first }
 
-    it_behaves_like 'measured span for integration', true do
+    it_behaves_like "measured span for integration", true do
       before do
         dummy_worker_fail
         try_wait_until { get_spans_count == 2 }
       end
     end
 
-    it 'instruments a failed job' do
+    it "instruments a failed job" do
       is_expected.to be true
       try_wait_until { get_spans_count == 2 }
 
       expect(job_span.service).to eq(tracer.default_service)
-      expect(job_span.name).to eq('sucker_punch.perform')
+      expect(job_span.name).to eq("sucker_punch.perform")
       expect(job_span.resource).to eq("PROCESS #{worker_class}")
-      expect(job_span.get_tag('sucker_punch.queue')).to eq(worker_class.to_s)
+      expect(job_span.get_tag("sucker_punch.queue")).to eq(worker_class.to_s)
       expect(job_span).to have_error
-      expect(job_span).to have_error_type('ZeroDivisionError')
-      expect(job_span).to have_error_message('divided by 0')
+      expect(job_span).to have_error_type("ZeroDivisionError")
+      expect(job_span).to have_error_message("divided by 0")
     end
   end
 
-  context 'delayed job' do
+  context "delayed job" do
     subject(:dummy_worker_delay) { worker_class.perform_in(0) }
 
     let(:enqueue_span) { spans.find { |s| s.resource[/ENQUEUE/] } }
     let(:span) { spans.first }
 
-    it_behaves_like 'measured span for integration', true do
+    it_behaves_like "measured span for integration", true do
       before do
         dummy_worker_delay
         try_wait_until { get_spans_count == 2 }
       end
     end
 
-    it 'instruments enqueuing for a delayed job' do
+    it "instruments enqueuing for a delayed job" do
       dummy_worker_delay
       try_wait_until { get_spans_count == 2 }
 
       expect(enqueue_span.service).to eq(tracer.default_service)
-      expect(enqueue_span.name).to eq('sucker_punch.perform_in')
+      expect(enqueue_span.name).to eq("sucker_punch.perform_in")
       expect(enqueue_span.resource).to eq("ENQUEUE #{worker_class}")
-      expect(enqueue_span.get_tag('sucker_punch.queue')).to eq(worker_class.to_s)
-      expect(enqueue_span.get_tag('sucker_punch.perform_in')).to eq(0)
-      expect(enqueue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sucker_punch')
-      expect(enqueue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('perform_in')
+      expect(enqueue_span.get_tag("sucker_punch.queue")).to eq(worker_class.to_s)
+      expect(enqueue_span.get_tag("sucker_punch.perform_in")).to eq(0)
+      expect(enqueue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("sucker_punch")
+      expect(enqueue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq("perform_in")
     end
   end
 
-  context 'keyword arguments' do
+  context "keyword arguments" do
     # We do not want mocks or stubs here, as these would define their own
     # wrapper or replacement methods interfering with the argument passing
     # test, therefore we record behaviour data on a side-effect of an object.
@@ -190,11 +190,11 @@ RSpec.describe 'sucker_punch instrumentation' do
       clazz
     end
 
-    context 'internal call to job' do
+    context "internal call to job" do
       subject(:dummy_worker) { worker_class.__run_perform(1, required: 2) }
       let(:expect_thread?) { false }
 
-      it 'passes kwargs correctly through instrumentation' do
+      it "passes kwargs correctly through instrumentation" do
         dummy_worker
         try_wait_until { recorded.any? }
 
@@ -202,10 +202,10 @@ RSpec.describe 'sucker_punch instrumentation' do
       end
     end
 
-    context 'async job' do
+    context "async job" do
       subject(:dummy_worker) { worker_class.perform_async(1, required: 2) }
 
-      it 'passes kwargs correctly through instrumentation' do
+      it "passes kwargs correctly through instrumentation" do
         dummy_worker
         try_wait_until { recorded.any? }
 
@@ -213,10 +213,10 @@ RSpec.describe 'sucker_punch instrumentation' do
       end
     end
 
-    context 'delayed job' do
+    context "delayed job" do
       subject(:dummy_worker) { worker_class.perform_in(0, 1, required: 2) }
 
-      it 'passes kwargs correctly through instrumentation' do
+      it "passes kwargs correctly through instrumentation" do
         dummy_worker
         try_wait_until { recorded.any? }
 

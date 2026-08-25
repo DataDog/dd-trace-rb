@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative 'ext'
-require_relative 'utils'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "ext"
+require_relative "utils"
 
 module Datadog
   module Tracing
@@ -26,7 +26,7 @@ module Datadog
                 span.service = Datadog.configuration_for(self, :service_name) \
                                 || Datadog.configuration.tracing[:sequel][:service_name] \
                                 || Contrib::SpanAttributeSchema.fetch_service_name(
-                                  '',
+                                  "",
                                   adapter_name
                                 )
                 span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
@@ -46,11 +46,7 @@ module Datadog
             end
 
             def parse_opts(sql, opts)
-              db_opts = if ::Sequel::VERSION < '3.41.0' && self.class.to_s !~ /Dataset$/
-                @opts
-              elsif instance_variable_defined?(:@pool) && @pool
-                @pool.db.opts
-              end
+              db_opts = @pool.db.opts if instance_variable_defined?(:@pool) && @pool
               sql = sql.is_a?(::Sequel::SQL::Expression) ? literal(sql) : sql.to_s
 
               Utils.parse_opts(sql, opts, db_opts)

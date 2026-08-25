@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
 module Datadog
   module SymbolDatabase
@@ -85,7 +85,7 @@ module Datadog
         # Always emit has_injectible_lines (even when false) on METHOD scopes.
         # Wire format keeps the historical spelling +injectible+; Ruby identifier
         # is +targetable_lines+.
-        if scope_type == 'METHOD'
+        if scope_type == "METHOD"
           h[:has_injectible_lines] = targetable_lines? # steep:ignore ArgumentTypeMismatch
           h[:injectible_lines] = targetable_lines if targetable_lines && !targetable_lines.empty?
         end

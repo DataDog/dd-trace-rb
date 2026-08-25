@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'base'
+require_relative "base"
 
 module Datadog
   module Core
@@ -31,7 +31,7 @@ module Datadog
             if reset?
               super
             else
-              'app-client-configuration-change'
+              "app-client-configuration-change"
             end
           end
 
@@ -57,7 +57,7 @@ module Datadog
           end
 
           def reset?
-            defined?(@reset) && !!@reset
+            !!(defined?(@reset) && @reset)
           end
         end
       end

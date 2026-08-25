@@ -18,12 +18,12 @@ jobs:
       BUNDLE_FROZEN: "true"
     steps:
       - name: Checkout code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@d45b1a4e94b71acab930e56e79c6aa188764e7f9 # v1.316.0
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           ruby-version: "4.0.1"
 
@@ -40,17 +40,17 @@ jobs:
           policy: self.generate-supported-versions
 
       - name: Create Pull Request
-        id: cpr
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        uses: ./.github/actions/signed-commit-pr
         with:
           token: ${{ steps.generate-token.outputs.token }}
           branch: auto-generate/update-supported-versions
           title: '[🤖] Update Supported Versions'
           base: master
           labels: dev/internal, integrations
-          commit-message: "Test creating supported versions"
-          delete-branch: true
-          sign-commits: true
+          commit-message: "[🤖] Update Supported Versions: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          add-paths: |
+            docs/integration_versions.md
+            docs/integration_versions.json
           body: |
             This is a PR to update the table for supported integration versions.
             The supported versions markdown is generated from the minimum and maximum tested versions of each integration,

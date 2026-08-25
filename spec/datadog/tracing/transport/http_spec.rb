@@ -1,11 +1,11 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/tracing/transport/http'
+require "datadog/tracing/transport/http"
 
 RSpec.describe Datadog::Tracing::Transport::HTTP do
   let(:logger) { logger_allowing_debug }
 
-  describe '.default' do
+  describe ".default" do
     subject(:default) { described_class.default(agent_settings: default_agent_settings, logger: logger) }
     let(:default_agent_settings) do
       Datadog::Core::Configuration::AgentSettingsResolver.call(
@@ -17,14 +17,14 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
     # This test changes based on the environment tests are running. We have other
     # tests around each specific environment scenario, while this one specifically
     # ensures that we are matching the default environment settings.
-    it 'returns a transport with default configuration' do
+    it "returns a transport with default configuration" do
       is_expected.to be_a_kind_of(Datadog::Tracing::Transport::Traces::Transport)
-      expect(default.current_api_id).to eq('v0.4')
+      expect(default.current_api_id).to eq("v0.4")
 
       expect(default.apis.keys).to eq(
         [
-          'v0.4',
-          'v0.3',
+          "v0.4",
+          "v0.3",
         ]
       )
 
@@ -47,7 +47,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
       end
     end
 
-    context 'when given an agent_settings' do
+    context "when given an agent_settings" do
       subject(:default) { described_class.default(agent_settings: agent_settings, logger: logger, **options) }
 
       let(:options) { {} }
@@ -70,13 +70,13 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
         )
       end
 
-      context 'that specifies host, port, timeout and ssl' do
-        let(:hostname) { double('hostname') }
-        let(:port) { double('port') }
-        let(:timeout_seconds) { double('timeout') }
+      context "that specifies host, port, timeout and ssl" do
+        let(:hostname) { double("hostname") }
+        let(:port) { double("port") }
+        let(:timeout_seconds) { double("timeout") }
         let(:ssl) { true }
 
-        it 'returns a transport with provided options' do
+        it "returns a transport with provided options" do
           default.apis.each_value do |api|
             expect(api.adapter).to be_a_kind_of(Datadog::Core::Transport::HTTP::Adapters::Net)
             expect(api.adapter.hostname).to eq(hostname)
@@ -88,12 +88,12 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
       end
     end
 
-    context 'when given options' do
+    context "when given options" do
       subject(:default) { described_class.default(agent_settings: default_agent_settings, logger: logger, **options) }
 
-      context 'that specify headers' do
+      context "that specify headers" do
         let(:options) { {headers: headers} }
-        let(:headers) { {'Test-Header' => 'foo'} }
+        let(:headers) { {"Test-Header" => "foo"} }
 
         it do
           default.apis.each_value do |api|
@@ -104,7 +104,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
       end
     end
 
-    context 'when given a block' do
+    context "when given a block" do
       it do
         expect do |b|
           described_class.default(agent_settings: default_agent_settings, logger: logger, &b)

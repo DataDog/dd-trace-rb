@@ -4,6 +4,8 @@ module Datadog
   module AIGuard
     # AI Guard specific constants
     module Ext
+      PRODUCT_BIT = 0x20
+
       SPAN_NAME = "ai_guard"
       TARGET_TAG = "ai_guard.target"
       TOOL_NAME_TAG = "ai_guard.tool_name"
@@ -22,7 +24,7 @@ module Datadog
       TRACE_ANOMALY_DETECTION_TAGS = [
         TRACE_HTTP_USERAGENT_TAG,
         TRACE_HTTP_CLIENT_IP_TAG,
-        TRACE_NETWORK_CLIENT_IP_TAG
+        TRACE_NETWORK_CLIENT_IP_TAG,
       ].freeze
     end
   end

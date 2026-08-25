@@ -2,8 +2,8 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
-require_relative 'error'
-require_relative 'fatal_exceptions'
+require_relative "error"
+require_relative "fatal_exceptions"
 
 module Datadog
   module DI
@@ -275,8 +275,8 @@ module Datadog
               if inexact.any?
                 return inexact.first
               end
-              break unless working_suffix.include?('/')
-              working_suffix.sub!(%r{.*/+}, '')
+              break unless working_suffix.include?("/")
+              working_suffix.sub!(%r{.*/+}, "")
             end
           end
           nil
@@ -393,8 +393,8 @@ module Datadog
             matches = paths.select { |p| Utils.path_matches_suffix?(p, working_suffix, case_insensitive: case_insensitive) }
             raise Error::MultiplePathsMatch, "Multiple paths matched requested suffix" if matches.length > 1
             return matches.first if matches.any?
-            break unless working_suffix.include?('/')
-            working_suffix.sub!(%r{.*/+}, '')
+            break unless working_suffix.include?("/")
+            working_suffix.sub!(%r{.*/+}, "")
           end
         end
         nil

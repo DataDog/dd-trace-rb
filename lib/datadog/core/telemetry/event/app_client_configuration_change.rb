@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'base'
+require_relative "base"
+require_relative "../configuration_value"
 
 module Datadog
   module Core
@@ -11,7 +12,7 @@ module Datadog
           attr_reader :changes, :origin
 
           def type
-            'app-client-configuration-change'
+            "app-client-configuration-change"
           end
 
           def initialize(changes, origin)
@@ -27,21 +28,22 @@ module Datadog
           def configuration
             config = Datadog.configuration
 
+            # @type var res: Array[telemetry_configuration]
             res = @changes.map do |name, value|
               {
                 name: name,
-                value: value,
+                value: Telemetry::ConfigurationValue.convert(value),
                 origin: @origin,
                 seq_id: Configuration::Option::Precedence::REMOTE_CONFIGURATION.numeric.next,
               }
             end
 
             # DEV: This seems unnecessary (we send the state of sca_enabled for each remote config change)
-            unless config.dig('appsec', 'sca_enabled').nil?
+            unless config.dig("appsec", "sca_enabled").nil?
               res << {
-                name: 'appsec.sca_enabled',
+                name: "appsec.sca_enabled",
                 value: config.appsec.sca_enabled,
-                origin: 'code',
+                origin: "code",
                 seq_id: Configuration::Option::Precedence::PROGRAMMATIC.numeric.next,
               }
             end

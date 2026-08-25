@@ -102,7 +102,7 @@ dev/github:
 # Only repository CI changes
 dev/ci:
 - changed-files:
-  - all-globs-to-all-files: ['{.circleci/**,.gitlab-ci.yml}']
+  - all-globs-to-all-files: ['.gitlab-ci.yml']
 
 # Version bump pull request
 release:

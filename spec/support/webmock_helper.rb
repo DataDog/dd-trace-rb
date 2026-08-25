@@ -21,7 +21,7 @@
 #
 # Examples (or groups) that need extra options like `WebMock.enable!(allow: x)`
 # should keep the imperative form.
-RSpec.shared_context 'webmock' do
+RSpec.shared_context "webmock" do
   before { WebMock.enable! }
 
   after do
@@ -31,5 +31,5 @@ RSpec.shared_context 'webmock' do
 end
 
 RSpec.configure do |config|
-  config.include_context 'webmock', webmock: true
+  config.include_context "webmock", webmock: true
 end

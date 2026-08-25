@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'configuration/resolver'
-require_relative 'ext'
-require_relative 'quantize'
-require_relative 'tags'
-require_relative 'trace_middleware'
+require_relative "../patcher"
+require_relative "configuration/resolver"
+require_relative "ext"
+require_relative "quantize"
+require_relative "tags"
+require_relative "trace_middleware"
 
 module Datadog
   module Tracing

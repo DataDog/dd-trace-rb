@@ -4,8 +4,10 @@
 # Each instrumented configuration is measured with two probe rate-limit
 # settings to decompose the wrapper's per-call cost:
 #
-#   rate_limit=1_000_000  - benchmark runs below the bucket ceiling, every
-#                           probe invocation fires the full path (firing).
+#   rate_limit=1_000_000  - the per-probe limiter admits every call, and the
+#                           benchmark neutralizes the process-wide global
+#                           limiter (BenchInstrumenter), so every probe
+#                           invocation fires the full path (firing).
 #   rate_limit=1          - one token initially + 1/sec refill. At the
 #                           benchmark's call rate, ~99.999% of invocations
 #                           hit the rate-limited skip branch (skip).
@@ -60,16 +62,17 @@
 #
 
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require 'benchmark/ips'
-require 'datadog'
+require "benchmark/ips"
+require "datadog"
 # Need to require datadog/di explicitly because dynamic instrumentation is not
 # currently integrated into the Ruby tracer due to being under development.
-require 'datadog/di'
-require 'datadog/di/proc_responder'
+require "datadog/di"
+require "datadog/di/logger"
+require "datadog/di/proc_responder"
 
 class DIInstrumentBenchmark
   class Target
@@ -94,6 +97,23 @@ class DIInstrumentBenchmark
     end
   end
 
+  # The process-wide global rate limiters are orthogonal admission control;
+  # they must not pollute per-call wrapper-cost measurement. Override the
+  # public probe_global_rate_limiter seam to admit every call, restoring the
+  # firing-path measurement from before the global limiters existed.
+  # Production wiring is unchanged; this subclass is benchmark-only.
+  module AlwaysAllow
+    def self.allow?(*)
+      true
+    end
+  end
+
+  class BenchInstrumenter < Datadog::DI::Instrumenter
+    def probe_global_rate_limiter(*)
+      AlwaysAllow
+    end
+  end
+
   attr_reader :instrumenter
 
   def logger
@@ -106,7 +126,11 @@ class DIInstrumentBenchmark
 
     redactor = Datadog::DI::Redactor.new(settings)
     serializer = Datadog::DI::Serializer.new(settings, redactor)
-    @instrumenter = Datadog::DI::Instrumenter.new(settings, serializer, logger,
+    # Wrap in the DI::Logger facade (as lib/datadog/di/component.rb does)
+    # so the instrumenter's logger.trace calls on the global-rate-limit
+    # skip path resolve; stdlib Logger has no trace method.
+    di_logger = Datadog::DI::Logger.new(settings, logger)
+    @instrumenter = BenchInstrumenter.new(settings, serializer, di_logger,
       code_tracker: Datadog::DI.code_tracker)
   end
 
@@ -122,11 +146,11 @@ class DIInstrumentBenchmark
         **benchmark_time,
       )
 
-      x.report('no instrumentation') do
+      x.report("no instrumentation") do
         Target.new.test_method
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -154,7 +178,7 @@ class DIInstrumentBenchmark
     end
 
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      type_name: 'DIInstrumentBenchmark::Target', method_name: 'test_method',
+      type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
       rate_limit: 1_000_000,)
     responder = Datadog::DI::ProcResponder.new(executed_proc)
     rv = instrumenter.hook_method(probe, responder)
@@ -168,11 +192,11 @@ class DIInstrumentBenchmark
         **benchmark_time,
       )
 
-      x.report('method instrumentation - rate_limit=1M (firing)') do
+      x.report("method instrumentation - rate_limit=1M (firing)") do
         Target.new.test_method
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -180,15 +204,15 @@ class DIInstrumentBenchmark
       raise "Method instrumentation (rate_limit=1M) did not work - callback was never invoked"
     end
 
-    if calls < 1000 && !VALIDATE_BENCHMARK_MODE
-      raise "Method instrumentation (rate_limit=1M): expected at least 1000 firing calls, got #{calls}"
+    if calls < 100_000 && !VALIDATE_BENCHMARK_MODE
+      raise "Method instrumentation (rate_limit=1M): expected at least 100_000 firing calls, got #{calls}"
     end
 
     instrumenter.unhook(probe)
 
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      type_name: 'DIInstrumentBenchmark::Target', method_name: 'test_method',
+      type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
       rate_limit: 1,)
     responder = Datadog::DI::ProcResponder.new(executed_proc)
     rv = instrumenter.hook_method(probe, responder)
@@ -202,11 +226,11 @@ class DIInstrumentBenchmark
         **benchmark_time,
       )
 
-      x.report('method instrumentation - rate_limit=1 (skip)') do
+      x.report("method instrumentation - rate_limit=1 (skip)") do
         Target.new.test_method
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -246,11 +270,11 @@ class DIInstrumentBenchmark
       x.config(
         **benchmark_time,
       )
-      x.report('line instrumentation - untargeted - rate_limit=1M (firing)') do
+      x.report("line instrumentation - untargeted - rate_limit=1M (firing)") do
         Target.new.test_method_for_line_probe
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -258,8 +282,8 @@ class DIInstrumentBenchmark
       raise "Line instrumentation (untargeted, rate_limit=1M) did not work - callback was never invoked"
     end
 
-    if calls < 1000 && !VALIDATE_BENCHMARK_MODE
-      raise "Line instrumentation (untargeted, rate_limit=1M): expected at least 1000 firing calls, got #{calls}"
+    if calls < 100_000 && !VALIDATE_BENCHMARK_MODE
+      raise "Line instrumentation (untargeted, rate_limit=1M): expected at least 100_000 firing calls, got #{calls}"
     end
 
     instrumenter.unhook(probe)
@@ -278,11 +302,11 @@ class DIInstrumentBenchmark
       x.config(
         **benchmark_time,
       )
-      x.report('line instrumentation - untargeted - rate_limit=1 (skip)') do
+      x.report("line instrumentation - untargeted - rate_limit=1 (skip)") do
         Target.new.test_method_for_line_probe
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -304,7 +328,7 @@ class DIInstrumentBenchmark
     if defined?(DITarget)
       raise "DITarget is already defined, this should not happen"
     end
-    require_relative 'support/di_target'
+    require_relative "support/di_target"
     unless defined?(DITarget)
       raise "DITarget is not defined, this should not happen"
     end
@@ -327,11 +351,11 @@ class DIInstrumentBenchmark
         **benchmark_time,
       )
 
-      x.report('line instrumentation - targeted - rate_limit=1M (firing)') do
+      x.report("line instrumentation - targeted - rate_limit=1M (firing)") do
         DITarget.new.test_method_for_line_probe
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -339,8 +363,8 @@ class DIInstrumentBenchmark
       raise "Targeted line instrumentation (rate_limit=1M) did not work - callback was never invoked"
     end
 
-    if calls < 1000 && !VALIDATE_BENCHMARK_MODE
-      raise "Targeted line instrumentation (rate_limit=1M): expected at least 1000 firing calls, got #{calls}"
+    if calls < 100_000 && !VALIDATE_BENCHMARK_MODE
+      raise "Targeted line instrumentation (rate_limit=1M): expected at least 100_000 firing calls, got #{calls}"
     end
 
     instrumenter.unhook(probe)
@@ -360,11 +384,11 @@ class DIInstrumentBenchmark
         **benchmark_time,
       )
 
-      x.report('line instrumentation - targeted - rate_limit=1 (skip)') do
+      x.report("line instrumentation - targeted - rate_limit=1 (skip)") do
         DITarget.new.test_method_for_line_probe
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -391,11 +415,11 @@ class DIInstrumentBenchmark
 
       # This benchmark should produce identical results to the
       # "no instrumentation" benchmark.
-      x.report('method instrumentation - cleared') do
+      x.report("method instrumentation - cleared") do
         Target.new.test_method
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -411,11 +435,11 @@ class DIInstrumentBenchmark
 
       # This benchmark should produce identical results to the
       # "no instrumentation" benchmark.
-      x.report('line instrumentation - cleared') do
+      x.report("line instrumentation - cleared") do
         Target.new.test_method_for_line_probe
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -429,11 +453,11 @@ class DIInstrumentBenchmark
         **benchmark_time,
       )
 
-      x.report('no instrumentation - again') do
+      x.report("no instrumentation - again") do
         Target.new.not_instrumented
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end

@@ -11,7 +11,7 @@ RSpec.describe "Dynamic instrumentation benchmarks", :memcheck_valgrind_skip do
 
   benchmarks_to_validate.each do |benchmark|
     describe benchmark do
-      timeout = if benchmark == 'di_snapshot'
+      timeout = if benchmark == "di_snapshot"
         20
       else
         10

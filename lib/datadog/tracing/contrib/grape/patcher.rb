@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'endpoint'
-require_relative 'ext'
-require_relative 'instrumentation'
-require_relative '../patcher'
+require_relative "endpoint"
+require_relative "ext"
+require_relative "instrumentation"
+require_relative "../patcher"
 
 module Datadog
   module Tracing
@@ -22,7 +22,7 @@ module Datadog
           def patch
             # Patch endpoints
             ::Grape::Endpoint.prepend(Instrumentation::InstanceMethods)
-            if target_version < Gem::Version.new('3.0.0')
+            if target_version < Gem::Version.new("3.0.0")
               ::Grape::Endpoint.singleton_class.prepend(Instrumentation::GenerateApiMethodPatch)
             else
               ::Grape::Endpoint.prepend(Instrumentation::ExecutePatch)

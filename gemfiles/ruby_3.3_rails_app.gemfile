@@ -37,11 +37,11 @@ gem "rails", "~> 7.0"
 gem "sinatra"
 gem "sqlite3", ">= 1.4.2", platform: :ruby
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

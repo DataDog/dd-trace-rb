@@ -15,6 +15,7 @@ module Datadog
               Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
               Tracing::Sampling::Ext::Decision::AI_GUARD
             )
+            trace.set_distributed_source(Ext::PRODUCT_BIT)
             trace.set_tag(Ext::EVENT_TAG, true)
             trace.set_tag(Ext::TRACE_EXECUTED_TAG, "1")
 
@@ -50,7 +51,7 @@ module Datadog
                 messages: truncate_content(truncate_messages(request.serialized_messages)),
                 attack_categories: result.tags,
                 sds: result.sds_findings,
-                tag_probs: result.tag_probabilities
+                tag_probs: result.tag_probabilities,
               }
             )
 
@@ -87,7 +88,7 @@ module Datadog
             if message[:content].is_a?(::Array)
               serialized_content = message[:content].map do |part|
                 if part[:text]
-                  {**part, text: part[:text].to_s.byteslice(0, max_bytes)}
+                  {**part, text: truncate_content_value(part[:text].to_s, max_bytes)}
                 else
                   part
                 end
@@ -97,10 +98,17 @@ module Datadog
             else
               {
                 **message,
-                content: message[:content].byteslice(0, max_bytes)
+                content: truncate_content_value(message[:content], max_bytes),
               }
             end
           end
+        end
+
+        def truncate_content_value(content, max_bytes)
+          truncated = content.byteslice(0, max_bytes).to_s
+          return truncated if truncated.valid_encoding?
+
+          truncated.scrub("")
         end
       end
     end

@@ -16,19 +16,10 @@ module ProfileHelpers
       end
     end
   end
-  Frame = Struct.new(:base_label, :path, :lineno)
+  Frame = Struct.new(:label, :path, :lineno)
 
   def skip_if_profiling_not_supported
     skip_if_libdatadog_not_supported
-
-    # Profiling is not officially supported on macOS
-    # but it's still useful to allow it to be enabled for development.
-    if PlatformHelpers.mac? && ENV["DD_PROFILING_MACOS_TESTING"] != "true"
-      testcase.skip(
-        "Profiling is not supported on macOS. If you still want to run these specs, you can use " \
-        "DD_PROFILING_MACOS_TESTING=true to override this check."
-      )
-    end
 
     return if Datadog::Profiling.supported?
 

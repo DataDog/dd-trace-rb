@@ -1,8 +1,8 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/graphql/test_schema_examples'
-require 'datadog/tracing/contrib/graphql/tracing_patcher'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/tracing/contrib/graphql/test_schema_examples"
+require "datadog/tracing/contrib/graphql/tracing_patcher"
 
-require 'datadog'
+require "datadog"
 
 RSpec.describe Datadog::Tracing::Contrib::GraphQL::TracingPatcher do
   before(:context) { load_test_schema }
@@ -11,13 +11,13 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::TracingPatcher do
     remove_patch!(:graphql)
   end
 
-  describe '#patch!' do
+  describe "#patch!" do
     before do
       Datadog.configuration.tracing[:graphql].reset!
     end
 
-    context 'with empty schema configuration' do
-      it_behaves_like 'graphql default instrumentation' do
+    context "with empty schema configuration" do
+      it_behaves_like "graphql default instrumentation" do
         before do
           Datadog.configure do |c|
             c.tracing.instrument :graphql, with_deprecated_tracer: true
@@ -26,8 +26,8 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::TracingPatcher do
       end
     end
 
-    context 'with specified schemas configuration' do
-      it_behaves_like 'graphql default instrumentation' do
+    context "with specified schemas configuration" do
+      it_behaves_like "graphql default instrumentation" do
         before do
           Datadog.configure do |c|
             c.tracing.instrument :graphql, with_deprecated_tracer: true, schemas: [TestGraphQLSchema]

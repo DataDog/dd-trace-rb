@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../contrib'
-require_relative 'extensions'
+require_relative "../contrib"
+require_relative "extensions"
 
 module Datadog
   module Tracing
@@ -9,11 +9,11 @@ module Datadog
     module Contrib
       # Auto-activate instrumentation
       def self.auto_instrument!
-        require_relative '../../core/contrib/rails/utils'
+        require_relative "../../core/contrib/rails/utils"
 
         # Defer to Rails if this is a Rails application
         if Datadog::Core::Contrib::Rails::Utils.railtie_supported?
-          require_relative 'rails/auto_instrument_railtie'
+          require_relative "rails/auto_instrument_railtie"
         else
           AutoInstrument.patch_all!
         end

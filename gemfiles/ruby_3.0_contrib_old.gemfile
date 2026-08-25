@@ -26,11 +26,11 @@ gem "webmock", ">= 3.10.0"
 gem "webrick", ">= 1.7.0"
 gem "presto-client", ">= 0.5.14"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

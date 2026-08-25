@@ -42,13 +42,13 @@ jobs:
           scope: DataDog/dd-trace-rb
           policy: self.release-prep
 
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: true # required for `git` operations in later steps
           token: ${{ steps.generate-token.outputs.token }}
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@d45b1a4e94b71acab930e56e79c6aa188764e7f9 # v1.316.0
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           ruby-version: "4.0.1"
 
@@ -65,7 +65,7 @@ jobs:
         run: bundle exec ruby .github/scripts/update_supported_versions.rb
 
       - name: Create release Pull Request
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        uses: ./.github/actions/signed-commit-pr
         with:
           token: ${{ steps.generate-token.outputs.token }}
           branch: bump_to_version_${{ inputs.version }}
@@ -73,8 +73,6 @@ jobs:
           title: "Bump to version ${{ inputs.version }}"
           commit-message: "Bump to version ${{ inputs.version }}"
           labels: release
-          delete-branch: true
-          sign-commits: true
           add-paths: |
             CHANGELOG.md
             docs/integration_versions.md

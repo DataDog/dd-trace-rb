@@ -7,16 +7,16 @@ module Datadog
         # Hanami integration constants
         # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
         module Ext
-          ENV_ENABLED = 'DD_TRACE_HANAMI_ENABLED'
+          ENV_ENABLED = "DD_TRACE_HANAMI_ENABLED"
 
-          SPAN_ACTION = 'hanami.action'
-          SPAN_ROUTING = 'hanami.routing'
-          SPAN_RENDER = 'hanami.render'
+          SPAN_ACTION = "hanami.action"
+          SPAN_ROUTING = "hanami.routing"
+          SPAN_RENDER = "hanami.render"
 
-          TAG_COMPONENT = 'hanami'
-          TAG_OPERATION_ACTION = 'action'
-          TAG_OPERATION_ROUTING = 'routing'
-          TAG_OPERATION_RENDER = 'render'
+          TAG_COMPONENT = "hanami"
+          TAG_OPERATION_ACTION = "action"
+          TAG_OPERATION_ROUTING = "routing"
+          TAG_OPERATION_RENDER = "render"
         end
       end
     end

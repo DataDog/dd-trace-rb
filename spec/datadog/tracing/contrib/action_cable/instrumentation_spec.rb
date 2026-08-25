@@ -1,25 +1,25 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'spec/datadog/tracing/contrib/rails/support/deprecation'
+require "datadog/tracing/contrib/support/spec_helper"
+require "spec/datadog/tracing/contrib/rails/support/deprecation"
 
-require 'datadog'
+require "datadog"
 
-require 'datadog/tracing/contrib/rails/rails_helper'
+require "datadog/tracing/contrib/rails/rails_helper"
 
-require 'spec/support/thread_helpers'
+require "spec/support/thread_helpers"
 
 begin
-  require 'action_cable'
+  require "action_cable"
 rescue LoadError
-  puts 'ActionCable not supported in Rails < 5.0'
+  puts "ActionCable not supported in Rails < 5.0"
 end
 
-require 'websocket/driver'
+require "websocket/driver"
 
-RSpec.describe 'ActionCable Rack override', execute_in_fork: ::ActionCable.version.segments[0] >= 8 do
-  before { skip('ActionCable not supported') unless Datadog::Tracing::Contrib::ActionCable::Integration.compatible? }
+RSpec.describe "ActionCable Rack override", execute_in_fork: ::ActionCable.version.segments[0] >= 8 do
+  before { skip("ActionCable not supported") unless Datadog::Tracing::Contrib::ActionCable::Integration.compatible? }
 
   include Rack::Test::Methods
-  include_context 'Rails test application'
+  include_context "Rails test application"
 
   let(:options) { {} }
   let(:initialize_block) do
@@ -38,7 +38,7 @@ RSpec.describe 'ActionCable Rack override', execute_in_fork: ::ActionCable.versi
     end
 
     rails_test_application.instance.routes.draw do
-      mount ActionCable.server => '/cable'
+      mount ActionCable.server => "/cable"
     end
 
     raise_on_rails_deprecation!
@@ -51,20 +51,20 @@ RSpec.describe 'ActionCable Rack override', execute_in_fork: ::ActionCable.versi
     end
   end
 
-  context 'on ActionCable connection request' do
-    subject! { get '/cable' }
+  context "on ActionCable connection request" do
+    subject! { get "/cable" }
 
-    it 'overrides trace resource' do
+    it "overrides trace resource" do
       action_cable, rack = spans
 
-      expect(action_cable.name).to eq('action_cable.on_open')
-      expect(action_cable.resource).to eq('ActionCable::Connection::Base#on_open')
+      expect(action_cable.name).to eq("action_cable.on_open")
+      expect(action_cable.resource).to eq("ActionCable::Connection::Base#on_open")
 
-      expect(trace.name).to eq('rack.request')
-      expect(trace.resource).to eq('ActionCable::Connection::Base#on_open')
+      expect(trace.name).to eq("rack.request")
+      expect(trace.resource).to eq("ActionCable::Connection::Base#on_open")
 
-      expect(rack.name).to eq('rack.request')
-      expect(rack.resource).to eq('ActionCable::Connection::Base#on_open')
+      expect(rack.name).to eq("rack.request")
+      expect(rack.resource).to eq("ActionCable::Connection::Base#on_open")
     end
   end
 end

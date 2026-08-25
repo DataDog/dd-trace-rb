@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../../transport/http/api/endpoint'
-require_relative '../../../transport/http/api/instance'
-require_relative '../../../transport/http/client'
-require_relative '../../../transport/request'
+require_relative "../../../transport/http/api/endpoint"
+require_relative "../../../transport/http/api/instance"
+require_relative "../../../transport/http/client"
+require_relative "../../../transport/request"
 
 module Datadog
   module Core
@@ -13,7 +13,7 @@ module Datadog
           module Telemetry
             module API
               class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
-                HEADER_CONTENT_TYPE = 'Content-Type'
+                HEADER_CONTENT_TYPE = "Content-Type"
 
                 attr_reader \
                   :encoder
@@ -37,23 +37,23 @@ module Datadog
 
                 def headers(request_type:, api_key:)
                   {
-                    Core::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST => '1',
+                    Core::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST => "1",
                     # Provided by encoder
                     # 'Content-Type' => 'application/json',
-                    'DD-Telemetry-API-Version' => 'v2',
-                    'DD-Telemetry-Request-Type' => request_type,
-                    'DD-Client-Library-Language' => Core::Environment::Ext::LANG,
-                    'DD-Client-Library-Version' => Core::Environment::Identity.gem_datadog_version_semver2,
-                    'DD-Session-ID' => Core::Environment::Identity.id,
+                    "DD-Telemetry-API-Version" => "v2",
+                    "DD-Telemetry-Request-Type" => request_type,
+                    "DD-Client-Library-Language" => Core::Environment::Ext::LANG,
+                    "DD-Client-Library-Version" => Core::Environment::Identity.gem_datadog_version_semver2,
+                    "DD-Session-ID" => Core::Environment::Identity.id,
 
                     # Enable debug mode for telemetry
                     # 'DD-Telemetry-Debug-Enabled' => 'true',
                   }.tap do |result|
-                    result['DD-API-KEY'] = api_key unless api_key.nil?
+                    result["DD-API-KEY"] = api_key unless api_key.nil?
                     root = Core::Environment::Identity.root_runtime_id
-                    result['DD-Root-Session-ID'] = root if root
+                    result["DD-Root-Session-ID"] = root if root
                     parent = Core::Environment::Identity.parent_runtime_id
-                    result['DD-Parent-Session-ID'] = parent if parent
+                    result["DD-Parent-Session-ID"] = parent if parent
                   end
                 end
               end

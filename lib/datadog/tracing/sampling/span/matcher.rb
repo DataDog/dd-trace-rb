@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../matcher'
+require_relative "../matcher"
 
 module Datadog
   module Tracing
@@ -11,7 +11,7 @@ module Datadog
           attr_reader :name, :service
 
           # Pattern that matches any string
-          MATCH_ALL_PATTERN = '*'
+          MATCH_ALL_PATTERN = "*"
 
           # Matches span name and service to their respective patterns provided.
           #

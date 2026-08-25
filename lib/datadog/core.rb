@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 # Keep this at the top, this is needed at require-time by some files
-require_relative 'ruby_version'
+require_relative "ruby_version"
 
-require_relative 'core/deprecations'
-require_relative 'core/configuration/config_helper'
-require_relative 'core/extensions'
+require_relative "core/deprecations"
+require_relative "core/configuration/config_helper"
+require_relative "core/extensions"
 
 # We must load core extensions to make certain global APIs
 # accessible: both for Datadog features and the core itself.

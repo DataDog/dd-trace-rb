@@ -18,12 +18,12 @@ For a list of available integrations, and their supported version ranges, refer 
 | active_record            | 4.2.11.3            | 8.1.3               |
 | active_support           | 4.2.11.3            | 8.1.3               |
 | aws                      | 3.1.0               | 3.3.0               |
-| concurrent_ruby          | 1.3.7               | 1.3.7               |
-| dalli                    | 2.7.11              | 5.0.5               |
+| concurrent_ruby          | 1.3.8               | 1.3.8               |
+| dalli                    | 2.7.11              | 5.0.6               |
 | delayed_job              | 4.1.11              | 4.1.13              |
-| elasticsearch            | 7.17.11             | 9.4.3               |
+| elasticsearch            | 7.17.11             | 9.5.0               |
 | ethon                    | 0.15.0              | 0.18.0              |
-| excon                    | 0.109.0             | 1.5.0               |
+| excon                    | 0.109.0             | 1.7.0               |
 | faraday                  | 0.14.0              | 2.14.3              |
 | grape                    | 1.7.0               | 3.1.1               |
 | graphql                  | 1.13.21             | 2.3.22              |
@@ -34,11 +34,11 @@ For a list of available integrations, and their supported version ranges, refer 
 | httprb                   | 5.0.1               | 6.0.2               |
 | httpx                    | [3rd-party support](https://honeyryderchuck.gitlab.io/httpx/) | [3rd-party support](https://honeyryderchuck.gitlab.io/httpx/) |
 | kafka                    | 1.5.0               | 1.5.0               |
-| karafka                  | 2.0.41              | 2.5.9               |
+| karafka                  | 2.0.41              | 2.6.0               |
 | kicks                    | 3.0.0               | 3.2.0               |
 | lograge                  | 0.12.0              | 0.14.0              |
 | makara                   | 0.5.1               | 0.5.1               |
-| mongo                    | 2.11.0              | 2.24.1              |
+| mongo                    | 2.11.0              | 2.25.0              |
 | mysql2                   | 0.5.5               | 0.5.7               |
 | opensearch               | 2.1.0               | 3.4.0               |
 | pg                       | 0.21.0              | 1.6.2               |
@@ -48,7 +48,7 @@ For a list of available integrations, and their supported version ranges, refer 
 | rack                     | 1.6.13              | 3.2.6               |
 | rails                    | 4.2.11.3            | 8.1.3               |
 | rake                     | 12.3.3              | 13.4.2              |
-| redis                    | 3.3.5               | 5.4.1               |
+| redis                    | 3.3.5               | 6.0.0               |
 | resque                   | 2.4.0               | 2.7.0               |
 | rest_client              | 2.1.0               | 2.1.0               |
 | roda                     | 3.65.0              | 3.96.0              |
@@ -58,7 +58,7 @@ For a list of available integrations, and their supported version ranges, refer 
 | sidekiq                  | 5.2.8               | 8.0.7               |
 | sinatra                  | 2.2.4               | 4.1.1               |
 | sneakers                 | 2.12.0              | 2.12.0              |
-| stripe                   | 5.15.0              | 19.3.0              |
+| stripe                   | 5.15.0              | 19.4.0              |
 | sucker_punch             | 3.1.0               | 3.2.0               |
 | trilogy                  | 2.6.0               | 2.9.0               |
-| waterdrop                | 2.6.14              | 2.10.2              |
+| waterdrop                | 2.6.14              | 2.10.3              |

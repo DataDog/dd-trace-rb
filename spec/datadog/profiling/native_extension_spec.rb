@@ -38,10 +38,10 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     context "when called without releasing the gvl" do
       it "raises a RuntimeError with appropriate error handling when called without GVL" do
         expect do
-          described_class::Testing._native_grab_gvl_and_raise_cstr_arg(ZeroDivisionError, "message %s", 'oops', false)
+          described_class::Testing._native_grab_gvl_and_raise_cstr_arg(ZeroDivisionError, "message %s", "oops", false)
         end.to raise_error(::RuntimeError) do |error|
-          expect(error.message).to include('grab_gvl_and_raise called by thread holding the global VM lock: message oops')
-          expect(error.instance_variable_get(:@telemetry_message)).to include('grab_gvl_and_raise called by thread holding the global VM lock: message %s')
+          expect(error.message).to include("grab_gvl_and_raise called by thread holding the global VM lock: message oops")
+          expect(error.instance_variable_get(:@telemetry_message)).to include("grab_gvl_and_raise called by thread holding the global VM lock: message %s")
         end
       end
     end

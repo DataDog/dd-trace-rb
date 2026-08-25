@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative 'noop_evaluator'
-require_relative 'native_evaluator'
-require_relative 'resolution_details'
+require_relative "ext"
+require_relative "noop_evaluator"
+require_relative "native_evaluator"
+require_relative "resolution_details"
 
 module Datadog
   module OpenFeature
@@ -39,7 +39,7 @@ module Datadog
 
         result
       rescue => e
-        @telemetry.report(e, description: 'OpenFeature: Failed to fetch flag value')
+        @telemetry.report(e, description: "OpenFeature: Failed to fetch flag value")
 
         ResolutionDetails.build_error(
           value: default_value, error_code: Ext::GENERAL, error_message: "#{e.class}: #{e.message}"
@@ -51,14 +51,14 @@ module Datadog
       #       in the format expected by `libdatadog` without any modifications
       def reconfigure!(configuration)
         if configuration.nil?
-          @logger.debug('OpenFeature: Removing configuration')
+          @logger.debug("OpenFeature: Removing configuration")
 
           return @evaluator = NoopEvaluator.new(configuration)
         end
 
         @evaluator = NativeEvaluator.new(configuration)
       rescue => e
-        message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'
+        message = "OpenFeature: Failed to reconfigure, reverting to the previous configuration"
 
         @logger.error("#{message}, #{e.class}: #{e.message}")
         @telemetry.report(e, description: "#{message} (#{e.class})")

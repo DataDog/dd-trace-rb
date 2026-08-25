@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require_relative '../symbol_database'
-require_relative 'extractor'
-require_relative 'logger'
-require_relative 'scope_batcher'
-require_relative 'uploader'
-require_relative '../core/utils/time'
-require_relative '../di/fatal_exceptions'
+require_relative "../symbol_database"
+require_relative "extractor"
+require_relative "logger"
+require_relative "scope_batcher"
+require_relative "uploader"
+require_relative "../core/utils/time"
+require_relative "../di/fatal_exceptions"
 
 module Datadog
   module SymbolDatabase
@@ -237,7 +237,7 @@ module Datadog
       rescue Exception => e # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: error scheduling upload: #{e.class}: #{e.message}" }
-        @telemetry&.report(e, description: 'symdb: error scheduling upload')
+        @telemetry&.report(e, description: "symdb: error scheduling upload")
       end
 
       # Stop symbol upload in response to remote config sending
@@ -498,7 +498,7 @@ module Datadog
       def self.environment_supported?(logger)
         return true if SymbolDatabase.supported_runtime?
 
-        if RUBY_ENGINE != 'ruby'
+        if RUBY_ENGINE != "ruby"
           logger.debug { "symdb: not supported on #{RUBY_ENGINE}, skipping" }
         else
           logger.debug { "symdb: requires Ruby 2.7+, running #{RUBY_VERSION}, skipping" }
@@ -570,7 +570,7 @@ module Datadog
       rescue Exception => e # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: scheduler error: #{e.class}: #{e.message}" }
-        @telemetry&.report(e, description: 'symdb: scheduler error')
+        @telemetry&.report(e, description: "symdb: scheduler error")
       end
 
       # Extract symbols and upload. First call runs extract_all (full ObjectSpace
@@ -611,7 +611,7 @@ module Datadog
           end
 
           extraction_duration = Datadog::Core::Utils::Time.get_time - start_time
-          @logger.debug { "symdb: #{mode_label} extracted #{extracted_count} scopes (#{targetable_count} methods with targetable lines) in #{'%.2f' % extraction_duration}s" }
+          @logger.debug { "symdb: #{mode_label} extracted #{extracted_count} scopes (#{targetable_count} methods with targetable lines) in #{"%.2f" % extraction_duration}s" }
 
           # Flush any remaining scopes (triggers upload)
           @scope_batcher.flush
@@ -624,7 +624,7 @@ module Datadog
         rescue Exception => e # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(e)
           @logger.debug { "symdb: extraction error: #{e.class}: #{e.message}" }
-          @telemetry&.report(e, description: 'symdb: extraction error')
+          @telemetry&.report(e, description: "symdb: extraction error")
           @mutex.synchronize do
             @last_upload_time = Datadog::Core::Utils::Time.now
             @last_upload_time_cv.broadcast
@@ -681,7 +681,7 @@ module Datadog
           # nothing useful to do if logging is broken.
           begin
             logger.debug { "symdb: hot-load hook error: #{e.class}: #{e.message}" }
-            telemetry&.report(e, description: 'symdb: hot-load hook error')
+            telemetry&.report(e, description: "symdb: hot-load hook error")
           rescue Exception => report_exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(report_exc)
             nil
@@ -712,7 +712,7 @@ module Datadog
       end
 
       def log_scope_tree(scope, depth)
-        indent = '  ' * depth
+        indent = "  " * depth
         @logger.trace { "symdb:   #{indent}#{scope.scope_type} #{scope.name}" }
         scope.scopes&.each { |child| log_scope_tree(child, depth + 1) }
       end
@@ -724,7 +724,7 @@ module Datadog
         count = 0
         file_scope.scopes&.each do |class_or_module|
           class_or_module.scopes&.each do |method_scope|
-            count += 1 if method_scope.scope_type == 'METHOD' && method_scope.targetable_lines?
+            count += 1 if method_scope.scope_type == "METHOD" && method_scope.targetable_lines?
           end
         end
         count
