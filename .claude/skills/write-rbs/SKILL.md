@@ -53,7 +53,7 @@ Open the matching reference when a value calls for more than a plain type:
 ## Signature generation
 
 ```bash
-bundle exec rbs prototype rb lib/<path>.rb > sig/<path>.rbs
+bundle exec rake "rbs:prototype[lib/<path>.rb]"
 ```
 
 Prototypes over-emit `untyped` and leading `::`; clean the result against the
