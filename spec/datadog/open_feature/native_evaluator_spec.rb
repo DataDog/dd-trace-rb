@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "json"
 require "spec_helper"
 require "datadog/open_feature/native_evaluator"
 
@@ -50,22 +51,20 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
 
   describe "#get_assignment" do
     subject(:result) do
-      evaluator.get_assignment(flag_key, default_value: false, expected_type: expected_type, context: context)
+      evaluator.get_assignment(flag_key, default_value: default_value, expected_type: expected_type, context: context)
     end
+
+    let(:default_value) { false }
 
     context "when libdatadog reports an invalid per-flag configuration as caller default" do
       let(:reason) { "DEFAULT" }
       let(:error_message) { "flag configuration is invalid or unsupported" }
       let(:variant) { nil }
 
-      it "returns an OpenFeature parse error using the caller default" do
-        expect(assignment).not_to receive(:value=)
+      it "keeps the default result and applies the caller default value" do
+        expect(assignment).to receive(:value=).with(false)
 
-        expect(result.value).to be(false)
-        expect(result.reason).to eq("ERROR")
-        expect(result.error_code).to eq("PARSE_ERROR")
-        expect(result.error_message).to eq("flag configuration is invalid or unsupported")
-        expect(result.error?).to be(true)
+        expect(result).to be(assignment)
       end
     end
 
@@ -78,6 +77,62 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
         expect(assignment).to receive(:value=).with(false)
 
         expect(result).to be(assignment)
+      end
+    end
+
+    context "when a variant value violates the declared flag type" do
+      let(:configuration_json) do
+        JSON.generate(
+          "flags" => {
+            flag_key => {
+              "variationType" => "INTEGER",
+              "variations" => {
+                "on" => {"key" => "on", "value" => "not-an-integer"},
+                "off" => {"key" => "off", "value" => 0},
+              },
+            },
+          },
+        )
+      end
+      let(:default_value) { 0 }
+      let(:expected_type) { :integer }
+
+      it "returns a parse error without evaluating the invalid flag" do
+        expect(configuration).not_to receive(:get_assignment)
+
+        expect(result.value).to eq(0)
+        expect(result.reason).to eq("ERROR")
+        expect(result.error_code).to eq("PARSE_ERROR")
+      end
+    end
+
+    context "when a condition contains an invalid regular expression" do
+      let(:configuration_json) do
+        JSON.generate(
+          "flags" => {
+            flag_key => {
+              "variationType" => "STRING",
+              "variations" => {"on" => {"key" => "on", "value" => "on"}},
+              "allocations" => [
+                {
+                  "rules" => [
+                    {"conditions" => [{"attribute" => "email", "operator" => "MATCHES", "value" => "[invalid"}]},
+                  ],
+                },
+              ],
+            },
+          },
+        )
+      end
+      let(:default_value) { "default" }
+      let(:expected_type) { :string }
+
+      it "returns a parse error without evaluating the invalid flag" do
+        expect(configuration).not_to receive(:get_assignment)
+
+        expect(result.value).to eq("default")
+        expect(result.reason).to eq("ERROR")
+        expect(result.error_code).to eq("PARSE_ERROR")
       end
     end
   end
