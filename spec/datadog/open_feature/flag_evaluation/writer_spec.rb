@@ -894,6 +894,43 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       writer&.stop
     end
 
+    it "drops invalid contexts, counts each failure, and logs only the first failure" do
+      transport = instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil)
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      logged = []
+      allow(logger).to receive(:debug) { |&block| logged << block.call }
+      writer = described_class.new(transport: transport, logger: logger, telemetry: telemetry)
+      invalid_attrs = Class.new(Hash) do
+        def each
+          raise "caller-controlled failure"
+        end
+      end.new
+      invalid_attrs["key"] = "value"
+
+      2.times do
+        writer.enqueue(
+          flag_key: "invalid-context", variant: "on", allocation_key: "",
+          targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: invalid_attrs,
+        )
+      end
+      writer.send(:drain_and_flush)
+
+      expect(logged).to eq(["OpenFeature EVP: context snapshot error: RuntimeError"])
+      expect_telemetry_count(
+        telemetry,
+        "flagevaluation.context.truncated",
+        2,
+        {reason: "snapshot_error"}
+      )
+      expect(transport).to have_received(:send_flag_evaluations) do |payload|
+        row = payload["flagEvaluations"].first
+        expect(row["evaluation_count"]).to eq(2)
+        expect(row).not_to have_key("context")
+      end
+    ensure
+      writer&.stop
+    end
+
     it "does not emit truncation telemetry for exactly 256 fields" do
       transport = instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil)
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)

@@ -40,6 +40,8 @@ module Datadog
 
         REASON_SERIALIZATION_ERROR: ::String
 
+        REASON_SNAPSHOT_ERROR: ::String
+
         @transport: Transport::HTTP
 
         @logger: Core::Logger
@@ -61,6 +63,8 @@ module Datadog
         @dropped_pre_queue_overflow: ::Integer
 
         @context_truncated_counts: ::Hash[::String, ::Integer]
+
+        @context_snapshot_error_logged: bool
 
         @service_context: ::Hash[::String, ::String]
 
@@ -91,6 +95,8 @@ module Datadog
         private
 
         def after_fork: () -> void
+
+        def snapshot_context: (Aggregator::raw_context? attrs) -> Aggregator::context
 
         def build_service_context: () -> ::Hash[::String, ::String]
 

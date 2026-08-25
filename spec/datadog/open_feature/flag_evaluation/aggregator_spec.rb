@@ -268,7 +268,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         .to eq({})
     end
 
-    it "does not propagate errors from caller-controlled container subclasses" do
+    it "lets the writer boundary handle errors from caller-controlled container subclasses" do
       invalid_hash = Class.new(Hash) do
         def each
           raise "cannot iterate"
@@ -283,8 +283,17 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end.new
       invalid_array << "value"
 
-      expect(described_class.bounded_context_snapshot(invalid_hash)).to eq([{}, []])
-      expect(described_class.bounded_context_snapshot("array" => invalid_array)).to eq([{}, []])
+      expect { described_class.bounded_context_snapshot(invalid_hash) }
+        .to raise_error(RuntimeError, "cannot iterate")
+      expect { described_class.bounded_context_snapshot("array" => invalid_array) }
+        .to raise_error(RuntimeError, "cannot inspect")
+    end
+
+    it "does not hide errors in the snapshot implementation" do
+      allow(described_class).to receive(:bounded_flatten).and_raise("snapshot bug")
+
+      expect { described_class.bounded_context_snapshot("key" => "value") }
+        .to raise_error(RuntimeError, "snapshot bug")
     end
 
     it "drops context branches beyond the maximum nesting depth" do

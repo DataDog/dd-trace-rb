@@ -41,6 +41,7 @@ module Datadog
         REASON_PAYLOAD_LIMIT = "payload_limit"
         REASON_PRE_QUEUE_OVERFLOW = "pre_queue_overflow"
         REASON_SERIALIZATION_ERROR = "serialization_error"
+        REASON_SNAPSHOT_ERROR = "snapshot_error"
 
         # Service context fields for the batch wrapper.
         attr_reader :service_context
@@ -61,6 +62,7 @@ module Datadog
           @dropped_queue_overflow = 0
           @dropped_pre_queue_overflow = 0
           @context_truncated_counts = Hash.new(0)
+          @context_snapshot_error_logged = false
 
           self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
 
@@ -81,14 +83,7 @@ module Datadog
             return
           end
 
-          if attrs.is_a?(Hash)
-            attrs, reasons = Aggregator.bounded_context_snapshot(attrs)
-            unless reasons.empty?
-              @stop_mutex.synchronize { reasons.each { |reason| @context_truncated_counts[reason] += 1 } }
-            end
-          else
-            attrs = {}
-          end
+          attrs = snapshot_context(attrs)
           bounded_event = {
             flag_key: snapshot_string(flag_key),
             variant: snapshot_string(variant),
@@ -133,9 +128,32 @@ module Datadog
           @dropped_queue_overflow = 0
           @dropped_pre_queue_overflow = 0
           @context_truncated_counts = Hash.new(0)
+          @context_snapshot_error_logged = false
         end
 
         private
+
+        def snapshot_context(attrs)
+          return {} unless attrs.is_a?(Hash)
+
+          snapshot, reasons = Aggregator.bounded_context_snapshot(attrs)
+          unless reasons.empty?
+            @stop_mutex.synchronize { reasons.each { |reason| @context_truncated_counts[reason] += 1 } }
+          end
+          snapshot
+        rescue => e
+          # Context handling runs in the finally hook and must not interrupt flag evaluation.
+          should_log = false
+          @stop_mutex.synchronize do
+            @context_truncated_counts[REASON_SNAPSHOT_ERROR] += 1
+            unless @context_snapshot_error_logged
+              @context_snapshot_error_logged = true
+              should_log = true
+            end
+          end
+          @logger.debug { "OpenFeature EVP: context snapshot error: #{e.class}" } if should_log
+          {}
+        end
 
         def build_service_context
           config = Datadog.configuration

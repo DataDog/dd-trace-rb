@@ -205,9 +205,6 @@ module Datadog
             bounded_flatten(key, value, flattened, seen, 0, reasons, budget)
           end
           [flattened, reasons.to_a]
-        rescue
-          # Caller-controlled container implementations must not interrupt flag evaluation.
-          [{}, []]
         end
 
         def self.context_key_string(key)
