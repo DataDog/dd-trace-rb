@@ -103,93 +103,93 @@ bool is_current_thread_holding_the_gvl(void) {
 }
 
 #ifdef HAVE_RUBY_RACTOR_H
-  static inline rb_ractor_t *ddtrace_get_ractor(void) {
-    #ifndef USE_RACTOR_INTERNAL_APIS_DIRECTLY // Ruby >= 3.3
-      return thread_struct_from_object(rb_thread_current())->ractor;
-    #else
-      return GET_RACTOR();
-    #endif
-  }
+static inline rb_ractor_t *ddtrace_get_ractor(void) {
+  #ifndef USE_RACTOR_INTERNAL_APIS_DIRECTLY // Ruby >= 3.3
+    return thread_struct_from_object(rb_thread_current())->ractor;
+  #else
+    return GET_RACTOR();
+  #endif
+}
 #endif
 
 #ifndef NO_GVL_OWNER // Ruby < 2.6 doesn't have the owner/running field
-  // NOTE: Reading the owner in this is a racy read, because we're not grabbing the lock that Ruby uses to protect it.
-  //
-  // While we could potentially grab this lock, I (@ivoanjo) think we actually don't need it because:
-  // * In the case where a thread owns the GVL and calls `gvl_owner`, it will always see the correct value. That's
-  //   because every thread sets itself as the owner when it grabs the GVL and unsets itself at the end.
-  //   That means that `is_current_thread_holding_the_gvl` is always accurate.
-  // * In a case where we observe a different thread, then this may change by the time we do something with this value
-  //   anyway. So unless we want to prevent the Ruby scheduler from switching threads, we need to deal with races here.
-  current_gvl_owner gvl_owner(void) {
-    const rb_thread_t *current_owner =
-      #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
-        ddtrace_get_ractor()->threads.sched.running;
-      #elif HAVE_RUBY_RACTOR_H
-        ddtrace_get_ractor()->threads.gvl.owner;
-      #else
-        GET_VM()->gvl.owner;
-      #endif
-
-    if (current_owner == NULL) {
-      return (current_gvl_owner) {.valid = false};
-    }
-
-    #ifndef NO_RB_NATIVE_THREAD
-      struct rb_native_thread* current_owner_native_thread = current_owner->nt;
-
-      // This can be NULL on Ruby 3.3 with MN threads (RUBY_MN_THREADS=1)
-      if (current_owner_native_thread == NULL) {
-        return (current_gvl_owner) {.valid = false};
-      }
-
-      return (current_gvl_owner) {.valid = true, .owner = current_owner_native_thread->thread_id};
+// NOTE: Reading the owner in this is a racy read, because we're not grabbing the lock that Ruby uses to protect it.
+//
+// While we could potentially grab this lock, I (@ivoanjo) think we actually don't need it because:
+// * In the case where a thread owns the GVL and calls `gvl_owner`, it will always see the correct value. That's
+//   because every thread sets itself as the owner when it grabs the GVL and unsets itself at the end.
+//   That means that `is_current_thread_holding_the_gvl` is always accurate.
+// * In a case where we observe a different thread, then this may change by the time we do something with this value
+//   anyway. So unless we want to prevent the Ruby scheduler from switching threads, we need to deal with races here.
+current_gvl_owner gvl_owner(void) {
+  const rb_thread_t *current_owner =
+    #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
+      ddtrace_get_ractor()->threads.sched.running;
+    #elif HAVE_RUBY_RACTOR_H
+      ddtrace_get_ractor()->threads.gvl.owner;
     #else
-      return (current_gvl_owner) {.valid = true, .owner = current_owner->thread_id};
+      GET_VM()->gvl.owner;
     #endif
+
+  if (current_owner == NULL) {
+    return (current_gvl_owner) {.valid = false};
   }
-#else
-  current_gvl_owner gvl_owner(void) {
-    rb_vm_t *vm = GET_VM();
 
-    // BIG Issue: Ruby < 2.6 did not have the owner field. The really nice thing about the owner field is that it's
-    // "atomic" -- when a thread sets it, it "declares" two things in a single step
-    // * Declaration 1: Someone has the GVL
-    // * Declaration 2: That someone is the specific thread
-    //
-    // Observation 1: On older versions of Ruby, this ownership concept is actually split. Specifically, `gvl.acquired`
-    // is a boolean that represents declaration 1 above, and `vm->running_thread` (or `ruby_current_thread`/
-    // `ruby_current_execution_context_ptr`) represents declaration 2.
-    //
-    // Observation 2: In addition, when a thread releases the GVL, it only sets `gvl.acquired` back to 0 **BUT CRUCIALLY
-    // DOES NOT CHANGE THE OTHER global variables**.
-    //
-    // Observation 1+2 above lead to the following possible race:
-    // * Thread A grabs the GVL (`gvl.acquired == 1`)
-    // * Thread A sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread A`)
-    // * Thread A releases the GVL (`gvl.acquired == 0` + `running_thread == Thread A`)
-    // * Thread B grabs the GVL (`gvl.acquired == 1` + `running_thread == Thread A`)
-    // * Thread A calls gvl_owner. Due to the current state (`gvl.acquired == 1` + `running_thread == Thread A`), this
-    //   function returns an incorrect result.
-    // * Thread B finally sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread B`)
-    //
-    // This is especially problematic because we use `gvl_owner` to implement `is_current_thread_holding_the_gvl` which
-    // is called in a signal handler to decide "is it safe for me to call `rb_postponed_job_register_one` or not".
-    // (See constraints in `collectors_cpu_and_wall_time_worker.c` comments for why).
-    //
-    // Thus an incorrect `is_current_thread_holding_the_gvl` result may lead to issues inside `rb_postponed_job_register_one`.
-    //
-    // For this reason we default to use the "no signals workaround" on Ruby 2.5 by default, and we print a
-    // warning when customers force-enable it.
-    bool gvl_acquired = vm->gvl.acquired != 0;
-    rb_thread_t *current_owner = vm->running_thread;
+  #ifndef NO_RB_NATIVE_THREAD
+    struct rb_native_thread* current_owner_native_thread = current_owner->nt;
 
-    if (!gvl_acquired || current_owner == NULL) {
+    // This can be NULL on Ruby 3.3 with MN threads (RUBY_MN_THREADS=1)
+    if (current_owner_native_thread == NULL) {
       return (current_gvl_owner) {.valid = false};
     }
 
+    return (current_gvl_owner) {.valid = true, .owner = current_owner_native_thread->thread_id};
+  #else
     return (current_gvl_owner) {.valid = true, .owner = current_owner->thread_id};
+  #endif
+}
+#else
+current_gvl_owner gvl_owner(void) {
+  rb_vm_t *vm = GET_VM();
+
+  // BIG Issue: Ruby < 2.6 did not have the owner field. The really nice thing about the owner field is that it's
+  // "atomic" -- when a thread sets it, it "declares" two things in a single step
+  // * Declaration 1: Someone has the GVL
+  // * Declaration 2: That someone is the specific thread
+  //
+  // Observation 1: On older versions of Ruby, this ownership concept is actually split. Specifically, `gvl.acquired`
+  // is a boolean that represents declaration 1 above, and `vm->running_thread` (or `ruby_current_thread`/
+  // `ruby_current_execution_context_ptr`) represents declaration 2.
+  //
+  // Observation 2: In addition, when a thread releases the GVL, it only sets `gvl.acquired` back to 0 **BUT CRUCIALLY
+  // DOES NOT CHANGE THE OTHER global variables**.
+  //
+  // Observation 1+2 above lead to the following possible race:
+  // * Thread A grabs the GVL (`gvl.acquired == 1`)
+  // * Thread A sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread A`)
+  // * Thread A releases the GVL (`gvl.acquired == 0` + `running_thread == Thread A`)
+  // * Thread B grabs the GVL (`gvl.acquired == 1` + `running_thread == Thread A`)
+  // * Thread A calls gvl_owner. Due to the current state (`gvl.acquired == 1` + `running_thread == Thread A`), this
+  //   function returns an incorrect result.
+  // * Thread B finally sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread B`)
+  //
+  // This is especially problematic because we use `gvl_owner` to implement `is_current_thread_holding_the_gvl` which
+  // is called in a signal handler to decide "is it safe for me to call `rb_postponed_job_register_one` or not".
+  // (See constraints in `collectors_cpu_and_wall_time_worker.c` comments for why).
+  //
+  // Thus an incorrect `is_current_thread_holding_the_gvl` result may lead to issues inside `rb_postponed_job_register_one`.
+  //
+  // For this reason we default to use the "no signals workaround" on Ruby 2.5 by default, and we print a
+  // warning when customers force-enable it.
+  bool gvl_acquired = vm->gvl.acquired != 0;
+  rb_thread_t *current_owner = vm->running_thread;
+
+  if (!gvl_acquired || current_owner == NULL) {
+    return (current_gvl_owner) {.valid = false};
   }
+
+  return (current_gvl_owner) {.valid = true, .owner = current_owner->thread_id};
+}
 #endif // NO_GVL_OWNER
 
 // Taken from upstream vm_core.h at commit d9cf0388599a3234b9f3c06ddd006cd59a58ab8b (November 2022, Ruby 3.2 trunk)
@@ -708,41 +708,41 @@ get_cfunc_method_entry(const rb_control_frame_t *cfp) {
 }
 
 #ifndef NO_RACTORS
-  // This API and definition are exported as a public symbol by the VM BUT the function header is not defined in any public header, so we
-  // repeat it here to be able to use in our code.
-  #ifndef USE_RACTOR_INTERNAL_APIS_DIRECTLY
-    // Disable fast path for detecting multiple Ractors. Unfortunately this symbol is no longer visible on modern Ruby
-    // versions, so we need to do a bit more work.
-    struct rb_ractor_struct *ruby_single_main_ractor = NULL;
+// This API and definition are exported as a public symbol by the VM BUT the function header is not defined in any public header, so we
+// repeat it here to be able to use in our code.
+#ifndef USE_RACTOR_INTERNAL_APIS_DIRECTLY
+// Disable fast path for detecting multiple Ractors. Unfortunately this symbol is no longer visible on modern Ruby
+// versions, so we need to do a bit more work.
+struct rb_ractor_struct *ruby_single_main_ractor = NULL;
 
-    // Alternative implementation of rb_ractor_main_p_ that avoids relying on non-public symbols
-    bool rb_ractor_main_p_(void) {
-      // We need to get the main ractor in a bit of a roundabout way, since Ruby >= 3.3 hid `GET_VM()`
-      return ddtrace_get_ractor() == thread_struct_from_object(rb_thread_current())->vm->ractor.main_ractor;
-    }
-  #else
-    // Directly access Ruby internal fast path for detecting multiple Ractors.
-    extern struct rb_ractor_struct *ruby_single_main_ractor;
-
-    // Ruby 3.0 to 3.2 directly expose this symbol, we just need to tell the compiler it exists.
-    bool rb_ractor_main_p_(void);
-  #endif
-
-  // Taken from upstream ractor_core.h at commit d9cf0388599a3234b9f3c06ddd006cd59a58ab8b (November 2022, Ruby 3.2 trunk)
-  // to allow us to ensure that we're always operating on the main ractor (if Ruby has ractors)
-  // Modifications:
-  // * None
-  bool ddtrace_rb_ractor_main_p(void) {
-    if (ruby_single_main_ractor) {
-      return true;
-    } else {
-      return rb_ractor_main_p_();
-    }
-  }
+// Alternative implementation of rb_ractor_main_p_ that avoids relying on non-public symbols
+bool rb_ractor_main_p_(void) {
+  // We need to get the main ractor in a bit of a roundabout way, since Ruby >= 3.3 hid `GET_VM()`
+  return ddtrace_get_ractor() == thread_struct_from_object(rb_thread_current())->vm->ractor.main_ractor;
+}
 #else
-  // Simplify callers on older Rubies, instead of having them probe if the VM supports Ractors we just tell them that yes
-  // they're always on the main Ractor
-  bool ddtrace_rb_ractor_main_p(void) { return true; }
+// Directly access Ruby internal fast path for detecting multiple Ractors.
+extern struct rb_ractor_struct *ruby_single_main_ractor;
+
+// Ruby 3.0 to 3.2 directly expose this symbol, we just need to tell the compiler it exists.
+bool rb_ractor_main_p_(void);
+#endif
+
+// Taken from upstream ractor_core.h at commit d9cf0388599a3234b9f3c06ddd006cd59a58ab8b (November 2022, Ruby 3.2 trunk)
+// to allow us to ensure that we're always operating on the main ractor (if Ruby has ractors)
+// Modifications:
+// * None
+bool ddtrace_rb_ractor_main_p(void) {
+  if (ruby_single_main_ractor) {
+    return true;
+  } else {
+    return rb_ractor_main_p_();
+  }
+}
+#else
+// Simplify callers on older Rubies, instead of having them probe if the VM supports Ractors we just tell them that yes
+// they're always on the main Ractor
+bool ddtrace_rb_ractor_main_p(void) { return true; }
 #endif // NO_RACTORS
 
 // This is a tweaked and inlined version of
@@ -815,104 +815,104 @@ static inline int ddtrace_imemo_type(VALUE imemo) {
 // Safety: This function assumes the object passed in is of the imemo type. But in the worst case, you'll just get
 // a string that doesn't make any sense.
 #ifndef NO_IMEMO_NAME
-  const char *imemo_kind(VALUE imemo) {
-    return rb_imemo_name(ddtrace_imemo_type(imemo));
-  }
+const char *imemo_kind(VALUE imemo) {
+  return rb_imemo_name(ddtrace_imemo_type(imemo));
+}
 #else
-  const char *imemo_kind(__attribute__((unused)) VALUE imemo) {
-    return NULL;
-  }
+const char *imemo_kind(__attribute__((unused)) VALUE imemo) {
+  return NULL;
+}
 #endif
 
 // This is used to workaround a VM bug. See "handle_sampling_signal" in "collectors_cpu_and_wall_time_worker" for details.
 #ifdef NO_POSTPONED_TRIGGER
-  void *objspace_ptr_for_gc_finalize_deferred_workaround(void) {
-    return GET_VM()->objspace;
-  }
+void *objspace_ptr_for_gc_finalize_deferred_workaround(void) {
+  return GET_VM()->objspace;
+}
 #endif
 
 #ifndef HAVE_RUBY_THREAD_STORAGE_API
-  #include "gvl_profiling_helper.h"
+#include "gvl_profiling_helper.h"
 
-  // Hack: In Ruby 3.3+ we attach gvl profiling state to Ruby threads using the
-  // rb_internal_thread_specific_* APIs. These APIs did not exist on Ruby <= 3.2. On Ruby <= 3.2 we instead store the
-  // needed data inside the `rb_thread_t` structure, specifically in `stat_insn_usage` as a Ruby FIXNUM.
-  //
-  // Why `stat_insn_usage`? We needed some per-thread storage, and while looking at the Ruby VM sources I noticed
-  // that `stat_insn_usage` has been in `rb_thread_t` for a long time, but is not used anywhere in the VM
-  // code. There's a comment attached to it "/* statistics data for profiler */" but other than marking this
-  // field for GC, I could not find any place in the VM commit history or on GitHub where this has ever been used.
-  //
-  // Thus, since this hack is only for Ruby <= 3.2, which presumably will never see this field either removed or used
-  // we... kinda take it for our own usage. It's ugly, I know...
-  //
-  // 64-bit pointers actually use 48-bit virtual addresses (https://muxup.com/2023q4/storing-data-in-pointers),
-  // so we are sure the addresses fit in Fixnums.
-  per_thread_context *get_per_thread_context(VALUE thread) {
-    VALUE current_value = thread_struct_from_object(thread)->stat_insn_usage;
-    return RB_FIXNUM_P(current_value) ? (per_thread_context *) FIX2LONG(current_value) : NULL;
-  }
+// Hack: In Ruby 3.3+ we attach gvl profiling state to Ruby threads using the
+// rb_internal_thread_specific_* APIs. These APIs did not exist on Ruby <= 3.2. On Ruby <= 3.2 we instead store the
+// needed data inside the `rb_thread_t` structure, specifically in `stat_insn_usage` as a Ruby FIXNUM.
+//
+// Why `stat_insn_usage`? We needed some per-thread storage, and while looking at the Ruby VM sources I noticed
+// that `stat_insn_usage` has been in `rb_thread_t` for a long time, but is not used anywhere in the VM
+// code. There's a comment attached to it "/* statistics data for profiler */" but other than marking this
+// field for GC, I could not find any place in the VM commit history or on GitHub where this has ever been used.
+//
+// Thus, since this hack is only for Ruby <= 3.2, which presumably will never see this field either removed or used
+// we... kinda take it for our own usage. It's ugly, I know...
+//
+// 64-bit pointers actually use 48-bit virtual addresses (https://muxup.com/2023q4/storing-data-in-pointers),
+// so we are sure the addresses fit in Fixnums.
+per_thread_context *get_per_thread_context(VALUE thread) {
+  VALUE current_value = thread_struct_from_object(thread)->stat_insn_usage;
+  return RB_FIXNUM_P(current_value) ? (per_thread_context *) FIX2LONG(current_value) : NULL;
+}
 
-  void set_per_thread_context(VALUE thread, per_thread_context *value) {
-    if (!RB_FIXABLE((intptr_t) value)) {
-      rb_bug("per_thread_context pointer does not fit in a Fixnum: %p", value);
-    }
-    thread_struct_from_object(thread)->stat_insn_usage = value ? LONG2FIX((intptr_t) value) : Qfalse;
+void set_per_thread_context(VALUE thread, per_thread_context *value) {
+  if (!RB_FIXABLE((intptr_t) value)) {
+    rb_bug("per_thread_context pointer does not fit in a Fixnum: %p", value);
   }
+  thread_struct_from_object(thread)->stat_insn_usage = value ? LONG2FIX((intptr_t) value) : Qfalse;
+}
 #endif
 
 // Is the VM smack in the middle of raising an exception?
 bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)->ec->raised_flag > 0; }
 
 #ifndef NO_CURRENT_FIBER_FOR
-  // The following three declarations are all
-  // taken from upstream cont.c at commit d97884a58be32e829fd03a80cd521f4733d65c79 (February 2025, master branch)
-  // (See the Ruby project copyright and license above)
-  // to enable building `current_fiber_for`.
-  //
-  // We needed to copy them because they aren't otherwise exposed in any VM APIs or headers.
-  // @ivoanjo: I manually checked the Ruby 3.1, 3.2, 3.3 and 3.4 branches + master, and the parts we care about in these
-  // structures have not changed in many years (in fact, last change I spotted was for 2.7).
-  enum context_type {
-    CONTINUATION_CONTEXT = 0,
-    FIBER_CONTEXT = 1
-  };
+// The following three declarations are all
+// taken from upstream cont.c at commit d97884a58be32e829fd03a80cd521f4733d65c79 (February 2025, master branch)
+// (See the Ruby project copyright and license above)
+// to enable building `current_fiber_for`.
+//
+// We needed to copy them because they aren't otherwise exposed in any VM APIs or headers.
+// @ivoanjo: I manually checked the Ruby 3.1, 3.2, 3.3 and 3.4 branches + master, and the parts we care about in these
+// structures have not changed in many years (in fact, last change I spotted was for 2.7).
+enum context_type {
+  CONTINUATION_CONTEXT = 0,
+  FIBER_CONTEXT = 1
+};
 
-  typedef struct rb_context_struct { // This declaration is incomplete -- only contains up to `self` which is the part we care about
-    enum context_type type;
-    int argc;
-    int kw_splat;
-    VALUE self;
-  } rb_context_t;
+typedef struct rb_context_struct { // This declaration is incomplete -- only contains up to `self` which is the part we care about
+  enum context_type type;
+  int argc;
+  int kw_splat;
+  VALUE self;
+} rb_context_t;
 
-  struct rb_fiber_struct { // This declaration is incomplete -- only contains the first entry which is the part we care about
-    rb_context_t cont;
-  };
+struct rb_fiber_struct { // This declaration is incomplete -- only contains the first entry which is the part we care about
+  rb_context_t cont;
+};
 
-  VALUE current_fiber_for(VALUE thread) {
-    VALUE self = thread_struct_from_object(thread)->ec->fiber_ptr->cont.self;
-    return self == 0 ? Qnil : self;
+VALUE current_fiber_for(VALUE thread) {
+  VALUE self = thread_struct_from_object(thread)->ec->fiber_ptr->cont.self;
+  return self == 0 ? Qnil : self;
+}
+
+void self_test_current_fiber_for(void) {
+  VALUE expected_current_fiber = current_fiber_for(rb_thread_current());
+  VALUE actual_current_fiber = rb_fiber_current();
+
+  if (expected_current_fiber == Qnil) {
+    // On purpose above we tried reading before calling `rb_fiber_current()` so the fiber may have not existed yet.
+    // But now it should be there.
+    expected_current_fiber = current_fiber_for(rb_thread_current());
   }
 
-  void self_test_current_fiber_for(void) {
-    VALUE expected_current_fiber = current_fiber_for(rb_thread_current());
-    VALUE actual_current_fiber = rb_fiber_current();
-
-    if (expected_current_fiber == Qnil) {
-      // On purpose above we tried reading before calling `rb_fiber_current()` so the fiber may have not existed yet.
-      // But now it should be there.
-      expected_current_fiber = current_fiber_for(rb_thread_current());
-    }
-
-    if (expected_current_fiber != actual_current_fiber) {
-      rb_raise(rb_eRuntimeError, "current_fiber_for() self-test failed");
-    }
+  if (expected_current_fiber != actual_current_fiber) {
+    rb_raise(rb_eRuntimeError, "current_fiber_for() self-test failed");
   }
+}
 #else
-  NORETURN(VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread));
+NORETURN(VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread));
 
-  VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread) { rb_raise(rb_eRuntimeError, "Not implemented for Ruby < 3.1"); }
-  void self_test_current_fiber_for(void) { } // Nothing to do
+VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread) { rb_raise(rb_eRuntimeError, "Not implemented for Ruby < 3.1"); }
+void self_test_current_fiber_for(void) { } // Nothing to do
 #endif
 
 // Variant of functions related to Thread::Backtrace::Location#label in Ruby 4.0
