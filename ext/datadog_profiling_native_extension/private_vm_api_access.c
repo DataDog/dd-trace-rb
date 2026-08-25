@@ -253,11 +253,12 @@ void ddtrace_thread_list(VALUE result_array) {
   // called from a different Ractor, but I'm not sure...
   #ifdef HAVE_RUBY_RACTOR_H
     rb_ractor_t *current_ractor = ddtrace_get_ractor();
-    ccan_list_for_each(&current_ractor->threads.set, thread, lt_node) {
+    ccan_list_for_each(&current_ractor->threads.set, thread, lt_node)
   #else
     rb_vm_t *vm = GET_VM();
-    list_for_each(&vm->living_threads, thread, vmlt_node) {
+    list_for_each(&vm->living_threads, thread, vmlt_node)
   #endif
+    {
       switch (thread->status) {
         case THREAD_RUNNABLE:
         case THREAD_STOPPED:
