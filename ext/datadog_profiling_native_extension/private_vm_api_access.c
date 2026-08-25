@@ -313,61 +313,61 @@ VALUE thread_name_for(VALUE thread) {
 static inline int
 calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
 {
-    VM_ASSERT(iseq);
-    VM_ASSERT(ISEQ_BODY(iseq));
-    VM_ASSERT(ISEQ_BODY(iseq)->iseq_encoded);
-    VM_ASSERT(ISEQ_BODY(iseq)->iseq_size);
-    if (! pc) {
-        if (ISEQ_BODY(iseq)->type == ISEQ_TYPE_TOP) {
-            VM_ASSERT(! ISEQ_BODY(iseq)->local_table);
-            VM_ASSERT(! ISEQ_BODY(iseq)->local_table_size);
-            return 0;
-        }
-        # ifndef NO_INT_FIRST_LINENO // Ruby 3.2+
-          if (lineno) *lineno = ISEQ_BODY(iseq)->location.first_lineno;
-        # else
-          if (lineno) *lineno = FIX2INT(ISEQ_BODY(iseq)->location.first_lineno);
-        #endif
-#ifdef USE_ISEQ_NODE_ID
-        if (node_id) *node_id = -1;
-#endif
-        return 1;
+  VM_ASSERT(iseq);
+  VM_ASSERT(ISEQ_BODY(iseq));
+  VM_ASSERT(ISEQ_BODY(iseq)->iseq_encoded);
+  VM_ASSERT(ISEQ_BODY(iseq)->iseq_size);
+  if (! pc) {
+    if (ISEQ_BODY(iseq)->type == ISEQ_TYPE_TOP) {
+      VM_ASSERT(! ISEQ_BODY(iseq)->local_table);
+      VM_ASSERT(! ISEQ_BODY(iseq)->local_table_size);
+      return 0;
     }
-    else {
-        ptrdiff_t n = pc - ISEQ_BODY(iseq)->iseq_encoded;
-        VM_ASSERT(n <= ISEQ_BODY(iseq)->iseq_size);
-        VM_ASSERT(n >= 0);
-        ASSUME(n >= 0);
-        size_t pos = n; /* no overflow */
-        if (LIKELY(pos)) {
-            /* use pos-1 because PC points next instruction at the beginning of instruction */
-            pos--;
-        }
+    # ifndef NO_INT_FIRST_LINENO // Ruby 3.2+
+      if (lineno) *lineno = ISEQ_BODY(iseq)->location.first_lineno;
+    # else
+      if (lineno) *lineno = FIX2INT(ISEQ_BODY(iseq)->location.first_lineno);
+    #endif
+#ifdef USE_ISEQ_NODE_ID
+    if (node_id) *node_id = -1;
+#endif
+    return 1;
+  }
+  else {
+    ptrdiff_t n = pc - ISEQ_BODY(iseq)->iseq_encoded;
+    VM_ASSERT(n <= ISEQ_BODY(iseq)->iseq_size);
+    VM_ASSERT(n >= 0);
+    ASSUME(n >= 0);
+    size_t pos = n; /* no overflow */
+    if (LIKELY(pos)) {
+      /* use pos-1 because PC points next instruction at the beginning of instruction */
+      pos--;
+    }
 #if VMDEBUG && defined(HAVE_BUILTIN___BUILTIN_TRAP)
-        else {
-            /* SDR() is not possible; that causes infinite loop. */
-            rb_print_backtrace();
-            __builtin_trap();
-        }
-#endif
-
-        // In PROF-11475 we spotted a crash when calling `rb_iseq_line_no` from this method.
-        // We were only able to reproduce this issue on Ruby 2.6 and 2.7, not 2.5 or the 3.x series (tried 3.0, 3.2 and 3.4).
-        // Note that going out of bounds doesn't crash every time, as usual with C we may just read garbage or get lucky.
-        //
-        // For those problematic Rubies, we observed that when we try to take a sample in the middle of processing the
-        // VM `LEAVE` instruction, the value of `n` can violate the documented assumptions above and be
-        // `n > ISEQ_BODY(iseq)->iseq_size)`.
-        //
-        // To work around this and any other potential issues, we validate here that the bytecode position is sane.
-        if (RB_UNLIKELY(n < 0 || n > ISEQ_BODY(iseq)->iseq_size)) return 0;
-
-        if (lineno) *lineno = rb_iseq_line_no(iseq, pos);
-#ifdef USE_ISEQ_NODE_ID
-        if (node_id) *node_id = rb_iseq_node_id(iseq, pos);
-#endif
-        return 1;
+    else {
+      /* SDR() is not possible; that causes infinite loop. */
+      rb_print_backtrace();
+      __builtin_trap();
     }
+#endif
+
+    // In PROF-11475 we spotted a crash when calling `rb_iseq_line_no` from this method.
+    // We were only able to reproduce this issue on Ruby 2.6 and 2.7, not 2.5 or the 3.x series (tried 3.0, 3.2 and 3.4).
+    // Note that going out of bounds doesn't crash every time, as usual with C we may just read garbage or get lucky.
+    //
+    // For those problematic Rubies, we observed that when we try to take a sample in the middle of processing the
+    // VM `LEAVE` instruction, the value of `n` can violate the documented assumptions above and be
+    // `n > ISEQ_BODY(iseq)->iseq_size)`.
+    //
+    // To work around this and any other potential issues, we validate here that the bytecode position is sane.
+    if (RB_UNLIKELY(n < 0 || n > ISEQ_BODY(iseq)->iseq_size)) return 0;
+
+    if (lineno) *lineno = rb_iseq_line_no(iseq, pos);
+#ifdef USE_ISEQ_NODE_ID
+    if (node_id) *node_id = rb_iseq_node_id(iseq, pos);
+#endif
+    return 1;
+  }
 }
 #pragma GCC diagnostic pop
 
@@ -378,9 +378,9 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
 static inline int
 calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 {
-    int lineno;
-    if (calc_pos(iseq, pc, &lineno, NULL)) return lineno;
-    return 0;
+  int lineno;
+  if (calc_pos(iseq, pc, &lineno, NULL)) return lineno;
+  return 0;
 }
 
 // Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
@@ -439,155 +439,155 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 //    disagree, and quite a few of them seem oversights/bugs (speculation from my part) rather than deliberate
 //    decisions.
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *stack_buffer) {
-    int i;
-    // Modified from upstream: Instead of using `GET_EC` to collect info from the current thread,
-    // support sampling any thread (including the current) passed as an argument
-    rb_thread_t *th = thread_struct_from_object(thread);
-    const rb_execution_context_t *ec = th->ec;
+  int i;
+  // Modified from upstream: Instead of using `GET_EC` to collect info from the current thread,
+  // support sampling any thread (including the current) passed as an argument
+  rb_thread_t *th = thread_struct_from_object(thread);
+  const rb_execution_context_t *ec = th->ec;
 
-    // As of this writing, we don't support profiling with MN enabled, and this only happens in that mode, but as we
-    // probably want to experiment with it in the future, I've decided to import https://github.com/ruby/ruby/pull/9310
-    // here.
-    if (ec == NULL) return 0;
+  // As of this writing, we don't support profiling with MN enabled, and this only happens in that mode, but as we
+  // probably want to experiment with it in the future, I've decided to import https://github.com/ruby/ruby/pull/9310
+  // here.
+  if (ec == NULL) return 0;
 
-    // Avoid sampling dead threads
-    if (th->status == THREAD_KILLED) return 0;
+  // Avoid sampling dead threads
+  if (th->status == THREAD_KILLED) return 0;
 
-    const rb_control_frame_t *cfp = ec->cfp;
+  const rb_control_frame_t *cfp = ec->cfp;
 
-    // This happens on newly-created threads (we even had a flaky test because of it)
-    if (cfp == NULL) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
+  // This happens on newly-created threads (we even had a flaky test because of it)
+  if (cfp == NULL) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
 
-    // I suspect this won't happen for ddtrace, but just-in-case we've imported a potential fix for
-    // https://github.com/ruby/ruby/pull/13643 by assuming that these can be NULL/zero with the cfp being non-NULL yet.
-    if (ec->vm_stack == NULL || ec->vm_stack_size == 0) return 0;
+  // I suspect this won't happen for ddtrace, but just-in-case we've imported a potential fix for
+  // https://github.com/ruby/ruby/pull/13643 by assuming that these can be NULL/zero with the cfp being non-NULL yet.
+  if (ec->vm_stack == NULL || ec->vm_stack_size == 0) return 0;
 
-    const rb_control_frame_t *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
-    #ifndef NO_JIT_RETURN
-      const rb_control_frame_t *top = cfp;
-    #endif
-    const rb_callable_method_entry_t *cme;
+  const rb_control_frame_t *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
+  #ifndef NO_JIT_RETURN
+    const rb_control_frame_t *top = cfp;
+  #endif
+  const rb_callable_method_entry_t *cme;
 
-    // `vm_backtrace.c` includes this check in several methods. This happens on newly-created threads, and may
-    // also (not entirely sure) happen on dead threads
-    if (end_cfp == NULL) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
+  // `vm_backtrace.c` includes this check in several methods. This happens on newly-created threads, and may
+  // also (not entirely sure) happen on dead threads
+  if (end_cfp == NULL) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
 
-    // Fix: Skip dummy frame that shows up in main thread.
-    //
-    // According to a comment in `backtrace_each` (`vm_backtrace.c`), there's two dummy frames that we should ignore
-    // at the base of every thread's stack.
-    // (see https://github.com/ruby/ruby/blob/4bd38e8120f2fdfdd47a34211720e048502377f1/vm_backtrace.c#L890-L914 )
-    //
-    // One is being pointed to by `RUBY_VM_END_CONTROL_FRAME(ec)`, and so we need to advance to the next one, and
-    // reaching it will be used as a condition to break out of the loop below.
-    //
-    // Note that in `backtrace_each` there's two calls to `RUBY_VM_NEXT_CONTROL_FRAME`, but the loop bounds there
-    // are computed in a different way, so the two calls really are equivalent to one here.
-    end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
+  // Fix: Skip dummy frame that shows up in main thread.
+  //
+  // According to a comment in `backtrace_each` (`vm_backtrace.c`), there's two dummy frames that we should ignore
+  // at the base of every thread's stack.
+  // (see https://github.com/ruby/ruby/blob/4bd38e8120f2fdfdd47a34211720e048502377f1/vm_backtrace.c#L890-L914 )
+  //
+  // One is being pointed to by `RUBY_VM_END_CONTROL_FRAME(ec)`, and so we need to advance to the next one, and
+  // reaching it will be used as a condition to break out of the loop below.
+  //
+  // Note that in `backtrace_each` there's two calls to `RUBY_VM_NEXT_CONTROL_FRAME`, but the loop bounds there
+  // are computed in a different way, so the two calls really are equivalent to one here.
+  end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
-    // See comment on `record_placeholder_stack_in_native_code` for a full explanation of what this means (and why we don't just return 0)
-    if (end_cfp <= cfp) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
+  // See comment on `record_placeholder_stack_in_native_code` for a full explanation of what this means (and why we don't just return 0)
+  if (end_cfp <= cfp) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
 
-    // This is the position just after the top of the stack -- e.g. where a new frame pushed on the stack would end up.
-    const rb_control_frame_t *top_sentinel = RUBY_VM_NEXT_CONTROL_FRAME(cfp);
+  // This is the position just after the top of the stack -- e.g. where a new frame pushed on the stack would end up.
+  const rb_control_frame_t *top_sentinel = RUBY_VM_NEXT_CONTROL_FRAME(cfp);
 
-    // We iterate the stack from bottom (beginning of thread) to the top (currently-active frame). This is different
-    // from upstream rb_profile_frames, but actually matches what `backtrace_each` does (yes, different Ruby VM APIs
-    // iterate in different directions).
-    // We do this to better take advantage of the `same_frame` caching mechanism: By starting from the bottom of the
-    // stack towards the top, we can usually keep most of the stack intact when the code is only going up and down
-    // a few methods at the top. Before this change, the cache was really only useful if between samples the app had
-    // not moved from the current stack, as adding or removing one frame would invalidate the existing cache (because
-    // every position would shift).
-    cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
+  // We iterate the stack from bottom (beginning of thread) to the top (currently-active frame). This is different
+  // from upstream rb_profile_frames, but actually matches what `backtrace_each` does (yes, different Ruby VM APIs
+  // iterate in different directions).
+  // We do this to better take advantage of the `same_frame` caching mechanism: By starting from the bottom of the
+  // stack towards the top, we can usually keep most of the stack intact when the code is only going up and down
+  // a few methods at the top. Before this change, the cache was really only useful if between samples the app had
+  // not moved from the current stack, as adding or removing one frame would invalidate the existing cache (because
+  // every position would shift).
+  cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
-    for (i=0; i<limit && cfp != top_sentinel; cfp = RUBY_VM_NEXT_CONTROL_FRAME(cfp)) {
-        if (cfp->iseq && !cfp->pc) {
-          // Fix: Do nothing -- this frame should not be used
-          //
-          // rb_profile_frames does not do this check, but `backtrace_each` (`vm_backtrace.c`) does. This frame is not
-          // exposed by the Ruby backtrace APIs and for now we want to match its behavior 1:1
-        }
-        else if (cfp->ep == NULL) {
-          // Do nothing -- this frame should not be used
-          //
-          // We're not sure this can ever happen, but we've seen a crash inside `VM_FRAME_RUBYFRAME_P` below (which
-          // dereferences `cfp->ep`), so "just in case" we're adding this extra sanity check to avoid crashing on a
-          // NULL `ep`.
-        }
-        else if (VM_FRAME_RUBYFRAME_P(cfp)) {
-            if (start > 0) {
-                start--;
-                continue;
-            }
-
-            cme = safe_vm_frame_method_entry(cfp);
-
-            // Upstream (Ruby 4.0) does:
-            // if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
-            //   buff[i] = (VALUE)cme;
-            // } else {
-            //   buff[i] = (VALUE)cfp->iseq;
-            // }
-            // We get both the iseq and CME because we need both to format like Ruby backtraces
-
-            stack_buffer[i].same_frame =
-              stack_buffer[i].is_ruby_frame &&
-              stack_buffer[i].as.ruby_frame.iseq == cfp->iseq &&
-              stack_buffer[i].as.ruby_frame.caching_pc == cfp->pc &&
-              stack_buffer[i].cme == cme;
-
-            if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
-              i++;
-              continue;
-            }
-
-            stack_buffer[i].as.ruby_frame.iseq = cfp->iseq;
-            stack_buffer[i].as.ruby_frame.caching_pc = (void *) cfp->pc;
-            stack_buffer[i].cme = cme;
-
-            // The topmost frame may not have an updated PC because the JIT
-            // may not have set one.  The JIT compiler will update the PC
-            // before entering a new function (so that `caller` will work),
-            // so only the topmost frame could possibly have an out of date PC
-            #ifndef NO_JIT_RETURN
-              if (cfp == top && cfp->jit_return) {
-                stack_buffer[i].as.ruby_frame.line = 0;
-              } else {
-                stack_buffer[i].as.ruby_frame.line = calc_lineno(cfp->iseq, cfp->pc);
-              }
-            #else // Ruby < 3.1
-              stack_buffer[i].as.ruby_frame.line = calc_lineno(cfp->iseq, cfp->pc);
-            #endif
-
-            stack_buffer[i].is_ruby_frame = true;
-            i++;
-        }
-        else {
-            cme = get_cfunc_method_entry(cfp);
-            if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
-                if (start > 0) {
-                    start--;
-                    continue;
-                }
-
-                stack_buffer[i].same_frame =
-                  !stack_buffer[i].is_ruby_frame &&
-                  stack_buffer[i].cme == cme;
-
-                if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
-                  i++;
-                  continue;
-                }
-
-                stack_buffer[i].cme = cme;
-                stack_buffer[i].is_ruby_frame = false;
-                i++;
-            }
-        }
+  for (i=0; i<limit && cfp != top_sentinel; cfp = RUBY_VM_NEXT_CONTROL_FRAME(cfp)) {
+    if (cfp->iseq && !cfp->pc) {
+      // Fix: Do nothing -- this frame should not be used
+      //
+      // rb_profile_frames does not do this check, but `backtrace_each` (`vm_backtrace.c`) does. This frame is not
+      // exposed by the Ruby backtrace APIs and for now we want to match its behavior 1:1
     }
+    else if (cfp->ep == NULL) {
+      // Do nothing -- this frame should not be used
+      //
+      // We're not sure this can ever happen, but we've seen a crash inside `VM_FRAME_RUBYFRAME_P` below (which
+      // dereferences `cfp->ep`), so "just in case" we're adding this extra sanity check to avoid crashing on a
+      // NULL `ep`.
+    }
+    else if (VM_FRAME_RUBYFRAME_P(cfp)) {
+      if (start > 0) {
+        start--;
+        continue;
+      }
 
-    return i;
+      cme = safe_vm_frame_method_entry(cfp);
+
+      // Upstream (Ruby 4.0) does:
+      // if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
+      //   buff[i] = (VALUE)cme;
+      // } else {
+      //   buff[i] = (VALUE)cfp->iseq;
+      // }
+      // We get both the iseq and CME because we need both to format like Ruby backtraces
+
+      stack_buffer[i].same_frame =
+        stack_buffer[i].is_ruby_frame &&
+        stack_buffer[i].as.ruby_frame.iseq == cfp->iseq &&
+        stack_buffer[i].as.ruby_frame.caching_pc == cfp->pc &&
+        stack_buffer[i].cme == cme;
+
+      if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
+        i++;
+        continue;
+      }
+
+      stack_buffer[i].as.ruby_frame.iseq = cfp->iseq;
+      stack_buffer[i].as.ruby_frame.caching_pc = (void *) cfp->pc;
+      stack_buffer[i].cme = cme;
+
+      // The topmost frame may not have an updated PC because the JIT
+      // may not have set one.  The JIT compiler will update the PC
+      // before entering a new function (so that `caller` will work),
+      // so only the topmost frame could possibly have an out of date PC
+      #ifndef NO_JIT_RETURN
+        if (cfp == top && cfp->jit_return) {
+          stack_buffer[i].as.ruby_frame.line = 0;
+        } else {
+          stack_buffer[i].as.ruby_frame.line = calc_lineno(cfp->iseq, cfp->pc);
+        }
+      #else // Ruby < 3.1
+        stack_buffer[i].as.ruby_frame.line = calc_lineno(cfp->iseq, cfp->pc);
+      #endif
+
+      stack_buffer[i].is_ruby_frame = true;
+      i++;
+    }
+    else {
+      cme = get_cfunc_method_entry(cfp);
+      if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
+        if (start > 0) {
+          start--;
+          continue;
+        }
+
+        stack_buffer[i].same_frame =
+          !stack_buffer[i].is_ruby_frame &&
+          stack_buffer[i].cme == cme;
+
+        if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
+          i++;
+          continue;
+        }
+
+        stack_buffer[i].cme = cme;
+        stack_buffer[i].is_ruby_frame = false;
+        i++;
+      }
+    }
+  }
+
+  return i;
 }
 
 // Taken from upstream include/ruby/backward/2/bool.h at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
@@ -641,23 +641,23 @@ check_method_entry(VALUE obj, int can_be_svar) {
 static const rb_callable_method_entry_t *
 safe_vm_frame_method_entry(const rb_control_frame_t *cfp)
 {
-    const VALUE *ep = cfp->ep;
-    rb_callable_method_entry_t *me;
+  const VALUE *ep = cfp->ep;
+  rb_callable_method_entry_t *me;
 
-    // Torn-EP check before VM_ENV_LOCAL_P, check_method_entry, and VM_ENV_PREV_EP
-    // dereference ep
-    while (FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS]) && !VM_ENV_LOCAL_P(ep)) {
-        if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) {
-            return me;
-        }
-        ep = VM_ENV_PREV_EP(ep);
-        if (ep == NULL) return NULL;
+  // Torn-EP check before VM_ENV_LOCAL_P, check_method_entry, and VM_ENV_PREV_EP
+  // dereference ep
+  while (FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS]) && !VM_ENV_LOCAL_P(ep)) {
+    if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) {
+      return me;
     }
+    ep = VM_ENV_PREV_EP(ep);
+    if (ep == NULL) return NULL;
+  }
 
-    // If we exited because of a torn EP (failed FIXNUM_P), bail out
-    if (!FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS])) return NULL;
+  // If we exited because of a torn EP (failed FIXNUM_P), bail out
+  if (!FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS])) return NULL;
 
-    return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
+  return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
 }
 
 // Optimized version of rb_vm_frame_method_entry() for cfunc frames.
@@ -697,12 +697,12 @@ get_cfunc_method_entry(const rb_control_frame_t *cfp) {
   // * None
   bool ddtrace_rb_ractor_main_p(void)
   {
-      if (ruby_single_main_ractor) {
-          return true;
-      }
-      else {
-          return rb_ractor_main_p_();
-      }
+    if (ruby_single_main_ractor) {
+      return true;
+    }
+    else {
+      return rb_ractor_main_p_();
+    }
   }
 #else
   // Simplify callers on older Rubies, instead of having them probe if the VM supports Ractors we just tell them that yes
@@ -831,15 +831,15 @@ bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)
   // @ivoanjo: I manually checked the Ruby 3.1, 3.2, 3.3 and 3.4 branches + master, and the parts we care about in these
   // structures have not changed in many years (in fact, last change I spotted was for 2.7).
   enum context_type {
-      CONTINUATION_CONTEXT = 0,
-      FIBER_CONTEXT = 1
+    CONTINUATION_CONTEXT = 0,
+    FIBER_CONTEXT = 1
   };
 
   typedef struct rb_context_struct { // This declaration is incomplete -- only contains up to `self` which is the part we care about
-      enum context_type type;
-      int argc;
-      int kw_splat;
-      VALUE self;
+    enum context_type type;
+    int argc;
+    int kw_splat;
+    VALUE self;
   } rb_context_t;
 
   struct rb_fiber_struct { // This declaration is incomplete -- only contains the first entry which is the part we care about
