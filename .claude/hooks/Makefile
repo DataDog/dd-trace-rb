@@ -1,14 +1,13 @@
 # Build and test the hooks in this directory
 #
 #   make             bootstrap Spinel if needed, compile every hook, run tests
-#   make test        run every hook's tests (unit + smoke) under CRuby
+#   make test        compile every hook, then run its tests (unit + smoke)
 #   make bootstrap   fetch and build Spinel into SPINEL_HOME
 #   make compile     compile every hook into compiled/<name> (builds Spinel first)
 #   make clean       remove compiled binaries
 #
-# Plain Ruby is the portable fallback, so `make test` alone never needs Spinel.
-# The smoke suite runs the compiled binary against CRuby when one is present, so
-# the default `make` is the native re-verify step after any hook change.
+# Plain Ruby is the portable runtime fallback, while test verification compiles
+# every hook. The smoke suite then compares the compiled binary against CRuby.
 
 SHELL := /bin/sh
 
@@ -40,7 +39,7 @@ $(HOOKS_DIR)compiled/%: $(HOOKS_DIR)%.rb | $(SPINEL)
 	@mkdir -p "$(HOOKS_DIR)compiled"
 	"$(SPINEL)" "$<" -o "$@"
 
-test:
+test: compile
 	@for t in $(HOOKS_DIR)*.test.rb; do echo "ruby $$t"; ruby "$$t" || exit 1; done
 
 clean:

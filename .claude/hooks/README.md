@@ -56,10 +56,6 @@ The logic behind the smoke tests is the following: for the same input the `.rb`
 file and compiled binary must produce the same output, with the `.rb` file acting
 as the reference implementation.
 
-> [!IMPORTANT]
-> Re-run `make` after changing the hook code to rebuild it, as running tests does
-> not re-compile the binaries
-
 To run all tests execute
 
 ```console
@@ -71,6 +67,10 @@ and to test a single hook, you can run the following
 ```console
 .claude/hooks$ ruby <name>.test.rb
 ```
+
+> [!IMPORTANT]
+> Running a single test file directly does not recompile the binary. Run `make test`
+> after changing hook code to verify both implementations
 
 [official documentation]: https://code.claude.com/docs/en/hooks
 [Spinel]: https://github.com/matz/spinel
