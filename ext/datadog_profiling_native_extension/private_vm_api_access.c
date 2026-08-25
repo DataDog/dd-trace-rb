@@ -352,8 +352,7 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id) {
     }
 #endif
     return 1;
-  }
-  else {
+  } else {
     ptrdiff_t n = pc - ISEQ_BODY(iseq)->iseq_encoded;
     VM_ASSERT(n <= ISEQ_BODY(iseq)->iseq_size);
     VM_ASSERT(n >= 0);
@@ -362,14 +361,13 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id) {
     if (LIKELY(pos)) {
       /* use pos-1 because PC points next instruction at the beginning of instruction */
       pos--;
-    }
+    } else {
 #if VMDEBUG && defined(HAVE_BUILTIN___BUILTIN_TRAP)
-    else {
       /* SDR() is not possible; that causes infinite loop. */
       rb_print_backtrace();
       __builtin_trap();
-    }
 #endif
+    }
 
     // In PROF-11475 we spotted a crash when calling `rb_iseq_line_no` from this method.
     // We were only able to reproduce this issue on Ruby 2.6 and 2.7, not 2.5 or the 3.x series (tried 3.0, 3.2 and 3.4).
@@ -546,15 +544,13 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
       //
       // rb_profile_frames does not do this check, but `backtrace_each` (`vm_backtrace.c`) does. This frame is not
       // exposed by the Ruby backtrace APIs and for now we want to match its behavior 1:1
-    }
-    else if (cfp->ep == NULL) {
+    } else if (cfp->ep == NULL) {
       // Do nothing -- this frame should not be used
       //
       // We're not sure this can ever happen, but we've seen a crash inside `VM_FRAME_RUBYFRAME_P` below (which
       // dereferences `cfp->ep`), so "just in case" we're adding this extra sanity check to avoid crashing on a
       // NULL `ep`.
-    }
-    else if (VM_FRAME_RUBYFRAME_P(cfp)) {
+    } else if (VM_FRAME_RUBYFRAME_P(cfp)) {
       if (start > 0) {
         start--;
         continue;
@@ -601,8 +597,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
 
       stack_buffer[i].is_ruby_frame = true;
       i++;
-    }
-    else {
+    } else {
       cme = get_cfunc_method_entry(cfp);
       if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
         if (start > 0) {
@@ -740,8 +735,7 @@ get_cfunc_method_entry(const rb_control_frame_t *cfp) {
   bool ddtrace_rb_ractor_main_p(void) {
     if (ruby_single_main_ractor) {
       return true;
-    }
-    else {
+    } else {
       return rb_ractor_main_p_();
     }
   }
