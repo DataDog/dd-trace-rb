@@ -330,7 +330,7 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id) {
   VM_ASSERT(ISEQ_BODY(iseq));
   VM_ASSERT(ISEQ_BODY(iseq)->iseq_encoded);
   VM_ASSERT(ISEQ_BODY(iseq)->iseq_size);
-  if (! pc) {
+  if (pc == NULL) {
     if (ISEQ_BODY(iseq)->type == ISEQ_TYPE_TOP) {
       VM_ASSERT(! ISEQ_BODY(iseq)->local_table);
       VM_ASSERT(! ISEQ_BODY(iseq)->local_table_size);
