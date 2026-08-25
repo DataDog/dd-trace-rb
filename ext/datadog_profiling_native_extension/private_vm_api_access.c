@@ -187,7 +187,7 @@ bool is_current_thread_holding_the_gvl(void) {
 // to support tid_for (see below)
 // Modifications: None
 #if defined(__linux__) || defined(__FreeBSD__)
-# define RB_THREAD_T_HAS_NATIVE_ID
+  #define RB_THREAD_T_HAS_NATIVE_ID
 #endif
 
 uint64_t native_thread_id_for(VALUE thread) {
@@ -323,9 +323,9 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
       VM_ASSERT(! ISEQ_BODY(iseq)->local_table_size);
       return 0;
     }
-    # ifndef NO_INT_FIRST_LINENO // Ruby 3.2+
+    #ifndef NO_INT_FIRST_LINENO // Ruby 3.2+
       if (lineno) *lineno = ISEQ_BODY(iseq)->location.first_lineno;
-    # else
+    #else
       if (lineno) *lineno = FIX2INT(ISEQ_BODY(iseq)->location.first_lineno);
     #endif
 #ifdef USE_ISEQ_NODE_ID
@@ -595,15 +595,15 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
 // to support our custom rb_profile_frames (see above)
 // Modifications: None
 #ifndef FALSE
-# define FALSE false
+  #define FALSE false
 #elif FALSE
-# error FALSE must be false
+  #error FALSE must be false
 #endif
 
 #ifndef TRUE
-# define TRUE true
+  #define TRUE true
 #elif ! TRUE
-# error TRUE must be true
+  #error TRUE must be true
 #endif
 
 // Taken from upstream vm_insnhelper.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
