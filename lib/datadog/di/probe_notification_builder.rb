@@ -379,8 +379,7 @@ module Datadog
             thread_id: nil,
             version: 2,
           },
-          # Snake-case to match this envelope's thread_id/thread_name; the
-          # probe-status and symdb event intakes use camelCase runtimeId.
+          # Snake-case to match this envelope's thread_id/thread_name.
           runtime_id: Core::Environment::Identity.id,
           # TODO add tests that the trace/span id is correctly propagated
           "dd.trace_id": active_trace&.id&.to_s,
