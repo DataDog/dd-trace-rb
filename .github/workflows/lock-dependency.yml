@@ -69,10 +69,9 @@ jobs:
       - id: checksum
         run: |
           echo "eligible=$(ruby -r./tasks/security_capabilities -e 'print SecurityCapabilities.for_version(RUBY_VERSION)[:checksum]')" >> "$GITHUB_OUTPUT"
-      # The parent gemfile is locked here rather than by `rake dependency:lock`,
-      # which globs only the appraisal gemfiles, so it needs the same
-      # cooldown-free pre-lock those get before the cooled lock below. Bare
-      # `rake`, because the bundle it would resolve is the one being locked.
+      # `dependency:lock` globs only appraisal gemfiles, so the parent needs its
+      # pre-lock here. Bare `rake`: `bundle exec` would resolve the very bundle
+      # being locked.
       - run: rake dependency:prelock
       - run: bundle lock --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin${{ steps.checksum.outputs.eligible == 'true' && ' --add-checksums' || '' }}
       - run: bundle install

@@ -11,11 +11,9 @@ namespace :dependency do
     env
   end
 
-  # Seed a missing appraisal lockfile from the parent, which pins the versions
-  # the gemspec requires. Without it the first resolution starts from nothing and
-  # cooldown can exclude a freshly published Datadog-owned gem, whose `~>` pin
-  # admits no older fallback. Bundler reconciles the seed against the appraisal
-  # gemfile, keeping versions the lockfile already pins.
+  # Resolving from scratch lets cooldown exclude a fresh Datadog-owned gem whose
+  # `~>` pin has no older fallback. Seeding pins it first; cooldown never
+  # retracts a pinned version.
   def seed_lockfile(gemfile)
     lockfile = "#{gemfile}.lock"
     return if File.exist?(lockfile)
@@ -26,8 +24,8 @@ namespace :dependency do
     cp(parent_lockfile, lockfile)
   end
 
-  # Lock the Datadog-owned gems `gemfile`'s lockfile cannot already satisfy,
-  # with cooldown disabled. Caller is responsible for the unbundled env.
+  # The env hash survives `with_unbundled_env`, which strips ambient `BUNDLE_*`.
+  # Caller owns that env.
   def uncooled_prelock(gemfile, dependencies)
     prelock = SecurityCapabilities.uncooled_prelock_dependencies("#{gemfile}.lock", dependencies)
     return if prelock.empty?

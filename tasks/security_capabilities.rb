@@ -18,13 +18,9 @@ module SecurityCapabilities
   COOLDOWN_MIN_VERSION = Gem::Version.new("3.2")
   COOLDOWN_DAYS = 2
 
-  # Gems published by Datadog. Cooldown guards against a compromised upstream
-  # release, which does not apply to releases we cut ourselves, and the `~>`
-  # pins in datadog.gemspec admit no older fallback: locking a bump within the
-  # window fails to resolve outright rather than falling back to a previous
-  # version. Lock these without cooldown first, then lock everything else with
-  # it; the fresh versions survive because cooldown never retracts a version the
-  # lockfile already pins.
+  # Exempt from cooldown: it guards against a compromised upstream, which does
+  # not apply to releases we cut ourselves, and their `~>` pins leave no older
+  # fallback when a bump lands inside the window.
   FIRST_PARTY_GEMS = %w[
     datadog-ruby_core_source
     libdatadog
@@ -40,19 +36,15 @@ module SecurityCapabilities
     }
   end
 
-  # First-party gems declared by the gemspec, so the list stays accurate when a
-  # dependency is added or dropped. Selected from the gemspec rather than read
-  # from FIRST_PARTY_GEMS directly: a gem we no longer depend on must not be
-  # passed to `bundle lock --update`, which errors on unknown names.
+  # Intersected with the gemspec rather than read straight off the constant:
+  # `bundle lock --update` errors on a gem we no longer depend on.
   def first_party_dependencies(gemspec_path = "datadog.gemspec")
     Gem::Specification.load(gemspec_path).dependencies
       .select { |dependency| FIRST_PARTY_GEMS.include?(dependency.name) }
   end
 
-  # The subset of `dependencies` the cooled lock cannot resolve from `lockfile`,
-  # and so must be locked without cooldown first. Only these are named: a gem
-  # whose pin the lockfile still satisfies has no need of the bypass, and naming
-  # it would unlock it and let an unrelated in-window release slip in.
+  # Narrowed to the unsatisfied gems: naming a satisfied one would unlock it and
+  # let an unrelated in-window release slip in.
   def uncooled_prelock_dependencies(lockfile, dependencies)
     return dependencies unless File.exist?(lockfile)
 
