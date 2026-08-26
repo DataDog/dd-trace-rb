@@ -11,6 +11,33 @@ namespace :dependency do
     env
   end
 
+  # Seed a missing appraisal lockfile from the parent, which pins the versions
+  # the gemspec requires. Without it the first resolution starts from nothing and
+  # cooldown can exclude a freshly published Datadog-owned gem, whose `~>` pin
+  # admits no older fallback. Bundler reconciles the seed against the appraisal
+  # gemfile, keeping versions the lockfile already pins.
+  def seed_lockfile(gemfile)
+    lockfile = "#{gemfile}.lock"
+    return if File.exist?(lockfile)
+
+    parent_lockfile = "#{AppraisalConversion.parent_gemfile}.lock"
+    return unless File.exist?(parent_lockfile)
+
+    cp(parent_lockfile, lockfile)
+  end
+
+  # Lock the Datadog-owned gems `gemfile`'s lockfile cannot already satisfy,
+  # with cooldown disabled. Caller is responsible for the unbundled env.
+  def uncooled_prelock(gemfile, dependencies)
+    prelock = SecurityCapabilities.uncooled_prelock_dependencies("#{gemfile}.lock", dependencies)
+    return if prelock.empty?
+
+    sh(
+      {"BUNDLE_GEMFILE" => gemfile.to_s, "BUNDLE_COOLDOWN" => "0"},
+      "bundle lock --update #{prelock.map(&:name).join(" ")}",
+    )
+  end
+
   desc "Regenerate, lock, and propagate dependencies for #{AppraisalConversion.runtime_identifier}"
   task all: [:generate, :lock, :propagate]
 
@@ -58,12 +85,17 @@ namespace :dependency do
     pattern = args.extras.any? ? args.extras : AppraisalConversion.gemfile_pattern
 
     gemfiles = Dir.glob(pattern)
-    checksum_eligible = SecurityCapabilities.for_version(RUBY_VERSION)[:checksum]
+    capabilities = SecurityCapabilities.for_version(RUBY_VERSION)
+    checksum_eligible = capabilities[:checksum]
+    first_party_deps = capabilities[:cooldown] ? SecurityCapabilities.first_party_dependencies : []
 
     gemfiles.each do |gemfile|
+      seed_lockfile(gemfile)
       env = bundle_env(gemfile)
 
       Bundler.with_unbundled_env do
+        uncooled_prelock(gemfile, first_party_deps)
+
         command = +"bundle lock"
         command << " --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin"
         command << " --add-checksums" if checksum_eligible
