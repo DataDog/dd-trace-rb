@@ -18,11 +18,15 @@ module Datadog
     #
     # @api private
     module ThreadGeneration
+      # Process-wide ledger assigning a monotonically increasing generation
+      # token to each thread, stored as a thread-local on the Thread object.
       # @api private
       class State
         # Thread-local key for each thread's generation token.
         THREAD_KEY = :datadog_di_thread_generation
 
+        # Initializes the process-wide generation ledger with a zeroed
+        # counter and the lock guarding concurrent token assignment.
         def initialize
           @counter = 0
           @lock = Mutex.new
