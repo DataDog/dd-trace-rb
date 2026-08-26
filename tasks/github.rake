@@ -105,11 +105,40 @@ namespace :github do
 
     rng = Random.new(ENV["CI_TEST_SEED"].to_i)
 
-    tasks.each do |task|
+    durations = tasks.map do |task|
       env = {"BUNDLE_GEMFILE" => task["gemfile"]}
       cmd = "bundle exec rake spec:#{task["task"]}'[--seed #{rng.rand(0xFFFF)}]'"
 
+      junit_files_before = Dir["tmp/rspec/*.xml"]
       Bundler.with_unbundled_env { sh(env, cmd) }
+      junit_files_after = Dir["tmp/rspec/*.xml"] - junit_files_before
+
+      [task["task"], junit_files_after.sum { |file| junit_suite_time(file) }]
+    end
+
+    report_task_durations(durations)
+  end
+
+  def junit_suite_time(file)
+    File.read(file)[/<testsuite\b[^>]*\btime="([\d.]+)"/, 1].to_f
+  end
+
+  def report_task_durations(durations)
+    summary = ENV["GITHUB_STEP_SUMMARY"]
+    return unless summary
+
+    rows = durations.map { |(task, time)| "| #{task} | #{time.round(1)}s |" }
+
+    File.open(summary, "a") do |f|
+      f.puts <<~SUMMARY
+        <details>
+        <summary>Task durations</summary>
+
+        | Task | Duration |
+        | --- | --- |
+        #{rows.join("\n")}
+        </details>
+      SUMMARY
     end
   end
 
