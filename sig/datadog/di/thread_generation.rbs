@@ -6,7 +6,8 @@ module Datadog
       def self.current: () -> Integer
 
       class State
-        @generations: untyped
+        THREAD_KEY: Symbol
+
         @counter: Integer
         @lock: Thread::Mutex
 
