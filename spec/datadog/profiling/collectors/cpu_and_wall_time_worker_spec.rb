@@ -1486,6 +1486,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           sample_count: 0,
           gc_samples: 0,
           gc_samples_missed_due_to_missing_context: 0,
+          gc_samples_skipped_nothing_to_flush: 0,
           inactive_thread_samples_skipped: 0,
           profiler_thread_samples_skipped: 0,
         }
