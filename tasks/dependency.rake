@@ -132,7 +132,7 @@ namespace :dependency do
       appraisal_specs = Bundler::LockfileParser.new(File.read(lockfile)).specs
       drifted = appraisal_specs.select do |spec|
         parent_versions[spec.name] && parent_versions[spec.name] != spec.version.to_s
-      end.map(&:name)
+      end.map(&:name).uniq
 
       next if drifted.empty?
 
