@@ -254,7 +254,7 @@ appraise 'opentelemetry_otlp_1_5' do
   gem 'opentelemetry-exporter-otlp'
 end
 
-appraise 'contrib-old' do
+appraise 'presto-client' do
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 end
 
