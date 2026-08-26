@@ -168,8 +168,28 @@ not resolve to a gem version published within the last two days. This is applied
 automatically and needs no setup. Ruby 2.5 through 3.1 ship a Bundler that
 predates the feature and are unaffected.
 
-To take a release that is still inside the window, set `BUNDLE_COOLDOWN` for
-that run:
+Bumping a Datadog-owned gem (`libdatadog`, `libddwaf`,
+`datadog-ruby_core_source`) needs nothing extra. These are pinned with `~>`, so
+a release still inside the window has no older version to fall back to and the
+lock would fail outright. Cooldown never retracts a version the lockfile already
+pins, so the fix in both cases is to get the version pinned before the cooled
+lock runs — by whichever route fits the lockfile's state:
+
+- **No lockfile yet** (a new appraisal group) is resolved from scratch, so
+  there is nothing to carry the version. `dependency:lock` seeds the lockfile
+  from the parent's, which already pins it.
+- **A lockfile that is stale** against a newer gemspec pin has to move that gem,
+  and the cooled resolution cannot reach an in-window release. `dependency:lock`
+  locks just those gems without cooldown first; `lock-dependency.yml` does the
+  same for the parent gemfile, which `dependency:lock` does not cover.
+
+Only the Datadog-owned gems are named in that uncooled lock, so everything else
+still observes the window. Seeding means the parent must be locked before the
+appraisal groups, which is the order `lock-dependency.yml` already uses.
+
+To take any other release that is still inside the window, set
+`BUNDLE_COOLDOWN` for the run. Set it on the whole sequence rather than a single
+task, so both lockfile layers stay consistent:
 
 ```bash
 # Bypass the window for every appraisal gemfile
