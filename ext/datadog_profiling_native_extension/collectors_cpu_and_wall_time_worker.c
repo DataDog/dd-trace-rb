@@ -133,7 +133,7 @@ typedef struct {
   //
   // @ivoanjo: Right now we always sample inside `safely_call`; if that ever changes, this flag may need to become
   // volatile/atomic/have some barriers to ensure it's visible during e.g. signal handlers.
-  bool during_sample;
+  int during_sample;
 
   #ifndef NO_GVL_INSTRUMENTATION
   // Only set when sampling is active (gets created at start and cleaned on stop)
@@ -418,8 +418,6 @@ static VALUE _native_new(VALUE klass) {
   state->failure_exception = Qnil;
   state->failure_exception_during_operation = NULL;
   state->stop_thread = Qnil;
-
-  during_sample_exit(state);
 
   #ifndef NO_GVL_INSTRUMENTATION
     state->gvl_profiling_hook = NULL;
@@ -1706,7 +1704,7 @@ static inline void during_sample_enter(cpu_and_wall_time_worker_state* state) {
   // get clever and reordered things in such a way that makes us miss the flag update.
   //
   // See https://github.com/ruby/ruby/pull/11036 for a similar change made to the Ruby VM with more context.
-  state->during_sample = true;
+  state->during_sample++;
   atomic_signal_fence(memory_order_seq_cst);
 }
 
@@ -1714,5 +1712,5 @@ static inline void during_sample_exit(cpu_and_wall_time_worker_state* state) {
   // See `during_sample_enter` for more context; in this case we set the fence before to make sure anything that
   // happens before the fence is not reordered with the flag update.
   atomic_signal_fence(memory_order_seq_cst);
-  state->during_sample = false;
+  state->during_sample--;
 }
