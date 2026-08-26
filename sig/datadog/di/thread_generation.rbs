@@ -3,16 +3,16 @@ module Datadog
     module ThreadGeneration
       STATE: State
 
-      def self.current: () -> Integer
+      def self.current: () -> ::Integer
 
       class State
-        THREAD_KEY: Symbol
+        THREAD_KEY: ::Symbol
 
-        @counter: Integer
-        @lock: Thread::Mutex
+        @counter: ::Integer
+        @lock: ::Thread::Mutex
 
         def initialize: () -> void
-        def current: (?Thread thread) -> Integer
+        def current: (?::Thread thread) -> ::Integer
       end
     end
   end
