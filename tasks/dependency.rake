@@ -2,6 +2,15 @@ require_relative "appraisal_conversion"
 require_relative "security_capabilities"
 
 namespace :dependency do
+  # Call outside `Bundler.with_unbundled_env`, which clears `BUNDLE_*` from `ENV`
+  # for the duration of its block.
+  def bundle_env(gemfile)
+    env = {"BUNDLE_GEMFILE" => gemfile.to_s}
+    cooldown = ENV["BUNDLE_COOLDOWN"]
+    env["BUNDLE_COOLDOWN"] = cooldown if cooldown
+    env
+  end
+
   desc "Regenerate, lock, and propagate dependencies for #{AppraisalConversion.runtime_identifier}"
   task all: [:generate, :lock, :propagate]
 
@@ -35,8 +44,10 @@ namespace :dependency do
     gemfiles = Dir.glob(AppraisalConversion.gemfile_pattern)
 
     gemfiles.each do |gemfile|
+      env = bundle_env(gemfile)
+
       Bundler.with_unbundled_env do
-        sh({"BUNDLE_GEMFILE" => gemfile.to_s}, command)
+        sh(env, command)
       end
     end
   end
@@ -50,11 +61,13 @@ namespace :dependency do
     checksum_eligible = SecurityCapabilities.for_version(RUBY_VERSION)[:checksum]
 
     gemfiles.each do |gemfile|
+      env = bundle_env(gemfile)
+
       Bundler.with_unbundled_env do
         command = +"bundle lock"
         command << " --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin"
         command << " --add-checksums" if checksum_eligible
-        sh({"BUNDLE_GEMFILE" => gemfile.to_s}, command)
+        sh(env, command)
       end
     end
   end
@@ -80,8 +93,10 @@ namespace :dependency do
 
       next if drifted.empty?
 
+      env = bundle_env(gemfile)
+
       Bundler.with_unbundled_env do
-        sh({"BUNDLE_GEMFILE" => gemfile.to_s}, "bundle lock --update #{drifted.join(" ")}")
+        sh(env, "bundle lock --update #{drifted.join(" ")}")
       end
     end
   end
@@ -94,8 +109,10 @@ namespace :dependency do
     gemfiles = Dir.glob(pattern)
 
     gemfiles.each do |gemfile|
+      env = bundle_env(gemfile)
+
       Bundler.with_unbundled_env do
-        sh({"BUNDLE_GEMFILE" => gemfile.to_s}, "bundle check || bundle install")
+        sh(env, "bundle check || bundle install")
       end
     end
   end
