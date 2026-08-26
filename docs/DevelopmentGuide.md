@@ -172,7 +172,17 @@ To take a release that is still inside the window, set `BUNDLE_COOLDOWN` for
 that run:
 
 ```bash
+# Bypass the window for every appraisal gemfile
 BUNDLE_COOLDOWN=0 bundle exec rake dependency:lock
+# or for one group
+BUNDLE_COOLDOWN=0 bundle exec rake dependency:lock['/app/gemfiles/ruby_3.4_stripe_latest.gemfile']
+```
+
+The `dependency:*` tasks only reach the appraisal locks. To bypass the window in
+a parent lock, run `bundle` against that gemfile directly:
+
+```bash
+BUNDLE_GEMFILE=gemfiles/ruby-3.4.gemfile BUNDLE_COOLDOWN=0 bundle lock
 ```
 
 **Task surfaces**
