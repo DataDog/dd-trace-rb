@@ -310,8 +310,9 @@ module Datadog
       #
       # This can happen when the expression references undefined variables,
       # has type mismatches, or encounters runtime errors during evaluation.
-      # Rate-limited to 1 notification per second per probe to avoid
-      # flooding the backend when conditions fail repeatedly.
+      # Rate-limited to 1 notification per second per probe, and subject to
+      # the process-wide global rate limit, to avoid flooding the backend
+      # when conditions fail repeatedly.
       #
       # @param context [Context] The execution context containing probe and captured data
       # @param expr [String] The condition expression that failed
@@ -319,8 +320,12 @@ module Datadog
       def probe_condition_evaluation_failed_callback(context, expr, exc)
         probe = context.probe
         if probe.condition_evaluation_failed_rate_limiter&.allow?
-          payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)
-          probe_notifier_worker.add_snapshot(payload)
+          if instrumenter.probe_global_rate_limiter(probe).allow?
+            payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)
+            probe_notifier_worker.add_snapshot(payload)
+          else
+            logger.trace { "di: #{probe.type} probe #{probe.id}: skipping condition error snapshot due to global rate limit" }
+          end
         end
       end
 
