@@ -106,7 +106,7 @@ namespace :dependency do
 
   desc "Lock Datadog-owned gems without cooldown for one gemfile, when the cooled lock could not resolve them"
   task :prelock do |_t, args|
-    gemfile = args.extras.first || ENV.fetch("BUNDLE_GEMFILE")
+    gemfile = args.extras.first || Bundler.default_gemfile
 
     if SecurityCapabilities.for_version(RUBY_VERSION)[:cooldown]
       Bundler.with_unbundled_env do
