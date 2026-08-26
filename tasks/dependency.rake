@@ -104,6 +104,17 @@ namespace :dependency do
     end
   end
 
+  desc "Lock Datadog-owned gems without cooldown for one gemfile, when the cooled lock could not resolve them"
+  task :prelock do |_t, args|
+    gemfile = args.extras.first || ENV.fetch("BUNDLE_GEMFILE")
+
+    if SecurityCapabilities.for_version(RUBY_VERSION)[:cooldown]
+      Bundler.with_unbundled_env do
+        uncooled_prelock(gemfile, SecurityCapabilities.first_party_dependencies)
+      end
+    end
+  end
+
   desc "Propagate parent lockfile versions into appraisal lockfiles for #{AppraisalConversion.runtime_identifier}"
   task :propagate do
     parent_lockfile = "#{AppraisalConversion.parent_gemfile}.lock"
