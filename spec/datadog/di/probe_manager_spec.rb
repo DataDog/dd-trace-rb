@@ -460,4 +460,82 @@ RSpec.describe Datadog::DI::ProbeManager do
       manager.probe_executed_callback(context)
     end
   end
+
+  describe "#probe_condition_evaluation_failed_callback" do
+    let(:probe) do
+      instance_double(
+        Datadog::DI::Probe,
+        :id => "test-probe",
+        :type => "log",
+        :condition_evaluation_failed_rate_limiter => per_probe_limiter,
+      )
+    end
+
+    let(:context) do
+      instance_double(Datadog::DI::Context, probe: probe)
+    end
+
+    let(:exc) { StandardError.new("boom") }
+    let(:expr) { "undefined_function()" }
+
+    let(:per_probe_limiter) do
+      instance_double(Datadog::Core::TokenBucket, allow?: true)
+    end
+
+    context "when both the per-probe and global limiters admit" do
+      let(:global_limiter) do
+        instance_double(Datadog::Core::TokenBucket, allow?: true)
+      end
+
+      before do
+        allow(instrumenter).to receive(:probe_global_rate_limiter).with(probe).and_return(global_limiter)
+      end
+
+      it "builds and enqueues the condition error snapshot" do
+        expect(probe_notification_builder).to receive(:build_condition_evaluation_failed)
+          .with(context, expr, exc).and_return({error: "data"})
+        expect(probe_notifier_worker).to receive(:add_snapshot) do |payload|
+          expect(payload).to be_a(Hash)
+          expect(payload).to eq({error: "data"})
+        end
+
+        manager.probe_condition_evaluation_failed_callback(context, expr, exc)
+      end
+    end
+
+    context "when the per-probe limiter rejects" do
+      let(:per_probe_limiter) do
+        instance_double(Datadog::Core::TokenBucket, allow?: false)
+      end
+
+      it "does not consult the global limiter and enqueues nothing" do
+        expect(instrumenter).not_to receive(:probe_global_rate_limiter)
+        expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+        expect(probe_notifier_worker).not_to receive(:add_snapshot)
+
+        manager.probe_condition_evaluation_failed_callback(context, expr, exc)
+      end
+    end
+
+    context "when the global limiter rejects" do
+      let(:global_limiter) do
+        instance_double(Datadog::Core::TokenBucket, allow?: false)
+      end
+
+      before do
+        expect(instrumenter).to receive(:probe_global_rate_limiter).with(probe).and_return(global_limiter)
+      end
+
+      it "does not build or enqueue a snapshot and logs at trace" do
+        expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+        expect(probe_notifier_worker).not_to receive(:add_snapshot)
+
+        manager.probe_condition_evaluation_failed_callback(context, expr, exc)
+
+        expect(logger).to have_received(:trace) do |&block|
+          expect(block.call).to match(/global rate limit/)
+        end
+      end
+    end
+  end
 end
