@@ -985,7 +985,7 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   if (state->gc_tracking.wall_time_at_previous_gc_ns == INVALID_TIME) {
-    // Rarely, we might be called with nothing to do, as an earlier called already flushed the needed info.
+    // Rarely, we might be called with nothing to do, as an earlier call already flushed the needed info.
     // This is because Ruby clears the "pending" flag for an entire batch of postponed jobs BEFORE running any of them
     // (see `rb_postponed_job_flush`). Thus, if another GC happens while an earlier job in the postponed batch is
     // running (and other parts of the profiler such as the heap profiler can trigger this)
