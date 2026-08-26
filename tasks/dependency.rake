@@ -1,4 +1,5 @@
 require_relative "appraisal_conversion"
+require_relative "prelock"
 require_relative "security_capabilities"
 
 namespace :dependency do
@@ -22,18 +23,6 @@ namespace :dependency do
     return unless File.exist?(parent_lockfile)
 
     cp(parent_lockfile, lockfile)
-  end
-
-  # The env hash survives `with_unbundled_env`, which strips ambient `BUNDLE_*`.
-  # Caller owns that env.
-  def uncooled_prelock(gemfile, dependencies)
-    prelock = SecurityCapabilities.uncooled_prelock_dependencies("#{gemfile}.lock", dependencies)
-    return if prelock.empty?
-
-    sh(
-      {"BUNDLE_GEMFILE" => gemfile.to_s, "BUNDLE_COOLDOWN" => "0"},
-      "bundle lock --update #{prelock.map(&:name).join(" ")}",
-    )
   end
 
   desc "Regenerate, lock, and propagate dependencies for #{AppraisalConversion.runtime_identifier}"
@@ -83,17 +72,14 @@ namespace :dependency do
     pattern = args.extras.any? ? args.extras : AppraisalConversion.gemfile_pattern
 
     gemfiles = Dir.glob(pattern)
-    capabilities = SecurityCapabilities.for_version(RUBY_VERSION)
-    checksum_eligible = capabilities[:checksum]
-    first_party_deps = capabilities[:cooldown] ? SecurityCapabilities.first_party_dependencies : []
+    checksum_eligible = SecurityCapabilities.for_version(RUBY_VERSION)[:checksum]
 
     gemfiles.each do |gemfile|
       seed_lockfile(gemfile)
+      Prelock.call(gemfile)
       env = bundle_env(gemfile)
 
       Bundler.with_unbundled_env do
-        uncooled_prelock(gemfile, first_party_deps)
-
         command = +"bundle lock"
         command << " --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin"
         command << " --add-checksums" if checksum_eligible
@@ -104,13 +90,7 @@ namespace :dependency do
 
   desc "Lock Datadog-owned gems without cooldown for one gemfile, when the cooled lock could not resolve them"
   task :prelock do |_t, args|
-    gemfile = args.extras.first || Bundler.default_gemfile
-
-    if SecurityCapabilities.for_version(RUBY_VERSION)[:cooldown]
-      Bundler.with_unbundled_env do
-        uncooled_prelock(gemfile, SecurityCapabilities.first_party_dependencies)
-      end
-    end
+    Prelock.call(args.extras.first || Bundler.default_gemfile)
   end
 
   desc "Propagate parent lockfile versions into appraisal lockfiles for #{AppraisalConversion.runtime_identifier}"
