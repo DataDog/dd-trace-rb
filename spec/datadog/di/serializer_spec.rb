@@ -485,6 +485,20 @@ RSpec.describe Datadog::DI::Serializer do
       allow(telemetry).to receive(:inc)
     end
 
+    context "hard ceiling clamp" do
+      it "clamps a configured budget above the ceiling to 150 ms" do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(500)
+        allow(serializer).to receive(:now_ns).and_return(1_000_000_000)
+        expect(serializer.serialization_deadline_ns).to eq(1_000_000_000 + 150 * 1_000_000)
+      end
+
+      it "uses a configured budget at or below the ceiling unchanged" do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+        allow(serializer).to receive(:now_ns).and_return(1_000_000_000)
+        expect(serializer.serialization_deadline_ns).to eq(1_000_000_000 + 100 * 1_000_000)
+      end
+    end
+
     context "budget already exhausted before serialization starts" do
       before do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(0)
