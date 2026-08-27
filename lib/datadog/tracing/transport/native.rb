@@ -45,7 +45,7 @@ module Datadog
         # Drop-in transport that delegates to the native trace exporter.
         class Transport
           include Statistics
-          include SpanEvents
+          include SpanEventsNegotiation
 
           attr_reader :logger
 
@@ -274,7 +274,8 @@ module Datadog
             # Each trace segment becomes one inner array (one trace chunk).
             chunks = traces.map(&:spans)
 
-            native_events_supported = prepare_span_events!(chunks)
+            native_events_supported = native_events_supported?
+            apply_legacy_span_events!(chunks, native_events_supported)
 
             # Span links are not yet converted and would be dropped. Warn once
             # so the loss is visible.
@@ -306,20 +307,19 @@ module Datadog
 
           private
 
-          def prepare_span_events!(chunks)
-            native_events_supported = native_events_supported?
+          # Serializes each span's events into the legacy JSON +events+ meta
+          # tag when typed native events are not supported. Mutates the spans
+          # in place; returns no value.
+          def apply_legacy_span_events!(chunks, native_events_supported)
+            return if native_events_supported
 
             chunks.each do |spans|
               spans.each do |span|
                 next if span.events.empty?
 
-                unless native_events_supported
-                  span.set_tag("events", span.events.map(&:to_hash).to_json)
-                end
+                span.set_tag("events", span.events.map(&:to_hash).to_json)
               end
             end
-
-            native_events_supported
           end
 
           # Warn, at most once per transport, when a batch contains span fields

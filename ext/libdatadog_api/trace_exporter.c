@@ -27,14 +27,14 @@ typedef struct {
 } raw_span_owner;
 
 /* Internal: convert a Ruby Span into the supplied raw Rust span owner */
-static void convert_ruby_span_to_rust(VALUE span, VALUE native_events, raw_span_owner *owner);
+static void convert_ruby_span_to_rust(VALUE span, VALUE native_events_supported, raw_span_owner *owner);
 
 /* TracerSpan methods */
 static VALUE _native_from_span(VALUE klass, VALUE span);
 
 /* TraceExporter methods */
 static VALUE _native_exporter_new(int argc, VALUE *argv, VALUE klass);
-static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events);
+static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events_supported);
 static VALUE _native_before_fork(VALUE self);
 static VALUE _native_after_fork_in_parent(VALUE self);
 static VALUE _native_after_fork_in_child(VALUE self);
@@ -507,7 +507,8 @@ static VALUE free_span_conversion(VALUE arg) {
   return Qnil;
 }
 
-/* Attach one normalized Ruby attribute to an event. */
+/* Attach one normalized Ruby attribute to an event. Unknown type codes are
+ * unreachable because normalize_span_events already rejected them. */
 static ddog_TraceExporterError *set_native_event_attribute(
     ddog_TracerSpanEvent *event,
     VALUE key,
@@ -536,7 +537,7 @@ static ddog_TraceExporterError *set_native_event_attribute(
     case SPAN_EVENT_ARRAY:
       break;
     default:
-      return NULL; /* normalize_span_events rejected this type. */
+      return NULL;
   }
 
   VALUE array_value = event_hash_value(attribute, event_array_value_id);
@@ -586,7 +587,7 @@ static ddog_TraceExporterError *set_native_event_attribute(
           (struct ddog_Slice_F64){.ptr = out, .len = (uintptr_t)length});
     }
     default:
-      return NULL; /* normalize_span_events rejected this type. */
+      return NULL;
   }
 }
 
@@ -1067,13 +1068,13 @@ static VALUE build_rust_span(VALUE arg) {
   return Qnil;
 }
 
-static void convert_ruby_span_to_rust(VALUE span, VALUE native_events, raw_span_owner *owner) {
+static void convert_ruby_span_to_rust(VALUE span, VALUE native_events_supported, raw_span_owner *owner) {
   span_conversion_ctx ctx = {
     .span = span,
     .normalized_events = Qnil,
     .owner = owner,
   };
-  if (native_events == Qtrue) {
+  if (native_events_supported == Qtrue) {
     ctx.normalized_events = normalize_span_events(span, &ctx.max_array_length);
     ctx.event_count = RARRAY_LEN(ctx.normalized_events);
   }
@@ -1388,7 +1389,7 @@ static int check_if_pending_exception(void) {
 typedef struct {
   const ddog_TraceExporter *exporter;
   VALUE                     traces;
-  VALUE                     native_events;
+  VALUE                     native_events_supported;
   long                      trace_count;
   raw_span_owner            span_owner;
   ddog_TracerTraceChunks   *chunks;  /* NULL after send consumes it */
@@ -1416,7 +1417,7 @@ static VALUE build_and_send_traces(VALUE arg) {
     check_exporter_error("Failed to begin trace chunk", begin_err);
     for (long j = 0; j < span_count; j++) {
       convert_ruby_span_to_rust(
-          rb_ary_entry(chunk_spans, j), ctx->native_events, &ctx->span_owner);
+          rb_ary_entry(chunk_spans, j), ctx->native_events_supported, &ctx->span_owner);
 
       ddog_TraceExporterError *push_err =
           ddog_tracer_trace_chunks_push_span(ctx->chunks, ctx->span_owner.span);
@@ -1528,9 +1529,9 @@ static VALUE free_send_resources(VALUE arg) {
   return Qnil;
 }
 
-static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events) {
+static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events_supported) {
   ENFORCE_TYPE(traces, T_ARRAY);
-  if (native_events != Qtrue && native_events != Qfalse) {
+  if (native_events_supported != Qtrue && native_events_supported != Qfalse) {
     rb_raise(rb_eTypeError, "native_events_supported must be true or false");
   }
 
@@ -1561,7 +1562,7 @@ static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events) 
   send_traces_ctx ctx = {
     .exporter    = wrapper->exporter,
     .traces      = traces,
-    .native_events = native_events,
+    .native_events_supported = native_events_supported,
     .trace_count = trace_count,
     .span_owner  = {.span = NULL},
     .chunks      = chunks,

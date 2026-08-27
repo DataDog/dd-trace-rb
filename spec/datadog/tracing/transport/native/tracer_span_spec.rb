@@ -231,6 +231,36 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         expect { tracer_span_class._native_from_span(make_ruby_span(events: [event])) }
           .to raise_error(TypeError, /span event attribute 'flag' has boolean value "yes" but must be true or false/)
       end
+
+      it "rejects nested span event arrays before allocating Rust resources" do
+        event = double(
+          "nested array event",
+          to_native_format: {
+            "name" => "event",
+            "time_unix_nano" => 123,
+            "attributes" => {"nested" => {type: 4, array_value: {values: [{type: 4, array_value: {values: []}}]}}},
+          }
+        )
+
+        expect { tracer_span_class._native_from_span(make_ruby_span(events: [event])) }
+          .to raise_error(ArgumentError, /nested span event arrays are not supported/)
+      end
+
+      it "rejects non-homogeneous span event arrays before allocating Rust resources" do
+        event = double(
+          "mixed array event",
+          to_native_format: {
+            "name" => "event",
+            "time_unix_nano" => 123,
+            "attributes" => {
+              "mixed" => {type: 4, array_value: {values: [{type: 0, string_value: "a"}, {type: 2, int_value: 1}]}}
+            },
+          }
+        )
+
+        expect { tracer_span_class._native_from_span(make_ruby_span(events: [event])) }
+          .to raise_error(ArgumentError, /span event arrays must be homogeneous/)
+      end
     end
 
     context "with non-numeric metrics values (mixed hash)" do

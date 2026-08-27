@@ -119,7 +119,7 @@ module Datadog
         # batches of traces into smaller chunks and handles
         # API version downgrade handshake.
         class Transport < Core::Transport::Transport
-          include SpanEvents
+          include SpanEventsNegotiation
           self.http_client_class = Tracing::Transport::HTTP::Client
 
           def send_traces(traces)

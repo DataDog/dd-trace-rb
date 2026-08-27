@@ -519,7 +519,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       end
 
       it "uses legacy meta when agent support is unknown" do
-        allow(agent_info).to receive(:fetch).and_return(double("agent info", span_events: nil))
+        allow(agent_info).to receive(:fetch).and_return(instance_double(Datadog::Core::Remote::Transport::HTTP::Negotiation::Response, span_events: nil))
 
         expect(transport.send_traces([trace_with_event]).first).to be_ok
 
@@ -528,7 +528,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       end
 
       it "uses typed events when the agent advertises support" do
-        allow(agent_info).to receive(:fetch).and_return(double("agent info", span_events: true))
+        allow(agent_info).to receive(:fetch).and_return(instance_double(Datadog::Core::Remote::Transport::HTTP::Negotiation::Response, span_events: true))
 
         expect(transport.send_traces([trace_with_event]).first).to be_ok
 
@@ -548,7 +548,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       it "retries after a failed capability fetch" do
         allow(agent_info).to receive(:fetch).and_invoke(
           proc {},
-          proc { double("agent info", span_events: true) }
+          proc { instance_double(Datadog::Core::Remote::Transport::HTTP::Negotiation::Response, span_events: true) }
         )
 
         expect(transport.send_traces([trace_with_event]).first).to be_ok
@@ -637,7 +637,9 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       it "warns when a span carries span links" do
         trace = trace_with { |span| span.links << double("span link") }
 
-        expect(logger).to receive(:warn).once
+        expect(logger).to receive(:warn).once do |&block|
+          expect(block.call).to include("span links")
+        end
 
         expect(transport.send_traces([trace]).first.ok?).to be true
       end
@@ -659,7 +661,9 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       end
 
       it "warns only once across multiple sends" do
-        expect(logger).to receive(:warn).once
+        expect(logger).to receive(:warn).once do |&block|
+          expect(block.call).to include("span links")
+        end
 
         2.times do
           transport.send_traces([trace_with { |span| span.links << double("span link") }])
