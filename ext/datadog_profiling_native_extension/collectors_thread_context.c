@@ -1020,11 +1020,21 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
 
   state->stats.gc_samples++;
 
-  // Let recorder do any cleanup/updates it requires after a GC step.
-  recorder_after_gc_step(state->recorder_instance);
-
   // Return a VALUE to make it easier to call this function from Ruby APIs that expect a return value (such as rb_rescue2)
   return Qnil;
+}
+
+// Let the recorder do any cleanup/updates it requires after a GC step.
+//
+// Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
+// Assumption 2: This function is allowed to raise exceptions. Caller is responsible for handling them, if needed.
+VALUE thread_context_collector_heap_update_may_lose_gvl(VALUE self_instance) {
+  thread_context_collector_state *state;
+  TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+  recorder_heap_update_may_lose_gvl(state->recorder_instance);
+
+  return Qnil; // for rb_rescue2
 }
 
 static void trigger_sample_for_thread(

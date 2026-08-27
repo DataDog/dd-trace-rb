@@ -274,6 +274,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
 static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE handle_sampling_failure_rescued_sample_from_postponed_job(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_thread_context_collector_sample_after_gc(VALUE self_instance, VALUE exception);
+static VALUE handle_sampling_failure_thread_context_collector_heap_update(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_rescued_commit_heap_recordings(VALUE self_instance, VALUE exception);
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state);
@@ -1113,6 +1114,15 @@ static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   );
 
   during_sample_exit(state);
+
+  // This part runs separately from above because it may lose the GVL and we don't want `during_sample` to be set in
+  // such a situation
+  safely_call(
+    thread_context_collector_heap_update_may_lose_gvl,
+    state->thread_context_collector_instance,
+    state->self_instance,
+    handle_sampling_failure_thread_context_collector_heap_update
+  );
 }
 
 // Equivalent to Ruby begin/rescue call, where we call a C function and jump to the exception handler if an
@@ -1670,6 +1680,11 @@ static VALUE handle_sampling_failure_rescued_sample_from_postponed_job(VALUE sel
 
 static VALUE handle_sampling_failure_thread_context_collector_sample_after_gc(VALUE self_instance, VALUE exception) {
   stop(self_instance, exception, "thread_context_collector_sample_after_gc");
+  return Qnil;
+}
+
+static VALUE handle_sampling_failure_thread_context_collector_heap_update(VALUE self_instance, VALUE exception) {
+  stop(self_instance, exception, "thread_context_collector_heap_update_may_lose_gvl");
   return Qnil;
 }
 

@@ -44,8 +44,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     described_class::Testing._native_is_object_recorded?(stack_recorder, record_id)
   end
 
-  def recorder_after_gc_step
-    described_class::Testing._native_recorder_after_gc_step(stack_recorder)
+  def recorder_heap_update
+    described_class::Testing._native_recorder_heap_update(stack_recorder)
   end
 
   describe "#initialize" do
@@ -748,7 +748,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           end
         end
 
-        describe "#recorder_after_gc_step" do
+        describe "#recorder_heap_update" do
           def sample_and_clear
             # The object is allocated and sampled on a separate thread which we immediately join. Once that thread
             # is gone, so are its machine stack and registers, so there is nowhere left for a stale reference to
@@ -778,7 +778,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               # Every object is still being tracked at this point
               expect(@record_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
 
-              recorder_after_gc_step
+              recorder_heap_update
 
               # Young objects should no longer be tracked, but older objects are still kept
               expect(@record_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, false, false]
@@ -802,7 +802,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
                 expect do
                   described_class::Testing._native_heap_recorder_reset_last_update(stack_recorder)
-                  recorder_after_gc_step
+                  recorder_heap_update
                 end.to_not change { is_object_recorded?(test_record_id) }.from(true)
 
                 described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
@@ -810,7 +810,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
                 # Sanity: after serialization finishes, we can finally clear it
                 expect do
                   described_class::Testing._native_heap_recorder_reset_last_update(stack_recorder)
-                  recorder_after_gc_step
+                  recorder_heap_update
                 end.to change { is_object_recorded?(test_record_id) }.from(true).to(false)
               end
             end
@@ -820,11 +820,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
               test_record_id_1 = sample_and_clear
 
-              expect { recorder_after_gc_step }.to change { is_object_recorded?(test_record_id_1) }.from(true).to(false)
+              expect { recorder_heap_update }.to change { is_object_recorded?(test_record_id_1) }.from(true).to(false)
 
               test_record_id_2 = sample_and_clear
 
-              expect { recorder_after_gc_step }.to_not change { is_object_recorded?(test_record_id_2) }.from(true)
+              expect { recorder_heap_update }.to_not change { is_object_recorded?(test_record_id_2) }.from(true)
             end
 
             it "does not apply the minimum time between heap updates when serializing" do
@@ -832,11 +832,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
               test_record_id_1 = sample_and_clear
 
-              expect { recorder_after_gc_step }.to change { is_object_recorded?(test_record_id_1) }.from(true).to(false)
+              expect { recorder_heap_update }.to change { is_object_recorded?(test_record_id_1) }.from(true).to(false)
 
               test_record_id_2 = sample_and_clear
 
-              expect { recorder_after_gc_step }.to_not change { is_object_recorded?(test_record_id_2) }.from(true)
+              expect { recorder_heap_update }.to_not change { is_object_recorded?(test_record_id_2) }.from(true)
 
               expect { serialize }.to change { is_object_recorded?(test_record_id_2) }.from(true).to(false)
             end
@@ -851,7 +851,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               # Every object is still being tracked at this point
               expect(@record_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
 
-              recorder_after_gc_step
+              recorder_heap_update
 
               # No change -- all objects are still being tracked
               expect(@record_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]

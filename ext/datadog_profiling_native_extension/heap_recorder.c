@@ -159,6 +159,8 @@ struct heap_recorder {
   VALUE active_deferred_object;
   live_object_data active_deferred_object_data;
   uint16_t pending_recordings_count;
+  // Did a commit of the pending recordings get skipped?
+  bool commit_skipped;
 
   // Reusable arrays, implementing a flyweight pattern for things like iteration
   #define REUSABLE_LOCATIONS_SIZE MAX_FRAMES_LIMIT
@@ -424,13 +426,14 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 
   // The intuition here is: We start by asking for a commit callback when the buffer is about to go
   // from empty -> non-empty, because this is going to be mapped onto a postponed job, so after it gets queued once
-  // it doesn't seem worth it to keep spamming requests.
+  // it doesn't seem worth it to keep spamming requests (or when the commit was skipped).
   //
-  // Yet, if for some reason the postponed job doesn't commit the pending list (or if e.g. it ran with `during_sample == true` and thus
-  // was skipped) we need to have some mechanism to recover -- and so if the buffer starts accumulating too much we
+  // As a fallback, if the buffer starts accumulating too much we
   // start always requesting the callback to happen so that we eventually empty the buffer.
   bool needs_after_allocation =
-    heap_recorder->pending_recordings_count == 0 || heap_recorder->pending_recordings_count >= (MAX_PENDING_RECORDINGS / 2);
+    heap_recorder->pending_recordings_count == 0 ||
+    heap_recorder->commit_skipped ||
+    heap_recorder->pending_recordings_count >= (MAX_PENDING_RECORDINGS / 2);
 
   heap_recorder->num_recordings_skipped = 0;
 
@@ -520,6 +523,15 @@ void heap_recorder_commit_recordings_may_lose_gvl(heap_recorder *heap_recorder) 
   if (heap_recorder == NULL) {
     return; // Nothing to do
   }
+
+  if (heap_recorder->updating) {
+    // Because, like us, `heap_recorder_update` can lose the GVL, we don't want to run while it's also running.
+    // Skipping is fine -- `start_heap_allocation_recording` will ask for us to be called again on a later allocation.
+    heap_recorder->commit_skipped = true;
+    return;
+  }
+
+  heap_recorder->commit_skipped = false;
 
   // Note: We consume the buffer back-to-front, decrementing the count as we go, so that (a) the entries we have
   // not gotten to yet stay marked (see `heap_recorder_mark`) across any GC triggered below, (b) we don't mark
