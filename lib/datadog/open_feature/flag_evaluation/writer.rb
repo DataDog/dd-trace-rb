@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
+require "digest"
+
 require_relative "aggregator"
+require_relative "../ext"
 require_relative "../../core/encoding"
 require_relative "../../core/evp"
 require_relative "../../core/utils/time"
@@ -43,6 +46,14 @@ module Datadog
         REASON_SERIALIZATION_ERROR = "serialization_error"
         REASON_SNAPSHOT_ERROR = "snapshot_error"
 
+        # Must equal OpenFeature::SDK::EvaluationContext::TARGETING_KEY. Duplicated as a
+        # literal rather than referenced because the SDK is an optional dependency and
+        # this file loads without it. If the two drift, the targeting key stops being
+        # excluded from the context snapshot and lands in context.evaluation as raw PII,
+        # so a spec asserts the equality.
+        TARGETING_KEY_FIELD = "targeting_key"
+        TARGETING_KEY_HASH_PREFIX = "sha256_"
+
         # Service context fields for the batch wrapper.
         attr_reader :service_context
 
@@ -73,7 +84,8 @@ module Datadog
         # Non-blocking enqueue from the finally hook. Drops + counts on overflow.
         def enqueue(
           flag_key:, eval_time_ms:, variant: nil, allocation_key: nil, error_message: nil,
-          runtime_default: nil, targeting_key: nil, attrs: nil, **_event
+          runtime_default: nil, targeting_key: nil, attrs: nil, observe_full_evaluation_data: false,
+          **_event
         )
           start_background_thread if forked?
 
@@ -83,23 +95,24 @@ module Datadog
             return
           end
 
-          attrs = snapshot_context(attrs)
+          observe_full_evaluation_data = observe_full_evaluation_data == true
+          attrs = observe_full_evaluation_data ? snapshot_context(attrs) : nil
           bounded_event = {
             flag_key: snapshot_string(flag_key),
             variant: snapshot_string(variant),
             allocation_key: snapshot_string(allocation_key),
-            error_message: snapshot_string(error_message),
+            error_message: normalized_error_code(error_message),
             runtime_default: runtime_default,
             targeting_key: snapshot_targeting_key(targeting_key),
             eval_time_ms: snapshot_integer(eval_time_ms),
             attrs: attrs,
+            observe_full_evaluation_data: observe_full_evaluation_data,
           }
           @queue.push(bounded_event, true)
           @stop_mutex.synchronize { @stop_cond.signal }
           start_background_thread unless running?
         rescue ThreadError
-          # Queue full — drop and count (best-effort, same as Go: drop-and-count). The count is
-          # emitted on the next flush so backpressure is observable, not silently lost.
+          # Report queue backpressure on the next flush.
           @stop_mutex.synchronize { @dropped_queue_overflow += 1 }
         end
 
@@ -136,7 +149,7 @@ module Datadog
         def snapshot_context(attrs)
           return {} unless attrs.is_a?(Hash)
 
-          snapshot, reasons = Aggregator.bounded_context_snapshot(attrs)
+          snapshot, reasons = Aggregator.bounded_context_snapshot(attrs, excluded_key: TARGETING_KEY_FIELD)
           unless reasons.empty?
             @stop_mutex.synchronize { reasons.each { |reason| @context_truncated_counts[reason] += 1 } }
           end
@@ -192,6 +205,15 @@ module Datadog
           integer.is_a?(Integer) ? integer : 0
         rescue
           0
+        end
+
+        def normalized_error_code(value)
+          error_code = snapshot_string(value)
+          # Preserve absence so evaluations without errors omit the error field.
+          return error_code if !error_code || error_code.empty?
+          return error_code if Ext::STANDARD_ERROR_CODES.include?(error_code)
+
+          Ext::GENERAL
         end
 
         def start_background_thread
@@ -257,9 +279,10 @@ module Datadog
                 allocation_key: event[:allocation_key],
                 targeting_key: event[:targeting_key],
                 eval_time_ms: event[:eval_time_ms].to_i,
-                attrs: event[:attrs].is_a?(Hash) ? event[:attrs] : {},
+                attrs: event[:attrs],
                 error_message: event[:error_message],
                 runtime_default: event[:runtime_default],
+                observe_full_evaluation_data: event[:observe_full_evaluation_data],
               )
               drained += 1
             rescue ThreadError
@@ -336,7 +359,7 @@ module Datadog
           events = []
 
           snapshot[:full].each do |key, entry|
-            flag_key, variant, allocation_key, _runtime_default, _error_message, targeting_key, _ctx_key = key
+            flag_key, variant, allocation_key, _runtime_default, _error_message, targeting_key, _ctx_key, _observe_full_evaluation_data = key
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
               targeting_key: targeting_key, entry: entry, flush_time_ms: flush_time_ms, tier: :full,
@@ -344,8 +367,9 @@ module Datadog
             events << event
           end
 
+          # Degraded rows omit targeting_key and context, so the policy is not a key dimension.
           snapshot[:degraded].each do |key, entry|
-            flag_key, variant, allocation_key, _runtime_default, _error_message = key
+            flag_key, variant, allocation_key, _runtime_default, _error_dimension = key
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
               targeting_key: nil, entry: entry, flush_time_ms: flush_time_ms, tier: :degraded,
@@ -356,7 +380,10 @@ module Datadog
           events
         end
 
-        def build_event(flag_key:, variant:, allocation_key:, targeting_key:, entry:, flush_time_ms:, tier:)
+        def build_event(
+          flag_key:, variant:, allocation_key:, targeting_key:, entry:, flush_time_ms:, tier:
+        )
+          observe_full_evaluation_data = entry[:observe_full_evaluation_data]
           # @type var event: ::Hash[::String, any]
           event = {
             "timestamp" => flush_time_ms,
@@ -368,6 +395,7 @@ module Datadog
 
           event["runtime_default_used"] = true if entry[:runtime_default]
 
+          # EVP uses the normalized code as error.message and an aggregation dimension.
           error_message = entry[:error_message]
           if error_message && !error_message.empty?
             event["error"] = {"message" => error_message}
@@ -380,14 +408,29 @@ module Datadog
           # Full-tier additionally carries targeting_key and the truncated evaluation context;
           # the degraded tier omits both.
           if tier == :full
-            event["targeting_key"] = targeting_key if targeting_key && !targeting_key.empty?
+            unless targeting_key.nil?
+              event["targeting_key"] =
+                if targeting_key.empty? || observe_full_evaluation_data
+                  targeting_key
+                else
+                  prefixed_targeting_key_digest(targeting_key)
+                end
+            end
 
-            if entry[:context_attrs] && !entry[:context_attrs].empty?
+            if observe_full_evaluation_data && entry[:context_attrs] && !entry[:context_attrs].empty?
               event["context"] = {"evaluation" => entry[:context_attrs]}
             end
           end
 
           event
+        end
+
+        # Encode to UTF-8 first so Ruby encodings do not change the digest.
+        # Distinct from SpanEnrichmentHook::Codec.hash_targeting_key, which emits a
+        # bare digest for a different wire format on the span track.
+        def prefixed_targeting_key_digest(targeting_key)
+          utf8 = targeting_key.encode(Encoding::UTF_8, invalid: :replace, undef: :replace)
+          TARGETING_KEY_HASH_PREFIX + Digest::SHA256.hexdigest(utf8)
         end
 
         def send_payload_batches(events)

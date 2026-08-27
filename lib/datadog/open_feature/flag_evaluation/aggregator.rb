@@ -8,16 +8,18 @@ module Datadog
       # Two-tier aggregation for EVP flagevaluation events.
       #
       # Two-tier design:
-      # - full-tier  key: (flag_key, variant, allocation_key, runtime_default, error_message, targeting_key, canonical_context_key)
+      # - full-tier key: (flag_key, variant, allocation_key, runtime_default, error_message,
+      #   targeting_key, canonical_context_key, observe_full_evaluation_data)
       # - degraded-tier key: (flag_key, variant, allocation_key, runtime_default, error_message)
       # - Drop-and-count when degraded tier is full
       # - canonical_context_key: sorted type-tagged length-delimited encoding (no hash digest)
       # - Caps: global_cap=131_072 / per_flag_cap=10_000 / degraded_cap=32_768
       #
-      # The writer applies `bounded_context_snapshot` on the evaluation thread before
-      # enqueue, so the queue only holds an already-bounded, flattened snapshot.
+      # Context bounding: the writer applies `bounded_context_snapshot` on the evaluation
+      # thread before enqueue, so the queue only ever holds an already-bounded, flattened
+      # snapshot. `record` receives that snapshot and keys on it directly.
       class Aggregator
-        # Cross-SDK context caps (RFC: "Kept aligned with the cross-SDK RFC").
+        # Cross-SDK context caps. The per-dimension caps match Go and Java.
         MAX_CONTEXT_FIELDS = 256
         MAX_VALUE_LENGTH = 256
         MAX_KEY_LENGTH = 256
@@ -25,9 +27,9 @@ module Datadog
         MAX_STRUCTURE_PROPERTIES = 256
         MAX_SNAPSHOT_DEPTH = 4
 
-        # The per-dimension caps match Go and Java. This additional total-node budget
-        # bounds leaf-free shared subtrees, which do not increase the retained field count.
-        # It still permits every retained field to sit at the maximum snapshot depth.
+        # Total-node budget bounding leaf-free shared subtrees, which do not increase the
+        # retained field count. It still permits every retained field to sit at the
+        # maximum snapshot depth.
         MAX_VISITED_NODES = MAX_CONTEXT_FIELDS * (MAX_SNAPSHOT_DEPTH + 1)
 
         # Truncation reason labels, surfaced on the `flagevaluation.context.truncated`
@@ -86,33 +88,43 @@ module Datadog
         # Record one evaluation event. Thread-safe. Called from the background writer.
         def record(
           flag_key:, variant:, allocation_key:, targeting_key:, eval_time_ms:, attrs:, error_message: nil,
-          runtime_default: nil
+          runtime_default: nil, observe_full_evaluation_data: false
         )
           runtime_default = variant.nil? if runtime_default.nil?
           runtime_default = !!runtime_default
+          # Runtime defaults have no resolved variant or allocation in the EVP schema.
+          if runtime_default
+            variant = nil
+            allocation_key = nil
+          end
+          observe_full_evaluation_data = !!observe_full_evaluation_data
 
-          # Normalize nil/empty strings
+          # Preserve targeting-key presence; other dimensions use empty strings.
           variant = variant.to_s
           allocation_key = allocation_key.to_s
           error_message = error_message.to_s
-          targeting_key = targeting_key.to_s
+          targeting_key = targeting_key.to_s unless targeting_key.nil?
 
-          context_key = canonical_context_key(attrs)
+          context_key = observe_full_evaluation_data ? canonical_context_key(attrs) : nil
           # @type var full_key: full_key
-          full_key = [flag_key, variant, allocation_key, runtime_default, error_message, targeting_key, context_key]
+          full_key = [
+            flag_key, variant, allocation_key, runtime_default, error_message,
+            targeting_key, context_key, observe_full_evaluation_data,
+          ]
           evaluation_time_ms = eval_time_ms.to_i
 
           @mutex.synchronize do
             # --- Full tier ---
             if (entry = @full[full_key])
-              observe(entry, evaluation_time_ms)
+              observe(entry, evaluation_time_ms, observe_full_evaluation_data)
               return
             end
 
             per_flag_count = @per_flag_full[flag_key]
             if per_flag_count >= @per_flag_cap
               add_to_degraded(
-                flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms
+                flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
+                observe_full_evaluation_data
               )
               return
             end
@@ -127,14 +139,16 @@ module Datadog
                 runtime_default: runtime_default,
                 error_message: error_message,
                 targeting_key: targeting_key,
-                context_attrs: attrs
+                context_attrs: observe_full_evaluation_data ? attrs : nil,
+                observe_full_evaluation_data: observe_full_evaluation_data
               )
               @full[full_key] = entry
               @global_count += 1
             else
               # Route to degraded tier
               add_to_degraded(
-                flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms
+                flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
+                observe_full_evaluation_data
               )
             end
           end
@@ -164,12 +178,10 @@ module Datadog
         # Returns the flattened (dot-notation) context and the truncation reasons hit,
         # which the writer surfaces on the `flagevaluation.context.truncated` counter.
         #
-        # Work is bounded by the field and structure caps. Ruby Hash iteration is
-        # deterministic insertion order, so traversal stops at the limits instead of
-        # sorting or scanning the full input. This is the cross-SDK recommendation for
-        # languages with deterministic iteration (Ruby truncates; Go omits because its map
-        # iteration is randomized per call).
-        def self.bounded_context_snapshot(attrs)
+        # Ruby Hash insertion order lets traversal stop at the caps without sorting
+        # or scanning the complete input. Ruby therefore truncates where Go omits,
+        # whose map iteration is randomized per call.
+        def self.bounded_context_snapshot(attrs, excluded_key: nil)
           return [{}, []] unless attrs.is_a?(Hash) && !attrs.empty?
 
           flattened = {}
@@ -181,6 +193,7 @@ module Datadog
           attrs.each do |key, value|
             key = context_key_string(key)
             next unless key
+            next if key == excluded_key
 
             if flattened.size >= MAX_CONTEXT_FIELDS
               reasons << REASON_MAX_CONTEXT_FIELDS
@@ -373,7 +386,10 @@ module Datadog
           length_bytes + bytes
         end
 
-        def new_entry(evaluation_time_ms, runtime_default:, error_message: nil, targeting_key: nil, context_attrs: nil)
+        def new_entry(
+          evaluation_time_ms, runtime_default:, observe_full_evaluation_data:, error_message: nil,
+          targeting_key: nil, context_attrs: nil
+        )
           {
             count: 1,
             first_evaluation: evaluation_time_ms,
@@ -382,23 +398,26 @@ module Datadog
             error_message: error_message,
             targeting_key: targeting_key,
             context_attrs: context_attrs,
+            observe_full_evaluation_data: observe_full_evaluation_data,
           }
         end
 
-        def observe(entry, evaluation_time_ms)
+        def observe(entry, evaluation_time_ms, observe_full_evaluation_data)
           entry[:count] += 1
           entry[:first_evaluation] = evaluation_time_ms if evaluation_time_ms < entry[:first_evaluation]
           entry[:last_evaluation] = evaluation_time_ms if evaluation_time_ms > entry[:last_evaluation]
+          entry[:observe_full_evaluation_data] &&= observe_full_evaluation_data
         end
 
         def add_to_degraded(
-          flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms
+          flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
+          observe_full_evaluation_data
         )
           # @type var degraded_key: degraded_key
           degraded_key = [flag_key, variant, allocation_key, runtime_default, error_message]
 
           if (entry = @degraded[degraded_key])
-            observe(entry, evaluation_time_ms)
+            observe(entry, evaluation_time_ms, observe_full_evaluation_data)
             return
           end
 
@@ -413,7 +432,8 @@ module Datadog
           @degraded[degraded_key] = new_entry(
             evaluation_time_ms,
             runtime_default: runtime_default,
-            error_message: error_message
+            error_message: error_message,
+            observe_full_evaluation_data: observe_full_evaluation_data
           )
         end
       end

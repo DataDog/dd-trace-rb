@@ -4,13 +4,19 @@ require "spec_helper"
 require "datadog/open_feature/evaluation_engine"
 
 RSpec.describe Datadog::OpenFeature::EvaluationEngine do
-  before { allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_return(evaluator) }
+  before do
+    allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_return(evaluator)
+    allow(evaluator).to receive(:observe_full_evaluation_data).and_return(false)
+  end
 
   let(:engine) { described_class.new(reporter, telemetry: telemetry, logger: logger) }
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:logger) { instance_double(Datadog::Core::Logger) }
   let(:evaluator) { instance_double(Datadog::OpenFeature::NativeEvaluator) }
+  let(:observe_full_evaluation_data_key) do
+    Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA
+  end
   let(:configuration) do
     <<~JSON
       {
@@ -50,6 +56,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         expect(result.error_code).to eq("PROVIDER_NOT_READY")
         expect(result.error_message).to eq("Waiting for flags configuration")
         expect(result.reason).to eq("ERROR")
+        expect(result.flag_metadata).to include(observe_full_evaluation_data_key => false)
       end
     end
 
@@ -79,6 +86,32 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         expect(result.error_code).to eq("PROVIDER_FATAL")
         expect(result.error_message).to eq("Ooops")
         expect(result.reason).to eq("ERROR")
+        expect(result.flag_metadata).to include(observe_full_evaluation_data_key => false)
+      end
+    end
+
+    context "when binding evaluator returns a frozen error" do
+      before do
+        allow(evaluator).to receive(:get_assignment).and_return(error)
+        engine.reconfigure!(configuration)
+      end
+
+      let(:error) do
+        Datadog::OpenFeature::ResolutionDetails.build_error(
+          value: "fallback",
+          error_code: Datadog::OpenFeature::Ext::PARSE_ERROR,
+          error_message: "invalid configuration"
+        )
+      end
+
+      it "preserves the error and stamps the evaluation metadata" do
+        expect(reporter).to receive(:report).with(
+          kind_of(Datadog::OpenFeature::ResolutionDetails), flag_key: "test", context: nil
+        )
+
+        expect(result.error_code).to eq("PARSE_ERROR")
+        expect(result.error_message).to eq("invalid configuration")
+        expect(result.flag_metadata).to include(observe_full_evaluation_data_key => false)
       end
     end
 
@@ -99,6 +132,58 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         expect(result.error_code).to eq("GENERAL")
         expect(result.error_message).to eq("RuntimeError: Crash")
         expect(result.reason).to eq("ERROR")
+        expect(result.flag_metadata).to include(observe_full_evaluation_data_key => false)
+      end
+    end
+
+    context "when the evaluator changes while an error is returned" do
+      before do
+        allow(telemetry).to receive(:report)
+        allow(replacement_evaluator).to receive(:observe_full_evaluation_data).and_return(true)
+        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_return(evaluator, replacement_evaluator)
+        allow(evaluator).to receive(:get_assignment) do
+          engine.reconfigure!(configuration)
+          raise error
+        end
+        engine.reconfigure!(configuration)
+      end
+
+      let(:replacement_evaluator) { instance_double(Datadog::OpenFeature::NativeEvaluator) }
+      let(:error) { RuntimeError.new("Crash") }
+
+      it "uses the policy snapshot from the evaluator that performed the evaluation" do
+        expect(evaluator).to receive(:observe_full_evaluation_data).once.and_return(false)
+        expect(replacement_evaluator).not_to receive(:observe_full_evaluation_data)
+        expect(reporter).not_to receive(:report)
+
+        expect(result.error_code).to eq("GENERAL")
+        expect(result.flag_metadata).to include(observe_full_evaluation_data_key => false)
+      end
+    end
+
+    # The in-flight evaluation keeps the policy from the evaluator that performed it;
+    # reconfiguration must not replace that snapshot retroactively.
+    context "when full evaluation data is disabled while an evaluation is in flight" do
+      before do
+        allow(telemetry).to receive(:report)
+        allow(replacement_evaluator).to receive(:observe_full_evaluation_data).and_return(false)
+        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_return(evaluator, replacement_evaluator)
+        allow(evaluator).to receive(:get_assignment) do
+          engine.reconfigure!(configuration)
+          raise error
+        end
+        engine.reconfigure!(configuration)
+      end
+
+      let(:replacement_evaluator) { instance_double(Datadog::OpenFeature::NativeEvaluator) }
+      let(:error) { RuntimeError.new("Crash") }
+
+      it "keeps the enabled policy from the evaluator that performed the evaluation" do
+        expect(evaluator).to receive(:observe_full_evaluation_data).once.and_return(true)
+        expect(replacement_evaluator).not_to receive(:observe_full_evaluation_data)
+
+        expect(result.error_code).to eq("GENERAL")
+        expect(result.flag_metadata).to include(observe_full_evaluation_data_key => true)
       end
     end
 
@@ -114,6 +199,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         expect(result.error_code).to eq("UNKNOWN_TYPE")
         expect(result.error_message).to start_with("unknown type :whatever, allowed types")
         expect(result.reason).to eq("ERROR")
+        expect(result.flag_metadata).to include(observe_full_evaluation_data_key => false)
       end
     end
 
@@ -149,6 +235,14 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
           .with(kind_of(Datadog::OpenFeature::ResolutionDetails), flag_key: "test", context: evaluation_context)
 
         expect(result.value).to eq("hello")
+        expect(result.flag_metadata).to include(observe_full_evaluation_data_key => false)
+      end
+
+      it "stamps an enabled policy from the evaluator" do
+        allow(evaluator).to receive(:observe_full_evaluation_data).and_return(true)
+        expect(reporter).to receive(:report)
+
+        expect(result.flag_metadata).to include(observe_full_evaluation_data_key => true)
       end
     end
   end
