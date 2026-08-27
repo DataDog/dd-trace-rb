@@ -25,6 +25,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:sighandler_sampling_enabled) { false }
   let(:cpu_sampling_interval_ms) { 10 }
   let(:one_second_in_ns) { 1_000_000_000 }
+  let(:waiting_for_gvl_threshold_ns) { 10_000_000 }
   let(:thread_context_collector) { build_thread_context_collector(recorder) }
   let(:worker_settings) do
     {
@@ -37,6 +38,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       gvl_profiling_enabled: gvl_profiling_enabled,
       sighandler_sampling_enabled: sighandler_sampling_enabled,
       cpu_sampling_interval_ms: cpu_sampling_interval_ms,
+      waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
       **options,
     }
   end
@@ -587,10 +589,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
 
         context "when 'Waiting for GVL' periods are below waiting_for_gvl_threshold_ns" do
-          let(:options) do
-            collector = build_thread_context_collector(recorder, waiting_for_gvl_threshold_ns: one_second_in_ns)
-            {thread_context_collector: collector}
-          end
+          let(:waiting_for_gvl_threshold_ns) { one_second_in_ns }
 
           it "does not trigger extra samples due to GVL wait duration" do
             background_thread_affected_by_gvl_contention
@@ -1486,6 +1485,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           sample_count: 0,
           gc_samples: 0,
           gc_samples_missed_due_to_missing_context: 0,
+          gc_samples_skipped_nothing_to_flush: 0,
           inactive_thread_samples_skipped: 0,
           profiler_thread_samples_skipped: 0,
         }

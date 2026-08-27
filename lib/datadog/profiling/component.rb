@@ -65,6 +65,7 @@ module Datadog
           gvl_profiling_enabled: enable_gvl_profiling?(settings, logger),
           sighandler_sampling_enabled: settings.profiling.advanced.sighandler_sampling_enabled,
           cpu_sampling_interval_ms: cpu_sampling_interval_ms,
+          waiting_for_gvl_threshold_ns: settings.profiling.advanced.waiting_for_gvl_threshold_ns,
         )
 
         internal_metadata = {
@@ -102,7 +103,6 @@ module Datadog
           max_frames: settings.profiling.advanced.max_frames,
           tracer: optional_tracer,
           endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
-          waiting_for_gvl_threshold_ns: settings.profiling.advanced.waiting_for_gvl_threshold_ns,
           otel_context_enabled: settings.profiling.advanced.preview_otel_context_enabled,
           native_filenames_enabled: settings.profiling.advanced.native_filenames_enabled,
           show_classes: settings.profiling.advanced.experimental_show_classes_enabled,
