@@ -68,14 +68,24 @@
 // 4. The Ruby VM calls our `sample_from_postponed_job` from a thread holding the global VM lock. A sample is recorded by
 // calling `thread_context_collector_sample`.
 //
-// ### TracePoints and Forking
+//
+// ### Hooks and TracePoints
+//
+// This class uses various hooks:
+// * A RUBY_INTERNAL_EVENT_GC_ENTER & RUBY_INTERNAL_EVENT_GC_EXIT TracePoint
+// * A RUBY_INTERNAL_EVENT_NEWOBJ "event hook"/internal tracepoint
+// * A GVL thread event hook
+//
+// We refer to those collectively as "hooks".
+//
+// ### Hooks and Forking
 //
 // When the Ruby VM forks, the CPU/Wall-time profiling stops naturally because it's triggered by a background thread
 // that doesn't get automatically restarted by the VM on the child process. (The profiler does trigger its restart at
 // some point -- see `Profiling::Tasks::Setup` for details).
 //
-// But this doesn't apply to any `TracePoint`s this class may use, which will continue to be active. Thus, we need to
-// always remember consider this case of -- the worker thread may not be alive but the `TracePoint`s can continue to
+// But this doesn't apply to any hooks this class may use, which will continue to be active. Thus, we need to
+// always remember consider this case of -- the worker thread may not be alive but the hooks can continue to
 // trigger samples.
 //
 // ---
@@ -245,7 +255,7 @@ static void reset_stats_not_thread_safe(cpu_and_wall_time_worker_state *state);
 static void sleep_for(uint64_t time_ns);
 static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self);
 static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *unused2);
-static void disable_tracepoints(cpu_and_wall_time_worker_state *state);
+static void disable_hooks(cpu_and_wall_time_worker_state *state);
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
 static VALUE rescued_after_allocation(VALUE self_instance);
@@ -521,7 +531,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 
   // If we already got a delayed exception registered even before starting, raise before starting
   if (state->failure_exception != Qnil) {
-    disable_tracepoints(state);
+    disable_hooks(state);
     rb_exc_raise(state->failure_exception);
   }
 
@@ -531,13 +541,13 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
       raise_error(rb_eRuntimeError, "Could not start CpuAndWallTimeWorker: There's already another instance of CpuAndWallTimeWorker active in a different thread");
     } else {
       // The previously active thread seems to have died without cleaning up after itself.
-      // In this case, we can still go ahead and start the profiler BUT we make sure to disable any existing tracepoint
+      // In this case, we can still go ahead and start the profiler BUT we make sure to disable any existing hooks
       // first as:
-      // a) If this is a new instance of the CpuAndWallTimeWorker, we don't want the tracepoint from the old instance
+      // a) If this is a new instance of the CpuAndWallTimeWorker, we don't want the hooks from the old instance
       //    being kept around
       // b) If this is the same instance of the CpuAndWallTimeWorker if we call enable on a tracepoint that is already
       //    enabled, it will start firing more than once, see https://bugs.ruby-lang.org/issues/19114 for details.
-      disable_tracepoints(old_state);
+      disable_hooks(old_state);
     }
   }
 
@@ -555,7 +565,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   // Reset per-thread state, if any. This ensures there's no leftover state from a previous profiler run that would
   // affect or be included in samples taken by this profiler about to run.
   //
-  // NOTE: This needs to be called before we enable any tracepoints or anything that could trigger samples (e.g.
+  // NOTE: This needs to be called before we enable any hooks or anything that could trigger samples (e.g.
   // reset cannot be concurrent with any sampling activity)
   thread_context_collector_reset_all_per_thread_contexts(state->thread_context_collector_instance);
 
@@ -582,7 +592,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 
   // The sample trigger loop finished (either cleanly or with an error); let's clean up
 
-  disable_tracepoints(state);
+  disable_hooks(state);
 
   active_sampler_instance_state = NULL;
   active_sampler_instance = Qnil;
@@ -642,8 +652,8 @@ static void stop_state(cpu_and_wall_time_worker_state *state, VALUE optional_exc
   state->failure_exception = optional_exception;
   state->failure_exception_during_operation = optional_exception_during_operation;
 
-  // Disable the tracepoints as soon as possible, so the VM doesn't keep on calling them
-  disable_tracepoints(state);
+  // Disable the hooks as soon as possible, so the VM doesn't keep on calling them
+  disable_hooks(state);
 }
 
 static VALUE stop(VALUE self_instance, VALUE optional_exception, const char *optional_exception_during_operation) {
@@ -918,7 +928,7 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-  // Final preparations: Setup signal handler and enable tracepoints. We run these here and not in `_native_sampling_loop`
+  // Final preparations: Setup signal handler and enable hooks. We run these here and not in `_native_sampling_loop`
   // because they may raise exceptions.
   install_sigprof_signal_handler(handle_sampling_signal, "handle_sampling_signal");
   if (state->gc_profiling_enabled) rb_tracepoint_enable(state->gc_tracepoint);
@@ -1138,12 +1148,12 @@ static VALUE _native_simulate_sample_from_postponed_job(DDTRACE_UNUSED VALUE sel
 
 // After the Ruby VM forks, this method gets called in the child process to clean up any leftover state from the parent.
 //
-// Assumption: This method gets called BEFORE restarting profiling. Note that profiling-related tracepoints may still
+// Assumption: This method gets called BEFORE restarting profiling. Note that profiling-related hooks may still
 // be active, so we make sure to disable them before calling into anything else, so that there are no components
 // attempting to trigger samples at the same time as the reset is done.
 //
-// In the future, if we add more other components with tracepoints, we will need to coordinate stopping all such
-// tracepoints before doing the other cleaning steps.
+// In the future, if we add more other components with hooks, we will need to coordinate stopping all such
+// hooks before doing the other cleaning steps.
 //
 // Note that tests call this method directly in the same process without forking,
 // and in such a case non-current Threads keep running.
@@ -1151,8 +1161,8 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-  // Disable all tracepoints, so that there are no more attempts to mutate the profile
-  disable_tracepoints(state);
+  // Disable all hooks, so that there are no more attempts to mutate the profile
+  disable_hooks(state);
 
   reset_stats_not_thread_safe(state);
 
@@ -1420,7 +1430,7 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
   during_sample_exit(state);
 }
 
-static void disable_tracepoints(cpu_and_wall_time_worker_state *state) {
+static void disable_hooks(cpu_and_wall_time_worker_state *state) {
   if (state->gc_tracepoint != Qnil) {
     rb_tracepoint_disable(state->gc_tracepoint);
   }
