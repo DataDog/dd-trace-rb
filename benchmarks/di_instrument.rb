@@ -27,27 +27,30 @@
 # dispatch but not serialize_args. For probes with capture_snapshot=true,
 # the firing-path cost is higher than what this benchmark reports.
 #
-# Typical result:
+# Typical result (local run, Ruby 3.2.3, x86_64-linux-gnu):
 #
 # Comparison:
-#                          method instrumentation - cleared:   170807.4 i/s
-#                                no instrumentation - again:   170507.2 i/s - same-ish: difference falls within error
-#                            line instrumentation - cleared:   169760.6 i/s - same-ish: difference falls within error
-#                                        no instrumentation:   165453.4 i/s - 1.03x  slower
-#              method instrumentation - rate_limit=1 (skip):    90687.8 i/s - 1.88x  slower
-#     line instrumentation - targeted - rate_limit=1 (skip):    81769.3 i/s - 2.09x  slower
-#           method instrumentation - rate_limit=1M (firing):    36179.6 i/s - 4.72x  slower
-#  line instrumentation - targeted - rate_limit=1M (firing):    33589.6 i/s - 5.09x  slower
-#   line instrumentation - untargeted - rate_limit=1 (skip):    29559.6 i/s - 5.78x  slower
-# line instrumentation - untargeted - rate_limit=1M (firing):    19262.5 i/s - 8.87x  slower
+#                                               no instrumentation:   615759.9 i/s
+#                                 method instrumentation - cleared:   586395.9 i/s - same-ish: difference falls within error
+#                                       no instrumentation - again:   582805.3 i/s - same-ish: difference falls within error
+#                                   line instrumentation - cleared:   557115.8 i/s - same-ish: difference falls within error
+#            line instrumentation - targeted - rate_limit=1 (skip):   281647.2 i/s - 2.19x  slower
+#                     method instrumentation - rate_limit=1 (skip):   279444.7 i/s - 2.20x  slower
+#           method instrumentation - rate_limit=1M (global reject):   229992.0 i/s - 2.68x  slower
+#  line instrumentation - targeted - rate_limit=1M (global reject):   213673.2 i/s - 2.88x  slower
+#         line instrumentation - targeted - rate_limit=1M (firing):   118301.0 i/s - 5.21x  slower
+#                  method instrumentation - rate_limit=1M (firing):   112104.9 i/s - 5.49x  slower
+#          line instrumentation - untargeted - rate_limit=1 (skip):    96671.7 i/s - 6.37x  slower
+# line instrumentation - untargeted - rate_limit=1M (global reject):    82990.0 i/s - 7.42x  slower
+#       line instrumentation - untargeted - rate_limit=1M (firing):    61094.8 i/s - 10.08x  slower
 #
 # Per-call wrapper overhead, computed as (1/instr_ips) - (1/baseline_ips)
 # from the numbers above:
 #
-#                                       skip path     firing path
-#   method probe                        ~4.98 us      ~21.60 us
-#   line probe - targeted               ~6.19 us      ~23.73 us
-#   line probe - untargeted             ~27.79 us     ~45.87 us
+#                                       skip path     global reject     firing path
+#   method probe                        ~1.95 us      ~2.72 us          ~7.30 us
+#   line probe - targeted               ~1.93 us      ~3.06 us          ~6.83 us
+#   line probe - untargeted             ~8.72 us      ~10.43 us         ~14.74 us
 #
 # Method-probe firing is ~4x more expensive per call than skip. In
 # production, where the probe rate limit caps firing at 5000/sec per probe
@@ -55,12 +58,17 @@
 # skip number is the per-call cost a customer pays on the overwhelming
 # majority of probed-method invocations.
 #
+# The global-reject variant (per-probe limiter admits, process-wide global
+# limiter rejects) costs more than skip but less than firing, because the
+# wrapper performs the per-probe admission work and the global-limiter
+# consultation before taking the skip branch.
+#
 # Targeted line instrumentation has similar per-call cost to method
-# instrumentation in both firing and skip variants.
+# instrumentation across all three variants.
 #
 # Untargeted line instrumentation is much slower than targeted because the
 # TracePoint fires for every line in the file rather than only the
-# instrumented line. The skip variant is still slow (~27.8 us) because the
+# instrumented line. The skip variant is still slow (~8.7 us) because the
 # per-line TracePoint callback runs even when the rate limiter rejects
 # snapshot delivery. Untargeted line probes remain unsuitable for
 # production use; the skip-variant measurement is the floor cost that even
