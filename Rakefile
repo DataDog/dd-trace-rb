@@ -93,7 +93,7 @@ end
 desc "Run RSpec"
 namespace :spec do
   # REMINDER: If adding a new task here, make sure also add it to the `Matrixfile`
-  task all: [:main, :benchmark, :custom_cop,
+  task all: [:main, :benchmark, :custom_cop, :tasks,
     :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
     :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
     :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
@@ -104,6 +104,7 @@ namespace :spec do
     t.pattern = "spec/**/*_spec.rb"
     t.exclude_pattern = "spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,error_tracking,rubocop,ai_guard}/**/*_spec.rb," \
                         " spec/github/**/*_spec.rb," \
+                        " spec/tasks/**/*_spec.rb," \
                         " spec/**/{auto_instrument,opentelemetry,process,ai_guard}_spec.rb," \
                         " spec/**/*_rails_spec.rb," \
                         " spec/datadog/core/environment/execution_spec.rb," \
@@ -127,6 +128,11 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:github) do |t, args|
     t.pattern = "spec/github/**/*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
+  end
+
+  RSpec::Core::RakeTask.new(:tasks) do |t, args|
+    t.pattern = "spec/tasks/**/*_spec.rb"
     t.rspec_opts = args.to_a.join(" ")
   end
 

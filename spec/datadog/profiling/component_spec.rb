@@ -93,8 +93,6 @@ RSpec.describe Datadog::Profiling::Component do
           expect(settings.profiling.advanced.endpoint.collection)
             .to receive(:enabled).and_return(:endpoint_collection_enabled_config)
           expect(settings.profiling.advanced)
-            .to receive(:waiting_for_gvl_threshold_ns).and_return(:threshold_ns_config)
-          expect(settings.profiling.advanced)
             .to receive(:native_filenames_enabled).and_return(:native_filenames_enabled_config)
           expect(settings.profiling.advanced)
             .to receive(:experimental_show_classes_enabled).and_return(:experimental_show_classes_enabled_config)
@@ -104,7 +102,6 @@ RSpec.describe Datadog::Profiling::Component do
             max_frames: :max_frames_config,
             tracer: tracer,
             endpoint_collection_enabled: :endpoint_collection_enabled_config,
-            waiting_for_gvl_threshold_ns: :threshold_ns_config,
             otel_context_enabled: false,
             native_filenames_enabled: :native_filenames_enabled_config,
             show_classes: :experimental_show_classes_enabled_config,
@@ -152,6 +149,8 @@ RSpec.describe Datadog::Profiling::Component do
             .to receive(:experimental_cpu_sampling_interval_ms).and_return(:cpu_sampling_interval_ms_config)
           expect(described_class).to receive(:valid_cpu_sampling_interval)
             .with(:cpu_sampling_interval_ms_config, logger).and_return(:cpu_sampling_interval_ms_config)
+          expect(settings.profiling.advanced)
+            .to receive(:waiting_for_gvl_threshold_ns).and_return(:threshold_ns_config)
 
           expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
             gc_profiling_enabled: anything,
@@ -163,6 +162,7 @@ RSpec.describe Datadog::Profiling::Component do
             gvl_profiling_enabled: :gvl_profiling_result,
             sighandler_sampling_enabled: :sighandler_sampling_enabled_config,
             cpu_sampling_interval_ms: :cpu_sampling_interval_ms_config,
+            waiting_for_gvl_threshold_ns: :threshold_ns_config,
           )
 
           build_profiler_component
