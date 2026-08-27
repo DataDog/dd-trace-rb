@@ -376,6 +376,9 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
     heap_recorder_finish_iteration(heap_recorder);
   }
 
+  // This could also be left over if fork happens during an update
+  heap_recorder->updating = false;
+
   // Clear lifetime stats since this is essentially a new heap recorder
   heap_recorder->stats_lifetime = (struct stats_lifetime) {0};
 }
