@@ -422,7 +422,7 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     return true; // If the buffer is full, we keep asking for a callback (see `needs_after_allocation` below)
   }
 
-  // The intuition here is: We start by asking for an `after_allocation` callback when the buffer is about to go
+  // The intuition here is: We start by asking for a commit callback when the buffer is about to go
   // from empty -> non-empty, because this is going to be mapped onto a postponed job, so after it gets queued once
   // it doesn't seem worth it to keep spamming requests.
   //
@@ -516,7 +516,7 @@ void heap_recorder_update_young_objects(heap_recorder *heap_recorder) {
   heap_recorder_update(heap_recorder, /* full_update: */ false);
 }
 
-void heap_recorder_commit_pending_recordings(heap_recorder *heap_recorder) {
+void heap_recorder_commit_recordings_may_lose_gvl(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
     return; // Nothing to do
   }
@@ -529,8 +529,8 @@ void heap_recorder_commit_pending_recordings(heap_recorder *heap_recorder) {
   // Note as well that `ruby_weak_map_set` below can release the GVL, and thus this function needs to tolerate other
   // profiler operations being interleaved with it -- in particular an allocation sample (which appends to
   // `pending_recordings`) or even another call to this function. (Unlike most of the profiler, our caller
-  // `after_allocation_from_postponed_job` deliberately does not hold the `during_sample` flag, exactly because we may
-  // lose the GVL here.) This is safe because:
+  // `commit_heap_recordings_from_postponed_job_may_lose_gvl` deliberately does not hold the `during_sample` flag,
+  // exactly because we may lose the GVL here.) This is safe because:
   //
   // * We copy the pending_recording to the stack and decrement the count **before** we can lose the GVL, so from that
   //   point on the slot is no longer ours: an allocation sample that gets to run will write to that same slot, and our

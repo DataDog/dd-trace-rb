@@ -12,7 +12,7 @@ void thread_context_collector_sample(
 );
 __attribute__((warn_unused_result)) bool thread_context_collector_prepare_sample_inside_signal_handler(void);
 __attribute__((warn_unused_result)) bool thread_context_collector_sample_allocation(VALUE self_instance, per_thread_context *thread_context, unsigned int sample_weight, VALUE new_object);
-void thread_context_collector_after_allocation(VALUE self_instance);
+void thread_context_collector_commit_heap_recordings_may_lose_gvl(VALUE self_instance);
 void thread_context_collector_sample_skipped_allocation_samples(VALUE self_instance, unsigned int skipped_samples);
 VALUE thread_context_collector_sample_after_gc(VALUE self_instance);
 void thread_context_collector_on_gc_start(VALUE self_instance);

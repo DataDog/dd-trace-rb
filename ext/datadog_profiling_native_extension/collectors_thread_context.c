@@ -1521,11 +1521,11 @@ VALUE enforce_thread_context_collector_instance(VALUE object) {
 // Finalize any pending heap allocation recordings.
 // On Ruby 4+, heap allocations are recorded in two phases: during on_newobj_event we capture
 // the object reference, then later we safely call rb_obj_id() to get the object ID.
-void thread_context_collector_after_allocation(VALUE self_instance) {
+void thread_context_collector_commit_heap_recordings_may_lose_gvl(VALUE self_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-  recorder_after_sample(state->recorder_instance);
+  recorder_commit_heap_recordings_may_lose_gvl(state->recorder_instance);
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
@@ -1671,8 +1671,8 @@ bool thread_context_collector_prepare_sample_inside_signal_handler(void) {
 // This method gets called from inside the RUBY_INTERNAL_EVENT_NEWOBJ tracepoint so it should neither allocate in the
 // Ruby heap nor release the GVL (https://github.com/DataDog/dd-trace-rb/pull/4240).
 //
-// Returns true if the after_allocation needs to be called (to do work that can't be done from inside the
-// tracepoint, such as allocate new objects), and false if it doesn't
+// Returns true if `thread_context_collector_commit_heap_recordings_may_lose_gvl` needs to be called (to do work
+// that can't be done from inside the tracepoint, such as allocate new objects), and false if it doesn't
 //
 // The callers must ensure thread_context is non-NULL.
 bool thread_context_collector_sample_allocation(VALUE self_instance, per_thread_context *thread_context, unsigned int sample_weight, VALUE new_object) {

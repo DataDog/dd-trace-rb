@@ -662,7 +662,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
 // This method gets called from inside the RUBY_INTERNAL_EVENT_NEWOBJ tracepoint so it should neither allocate in the
 // Ruby heap nor release the GVL (https://github.com/DataDog/dd-trace-rb/pull/4240).
 //
-// Returns needs_after_allocation: true whenever an after_sample callback is required
+// Returns needs_after_allocation: true whenever a `recorder_commit_heap_recordings_may_lose_gvl` callback is required
 bool track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight, ddog_CharSlice alloc_class) {
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
@@ -694,11 +694,11 @@ void recorder_after_gc_step(VALUE recorder_instance) {
   if (state->heap_clean_after_gc_enabled) heap_recorder_update_young_objects(state->heap_recorder);
 }
 
-void recorder_after_sample(VALUE recorder_instance) {
+void recorder_commit_heap_recordings_may_lose_gvl(VALUE recorder_instance) {
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
-  heap_recorder_commit_pending_recordings(state->heap_recorder);
+  heap_recorder_commit_recordings_may_lose_gvl(state->heap_recorder);
 }
 
 #define MAX_LEN_HEAP_ITERATION_ERROR_MSG 256
@@ -1169,7 +1169,7 @@ static VALUE _native_commit_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, 
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
-  heap_recorder_commit_pending_recordings(state->heap_recorder);
+  heap_recorder_commit_recordings_may_lose_gvl(state->heap_recorder);
 
   return Qtrue;
 }

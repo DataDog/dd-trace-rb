@@ -91,7 +91,7 @@ unsigned int MAX_ALLOC_WEIGHT = 10000;
   static rb_postponed_job_handle_t sample_from_postponed_job_handle;
   static rb_postponed_job_handle_t after_gc_from_postponed_job_handle;
   static rb_postponed_job_handle_t after_gvl_running_from_postponed_job_handle;
-  static rb_postponed_job_handle_t after_allocation_from_postponed_job_handle;
+  static rb_postponed_job_handle_t commit_heap_recordings_from_postponed_job_may_lose_gvl_handle;
 #endif
 
 // Contains state for a single CpuAndWallTimeWorker instance
@@ -259,7 +259,7 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
 static void disable_tracepoints(cpu_and_wall_time_worker_state *state);
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
-static VALUE rescued_after_allocation(VALUE self_instance);
+static VALUE rescued_commit_heap_recordings_may_lose_gvl(VALUE self_instance);
 static void delayed_error(cpu_and_wall_time_worker_state *state, const char *error);
 static void delayed_error_clock_failure(cpu_and_wall_time_worker_state *state);
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg);
@@ -275,10 +275,10 @@ static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE 
 static VALUE handle_sampling_failure_rescued_sample_from_postponed_job(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_thread_context_collector_sample_after_gc(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instance, VALUE exception);
-static VALUE handle_sampling_failure_rescued_after_allocation(VALUE self_instance, VALUE exception);
+static VALUE handle_sampling_failure_rescued_commit_heap_recordings(VALUE self_instance, VALUE exception);
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state);
 static inline void during_sample_exit(cpu_and_wall_time_worker_state* state);
-static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused);
+static void commit_heap_recordings_from_postponed_job_may_lose_gvl(DDTRACE_UNUSED void *_unused);
 
 // We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
 // with signature `rb_event_hook_func_t` which doesn't match `on_newobj_event`.
@@ -335,13 +335,14 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
     sample_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, sample_from_postponed_job, NULL);
     after_gc_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gc_from_postponed_job, NULL);
     after_gvl_running_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gvl_running_from_postponed_job, NULL);
-    after_allocation_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_allocation_from_postponed_job, NULL);
+    commit_heap_recordings_from_postponed_job_may_lose_gvl_handle =
+      rb_postponed_job_preregister(unused_flags, commit_heap_recordings_from_postponed_job_may_lose_gvl, NULL);
 
     if (
       sample_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
       after_gc_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
       after_gvl_running_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
-      after_allocation_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID
+      commit_heap_recordings_from_postponed_job_may_lose_gvl_handle == POSTPONED_JOB_HANDLE_INVALID
     ) {
       raise_error(rb_eRuntimeError, "Failed to register profiler postponed jobs (got POSTPONED_JOB_HANDLE_INVALID)");
     }
@@ -1488,9 +1489,9 @@ static VALUE rescued_sample_allocation(VALUE arg) {
 
   if (needs_after_allocation) {
     #ifndef NO_POSTPONED_TRIGGER
-      rb_postponed_job_trigger(after_allocation_from_postponed_job_handle);
+      rb_postponed_job_trigger(commit_heap_recordings_from_postponed_job_may_lose_gvl_handle);
     #else
-      rb_postponed_job_register_one(0, after_allocation_from_postponed_job, NULL);
+      rb_postponed_job_register_one(0, commit_heap_recordings_from_postponed_job_may_lose_gvl, NULL);
     #endif
   }
 
@@ -1677,16 +1678,16 @@ static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instan
   return Qnil;
 }
 
-static VALUE handle_sampling_failure_rescued_after_allocation(VALUE self_instance, VALUE exception) {
-  stop(self_instance, exception, "rescued_after_allocation");
+static VALUE handle_sampling_failure_rescued_commit_heap_recordings(VALUE self_instance, VALUE exception) {
+  stop(self_instance, exception, "rescued_commit_heap_recordings_may_lose_gvl");
   return Qnil;
 }
 
-static VALUE rescued_after_allocation(VALUE self_instance) {
+static VALUE rescued_commit_heap_recordings_may_lose_gvl(VALUE self_instance) {
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-  thread_context_collector_after_allocation(state->thread_context_collector_instance);
+  thread_context_collector_commit_heap_recordings_may_lose_gvl(state->thread_context_collector_instance);
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
   return Qnil;
@@ -1695,7 +1696,7 @@ static VALUE rescued_after_allocation(VALUE self_instance) {
 // This postponed job callback is used to commit heap allocation recordings.
 // During on_newobj_event, we can't take the weak reference the heap recorder needs to track the object, so we defer
 // that until after the event completes.
-static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused) {
+static void commit_heap_recordings_from_postponed_job_may_lose_gvl(DDTRACE_UNUSED void *_unused) {
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state;
 
   if (state == NULL || !ddtrace_rb_ractor_main_p()) return;
@@ -1711,10 +1712,10 @@ static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   // This means work done in this function isn't accounted for as profiler overhead.
   // This is acceptable as the amount of work done here is expected to be small.
   safely_call(
-    rescued_after_allocation,
+    rescued_commit_heap_recordings_may_lose_gvl,
     state->self_instance,
     state->self_instance,
-    handle_sampling_failure_rescued_after_allocation
+    handle_sampling_failure_rescued_commit_heap_recordings
   );
 }
 

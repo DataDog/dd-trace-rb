@@ -109,7 +109,7 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder);
 //
 // WARN: It needs to be paired with a ::end_heap_allocation_recording call.
 // Returns needs_after_allocation: true whenever the pending_recordings buffer goes from empty to non-empty and thus
-// a after_sample callback is required to flush it
+// a `heap_recorder_commit_recordings_may_lose_gvl` callback is required to flush it
 bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice alloc_class);
 
 // End a previously started heap allocation recording on the heap recorder.
@@ -130,7 +130,7 @@ void heap_recorder_update_young_objects(heap_recorder *heap_recorder);
 
 // Commit any pending heap allocation recordings by taking a weak reference to their objects.
 // This should be called via a postponed job, after the on_newobj_event has completed.
-void heap_recorder_commit_pending_recordings(heap_recorder *heap_recorder);
+void heap_recorder_commit_recordings_may_lose_gvl(heap_recorder *heap_recorder);
 
 // Mark the Ruby objects the heap recorder holds on to: the objects of any pending recordings (so that GC does not
 // collect them while they're waiting to be committed) and the weak map itself.
