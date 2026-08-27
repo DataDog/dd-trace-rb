@@ -515,12 +515,11 @@ class DIInstrumentBenchmark
       raise "Targeted line instrumentation (rate_limit=1M, global reject): expected 0 firing calls, got #{calls}"
     end
 
-    ToggleLimiter.admit = true
-
     # Now, remove all installed hooks and check that the performance of
     # target code is approximately what it was prior to hook installation.
 
     instrumenter.unhook(probe)
+    ToggleLimiter.admit = true
 
     calls = 0
 
