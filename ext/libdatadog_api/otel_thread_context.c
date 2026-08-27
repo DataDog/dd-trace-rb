@@ -145,6 +145,8 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
       rb_add_event_hook(on_thread_end, RUBY_EVENT_THREAD_END, Qnil);
     #endif
 
+    // These hooks only matter under the M:N thread scheduler (Ruby 3.3+),
+    // where a Ruby thread can migrate between native threads.
     #ifdef HAVE_RUBY_THREAD_STORAGE_API
       rb_internal_thread_add_event_hook(on_thread_suspended, RUBY_INTERNAL_THREAD_EVENT_SUSPENDED, NULL);
       rb_internal_thread_add_event_hook(on_thread_resumed, RUBY_INTERNAL_THREAD_EVENT_RESUMED, NULL);
