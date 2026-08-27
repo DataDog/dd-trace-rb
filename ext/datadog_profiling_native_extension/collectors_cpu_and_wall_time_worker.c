@@ -129,9 +129,20 @@ typedef struct {
 
   // Others
 
-  // Used to detect/avoid nested sampling, e.g. when on_newobj_event gets triggered by a memory allocation
+  // Used to detect/avoid nested sampling, and intended to behave as a lock to ensure the profiler doesn't recurse on itself,
+  // e.g. when on_newobj_event gets triggered by a memory allocation
   // that happens during another sample, or when the signal handler gets triggered while we're already in the middle of
   // sampling.
+  //
+  // It's not an actual lock because we rely on the GVL for correct synchronization
+  // (and thus this flag is only valid when we know we have the GVL).
+  //
+  // Similar to a lock, it should not be held across long-running operations,
+  // **in particular it MUST NEVER be held during operations where we might lose the GVL**
+  // because effectively that would stop the profiler from working working until control
+  // goes back to that special thread, which on a contended Ruby app, can take hundreds of ms (or more).
+  //
+  // Similar to a lock, it's also not supposed to be re-entrant. (TODO: We should have checks for this)
   //
   // @ivoanjo: Right now we always sample inside `safely_call`; if that ever changes, this flag may need to become
   // volatile/atomic/have some barriers to ensure it's visible during e.g. signal handlers.
