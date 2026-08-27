@@ -74,6 +74,11 @@
 #define THREAD_ID_LIMIT_CHARS 44 // Why 44? "#{2**64} (#{2**64})".size + 1 for \0
 #define THREAD_INVOKE_LOCATION_LIMIT_CHARS 512
 #define MISSING_TRACER_CONTEXT_KEY 0
+
+// Used as markers in the code
+#define OTEL_CURRENT_SPAN_KEY_NOT_EXTRACTED INT2FIX(1)
+#define OTEL_CURRENT_SPAN_KEY_EXTRACTION_NEEDED INT2FIX(2)
+
 #define TIME_BETWEEN_GC_EVENTS_NS MILLIS_AS_NS(10)
 #define GVL_SUSPENDED ((uint64_t)1)
 #define GVL_RUNNING ((uint64_t)0)
@@ -148,8 +153,9 @@ typedef struct {
   // Used to identify the main thread, to give it a fallback name
   VALUE main_thread;
   // Used when extracting trace identifiers from otel spans. Lazily initialized.
-  // Qtrue serves as a marker we've not yet extracted it; when we try to extract it, we set it to an object if
-  // successful and Qnil if not.
+  // * `OTEL_CURRENT_SPAN_KEY_NOT_EXTRACTED`: we've not needed it yet
+  // * `OTEL_CURRENT_SPAN_KEY_EXTRACTION_NEEDED`: a sample needed it, and it's waiting to be extracted
+  // * anything else: the extracted value, or Qnil if we tried to extract it and failed
   VALUE otel_current_span_key;
   // Used to enable native filenames in stack traces
   bool native_filenames_enabled;
@@ -368,7 +374,7 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread);
 #ifndef NO_GVL_INSTRUMENTATION
   static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
   static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE waiting_for_gvl_threshold_ns);
-  static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception);
+  static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread);
 #endif
 static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE delta_ns);
 static void otel_without_ddtrace_trace_identifiers_for(
@@ -378,6 +384,7 @@ static void otel_without_ddtrace_trace_identifiers_for(
   bool is_safe_to_allocate_objects
 );
 static otel_span otel_span_from(VALUE otel_context, VALUE otel_current_span_key);
+static bool is_otel_current_span_key_needed(thread_context_collector_state *state);
 static uint64_t otel_span_id_to_uint(VALUE otel_span_id);
 static VALUE safely_lookup_hash_without_going_into_ruby_code(VALUE hash, VALUE key);
 static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
@@ -429,7 +436,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   #ifndef NO_GVL_INSTRUMENTATION
     rb_define_singleton_method(testing_module, "_native_gvl_waiting_at_for", _native_gvl_waiting_at_for, 1);
     rb_define_singleton_method(testing_module, "_native_on_gvl_running", _native_on_gvl_running, 2);
-    rb_define_singleton_method(testing_module, "_native_sample_after_gvl_running", _native_sample_after_gvl_running, 3);
+    rb_define_singleton_method(testing_module, "_native_sample_after_gvl_running", _native_sample_after_gvl_running, 2);
   #endif
   rb_define_singleton_method(testing_module, "_native_apply_delta_to_cpu_time_at_previous_sample_ns", _native_apply_delta_to_cpu_time_at_previous_sample_ns, 2);
 
@@ -565,7 +572,7 @@ static VALUE _native_new(VALUE klass) {
   state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   VALUE main_thread = rb_thread_main();
   state->main_thread = main_thread;
-  state->otel_current_span_key = Qtrue;
+  state->otel_current_span_key = OTEL_CURRENT_SPAN_KEY_NOT_EXTRACTED;
   state->gc_tracking.wall_time_at_previous_gc_ns = INVALID_TIME;
   state->gc_tracking.wall_time_at_last_flushed_gc_event_ns = 0;
 
@@ -648,9 +655,13 @@ static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance
 
   if (allow_exception == Qfalse) debug_enter_unsafe_context();
 
-  thread_context_collector_sample(collector_instance, monotonic_wall_time_now_ns(RAISE_ON_FAILURE));
+  bool needs_otel_span_key =
+    thread_context_collector_sample(collector_instance, monotonic_wall_time_now_ns(RAISE_ON_FAILURE));
 
   if (allow_exception == Qfalse) debug_leave_unsafe_context();
+
+  // Same as the CpuAndWallTimeWorker does: this can't happen during a sample (and thus not inside the unsafe context)
+  if (needs_otel_span_key) thread_context_collector_resolve_otel_span_key_may_lose_gvl(collector_instance);
 
   return Qtrue;
 }
@@ -735,7 +746,7 @@ static void record_sampling_overhead(thread_context_collector_state *state, per_
 // Assumption 4: This function IS NOT called in a reentrant way.
 // Assumption 5: This function is called from the main Ractor (if Ruby has support for Ractors).
 //
-void thread_context_collector_sample(VALUE self_instance, long current_monotonic_wall_time_ns) {
+bool thread_context_collector_sample(VALUE self_instance, long current_monotonic_wall_time_ns) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
@@ -775,6 +786,8 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
   if (!current_thread_context->is_profiler_internal_thread) {
     record_sampling_overhead(state, current_thread_context);
   }
+
+  return is_otel_current_span_key_needed(state);
 }
 
 static void update_metrics_and_sample(
@@ -1838,33 +1851,50 @@ static VALUE otel_current_span_key_not_found(DDTRACE_UNUSED VALUE _unused, DDTRA
 }
 
 static VALUE get_otel_current_span_key(thread_context_collector_state *state, bool is_safe_to_allocate_objects) {
-  if (state->otel_current_span_key == Qtrue) { // Qtrue means we haven't tried to extract it yet
-    if (!is_safe_to_allocate_objects) {
-      // Calling read_otel_current_span_key_const below can trigger exceptions and arbitrary Ruby code running (e.g.
-      // `const_missing`, etc). Not safe to call in this situation, so we just skip otel info for this sample.
-      return Qnil;
-    }
-
-    // If this fails, we want to fail gracefully, rather than raise an exception (e.g. if the opentelemetry gem
-    // gets refactored, we should not fall on our face).
-    //
-    // Note that we use `rb_rescue2` and not `rb_protect` so that we only swallow exceptions: anything else that can
-    // unwind through here (e.g. a `Thread#kill`) is not ours to swallow. `rb_rescue2` also takes care of restoring
-    // any previously-pending exception for us.
-    VALUE span_key = rb_rescue2(
-      read_otel_current_span_key_const,
-      Qnil,
-      otel_current_span_key_not_found,
-      Qnil,
-      rb_eException, // rb_eException is the base class of all Ruby exceptions
-      0 // Required by API to be the last argument
-    );
-
-    // Note that this gets set to Qnil if we failed to extract the correct value, and thus we won't try to extract it again
-    state->otel_current_span_key = span_key;
+  if (state->otel_current_span_key == OTEL_CURRENT_SPAN_KEY_NOT_EXTRACTED) {
+    // Extracting this needs calling into Ruby code, which we don't want to do in the middle of a sample.
+    // So instead we signal that we want this, and let it be resolved separately.
+    state->otel_current_span_key = OTEL_CURRENT_SPAN_KEY_EXTRACTION_NEEDED;
+    return Qnil;
   }
 
+  // We asked for it, but it hasn't been extracted yet
+  if (is_otel_current_span_key_needed(state)) return Qnil;
+
   return state->otel_current_span_key;
+}
+
+static bool is_otel_current_span_key_needed(thread_context_collector_state *state) {
+  return state->otel_current_span_key == OTEL_CURRENT_SPAN_KEY_EXTRACTION_NEEDED;
+}
+
+// Extracts `otel_current_span_key`, if a sample asked for it (see `get_otel_current_span_key`).
+// This is deliberately not done during sampling because we can lose the GVL.
+//
+// Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
+void thread_context_collector_resolve_otel_span_key_may_lose_gvl(VALUE self_instance) {
+  thread_context_collector_state *state;
+  TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+  if (!is_otel_current_span_key_needed(state)) return;
+
+  // If this fails, we want to fail gracefully, rather than raise an exception (e.g. if the opentelemetry gem
+  // gets refactored, we should not fall on our face).
+  //
+  // Note that we use `rb_rescue2` and not `rb_protect` so that we only swallow exceptions: anything else that can
+  // unwind through here (e.g. a `Thread#kill`) is not ours to swallow. `rb_rescue2` also takes care of restoring
+  // any previously-pending exception for us.
+  VALUE span_key = rb_rescue2(
+    read_otel_current_span_key_const,
+    Qnil,
+    otel_current_span_key_not_found,
+    Qnil,
+    rb_eException, // rb_eException is the base class of all Ruby exceptions
+    0 // Required by API to be the last argument
+  );
+
+  // Note that this gets set to Qnil if we failed to extract the correct value, and thus we won't try to extract it again
+  state->otel_current_span_key = span_key;
 }
 
 // This method gets used when ddtrace is being used indirectly via the opentelemetry APIs. Information gets stored slightly
@@ -2453,11 +2483,10 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
     return result;
   }
 
-  static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception) {
+  static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread) {
     ENFORCE_THREAD(thread);
-    ENFORCE_BOOLEAN(allow_exception);
 
-    if (allow_exception == Qfalse) debug_enter_unsafe_context();
+    debug_enter_unsafe_context();
 
     VALUE result = thread_context_collector_sample_after_gvl_running(
       collector_instance,
@@ -2465,7 +2494,7 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
       monotonic_wall_time_now_ns(RAISE_ON_FAILURE)
     );
 
-    if (allow_exception == Qfalse) debug_leave_unsafe_context();
+    debug_leave_unsafe_context();
 
     return result;
   }

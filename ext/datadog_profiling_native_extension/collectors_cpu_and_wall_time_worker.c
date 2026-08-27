@@ -867,7 +867,7 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   during_sample_enter(state);
 
   // Rescue against any exceptions that happen during sampling
-  safely_call(
+  VALUE needs_otel_span_key = safely_call(
     rescued_sample_from_postponed_job,
     state->self_instance,
     state->self_instance,
@@ -875,6 +875,12 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   );
 
   during_sample_exit(state);
+
+  // Extracting the otel span key can lose the GVL, so we it outside `during_sample`
+  // (It can't raise: it rescues its own exceptions)
+  if (needs_otel_span_key == Qtrue) {
+    thread_context_collector_resolve_otel_span_key_may_lose_gvl(state->thread_context_collector_instance);
+  }
 }
 
 static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
@@ -885,12 +891,13 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
 
   if (state->dynamic_sampling_rate_enabled && !dynamic_sampling_rate_should_sample(&state->cpu_dynamic_sampling_rate, wall_time_ns_before_sample)) {
     state->stats.cpu_skipped++;
-    return Qnil;
+    return Qfalse;
   }
 
   state->stats.cpu_sampled++;
 
-  thread_context_collector_sample(state->thread_context_collector_instance, wall_time_ns_before_sample);
+  bool needs_otel_span_key =
+    thread_context_collector_sample(state->thread_context_collector_instance, wall_time_ns_before_sample);
 
   long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
   long delta_ns = wall_time_ns_after_sample - wall_time_ns_before_sample;
@@ -904,8 +911,7 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
 
   dynamic_sampling_rate_after_sample(&state->cpu_dynamic_sampling_rate, wall_time_ns_after_sample, sampling_time_ns);
 
-  // Return a dummy VALUE because we're called from rb_rescue2 which requires it
-  return Qnil;
+  return needs_otel_span_key ? Qtrue : Qfalse;
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.

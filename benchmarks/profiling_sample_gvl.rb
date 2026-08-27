@@ -56,7 +56,7 @@ class ProfilerSampleGvlBenchmark
       x.report("gvl benchmark samples") do
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gvl_waiting(@target_thread)
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gvl_running(@target_thread, WAITING_FOR_GVL_THRESHOLD_NS)
-        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gvl_running(@collector, @target_thread, false)
+        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gvl_running(@collector, @target_thread)
       end
 
       x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE

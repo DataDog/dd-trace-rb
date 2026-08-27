@@ -127,8 +127,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_on_gvl_released(thread)
   end
 
-  def sample_after_gvl_running(thread, allow_exception: false)
-    described_class::Testing._native_sample_after_gvl_running(thread_context_collector, thread, allow_exception)
+  def sample_after_gvl_running(thread)
+    described_class::Testing._native_sample_after_gvl_running(thread_context_collector, thread)
   end
 
   def thread_list
@@ -565,6 +565,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               end
             end
 
+            before do
+              # The otel span key is only lazily extracted after the first sample, so we take that first sample and
+              # throw it away to give it the opportunity to initialize.
+              sample
+              recorder.serialize!
+            end
+
             it 'includes "local root span id" and "span id" labels in the samples' do
               sample
 
@@ -730,6 +737,17 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               end
             end
 
+            let(:otel_span_key_warmup) { true }
+
+            before do
+              # The otel span key is only lazily extracted after the first sample, so we take that first sample and
+              # throw it away to give it the opportunity to initialize.
+              if otel_span_key_warmup
+                sample
+                recorder.serialize!
+              end
+            end
+
             after do
               OpenTelemetry.tracer_provider.shutdown
             end
@@ -754,6 +772,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             end
 
             describe "reading CURRENT_SPAN_KEY into otel_current_span_key" do
+              let(:otel_span_key_warmup) { false }
+
               let!(:ran_log) { [] }
 
               let(:setup_failure) do
@@ -775,29 +795,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 after { expect(ran_log).to eq [:ran_code] }
 
                 it "does not leave the exception pending" do
-                  sample(allow_exception: true)
+                  sample
 
                   expect($!).to be nil
-                end
-
-                it 'omits the "local root span id" and "span id" labels in the sample' do
-                  sample(allow_exception: true)
-
-                  expect(t1_sample.labels.keys).to_not include(:"local root span id", :"span id")
-                end
-              end
-
-              context "during allocation sampling" do
-                it "does not try to read the CURRENT_SPAN_KEY" do
-                  allow(OpenTelemetry.logger).to receive(:error)
-
-                  otel_tracer.in_span("profiler.test") do |_span|
-                    setup_failure
-
-                    sample_allocation(weight: 1)
-                  end
-
-                  expect(ran_log).to eq []
                 end
               end
             end
