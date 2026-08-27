@@ -20,7 +20,9 @@ module Prelock
     )
     return if dependencies.empty?
 
-    command = "bundle lock --update #{dependencies.map(&:name).join(" ")}"
+    # `--conservative` keeps the update from widening third-party transitive
+    # pins, which would otherwise escape the window along with the named gems.
+    command = "bundle lock --conservative --update #{dependencies.map(&:name).join(" ")}"
     env = {"BUNDLE_GEMFILE" => gemfile.to_s, "BUNDLE_COOLDOWN" => "0"}
 
     Bundler.with_unbundled_env do
