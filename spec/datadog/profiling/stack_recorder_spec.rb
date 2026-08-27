@@ -389,7 +389,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         Datadog::Profiling::Collectors::Stack::Testing
           ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
         # Heap recordings are deferred and need to be committed after the sample is recorded
-        described_class::Testing._native_commit_pending_heap_recordings(stack_recorder)
+        described_class::Testing._native_commit_heap_recordings(stack_recorder)
         described_class::Testing._native_record_id_for(stack_recorder, obj)
       end
 
@@ -729,7 +729,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
             expect(has_pending_recordings?).to be true
 
-            described_class::Testing._native_commit_pending_heap_recordings(stack_recorder)
+            described_class::Testing._native_commit_heap_recordings(stack_recorder)
 
             expect(has_pending_recordings?).to be false
           end
@@ -742,7 +742,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
             expect(has_pending_recordings?).to be true
 
-            described_class::Testing._native_commit_pending_heap_recordings(stack_recorder)
+            described_class::Testing._native_commit_heap_recordings(stack_recorder)
 
             expect(has_pending_recordings?).to be false
           end
@@ -1058,7 +1058,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           Thread.current, stack_recorder, {"alloc-samples" => 1, "heap_sample" => true}, [], [],
         )
         # Heap recordings are deferred and need to be committed after the sample is recorded
-        described_class::Testing._native_commit_pending_heap_recordings(stack_recorder)
+        described_class::Testing._native_commit_heap_recordings(stack_recorder)
       end
 
       it "includes heap recorder snapshot" do

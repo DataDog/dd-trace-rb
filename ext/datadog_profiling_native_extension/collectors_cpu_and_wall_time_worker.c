@@ -139,7 +139,7 @@ typedef struct {
   //
   // Similar to a lock, it should not be held across long-running operations,
   // **in particular it MUST NEVER be held during operations where we might lose the GVL**
-  // because effectively that would stop the profiler from working working until control
+  // because effectively that would stop the profiler from working until control
   // goes back to that special thread, which on a contended Ruby app, can take hundreds of ms (or more).
   //
   // Similar to a lock, it's also not supposed to be re-entrant. (TODO: We should have checks for this)
