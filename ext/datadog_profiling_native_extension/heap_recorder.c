@@ -218,6 +218,7 @@ static void inc_tracked_objects_or_fail(heap_record *heap_record);
 static void commit_recording(heap_recorder *, heap_record *, object_record *new_record);
 static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args);
 static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update);
+static VALUE update_object_records(VALUE heap_recorder_as_value);
 static inline double ewma_stat(double previous, double current);
 static void unintern_or_raise(heap_recorder *, ddog_prof_ManagedStringId);
 static void unintern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_ManagedStringId ids);
@@ -656,7 +657,14 @@ static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update)
   heap_recorder->update_gen = current_gc_gen;
   heap_recorder->update_include_old = full_update;
 
-  st_foreach(heap_recorder->object_records, st_object_record_update, (st_data_t) heap_recorder);
+  // Wrap this update to make sure `updating` doesn't stay stuck if an exception happens; this is important because of
+  // the `while (heap_recorder->updating) { rb_thread_schedule(); }` loop above
+  int exception_state;
+  rb_protect(update_object_records, (VALUE) heap_recorder, &exception_state);
+  if (exception_state) {
+    heap_recorder->updating = false;
+    rb_jump_tag(exception_state); // Re-raise, now that we've cleaned up
+  }
 
   heap_recorder->last_update_ns = now_ns;
   heap_recorder->stats_lifetime.updates_successful++;
@@ -673,6 +681,12 @@ static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update)
   }
 
   heap_recorder->updating = false;
+}
+
+static VALUE update_object_records(VALUE heap_recorder_as_value) {
+  heap_recorder *recorder = (heap_recorder *) heap_recorder_as_value;
+  st_foreach(recorder->object_records, st_object_record_update, (st_data_t) recorder);
+  return Qnil; // for rb_protect
 }
 
 void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
