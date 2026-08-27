@@ -1,4 +1,5 @@
 require_relative "appraisal_conversion"
+require_relative "prelock"
 require_relative "security_capabilities"
 
 namespace :dependency do
@@ -9,6 +10,19 @@ namespace :dependency do
     cooldown = ENV["BUNDLE_COOLDOWN"]
     env["BUNDLE_COOLDOWN"] = cooldown if cooldown
     env
+  end
+
+  # Resolving from scratch lets cooldown exclude a fresh Datadog-owned gem whose
+  # `~>` pin has no older fallback. Seeding pins it first; cooldown never
+  # retracts a pinned version.
+  def seed_lockfile(gemfile)
+    lockfile = "#{gemfile}.lock"
+    return if File.exist?(lockfile)
+
+    parent_lockfile = "#{AppraisalConversion.parent_gemfile}.lock"
+    return unless File.exist?(parent_lockfile)
+
+    cp(parent_lockfile, lockfile)
   end
 
   desc "Regenerate, lock, and propagate dependencies for #{AppraisalConversion.runtime_identifier}"
@@ -61,6 +75,8 @@ namespace :dependency do
     checksum_eligible = SecurityCapabilities.for_version(RUBY_VERSION)[:checksum]
 
     gemfiles.each do |gemfile|
+      seed_lockfile(gemfile)
+      Prelock.call(gemfile)
       env = bundle_env(gemfile)
 
       Bundler.with_unbundled_env do
@@ -70,6 +86,11 @@ namespace :dependency do
         sh(env, command)
       end
     end
+  end
+
+  desc "Lock Datadog-owned gems without cooldown for one gemfile, when the cooled lock could not resolve them"
+  task :prelock do |_t, args|
+    Prelock.call(args.extras.first || Bundler.default_gemfile)
   end
 
   desc "Propagate parent lockfile versions into appraisal lockfiles for #{AppraisalConversion.runtime_identifier}"
@@ -89,7 +110,7 @@ namespace :dependency do
       appraisal_specs = Bundler::LockfileParser.new(File.read(lockfile)).specs
       drifted = appraisal_specs.select do |spec|
         parent_versions[spec.name] && parent_versions[spec.name] != spec.version.to_s
-      end.map(&:name)
+      end.map(&:name).uniq
 
       next if drifted.empty?
 

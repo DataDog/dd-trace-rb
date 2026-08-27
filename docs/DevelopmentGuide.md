@@ -168,8 +168,12 @@ not resolve to a gem version published within the last two days. This is applied
 automatically and needs no setup. Ruby 2.5 through 3.1 ship a Bundler that
 predates the feature and are unaffected.
 
-To take a release that is still inside the window, set `BUNDLE_COOLDOWN` for
-that run:
+Bumping a Datadog-owned gem (`libdatadog`, `libddwaf`,
+`datadog-ruby_core_source`) needs nothing extra, even for a release published
+inside the window. The lock tasks exempt these gems on their own.
+
+To take any other release that is still inside the window, set
+`BUNDLE_COOLDOWN` for that run:
 
 ```bash
 # Bypass the window for every appraisal gemfile
