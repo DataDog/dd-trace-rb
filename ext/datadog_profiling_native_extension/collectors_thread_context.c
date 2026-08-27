@@ -1833,6 +1833,10 @@ static VALUE read_otel_current_span_key_const(DDTRACE_UNUSED VALUE _unused) {
   return rb_const_get(trace_module, rb_intern("CURRENT_SPAN_KEY"));
 }
 
+static VALUE otel_current_span_key_not_found(DDTRACE_UNUSED VALUE _unused, DDTRACE_UNUSED VALUE _exception) {
+  return Qnil;
+}
+
 static VALUE get_otel_current_span_key(thread_context_collector_state *state, bool is_safe_to_allocate_objects) {
   if (state->otel_current_span_key == Qtrue) { // Qtrue means we haven't tried to extract it yet
     if (!is_safe_to_allocate_objects) {
@@ -1842,9 +1846,19 @@ static VALUE get_otel_current_span_key(thread_context_collector_state *state, bo
     }
 
     // If this fails, we want to fail gracefully, rather than raise an exception (e.g. if the opentelemetry gem
-    // gets refactored, we should not fall on our face)
-    VALUE span_key = rb_protect(read_otel_current_span_key_const, Qnil, NULL);
-    rb_set_errinfo(Qnil); // **Clear any pending exception after ignoring it**
+    // gets refactored, we should not fall on our face).
+    //
+    // Note that we use `rb_rescue2` and not `rb_protect` so that we only swallow exceptions: anything else that can
+    // unwind through here (e.g. a `Thread#kill`) is not ours to swallow. `rb_rescue2` also takes care of restoring
+    // any previously-pending exception for us.
+    VALUE span_key = rb_rescue2(
+      read_otel_current_span_key_const,
+      Qnil,
+      otel_current_span_key_not_found,
+      Qnil,
+      rb_eException, // rb_eException is the base class of all Ruby exceptions
+      0 // Required by API to be the last argument
+    );
 
     // Note that this gets set to Qnil if we failed to extract the correct value, and thus we won't try to extract it again
     state->otel_current_span_key = span_key;
