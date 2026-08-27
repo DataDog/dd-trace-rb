@@ -260,11 +260,8 @@ static inline VALUE event_hash_value(VALUE hash, ID key) {
   return rb_hash_fetch(hash, ID2SYM(key));
 }
 
-/*
- * Validate one scalar native attribute without retaining any Rust resources.
- * The conversion calls also prove that integers fit the libdatadog wire type.
- */
-static void validate_event_scalar(VALUE attribute, int type) {
+/* Validate one scalar native attribute. */
+static void validate_event_scalar(VALUE key, VALUE attribute, int type) {
   ENFORCE_TYPE(attribute, T_HASH);
 
   switch (type) {
@@ -273,7 +270,13 @@ static void validate_event_scalar(VALUE attribute, int type) {
       break;
     case SPAN_EVENT_BOOL: {
       VALUE value = event_hash_value(attribute, event_bool_value_id);
-      if (value != Qtrue && value != Qfalse) rb_raise(rb_eTypeError, "span event boolean attribute must be true or false");
+      if (value != Qtrue && value != Qfalse) {
+        private_raise_exception(
+          rb_exc_new_str(rb_eTypeError, rb_sprintf(
+            "span event attribute '%"PRIsVALUE"' has boolean value %"PRIsVALUE" but must be true or false",
+            key, rb_inspect(value))),
+          "span event attribute has invalid boolean value");
+      }
       break;
     }
     case SPAN_EVENT_INT:
@@ -288,9 +291,13 @@ static void validate_event_scalar(VALUE attribute, int type) {
 }
 
 /*
- * Call SpanEvent#to_native_format and convert each attributes hash to an array
- * of key/value pairs. All Ruby calls and type/range validation happen here,
- * before any Rust allocation. The returned structure remains Ruby-owned.
+ * Build a validated, Ruby-owned snapshot of a span's events for the native
+ * exporter. Each SpanEvent is converted via to_native_format, its attributes
+ * flattened to [key, hash] pairs, and every scalar/array value type- and
+ * range-checked here so a validation failure raises before any Rust
+ * allocation. Returns an array of [name, time, pairs] triples consumed by
+ * build_native_events; *max_array_length is set to the largest array
+ * attribute length, for sizing the conversion scratch buffer.
  */
 static VALUE normalize_span_events(VALUE span, size_t *max_array_length) {
   VALUE events = rb_ivar_get(span, at_events_id);
@@ -325,7 +332,7 @@ static VALUE normalize_span_events(VALUE span, size_t *max_array_length) {
 
         int type = NUM2INT(event_hash_value(attribute, event_type_id));
         if (type != SPAN_EVENT_ARRAY) {
-          validate_event_scalar(attribute, type);
+          validate_event_scalar(key, attribute, type);
           continue;
         }
 
@@ -349,7 +356,7 @@ static VALUE normalize_span_events(VALUE span, size_t *max_array_length) {
           ENFORCE_TYPE(value, T_HASH);
           int value_type = NUM2INT(event_hash_value(value, event_type_id));
           if (value_type != element_type) rb_raise(rb_eArgError, "span event arrays must be homogeneous");
-          validate_event_scalar(value, value_type);
+          validate_event_scalar(key, value, value_type);
         }
       }
     }
@@ -475,22 +482,32 @@ typedef struct {
   span_event_array_scratch value;
 } span_event_array_scratch_alignment;
 
-/* Release every event resource still owned by a conversion context. Event
- * pointers are cleared as libdatadog consumes them. The caller's ensure
- * handler owns the raw span separately. */
-static VALUE cleanup_span_conversion(VALUE arg) {
+/* Free event resources that the conversion context still owns at cleanup
+ * time. build_native_events allocates each event into ctx->events[i];
+ * build_rust_span transfers ownership to the Rust span via add_event and
+ * NULLs the slot. Events left non-NULL here were never attached (an
+ * exception interrupted build_rust_span) and are freed now. The raw span
+ * itself is owned by the caller's separate ensure handler. */
+static VALUE free_span_conversion(VALUE arg) {
   span_conversion_ctx *ctx = (span_conversion_ctx *)arg;
   if (ctx->events != NULL) {
     for (long i = 0; i < ctx->event_count; i++) {
-      if (ctx->events[i] != NULL) ddog_tracer_span_event_free(ctx->events[i]);
+      if (ctx->events[i] != NULL) {
+        ddog_tracer_span_event_free(ctx->events[i]);
+        ctx->events[i] = NULL;
+      }
     }
   }
-  if (ctx->allocation != NULL) ruby_xfree(ctx->allocation);
+  if (ctx->allocation != NULL) {
+    ruby_xfree(ctx->allocation);
+    ctx->allocation = NULL;
+    ctx->events = NULL;
+    ctx->array_scratch = NULL;
+  }
   return Qnil;
 }
 
-/* Attach one normalized Ruby attribute to an event. Array setters borrow the
- * shared scratch storage only for the duration of the FFI call. */
+/* Attach one normalized Ruby attribute to an event. */
 static ddog_TraceExporterError *set_native_event_attribute(
     ddog_TracerSpanEvent *event,
     VALUE key,
@@ -1063,7 +1080,7 @@ static void convert_ruby_span_to_rust(VALUE span, VALUE native_events, raw_span_
 
   rb_ensure(
       build_rust_span, (VALUE)&ctx,
-      cleanup_span_conversion, (VALUE)&ctx);
+      free_span_conversion, (VALUE)&ctx);
   RB_GC_GUARD(ctx.normalized_events);
 }
 

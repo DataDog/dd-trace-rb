@@ -217,6 +217,20 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         expect { tracer_span_class._native_from_span(make_ruby_span(events: [event])) }
           .to raise_error(ArgumentError, /unsupported span event attribute type/)
       end
+
+      it "reports the attribute key and value when a boolean attribute is not true or false" do
+        event = double(
+          "malformed bool event",
+          to_native_format: {
+            "name" => "event",
+            "time_unix_nano" => 123,
+            "attributes" => {"flag" => {type: 1, bool_value: "yes"}},
+          }
+        )
+
+        expect { tracer_span_class._native_from_span(make_ruby_span(events: [event])) }
+          .to raise_error(TypeError, /span event attribute 'flag' has boolean value "yes" but must be true or false/)
+      end
     end
 
     context "with non-numeric metrics values (mixed hash)" do
