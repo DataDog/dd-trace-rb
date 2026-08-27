@@ -120,11 +120,18 @@ class DIInstrumentBenchmark
   module ToggleLimiter
     class << self
       attr_accessor :admit
+      # Count of allow? consultations, used by the global-reject variants to
+      # self-check that the wrapper actually reached the global limiter
+      # (calls == 0 alone cannot prove the wrapper ran, since calls is
+      # expected to stay 0 when the limiter rejects).
+      attr_accessor :consulted
       def allow?(*)
-        @admit
+        self.consulted += 1
+        admit
       end
     end
     self.admit = true
+    self.consulted = 0
   end
 
   class BenchInstrumenter < Datadog::DI::Instrumenter
@@ -153,75 +160,60 @@ class DIInstrumentBenchmark
       code_tracker: Datadog::DI.code_tracker)
   end
 
+  # Run one Benchmark.ips measurement for the given report label. The target
+  # block is forwarded straight to benchmark-ips (no per-iteration wrapper) so
+  # the measured cost is the target code plus instrumentation, not the helper.
+  def measure(report:, &target)
+    Benchmark.ips do |x|
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
+      x.config(
+        **benchmark_time,
+      )
+      x.report(report, &target)
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.compare!
+    end
+  end
+
+  # Install a probe, measure it, and unhook it. ToggleLimiter.admit is restored
+  # to true in an ensure so a raised assertion cannot leak the global-reject
+  # state into a later variant.
+  def measure_variant(report:, hook:, probe:, &target)
+    rv = instrumenter.public_send(hook, probe,
+      Datadog::DI::ProcResponder.new(@executed_proc))
+    raise "#{report}: probe was not successfully installed" unless rv
+
+    measure(report: report, &target)
+    instrumenter.unhook(probe)
+  ensure
+    ToggleLimiter.admit = true
+  end
+
   def run_benchmark
     configure
 
     m = Target.instance_method(:test_method_for_line_probe)
     file, line = m.source_location
 
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
-      x.config(
-        **benchmark_time,
-      )
+    measure(report: "no instrumentation") { Target.new.test_method }
 
-      x.report("no instrumentation") do
-        Target.new.test_method
-      end
-
-      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
-
-    # Method instrumentation is run in three variants that decompose the
-    # wrapper's per-call cost. The benchmark toggles global-limiter
-    # admission (ToggleLimiter) so each variant isolates one branch:
-    #
-    #   rate_limit=1M, global admit   - both limiters admit, every call
-    #                                   fires the full snapshot path.
-    #                                   Measures firing-path cost.
-    #   rate_limit=1M, global reject  - per-probe admits, global limiter
-    #                                   rejects, every call takes the
-    #                                   global-rate-limit skip branch.
-    #                                   Measures global-reject cost.
-    #   rate_limit=1                  - per-probe limiter rejects ~99.999% of
-    #                                   calls before the global limiter is
-    #                                   consulted. Measures per-probe skip
-    #                                   cost (the dominant production
-    #                                   overhead).
-    #
-    # Note: this benchmark does not set capture_snapshot, so the firing
-    # variant exercises Context construction + responder dispatch but not
-    # serialize_args. For probes with capture_snapshot=true the firing-path
-    # cost is higher than what is measured here.
-
+    # Shared responder callback. It closes over the local `calls` counter, which
+    # each variant resets before its measurement and asserts on after. Sharing
+    # one callback also lets the post-unhook "cleared" blocks detect a leaked
+    # hook, which would still fire this callback and bump `calls`.
     calls = 0
-    executed_proc = lambda do |context|
+    @executed_proc = lambda do |context|
       calls += 1
     end
 
-    probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
-      rate_limit: 1_000_000,)
-    responder = Datadog::DI::ProcResponder.new(executed_proc)
-    rv = instrumenter.hook_method(probe, responder)
-    unless rv
-      raise "Method probe was not successfully installed (rate_limit=1M)"
-    end
-
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
-      x.config(
-        **benchmark_time,
-      )
-
-      x.report("method instrumentation - rate_limit=1M (firing)") do
-        Target.new.test_method
-      end
-
-      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
+    calls = 0
+    measure_variant(
+      report: "method instrumentation - rate_limit=1M (firing)",
+      hook: :hook_method,
+      probe: Datadog::DI::Probe.new(id: 1, type: :log,
+        type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
+        rate_limit: 1_000_000,),
+    ) { Target.new.test_method }
 
     if calls < 1
       raise "Method instrumentation (rate_limit=1M) did not work - callback was never invoked"
@@ -231,31 +223,14 @@ class DIInstrumentBenchmark
       raise "Method instrumentation (rate_limit=1M): expected at least 100_000 firing calls, got #{calls}"
     end
 
-    instrumenter.unhook(probe)
-
     calls = 0
-    probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
-      rate_limit: 1,)
-    responder = Datadog::DI::ProcResponder.new(executed_proc)
-    rv = instrumenter.hook_method(probe, responder)
-    unless rv
-      raise "Method probe was not successfully installed (rate_limit=1)"
-    end
-
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
-      x.config(
-        **benchmark_time,
-      )
-
-      x.report("method instrumentation - rate_limit=1 (skip)") do
-        Target.new.test_method
-      end
-
-      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
+    measure_variant(
+      report: "method instrumentation - rate_limit=1 (skip)",
+      hook: :hook_method,
+      probe: Datadog::DI::Probe.new(id: 1, type: :log,
+        type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
+        rate_limit: 1,),
+    ) { Target.new.test_method }
 
     if calls < 1
       raise "Method instrumentation (rate_limit=1) did not work - callback was never invoked"
@@ -268,39 +243,24 @@ class DIInstrumentBenchmark
       raise "Method instrumentation (rate_limit=1): rate limit not enforced, got #{calls} firing calls"
     end
 
-    instrumenter.unhook(probe)
-
     calls = 0
     ToggleLimiter.admit = false
-    probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
-      rate_limit: 1_000_000,)
-    responder = Datadog::DI::ProcResponder.new(executed_proc)
-    rv = instrumenter.hook_method(probe, responder)
-    unless rv
-      raise "Method probe was not successfully installed (rate_limit=1M, global reject)"
-    end
-
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
-      x.config(
-        **benchmark_time,
-      )
-
-      x.report("method instrumentation - rate_limit=1M (global reject)") do
-        Target.new.test_method
-      end
-
-      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
+    ToggleLimiter.consulted = 0
+    measure_variant(
+      report: "method instrumentation - rate_limit=1M (global reject)",
+      hook: :hook_method,
+      probe: Datadog::DI::Probe.new(id: 1, type: :log,
+        type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
+        rate_limit: 1_000_000,),
+    ) { Target.new.test_method }
 
     if calls != 0
       raise "Method instrumentation (rate_limit=1M, global reject): expected 0 firing calls, got #{calls}"
     end
 
-    instrumenter.unhook(probe)
-    ToggleLimiter.admit = true
+    if ToggleLimiter.consulted < 100_000 && !VALIDATE_BENCHMARK_MODE
+      raise "Method instrumentation (rate_limit=1M, global reject): wrapper did not reach the global limiter, only #{ToggleLimiter.consulted} consultations"
+    end
 
     # We benchmark untargeted and targeted trace points; untargeted ones
     # are prohibited by default, permit them.
@@ -312,26 +272,12 @@ class DIInstrumentBenchmark
     end
 
     calls = 0
-    probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      file: file, line_no: line + 1, rate_limit: 1_000_000,)
-    responder = Datadog::DI::ProcResponder.new(executed_proc)
-    rv = instrumenter.hook_line(probe, responder)
-    unless rv
-      raise "Line probe (untargeted, rate_limit=1M) was not successfully installed"
-    end
-
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
-      x.config(
-        **benchmark_time,
-      )
-      x.report("line instrumentation - untargeted - rate_limit=1M (firing)") do
-        Target.new.test_method_for_line_probe
-      end
-
-      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
+    measure_variant(
+      report: "line instrumentation - untargeted - rate_limit=1M (firing)",
+      hook: :hook_line,
+      probe: Datadog::DI::Probe.new(id: 1, type: :log,
+        file: file, line_no: line + 1, rate_limit: 1_000_000,),
+    ) { Target.new.test_method_for_line_probe }
 
     if calls < 1
       raise "Line instrumentation (untargeted, rate_limit=1M) did not work - callback was never invoked"
@@ -341,29 +287,13 @@ class DIInstrumentBenchmark
       raise "Line instrumentation (untargeted, rate_limit=1M): expected at least 100_000 firing calls, got #{calls}"
     end
 
-    instrumenter.unhook(probe)
-
     calls = 0
-    probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      file: file, line_no: line + 1, rate_limit: 1,)
-    responder = Datadog::DI::ProcResponder.new(executed_proc)
-    rv = instrumenter.hook_line(probe, responder)
-    unless rv
-      raise "Line probe (untargeted, rate_limit=1) was not successfully installed"
-    end
-
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
-      x.config(
-        **benchmark_time,
-      )
-      x.report("line instrumentation - untargeted - rate_limit=1 (skip)") do
-        Target.new.test_method_for_line_probe
-      end
-
-      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
+    measure_variant(
+      report: "line instrumentation - untargeted - rate_limit=1 (skip)",
+      hook: :hook_line,
+      probe: Datadog::DI::Probe.new(id: 1, type: :log,
+        file: file, line_no: line + 1, rate_limit: 1,),
+    ) { Target.new.test_method_for_line_probe }
 
     if calls < 1
       raise "Line instrumentation (untargeted, rate_limit=1) did not work - callback was never invoked"
@@ -373,37 +303,23 @@ class DIInstrumentBenchmark
       raise "Line instrumentation (untargeted, rate_limit=1): rate limit not enforced, got #{calls} firing calls"
     end
 
-    instrumenter.unhook(probe)
-
     calls = 0
     ToggleLimiter.admit = false
-    probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      file: file, line_no: line + 1, rate_limit: 1_000_000,)
-    responder = Datadog::DI::ProcResponder.new(executed_proc)
-    rv = instrumenter.hook_line(probe, responder)
-    unless rv
-      raise "Line probe (untargeted, rate_limit=1M, global reject) was not successfully installed"
-    end
-
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
-      x.config(
-        **benchmark_time,
-      )
-      x.report("line instrumentation - untargeted - rate_limit=1M (global reject)") do
-        Target.new.test_method_for_line_probe
-      end
-
-      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
+    ToggleLimiter.consulted = 0
+    measure_variant(
+      report: "line instrumentation - untargeted - rate_limit=1M (global reject)",
+      hook: :hook_line,
+      probe: Datadog::DI::Probe.new(id: 1, type: :log,
+        file: file, line_no: line + 1, rate_limit: 1_000_000,),
+    ) { Target.new.test_method_for_line_probe }
 
     if calls != 0
       raise "Line instrumentation (untargeted, rate_limit=1M, global reject): expected 0 firing calls, got #{calls}"
     end
 
-    instrumenter.unhook(probe)
-    ToggleLimiter.admit = true
+    if ToggleLimiter.consulted < 100_000 && !VALIDATE_BENCHMARK_MODE
+      raise "Line instrumentation (untargeted, rate_limit=1M, global reject): wrapper did not reach the global limiter, only #{ToggleLimiter.consulted} consultations"
+    end
 
     Datadog::DI.activate_tracking!
     configure do |c|
@@ -422,27 +338,12 @@ class DIInstrumentBenchmark
     targeted_file, targeted_line = m.source_location
 
     calls = 0
-    probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      file: targeted_file, line_no: targeted_line + 1, rate_limit: 1_000_000,)
-    responder = Datadog::DI::ProcResponder.new(executed_proc)
-    rv = instrumenter.hook_line(probe, responder)
-    unless rv
-      raise "Line probe (targeted, rate_limit=1M) was not successfully installed"
-    end
-
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
-      x.config(
-        **benchmark_time,
-      )
-
-      x.report("line instrumentation - targeted - rate_limit=1M (firing)") do
-        DITarget.new.test_method_for_line_probe
-      end
-
-      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
+    measure_variant(
+      report: "line instrumentation - targeted - rate_limit=1M (firing)",
+      hook: :hook_line,
+      probe: Datadog::DI::Probe.new(id: 1, type: :log,
+        file: targeted_file, line_no: targeted_line + 1, rate_limit: 1_000_000,),
+    ) { DITarget.new.test_method_for_line_probe }
 
     if calls < 1
       raise "Targeted line instrumentation (rate_limit=1M) did not work - callback was never invoked"
@@ -452,30 +353,13 @@ class DIInstrumentBenchmark
       raise "Targeted line instrumentation (rate_limit=1M): expected at least 100_000 firing calls, got #{calls}"
     end
 
-    instrumenter.unhook(probe)
-
     calls = 0
-    probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      file: targeted_file, line_no: targeted_line + 1, rate_limit: 1,)
-    responder = Datadog::DI::ProcResponder.new(executed_proc)
-    rv = instrumenter.hook_line(probe, responder)
-    unless rv
-      raise "Line probe (targeted, rate_limit=1) was not successfully installed"
-    end
-
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
-      x.config(
-        **benchmark_time,
-      )
-
-      x.report("line instrumentation - targeted - rate_limit=1 (skip)") do
-        DITarget.new.test_method_for_line_probe
-      end
-
-      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
+    measure_variant(
+      report: "line instrumentation - targeted - rate_limit=1 (skip)",
+      hook: :hook_line,
+      probe: Datadog::DI::Probe.new(id: 1, type: :log,
+        file: targeted_file, line_no: targeted_line + 1, rate_limit: 1,),
+    ) { DITarget.new.test_method_for_line_probe }
 
     if calls < 1
       raise "Targeted line instrumentation (rate_limit=1) did not work - callback was never invoked"
@@ -485,97 +369,42 @@ class DIInstrumentBenchmark
       raise "Targeted line instrumentation (rate_limit=1): rate limit not enforced, got #{calls} firing calls"
     end
 
-    instrumenter.unhook(probe)
-
     calls = 0
     ToggleLimiter.admit = false
-    probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      file: targeted_file, line_no: targeted_line + 1, rate_limit: 1_000_000,)
-    responder = Datadog::DI::ProcResponder.new(executed_proc)
-    rv = instrumenter.hook_line(probe, responder)
-    unless rv
-      raise "Line probe (targeted, rate_limit=1M, global reject) was not successfully installed"
-    end
-
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
-      x.config(
-        **benchmark_time,
-      )
-
-      x.report("line instrumentation - targeted - rate_limit=1M (global reject)") do
-        DITarget.new.test_method_for_line_probe
-      end
-
-      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
+    ToggleLimiter.consulted = 0
+    measure_variant(
+      report: "line instrumentation - targeted - rate_limit=1M (global reject)",
+      hook: :hook_line,
+      probe: Datadog::DI::Probe.new(id: 1, type: :log,
+        file: targeted_file, line_no: targeted_line + 1, rate_limit: 1_000_000,),
+    ) { DITarget.new.test_method_for_line_probe }
 
     if calls != 0
       raise "Targeted line instrumentation (rate_limit=1M, global reject): expected 0 firing calls, got #{calls}"
     end
 
+    if ToggleLimiter.consulted < 100_000 && !VALIDATE_BENCHMARK_MODE
+      raise "Targeted line instrumentation (rate_limit=1M, global reject): wrapper did not reach the global limiter, only #{ToggleLimiter.consulted} consultations"
+    end
+
     # Now, remove all installed hooks and check that the performance of
     # target code is approximately what it was prior to hook installation.
 
-    instrumenter.unhook(probe)
-    ToggleLimiter.admit = true
-
     calls = 0
-
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
-      x.config(
-        **benchmark_time,
-      )
-
-      # This benchmark should produce identical results to the
-      # "no instrumentation" benchmark.
-      x.report("method instrumentation - cleared") do
-        Target.new.test_method
-      end
-
-      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
+    measure(report: "method instrumentation - cleared") { Target.new.test_method }
 
     if calls != 0
       raise "Method instrumentation was not cleared (#{calls} calls recorded)"
     end
 
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
-      x.config(
-        **benchmark_time,
-      )
-
-      # This benchmark should produce identical results to the
-      # "no instrumentation" benchmark.
-      x.report("line instrumentation - cleared") do
-        Target.new.test_method_for_line_probe
-      end
-
-      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
+    calls = 0
+    measure(report: "line instrumentation - cleared") { Target.new.test_method_for_line_probe }
 
     if calls != 0
       raise "Line instrumentation was not cleared (#{calls} calls recorded)"
     end
 
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
-      x.config(
-        **benchmark_time,
-      )
-
-      x.report("no instrumentation - again") do
-        Target.new.not_instrumented
-      end
-
-      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
+    measure(report: "no instrumentation - again") { Target.new.not_instrumented }
   end
 end
 
