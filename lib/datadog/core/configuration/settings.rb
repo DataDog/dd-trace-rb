@@ -744,6 +744,7 @@ module Datadog
             # Parses a string containing key-value pairs and returns a hash.
             # Key-value pairs are delimited by ':' OR `=`, and pairs are separated by whitespace, comma, OR BOTH.
             result = {}
+            named_environment = nil
             unless env_value.nil? || env_value.empty?
               # falling back to comma as separator
               sep = env_value.include?(",") ? "," : " "
@@ -757,6 +758,9 @@ module Datadog
                 val ||= ""
                 # maps OpenTelemetry semantic attributes to Datadog tags
                 key = case key.downcase
+                when "deployment.environment.name"
+                  named_environment = val
+                  next
                 when "deployment.environment" then "env"
                 when "service.version" then "version"
                 when "service.name" then "service"
@@ -765,6 +769,7 @@ module Datadog
                 result[key] = val unless key.empty?
               end
             end
+            result["env"] = named_environment unless named_environment.nil?
             result
           end
           o.setter do |new_value, old_value|
