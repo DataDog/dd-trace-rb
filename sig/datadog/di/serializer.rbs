@@ -2,6 +2,7 @@ module Datadog
   module DI
     class Serializer
       TELEMETRY_NAMESPACE: ::String
+      CAPTURE_TIMEOUT_MS_CEILING: Integer
       MAX_MESSAGE_COLLECTION_SIZE: Integer
       MAX_MESSAGE_ATTRIBUTE_COUNT: Integer
       SERIALIZABLE_FATAL_EXCEPTION_CLASSES: ::Array[singleton(::Exception)]
