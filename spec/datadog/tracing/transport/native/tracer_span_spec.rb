@@ -253,7 +253,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
             "name" => "event",
             "time_unix_nano" => 123,
             "attributes" => {
-              "mixed" => {type: 4, array_value: {values: [{type: 0, string_value: "a"}, {type: 2, int_value: 1}]}}
+              "mixed" => {type: 4, array_value: {values: [{type: 0, string_value: "a"}, {type: 2, int_value: 1}]}},
             },
           }
         )
