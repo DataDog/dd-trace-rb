@@ -1255,6 +1255,58 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(cpu_time_ns).to be <= elapsed_ns
       end
     end
+
+    # This is a simplified end-to-end test; the ThreadContext has all the variants for otel gems, but
+    # here we're only testing if `thread_context_collector_resolve_otel_span_key_may_lose_gvl` is getting called
+    # correctly
+    context "when a thread has an active otel span" do
+      before do
+        require "opentelemetry/sdk"
+        require "opentelemetry-exporter-otlp"
+      rescue LoadError
+        skip "Test requires the opentelemetry-sdk and opentelemetry-exporter-otlp gems"
+      end
+
+      let(:thread_context_collector) { build_thread_context_collector(recorder, otel_context_enabled: :only) }
+      let(:otel_tracer) do
+        OpenTelemetry::SDK.configure
+        OpenTelemetry.tracer_provider.tracer("datadog-profiling-test")
+      end
+      let(:ready_queue) { Queue.new }
+      let(:background_thread) do
+        Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
+          otel_tracer.in_span("profiler.test") do |span|
+            @otel_span_id = span.context.span_id.unpack1("Q>").to_i
+            ready_queue << true
+            sleep
+          end
+        end
+      end
+
+      after do
+        unless RSpec.current_example.skipped?
+          background_thread.kill
+          background_thread.join
+          OpenTelemetry.tracer_provider.shutdown
+        end
+      end
+
+      it "includes the otel span ids in the samples for that thread" do
+        allow(OpenTelemetry.logger).to receive(:error) # Silence "unable to export spans", we have no otlp endpoint
+
+        background_thread
+        ready_queue.pop
+
+        start
+
+        sample = try_wait_until do
+          samples_for_thread(samples_from_pprof(recorder.serialize!), background_thread)
+            .find { |it| it.labels.key?(:"span id") }
+        end
+
+        expect(sample.labels).to include("span id": @otel_span_id, "local root span id": @otel_span_id)
+      end
+    end
   end
 
   describe "Ractor safety" do
