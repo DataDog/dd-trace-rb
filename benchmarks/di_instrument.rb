@@ -262,8 +262,6 @@ class DIInstrumentBenchmark
 
     instrumenter.unhook(probe)
 
-    # Per-probe limiter admits (rate_limit=1M); global limiter rejects, so
-    # every call takes the global-rate-limit skip branch (nothing fires).
     calls = 0
     ToggleLimiter.admit = false
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
@@ -369,8 +367,6 @@ class DIInstrumentBenchmark
 
     instrumenter.unhook(probe)
 
-    # Per-probe limiter admits (rate_limit=1M); global limiter rejects, so
-    # every call takes the global-rate-limit skip branch (nothing fires).
     calls = 0
     ToggleLimiter.admit = false
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
@@ -483,8 +479,6 @@ class DIInstrumentBenchmark
 
     instrumenter.unhook(probe)
 
-    # Per-probe limiter admits (rate_limit=1M); global limiter rejects, so
-    # every call takes the global-rate-limit skip branch (nothing fires).
     calls = 0
     ToggleLimiter.admit = false
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
