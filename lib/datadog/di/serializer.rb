@@ -44,6 +44,12 @@ module Datadog
     class Serializer
       TELEMETRY_NAMESPACE = "dynamic_instrumentation"
 
+      # RFC hard ceiling (DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS) for
+      # snapshot/capture wall-time. The configured max_time_to_serialize_ms is
+      # clamped to this value, so remote config and env can only tighten the
+      # effective capture budget.
+      CAPTURE_TIMEOUT_MS_CEILING = 150
+
       # Exception classes that should never be caught during serialization.
       # These represent fatal conditions (signals, interrupts, system exit)
       # that must propagate to the caller. NoMemoryError is deliberately
@@ -501,8 +507,8 @@ module Datadog
       # A caller that serializes several values for one capture point resolves
       # this once and passes it as deadline_ns so the budget is shared.
       def serialization_deadline_ns
-        budget_ns = settings.dynamic_instrumentation.max_time_to_serialize_ms * 1_000_000
-        now_ns + budget_ns
+        budget_ms = [settings.dynamic_instrumentation.max_time_to_serialize_ms, CAPTURE_TIMEOUT_MS_CEILING].min
+        now_ns + budget_ms * 1_000_000
       end
 
       private

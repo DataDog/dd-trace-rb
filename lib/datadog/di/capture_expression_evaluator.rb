@@ -25,8 +25,9 @@ module Datadog
       attr_reader :telemetry
 
       def evaluate(probe, context)
-        budget_ns = settings.dynamic_instrumentation.max_time_to_serialize_ms * 1_000_000
-        deadline_ns = ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) + budget_ns
+        # Shares the clamped capture budget with the main serializer so both
+        # capture-budget consumers honor the same hard ceiling.
+        deadline_ns = serializer.serialization_deadline_ns
 
         output = {}
         evaluation_errors = []
