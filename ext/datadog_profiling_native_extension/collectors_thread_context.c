@@ -300,7 +300,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
 static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE allow_exception);
 static VALUE _native_on_gc_start(VALUE self, VALUE collector_instance);
 static VALUE _native_on_gc_finish(VALUE self, VALUE collector_instance);
-static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE allow_exception);
+static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static void update_metrics_and_sample(
   thread_context_collector_state *state,
   VALUE thread_being_sampled,
@@ -412,7 +412,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_sample_allocation", _native_sample_allocation, 3);
   rb_define_singleton_method(testing_module, "_native_on_gc_start", _native_on_gc_start, 1);
   rb_define_singleton_method(testing_module, "_native_on_gc_finish", _native_on_gc_finish, 1);
-  rb_define_singleton_method(testing_module, "_native_sample_after_gc", _native_sample_after_gc, 2);
+  rb_define_singleton_method(testing_module, "_native_sample_after_gc", _native_sample_after_gc, 1);
   rb_define_singleton_method(testing_module, "_native_thread_list", _native_thread_list, 0);
   rb_define_singleton_method(testing_module, "_native_per_thread_context", _native_per_thread_context, 1);
   rb_define_singleton_method(testing_module, "_native_stats", _native_stats, 1);
@@ -679,14 +679,12 @@ static VALUE _native_on_gc_finish(DDTRACE_UNUSED VALUE self, VALUE collector_ins
   return Qtrue;
 }
 
-static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE allow_exception) {
-  ENFORCE_BOOLEAN(allow_exception);
-
-  if (allow_exception == Qfalse) debug_enter_unsafe_context();
+static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
+  debug_enter_unsafe_context();
 
   thread_context_collector_sample_after_gc(collector_instance);
 
-  if (allow_exception == Qfalse) debug_leave_unsafe_context();
+  debug_leave_unsafe_context();
 
   return Qtrue;
 }

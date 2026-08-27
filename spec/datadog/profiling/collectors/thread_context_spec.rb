@@ -99,8 +99,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_on_gc_finish(thread_context_collector)
   end
 
-  def sample_after_gc(allow_exception: false)
-    described_class::Testing._native_sample_after_gc(thread_context_collector, allow_exception)
+  def sample_after_gc
+    described_class::Testing._native_sample_after_gc(thread_context_collector)
   end
 
   def sample_allocation(weight:, new_object: Object.new)
