@@ -488,7 +488,7 @@ RSpec.describe Datadog::DI::ProbeManager do
       end
 
       before do
-        allow(instrumenter).to receive(:probe_global_rate_limiter).with(probe).and_return(global_limiter)
+        allow(instrumenter).to receive(:global_snapshot_rate_limiter).and_return(global_limiter)
       end
 
       it "builds and enqueues the condition error snapshot" do
@@ -509,7 +509,7 @@ RSpec.describe Datadog::DI::ProbeManager do
       end
 
       it "does not consult the global limiter and enqueues nothing" do
-        expect(instrumenter).not_to receive(:probe_global_rate_limiter)
+        expect(instrumenter).not_to receive(:global_snapshot_rate_limiter)
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
 
@@ -523,7 +523,7 @@ RSpec.describe Datadog::DI::ProbeManager do
       end
 
       before do
-        expect(instrumenter).to receive(:probe_global_rate_limiter).with(probe).and_return(global_limiter)
+        expect(instrumenter).to receive(:global_snapshot_rate_limiter).and_return(global_limiter)
       end
 
       it "does not build or enqueue a snapshot and logs at trace" do
