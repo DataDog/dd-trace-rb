@@ -72,6 +72,11 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         expect(result.serialized_values["x"]).to include(type: "Integer", value: "42")
         expect(result.errors).to eq([])
       end
+
+      it "resolves the capture deadline through the serializer so the clamp is shared" do
+        expect(serializer).to receive(:serialization_deadline_ns).and_call_original
+        evaluator.evaluate(probe, context)
+      end
     end
 
     context "expression evaluation raises" do
