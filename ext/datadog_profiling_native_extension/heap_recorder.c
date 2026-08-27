@@ -84,7 +84,7 @@ typedef struct {
   heap_record *heap_record;
   live_object_data object_data;
 } object_record;
-static object_record* object_record_new(pending_recording *pending);
+static object_record* object_record_new(pending_recording pending);
 static void object_record_free(heap_recorder*, object_record*, bool should_unintern);
 static VALUE object_record_inspect(heap_recorder*, object_record*);
 
@@ -528,18 +528,19 @@ void heap_recorder_commit_pending_recordings(heap_recorder *heap_recorder) {
   // already-processed pending_recordings (slower and would extend the lifetime of these recordings if not cleared) and
   // (c) if one of the steps below raises we don't reprocess the entries we already committed, i.e., we're idempotent.
   while (heap_recorder->pending_recordings_count > 0) {
-    pending_recording *pending = &heap_recorder->pending_recordings[--heap_recorder->pending_recordings_count];
+    // Copy the pending_recording on the stack because the call below can release the GVL, which means anything can run
+    // and possibly something that can mutate `pending_recordings[pending_recordings_count]`.
+    // Though at least on_newobj_event() and after_allocation_from_postponed_job() are guarded by
+    // the during_sample flag and during_sample_enter()/during_sample_exit().
+    pending_recording pending = heap_recorder->pending_recordings[--heap_recorder->pending_recordings_count];
 
     // This is the step we couldn't do during the original sample call -- we're now expected to be called in a context
     // where it's finally safe to call this
-    ruby_weak_map_set(heap_recorder->weak_objects, LONG2FIX(pending->record_id), pending->object_ref);
-
-    // Nil it out as we don't need it anymore, and we should not keep it alive longer than necessary
-    pending->object_ref = Qnil;
+    ruby_weak_map_set(heap_recorder->weak_objects, LONG2FIX(pending.record_id), pending.object_ref);
 
     object_record *record = object_record_new(pending);
 
-    commit_recording(heap_recorder, pending->heap_record, record);
+    commit_recording(heap_recorder, pending.heap_record, record);
   }
 }
 
@@ -969,15 +970,15 @@ static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, obj
 // =================
 // Object Record API
 // =================
-object_record* object_record_new(pending_recording *pending) {
+static object_record* object_record_new(pending_recording pending) {
   object_record *record = calloc(1, sizeof(object_record)); // See "note on calloc vs ruby_xcalloc use" above
-  record->record_id = pending->record_id;
-  record->heap_record = pending->heap_record;
-  record->object_data = pending->object_data;
+  record->record_id = pending.record_id;
+  record->heap_record = pending.heap_record;
+  record->object_data = pending.object_data;
   return record;
 }
 
-void object_record_free(heap_recorder *recorder, object_record *record, bool should_unintern) {
+static void object_record_free(heap_recorder *recorder, object_record *record, bool should_unintern) {
   // When tearing down the whole recorder state, we skip uninterning as it's not needed (the managed
   // string table is going to be destroyed anyway) and if there's any failures we can't raise
   // in the middle of a dfree callback.
@@ -986,7 +987,7 @@ void object_record_free(heap_recorder *recorder, object_record *record, bool sho
   free(record); // See "note on calloc vs ruby_xcalloc use" above
 }
 
-VALUE object_record_inspect(heap_recorder *recorder, object_record *record) {
+static VALUE object_record_inspect(heap_recorder *recorder, object_record *record) {
   heap_frame top_frame = record->heap_record->frames[0];
   VALUE filename = get_ruby_string_or_raise(recorder, top_frame.filename);
   live_object_data object_data = record->object_data;
@@ -1020,7 +1021,7 @@ VALUE object_record_inspect(heap_recorder *recorder, object_record *record) {
 // ==============
 // Heap Record API
 // ==============
-heap_record* heap_record_new(heap_recorder *recorder, ddog_prof_Slice_Location locations) {
+static heap_record* heap_record_new(heap_recorder *recorder, ddog_prof_Slice_Location locations) {
   uint16_t frames_len = locations.len;
   if (frames_len > MAX_FRAMES_LIMIT) {
     // This is not expected as MAX_FRAMES_LIMIT is shared with the stacktrace construction mechanism
@@ -1054,7 +1055,7 @@ heap_record* heap_record_new(heap_recorder *recorder, ddog_prof_Slice_Location l
   return stack;
 }
 
-void heap_record_free(heap_recorder *recorder, heap_record *stack, bool should_unintern) {
+static void heap_record_free(heap_recorder *recorder, heap_record *stack, bool should_unintern) {
   // When tearing down the whole recorder state, we skip uninterning as it's not needed (the managed
   // string table is going to be destroyed anyway) and if there's any failures we can't raise
   // in the middle of a dfree callback.
@@ -1074,7 +1075,7 @@ void heap_record_free(heap_recorder *recorder, heap_record *stack, bool should_u
 
 // The entire stack is represented by ids (name, filename) and lines (integers) so we can treat is as just
 // a big string of bytes and compare it all in one go.
-int heap_record_cmp_st(st_data_t key1, st_data_t key2) {
+static int heap_record_cmp_st(st_data_t key1, st_data_t key2) {
   heap_record *stack1 = (heap_record*) key1;
   heap_record *stack2 = (heap_record*) key2;
 
@@ -1090,7 +1091,7 @@ int heap_record_cmp_st(st_data_t key1, st_data_t key2) {
 
 // The entire stack is represented by ids (name, filename) and lines (integers) so we can treat is as just
 // a big string of bytes and hash it all in one go.
-st_index_t heap_record_hash_st(st_data_t key) {
+static st_index_t heap_record_hash_st(st_data_t key) {
   heap_record *stack = (heap_record*) key;
   return st_hash(stack->frames, stack->frames_len * sizeof(heap_frame), FNV1_32A_INIT);
 }

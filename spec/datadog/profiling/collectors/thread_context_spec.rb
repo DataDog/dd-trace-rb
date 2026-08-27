@@ -58,7 +58,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       max_frames: max_frames,
       tracer: tracer,
       endpoint_collection_enabled: endpoint_collection_enabled,
-      waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
       otel_context_enabled: otel_context_enabled,
       native_filenames_enabled: native_filenames_enabled,
       show_classes: show_classes,
@@ -120,8 +119,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_gvl_waiting_at_for(thread)
   end
 
-  def on_gvl_running(thread)
-    described_class::Testing._native_on_gvl_running(thread_context_collector, thread)
+  def on_gvl_running(thread, threshold_ns = waiting_for_gvl_threshold_ns)
+    described_class::Testing._native_on_gvl_running(thread, threshold_ns)
   end
 
   def on_gvl_released(thread)
@@ -188,11 +187,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe ".new" do
-    it "sets the waiting_for_gvl_threshold_ns to the provided value" do
-      # This is a bit ugly but it saves us from having to introduce yet another way to poke at the native state
-      expect(thread_context_collector.inspect).to include("waiting_for_gvl_threshold_ns=222333444")
-    end
-
     context "when otel_context_enabled has an invalid value" do
       it "raises an ArgumentError with the value formatted via PRIsVALUE" do
         expect {
@@ -1427,8 +1421,19 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     before { sample }
 
     context "when called before on_gc_start/on_gc_finish" do
-      it do
-        expect { sample_after_gc(allow_exception: true) }.to raise_error(::RuntimeError, /Unexpected call to sample_after_gc/)
+      it "does not record a Garbage Collection sample" do
+        sample_after_gc
+
+        expect(samples.select { |it| it.labels[:"thread name"] == "Garbage Collection" }).to be_empty
+      end
+
+      it "does not increment the gc_samples counter" do
+        expect { sample_after_gc }.to_not change { stats.fetch(:gc_samples) }
+      end
+
+      it "increments the gc_samples_skipped_nothing_to_flush counter" do
+        expect { sample_after_gc }
+          .to change { stats.fetch(:gc_samples_skipped_nothing_to_flush) }.from(0).to(1)
       end
     end
 
@@ -1442,12 +1447,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         @time_after = profiler_system_epoch_time_now_ns
       end
 
+      # Ruby clears the "pending" flag for an entire batch of postponed jobs before running any of them, so it's
+      # expected for us to sometimes get called an extra time with nothing left to flush.
       context "when called more than once in a row" do
-        it do
+        it "only records one Garbage Collection sample" do
+          sample_after_gc
           sample_after_gc
 
-          expect { sample_after_gc(allow_exception: true) }
-            .to raise_error(::RuntimeError, /Unexpected call to sample_after_gc/)
+          expect(samples.count { |it| it.labels.fetch(:"thread name") == "Garbage Collection" }).to be 1
+          expect(stats.fetch(:gc_samples)).to be 1
+          expect(stats.fetch(:gc_samples_skipped_nothing_to_flush)).to be 1
         end
       end
 

@@ -106,7 +106,7 @@ static ID otel_fiber_context_storage_id; // id of :@opentelemetry_context in Rub
 
 // This is mutable and gets set last-writer-wins style by
 // `thread_context_collector_reset_all_per_thread_contexts`, which is called whenever
-// profiling is starting or restating.
+// profiling is starting or restarting.
 //
 // Note: We must be careful to not change this value while the profiler is still running,
 // otherwise new threads can get the new value and cause profiling to stop with an
@@ -159,8 +159,6 @@ typedef struct {
   st_table *native_filenames_cache;
   // Used to attribute overhead during sampling to this component
   VALUE overhead_filename;
-  // Minimum duration of a "Waiting for GVL" period to trigger a sample
-  uint32_t waiting_for_gvl_threshold_ns;
 
   struct stats {
     // Track how many regular samples we've taken. Does not include garbage collection samples.
@@ -169,6 +167,8 @@ typedef struct {
     unsigned int gc_samples;
     // See thread_context_collector_on_gc_start for details
     unsigned int gc_samples_missed_due_to_missing_context;
+    // See thread_context_collector_sample_after_gc for details
+    unsigned int gc_samples_skipped_nothing_to_flush;
     // How many per-thread samples were skipped because the thread has been continuously suspended
     // (no GVL) since its previous sample, so its Ruby stack cannot have changed.
     unsigned int inactive_thread_samples_skipped;
@@ -367,7 +367,7 @@ static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread);
 #ifndef NO_GVL_INSTRUMENTATION
   static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
-  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread);
+  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE waiting_for_gvl_threshold_ns);
   static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception);
 #endif
 static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE delta_ns);
@@ -591,7 +591,6 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   VALUE max_frames = rb_hash_fetch(options, ID2SYM(rb_intern("max_frames")));
   VALUE tracer_context_key = rb_hash_fetch(options, ID2SYM(rb_intern("tracer_context_key")));
   VALUE endpoint_collection_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("endpoint_collection_enabled")));
-  VALUE waiting_for_gvl_threshold_ns = rb_hash_fetch(options, ID2SYM(rb_intern("waiting_for_gvl_threshold_ns")));
   VALUE otel_context_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("otel_context_enabled")));
   VALUE native_filenames_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("native_filenames_enabled")));
   VALUE show_classes = rb_hash_fetch(options, ID2SYM(rb_intern("show_classes")));
@@ -599,7 +598,6 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
 
   ENFORCE_TYPE(max_frames, T_FIXNUM);
   ENFORCE_BOOLEAN(endpoint_collection_enabled);
-  ENFORCE_TYPE(waiting_for_gvl_threshold_ns, T_FIXNUM);
   ENFORCE_BOOLEAN(native_filenames_enabled);
   ENFORCE_BOOLEAN(show_classes);
   ENFORCE_TYPE(overhead_filename, T_STRING);
@@ -626,8 +624,6 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   } else {
     raise_error(rb_eArgError, "Unexpected value for otel_context_enabled: %+" PRIsVALUE, otel_context_enabled);
   }
-
-  state->waiting_for_gvl_threshold_ns = NUM2UINT(waiting_for_gvl_threshold_ns);
 
   if (RTEST(tracer_context_key)) {
     ENFORCE_TYPE(tracer_context_key, T_SYMBOL);
@@ -983,7 +979,14 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   if (state->gc_tracking.wall_time_at_previous_gc_ns == INVALID_TIME) {
-    raise_error(rb_eRuntimeError, "BUG: Unexpected call to sample_after_gc without valid GC information available");
+    // Rarely, we might be called with nothing to do, as an earlier call already flushed the needed info.
+    // This is because Ruby clears the "pending" flag for an entire batch of postponed jobs BEFORE running any of them
+    // (see `rb_postponed_job_flush`). Thus, if another GC happens while an earlier job in the postponed batch is
+    // running (and other parts of the profiler such as the heap profiler can trigger this)
+    // then `on_gc_finish` records that data and asks for a second flush, even though Ruby has not yet run the
+    // first one. Because of this, Ruby can call us once more with nothing left to do.
+    state->stats.gc_samples_skipped_nothing_to_flush++;
+    return Qnil;
   }
 
   int max_labels_needed_for_gc = 7; // Magic number gets validated inside gc_profiling_set_metadata
@@ -1345,7 +1348,6 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" main_thread=%"PRIsVALUE, state->main_thread));
   rb_str_concat(result, rb_sprintf(" gc_tracking=%"PRIsVALUE, gc_tracking_as_ruby_hash(state)));
   rb_str_concat(result, rb_sprintf(" otel_current_span_key=%"PRIsVALUE, state->otel_current_span_key));
-  rb_str_concat(result, rb_sprintf(" waiting_for_gvl_threshold_ns=%u", state->waiting_for_gvl_threshold_ns));
 
   return result;
 }
@@ -1385,6 +1387,7 @@ static VALUE stats_to_ruby_hash(thread_context_collector_state *state, VALUE has
     ID2SYM(rb_intern("sample_count")),                             /* => */ UINT2NUM(state->stats.sample_count),
     ID2SYM(rb_intern("gc_samples")),                               /* => */ UINT2NUM(state->stats.gc_samples),
     ID2SYM(rb_intern("gc_samples_missed_due_to_missing_context")), /* => */ UINT2NUM(state->stats.gc_samples_missed_due_to_missing_context),
+    ID2SYM(rb_intern("gc_samples_skipped_nothing_to_flush")),      /* => */ UINT2NUM(state->stats.gc_samples_skipped_nothing_to_flush),
     ID2SYM(rb_intern("inactive_thread_samples_skipped")),          /* => */ UINT2NUM(state->stats.inactive_thread_samples_skipped),
     ID2SYM(rb_intern("profiler_thread_samples_skipped")),          /* => */ UINT2NUM(state->stats.profiler_thread_samples_skipped),
   };
@@ -2192,12 +2195,9 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
 }
 
 #ifndef NO_GVL_INSTRUMENTATION
-  // This function runs on the passed thread and has the GVL because it gets called just after the Ruby thread acquired the GVL
+  // We must only use async-signal-safe functions here, see notes in the caller
   __attribute__((warn_unused_result))
-  on_gvl_running_result thread_context_collector_on_gvl_running(VALUE self_instance, VALUE thread, per_thread_context *thread_context) {
-    thread_context_collector_state *state;
-    TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
-
+  on_gvl_running_result thread_context_collector_on_gvl_running(VALUE thread, per_thread_context *thread_context, uint32_t waiting_for_gvl_threshold_ns) {
     // Bump the event counter and clears the state bit to "running"
     uint64_t counter_portion = thread_context->gvl_state_change_count >> 1;
     thread_context->gvl_state_change_count = ((counter_portion + 1) << 1) | GVL_RUNNING;
@@ -2214,7 +2214,7 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
 
     long waiting_for_gvl_duration_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - gvl_waiting_at;
 
-    bool should_sample = waiting_for_gvl_duration_ns >= state->waiting_for_gvl_threshold_ns;
+    bool should_sample = waiting_for_gvl_duration_ns >= waiting_for_gvl_threshold_ns;
 
     if (should_sample) {
       // We flip the gvl_waiting_at to negative to mark that the thread is now running and no longer waiting
@@ -2410,15 +2410,18 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
     return result;
   }
 
-  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread) {
+  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE waiting_for_gvl_threshold_ns) {
     ENFORCE_THREAD(thread);
+    ENFORCE_TYPE(waiting_for_gvl_threshold_ns, T_FIXNUM);
 
     debug_enter_unsafe_context();
 
     per_thread_context *thread_context = get_per_thread_context(thread);
     VALUE result;
     if (thread_context) {
-      result = thread_context_collector_on_gvl_running(collector_instance, thread, thread_context).action == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
+      on_gvl_running_result gvl_running_result =
+        thread_context_collector_on_gvl_running(thread, thread_context, NUM2UINT(waiting_for_gvl_threshold_ns));
+      result = gvl_running_result.action == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
     } else {
       result = Qfalse;
     }
