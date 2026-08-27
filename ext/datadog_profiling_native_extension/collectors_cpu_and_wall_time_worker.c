@@ -1700,10 +1700,12 @@ static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused) {
 
   if (state == NULL || !ddtrace_rb_ractor_main_p()) return;
 
-  // Protect against nested operations
+  // Protect against nested operations.
+  //
+  // Note that, unlike the other sampling operations in this file, we only **check** the `during_sample` flag but
+  // deliberately don't hold it as the below function can release the GVL and `during_sample` shouldn't be held
+  // in such a situation.
   if (state->during_sample) return;
-
-  during_sample_enter(state);
 
   // NOTE: We're not updating the allocation_sampler here.
   // This means work done in this function isn't accounted for as profiler overhead.
@@ -1714,8 +1716,6 @@ static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused) {
     state->self_instance,
     handle_sampling_failure_rescued_after_allocation
   );
-
-  during_sample_exit(state);
 }
 
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state) {

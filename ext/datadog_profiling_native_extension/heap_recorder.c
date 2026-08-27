@@ -521,26 +521,41 @@ void heap_recorder_commit_pending_recordings(heap_recorder *heap_recorder) {
     return; // Nothing to do
   }
 
-  heap_recorder->stats_lifetime.deferred_recordings_committed += heap_recorder->pending_recordings_count;
-
   // Note: We consume the buffer back-to-front, decrementing the count as we go, so that (a) the entries we have
   // not gotten to yet stay marked (see `heap_recorder_mark`) across any GC triggered below, (b) we don't mark
   // already-processed pending_recordings (slower and would extend the lifetime of these recordings if not cleared) and
   // (c) if one of the steps below raises we don't reprocess the entries we already committed, i.e., we're idempotent.
+  //
+  // Note as well that `ruby_weak_map_set` below can release the GVL, and thus this function needs to tolerate other
+  // profiler operations being interleaved with it -- in particular an allocation sample (which appends to
+  // `pending_recordings`) or even another call to this function. (Unlike most of the profiler, our caller
+  // `after_allocation_from_postponed_job` deliberately does not hold the `during_sample` flag, exactly because we may
+  // lose the GVL here.) This is safe because:
+  //
+  // * We copy the pending_recording to the stack and decrement the count **before** we can lose the GVL, so from that
+  //   point on the slot is no longer ours: an allocation sample that gets to run will write to that same slot, and our
+  //   own next iteration will then pick that new recording up (nothing gets lost or processed twice).
+  // * `start_heap_allocation_recording` checks the `MAX_PENDING_RECORDINGS` limit after our decrement, so there's
+  //   always room for such a recording.
+  // * `record_id`s are unique, so an interleaved commit can't trip the duplicate check in `commit_recording`, and an
+  //   interleaved run of this function consumes different slots than we do.
+  // * `pending.heap_record` can't be freed from under us because `start_heap_allocation_recording` already accounted
+  //   for this recording in `num_tracked_objects` (see `inc_tracked_objects_or_fail`), so a `heap_recorder_update`
+  //   that gets to run will not consider that heap record unused.
   while (heap_recorder->pending_recordings_count > 0) {
-    // Copy the pending_recording on the stack because the call below can release the GVL, which means anything can run
-    // and possibly something that can mutate `pending_recordings[pending_recordings_count]`.
-    // Though at least on_newobj_event() and after_allocation_from_postponed_job() are guarded by
-    // the during_sample flag and during_sample_enter()/during_sample_exit().
     pending_recording pending = heap_recorder->pending_recordings[--heap_recorder->pending_recordings_count];
 
-    // This is the step we couldn't do during the original sample call -- we're now expected to be called in a context
-    // where it's finally safe to call this
+    heap_recorder->stats_lifetime.deferred_recordings_committed++;
+
+    // This is the "can release the GVL" bit
     ruby_weak_map_set(heap_recorder->weak_objects, LONG2FIX(pending.record_id), pending.object_ref);
 
     object_record *record = object_record_new(pending);
 
     commit_recording(heap_recorder, pending.heap_record, record);
+
+    // Ensure that the object we've just recorded is not collected until we've done all the bookeeping
+    RB_GC_GUARD(pending.object_ref);
   }
 }
 
