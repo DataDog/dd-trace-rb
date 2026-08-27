@@ -121,11 +121,13 @@ namespace :github do
 
   def junit_suite_time(file)
     File.read(file)[/<testsuite\b[^>]*\btime="([\d.]+)"/, 1].to_f
+  rescue Errno::ENOENT
+    0.0
   end
 
   def report_task_durations(durations)
     summary = ENV["GITHUB_STEP_SUMMARY"]
-    return unless summary
+    return if summary.to_s.empty?
 
     rows = durations.map { |(task, time)| "| #{task} | #{time.round(1)}s |" }
 
