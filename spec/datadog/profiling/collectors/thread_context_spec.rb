@@ -1421,8 +1421,19 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     before { sample }
 
     context "when called before on_gc_start/on_gc_finish" do
-      it do
-        expect { sample_after_gc(allow_exception: true) }.to raise_error(::RuntimeError, /Unexpected call to sample_after_gc/)
+      it "does not record a Garbage Collection sample" do
+        sample_after_gc
+
+        expect(samples.select { |it| it.labels[:"thread name"] == "Garbage Collection" }).to be_empty
+      end
+
+      it "does not increment the gc_samples counter" do
+        expect { sample_after_gc }.to_not change { stats.fetch(:gc_samples) }
+      end
+
+      it "increments the gc_samples_skipped_nothing_to_flush counter" do
+        expect { sample_after_gc }
+          .to change { stats.fetch(:gc_samples_skipped_nothing_to_flush) }.from(0).to(1)
       end
     end
 
@@ -1436,12 +1447,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         @time_after = profiler_system_epoch_time_now_ns
       end
 
+      # Ruby clears the "pending" flag for an entire batch of postponed jobs before running any of them, so it's
+      # expected for us to sometimes get called an extra time with nothing left to flush.
       context "when called more than once in a row" do
-        it do
+        it "only records one Garbage Collection sample" do
+          sample_after_gc
           sample_after_gc
 
-          expect { sample_after_gc(allow_exception: true) }
-            .to raise_error(::RuntimeError, /Unexpected call to sample_after_gc/)
+          expect(samples.count { |it| it.labels.fetch(:"thread name") == "Garbage Collection" }).to be 1
+          expect(stats.fetch(:gc_samples)).to be 1
+          expect(stats.fetch(:gc_samples_skipped_nothing_to_flush)).to be 1
         end
       end
 

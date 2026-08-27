@@ -167,6 +167,8 @@ typedef struct {
     unsigned int gc_samples;
     // See thread_context_collector_on_gc_start for details
     unsigned int gc_samples_missed_due_to_missing_context;
+    // See thread_context_collector_sample_after_gc for details
+    unsigned int gc_samples_skipped_nothing_to_flush;
     // How many per-thread samples were skipped because the thread has been continuously suspended
     // (no GVL) since its previous sample, so its Ruby stack cannot have changed.
     unsigned int inactive_thread_samples_skipped;
@@ -977,7 +979,14 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   if (state->gc_tracking.wall_time_at_previous_gc_ns == INVALID_TIME) {
-    raise_error(rb_eRuntimeError, "BUG: Unexpected call to sample_after_gc without valid GC information available");
+    // Rarely, we might be called with nothing to do, as an earlier call already flushed the needed info.
+    // This is because Ruby clears the "pending" flag for an entire batch of postponed jobs BEFORE running any of them
+    // (see `rb_postponed_job_flush`). Thus, if another GC happens while an earlier job in the postponed batch is
+    // running (and other parts of the profiler such as the heap profiler can trigger this)
+    // then `on_gc_finish` records that data and asks for a second flush, even though Ruby has not yet run the
+    // first one. Because of this, Ruby can call us once more with nothing left to do.
+    state->stats.gc_samples_skipped_nothing_to_flush++;
+    return Qnil;
   }
 
   int max_labels_needed_for_gc = 7; // Magic number gets validated inside gc_profiling_set_metadata
@@ -1378,6 +1387,7 @@ static VALUE stats_to_ruby_hash(thread_context_collector_state *state, VALUE has
     ID2SYM(rb_intern("sample_count")),                             /* => */ UINT2NUM(state->stats.sample_count),
     ID2SYM(rb_intern("gc_samples")),                               /* => */ UINT2NUM(state->stats.gc_samples),
     ID2SYM(rb_intern("gc_samples_missed_due_to_missing_context")), /* => */ UINT2NUM(state->stats.gc_samples_missed_due_to_missing_context),
+    ID2SYM(rb_intern("gc_samples_skipped_nothing_to_flush")),      /* => */ UINT2NUM(state->stats.gc_samples_skipped_nothing_to_flush),
     ID2SYM(rb_intern("inactive_thread_samples_skipped")),          /* => */ UINT2NUM(state->stats.inactive_thread_samples_skipped),
     ID2SYM(rb_intern("profiler_thread_samples_skipped")),          /* => */ UINT2NUM(state->stats.profiler_thread_samples_skipped),
   };
