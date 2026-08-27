@@ -465,9 +465,9 @@ RSpec.describe Datadog::DI::ProbeManager do
     let(:probe) do
       instance_double(
         Datadog::DI::Probe,
-        :id => "test-probe",
-        :type => "log",
-        :condition_evaluation_failed_rate_limiter => per_probe_limiter,
+        id: "test-probe",
+        type: "log",
+        condition_evaluation_failed_rate_limiter: per_probe_limiter,
       )
     end
 
