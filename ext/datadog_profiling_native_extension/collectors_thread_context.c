@@ -911,7 +911,8 @@ bool thread_context_collector_on_gc_finish(VALUE self_instance) {
   long cpu_time_at_start_ns = thread_context->gc_tracking.cpu_time_at_start_ns;
   long wall_time_at_start_ns = thread_context->gc_tracking.wall_time_at_start_ns;
 
-  if (cpu_time_at_start_ns == INVALID_TIME && wall_time_at_start_ns == INVALID_TIME) {
+  // Both fields are always set and cleared together, so checking one is enough
+  if (cpu_time_at_start_ns == INVALID_TIME) {
     // If this happened, it means that on_gc_start was either never called for the thread OR it was called but no thread
     // context existed at the time. The former can be the result of a bug, but since we can't distinguish them, we just
     // do nothing.
