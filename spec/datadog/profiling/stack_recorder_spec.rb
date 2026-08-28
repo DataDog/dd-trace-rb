@@ -408,31 +408,21 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           skip "Heap profiling is only supported on Ruby >= 3.1"
         end
 
-        allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
-          {"z" => -1, "y" => "-2", "x" => false}, Object.new]
         @num_allocations = 0
-        allocations.each_with_index do |obj, i|
-          introduce_distinct_stacktraces(i, obj)
-          @num_allocations += 1
-          GC.start # Force each allocation to be done in its own GC epoch for interesting GC age labels
-        end
 
-        allocations.clear # The literals in the previous array are now dangling
-        GC.start # And this will clear them, leaving only the non-literals which are still pointed to by the lets
+        # Use the `Thread.new { allocations; nil }.join; GC.start` trick to reliably GC the allocations
+        Thread.new do
+          allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
+            {"z" => -1, "y" => "-2", "x" => false}, Object.new]
+          allocations.each_with_index do |obj, i|
+            introduce_distinct_stacktraces(i, obj)
+            @num_allocations += 1
+            GC.start # Force each allocation to be done in its own GC epoch for interesting GC age labels
+          end
+          nil # to avoid Thread#value to hold onto allocations
+        end.join
 
-        # NOTE: We've witnessed CI flakiness where some no longer referenced allocations may still be seen as alive
-        # after the previous GC.
-        # This might be an instance of the issues described in https://bugs.ruby-lang.org/issues/19460
-        # and https://bugs.ruby-lang.org/issues/19041. We didn't get to the bottom of the
-        # reason but it might be that some machine context/register ends up still pointing to
-        # that last entry and thus manages to get it marked in the first GC.
-        # To reduce the likelihood of this happening we'll:
-        # * Allocate some more stuff and clear again
-        # * Do another GC
-        allocations = ["another fearsome interpolated string: #{sample_rate}", (-20..-10).to_a,
-          {"a" => 1, "b" => "2", "c" => true}, Object.new]
-        allocations.clear
-        GC.start
+        GC.start # This clears the literals above, leaving only the non-literals which are still pointed to by the lets
       end
 
       after do |example|
