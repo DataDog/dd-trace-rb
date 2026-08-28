@@ -876,7 +876,7 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
 
   during_sample_exit(state);
 
-  // Extracting the otel span key can lose the GVL, so we it outside `during_sample`
+  // Extracting the otel span key can lose the GVL, so we move it outside `during_sample`
   // (It can't raise: it rescues its own exceptions)
   if (needs_otel_span_key == Qtrue) {
     thread_context_collector_resolve_otel_span_key_may_lose_gvl(state->thread_context_collector_instance);
