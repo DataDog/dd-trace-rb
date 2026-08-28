@@ -250,7 +250,8 @@ static VALUE ruby_weak_map_new(void) {
 // Native wrapper to get an object from an `ObjectSpace::WeakMap`.
 // Returns the object on success and nil if the entry is gone, meaning
 // the object has been garbage collected.
-// We never store nil as a value, see ruby_weak_map_set(), so nil unambiguously means "the value was garbage collected".
+// We never store nil as a value, see ruby_weak_map_set_may_lose_gvl_and_allocate_objects(), so nil unambiguously
+// means "the value was garbage collected".
 //
 // Note: GVL can be released and other threads may get to run before this method returns
 static VALUE ruby_weak_map_get(VALUE weak_map, VALUE key) {
@@ -260,8 +261,12 @@ static VALUE ruby_weak_map_get(VALUE weak_map, VALUE key) {
 // Native wrapper to add an entry to an `ObjectSpace::WeakMap`.
 // Raises RuntimeError if passed nil as a value.
 //
-// Note: GVL can be released and other threads may get to run before this method returns
-static void ruby_weak_map_set(VALUE weak_map, VALUE key, VALUE value) {
+// Note: GVL can be released and other threads may get to run before this method returns.
+//
+// On Ruby < 3.3 this allocates Ruby objects (because underneath the weak map registers
+// finalizers for the objects, which requires allocations). Later Rubies improved WeakMap to not need this.
+// This we need to be careful not to recurse on the profiler (e.g. NEWOBJ tracepoint).
+static void ruby_weak_map_set_may_lose_gvl_and_allocate_objects(VALUE weak_map, VALUE key, VALUE value) {
   if (value == Qnil) {
     raise_error(rb_eRuntimeError, "Can't use nil as the value in the WeakMap, otherwise #[] can't differentiate alive vs nil value");
   }
@@ -529,7 +534,8 @@ void heap_recorder_commit_recordings_may_lose_gvl(heap_recorder *heap_recorder) 
   // already-processed pending_recordings (slower and would extend the lifetime of these recordings if not cleared) and
   // (c) if one of the steps below raises we don't reprocess the entries we already committed, i.e., we're idempotent.
   //
-  // Note as well that `ruby_weak_map_set` below can release the GVL, and thus this function needs to tolerate other
+  // Note as well that `ruby_weak_map_set_may_lose_gvl_and_allocate_objects` below can release the GVL (and, on older
+  // Rubies, allocate), and thus this function needs to tolerate other
   // profiler operations being interleaved with it -- in particular an allocation sample (which appends to
   // `pending_recordings`) or even another call to this function. (Unlike most of the profiler, our caller
   // `commit_heap_recordings_from_postponed_job_may_lose_gvl` deliberately does not hold the `during_sample` flag,
@@ -551,7 +557,7 @@ void heap_recorder_commit_recordings_may_lose_gvl(heap_recorder *heap_recorder) 
     heap_recorder->stats_lifetime.deferred_recordings_committed++;
 
     // This is the "can release the GVL" bit
-    ruby_weak_map_set(heap_recorder->weak_objects, LONG2FIX(pending.record_id), pending.object_ref);
+    ruby_weak_map_set_may_lose_gvl_and_allocate_objects(heap_recorder->weak_objects, LONG2FIX(pending.record_id), pending.object_ref);
 
     object_record *record = object_record_new(pending);
 
