@@ -614,7 +614,7 @@ static VALUE heap_recorder_commit_recordings_may_lose_gvl_locked(VALUE heap_reco
   //
   // Note as well that `ruby_weak_map_set_may_lose_gvl_and_allocate_objects` below can lose the GVL (and, on older
   // Rubies, allocate). This function gets called while holding the heap recorder lock so that no other heap recorder
-  // operation can concurrently with us in that window (including recording more allocations, which on older Rubies
+  // operation can concurrently execute with us in that window (including recording more allocations, which on older Rubies
   // would otherwise add entries to the very buffer we're draining).
   while (heap_recorder->pending_recordings_count > 0) {
     pending_recording pending = heap_recorder->pending_recordings[heap_recorder->pending_recordings_count - 1];
