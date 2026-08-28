@@ -58,7 +58,7 @@ module Datadog
 
       def self.remote_features_enabled?: () -> bool
 
-      def self.parse_content: (Datadog::Core::Remote::Configuration::Content content) -> ::Hash[::String, untyped]
+      def self.parse_content: (Datadog::Core::Remote::Configuration::Content content) -> ::Hash[::String, Datadog::Helpers::json]
     end
   end
 end

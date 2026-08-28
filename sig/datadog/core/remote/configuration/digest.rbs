@@ -3,7 +3,7 @@ module Datadog
     module Remote
       class Configuration
         class DigestList < Array[Digest]
-          def self.parse: (::Hash[::String, untyped] hash) -> DigestList
+          def self.parse: (::Hash[::String, Datadog::Helpers::json] hash) -> DigestList
 
           def check: (Datadog::Core::Remote::Configuration::Content content) -> bool
         end
