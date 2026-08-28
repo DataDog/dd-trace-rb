@@ -141,7 +141,8 @@ typedef struct {
   // because effectively that would stop the profiler from working until control
   // goes back to that special thread, which on a contended Ruby app, can take hundreds of ms (or more).
   //
-  // Similar to a lock, it's also not supposed to be re-entrant. (TODO: We should have checks for this)
+  // Because what we want is "profiler doesn't recurse on itself" we want this to behave as a non-reentrant lock
+  // (FIXME: We should have checks for this)
   //
   // @ivoanjo: Right now we always sample inside `safely_call`; if that ever changes, this flag may need to become
   // volatile/atomic/have some barriers to ensure it's visible during e.g. signal handlers.
