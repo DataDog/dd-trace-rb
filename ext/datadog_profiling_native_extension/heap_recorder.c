@@ -275,7 +275,7 @@ static int st_object_record_update(st_data_t, st_data_t, st_data_t);
 static int st_object_records_iterate(st_data_t, st_data_t, st_data_t);
 static int st_object_records_debug(st_data_t key, st_data_t value, st_data_t extra);
 static void inc_tracked_objects_or_fail(heap_record *heap_record);
-static void commit_recording(heap_recorder *, heap_record *, object_record *new_record);
+static void commit_recording(heap_recorder *, pending_recording);
 static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args);
 static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update);
 static VALUE heap_recorder_update_locked(VALUE heap_recorder_update_locked_args_as_value);
@@ -621,9 +621,7 @@ static VALUE heap_recorder_commit_recordings_may_lose_gvl_locked(VALUE heap_reco
     // This is the "can release the GVL" bit
     ruby_weak_map_set_may_lose_gvl_and_allocate_objects(heap_recorder->weak_objects, LONG2FIX(pending.record_id), pending.object_ref);
 
-    object_record *record = object_record_new(pending);
-
-    commit_recording(heap_recorder, pending.heap_record, record);
+    commit_recording(heap_recorder, pending);
 
     // Ensure that the object we've just recorded is not collected until we've done all the bookeeping
     RB_GC_GUARD(pending.object_ref);
@@ -985,10 +983,8 @@ static void inc_tracked_objects_or_fail(heap_record *heap_record) {
   heap_record->num_tracked_objects++;
 }
 
-static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_record, object_record *new_record) {
-  // Link the object record with the corresponding heap record. This was the last remaining thing we
-  // needed to fully build the object_record.
-  new_record->heap_record = heap_record;
+static void commit_recording(heap_recorder *heap_recorder, pending_recording pending) {
+  object_record *new_record = object_record_new(pending);
 
   int existing = st_insert(heap_recorder->object_records, new_record->record_id, (st_data_t) new_record);
   if (existing) {
@@ -1060,6 +1056,7 @@ static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, obj
 static object_record* object_record_new(pending_recording pending) {
   object_record *record = calloc(1, sizeof(object_record)); // See "note on calloc vs ruby_xcalloc use" above
   record->record_id = pending.record_id;
+  // Link the object record with the corresponding heap record
   record->heap_record = pending.heap_record;
   record->object_data = pending.object_data;
   return record;
