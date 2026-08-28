@@ -472,12 +472,15 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 
   bool need_commit = heap_recorder->pending_recordings_count > 0;
 
-  if (++heap_recorder->num_recordings_skipped < heap_recorder->sample_rate
-      // If we got unlucky and an allocation showed up in the middle of a locked operation (because it triggered
-      // an allocation directly OR because that operation lost the GVL), let's skip this sample as well.
-      // (Note we don't take the lock ourselves: the current function never loses the GVL, and is thus already atomic.)
-      || heap_recorder_is_locked(heap_recorder)
-    ) {
+  if (++heap_recorder->num_recordings_skipped < heap_recorder->sample_rate) {
+    heap_recorder->recording_skipped = true;
+    return need_commit;
+  }
+
+  if (heap_recorder_is_locked(heap_recorder)) {
+    // If we got unlucky and an allocation showed up in the middle of a locked operation (because it triggered
+    // an allocation directly OR because that operation lost the GVL), let's skip this sample as well.
+    // (Note we don't take the lock ourselves: the current function never loses the GVL, and is thus already atomic.)
     heap_recorder->recording_skipped = true;
     return need_commit;
   }
