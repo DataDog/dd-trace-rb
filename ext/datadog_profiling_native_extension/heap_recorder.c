@@ -317,7 +317,7 @@ static VALUE ruby_weak_map_new(void) {
 // means "the value was garbage collected".
 //
 // Note: GVL can be released and other threads may get to run before this method returns
-static VALUE ruby_weak_map_get(VALUE weak_map, VALUE key) {
+static VALUE ruby_weak_map_get_may_lose_gvl(VALUE weak_map, VALUE key) {
   return rb_funcall(weak_map, aref_id, 1, key);
 }
 
@@ -889,7 +889,7 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
   }
 
   // Note: This function call can cause the GVL to be released
-  VALUE ref = ruby_weak_map_get(recorder->weak_objects, LONG2FIX(record_id));
+  VALUE ref = ruby_weak_map_get_may_lose_gvl(recorder->weak_objects, LONG2FIX(record_id));
   if (ref == Qnil) {
     // The weak reference is gone, meaning the object was garbage collected. Need to delete this object record!
     on_committed_object_record_cleanup(recorder, record);
@@ -1084,7 +1084,7 @@ static VALUE object_record_inspect(heap_recorder *recorder, object_record *recor
     rb_str_catf(inspect, "class=%"PRIsVALUE" ", class);
   }
 
-  VALUE ref = ruby_weak_map_get(recorder->weak_objects, LONG2FIX(record->record_id));
+  VALUE ref = ruby_weak_map_get_may_lose_gvl(recorder->weak_objects, LONG2FIX(record->record_id));
   if (ref == Qnil) {
     rb_str_catf(inspect, "object=<invalid>");
   } else {
@@ -1229,7 +1229,7 @@ static int st_object_record_id_for(st_data_t key, DDTRACE_UNUSED st_data_t value
   record_id_for_context *context = (record_id_for_context*) extra;
   long record_id = (long) key;
 
-  VALUE ref = ruby_weak_map_get(context->recorder->weak_objects, LONG2FIX(record_id));
+  VALUE ref = ruby_weak_map_get_may_lose_gvl(context->recorder->weak_objects, LONG2FIX(record_id));
   if (ref != Qnil && ref == context->target) {
     context->result = LONG2FIX(record_id);
     return ST_STOP;
