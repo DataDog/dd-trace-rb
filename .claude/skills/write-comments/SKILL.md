@@ -1,6 +1,6 @@
 ---
 name: write-comments
-description: 'Use when writing or reviewing code comments in Ruby (lib/**/*.rb) or the native extension (ext/**/*.c, ext/**/*.h) – e.g. "add a comment", "explain this in a comment", "is this comment worth keeping". Enforces dd-trace-rb comment-noise conventions.'
+description: 'Use whenever writing or reviewing a code comment anywhere in this repo (lib, ext, spec, sig, docs, CI config, etc.) – e.g. "add a comment", "explain this in a comment", "is this comment worth keeping". Enforces dd-trace-rb comment-noise conventions.'
 ---
 
 # Writing code comments
