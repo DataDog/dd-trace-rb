@@ -212,6 +212,10 @@ struct heap_recorder {
 // Operations that can be skipped use `heap_recorder_try_lock` and walk away when it's taken (which is almost all of them).
 // The one operation that can't be skipped -- the full update that runs before serialization -- uses
 // `heap_recorder_lock`, which waits.
+//
+// `heap_recorder_lock` is expected to be bounded because once `LOCK_WANTED` gets set, no `try_lock` will succeed, so
+// the `heap_recorder_lock` will only need to wait for the previous user of the lock to finish it's work + Ruby to
+// switch back to is thread.
 #define HEAP_RECORDER_LOCK_HELD 0x1
 #define HEAP_RECORDER_LOCK_WANTED 0x2
 
