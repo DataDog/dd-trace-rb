@@ -129,7 +129,7 @@ jobs:
         TEST_DATADOG_INTEGRATION: "1"
     services:
       agent:
-        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.37.0
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.65.0
         env:
           LOG_LEVEL: DEBUG
           TRACE_LANGUAGE: ruby
@@ -216,7 +216,7 @@ jobs:
       options: --link mongodb:mongodb_secondary
     services:
       agent:
-        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.37.0
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.65.0
         env:
           LOG_LEVEL: DEBUG
           TRACE_LANGUAGE: ruby
