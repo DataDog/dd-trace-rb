@@ -159,8 +159,6 @@ struct heap_recorder {
   VALUE active_deferred_object;
   live_object_data active_deferred_object_data;
   uint16_t pending_recordings_count;
-  // Did a commit of the pending recordings get skipped?
-  bool commit_skipped;
 
   // Reusable arrays, implementing a flyweight pattern for things like iteration
   #define REUSABLE_LOCATIONS_SIZE MAX_FRAMES_LIMIT
@@ -386,6 +384,8 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
 
 // This method gets called from inside the RUBY_INTERNAL_EVENT_NEWOBJ tracepoint so it should neither allocate in the
 // Ruby heap nor release the GVL (https://github.com/DataDog/dd-trace-rb/pull/4240).
+//
+// Returns whether there are pending recordings waiting to be committed (see header for details)
 bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice alloc_class) {
   if (heap_recorder == NULL) {
     return false;
@@ -398,6 +398,8 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
   heap_recorder->recording_in_progress = true;
   heap_recorder->recording_skipped = false;
 
+  bool need_commit = heap_recorder->pending_recordings_count > 0;
+
   if (++heap_recorder->num_recordings_skipped < heap_recorder->sample_rate
       // If we got really unlucky and an allocation showed up during an update (because it triggered an allocation
       // directly OR because the GVL got released in the middle of an update), let's skip this sample as well.
@@ -405,12 +407,11 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
       || heap_recorder->updating
     ) {
     heap_recorder->recording_skipped = true;
-    return false;
+    return need_commit;
   }
 
-  // Do not sample internal objects in the heap profiler because
-  // they are added to a ObjectSpace::WeakMap, which would not be safe.
-  // This means we ignore internal objects samples for the heap profiler,
+  // Do not sample internal objects in the heap profiler because they are added to a ObjectSpace::WeakMap, which would not be safe.
+  // This means we ignore internal VM objects samples for the heap profiler,
   // which is a trade-off discussed in https://github.com/DataDog/dd-trace-rb/pull/6176#discussion_r3819776251
   //
   // Note this is checked after the sample rate above, as the sample rate is in number of allocation profiler samples,
@@ -418,26 +419,15 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
   // next allocation sample still gets a chance to be tracked.
   if (ddtrace_is_internal_object_p(new_obj)) {
     heap_recorder->recording_skipped = true;
-    return false;
+    return need_commit;
   }
 
   // Skip if we've hit the pending recordings limit
   if (heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS) {
     heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full++;
     heap_recorder->recording_skipped = true;
-    return true; // If the buffer is full, we keep asking for a callback (see `needs_after_allocation` below)
+    return true; // Buffer is full, there's definitely things to commit
   }
-
-  // The intuition here is: We start by asking for a commit callback when the buffer is about to go
-  // from empty -> non-empty, because this is going to be mapped onto a postponed job, so after it gets queued once
-  // it doesn't seem worth it to keep spamming requests (or when the commit was skipped).
-  //
-  // As a fallback, if the buffer starts accumulating too much we
-  // start always requesting the callback to happen so that we eventually empty the buffer.
-  bool needs_after_allocation =
-    heap_recorder->pending_recordings_count == 0 ||
-    heap_recorder->commit_skipped ||
-    heap_recorder->pending_recordings_count >= (MAX_PENDING_RECORDINGS / 2);
 
   heap_recorder->num_recordings_skipped = 0;
 
@@ -450,7 +440,7 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     .alloc_gen = rb_gc_count(),
   };
 
-  return needs_after_allocation;
+  return true; // We're tracking a new object, so there will be something to commit (after end_heap_allocation_recording runs)
 }
 
 // end_heap_allocation_recording_with_rb_protect gets called while the stack_recorder is holding one of the profile
@@ -531,11 +521,8 @@ void heap_recorder_commit_recordings_may_lose_gvl(heap_recorder *heap_recorder) 
   if (heap_recorder->updating) {
     // Because, like us, `heap_recorder_update` can lose the GVL, we don't want to run while it's also running.
     // Skipping is fine -- `start_heap_allocation_recording` will ask for us to be called again on a later allocation.
-    heap_recorder->commit_skipped = true;
     return;
   }
-
-  heap_recorder->commit_skipped = false;
 
   // Note: We consume the buffer back-to-front, decrementing the count as we go, so that (a) the entries we have
   // not gotten to yet stay marked (see `heap_recorder_mark`) across any GC triggered below, (b) we don't mark

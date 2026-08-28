@@ -99,17 +99,14 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder);
 // This heap allocation recording needs to be ended via ::end_heap_allocation_recording
 // before it will become fully committed and able to be iterated on.
 //
-// Some objects are never tracked (e.g. internal objects, or because of the sample rate); this is handled internally
-// by skipping the recording, so callers always need to pair this with ::end_heap_allocation_recording anyway.
-//
 // @param new_obj
 //   The newly allocated Ruby object/value.
 // @param weight
 //   The sampling weight of this object.
 //
 // WARN: It needs to be paired with a ::end_heap_allocation_recording call.
-// Returns needs_after_allocation: true whenever the pending_recordings buffer goes from empty to non-empty and thus
-// a `heap_recorder_commit_recordings_may_lose_gvl` callback is required to flush it
+// Returns true whenever there are pending recordings, and thus a `heap_recorder_commit_recordings_may_lose_gvl`
+// callback is needed to commit them
 bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice alloc_class);
 
 // End a previously started heap allocation recording on the heap recorder.
