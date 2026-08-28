@@ -2,6 +2,20 @@ module Datadog
   module OpenFeature
     module Configuration
       module Settings
+        AGENTLESS_SOURCE: String
+        REMOTE_CONFIG_SOURCE: String
+        OFFLINE_SOURCE: String
+
+        DEFAULT_POLL_INTERVAL_SECONDS: Integer
+        DEFAULT_REQUEST_TIMEOUT_SECONDS: Integer
+        DEFAULT_INITIALIZATION_TIMEOUT_MS: Integer
+
+        MAX_POLL_INTERVAL_SECONDS: Integer
+        MAX_REQUEST_TIMEOUT_SECONDS: Integer
+        MAX_INITIALIZATION_TIMEOUT_MS: Integer
+
+        def self.parse_integer: (String value, default: Integer, setting: String) -> Integer
+
         def self.extended: (::Class | ::Module base) -> void
 
         def self.add_settings!: (untyped base) -> void
