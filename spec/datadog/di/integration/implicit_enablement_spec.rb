@@ -108,8 +108,10 @@ RSpec.describe "DI implicit enablement integration" do
   # be asserted. Replaces the former single-config process_config entry point.
   def apply_rc_payload(payload)
     content = Datadog::Core::Remote::Configuration::Content.parse(
-      path: "datadog/1/APM_TRACING/lib_config/config",
-      content: JSON.dump(payload),
+      {
+        path: "datadog/1/APM_TRACING/lib_config/config",
+        content: JSON.dump(payload),
+      }
     )
     repository = instance_double(
       Datadog::Core::Remote::Configuration::Repository,
@@ -427,8 +429,10 @@ RSpec.describe "DI implicit enablement integration" do
   describe "RC enables DI via merged org/env-level (multi-config) configs" do
     def apm_content(config_id, hash)
       Datadog::Core::Remote::Configuration::Content.parse(
-        path: "datadog/1/APM_TRACING/#{config_id}/lib_config",
-        content: JSON.dump(hash),
+        {
+          path: "datadog/1/APM_TRACING/#{config_id}/lib_config",
+          content: JSON.dump(hash),
+        }
       )
     end
 

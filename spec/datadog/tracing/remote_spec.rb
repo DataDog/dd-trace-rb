@@ -28,7 +28,7 @@ RSpec.describe Datadog::Tracing::Remote do
     subject(:apply_configs) { remote.merge_and_apply_configs(repository) }
     let(:config) { {"lib_config" => {}} }
     let(:content) do
-      Datadog::Core::Remote::Configuration::Content.parse(path: path, content: JSON.dump(config))
+      Datadog::Core::Remote::Configuration::Content.parse({path: path, content: JSON.dump(config)})
     end
     let(:repository) do
       instance_double(Datadog::Core::Remote::Configuration::Repository, contents: [content])
@@ -41,7 +41,7 @@ RSpec.describe Datadog::Tracing::Remote do
     end
 
     context "with an unparseable content" do
-      let(:content) { Datadog::Core::Remote::Configuration::Content.parse(path: path, content: "") }
+      let(:content) { Datadog::Core::Remote::Configuration::Content.parse({path: path, content: ""}) }
 
       it "sets errored apply state and reports the parse failure to telemetry" do
         expect(Datadog.send(:components).telemetry).to receive(:report)
@@ -327,8 +327,10 @@ RSpec.describe Datadog::Tracing::Remote do
   describe "#merge_and_apply_configs" do
     def build_content(config_id, config)
       Datadog::Core::Remote::Configuration::Content.parse(
-        path: "datadog/1/APM_TRACING/#{config_id}/lib_config",
-        content: JSON.dump(config),
+        {
+          path: "datadog/1/APM_TRACING/#{config_id}/lib_config",
+          content: JSON.dump(config),
+        }
       )
     end
 
@@ -400,8 +402,10 @@ RSpec.describe Datadog::Tracing::Remote do
       end
       let(:bad) do
         Datadog::Core::Remote::Configuration::Content.parse(
-          path: "datadog/1/APM_TRACING/bad/lib_config",
-          content: "{not json",
+          {
+            path: "datadog/1/APM_TRACING/bad/lib_config",
+            content: "{not json",
+          }
         )
       end
       let(:contents) { [good, bad] }
@@ -421,8 +425,10 @@ RSpec.describe Datadog::Tracing::Remote do
     context "with a non-APM_TRACING content present" do
       let(:other) do
         Datadog::Core::Remote::Configuration::Content.parse(
-          path: "datadog/1/OTHER_PRODUCT/x/name",
-          content: "{}",
+          {
+            path: "datadog/1/OTHER_PRODUCT/x/name",
+            content: "{}",
+          }
         )
       end
       let(:apm) do
