@@ -603,28 +603,26 @@ void heap_recorder_commit_recordings_may_lose_gvl(heap_recorder *heap_recorder) 
 static VALUE heap_recorder_commit_recordings_may_lose_gvl_locked(VALUE heap_recorder_as_value) {
   heap_recorder *heap_recorder = (struct heap_recorder *) heap_recorder_as_value;
 
-  // Note: We consume the buffer back-to-front, decrementing the count as we go, so that (a) the entries we have
-  // not gotten to yet stay marked (see `heap_recorder_mark`) across any GC triggered below, (b) we don't mark
-  // already-processed pending_recordings (slower and would extend the lifetime of these recordings if not cleared) and
-  // (c) if one of the steps below raises we don't reprocess the entries we already committed, i.e., we're idempotent.
+  // Note: We consume the buffer back-to-front, and only drop each entry once it's fully committed. That makes the
+  // "can lose the GVL" bit below safe to retry: if anything raises, or another thread unwinds us, the entry stays
+  // pending and a later commit picks it up -- and setting the same entry on the weak map again is harmless. It also
+  // means the entry we're working on stays marked (see `heap_recorder_mark`) across any GC that happens while we don't
+  // have the GVL.
   //
   // Note as well that `ruby_weak_map_set_may_lose_gvl_and_allocate_objects` below can lose the GVL (and, on older
   // Rubies, allocate). This function gets called while holding the heap recorder lock so that no other heap recorder
-  // operation can run in that window (including recording more allocations).
-  //
-  // Finally, note that a GC can still happen.
+  // operation can concurrently with us in that window (including recording more allocations, which on older Rubies
+  // would otherwise add entries to the very buffer we're draining).
   while (heap_recorder->pending_recordings_count > 0) {
-    pending_recording pending = heap_recorder->pending_recordings[--heap_recorder->pending_recordings_count];
+    pending_recording pending = heap_recorder->pending_recordings[heap_recorder->pending_recordings_count - 1];
 
-    heap_recorder->stats_lifetime.deferred_recordings_committed++;
-
-    // This is the "can release the GVL" bit
     ruby_weak_map_set_may_lose_gvl_and_allocate_objects(heap_recorder->weak_objects, LONG2FIX(pending.record_id), pending.object_ref);
 
-    commit_recording(heap_recorder, pending);
+    // After here, we can no longer lose the GVL until we loop around again, so these steps are "atomic"
 
-    // Ensure that the object we've just recorded is not collected until we've done all the bookeeping
-    RB_GC_GUARD(pending.object_ref);
+    commit_recording(heap_recorder, pending);
+    heap_recorder->pending_recordings_count--;
+    heap_recorder->stats_lifetime.deferred_recordings_committed++;
   }
 
   return Qnil; // for rb_ensure
