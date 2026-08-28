@@ -470,6 +470,14 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
   heap_recorder->recording_in_progress = true;
   heap_recorder->recording_skipped = false;
 
+  // We always return need_commit, even if it's because a previous allocation was put on the pending_recordings.
+  //
+  // This can mean we "spam" a bit the postponed jobs mechanism (e.g. perhaps our postponed job hasn't run
+  // because there's a native extension doing Ruby object allocations in a row without giving Ruby the chance to
+  // run interrupts.
+  // That shouldn't be a problem because the allocation profiler has the dynamic sampling rate mechanism +
+  // triggering postponed jobs is cheap on current Rubies.
+  // (Note that asking for the same job multiple times de-duplicates -- Ruby will only run it once when it gets the chance)
   bool need_commit = heap_recorder->pending_recordings_count > 0;
 
   if (++heap_recorder->num_recordings_skipped < heap_recorder->sample_rate) {
