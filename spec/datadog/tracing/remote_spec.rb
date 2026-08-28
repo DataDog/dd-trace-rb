@@ -396,6 +396,35 @@ RSpec.describe Datadog::Tracing::Remote do
       end
     end
 
+    context "when remote.service overrides the local service for RC binding" do
+      let(:contents) do
+        [
+          build_content("svc", {"service_target" => {"service" => "rc-svc", "env" => "*"},
+                              "lib_config" => {"log_injection_enabled" => false}}),
+        ]
+      end
+
+      before do
+        # The RC client registers with the backend as remote.service ||
+        # service, so a service-scoped config arrives targeted at the override.
+        allow(Datadog.configuration.remote).to receive(:service).and_return("rc-svc")
+      end
+
+      it "matches the config against the override and applies it" do
+        expect(Datadog.send(:components).telemetry).to receive(:client_configuration_change!)
+          .with(contain_exactly(
+            ["DD_LOGS_INJECTION", false],
+            ["DD_TRACE_HEADER_TAGS", nil],
+            ["DD_TRACE_SAMPLE_RATE", nil],
+            ["DD_TRACE_SAMPLING_RULES", nil],
+          ))
+
+        remote.merge_and_apply_configs(repository)
+
+        expect(contents.first.apply_state).to eq(2)
+      end
+    end
+
     context "when one config has malformed JSON" do
       let(:good) do
         build_content("good", {"service_target" => {"service" => "*", "env" => "*"}, "lib_config" => {}})

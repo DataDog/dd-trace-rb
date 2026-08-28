@@ -51,7 +51,13 @@ module Datadog
         # @param repository [Core::Remote::Configuration::Repository] the current RC repository
         # @return [nil]
         def merge_and_apply_configs(repository)
-          service = Datadog.configuration.service
+          # Resolve the service identity the same way the RC client registers
+          # it with the backend (Core::Remote::Client#service_name =
+          # remote.service || service). When a customer sets remote.service,
+          # the backend delivers service_target.service values targeting that
+          # override; matching against the local service instead would drop
+          # every service-scoped config and let a less-specific org config win.
+          service = Datadog.configuration.remote.service || Datadog.configuration.service
           env = Datadog.configuration.env
 
           # @type var parsed: Array[[::Datadog::Core::Remote::Configuration::Content, ::Hash[::String, untyped]]]
