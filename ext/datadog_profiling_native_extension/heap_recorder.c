@@ -595,7 +595,6 @@ void heap_recorder_commit_recordings_may_lose_gvl(heap_recorder *heap_recorder) 
     return;
   }
 
-  // Wrap the next steps with `rb_ensure` so that we always get to release the lock
   rb_ensure(
     heap_recorder_commit_recordings_may_lose_gvl_locked,
     (VALUE) heap_recorder,
@@ -629,7 +628,7 @@ static VALUE heap_recorder_commit_recordings_may_lose_gvl_locked(VALUE heap_reco
     heap_recorder->stats_lifetime.deferred_recordings_committed++;
   }
 
-  return Qnil; // for rb_ensure
+  return Qnil;
 }
 
 // Mark the Ruby objects the heap recorder holds on to.
@@ -666,7 +665,6 @@ static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update)
     return;
   }
 
-  // Wrap the next steps with `rb_ensure` so that we always get to release the lock
   heap_recorder_update_locked_args args = {.heap_recorder = heap_recorder, .full_update = full_update};
   rb_ensure(heap_recorder_update_locked, (VALUE) &args, heap_recorder_unlock_ensure, (VALUE) heap_recorder);
 }
@@ -729,7 +727,7 @@ static VALUE heap_recorder_update_locked(VALUE heap_recorder_update_locked_args_
     heap_recorder->stats_lifetime.ewma_objects_skipped = ewma_stat(heap_recorder->stats_lifetime.ewma_objects_skipped, heap_recorder->stats_last_update.objects_skipped);
   }
 
-  return Qnil; // for rb_ensure
+  return Qnil;
 }
 
 void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
