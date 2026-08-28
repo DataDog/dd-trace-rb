@@ -124,8 +124,8 @@ struct heap_recorder {
   // mutation of the data so iteration can occur without acquiring a lock.
   // NOTE: Contrary to object_records, this table has no ownership of its data.
   st_table *object_records_snapshot;
-  // Are we currently updating or not?
-  bool updating;
+  // "Lock" protecting the heap recorder bookkeeping; see "note on locking" below
+  uint8_t lock;
   // The GC gen/epoch/count in which we are updating (or last updated if not currently updating).
   //
   // This enables us to calculate the age of objects considered in the update by comparing it
@@ -199,10 +199,72 @@ struct heap_recorder {
   } stats_lifetime;
 };
 
+// note on locking:
+//
+// The state of the heap profiler (`pending_recordings`, `object_records`, `heap_records`, `weak_objects`) gets mutated from a
+// few different places and, unlike most of the profiler, some of those operations lose the GVL while they work.
+// Thus, unlike most of the profiler, relying only on knowing "we get called with the GVL" is not enough to keep them
+// from stepping on each other, hence this extra "uint8_t lock".
+//
+// Yet, because we only ever touch while holding the GVL, and never lose the GVL between checking it and setting it, a
+// plain field is enough -- no atomics needed. (Hence the "lock" and not a full actual lock)
+//
+// Operations that can be skipped use `heap_recorder_try_lock` and walk away when it's taken (which is almost all of them).
+// The one operation that can't be skipped -- the full update that runs before serialization -- uses
+// `heap_recorder_lock`, which waits.
+#define HEAP_RECORDER_LOCK_HELD 0x1
+#define HEAP_RECORDER_LOCK_WANTED 0x2
+
+// Is someone in the middle of a locked operation? (Which, because they may lose the GVL, may be true even though we're
+// the ones currently holding the GVL.)
+static inline bool heap_recorder_is_locked(heap_recorder *heap_recorder) {
+  return (heap_recorder->lock & HEAP_RECORDER_LOCK_HELD) != 0;
+}
+
+// Takes the lock, unless it's held or someone is waiting for it. Returns whether it was taken.
+__attribute__((warn_unused_result))
+static inline bool heap_recorder_try_lock(heap_recorder *heap_recorder) {
+  if (heap_recorder->lock != 0) return false;
+
+  heap_recorder->lock = HEAP_RECORDER_LOCK_HELD;
+  return true;
+}
+
+// Takes the lock, waiting for the current holder to finish if needed. See "note on locking" above for why this wait is
+// expected to be bounded.
+//
+// WARN: Do not call this while already holding the lock -- it would wait forever.
+static void heap_recorder_lock(heap_recorder *heap_recorder) {
+  while (heap_recorder_is_locked(heap_recorder)) {
+    heap_recorder->lock |= HEAP_RECORDER_LOCK_WANTED;
+    rb_thread_schedule();
+  }
+
+  // Note that we go from observing the lock as free to taking it without ever losing the GVL, and thus without giving
+  // anyone else a chance to take it from under us
+  heap_recorder->lock = HEAP_RECORDER_LOCK_HELD;
+}
+
+static inline void heap_recorder_unlock(heap_recorder *heap_recorder) {
+  // Deliberately preserves `HEAP_RECORDER_LOCK_WANTED` (rather than just zero-ing the lock)
+  heap_recorder->lock &= ~HEAP_RECORDER_LOCK_HELD;
+}
+
+// Same as the above, in the shape `rb_ensure` wants
+static VALUE heap_recorder_unlock_ensure(VALUE heap_recorder_as_value) {
+  heap_recorder_unlock((heap_recorder *) heap_recorder_as_value);
+  return Qnil;
+}
+
 typedef struct {
   heap_recorder *heap_recorder;
   ddog_prof_Slice_Location locations;
 } end_heap_allocation_args;
+
+typedef struct {
+  heap_recorder *heap_recorder;
+  bool full_update;
+} heap_recorder_update_locked_args;
 
 static heap_record* get_or_create_heap_record(heap_recorder*, ddog_prof_Slice_Location);
 static void cleanup_heap_record_if_unused(heap_recorder*, heap_record*);
@@ -216,7 +278,8 @@ static void inc_tracked_objects_or_fail(heap_record *heap_record);
 static void commit_recording(heap_recorder *, heap_record *, object_record *new_record);
 static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args);
 static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update);
-static VALUE update_object_records(VALUE heap_recorder_as_value);
+static VALUE heap_recorder_update_locked(VALUE heap_recorder_update_locked_args_as_value);
+static VALUE heap_recorder_commit_recordings_may_lose_gvl_locked(VALUE heap_recorder_as_value);
 static inline double ewma_stat(double previous, double current);
 static void unintern_or_raise(heap_recorder *, ddog_prof_ManagedStringId);
 static void unintern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_ManagedStringId ids);
@@ -380,8 +443,8 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
     heap_recorder_finish_iteration(heap_recorder);
   }
 
-  // This could also be left over if fork happens during an update
-  heap_recorder->updating = false;
+  // This could also be left over if fork happens in the middle of a locked operation
+  heap_recorder->lock = 0;
 
   // Clear lifetime stats since this is essentially a new heap recorder
   heap_recorder->stats_lifetime = (struct stats_lifetime) {0};
@@ -406,10 +469,10 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
   bool need_commit = heap_recorder->pending_recordings_count > 0;
 
   if (++heap_recorder->num_recordings_skipped < heap_recorder->sample_rate
-      // If we got really unlucky and an allocation showed up during an update (because it triggered an allocation
-      // directly OR because the GVL got released in the middle of an update), let's skip this sample as well.
-      // See notes on `heap_recorder_update` for details.
-      || heap_recorder->updating
+      // If we got unlucky and an allocation showed up in the middle of a locked operation (because it triggered
+      // an allocation directly OR because that operation lost the GVL), let's skip this sample as well.
+      // (Note we don't take the lock ourselves: recording never loses the GVL, and is thus already atomic.)
+      || heap_recorder_is_locked(heap_recorder)
     ) {
     heap_recorder->recording_skipped = true;
     return need_commit;
@@ -523,34 +586,33 @@ void heap_recorder_commit_recordings_may_lose_gvl(heap_recorder *heap_recorder) 
     return; // Nothing to do
   }
 
-  if (heap_recorder->updating) {
-    // Because, like us, `heap_recorder_update` can lose the GVL, we don't want to run while it's also running.
-    // Skipping is fine -- `start_heap_allocation_recording` will ask for us to be called again on a later allocation.
+  if (!heap_recorder_try_lock(heap_recorder)) {
+    // Something else is busy; `start_heap_allocation_recording` will ask for us to be called again later
     return;
   }
+
+  // Wrap the next steps with `rb_ensure` so that we always get to release the lock
+  rb_ensure(
+    heap_recorder_commit_recordings_may_lose_gvl_locked,
+    (VALUE) heap_recorder,
+    heap_recorder_unlock_ensure,
+    (VALUE) heap_recorder
+  );
+}
+
+static VALUE heap_recorder_commit_recordings_may_lose_gvl_locked(VALUE heap_recorder_as_value) {
+  heap_recorder *heap_recorder = (struct heap_recorder *) heap_recorder_as_value;
 
   // Note: We consume the buffer back-to-front, decrementing the count as we go, so that (a) the entries we have
   // not gotten to yet stay marked (see `heap_recorder_mark`) across any GC triggered below, (b) we don't mark
   // already-processed pending_recordings (slower and would extend the lifetime of these recordings if not cleared) and
   // (c) if one of the steps below raises we don't reprocess the entries we already committed, i.e., we're idempotent.
   //
-  // Note as well that `ruby_weak_map_set_may_lose_gvl_and_allocate_objects` below can release the GVL (and, on older
-  // Rubies, allocate), and thus this function needs to tolerate other
-  // profiler operations being interleaved with it -- in particular an allocation sample (which appends to
-  // `pending_recordings`) or even another call to this function. (Unlike most of the profiler, our caller
-  // `commit_heap_recordings_from_postponed_job_may_lose_gvl` deliberately does not hold the `during_sample` flag,
-  // exactly because we may lose the GVL here.) This is safe because:
+  // Note as well that `ruby_weak_map_set_may_lose_gvl_and_allocate_objects` below can lose the GVL (and, on older
+  // Rubies, allocate). This function gets called while holding the heap recorder lock so that no other heap recorder
+  // operation can run in that window (including recording more allocations).
   //
-  // * We copy the pending_recording to the stack and decrement the count **before** we can lose the GVL, so from that
-  //   point on the slot is no longer ours: an allocation sample that gets to run will write to that same slot, and our
-  //   own next iteration will then pick that new recording up (nothing gets lost or processed twice).
-  // * `start_heap_allocation_recording` checks the `MAX_PENDING_RECORDINGS` limit after our decrement, so there's
-  //   always room for such a recording.
-  // * `record_id`s are unique, so an interleaved commit can't trip the duplicate check in `commit_recording`, and an
-  //   interleaved run of this function consumes different slots than we do.
-  // * `pending.heap_record` can't be freed from under us because `start_heap_allocation_recording` already accounted
-  //   for this recording in `num_tracked_objects` (see `inc_tracked_objects_or_fail`), so a `heap_recorder_update`
-  //   that gets to run will not consider that heap record unused.
+  // Finally, note that a GC can still happen.
   while (heap_recorder->pending_recordings_count > 0) {
     pending_recording pending = heap_recorder->pending_recordings[--heap_recorder->pending_recordings_count];
 
@@ -566,6 +628,8 @@ void heap_recorder_commit_recordings_may_lose_gvl(heap_recorder *heap_recorder) 
     // Ensure that the object we've just recorded is not collected until we've done all the bookeeping
     RB_GC_GUARD(pending.object_ref);
   }
+
+  return Qnil; // for rb_ensure
 }
 
 // Mark the Ruby objects the heap recorder holds on to.
@@ -593,24 +657,24 @@ void heap_recorder_mark(heap_recorder *heap_recorder) {
 //       so we can't assume a single update happens in a single "atomic" step -- other threads may get some running time
 //       in the meanwhile.
 static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update) {
-  if (heap_recorder->updating) {
-    if (full_update) {
-      // There's another thread that's already doing an update :(
-      //
-      // Because there's a lock on the `StackRecorder` (see @no_concurrent_serialize_mutex) then it's not possible that
-      // the other update is a full update.
-      // Thus we expect is happening is that the GVL got released by the other thread in the middle of a non-full update
-      // and the scheduler thread decided now was a great time to serialize the profile.
-      //
-      // So, let's yield the time on the current thread until Ruby goes back to the other thread doing the update and
-      // it finishes cleanly.
-      while (heap_recorder->updating) { rb_thread_schedule(); }
-    } else {
-      // Non-full updates are optional, so let's walk away
-      heap_recorder->stats_lifetime.updates_skipped_concurrent++;
-      return;
-    }
+  if (full_update) {
+    // A full update runs as part of serialization and can't be skipped, so we wait for our turn if needed
+    heap_recorder_lock(heap_recorder);
+  } else if (!heap_recorder_try_lock(heap_recorder)) {
+    // Non-full updates are optional, so let's walk away
+    heap_recorder->stats_lifetime.updates_skipped_concurrent++;
+    return;
   }
+
+  // Wrap the next steps with `rb_ensure` so that we always get to release the lock
+  heap_recorder_update_locked_args args = {.heap_recorder = heap_recorder, .full_update = full_update};
+  rb_ensure(heap_recorder_update_locked, (VALUE) &args, heap_recorder_unlock_ensure, (VALUE) heap_recorder);
+}
+
+static VALUE heap_recorder_update_locked(VALUE heap_recorder_update_locked_args_as_value) {
+  heap_recorder_update_locked_args *args = (heap_recorder_update_locked_args *) heap_recorder_update_locked_args_as_value;
+  heap_recorder *heap_recorder = args->heap_recorder;
+  bool full_update = args->full_update;
 
   if (heap_recorder->object_records_snapshot != NULL) {
     // While serialization is happening, it runs without the GVL and uses the object_records_snapshot.
@@ -618,7 +682,7 @@ static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update)
     // snapshotted for efficiency reasons (e.g. heap_records). Since updating may invalidate
     // some of that non-snapshotted data, let's refrain from doing updates during iteration. This also enforces the
     // semantic that iteration will operate as a point-in-time snapshot.
-    return;
+    return Qnil;
   }
 
   size_t current_gc_gen = rb_gc_count();
@@ -633,31 +697,23 @@ static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update)
       // object records to do an update, let's wait until all steps for a particular GC generation
       // have finished to do so. We may revisit this once we have a better liveness checking mechanism.
       heap_recorder->stats_lifetime.updates_skipped_gcgen++;
-      return;
+      return Qnil;
     }
 
     if (now_ns > 0 && (now_ns - heap_recorder->last_update_ns) < MIN_TIME_BETWEEN_HEAP_RECORDER_UPDATES_NS) {
       // We did an update not too long ago. Let's skip this one to avoid over-taxing the system.
       heap_recorder->stats_lifetime.updates_skipped_time++;
-      return;
+      return Qnil;
     }
   }
 
-  heap_recorder->updating = true;
   // Reset last update stats, we'll be building them from scratch during the st_foreach call below
   heap_recorder->stats_last_update = (struct stats_last_update) {0};
 
   heap_recorder->update_gen = current_gc_gen;
   heap_recorder->update_include_old = full_update;
 
-  // Wrap this update to make sure `updating` doesn't stay stuck if an exception happens; this is important because of
-  // the `while (heap_recorder->updating) { rb_thread_schedule(); }` loop above
-  int exception_state;
-  rb_protect(update_object_records, (VALUE) heap_recorder, &exception_state);
-  if (exception_state) {
-    heap_recorder->updating = false;
-    rb_jump_tag(exception_state); // Re-raise, now that we've cleaned up
-  }
+  st_foreach(heap_recorder->object_records, st_object_record_update, (st_data_t) heap_recorder);
 
   heap_recorder->last_update_ns = now_ns;
   heap_recorder->stats_lifetime.updates_successful++;
@@ -673,13 +729,7 @@ static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update)
     heap_recorder->stats_lifetime.ewma_objects_skipped = ewma_stat(heap_recorder->stats_lifetime.ewma_objects_skipped, heap_recorder->stats_last_update.objects_skipped);
   }
 
-  heap_recorder->updating = false;
-}
-
-static VALUE update_object_records(VALUE heap_recorder_as_value) {
-  heap_recorder *recorder = (heap_recorder *) heap_recorder_as_value;
-  st_foreach(recorder->object_records, st_object_record_update, (st_data_t) recorder);
-  return Qnil; // for rb_protect
+  return Qnil; // for rb_ensure
 }
 
 void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
