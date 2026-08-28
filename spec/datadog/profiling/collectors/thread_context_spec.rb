@@ -791,13 +791,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               end
 
               context "when an exception is raised" do
-                before { setup_failure }
-                after { expect(ran_log).to eq [:ran_code] }
-
                 it "does not leave the exception pending" do
+                  setup_failure
+
                   sample
 
                   expect($!).to be nil
+                  expect(ran_log).to eq [:ran_code]
                 end
               end
             end
