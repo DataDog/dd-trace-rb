@@ -1722,7 +1722,9 @@ static void commit_heap_recordings_from_postponed_job_may_lose_gvl(DDTRACE_UNUSE
 
   if (state == NULL || !ddtrace_rb_ractor_main_p()) return;
 
-  // Protect against nested operations.
+  // Protect against nested operations, such as being called from inside `on_newobj_event` (which could be
+  // mutating the heap profiler). `during_sample` by itself doesn't prevent all concurrency inside the heap profiler,
+  // see "note on locking" inside `heap_profiler.c` for details.
   //
   // Note that, unlike the other sampling operations in this file, we only **check** the `during_sample` flag but
   // deliberately don't hold it as the below function can release the GVL and `during_sample` shouldn't be held
