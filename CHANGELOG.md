@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+* Dynamic Instrumentation: Honor organization- and environment-level remote enablement for Ruby services. ([#6234][])
+
 ## [2.41.0] - 2026-08-13
 
 ### Added
@@ -5576,6 +5580,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#6138]: https://github.com/DataDog/dd-trace-rb/issues/6138
 [#6142]: https://github.com/DataDog/dd-trace-rb/issues/6142
 [#6173]: https://github.com/DataDog/dd-trace-rb/issues/6173
+[#6234]: https://github.com/DataDog/dd-trace-rb/issues/6234
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
