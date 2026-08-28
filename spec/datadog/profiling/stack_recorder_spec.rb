@@ -638,12 +638,18 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
           # All allocations done in the before + all those done here
           expected_allocation_samples = @num_allocations + test_num_allocated_object
-          # a_string, an_array, a_hash plus all the strings in live_objects
-          expected_heap_samples = 3 + test_num_allocated_object
+
+          # One sample is recorded per live tracked object, and each of them contributes `sample_rate` to
+          # `heap-live-samples`. We don't hardcode this number because the objects we dropped in the `before` above are
+          # sometimes still seen as alive (see NOTE there) -- that's not what this test is about, so instead we count
+          # the objects that actually made it into the profile.
+          recorded_heap_samples = heap_samples.sum { |s| s.values[:"heap-live-samples"] } / sample_rate
+          # At least a_string, an_array, a_hash plus all the strings in live_objects
+          expect(recorded_heap_samples).to be >= 3 + test_num_allocated_object
 
           expect(profile_stats).to match(
             hash_including(
-              recorded_samples: expected_allocation_samples + expected_heap_samples,
+              recorded_samples: expected_allocation_samples + recorded_heap_samples,
               heap_iteration_prep_time_ns: be > 0,
               heap_profile_build_time_ns: be > 0,
             )
