@@ -28,6 +28,8 @@ module Datadog
               request_env.headers["Content-Type"] = env.request.parcel.content_type
               request_env.headers[Core::EVP::SUBDOMAIN_HEADER_NAME] =
                 Core::EVP::EVENT_PLATFORM_INTAKE_SUBDOMAIN
+              request_env.headers["DD-EVP-ORIGIN"] = "dd-trace-rb"
+              request_env.headers["DD-EVP-ORIGIN-VERSION"] = Datadog::VERSION::STRING
               request_env.body = env.request.parcel.data
 
               block.call(request_env)

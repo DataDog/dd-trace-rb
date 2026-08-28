@@ -18,13 +18,19 @@ RSpec.describe Datadog::OpenFeature::Transport::HTTP do
     before { stub_request(:post, %r{/evp_proxy/v2/api/v2/exposures}).to_return(status: 201, body: "") }
 
     context "when request was successful" do
-      it "posts encoded payload to exposures endpoint" do
-        transport.send_exposures("event" => "value")
+      it "posts encoded payload and SDK identity to exposures endpoint" do
+        response = transport.send_exposures("event" => "value")
 
+        expect(response.code).to eq(201)
         expect(
           a_request(:post, %r{/evp_proxy/v2/api/v2/exposures})
             .with(
-              headers: {"X-Datadog-EVP-Subdomain" => "event-platform-intake"},
+              headers: {
+                "Content-Type" => "application/json",
+                "DD-EVP-ORIGIN" => "dd-trace-rb",
+                "DD-EVP-ORIGIN-VERSION" => Datadog::VERSION::STRING,
+                "X-Datadog-EVP-Subdomain" => "event-platform-intake",
+              },
               body: '{"event":"value"}'
             )
         ).to have_been_made.once
