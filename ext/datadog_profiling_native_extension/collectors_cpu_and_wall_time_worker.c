@@ -1496,14 +1496,14 @@ static VALUE rescued_sample_allocation(VALUE arg) {
   // To control bias from sampling, we clamp the maximum weight attributed to a single allocation sample. This avoids
   // assigning a very large number to a sample, if for instance the dynamic sampling mechanism chose a really big interval.
   unsigned int weight = allocations_since_last_sample > MAX_ALLOC_WEIGHT ? MAX_ALLOC_WEIGHT : (unsigned int) allocations_since_last_sample;
-  bool needs_after_allocation = thread_context_collector_sample_allocation(state->thread_context_collector_instance, thread_context, weight, new_object);
+  bool needs_commit = thread_context_collector_sample_allocation(state->thread_context_collector_instance, thread_context, weight, new_object);
   // ...but we still represent the skipped samples in the profile, thus the data will account for all allocations.
   if (weight < allocations_since_last_sample) {
     uint32_t skipped_samples = (uint32_t) uint64_min_of(allocations_since_last_sample - weight, UINT32_MAX);
     thread_context_collector_sample_skipped_allocation_samples(state->thread_context_collector_instance, skipped_samples);
   }
 
-  if (needs_after_allocation) {
+  if (needs_commit) {
     #ifndef NO_POSTPONED_TRIGGER
       rb_postponed_job_trigger(commit_heap_recordings_from_postponed_job_may_lose_gvl_handle);
     #else

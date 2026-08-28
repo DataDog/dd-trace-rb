@@ -1531,9 +1531,9 @@ VALUE enforce_thread_context_collector_instance(VALUE object) {
   return object;
 }
 
-// Finalize any pending heap allocation recordings.
-// On Ruby 4+, heap allocations are recorded in two phases: during on_newobj_event we capture
-// the object reference, then later we safely call rb_obj_id() to get the object ID.
+// Commit any pending heap allocation recordings.
+// Recording an allocation only puts it on a pending list, because taking the weak reference the heap profiler needs
+// can't be done from inside the NEWOBJ tracepoint -- see `heap_recorder_commit_recordings_may_lose_gvl`.
 void thread_context_collector_commit_heap_recordings_may_lose_gvl(VALUE self_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -1752,22 +1752,22 @@ bool thread_context_collector_sample_allocation(VALUE self_instance, per_thread_
     class_name = ruby_vm_type; // For other weird internal things we just use the VM type
   }
 
-  bool needs_after_allocation = track_object(state->recorder_instance, new_object, sample_weight, class_name);
-
   VALUE current_thread = rb_thread_current();
+
+  heap_sample_values heap_sample = {.new_object = new_object, .alloc_class = class_name};
 
   trigger_sample_for_thread(
     state,
     current_thread,
     thread_context,
-    (sample_values) {.alloc_samples = sample_weight, .alloc_samples_unscaled = 1, .heap_sample = true},
+    (sample_values) {.alloc_samples = sample_weight, .alloc_samples_unscaled = 1, .heap_sample = &heap_sample},
     INVALID_TIME, // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
     &ruby_vm_type,
     &class_name,
     /* is_gvl_waiting_state: */ false
   );
 
-  return needs_after_allocation;
+  return heap_sample.out_needs_commit;
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
@@ -1780,13 +1780,13 @@ static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collecto
 
   debug_enter_unsafe_context();
 
-  bool needs_after_allocation = thread_context_collector_sample_allocation(collector_instance, thread_context, NUM2UINT(sample_weight), new_object);
+  bool needs_commit = thread_context_collector_sample_allocation(collector_instance, thread_context, NUM2UINT(sample_weight), new_object);
 
   debug_leave_unsafe_context();
 
   // We could instead choose to automatically trigger the after allocation here; yet, it seems kinda nice to keep it manual for
   // the tests so we can pull on each lever separately and observe "the sausage being made" in steps
-  return needs_after_allocation ? Qtrue : Qfalse;
+  return needs_commit ? Qtrue : Qfalse;
 }
 
 static VALUE new_empty_thread_inner(DDTRACE_UNUSED void *arg) {

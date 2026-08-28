@@ -981,7 +981,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           eval("proc { def self.foo; rand; end; foo }.call", binding, __FILE__, __LINE__)
         end
 
-        # Internal objects are skipped by the heap profiler (see `start_heap_allocation_recording()`) because tracking
+        # Internal objects are skipped by the heap profiler (see
+        # `heap_recorder_record_allocation_with_rb_protect()`) because tracking
         # them would mean adding them to a `ObjectSpace::WeakMap`, which is not safe. They are still allocation
         # sampled, as that is safe and useful.
         it "records them as allocation samples but never as heap samples" do

@@ -12,24 +12,19 @@ puts "Libdatadog from: #{Libdatadog.pkgconfig_folder}"
 # This benchmark measures the performance of sampling + serializing memory profiles. It enables us to evaluate changes to
 # the profiler and/or libdatadog that may impact both individual samples, as well as samples over time.
 #
-METRIC_VALUES = {"cpu-time" => 0, "cpu-samples" => 0, "wall-time" => 0, "alloc-samples" => 1, "timeline" => 0, "heap_sample" => true}.freeze
+METRIC_VALUES = {"cpu-time" => 0, "cpu-samples" => 0, "wall-time" => 0, "alloc-samples" => 1, "timeline" => 0}.freeze
 OBJECT_CLASS = "object".freeze
 
 def sample_object(recorder, depth = 0)
   if depth <= 0
     obj = Object.new
-    Datadog::Profiling::StackRecorder::Testing._native_track_object(
-      recorder,
-      obj,
-      1,
-      OBJECT_CLASS,
-    )
     Datadog::Profiling::Collectors::Stack::Testing._native_sample(
       Thread.current,
       recorder,
       METRIC_VALUES,
       [],
       [],
+      heap_sample: {new_object: obj, alloc_class: OBJECT_CLASS},
     )
     # Heap recordings are deferred and need to be committed after the sample is recorded; in the real profiler this
     # is driven by a postponed job.

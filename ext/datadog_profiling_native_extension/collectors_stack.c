@@ -130,8 +130,16 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
   ENFORCE_BOOLEAN(show_classes);
 
   VALUE zero = INT2NUM(0);
-  VALUE heap_sample = rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("heap_sample"), Qfalse);
-  ENFORCE_BOOLEAN(heap_sample);
+  // Pass `heap_sample: {new_object: ..., alloc_class: ...}` to also record this sample for heap profiling
+  VALUE heap_sample_options = rb_hash_lookup2(options, ID2SYM(rb_intern("heap_sample")), Qnil);
+  heap_sample_values heap_sample = {.new_object = Qnil};
+  if (heap_sample_options != Qnil) {
+    ENFORCE_TYPE(heap_sample_options, T_HASH);
+    heap_sample.new_object = rb_hash_fetch(heap_sample_options, ID2SYM(rb_intern("new_object")));
+    heap_sample.alloc_class =
+      char_slice_from_ruby_string(rb_hash_fetch(heap_sample_options, ID2SYM(rb_intern("alloc_class"))));
+  }
+
   sample_values values = {
     .cpu_time_ns   = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("cpu-time"),      zero)),
     .cpu_or_wall_samples = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("cpu-samples"), zero)),
@@ -139,7 +147,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
     .alloc_samples = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("alloc-samples"), zero)),
     .alloc_samples_unscaled = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("alloc-samples-unscaled"), zero)),
     .timeline_wall_time_ns = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("timeline"), zero)),
-    .heap_sample = heap_sample == Qtrue,
+    .heap_sample = heap_sample_options != Qnil ? &heap_sample : NULL,
   };
 
   long labels_count = RARRAY_LEN(labels_array) + RARRAY_LEN(numeric_labels_array);

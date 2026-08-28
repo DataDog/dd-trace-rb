@@ -252,7 +252,6 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_
 static void serializer_set_start_timestamp_for_next_profile(stack_recorder_state *state, ddog_Timespec start_time);
 static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint);
 static void reset_profile_slot(profile_slot *slot, ddog_Timespec start_timestamp);
-static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight, VALUE alloc_class);
 static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_end_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
@@ -261,6 +260,7 @@ static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns,
 static VALUE _native_is_object_recorded(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE record_id);
 static VALUE _native_record_id_for(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE obj);
 static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_heap_recorder_exhaust_record_ids(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_recorder_heap_update(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_benchmark_intern(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE string, VALUE times, VALUE use_all);
 static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE_UNUSED VALUE _self);
@@ -289,7 +289,6 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_slot_one_mutex_locked?", _native_is_slot_one_mutex_locked, 1);
   rb_define_singleton_method(testing_module, "_native_slot_two_mutex_locked?", _native_is_slot_two_mutex_locked, 1);
   rb_define_singleton_method(testing_module, "_native_record_endpoint", _native_record_endpoint, 3);
-  rb_define_singleton_method(testing_module, "_native_track_object", _native_track_object, 4);
   rb_define_singleton_method(testing_module, "_native_start_fake_slow_heap_serialization",
       _native_start_fake_slow_heap_serialization, 1);
   rb_define_singleton_method(testing_module, "_native_end_fake_slow_heap_serialization",
@@ -299,6 +298,7 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_is_object_recorded?", _native_is_object_recorded, 2);
   rb_define_singleton_method(testing_module, "_native_record_id_for", _native_record_id_for, 2);
   rb_define_singleton_method(testing_module, "_native_heap_recorder_reset_last_update", _native_heap_recorder_reset_last_update, 1);
+  rb_define_singleton_method(testing_module, "_native_heap_recorder_exhaust_record_ids", _native_heap_recorder_exhaust_record_ids, 1);
   rb_define_singleton_method(testing_module, "_native_recorder_heap_update", _native_recorder_heap_update, 1);
   rb_define_singleton_method(testing_module, "_native_benchmark_intern", _native_benchmark_intern, 4);
   rb_define_singleton_method(testing_module, "_native_test_managed_string_storage_produces_valid_profiles", _native_test_managed_string_storage_produces_valid_profiles, 0);
@@ -623,16 +623,18 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   metric_values[position_for[ALLOC_SAMPLES_UNSCALED_VALUE_ID]] = values.alloc_samples_unscaled;
   metric_values[position_for[TIMELINE_VALUE_ID]]      = values.timeline_wall_time_ns;
 
-  if (values.heap_sample) {
-    // If we got an allocation sample end the heap allocation recording to commit the heap sample.
-    // FIXME: Heap sampling currently has to be done in 2 parts because the construction of locations is happening
-    //        very late in the allocation-sampling path (which is shared with the cpu sampling path). This can
-    //        be fixed with some refactoring but for now this leads to a less impactful change.
-    //
+  if (values.heap_sample != NULL) {
     // NOTE: The heap recorder is allowed to raise exceptions if something's wrong. But we also need to handle it
     // on this side to make sure we properly unlock the active slot mutex on our way out. Otherwise, this would
     // later lead to deadlocks (since the active slot mutex is not expected to be locked forever).
-    int exception_state = end_heap_allocation_recording_with_rb_protect(state->heap_recorder, locations);
+    int exception_state = heap_recorder_record_allocation_with_rb_protect(
+      state->heap_recorder,
+      values.heap_sample->new_object,
+      values.alloc_samples,
+      values.heap_sample->alloc_class,
+      locations,
+      &values.heap_sample->out_needs_commit
+    );
     if (exception_state) {
       sampler_unlock_active_profile(active_slot);
       rb_jump_tag(exception_state);
@@ -657,19 +659,6 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
     raise_error(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
-}
-
-// This method gets called from inside the RUBY_INTERNAL_EVENT_NEWOBJ tracepoint so it should neither allocate in the
-// Ruby heap nor release the GVL (https://github.com/DataDog/dd-trace-rb/pull/4240).
-//
-// Returns needs_after_allocation: true whenever a `recorder_commit_heap_recordings_may_lose_gvl` callback is required
-bool track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight, ddog_CharSlice alloc_class) {
-  stack_recorder_state *state;
-  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
-  // FIXME: Heap sampling currently has to be done in 2 parts because the construction of locations is happening
-  //        very late in the allocation-sampling path (which is shared with the cpu sampling path). This can
-  //        be fixed with some refactoring but for now this leads to a less impactful change.
-  return start_heap_allocation_recording(state->heap_recorder, new_object, sample_weight, alloc_class);
 }
 
 void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_CharSlice endpoint) {
@@ -943,15 +932,6 @@ static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_
   return Qtrue;
 }
 
-static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight, VALUE alloc_class) {
-  ENFORCE_TYPE(weight, T_FIXNUM);
-  bool needs_after_allocation = track_object(recorder_instance, new_obj, NUM2UINT(weight), char_slice_from_ruby_string(alloc_class));
-
-  // We could instead choose to automatically trigger the after allocation here; yet, it seems kinda nice to keep it manual for
-  // the tests so we can pull on each lever separately and observe "the sausage being made" in steps
-  return needs_after_allocation ? Qtrue : Qfalse;
-}
-
 static void reset_profile_slot(profile_slot *slot, ddog_Timespec start_timestamp) {
   ddog_prof_Profile_Result reset_result = ddog_prof_Profile_reset(&slot->profile);
   if (reset_result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
@@ -1043,6 +1023,14 @@ static VALUE _native_record_id_for(DDTRACE_UNUSED VALUE _self, VALUE recorder_in
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
   return heap_recorder_testonly_record_id_for(state->heap_recorder, obj);
+}
+
+static VALUE _native_heap_recorder_exhaust_record_ids(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
+
+  heap_recorder_testonly_exhaust_record_ids(state->heap_recorder);
+  return Qtrue;
 }
 
 static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {

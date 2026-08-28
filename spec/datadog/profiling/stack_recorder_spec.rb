@@ -371,7 +371,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           "wall-time" => 789,
           "alloc-samples" => sample_rate,
           "timeline" => 42,
-          "heap_sample" => true,
         }
       end
       let(:labels) { {"label_a" => "value_a", "label_b" => "value_b", "state" => "unknown"}.to_a }
@@ -384,10 +383,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       # Returns the record id the heap recorder is using to track `obj`, or nil if the allocation wasn't sampled
       def sample_allocation(obj)
-        # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
-        described_class::Testing._native_track_object(stack_recorder, obj, sample_rate, obj.class.name)
-        Datadog::Profiling::Collectors::Stack::Testing
-          ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
+        Datadog::Profiling::Collectors::Stack::Testing._native_sample(
+          Thread.current, stack_recorder, metric_values, labels, numeric_labels,
+          heap_sample: {new_object: obj, alloc_class: obj.class.name},
+        )
         # Heap recordings are deferred and need to be committed after the sample is recorded
         described_class::Testing._native_commit_heap_recordings(stack_recorder)
         described_class::Testing._native_record_id_for(stack_recorder, obj)
@@ -551,8 +550,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           # for each profile-type there in.
           expected_summed_values = {"heap-live-samples": 0, "heap-live-size": 0, "alloc-samples-unscaled": 0}
           metric_values.each_pair do |k, v|
-            next if k == "heap_sample" # This is not a metric, ignore it
-
             expected_summed_values[k.to_sym] = v * @num_allocations
           end
 
@@ -684,14 +681,21 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           end
         end
 
-        # NOTE: This is a regression test that exceptions in end_heap_allocation_recording_with_rb_protect are safely
-        # handled by the stack_recorder.
+        # NOTE: This is a regression test that exceptions raised by the heap recorder while recording a sample are
+        # safely handled by the stack_recorder.
         context "when the heap sampler raises an exception during _native_sample" do
+          before { described_class::Testing._native_heap_recorder_exhaust_record_ids(stack_recorder) }
+
+          def sample_allocation_expecting_failure
+            Datadog::Profiling::Collectors::Stack::Testing._native_sample(
+              Thread.current, stack_recorder, metric_values, labels, numeric_labels,
+              heap_sample: {new_object: Object.new, alloc_class: "Object"},
+            )
+          end
+
           it "propagates the exception" do
-            expect do
-              Datadog::Profiling::Collectors::Stack::Testing
-                ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
-            end.to raise_error(::RuntimeError, include("Ended a heap recording"))
+            expect { sample_allocation_expecting_failure }
+              .to raise_error(::RuntimeError, include("Exhausted usable record_ids"))
           end
 
           it "does not keep the active slot mutex locked" do
@@ -700,8 +704,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             expect(slot_two_mutex_locked?).to be true
 
             begin
-              Datadog::Profiling::Collectors::Stack::Testing
-                ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
+              sample_allocation_expecting_failure
             rescue # rubocop:disable Lint/SuppressedException
             end
 
@@ -716,16 +719,17 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             described_class::Testing._native_debug_heap_recorder(stack_recorder).to_h.dig(:state, :pending_recordings_count) > 0
           end
 
-          def track_object_without_commit(obj)
-            described_class::Testing._native_track_object(stack_recorder, obj, sample_rate, obj.class.name)
-            Datadog::Profiling::Collectors::Stack::Testing
-              ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
+          def sample_allocation_without_commit(obj)
+            Datadog::Profiling::Collectors::Stack::Testing._native_sample(
+              Thread.current, stack_recorder, metric_values, labels, numeric_labels,
+              heap_sample: {new_object: obj, alloc_class: obj.class.name},
+            )
           end
 
           it "clears pending recordings after committing" do
             test_object = Object.new
 
-            track_object_without_commit(test_object)
+            sample_allocation_without_commit(test_object)
 
             expect(has_pending_recordings?).to be true
 
@@ -737,7 +741,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           it "clears all pending recordings after multiple allocations" do
             3.times do
               test_object = Object.new
-              track_object_without_commit(test_object)
+              sample_allocation_without_commit(test_object)
             end
 
             expect(has_pending_recordings?).to be true
@@ -1052,10 +1056,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
 
       def sample_allocation(obj)
-        # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
-        described_class::Testing._native_track_object(stack_recorder, obj, 1, obj.class.name)
         Datadog::Profiling::Collectors::Stack::Testing._native_sample(
-          Thread.current, stack_recorder, {"alloc-samples" => 1, "heap_sample" => true}, [], [],
+          Thread.current, stack_recorder, {"alloc-samples" => 1}, [], [],
+          heap_sample: {new_object: obj, alloc_class: obj.class.name},
         )
         # Heap recordings are deferred and need to be committed after the sample is recorded
         described_class::Testing._native_commit_heap_recordings(stack_recorder)
