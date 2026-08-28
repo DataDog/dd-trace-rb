@@ -9,9 +9,15 @@ module Datadog
 
           attr_reader base64_capabilities: String
 
+          @capabilities: Array[Integer]
+
           @products: ::Array[::String]
 
-          @products_mutex: ::Thread::Mutex
+          @receivers: Array[Core::Remote::Dispatcher::Receiver]
+
+          @base64_capabilities: String
+
+          @mutex: ::Thread::Mutex
 
           @telemetry: Datadog::Core::Telemetry::Component
 
@@ -21,6 +27,12 @@ module Datadog
           ) -> void
 
           def products: () -> ::Array[::String]
+
+          def register_runtime: (
+            capabilities: Array[Integer],
+            products: Array[String],
+            receivers: Array[Core::Remote::Dispatcher::Receiver]
+          ) -> void
 
           def add_products: (*::String products) -> void
 

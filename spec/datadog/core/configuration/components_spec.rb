@@ -36,7 +36,17 @@ RSpec.describe Datadog::Core::Configuration::Components do
   let(:agent_info) { Datadog::Core::Environment::AgentInfo.new(agent_settings, logger: logger) }
 
   let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
-  let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil, started?: false, add_products: nil, remove_products: nil) }
+  let(:remote) do
+    instance_double(
+      Datadog::Core::Remote::Component,
+      start: nil,
+      shutdown!: nil,
+      started?: false,
+      add_products: nil,
+      remove_products: nil,
+      register: nil,
+    )
+  end
   let(:telemetry) do
     instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
       allow(telemetry).to receive(:start)
@@ -869,6 +879,25 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
     end
 
+    context "when the OpenFeature provider was adopted" do
+      let(:activation) do
+        instance_double(
+          Datadog::OpenFeature::Activation,
+          activated?: true,
+          component: nil,
+          shutdown!: nil,
+        )
+      end
+
+      before do
+        allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
+      end
+
+      it "captures OpenFeature activation" do
+        expect(components.state.open_feature_activated?).to be(true)
+      end
+    end
+
     # Regression: prior to using `using_default?`, #state branched on
     # `!@settings.dynamic_instrumentation.enabled`. Datadog.configure mutates
     # the singleton settings BEFORE the old tree's #state is read; an explicit
@@ -1012,6 +1041,71 @@ RSpec.describe Datadog::Core::Configuration::Components do
         startup!
         expect(components.dynamic_instrumentation.started?).to be false
       end
+    end
+  end
+
+  describe "OpenFeature activation" do
+    let(:open_feature_component) { instance_double(Datadog::OpenFeature::Component) }
+    let(:activation) do
+      instance_double(
+        Datadog::OpenFeature::Activation,
+        activate: open_feature_component,
+        activated?: false,
+        component: open_feature_component,
+        shutdown!: nil,
+      )
+    end
+
+    before do
+      allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
+    end
+
+    it "does not activate while constructing components" do
+      components
+
+      expect(activation).to_not have_received(:activate)
+    end
+
+    it "delegates provider adoption" do
+      expect(components.activate_open_feature!).to be(open_feature_component)
+      expect(activation).to have_received(:activate).once
+    end
+
+    it "exposes the activated component" do
+      expect(components.open_feature).to be(open_feature_component)
+    end
+  end
+
+  describe "#startup! with prior OpenFeature activation" do
+    subject(:startup!) { components.startup!(settings, old_state: old_state) }
+
+    let(:activation) do
+      instance_double(
+        Datadog::OpenFeature::Activation,
+        activate: nil,
+        activated?: false,
+        component: nil,
+        shutdown!: nil,
+      )
+    end
+    let(:old_state) do
+      Datadog::Core::Configuration::ComponentsState.new(
+        telemetry_enabled: true,
+        remote_started: false,
+        open_feature_activated: true,
+      )
+    end
+
+    before do
+      allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
+      allow(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
+      allow(Datadog::Core::ProcessDiscovery).to receive(:publish)
+    end
+
+    it "activates the replacement component tree" do
+      startup!
+
+      expect(activation).to have_received(:activate).once
     end
   end
 

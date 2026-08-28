@@ -35,4 +35,22 @@ RSpec.describe Datadog::Core::Configuration::ComponentsState do
       expect(state.di_implicitly_enabled?).to be false
     end
   end
+
+  describe "#open_feature_activated?" do
+    it "defaults to false" do
+      state = described_class.new(telemetry_enabled: true, remote_started: false)
+
+      expect(state.open_feature_activated?).to be(false)
+    end
+
+    it "records provider adoption" do
+      state = described_class.new(
+        telemetry_enabled: true,
+        remote_started: false,
+        open_feature_activated: true,
+      )
+
+      expect(state.open_feature_activated?).to be(true)
+    end
+  end
 end

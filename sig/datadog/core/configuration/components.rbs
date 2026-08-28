@@ -56,9 +56,13 @@ module Datadog
 
         attr_reader open_feature: Datadog::OpenFeature::Component?
 
+        @open_feature_activation: Datadog::OpenFeature::Activation
+
         def initialize: (untyped settings) -> untyped
 
         def startup!: (untyped settings) -> untyped
+
+        def activate_open_feature!: () -> Datadog::OpenFeature::Component?
 
         def shutdown!: (?untyped? replacement) -> untyped
       end

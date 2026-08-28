@@ -2,6 +2,7 @@
 
 require "spec_helper"
 require "datadog/core/remote/component"
+require "datadog/open_feature/remote"
 
 RSpec.describe Datadog::Core::Remote::Component, :integration do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
@@ -222,6 +223,29 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
 
         it { is_expected.to eq(false) }
       end
+    end
+  end
+
+  describe "#register" do
+    let(:receiver) { Datadog::OpenFeature::Remote.receivers(telemetry).first }
+
+    after { component.shutdown! }
+
+    it "updates capabilities and the active dispatcher" do
+      expect(capabilities).to receive(:register_runtime).with(
+        capabilities: [70368744177664],
+        products: ["FFE_FLAGS"],
+        receivers: [receiver],
+      ).and_call_original
+      expect(component.client.dispatcher).to receive(:add_receivers).with(receiver).twice.and_call_original
+
+      component.register(
+        capabilities: Datadog::OpenFeature::Remote.capabilities,
+        products: Datadog::OpenFeature::Remote.products,
+        receivers: [receiver],
+      )
+
+      expect(component.client.dispatcher.receivers).to include(receiver)
     end
   end
 

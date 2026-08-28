@@ -23,6 +23,27 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
   subject(:provider) { described_class.new }
 
+  describe "#init" do
+    let(:components) do
+      instance_double(Datadog::Core::Configuration::Components, activate_open_feature!: nil)
+    end
+
+    before do
+      allow(Datadog).to receive(:send).with(:components).and_return(components)
+      allow(Datadog).to receive(:send).with(:safely_synchronize).and_yield
+      allow(Datadog).to receive(:send)
+        .with(:components, allow_initialization: false)
+        .and_return(components)
+    end
+
+    it "activates OpenFeature while component reconfiguration is locked" do
+      provider.init
+
+      expect(Datadog).to have_received(:send).with(:safely_synchronize)
+      expect(components).to have_received(:activate_open_feature!).once
+    end
+  end
+
   describe "#fetch_boolean_value" do
     context "when engine is not configured" do
       before { allow(Datadog::OpenFeature).to receive(:engine).and_return(nil) }

@@ -3,6 +3,7 @@
 require "spec_helper"
 require "datadog/core/remote/client/capabilities"
 require "datadog/appsec/configuration"
+require "datadog/open_feature/remote"
 
 RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   subject(:capabilities) { described_class.new(settings, telemetry) }
@@ -348,6 +349,24 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     end
   end
 
+  context "OpenFeature component" do
+    let(:settings) do
+      Datadog::Core::Configuration::Settings.new.tap do |settings|
+        settings.open_feature.enabled = true
+      end
+    end
+
+    it "defers registration until provider adoption" do
+      expect(capabilities.capabilities).to_not include(70368744177664)
+      expect(capabilities.products).to_not include("FFE_FLAGS")
+      expect(capabilities.receivers).to_not include(
+        lambda { |receiver|
+          receiver.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/FFE_FLAGS/_/_")
+        }
+      )
+    end
+  end
+
   # The receiver registration order is load-bearing: on a combined RC
   # dispatch (LIVE_DEBUGGING probe insert + APM_TRACING
   # dynamic_instrumentation_enabled=true in one transaction), the Tracing
@@ -382,18 +401,35 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     end
   end
 
-  describe "#capabilities_to_base64" do
+  describe "runtime capability registration" do
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+    let(:receiver) { Datadog::OpenFeature::Remote.receivers(telemetry).first }
+
     before do
-      allow(capabilities).to receive(:capabilities).and_return(
-        [
-          1 << 1,
-          1 << 2,
-        ]
+      capabilities.register_runtime(
+        capabilities: Datadog::OpenFeature::Remote.capabilities,
+        products: Datadog::OpenFeature::Remote.products,
+        receivers: [receiver],
       )
     end
 
-    it "returns base64 string" do
-      expect(capabilities.send(:capabilities_to_base64)).to eq("Bg==")
+    it "registers capability, product, receiver, and encoded capability" do
+      expect(capabilities.capabilities).to include(70368744177664)
+      expect(capabilities.products).to include("FFE_FLAGS")
+      expect(capabilities.receivers).to include(receiver)
+      expect(capabilities.base64_capabilities).to eq("QEAgAHAA")
+    end
+
+    it "is idempotent" do
+      capabilities.register_runtime(
+        capabilities: Datadog::OpenFeature::Remote.capabilities,
+        products: Datadog::OpenFeature::Remote.products,
+        receivers: [receiver],
+      )
+
+      expect(capabilities.capabilities.count(70368744177664)).to eq(1)
+      expect(capabilities.products.count("FFE_FLAGS")).to eq(1)
+      expect(capabilities.receivers.count(receiver)).to eq(1)
     end
   end
 

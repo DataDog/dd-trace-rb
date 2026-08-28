@@ -1,0 +1,35 @@
+module Datadog
+  module OpenFeature
+    class Activation
+      attr_reader component: Component?
+
+      @settings: Datadog::Core::Configuration::Settings
+      @agent_settings: Datadog::Core::Configuration::AgentSettings
+      @remote: Datadog::Core::Remote::Component?
+      @logger: Datadog::Core::Logger
+      @telemetry: Datadog::Core::Telemetry::Component
+      @component: Component?
+      @activated: bool
+      @shutdown: bool
+      @mutex: ::Thread::Mutex
+
+      def initialize: (
+        Datadog::Core::Configuration::Settings settings,
+        Datadog::Core::Configuration::AgentSettings agent_settings,
+        Datadog::Core::Remote::Component? remote,
+        logger: Datadog::Core::Logger,
+        telemetry: Datadog::Core::Telemetry::Component
+      ) -> void
+
+      def activate: () -> Component?
+
+      def activated?: () -> bool
+
+      def shutdown!: () -> void
+
+      private
+
+      def register_remote_configuration: () -> void
+    end
+  end
+end

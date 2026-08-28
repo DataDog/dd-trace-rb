@@ -109,6 +109,18 @@ module Datadog
           @capabilities.remove_products(*products)
         end
 
+        def register(capabilities:, products:, receivers:)
+          # Add to both sides first and last so a concurrently replaced client
+          # cannot miss the dynamically registered receivers.
+          @client.dispatcher.add_receivers(*receivers)
+          @capabilities.register_runtime(
+            capabilities: capabilities,
+            products: products,
+            receivers: receivers,
+          )
+          @client.dispatcher.add_receivers(*receivers)
+        end
+
         # Barrier provides a mechanism to fence execution until a condition happens
         class Barrier
           def initialize(timeout = nil)

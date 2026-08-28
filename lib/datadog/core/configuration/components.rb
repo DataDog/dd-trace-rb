@@ -21,7 +21,7 @@ require_relative "../../ai_guard/component"
 require_relative "../../di/component"
 require_relative "../../symbol_database"
 require_relative "../../symbol_database/component"
-require_relative "../../open_feature/component"
+require_relative "../../open_feature/activation"
 require_relative "../../error_tracking/component"
 require_relative "../crashtracking/component"
 require_relative "../environment/agent_info"
@@ -154,8 +154,7 @@ module Datadog
           :ai_guard,
           :agent_info,
           :data_streams,
-          :symbol_database,
-          :open_feature
+          :symbol_database
 
         def initialize(settings)
           @settings = settings
@@ -204,7 +203,13 @@ module Datadog
           @health_metrics = self.class.build_health_metrics(settings, @logger, telemetry)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
           @ai_guard = Datadog::AIGuard::Component.build(settings, logger: @logger, telemetry: telemetry)
-          @open_feature = OpenFeature::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
+          @open_feature_activation = OpenFeature::Activation.new(
+            settings,
+            agent_settings,
+            remote,
+            logger: @logger,
+            telemetry: telemetry,
+          )
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           # Only build symbol database when enabled, so a disabled component is
           # never constructed.
@@ -262,6 +267,8 @@ module Datadog
         # Starts up components
         def startup!(settings, old_state: nil)
           telemetry.start(old_state&.telemetry_enabled?, components: self)
+
+          activate_open_feature! if old_state&.open_feature_activated?
 
           if settings.profiling.enabled
             if profiler
@@ -322,7 +329,7 @@ module Datadog
           symbol_database&.shutdown!
 
           # Shutdown OpenFeature component
-          open_feature&.shutdown!
+          @open_feature_activation.shutdown!
 
           # Decommission AppSec
           appsec&.shutdown!
@@ -397,7 +404,16 @@ module Datadog
             telemetry_enabled: telemetry.enabled,
             remote_started: remote&.started?,
             di_implicitly_enabled: di_implicit || false,
+            open_feature_activated: @open_feature_activation.activated?,
           )
+        end
+
+        def open_feature
+          @open_feature_activation.component
+        end
+
+        def activate_open_feature!
+          @open_feature_activation.activate
         end
       end
     end
