@@ -130,9 +130,8 @@ typedef struct {
   // Others
 
   // Used to detect/avoid nested sampling, and intended to behave as a lock to ensure the profiler doesn't recurse on itself,
-  // e.g. when on_newobj_event gets triggered by a memory allocation
-  // that happens during another sample, or when the signal handler gets triggered while we're already in the middle of
-  // sampling.
+  // e.g. when on_newobj_event gets triggered by a memory allocation that happens during another sample, or when the
+  // signal handler gets triggered while we're already in the middle of sampling.
   //
   // It's not an actual lock because we rely on the GVL for correct synchronization
   // (and thus this flag is only valid when we know we have the GVL).
