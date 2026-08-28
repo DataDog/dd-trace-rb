@@ -193,6 +193,7 @@ static VALUE native_set(
       store_current_fiber_handle(handle);
       ddog_otel_thread_ctx_attach(handle);
     } else {
+      // FIXME: add a method to libdatadog to update the context record before attaching it
       ddog_otel_thread_ctx_attach(handle);
       ddog_otel_thread_ctx_update(&trace_id_bytes, &span_id_bytes, 0, &local_root_span_id_bytes);
     }
