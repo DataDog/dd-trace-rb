@@ -66,7 +66,14 @@ module Datadog
             next unless content.path.product == PRODUCT
 
             begin
-              parsed << [content, parse_content(content)]
+              config = parse_content(content)
+              unless config.is_a?(Hash)
+                # A syntactically valid but non-object payload (null, [], 42)
+                # would later make config_matches? raise outside this per-content
+                # rescue and abort the whole merge, erroring valid configs too.
+                raise TypeError, "APM_TRACING remote config must be a JSON object, got #{config.class}"
+              end
+              parsed << [content, config]
             rescue => e
               Datadog.logger.debug { "APM_TRACING RC: skipping unparseable config: #{e.class}: #{e.message}" }
               Datadog.send(:components, allow_initialization: false)&.telemetry&.report(

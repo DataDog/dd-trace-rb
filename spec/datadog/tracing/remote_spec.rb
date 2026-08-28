@@ -451,6 +451,33 @@ RSpec.describe Datadog::Tracing::Remote do
       end
     end
 
+    context "when one config is valid JSON but not a JSON object" do
+      let(:good) do
+        build_content("good", {"service_target" => {"service" => "*", "env" => "*"},
+                            "lib_config" => {"log_injection_enabled" => false}})
+      end
+      let(:non_object) do
+        Datadog::Core::Remote::Configuration::Content.parse(
+          {
+            path: "datadog/1/APM_TRACING/non_object/lib_config",
+            content: "null",
+          }
+        )
+      end
+      let(:contents) { [good, non_object] }
+
+      it "marks the non-object content errored and still applies the good one" do
+        expect(Datadog.send(:components).telemetry).to receive(:report)
+          .with(kind_of(StandardError), description: "Failed to parse APM_TRACING remote config")
+
+        remote.merge_and_apply_configs(repository)
+
+        expect(good.apply_state).to eq(2)
+        expect(non_object.apply_state).to eq(3)
+        expect(non_object.apply_error).to include("object")
+      end
+    end
+
     context "with a non-APM_TRACING content present" do
       let(:other) do
         Datadog::Core::Remote::Configuration::Content.parse(
