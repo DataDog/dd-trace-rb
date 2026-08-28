@@ -109,6 +109,32 @@ RSpec.describe Datadog::OpenFeature::Component do
 
       it { expect(component).to be_nil }
     end
+
+    context "when agentless is selected" do
+      before { settings.open_feature.configuration_source = "agentless" }
+
+      it { expect(component).to be_nil }
+    end
+
+    context "when the stable kill switch is false and the legacy switch is true" do
+      before do
+        allow(Datadog.logger).to receive(:warn)
+        settings.open_feature.enabled = true
+        settings.open_feature.feature_flags_enabled = false
+      end
+
+      it { expect(component).to be_nil }
+    end
+
+    context "when the stable source selects Remote Configuration" do
+      before do
+        stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", nil)
+        settings.open_feature.configuration_source = "remote_config"
+        settings.remote.enabled = true
+      end
+
+      it { expect(component).to be_a(described_class) }
+    end
   end
 
   # The EVP killswitch is read through the config registry (settings.open_feature

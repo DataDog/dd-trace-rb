@@ -5,6 +5,12 @@ require "datadog/open_feature"
 
 RSpec.describe Datadog::OpenFeature do
   describe ".enabled?" do
+    context "when no source-selection setting is defined" do
+      after { Datadog.configuration.reset! }
+
+      it { expect(described_class.enabled?).to be(true) }
+    end
+
     context "when OpenFeature is disabled" do
       around do |example|
         Datadog.configure { |c| c.open_feature.enabled = false }
@@ -25,6 +31,33 @@ RSpec.describe Datadog::OpenFeature do
       end
 
       it { expect(described_class.enabled?).to be(true) }
+    end
+
+    context "when the stable kill switch is disabled and the legacy switch is enabled" do
+      around do |example|
+        Datadog.configure do |config|
+          config.open_feature.enabled = true
+          config.open_feature.feature_flags_enabled = false
+        end
+        example.run
+      ensure
+        Datadog.configuration.reset!
+      end
+
+      before { allow(Datadog.logger).to receive(:warn) }
+
+      it { expect(described_class.enabled?).to be(false) }
+    end
+
+    context "when offline is selected" do
+      around do |example|
+        Datadog.configure { |config| config.open_feature.configuration_source = "offline" }
+        example.run
+      ensure
+        Datadog.configuration.reset!
+      end
+
+      it { expect(described_class.enabled?).to be(false) }
     end
   end
 

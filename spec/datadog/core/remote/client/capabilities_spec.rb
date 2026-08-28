@@ -336,6 +336,58 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     end
   end
 
+  context "OpenFeature component" do
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+    let(:feature_flags_path) do
+      Datadog::Core::Remote::Configuration::Path.parse("datadog/1/FFE_FLAGS/_/_")
+    end
+
+    shared_examples "Feature Flags Remote Configuration is registered" do
+      it "registers the capability, product, and receiver" do
+        expect(capabilities.capabilities).to include(1 << 46)
+        expect(capabilities.products).to include("FFE_FLAGS")
+        expect(capabilities.receivers).to include(lambda { |receiver| receiver.match?(feature_flags_path) })
+      end
+    end
+
+    shared_examples "Feature Flags Remote Configuration is not registered" do
+      it "does not register the capability, product, or receiver" do
+        expect(capabilities.capabilities).to_not include(1 << 46)
+        expect(capabilities.products).to_not include("FFE_FLAGS")
+        expect(capabilities.receivers).to_not include(lambda { |receiver| receiver.match?(feature_flags_path) })
+      end
+    end
+
+    context "when agentless is selected by default" do
+      include_examples "Feature Flags Remote Configuration is not registered"
+    end
+
+    context "when the stable source selects Remote Configuration" do
+      before { settings.open_feature.configuration_source = "remote_config" }
+
+      include_examples "Feature Flags Remote Configuration is registered"
+    end
+
+    context "when the legacy switch enables Remote Configuration" do
+      before do
+        allow(Datadog.logger).to receive(:warn)
+        settings.open_feature.enabled = true
+      end
+
+      include_examples "Feature Flags Remote Configuration is registered"
+    end
+
+    context "when the stable kill switch is false and the legacy switch is true" do
+      before do
+        allow(Datadog.logger).to receive(:warn)
+        settings.open_feature.enabled = true
+        settings.open_feature.feature_flags_enabled = false
+      end
+
+      include_examples "Feature Flags Remote Configuration is not registered"
+    end
+  end
+
   context "Tracing component" do
     it "register capabilities, products, and receivers" do
       expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29)

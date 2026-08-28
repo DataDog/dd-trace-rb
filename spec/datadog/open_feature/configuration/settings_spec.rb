@@ -165,6 +165,77 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
       end
     end
 
+    describe ".enabled?" do
+      subject(:feature_flags_enabled) { described_class.enabled?(settings.open_feature) }
+
+      context "when no source-selection setting is defined" do
+        it { is_expected.to be(true) }
+      end
+
+      context "when the stable kill switch is false and the legacy switch is true" do
+        with_env "DD_FEATURE_FLAGS_ENABLED" => "false",
+          "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED" => "true"
+
+        before { allow(Datadog.logger).to receive(:warn) }
+
+        it { is_expected.to be(false) }
+      end
+
+      context "when the configured source is offline" do
+        with_env "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE" => "offline"
+
+        it { is_expected.to be(false) }
+      end
+
+      context "when the configured source is unrecognized" do
+        with_env "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE" => "unsupported"
+
+        before { allow(Datadog.logger).to receive(:warn) }
+
+        it { is_expected.to be(false) }
+      end
+
+      context "when the stable switch is true and the legacy switch is false" do
+        with_env "DD_FEATURE_FLAGS_ENABLED" => "true",
+          "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED" => "false"
+
+        before { allow(Datadog.logger).to receive(:warn) }
+
+        it { is_expected.to be(true) }
+      end
+    end
+
+    describe ".remote_configuration?" do
+      subject(:remote_configuration) { described_class.remote_configuration?(settings.open_feature) }
+
+      context "when Remote Configuration is selected" do
+        with_env "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE" => "remote_config"
+
+        it { is_expected.to be(true) }
+      end
+
+      context "when the legacy switch is true" do
+        with_env "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED" => "true"
+
+        before { allow(Datadog.logger).to receive(:warn) }
+
+        it { is_expected.to be(true) }
+      end
+
+      context "when agentless is selected" do
+        with_env "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE" => "agentless"
+
+        it { is_expected.to be(false) }
+      end
+
+      context "when Remote Configuration is selected but the stable kill switch is false" do
+        with_env "DD_FEATURE_FLAGS_ENABLED" => "false",
+          "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE" => "remote_config"
+
+        it { is_expected.to be(false) }
+      end
+    end
+
     describe "#enabled deprecation" do
       context "when the legacy environment variable is set" do
         with_env "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED" => "true"

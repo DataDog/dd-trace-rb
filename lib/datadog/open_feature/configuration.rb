@@ -24,6 +24,14 @@ module Datadog
           default
         end
 
+        def self.enabled?(settings)
+          settings.feature_flags_enabled && settings.configuration_source != OFFLINE_SOURCE
+        end
+
+        def self.remote_configuration?(settings)
+          enabled?(settings) && settings.configuration_source == REMOTE_CONFIG_SOURCE
+        end
+
         def self.extended(base)
           base = base.singleton_class unless base.is_a?(Class)
           add_settings!(base)

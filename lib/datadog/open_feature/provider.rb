@@ -30,7 +30,7 @@ module Datadog
     #   # FILE: initializers/datadog.rb
     #   Datadog.configure do |config|
     #     config.remote.enabled = true
-    #     config.open_feature.enabled = true
+    #     config.open_feature.configuration_source = "remote_config"
     #   end
     #   ```
     #

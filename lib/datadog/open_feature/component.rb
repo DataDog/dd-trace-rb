@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "configuration"
 require_relative "transport"
 require_relative "evaluation_engine"
 require_relative "exposures/buffer"
@@ -19,7 +20,8 @@ module Datadog
       attr_reader :engine, :flag_eval_metrics_hook, :flag_eval_evp_hook, :span_enrichment_hook
 
       def self.build(settings, agent_settings, logger:, telemetry:)
-        return unless settings.respond_to?(:open_feature) && settings.open_feature.enabled
+        return unless settings.respond_to?(:open_feature)
+        return unless Configuration::Settings.remote_configuration?(settings.open_feature)
 
         unless settings.respond_to?(:remote) && settings.remote.enabled
           message = "OpenFeature could not be enabled as Remote Configuration is currently disabled. " \
