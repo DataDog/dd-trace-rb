@@ -10,17 +10,15 @@ module Datadog
 
       def self.capabilities: () -> ::Array[::Integer]
 
-      def self.merge_and_apply_configs: (Core::Remote::Configuration::Repository repository) -> void
-
       # config and lib_config are parsed JSON of a backend-defined shape, so their
       # element types are genuinely untyped (not yet modelled by a schema).
-      def self.process_config: (::Hash[::String, untyped] config, Core::Remote::Configuration::Content content, ?Core::Remote::Configuration::Repository? repository) -> void
+      def self.merge_and_apply_configs: (Core::Remote::Configuration::Repository repository) -> void
 
       def self.config_matches?: (::Hash[::String, untyped] config, ::String? service, ::String? env) -> bool
 
       def self.config_priority: (::Hash[::String, untyped] config) -> ::Integer
 
-      def self.merge_lib_configs: (::Array[::Hash[::String, untyped]] ordered_configs) -> ::Hash[::String, untyped]
+      def self.merge_lib_configs: (::Array[::Hash[::String, untyped]] configs_most_specific_first) -> ::Hash[::String, untyped]
 
       def self.apply_lib_config: (::Hash[::String, untyped] lib_config, Core::Remote::Configuration::Repository? repository) -> void
 

@@ -42,7 +42,7 @@ RSpec.describe "DI implicit enablement integration" do
   end
 
   let(:symbol_database) do
-    # Tracing::Remote.process_config replays (resume_pending_upload) or stops
+    # Tracing::Remote.apply_lib_config replays (resume_pending_upload) or stops
     # (stop_for_di_disable) Symbol Database when a dynamic_instrumentation_enabled
     # signal arrives. This test builds only a DI component, so expose a Symbol
     # Database stand-in that accepts the two lifecycle calls. The upload behavior
@@ -61,7 +61,7 @@ RSpec.describe "DI implicit enablement integration" do
   let(:components) do
     # Stand-in for Core::Configuration::Components. handle_rc_enablement
     # reaches the component via Datadog.send(:components).dynamic_instrumentation
-    # and Tracing::Remote.process_config calls reconfigure_sampler on it for
+    # and Tracing::Remote.apply_lib_config calls reconfigure_sampler on it for
     # each tracing dynamic-option update. We expose only what's needed.
     instance_double(
       Datadog::Core::Configuration::Components,
@@ -103,13 +103,26 @@ RSpec.describe "DI implicit enablement integration" do
 
   after { component&.shutdown! }
 
+  # Drives the production RC dispatch path (Tracing::Remote.merge_and_apply_configs)
+  # for a single APM_TRACING payload, returning the Content so apply_state can
+  # be asserted. Replaces the former single-config process_config entry point.
+  def apply_rc_payload(payload)
+    content = Datadog::Core::Remote::Configuration::Content.parse(
+      path: "datadog/1/APM_TRACING/lib_config/config",
+      content: JSON.dump(payload),
+    )
+    repository = instance_double(
+      Datadog::Core::Remote::Configuration::Repository,
+      contents: [content],
+    )
+    Datadog::Tracing::Remote.merge_and_apply_configs(repository)
+    content
+  end
+
   describe "RC enables DI → method probe installs and fires" do
     let(:rc_payload_enable) { {"lib_config" => {"dynamic_instrumentation_enabled" => true}} }
-    let(:rc_content) { instance_double(Datadog::Core::Remote::Configuration::Content) }
 
     before do
-      allow(rc_content).to receive(:applied)
-      allow(rc_content).to receive(:errored)
       allow(telemetry).to receive(:client_configuration_change!)
     end
 
@@ -117,10 +130,10 @@ RSpec.describe "DI implicit enablement integration" do
       expect(component).not_to be_nil
       expect(component.started?).to be false
 
-      Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+      content = apply_rc_payload(rc_payload_enable)
 
       expect(component.started?).to be true
-      expect(rc_content).to have_received(:applied)
+      expect(content.apply_state).to eq(2)
     end
 
     it "advertises the DI products via remote config once the component starts" do
@@ -131,7 +144,7 @@ RSpec.describe "DI implicit enablement integration" do
       expect(component.started?).to be false
       expect(remote).to receive(:add_products).with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
 
-      Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+      apply_rc_payload(rc_payload_enable)
 
       expect(component.started?).to be true
     end
@@ -143,7 +156,7 @@ RSpec.describe "DI implicit enablement integration" do
       # state (which other tests in the suite may touch).
       expect(Datadog::DI).to receive(:activate_tracking)
 
-      Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+      apply_rc_payload(rc_payload_enable)
     end
 
     context "after the component is started, a LIVE_DEBUGGING method probe arrives" do
@@ -185,7 +198,7 @@ RSpec.describe "DI implicit enablement integration" do
       end
 
       it "is installed after the APM_TRACING enable signal arrives" do
-        Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+        apply_rc_payload(rc_payload_enable)
         expect(component.started?).to be true
 
         di_receiver.call(repository, transaction)
@@ -199,7 +212,6 @@ RSpec.describe "DI implicit enablement integration" do
   describe "RC disable stops the component and unhooks probes" do
     let(:rc_payload_enable) { {"lib_config" => {"dynamic_instrumentation_enabled" => true}} }
     let(:rc_payload_disable) { {"lib_config" => {"dynamic_instrumentation_enabled" => false}} }
-    let(:rc_content) { instance_double(Datadog::Core::Remote::Configuration::Content, applied: nil, errored: nil) }
 
     before do
       allow(telemetry).to receive(:client_configuration_change!)
@@ -207,26 +219,26 @@ RSpec.describe "DI implicit enablement integration" do
     end
 
     it "stops the component when dynamic_instrumentation_enabled=false arrives" do
-      Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+      apply_rc_payload(rc_payload_enable)
       expect(component.started?).to be true
 
-      Datadog::Tracing::Remote.process_config(rc_payload_disable, rc_content)
+      apply_rc_payload(rc_payload_disable)
       expect(component.started?).to be false
     end
 
     it "is idempotent: false → false stays stopped without error" do
-      Datadog::Tracing::Remote.process_config(rc_payload_disable, rc_content)
+      apply_rc_payload(rc_payload_disable)
       expect(component.started?).to be false
-      expect { Datadog::Tracing::Remote.process_config(rc_payload_disable, rc_content) }.not_to raise_error
+      expect { apply_rc_payload(rc_payload_disable) }.not_to raise_error
       expect(component.started?).to be false
     end
 
     it "supports restart: true → false → true" do
-      Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+      apply_rc_payload(rc_payload_enable)
       expect(component.started?).to be true
-      Datadog::Tracing::Remote.process_config(rc_payload_disable, rc_content)
+      apply_rc_payload(rc_payload_disable)
       expect(component.started?).to be false
-      Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+      apply_rc_payload(rc_payload_enable)
       expect(component.started?).to be true
     end
 
@@ -255,7 +267,7 @@ RSpec.describe "DI implicit enablement integration" do
       end
 
       it "unhooks the probe but preserves it in the repository when the component is stopped via RC disable" do
-        Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+        apply_rc_payload(rc_payload_enable)
         di_receiver.call(repository, transaction)
         component.probe_notifier_worker.flush
         installed = component.probe_manager.probe_repository.installed_probes
@@ -264,7 +276,7 @@ RSpec.describe "DI implicit enablement integration" do
         # Pre-check: hook installed instrumentation on the target method.
         expect(probe.instrumentation_module).not_to be_nil
 
-        Datadog::Tracing::Remote.process_config(rc_payload_disable, rc_content)
+        apply_rc_payload(rc_payload_disable)
 
         expect(component.started?).to be false
         # stop! calls probe_manager.stop which unhooks installed probes
@@ -438,7 +450,7 @@ RSpec.describe "DI implicit enablement integration" do
 
     before { allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true) }
 
-    def repository_with(*hashes)
+    def build_repository(*hashes)
       instance_double(
         Datadog::Core::Remote::Configuration::Repository,
         contents: hashes.each_with_index.map { |h, i| apm_content("c#{i}", h) },
@@ -483,13 +495,13 @@ RSpec.describe "DI implicit enablement integration" do
 
     it "stops the component when a later merge resolves to false" do
       Datadog::Tracing::Remote.merge_and_apply_configs(
-        repository_with({"service_target" => {"service" => "*", "env" => "*"},
+        build_repository({"service_target" => {"service" => "*", "env" => "*"},
           "lib_config" => {"dynamic_instrumentation_enabled" => true}}),
       )
       expect(component.started?).to be true
 
       Datadog::Tracing::Remote.merge_and_apply_configs(
-        repository_with(
+        build_repository(
           {"service_target" => {"service" => "*", "env" => "*"},
            "lib_config" => {"dynamic_instrumentation_enabled" => true}},
           {"service_target" => {"service" => "web", "env" => "prod"},
@@ -499,11 +511,9 @@ RSpec.describe "DI implicit enablement integration" do
       expect(component.started?).to be false
     end
 
-    it "inherits dynamic_instrumentation_enabled from the org config when the service+env config omits it" do
-      # org (less specific) enables DI; the service+env (more specific) config
-      # sets only a sampling rate, so DI is inherited from org and the component starts.
+    it "inherits dynamic_instrumentation_enabled from org when the service+env config supplies only a sampling rate" do
       Datadog::Tracing::Remote.merge_and_apply_configs(
-        repository_with(
+        build_repository(
           {"service_target" => {"service" => "*", "env" => "*"},
            "lib_config" => {"dynamic_instrumentation_enabled" => true}},
           {"service_target" => {"service" => "web", "env" => "prod"},

@@ -112,28 +112,6 @@ module Datadog
           nil
         end
 
-        # Applies a single already-parsed config and marks the content. This is
-        # the single-config apply path; the production receiver goes through
-        # {merge_and_apply_configs}, which merges first.
-        #
-        # @param config [Hash[String, untyped]] a parsed config with a "lib_config" key
-        # @param content [Core::Remote::Configuration::Content] the RC content to acknowledge
-        # @param repository [Core::Remote::Configuration::Repository, nil] the RC repository, forwarded to DI
-        # @return [nil]
-        def process_config(config, content, repository = nil)
-          apply_lib_config(config["lib_config"], repository)
-          content.applied
-          nil
-        rescue => e
-          Datadog.logger.debug { "APM_TRACING RC: failed to apply config: #{e.class}: #{e.message}" }
-          Datadog.send(:components, allow_initialization: false)&.telemetry&.report(
-            e,
-            description: "Failed to apply APM_TRACING remote config",
-          )
-          content.errored("#{e.class}: #{e.message}: #{Array(e.backtrace).join("\n")}")
-          nil
-        end
-
         # Whether a config targets this tracer. A concrete (non-"*") service or
         # env that differs from ours excludes the config; "*" and an absent
         # service_target match anything.
@@ -180,11 +158,11 @@ module Datadog
         # independent, so a lower-priority config can supply a field the
         # higher-priority one omits.
         #
-        # @param ordered_configs [Array[Hash[String, untyped]]] configs, most-specific first
+        # @param configs_most_specific_first [Array[Hash[String, untyped]]] configs, most-specific first
         # @return [Hash[String, untyped]] the merged lib_config
-        def merge_lib_configs(ordered_configs)
+        def merge_lib_configs(configs_most_specific_first)
           merged = {}
-          ordered_configs.each do |config|
+          configs_most_specific_first.each do |config|
             lib_config = config["lib_config"]
             next unless lib_config.is_a?(Hash)
 

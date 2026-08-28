@@ -24,20 +24,31 @@ RSpec.describe Datadog::Tracing::Remote do
     )
   end
 
-  describe "#process_config" do
-    subject(:process_config) { remote.process_config(config, content) }
-    let(:config) { nil }
-    let(:content) { Datadog::Core::Remote::Configuration::Content.parse({path: path, content: ""}) }
+  describe "#merge_and_apply_configs with a single config" do
+    subject(:apply_configs) { remote.merge_and_apply_configs(repository) }
+    let(:config) { {"lib_config" => {}} }
+    let(:content) do
+      Datadog::Core::Remote::Configuration::Content.parse(path: path, content: JSON.dump(config))
+    end
+    let(:repository) do
+      instance_double(Datadog::Core::Remote::Configuration::Repository, contents: [content])
+    end
 
-    context "with an empty content" do
-      let(:config) { {} }
+    before do
+      allow(Datadog.configuration).to receive(:service).and_return("web")
+      allow(Datadog.configuration).to receive(:env).and_return("prod")
+      allow(Datadog.send(:components).telemetry).to receive(:client_configuration_change!)
+    end
 
-      it "sets errored apply state and reports to telemetry" do
+    context "with an unparseable content" do
+      let(:content) { Datadog::Core::Remote::Configuration::Content.parse(path: path, content: "") }
+
+      it "sets errored apply state and reports the parse failure to telemetry" do
         expect(Datadog.send(:components).telemetry).to receive(:report)
-          .with(kind_of(StandardError), description: "Failed to apply APM_TRACING remote config")
-        process_config
+          .with(kind_of(StandardError), description: "Failed to parse APM_TRACING remote config")
+        apply_configs
         expect(content.apply_state).to eq(3)
-        expect(content.apply_error).to include("Error") & include("process_config")
+        expect(content.apply_error).to include("JSON")
       end
     end
 
@@ -54,7 +65,7 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_TRACE_SAMPLING_RULES", nil],
             ))
 
-          process_config
+          apply_configs
 
           expect(content.apply_state).to eq(2)
           expect(content.apply_error).to be_nil
@@ -73,7 +84,7 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_TRACE_SAMPLING_RULES", nil],
             ))
 
-          process_config
+          apply_configs
 
           expect(content.apply_state).to eq(2)
           expect(content.apply_error).to be_nil
@@ -101,7 +112,7 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_TRACE_SAMPLING_RULES", nil],
             ))
 
-          process_config
+          apply_configs
 
           expect(content.apply_state).to eq(2)
           expect(content.apply_error).to be_nil
@@ -131,7 +142,7 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_TRACE_SAMPLING_RULES", "[{\"sample_rate\":1.0,\"tags\":{\"service\":\"web-*\"}}]"],
             ))
 
-          process_config
+          apply_configs
 
           expect(content.apply_state).to eq(2)
           expect(content.apply_error).to be_nil
@@ -175,7 +186,7 @@ RSpec.describe Datadog::Tracing::Remote do
               expect(remote_component).to receive(:add_products)
                 .with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
 
-              process_config
+              apply_configs
 
               expect(content.apply_state).to eq(2)
             end
@@ -189,7 +200,7 @@ RSpec.describe Datadog::Tracing::Remote do
               expect(remote_component).to receive(:remove_products)
                 .with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
 
-              process_config
+              apply_configs
 
               expect(content.apply_state).to eq(2)
             end
@@ -205,7 +216,7 @@ RSpec.describe Datadog::Tracing::Remote do
             expect(remote_component).to receive(:remove_products)
               .with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
 
-            process_config
+            apply_configs
 
             expect(content.apply_state).to eq(2)
           end
@@ -314,7 +325,7 @@ RSpec.describe Datadog::Tracing::Remote do
   end
 
   describe "#merge_and_apply_configs" do
-    def content_for(config_id, config)
+    def build_content(config_id, config)
       Datadog::Core::Remote::Configuration::Content.parse(
         path: "datadog/1/APM_TRACING/#{config_id}/lib_config",
         content: JSON.dump(config),
@@ -324,17 +335,16 @@ RSpec.describe Datadog::Tracing::Remote do
     let(:repository) { instance_double(Datadog::Core::Remote::Configuration::Repository, contents: contents) }
 
     before do
-      allow(Datadog.configuration).to receive(:service).and_return("web")
-      allow(Datadog.configuration).to receive(:env).and_return("prod")
+      allow(Datadog.configuration).to receive_messages(service: "web", env: "prod")
       allow(Datadog.send(:components).telemetry).to receive(:client_configuration_change!)
     end
 
     context "with cascading DI enablement configs" do
       let(:contents) do
         [
-          content_for("org", {"service_target" => {"service" => "*", "env" => "*"},
+          build_content("org", {"service_target" => {"service" => "*", "env" => "*"},
                               "lib_config" => {"dynamic_instrumentation_enabled" => true}}),
-          content_for("svc", {"service_target" => {"service" => "web", "env" => "prod"},
+          build_content("svc", {"service_target" => {"service" => "web", "env" => "prod"},
                               "lib_config" => {"dynamic_instrumentation_enabled" => false}}),
         ]
       end
@@ -352,9 +362,9 @@ RSpec.describe Datadog::Tracing::Remote do
     context "with equal-priority (org) configs setting the same field" do
       let(:contents) do
         [
-          content_for("b", {"service_target" => {"service" => "*", "env" => "*"},
+          build_content("b", {"service_target" => {"service" => "*", "env" => "*"},
                             "lib_config" => {"dynamic_instrumentation_enabled" => true}}),
-          content_for("a", {"service_target" => {"service" => "*", "env" => "*"},
+          build_content("a", {"service_target" => {"service" => "*", "env" => "*"},
                             "lib_config" => {"dynamic_instrumentation_enabled" => false}}),
         ]
       end
@@ -370,7 +380,7 @@ RSpec.describe Datadog::Tracing::Remote do
     context "when a config targets a different service" do
       let(:contents) do
         [
-          content_for("other", {"service_target" => {"service" => "other", "env" => "prod"},
+          build_content("other", {"service_target" => {"service" => "other", "env" => "prod"},
                                 "lib_config" => {"dynamic_instrumentation_enabled" => true}}),
         ]
       end
@@ -386,7 +396,7 @@ RSpec.describe Datadog::Tracing::Remote do
 
     context "when one config has malformed JSON" do
       let(:good) do
-        content_for("good", {"service_target" => {"service" => "*", "env" => "*"}, "lib_config" => {}})
+        build_content("good", {"service_target" => {"service" => "*", "env" => "*"}, "lib_config" => {}})
       end
       let(:bad) do
         Datadog::Core::Remote::Configuration::Content.parse(
@@ -416,7 +426,7 @@ RSpec.describe Datadog::Tracing::Remote do
         )
       end
       let(:apm) do
-        content_for("org", {"service_target" => {"service" => "*", "env" => "*"}, "lib_config" => {}})
+        build_content("org", {"service_target" => {"service" => "*", "env" => "*"}, "lib_config" => {}})
       end
       let(:contents) { [other, apm] }
 
@@ -424,7 +434,7 @@ RSpec.describe Datadog::Tracing::Remote do
         remote.merge_and_apply_configs(repository)
 
         expect(apm.apply_state).to eq(2)
-        expect(other.apply_state).to eq(1) # UNACKNOWLEDGED: never touched
+        expect(other.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::UNACKNOWLEDGED)
       end
     end
 
@@ -447,7 +457,7 @@ RSpec.describe Datadog::Tracing::Remote do
 
     context "when applying the merged config raises" do
       let(:contents) do
-        [content_for("org", {"service_target" => {"service" => "*", "env" => "*"},
+        [build_content("org", {"service_target" => {"service" => "*", "env" => "*"},
                             "lib_config" => {"dynamic_instrumentation_enabled" => true}})]
       end
 
@@ -466,8 +476,8 @@ RSpec.describe Datadog::Tracing::Remote do
     context "diagnostics" do
       let(:contents) do
         [
-          content_for("org", {"service_target" => {"service" => "*", "env" => "*"}, "lib_config" => {}}),
-          content_for("other", {"service_target" => {"service" => "other", "env" => "prod"}, "lib_config" => {}}),
+          build_content("org", {"service_target" => {"service" => "*", "env" => "*"}, "lib_config" => {}}),
+          build_content("other", {"service_target" => {"service" => "other", "env" => "prod"}, "lib_config" => {}}),
         ]
       end
 
