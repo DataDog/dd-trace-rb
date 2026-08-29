@@ -478,6 +478,49 @@ RSpec.describe Datadog::Tracing::Remote do
       end
     end
 
+    context "when one config has a present but non-object lib_config" do
+      let(:good) do
+        build_content("good", {"service_target" => {"service" => "*", "env" => "*"},
+                            "lib_config" => {"log_injection_enabled" => false}})
+      end
+      let(:bad_lib_config) do
+        build_content("bad_lib_config", {"service_target" => {"service" => "*", "env" => "*"},
+                                    "lib_config" => []})
+      end
+      let(:contents) { [good, bad_lib_config] }
+
+      it "marks the malformed lib_config content errored and still applies the good one" do
+        expect(Datadog.send(:components).telemetry).to receive(:report)
+          .with(kind_of(StandardError), description: "Failed to parse APM_TRACING remote config")
+
+        remote.merge_and_apply_configs(repository)
+
+        expect(good.apply_state).to eq(2)
+        expect(bad_lib_config.apply_state).to eq(3)
+        expect(bad_lib_config.apply_error).to include("lib_config")
+      end
+    end
+
+    context "when a config has a null or absent lib_config" do
+      let(:null_lib_config) do
+        build_content("null_lc", {"service_target" => {"service" => "*", "env" => "*"},
+                               "lib_config" => nil})
+      end
+      let(:absent_lib_config) do
+        build_content("absent_lc", {"service_target" => {"service" => "*", "env" => "*"}})
+      end
+      let(:contents) { [null_lib_config, absent_lib_config] }
+
+      it "treats both as no-op configs and marks them applied" do
+        expect(Datadog.send(:components).telemetry).to receive(:client_configuration_change!)
+
+        remote.merge_and_apply_configs(repository)
+
+        expect(null_lib_config.apply_state).to eq(2)
+        expect(absent_lib_config.apply_state).to eq(2)
+      end
+    end
+
     context "with a non-APM_TRACING content present" do
       let(:other) do
         Datadog::Core::Remote::Configuration::Content.parse(

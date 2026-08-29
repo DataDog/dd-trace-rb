@@ -73,6 +73,17 @@ module Datadog
                 # rescue and abort the whole merge, erroring valid configs too.
                 raise TypeError, "APM_TRACING remote config must be a JSON object, got #{config.class}"
               end
+              # A present but non-object lib_config (e.g. {"lib_config": []}) is a
+              # schema violation the customer can fix. Acknowledging it as applied
+              # would tell the backend the config was successfully applied when it
+              # was not, and an empty merge would revert active tracing overrides
+              # to their non-RC values. Reject it per content so the malformed
+              # payload is reported errored instead. A null or absent lib_config
+              # carries no overrides and is left as a no-op.
+              lib_config = config["lib_config"]
+              if !lib_config.nil? && !lib_config.is_a?(Hash)
+                raise TypeError, "APM_TRACING lib_config must be a JSON object, got #{lib_config.class}"
+              end
               parsed << [content, config]
             rescue => e
               Datadog.logger.debug { "APM_TRACING RC: skipping unparseable config: #{e.class}: #{e.message}" }
