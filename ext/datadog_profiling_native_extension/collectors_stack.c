@@ -132,7 +132,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
   VALUE zero = INT2NUM(0);
   // Pass `heap_sample: {new_object: ..., alloc_class: ...}` to also record this sample for heap profiling
   VALUE heap_sample_options = rb_hash_lookup2(options, ID2SYM(rb_intern("heap_sample")), Qnil);
-  heap_sample_values heap_sample = {.new_object = Qnil};
+  heap_sample_values heap_sample = {};
   if (heap_sample_options != Qnil) {
     ENFORCE_TYPE(heap_sample_options, T_HASH);
     heap_sample.new_object = rb_hash_fetch(heap_sample_options, ID2SYM(rb_intern("new_object")));
