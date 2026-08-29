@@ -253,14 +253,6 @@ static VALUE heap_recorder_unlock_ensure(VALUE heap_recorder_as_value) {
 
 typedef struct {
   heap_recorder *heap_recorder;
-  VALUE new_object;
-  unsigned int weight;
-  ddog_CharSlice alloc_class;
-  ddog_prof_Slice_Location locations;
-} record_allocation_args;
-
-typedef struct {
-  heap_recorder *heap_recorder;
   bool full_update;
 } heap_recorder_update_locked_args;
 
@@ -274,7 +266,6 @@ static int st_object_records_iterate(st_data_t, st_data_t, st_data_t);
 static int st_object_records_debug(st_data_t key, st_data_t value, st_data_t extra);
 static void inc_tracked_objects_or_fail(heap_record *heap_record);
 static void commit_recording(heap_recorder *, pending_recording);
-static VALUE record_allocation(VALUE record_allocation_args_as_value);
 static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update);
 static VALUE heap_recorder_update_locked(VALUE heap_recorder_update_locked_args_as_value);
 static VALUE heap_recorder_commit_recordings_may_lose_gvl_locked(VALUE heap_recorder_as_value);
@@ -450,12 +441,8 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
 // This method gets called from inside the RUBY_INTERNAL_EVENT_NEWOBJ tracepoint so it should neither allocate in the
 // Ruby heap nor release the GVL (https://github.com/DataDog/dd-trace-rb/pull/4240).
 //
-// It gets called while the stack_recorder is holding one of the profile locks, so to enable our caller to correctly
-// unlock the profile on exception, we wrap the part that can raise with an `rb_protect`.
-//
 // See the header for details on the arguments and on `needs_commit`.
-__attribute__((warn_unused_result))
-int heap_recorder_record_allocation_with_rb_protect(
+void heap_recorder_record_allocation(
   heap_recorder *heap_recorder,
   VALUE new_object,
   unsigned int weight,
@@ -465,7 +452,7 @@ int heap_recorder_record_allocation_with_rb_protect(
 ) {
   if (heap_recorder == NULL) {
     *needs_commit = false;
-    return 0;
+    return;
   }
 
   // We always report `needs_commit` when there's anything pending, even if it's from a previous allocation.
@@ -478,13 +465,13 @@ int heap_recorder_record_allocation_with_rb_protect(
   // (Note that asking for the same job multiple times de-duplicates -- Ruby will only run it once when it gets the chance)
   *needs_commit = heap_recorder->pending_recordings_count > 0;
 
-  if (++heap_recorder->num_recordings_skipped < heap_recorder->sample_rate) return 0;
+  if (++heap_recorder->num_recordings_skipped < heap_recorder->sample_rate) return;
 
   if (heap_recorder_is_locked(heap_recorder)) {
     // If we got unlucky and an allocation showed up in the middle of a locked operation (because it triggered
     // an allocation directly OR because that operation lost the GVL), let's skip this sample as well.
     // (Note we don't take the lock ourselves: the current function never loses the GVL, and is thus already atomic.)
-    return 0;
+    return;
   }
 
   // Do not sample internal objects in the heap profiler because they are added to a ObjectSpace::WeakMap, which would not be safe.
@@ -494,41 +481,21 @@ int heap_recorder_record_allocation_with_rb_protect(
   // Note this is checked after the sample rate above, as the sample rate is in number of allocation profiler samples,
   // not in number of non-internal samples. Like the skips above, num_recordings_skipped is not reset here, so the
   // next allocation sample still gets a chance to be tracked.
-  if (ddtrace_is_internal_object_p(new_object)) return 0;
+  if (ddtrace_is_internal_object_p(new_object)) return;
 
   // Skip if we've hit the pending recordings limit
   if (heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS) {
     heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full++;
-    return 0; // `needs_commit` is already true: a full buffer definitely has something to commit
+    return; // `needs_commit` is already true: a full buffer definitely has something to commit
   }
 
   heap_recorder->num_recordings_skipped = 0;
 
-  record_allocation_args args = {
-    .heap_recorder = heap_recorder,
-    .new_object = new_object,
-    .weight = weight,
-    .alloc_class = alloc_class,
-    .locations = locations,
-  };
-
-  int exception_state;
-  rb_protect(record_allocation, (VALUE) &args, &exception_state);
-  if (exception_state) return exception_state;
-
-  *needs_commit = true; // We just added a recording
-  return 0;
-}
-
-static VALUE record_allocation(VALUE record_allocation_args_as_value) {
-  record_allocation_args *args = (record_allocation_args *) record_allocation_args_as_value;
-  heap_recorder *heap_recorder = args->heap_recorder;
-
   // Note: Everything that can raise happens before we add the recording to `pending_recordings` below, so that a
   // failure never leaves a half-built entry behind
   live_object_data object_data = {
-    .weight = args->weight * heap_recorder->sample_rate,
-    .class = intern_or_raise(heap_recorder->string_storage, args->alloc_class),
+    .weight = weight * heap_recorder->sample_rate,
+    .class = intern_or_raise(heap_recorder->string_storage, alloc_class),
     .alloc_gen = rb_gc_count(),
   };
 
@@ -540,19 +507,19 @@ static VALUE record_allocation(VALUE record_allocation_args_as_value) {
     raise_error(rb_eRuntimeError, "Heap profiling: Exhausted usable record_ids");
   }
 
-  heap_record *heap_record = get_or_create_heap_record(heap_recorder, args->locations);
+  heap_record *heap_record = get_or_create_heap_record(heap_recorder, locations);
   inc_tracked_objects_or_fail(heap_record);
 
   // We can't add the object to `weak_objects` from inside the NEWOBJ tracepoint, so the recording stays pending until
   // `heap_recorder_commit_recordings_may_lose_gvl` gets to it
   heap_recorder->pending_recordings[heap_recorder->pending_recordings_count++] = (pending_recording) {
-    .object_ref = args->new_object,
+    .object_ref = new_object,
     .record_id = record_id,
     .heap_record = heap_record,
     .object_data = object_data,
   };
 
-  return Qnil; // for rb_protect
+  *needs_commit = true; // We just added a recording
 }
 
 void heap_recorder_update_young_objects(heap_recorder *heap_recorder) {
@@ -569,7 +536,7 @@ void heap_recorder_commit_recordings_may_lose_gvl(heap_recorder *heap_recorder) 
   }
 
   if (!heap_recorder_try_lock(heap_recorder)) {
-    // Something else is busy; `heap_recorder_record_allocation_with_rb_protect` will ask for us to be called again later
+    // Something else is busy; `heap_recorder_record_allocation` will ask for us to be called again later
     return;
   }
 

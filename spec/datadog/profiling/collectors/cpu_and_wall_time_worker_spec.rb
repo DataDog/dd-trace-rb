@@ -982,7 +982,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
 
         # Internal objects are skipped by the heap profiler (see
-        # `heap_recorder_record_allocation_with_rb_protect()`) because tracking
+        # `heap_recorder_record_allocation()`) because tracking
         # them would mean adding them to a `ObjectSpace::WeakMap`, which is not safe. They are still allocation
         # sampled, as that is safe and useful.
         it "records them as allocation samples but never as heap samples" do

@@ -81,7 +81,7 @@ void heap_recorder_set_size_enabled(heap_recorder *heap_recorder, bool size_enab
 // the weight of the committed heap allocation.
 //
 // A value of 1 will effectively track all objects that are passed to
-// `heap_recorder_record_allocation_with_rb_protect`. A value of 10 will only track every 10th
+// `heap_recorder_record_allocation`. A value of 10 will only track every 10th
 // object passed to it and its effective weight for the purposes of heap
 // profiling will be multiplied by 10.
 //
@@ -114,11 +114,7 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder);
 //
 // WARN: This gets called from inside the RUBY_INTERNAL_EVENT_NEWOBJ tracepoint, so it neither allocates in the Ruby
 // heap nor releases the GVL (https://github.com/DataDog/dd-trace-rb/pull/4240).
-// WARN: This also gets called while the stack recorder holds one of the profile locks, which is why it rescues
-// exceptions with `rb_protect`, returning the exception state integer for the caller to handle (so that the caller
-// gets a chance to unlock the profile before the exception propagates).
-__attribute__((warn_unused_result))
-int heap_recorder_record_allocation_with_rb_protect(
+void heap_recorder_record_allocation(
   heap_recorder *heap_recorder,
   VALUE new_object,
   unsigned int weight,

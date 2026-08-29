@@ -231,6 +231,18 @@ typedef struct {
   bool serialize_ran;
 } call_serialize_without_gvl_arguments;
 
+typedef struct {
+  // Set by caller
+  stack_recorder_state *state;
+  locked_profile_slot active_slot;
+  ddog_prof_Slice_Location locations;
+  sample_values values;
+  sample_labels labels;
+
+  // Set by callee
+  ddog_prof_Profile_Result result;
+} record_sample_arguments;
+
 static VALUE _native_new(VALUE klass);
 static void initialize_slot_concurrency_control(stack_recorder_state *state);
 static void stack_recorder_typed_data_mark(void *data);
@@ -240,6 +252,8 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
 static VALUE ruby_time_from(ddog_Timespec ddprof_time);
 static void *call_serialize_without_gvl(void *call_args);
+static VALUE record_sample_locked(VALUE record_sample_arguments_as_value);
+static VALUE record_sample_unlock_ensure(VALUE record_sample_arguments_as_value);
 static locked_profile_slot sampler_lock_active_profile(stack_recorder_state *state);
 static void sampler_unlock_active_profile(locked_profile_slot active_slot);
 static profile_slot* serializer_flip_active_and_inactive_slots(stack_recorder_state *state);
@@ -607,7 +621,28 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
-  locked_profile_slot active_slot = sampler_lock_active_profile(state);
+  record_sample_arguments args = {
+    .state = state,
+    .active_slot = sampler_lock_active_profile(state),
+    .locations = locations,
+    .values = values,
+    .labels = labels,
+  };
+
+  // NOTE: The heap recorder is allowed to raise exceptions if something's wrong. We use `rb_ensure` to make sure we
+  // properly unlock the active slot mutex on our way out. Otherwise, this would later lead to deadlocks (since the
+  // active slot mutex is not expected to be locked forever).
+  rb_ensure(record_sample_locked, (VALUE) &args, record_sample_unlock_ensure, (VALUE) &args);
+
+  if (args.result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
+    raise_error(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&args.result.err));
+  }
+}
+
+static VALUE record_sample_locked(VALUE record_sample_arguments_as_value) {
+  record_sample_arguments *args = (record_sample_arguments *) record_sample_arguments_as_value;
+  stack_recorder_state *state = args->state;
+  sample_values values = args->values;
 
   // Note: We initialize this array to have ALL_VALUE_TYPES_COUNT but only tell libdatadog to use the first
   // state->enabled_values_count values. This simplifies handling disabled value types -- we still put them on the
@@ -624,41 +659,38 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   metric_values[position_for[TIMELINE_VALUE_ID]]      = values.timeline_wall_time_ns;
 
   if (values.heap_sample != NULL) {
-    // NOTE: The heap recorder is allowed to raise exceptions if something's wrong. But we also need to handle it
-    // on this side to make sure we properly unlock the active slot mutex on our way out. Otherwise, this would
-    // later lead to deadlocks (since the active slot mutex is not expected to be locked forever).
-    int exception_state = heap_recorder_record_allocation_with_rb_protect(
+    heap_recorder_record_allocation(
       state->heap_recorder,
       values.heap_sample->new_object,
       values.alloc_samples,
       values.heap_sample->alloc_class,
-      locations,
+      args->locations,
       &values.heap_sample->out_needs_commit
     );
-    if (exception_state) {
-      sampler_unlock_active_profile(active_slot);
-      rb_jump_tag(exception_state);
-    }
   }
 
-  ddog_prof_Profile_Result result = ddog_prof_Profile_add(
-    &active_slot.data->profile,
+  args->result = ddog_prof_Profile_add(
+    &args->active_slot.data->profile,
     (ddog_prof_Sample) {
-      .locations = locations,
+      .locations = args->locations,
       .values = (ddog_Slice_I64) {.ptr = metric_values, .len = state->enabled_values_count},
-      .labels = labels.labels
+      .labels = args->labels.labels
     },
     /* To disable end_timestamp_ns to get aggregated profiles in pprof, replace the below with `0` */
-    labels.end_timestamp_ns
+    args->labels.end_timestamp_ns
   );
 
-  active_slot.data->stats.recorded_samples++;
+  args->active_slot.data->stats.recorded_samples++;
 
-  sampler_unlock_active_profile(active_slot);
+  return Qnil; // Unused
+}
 
-  if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    raise_error(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
-  }
+static VALUE record_sample_unlock_ensure(VALUE record_sample_arguments_as_value) {
+  record_sample_arguments *args = (record_sample_arguments *) record_sample_arguments_as_value;
+
+  sampler_unlock_active_profile(args->active_slot);
+
+  return Qnil; // Unused
 }
 
 void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_CharSlice endpoint) {
