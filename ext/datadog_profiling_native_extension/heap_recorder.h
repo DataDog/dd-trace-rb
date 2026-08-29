@@ -80,9 +80,9 @@ void heap_recorder_set_size_enabled(heap_recorder *heap_recorder, bool size_enab
 // Controls how many recordings will be ignored before committing a heap allocation and
 // the weight of the committed heap allocation.
 //
-// A value of 1 will effectively track all objects that are passed through
-// start/end_heap_allocation_recording pairs. A value of 10 will only track every 10th
-// object passed through such calls and its effective weight for the purposes of heap
+// A value of 1 will effectively track all objects that are passed to
+// `heap_recorder_record_allocation`. A value of 10 will only track every 10th
+// object passed to it and its effective weight for the purposes of heap
 // profiling will be multiplied by 10.
 //
 // NOTE: Default is 1, i.e., track all heap allocation recordings.
@@ -94,34 +94,34 @@ void heap_recorder_set_sample_rate(heap_recorder *heap_recorder, int sample_rate
 // WARN: Assumes this gets called before profiler is reinitialized on the fork
 void heap_recorder_after_fork(heap_recorder *heap_recorder);
 
-// Start a heap allocation recording on the heap recorder for a new object.
+// Record a heap allocation on the heap recorder.
 //
-// This heap allocation recording needs to be ended via ::end_heap_allocation_recording
-// before it will become fully committed and able to be iterated on.
+// The recording is added to a pending list, and only becomes fully tracked and able to be iterated on once
+// `heap_recorder_commit_recordings_may_lose_gvl` gets to it.
 //
-// Some objects are never tracked (e.g. internal objects, or because of the sample rate); this is handled internally
-// by skipping the recording, so callers always need to pair this with ::end_heap_allocation_recording anyway.
-//
-// @param new_obj
+// @param new_object
 //   The newly allocated Ruby object/value.
 // @param weight
 //   The sampling weight of this object.
+// @param alloc_class
+//   The class of the newly allocated object.
+// @param locations
+//   The stacktrace representing the location of the allocation.
+// @param needs_commit
+//   Out: set to whether there are pending recordings, and thus a `heap_recorder_commit_recordings_may_lose_gvl`
+//   callback is needed to commit them. Note that we answer this on every call, including the ones where we don't
+//   record anything: asking again is how we recover if a commit gets skipped for any reason.
 //
-// WARN: It needs to be paired with a ::end_heap_allocation_recording call.
-// Returns needs_after_allocation: true whenever the pending_recordings buffer goes from empty to non-empty and thus
-// a after_sample callback is required to flush it
-bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice alloc_class);
-
-// End a previously started heap allocation recording on the heap recorder.
-//
-// It is at this point that an allocated object will become fully tracked and able to be iterated on.
-//
-// @param locations The stacktrace representing the location of the allocation.
-//
-// WARN: It is illegal to call this without previously having called ::start_heap_allocation_recording.
-// WARN: This method rescues exceptions with `rb_protect`, returning the exception state integer for the caller to handle.
-__attribute__((warn_unused_result))
-int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations);
+// WARN: This gets called from inside the RUBY_INTERNAL_EVENT_NEWOBJ tracepoint, so it neither allocates in the Ruby
+// heap nor releases the GVL (https://github.com/DataDog/dd-trace-rb/pull/4240).
+void heap_recorder_record_allocation(
+  heap_recorder *heap_recorder,
+  VALUE new_object,
+  unsigned int weight,
+  ddog_CharSlice alloc_class,
+  ddog_prof_Slice_Location locations,
+  bool *needs_commit
+);
 
 // Update the heap recorder, **checking young objects only**. The idea here is to align with GC: most young objects never
 // survive enough GC generations, and thus periodically running this method reduces memory usage (we get rid of
@@ -130,7 +130,7 @@ void heap_recorder_update_young_objects(heap_recorder *heap_recorder);
 
 // Commit any pending heap allocation recordings by taking a weak reference to their objects.
 // This should be called via a postponed job, after the on_newobj_event has completed.
-void heap_recorder_commit_pending_recordings(heap_recorder *heap_recorder);
+void heap_recorder_commit_recordings_may_lose_gvl(heap_recorder *heap_recorder);
 
 // Mark the Ruby objects the heap recorder holds on to: the objects of any pending recordings (so that GC does not
 // collect them while they're waiting to be committed) and the weak map itself.
@@ -192,5 +192,12 @@ VALUE heap_recorder_testonly_record_id_for(heap_recorder *heap_recorder, VALUE o
 
 // Used to ensure that a GC actually triggers an update of the objects
 void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder);
+
+// Exhausts the usable record ids, so that all subsequent heap recordings raise (the id keeps being incremented, so
+// there's no going back). Used to test that our callers correctly handle a heap recorder that raises in the middle of
+// recording a sample.
+//
+// WARN: This should only be used for testing.
+void heap_recorder_testonly_exhaust_record_ids(heap_recorder *heap_recorder);
 
 void heap_recorder_testonly_benchmark_intern(heap_recorder *heap_recorder, ddog_CharSlice string, int times, bool use_all);
