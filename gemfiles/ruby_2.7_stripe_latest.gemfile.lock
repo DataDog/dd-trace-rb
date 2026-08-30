@@ -96,7 +96,7 @@ GEM
       simplecov_json_formatter (~> 0.1)
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
-    stripe (19.5.0)
+    stripe (19.6.0)
       bigdecimal
       logger
     strscan (3.1.2)
