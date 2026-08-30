@@ -113,7 +113,7 @@ GEM
     waterdrop (2.6.14)
       karafka-core (>= 2.2.3, < 3.0.0)
       zeitwerk (~> 2.3)
-    webmock (3.26.3)
+    webmock (3.26.4)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
