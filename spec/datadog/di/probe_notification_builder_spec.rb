@@ -455,12 +455,11 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       )
     end
 
-    # build_executed serializes the return value with no error boundary, so the
-    # NoMethodError from #class propagates.
-    it "cannot serialize a BasicObject return value" do
-      expect do
-        builder.build_executed(context)
-      end.to raise_error(NoMethodError, /undefined method .class./)
+    it "serializes a BasicObject return value" do
+      payload = builder.build_executed(context)
+      expect(payload[:debugger][:snapshot][:captures][:return][:arguments][:"@return"]).to eq(
+        type: "BasicObject", fields: {}
+      )
     end
   end
 

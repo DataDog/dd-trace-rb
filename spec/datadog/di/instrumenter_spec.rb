@@ -355,18 +355,23 @@ RSpec.describe Datadog::DI::Instrumenter do
          capture_snapshot: true}
       end
 
-      # propagate_all_exceptions lets the NoMethodError from receiver
-      # serialization surface here; otherwise the probe boundary swallows it.
-      it "cannot serialize a BasicObject receiver" do
+      it "serializes a BasicObject receiver" do
         hook_method(probe) do |payload|
           observed_calls << payload
         end
 
-        expect do
-          HookBasicObjectTestClass.new.hook_test_method
-        end.to raise_error(NoMethodError, /undefined method .class./)
+        expect(HookBasicObjectTestClass.new.hook_test_method).to eq 42
 
-        expect(observed_calls).to be_empty
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first).to be_a(Datadog::DI::Context)
+        expect(observed_calls.first.serialized_entry_args).to eq(
+          self: {
+            type: "HookBasicObjectTestClass",
+            fields: {
+              :@ivar => {type: "Integer", value: "2442"},
+            },
+          },
+        )
       end
     end
 
