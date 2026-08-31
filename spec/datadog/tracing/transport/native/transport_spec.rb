@@ -545,6 +545,17 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         expect(sent_span.dig("meta", "events")).to be_a(String)
       end
 
+      it "uses legacy meta when components are not yet initialized" do
+        allow(Datadog).to receive(:send).and_call_original
+        allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(nil)
+        expect(agent_info).to_not receive(:fetch)
+
+        expect(transport.send_traces([trace_with_event]).first).to be_ok
+
+        expect(sent_span).to_not have_key("span_events")
+        expect(sent_span.dig("meta", "events")).to be_a(String)
+      end
+
       it "retries after a failed capability fetch" do
         allow(agent_info).to receive(:fetch).and_invoke(
           proc {},
