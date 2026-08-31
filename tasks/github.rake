@@ -141,16 +141,15 @@ namespace :github do
 
     title = escape_annotation("RSpec failure: #{repro_command}")
 
-    if content.bytesize <= annotation_size_threshold
-      body = "#{title}\n\n#{content}"
-      puts "::error title=#{title}::#{escape_annotation(body)}"
-      body
+    summary = if content.bytesize <= annotation_size_threshold
+      content
     else
-      summary = content[/^Failed examples:.*/m] || content
-      body = "#{title}\n\n#{summary}"
-      puts "::error title=#{title}::#{escape_annotation(body)}"
-      body
+      content[/^Failed examples:.*/m] || content
     end
+
+    body = "#{title}\n\n#{summary}"
+    puts "::error title=#{title}::#{escape_annotation(body)}"
+    body
   end
 
   def escape_annotation(text)
