@@ -1,0 +1,92 @@
+name: Update Images
+
+# When a change merges into images-rb's `main`, its build publishes a new
+# commit-tagged image. Once that build succeeds, images-rb sends this repo a
+# `repository_dispatch` event carrying the merged commit's SHA, which starts
+# this workflow. images-rb's "Notify Consumers" workflow can also be
+# triggered manually from any branch, before merging into `main`, to send the
+# same dispatch ahead of time.
+#
+# This workflow opens (or updates) a PR that pins dd-trace-rb to the new
+# images-rb images, and dd-trace-rb's own CI on that PR is the validation:
+# green means the images-rb change works with dd-trace-rb. Once it's green,
+# merge the PR to adopt the new images across the repo.
+
+on: # yamllint disable-line rule:truthy
+  repository_dispatch:
+    types: [images-updated]
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+# Default permissions for all jobs
+permissions: {}
+
+jobs:
+  update-images:
+    name: "Update Images"
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    env:
+      BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+      BUNDLE_FROZEN: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
+        with:
+          ruby-version: "4.0.1"
+          bundler-cache: true
+
+      - name: Pin images
+        env:
+          COMMIT: ${{ github.event.client_payload.commit }}
+        run: bundle exec rake "images:pin[$COMMIT]"
+
+      - run: git diff --color=always
+
+      - name: Get GitHub Token via dd-octo-sts
+        id: generate-token
+        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        with:
+          scope: DataDog/dd-trace-rb
+          policy: self.update-images
+
+      # There appers to be a race condition; wait it out a bit
+      # See: https://datadoghq.atlassian.net/browse/APMLP-1305
+      - name: Wait for token propagation
+        run: sleep 30
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          branch: auto-generate/update-images
+          title: '[🤖] Update images-rb pin'
+          base: master
+          labels: dev/internal
+          commit-message: "[🤖] Update images-rb pin: ${{github.server_url}}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          delete-branch: true
+          sign-commits: true
+          add-paths: |
+            .github/
+            .gitlab/
+            docker-compose.yml
+            integration/images/
+            tools/yard.gemfile
+          body: |
+            _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/update-images.yml)_
+            The PR pins images-rb images to commit [${{ github.event.client_payload.commit }}](https://github.com/DataDog/images-rb/commit/${{ github.event.client_payload.commit }})
+
+            **Trigger Information:**
+            - Triggered by: ${{ github.event.client_payload.triggered_by }}
+            - Source commit: [${{ github.event.client_payload.commit }}](https://github.com/DataDog/images-rb/commit/${{ github.event.client_payload.commit }})
+            - Source run: ${{ github.event.client_payload.source_run_url }}
+
+            Please review the changes and merge when ready.

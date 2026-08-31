@@ -8,7 +8,7 @@ RSpec.describe Datadog::AppSec::Response do
         {
           "location" => "example.com",
           "status_code" => "303",
-          "security_response_id" => "00000000-0000-0000-0000-000000000000"
+          "security_response_id" => "00000000-0000-0000-0000-000000000000",
         }
       end
 
@@ -25,7 +25,7 @@ RSpec.describe Datadog::AppSec::Response do
         {
           "location" => "example.com",
           "status_code" => "202",
-          "security_response_id" => "00000000-0000-0000-0000-000000000000"
+          "security_response_id" => "00000000-0000-0000-0000-000000000000",
         }
       end
 
@@ -38,7 +38,7 @@ RSpec.describe Datadog::AppSec::Response do
         {
           "location" => "example.com?blocked_with=[security_response_id]",
           "status_code" => "303",
-          "security_response_id" => "00000000-0000-0000-0000-000000000000"
+          "security_response_id" => "00000000-0000-0000-0000-000000000000",
         }
       end
 
@@ -51,7 +51,7 @@ RSpec.describe Datadog::AppSec::Response do
         {
           "location" => "example.com?blocked_with=[security_response_id]",
           "status_code" => "303",
-          "security_response_id" => nil
+          "security_response_id" => nil,
         }
       end
 
@@ -64,7 +64,7 @@ RSpec.describe Datadog::AppSec::Response do
         {
           "type" => "html",
           "status_code" => "100",
-          "security_response_id" => "00000000-0000-0000-0000-000000000000"
+          "security_response_id" => "00000000-0000-0000-0000-000000000000",
         }
       end
 
@@ -107,10 +107,14 @@ RSpec.describe Datadog::AppSec::Response do
           )
         end
 
-        it "returns HTML template with security response ID" do
-          expect(response.body[0]).to match(
-            /.*<!DOCTYPE html>\n.*<p class="security-response-id">.*: 00000000-0000-0000-0000-000000000000/m
-          )
+        it "returns minified HTML template with security response ID" do
+          aggregate_failures "minified html block template" do
+            expect(response.body[0]).to start_with("<!DOCTYPE html><html")
+            expect(response.body[0]).not_to include("\n")
+            expect(response.body[0]).to match(
+              /<p class="security-response-id">.*: 00000000-0000-0000-0000-000000000000/
+            )
+          end
         end
       end
 

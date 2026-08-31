@@ -37,7 +37,7 @@ module Datadog
               points: values,
               type: type,
               tags: tags,
-              common: common
+              common: common,
             }
           end
 
@@ -179,7 +179,7 @@ module Datadog
               metric: name,
               points: values,
               tags: tags,
-              common: common
+              common: common,
             }
           end
         end

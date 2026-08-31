@@ -35,7 +35,7 @@ module Datadog
               "server.request.body" => parse_body(payload, headers),
               "server.request.body.byte_length" => body_byte_length(payload),
               "server.request.path_params" => payload["path_params"],
-              "http.client_ip" => extract_client_ip(payload["source_ip"], headers)
+              "http.client_ip" => extract_client_ip(payload["source_ip"], headers),
             }
 
             data.compact!
@@ -51,7 +51,7 @@ module Datadog
               "server.response.headers" => headers,
               "server.response.headers.no_cookies" => headers.dup.tap { |h| h.delete("set-cookie") },
               "server.response.body" => parse_body(payload, headers),
-              "server.response.body.byte_length" => body_byte_length(payload)
+              "server.response.body.byte_length" => body_byte_length(payload),
             }
 
             data.compact!

@@ -18,7 +18,7 @@ module Datadog
           RELATIVE_RESOURCE_PATTERN = "relative"
           VALID_RESOURCE_PATTERNS = [
             ABSOLUTE_RESOURCE_PATTERN,
-            RELATIVE_RESOURCE_PATTERN
+            RELATIVE_RESOURCE_PATTERN,
           ].freeze
           # Default should be changed to RELATIVE in 3.0 to match the Elasticsearch integration
           DEFAULT_RESOURCE_PATTERN = ABSOLUTE_RESOURCE_PATTERN

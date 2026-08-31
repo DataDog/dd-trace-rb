@@ -4,6 +4,8 @@ module Datadog
       class Writer
         include Core::Workers::Async::Thread
 
+        type event = ::Hash[::String, any]
+
         FLUSH_INTERVAL_SECONDS: ::Integer
 
         DRAIN_INTERVAL_SECONDS: ::Float
@@ -24,6 +26,8 @@ module Datadog
 
         PAYLOAD_SPLITS_METRIC: ::String
 
+        CONTEXT_TRUNCATED_METRIC: ::String
+
         REASON_QUEUE_OVERFLOW: ::String
 
         REASON_DEGRADED_CAP: ::String
@@ -31,6 +35,16 @@ module Datadog
         REASON_CARDINALITY_CAP: ::String
 
         REASON_PAYLOAD_LIMIT: ::String
+
+        REASON_PRE_QUEUE_OVERFLOW: ::String
+
+        REASON_SERIALIZATION_ERROR: ::String
+
+        REASON_SNAPSHOT_ERROR: ::String
+
+        TARGETING_KEY_FIELD: ::String
+
+        TARGETING_KEY_HASH_PREFIX: ::String
 
         @transport: Transport::HTTP
 
@@ -50,6 +64,12 @@ module Datadog
 
         @dropped_queue_overflow: ::Integer
 
+        @dropped_pre_queue_overflow: ::Integer
+
+        @context_truncated_counts: ::Hash[::String, ::Integer]
+
+        @context_snapshot_error_logged: bool
+
         @service_context: ::Hash[::String, ::String]
 
         attr_reader service_context: ::Hash[::String, ::String]
@@ -62,7 +82,18 @@ module Datadog
           ?telemetry: Core::Telemetry::Component?
         ) -> void
 
-        def enqueue: (**untyped event) -> void
+        def enqueue: (
+          flag_key: any,
+          eval_time_ms: any,
+          ?variant: any,
+          ?allocation_key: any,
+          ?error_message: any,
+          ?runtime_default: bool?,
+          ?targeting_key: any,
+          ?attrs: Aggregator::raw_context?,
+          ?observe_full_evaluation_data: bool,
+          **any event
+        ) -> void
 
         def stop: () -> bool
 
@@ -70,13 +101,14 @@ module Datadog
 
         def after_fork: () -> void
 
+        def snapshot_context: (Aggregator::raw_context? attrs) -> Aggregator::context
+
         def build_service_context: () -> ::Hash[::String, ::String]
 
-        def snapshot_context_value: (
-          untyped value,
-          ::Hash[::Integer, bool] seen,
-          ::Integer depth
-        ) -> untyped
+        def snapshot_string: (any value) -> ::String?
+        def snapshot_targeting_key: (any value) -> ::String?
+        def snapshot_integer: (any value) -> ::Integer
+        def normalized_error_code: (any value) -> ::String?
 
         def start_background_thread: () -> void
 
@@ -94,44 +126,44 @@ module Datadog
 
         def flush_once: () -> void
 
-        def take_dropped_queue_overflow: () -> ::Integer
+        def read_and_reset_dropped_queue_overflow: () -> ::Integer
 
-        def emit_drop_counts: (::Integer dropped_queue, ::Integer dropped_overflow) -> void
+        def read_and_reset_dropped_pre_queue_overflow: () -> ::Integer
 
-        def emit_degraded_counts: (::Integer degraded_count) -> void
+        def read_and_reset_context_truncated_counts: () -> ::Hash[::String, ::Integer]
 
-        def build_events: (::Hash[::Symbol, untyped] snapshot) -> ::Array[::Hash[::String, untyped]]
+        def emit_drop_counts: (::Integer dropped_queue, ::Integer dropped_overflow, ::Integer dropped_pre_queue) -> void
+
+        def build_events: (Aggregator::snapshot snapshot) -> ::Array[event]
 
         def build_event: (
           flag_key: ::String,
           variant: ::String?,
           allocation_key: ::String?,
           targeting_key: ::String?,
-          entry: ::Hash[::Symbol, untyped],
+          entry: Aggregator::entry,
           flush_time_ms: ::Integer,
           tier: ::Symbol
-        ) -> ::Hash[::String, untyped]
+        ) -> event
 
-        def send_payload_batches: (::Array[::Hash[::String, untyped]] events) -> void
+        def prefixed_targeting_key_digest: (::String targeting_key) -> ::String
 
-        def send_payload_batch: (::Array[::Hash[::String, untyped]] events) -> untyped
+        def send_payload_batches: (::Array[event] events) -> void
+
+        def send_payload_batch: (::Array[event] events) -> any
 
         def encoded_event_for_payload: (
-          ::Hash[::String, untyped] event,
+          event event,
           ::Integer base_payload_size
-        ) -> [::Hash[::String, untyped], ::Integer, bool]?
+        ) -> [event, ::Integer, bool]?
 
-        def encoded_event: (::Hash[::String, untyped] event) -> [::Hash[::String, untyped], ::Integer]
+        def encoded_event: (event event) -> [event, ::Integer]
 
         def event_fits_payload?: (::Integer event_size, ::Integer base_payload_size) -> bool
 
-        def degrade_event_for_payload_limit: (
-          ::Hash[::String, untyped] event
-        ) -> ::Hash[::String, untyped]?
+        def degrade_event_for_payload_limit: (event event) -> event?
 
-        def emit_payload_oversize_drops: (::Integer dropped_oversized) -> void
-
-        def event_count: (::Hash[::String, untyped] event) -> ::Integer
+        def event_count: (event event) -> ::Integer
 
         def record_telemetry_count: (
           ::String metric_name,
