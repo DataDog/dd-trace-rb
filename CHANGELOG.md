@@ -7,14 +7,15 @@
 ### Added
 
 * Tracing: Add sampling probability compatibility with OTel-instrumented services ([#6111][])
+* Dynamic Instrumentation: Honor organization- and environment-level remote enablement for Ruby services. ([#6234][])
 * Dynamic Instrumentation: Add per-process runtime id for snapshots to distinguish process restarts within a container ([#6232][])
 * Open Feature: OpenFeature provider sends the serial ID of the assigned split on exposure events ([#6220][])
 
 ### Changed
 
 * Profiling: Drop usage of MJIT headers for Ruby 2.6 to 3.1 ([#6135][])
+* Profiling: Re-enable heap live size profiling for Ruby 4+ ([#6176][])
 * Dynamic Instrumentation: Enforce process-wide rate limit across all probes ([#6043][])
-* Dynamic Instrumentation: Honor organization- and environment-level remote enablement for Ruby services ([#6234][])
 
 ### Fixed
 
@@ -22,12 +23,7 @@
 * Tracing: Fix missing peer tags for database queries traced through `ActiveRecord` ([#6213][])
 * Profiling: Fix bug in `sample_after_gc` leading to profiler stopping ([#6242][])
 * Profiling: Improve stability of heap profiling by using `ObjectSpace::WeakMap` instead of `_id2ref` ([#6176][])
-* Profiling: Re-enable heap live size profiling for Ruby 4+ ([#6176][])
 * Profiling: VM-internal objects are no longer sampled for heap profiling ([#6176][])
-
-### Added
-
-* Dynamic Instrumentation: Honor organization- and environment-level remote enablement for Ruby services. ([#6234][])
 
 ## [2.41.0] - 2026-08-13
 
