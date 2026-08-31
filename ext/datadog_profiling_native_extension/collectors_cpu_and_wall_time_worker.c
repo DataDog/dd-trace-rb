@@ -68,14 +68,24 @@
 // 4. The Ruby VM calls our `sample_from_postponed_job` from a thread holding the global VM lock. A sample is recorded by
 // calling `thread_context_collector_sample`.
 //
-// ### TracePoints and Forking
+//
+// ### Hooks and TracePoints
+//
+// This class uses various hooks:
+// * A RUBY_INTERNAL_EVENT_GC_ENTER & RUBY_INTERNAL_EVENT_GC_EXIT TracePoint
+// * A RUBY_INTERNAL_EVENT_NEWOBJ "event hook"/internal tracepoint
+// * A GVL thread event hook
+//
+// We refer to those collectively as "hooks".
+//
+// ### Hooks and Forking
 //
 // When the Ruby VM forks, the CPU/Wall-time profiling stops naturally because it's triggered by a background thread
 // that doesn't get automatically restarted by the VM on the child process. (The profiler does trigger its restart at
 // some point -- see `Profiling::Tasks::Setup` for details).
 //
-// But this doesn't apply to any `TracePoint`s this class may use, which will continue to be active. Thus, we need to
-// always remember consider this case of -- the worker thread may not be alive but the `TracePoint`s can continue to
+// But this doesn't apply to any hooks this class may use, which will continue to be active. Thus, we need to
+// always remember consider this case of -- the worker thread may not be alive but the hooks can continue to
 // trigger samples.
 //
 // ---
@@ -91,7 +101,7 @@ unsigned int MAX_ALLOC_WEIGHT = 10000;
   static rb_postponed_job_handle_t sample_from_postponed_job_handle;
   static rb_postponed_job_handle_t after_gc_from_postponed_job_handle;
   static rb_postponed_job_handle_t after_gvl_running_from_postponed_job_handle;
-  static rb_postponed_job_handle_t after_allocation_from_postponed_job_handle;
+  static rb_postponed_job_handle_t commit_heap_recordings_from_postponed_job_may_lose_gvl_handle;
 #endif
 
 // Contains state for a single CpuAndWallTimeWorker instance
@@ -129,9 +139,20 @@ typedef struct {
 
   // Others
 
-  // Used to detect/avoid nested sampling, e.g. when on_newobj_event gets triggered by a memory allocation
-  // that happens during another sample, or when the signal handler gets triggered while we're already in the middle of
-  // sampling.
+  // Used to detect/avoid nested sampling, and intended to behave as a lock to ensure the profiler doesn't recurse on itself,
+  // e.g. when on_newobj_event gets triggered by a memory allocation that happens during another sample, or when the
+  // signal handler gets triggered while we're already in the middle of sampling.
+  //
+  // It's not an actual lock because we rely on the GVL for correct synchronization
+  // (and thus this flag is only valid when we know we have the GVL).
+  //
+  // Similar to a lock, it should not be held across long-running operations,
+  // **in particular it MUST NEVER be held during operations where we might lose the GVL**
+  // because effectively that would stop the profiler from working until control
+  // goes back to that special thread, which on a contended Ruby app, can take hundreds of ms (or more).
+  //
+  // Because what we want is "profiler doesn't recurse on itself" we want this to behave as a non-reentrant lock
+  // (FIXME: We should have checks for this)
   //
   // @ivoanjo: Right now we always sample inside `safely_call`; if that ever changes, this flag may need to become
   // volatile/atomic/have some barriers to ensure it's visible during e.g. signal handlers.
@@ -245,10 +266,10 @@ static void reset_stats_not_thread_safe(cpu_and_wall_time_worker_state *state);
 static void sleep_for(uint64_t time_ns);
 static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self);
 static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *unused2);
-static void disable_tracepoints(cpu_and_wall_time_worker_state *state);
+static void disable_hooks(cpu_and_wall_time_worker_state *state);
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
-static VALUE rescued_after_allocation(VALUE self_instance);
+static VALUE rescued_commit_heap_recordings_may_lose_gvl(VALUE self_instance);
 static void delayed_error(cpu_and_wall_time_worker_state *state, const char *error);
 static void delayed_error_clock_failure(cpu_and_wall_time_worker_state *state);
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg);
@@ -263,11 +284,12 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
 static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE handle_sampling_failure_rescued_sample_from_postponed_job(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_thread_context_collector_sample_after_gc(VALUE self_instance, VALUE exception);
+static VALUE handle_sampling_failure_thread_context_collector_heap_update(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instance, VALUE exception);
-static VALUE handle_sampling_failure_rescued_after_allocation(VALUE self_instance, VALUE exception);
+static VALUE handle_sampling_failure_rescued_commit_heap_recordings(VALUE self_instance, VALUE exception);
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state);
 static inline void during_sample_exit(cpu_and_wall_time_worker_state* state);
-static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused);
+static void commit_heap_recordings_from_postponed_job_may_lose_gvl(DDTRACE_UNUSED void *_unused);
 
 // We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
 // with signature `rb_event_hook_func_t` which doesn't match `on_newobj_event`.
@@ -324,13 +346,14 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
     sample_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, sample_from_postponed_job, NULL);
     after_gc_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gc_from_postponed_job, NULL);
     after_gvl_running_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gvl_running_from_postponed_job, NULL);
-    after_allocation_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_allocation_from_postponed_job, NULL);
+    commit_heap_recordings_from_postponed_job_may_lose_gvl_handle =
+      rb_postponed_job_preregister(unused_flags, commit_heap_recordings_from_postponed_job_may_lose_gvl, NULL);
 
     if (
       sample_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
       after_gc_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
       after_gvl_running_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
-      after_allocation_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID
+      commit_heap_recordings_from_postponed_job_may_lose_gvl_handle == POSTPONED_JOB_HANDLE_INVALID
     ) {
       raise_error(rb_eRuntimeError, "Failed to register profiler postponed jobs (got POSTPONED_JOB_HANDLE_INVALID)");
     }
@@ -521,7 +544,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 
   // If we already got a delayed exception registered even before starting, raise before starting
   if (state->failure_exception != Qnil) {
-    disable_tracepoints(state);
+    disable_hooks(state);
     rb_exc_raise(state->failure_exception);
   }
 
@@ -531,13 +554,13 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
       raise_error(rb_eRuntimeError, "Could not start CpuAndWallTimeWorker: There's already another instance of CpuAndWallTimeWorker active in a different thread");
     } else {
       // The previously active thread seems to have died without cleaning up after itself.
-      // In this case, we can still go ahead and start the profiler BUT we make sure to disable any existing tracepoint
+      // In this case, we can still go ahead and start the profiler BUT we make sure to disable any existing hooks
       // first as:
-      // a) If this is a new instance of the CpuAndWallTimeWorker, we don't want the tracepoint from the old instance
+      // a) If this is a new instance of the CpuAndWallTimeWorker, we don't want the hooks from the old instance
       //    being kept around
       // b) If this is the same instance of the CpuAndWallTimeWorker if we call enable on a tracepoint that is already
       //    enabled, it will start firing more than once, see https://bugs.ruby-lang.org/issues/19114 for details.
-      disable_tracepoints(old_state);
+      disable_hooks(old_state);
     }
   }
 
@@ -555,7 +578,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   // Reset per-thread state, if any. This ensures there's no leftover state from a previous profiler run that would
   // affect or be included in samples taken by this profiler about to run.
   //
-  // NOTE: This needs to be called before we enable any tracepoints or anything that could trigger samples (e.g.
+  // NOTE: This needs to be called before we enable any hooks or anything that could trigger samples (e.g.
   // reset cannot be concurrent with any sampling activity)
   thread_context_collector_reset_all_per_thread_contexts(state->thread_context_collector_instance);
 
@@ -582,7 +605,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 
   // The sample trigger loop finished (either cleanly or with an error); let's clean up
 
-  disable_tracepoints(state);
+  disable_hooks(state);
 
   active_sampler_instance_state = NULL;
   active_sampler_instance = Qnil;
@@ -642,8 +665,8 @@ static void stop_state(cpu_and_wall_time_worker_state *state, VALUE optional_exc
   state->failure_exception = optional_exception;
   state->failure_exception_during_operation = optional_exception_during_operation;
 
-  // Disable the tracepoints as soon as possible, so the VM doesn't keep on calling them
-  disable_tracepoints(state);
+  // Disable the hooks as soon as possible, so the VM doesn't keep on calling them
+  disable_hooks(state);
 }
 
 static VALUE stop(VALUE self_instance, VALUE optional_exception, const char *optional_exception_during_operation) {
@@ -854,7 +877,7 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   during_sample_enter(state);
 
   // Rescue against any exceptions that happen during sampling
-  safely_call(
+  VALUE needs_otel_span_key = safely_call(
     rescued_sample_from_postponed_job,
     state->self_instance,
     state->self_instance,
@@ -862,6 +885,12 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   );
 
   during_sample_exit(state);
+
+  // Extracting the otel span key can lose the GVL, so we move it outside `during_sample`
+  // (It can't raise: it rescues its own exceptions)
+  if (needs_otel_span_key == Qtrue) {
+    thread_context_collector_resolve_otel_span_key_may_lose_gvl(state->thread_context_collector_instance);
+  }
 }
 
 static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
@@ -872,12 +901,13 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
 
   if (state->dynamic_sampling_rate_enabled && !dynamic_sampling_rate_should_sample(&state->cpu_dynamic_sampling_rate, wall_time_ns_before_sample)) {
     state->stats.cpu_skipped++;
-    return Qnil;
+    return Qfalse;
   }
 
   state->stats.cpu_sampled++;
 
-  thread_context_collector_sample(state->thread_context_collector_instance, wall_time_ns_before_sample);
+  bool needs_otel_span_key =
+    thread_context_collector_sample(state->thread_context_collector_instance, wall_time_ns_before_sample);
 
   long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
   long delta_ns = wall_time_ns_after_sample - wall_time_ns_before_sample;
@@ -891,8 +921,7 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
 
   dynamic_sampling_rate_after_sample(&state->cpu_dynamic_sampling_rate, wall_time_ns_after_sample, sampling_time_ns);
 
-  // Return a dummy VALUE because we're called from rb_rescue2 which requires it
-  return Qnil;
+  return needs_otel_span_key ? Qtrue : Qfalse;
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
@@ -918,7 +947,7 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-  // Final preparations: Setup signal handler and enable tracepoints. We run these here and not in `_native_sampling_loop`
+  // Final preparations: Setup signal handler and enable hooks. We run these here and not in `_native_sampling_loop`
   // because they may raise exceptions.
   install_sigprof_signal_handler(handle_sampling_signal, "handle_sampling_signal");
   if (state->gc_profiling_enabled) rb_tracepoint_enable(state->gc_tracepoint);
@@ -1101,6 +1130,15 @@ static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   );
 
   during_sample_exit(state);
+
+  // This part runs separately from above because it may lose the GVL and we don't want `during_sample` to be set in
+  // such a situation
+  safely_call(
+    thread_context_collector_heap_update_may_lose_gvl,
+    state->thread_context_collector_instance,
+    state->self_instance,
+    handle_sampling_failure_thread_context_collector_heap_update
+  );
 }
 
 // Equivalent to Ruby begin/rescue call, where we call a C function and jump to the exception handler if an
@@ -1138,12 +1176,12 @@ static VALUE _native_simulate_sample_from_postponed_job(DDTRACE_UNUSED VALUE sel
 
 // After the Ruby VM forks, this method gets called in the child process to clean up any leftover state from the parent.
 //
-// Assumption: This method gets called BEFORE restarting profiling. Note that profiling-related tracepoints may still
+// Assumption: This method gets called BEFORE restarting profiling. Note that profiling-related hooks may still
 // be active, so we make sure to disable them before calling into anything else, so that there are no components
 // attempting to trigger samples at the same time as the reset is done.
 //
-// In the future, if we add more other components with tracepoints, we will need to coordinate stopping all such
-// tracepoints before doing the other cleaning steps.
+// In the future, if we add more other components with hooks, we will need to coordinate stopping all such
+// hooks before doing the other cleaning steps.
 //
 // Note that tests call this method directly in the same process without forking,
 // and in such a case non-current Threads keep running.
@@ -1151,8 +1189,8 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-  // Disable all tracepoints, so that there are no more attempts to mutate the profile
-  disable_tracepoints(state);
+  // Disable all hooks, so that there are no more attempts to mutate the profile
+  disable_hooks(state);
 
   reset_stats_not_thread_safe(state);
 
@@ -1420,7 +1458,7 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
   during_sample_exit(state);
 }
 
-static void disable_tracepoints(cpu_and_wall_time_worker_state *state) {
+static void disable_hooks(cpu_and_wall_time_worker_state *state) {
   if (state->gc_tracepoint != Qnil) {
     rb_tracepoint_disable(state->gc_tracepoint);
   }
@@ -1468,18 +1506,18 @@ static VALUE rescued_sample_allocation(VALUE arg) {
   // To control bias from sampling, we clamp the maximum weight attributed to a single allocation sample. This avoids
   // assigning a very large number to a sample, if for instance the dynamic sampling mechanism chose a really big interval.
   unsigned int weight = allocations_since_last_sample > MAX_ALLOC_WEIGHT ? MAX_ALLOC_WEIGHT : (unsigned int) allocations_since_last_sample;
-  bool needs_after_allocation = thread_context_collector_sample_allocation(state->thread_context_collector_instance, thread_context, weight, new_object);
+  bool needs_commit = thread_context_collector_sample_allocation(state->thread_context_collector_instance, thread_context, weight, new_object);
   // ...but we still represent the skipped samples in the profile, thus the data will account for all allocations.
   if (weight < allocations_since_last_sample) {
     uint32_t skipped_samples = (uint32_t) uint64_min_of(allocations_since_last_sample - weight, UINT32_MAX);
     thread_context_collector_sample_skipped_allocation_samples(state->thread_context_collector_instance, skipped_samples);
   }
 
-  if (needs_after_allocation) {
+  if (needs_commit) {
     #ifndef NO_POSTPONED_TRIGGER
-      rb_postponed_job_trigger(after_allocation_from_postponed_job_handle);
+      rb_postponed_job_trigger(commit_heap_recordings_from_postponed_job_may_lose_gvl_handle);
     #else
-      rb_postponed_job_register_one(0, after_allocation_from_postponed_job, NULL);
+      rb_postponed_job_register_one(0, commit_heap_recordings_from_postponed_job_may_lose_gvl, NULL);
     #endif
   }
 
@@ -1661,21 +1699,26 @@ static VALUE handle_sampling_failure_thread_context_collector_sample_after_gc(VA
   return Qnil;
 }
 
+static VALUE handle_sampling_failure_thread_context_collector_heap_update(VALUE self_instance, VALUE exception) {
+  stop(self_instance, exception, "thread_context_collector_heap_update_may_lose_gvl");
+  return Qnil;
+}
+
 static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instance, VALUE exception) {
   stop(self_instance, exception, "rescued_sample_allocation");
   return Qnil;
 }
 
-static VALUE handle_sampling_failure_rescued_after_allocation(VALUE self_instance, VALUE exception) {
-  stop(self_instance, exception, "rescued_after_allocation");
+static VALUE handle_sampling_failure_rescued_commit_heap_recordings(VALUE self_instance, VALUE exception) {
+  stop(self_instance, exception, "rescued_commit_heap_recordings_may_lose_gvl");
   return Qnil;
 }
 
-static VALUE rescued_after_allocation(VALUE self_instance) {
+static VALUE rescued_commit_heap_recordings_may_lose_gvl(VALUE self_instance) {
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-  thread_context_collector_after_allocation(state->thread_context_collector_instance);
+  thread_context_collector_commit_heap_recordings_may_lose_gvl(state->thread_context_collector_instance);
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
   return Qnil;
@@ -1684,27 +1727,25 @@ static VALUE rescued_after_allocation(VALUE self_instance) {
 // This postponed job callback is used to commit heap allocation recordings.
 // During on_newobj_event, we can't take the weak reference the heap recorder needs to track the object, so we defer
 // that until after the event completes.
-static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused) {
+static void commit_heap_recordings_from_postponed_job_may_lose_gvl(DDTRACE_UNUSED void *_unused) {
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state;
 
   if (state == NULL || !ddtrace_rb_ractor_main_p()) return;
 
-  // Protect against nested operations
-  if (state->during_sample) return;
-
-  during_sample_enter(state);
+  if (state->during_sample) {
+    delayed_error(state, "commit_heap_recordings_from_postponed_job_may_lose_gvl called during_sample");
+    return;
+  }
 
   // NOTE: We're not updating the allocation_sampler here.
   // This means work done in this function isn't accounted for as profiler overhead.
   // This is acceptable as the amount of work done here is expected to be small.
   safely_call(
-    rescued_after_allocation,
+    rescued_commit_heap_recordings_may_lose_gvl,
     state->self_instance,
     state->self_instance,
-    handle_sampling_failure_rescued_after_allocation
+    handle_sampling_failure_rescued_commit_heap_recordings
   );
-
-  during_sample_exit(state);
 }
 
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state) {

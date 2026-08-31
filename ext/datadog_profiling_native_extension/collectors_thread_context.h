@@ -6,15 +6,19 @@
 
 #include "gvl_profiling_helper.h"
 
-void thread_context_collector_sample(
+// Returns true if `thread_context_collector_resolve_otel_span_key_may_lose_gvl` needs to be called (which the caller
+// must only do once the sample is over)
+__attribute__((warn_unused_result)) bool thread_context_collector_sample(
   VALUE self_instance,
   long current_monotonic_wall_time_ns
 );
 __attribute__((warn_unused_result)) bool thread_context_collector_prepare_sample_inside_signal_handler(void);
 __attribute__((warn_unused_result)) bool thread_context_collector_sample_allocation(VALUE self_instance, per_thread_context *thread_context, unsigned int sample_weight, VALUE new_object);
-void thread_context_collector_after_allocation(VALUE self_instance);
+void thread_context_collector_commit_heap_recordings_may_lose_gvl(VALUE self_instance);
 void thread_context_collector_sample_skipped_allocation_samples(VALUE self_instance, unsigned int skipped_samples);
 VALUE thread_context_collector_sample_after_gc(VALUE self_instance);
+VALUE thread_context_collector_heap_update_may_lose_gvl(VALUE self_instance);
+void thread_context_collector_resolve_otel_span_key_may_lose_gvl(VALUE self_instance);
 void thread_context_collector_on_gc_start(VALUE self_instance);
 __attribute__((warn_unused_result)) bool thread_context_collector_on_gc_finish(VALUE self_instance);
 VALUE enforce_thread_context_collector_instance(VALUE object);

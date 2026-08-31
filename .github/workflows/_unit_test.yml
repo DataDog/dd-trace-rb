@@ -145,14 +145,29 @@ jobs:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_PASSWORD: mysql
           MYSQL_USER: mysql
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -proot --silent"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
       postgres:
         image: ghcr.io/datadog/images-rb/services/postgres:9.6
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
           POSTGRES_DB: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
       redis:
         image: ghcr.io/datadog/images-rb/services/redis:6.2
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
