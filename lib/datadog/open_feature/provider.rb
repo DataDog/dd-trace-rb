@@ -67,7 +67,13 @@ module Datadog
       end
 
       def init
-        # no-op
+        # Serialize with Datadog reconfiguration so adoption cannot be lost
+        # between capturing the old component state and starting its replacement.
+        Datadog.send(:components)
+        Datadog.send(:safely_synchronize) do
+          Datadog.send(:components, allow_initialization: false)&.activate_open_feature!
+        end
+        nil
       end
 
       def shutdown

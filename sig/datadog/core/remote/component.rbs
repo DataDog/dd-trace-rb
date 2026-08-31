@@ -34,6 +34,12 @@ module Datadog
 
         def remove_products: (*::String products) -> void
 
+        def register: (
+          capabilities: Array[Integer],
+          products: Array[String],
+          receivers: Array[Datadog::Core::Remote::Dispatcher::Receiver]
+        ) -> void
+
         def self.build: (
           untyped settings,
           Datadog::Core::Configuration::AgentSettings agent_settings,

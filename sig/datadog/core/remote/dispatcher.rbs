@@ -4,7 +4,13 @@ module Datadog
       class Dispatcher
         attr_reader receivers: Array[Receiver]
 
+        @receivers: Array[Receiver]
+
+        @receivers_mutex: ::Thread::Mutex
+
         def initialize: (::Array[Receiver]) -> void
+
+        def add_receivers: (*Receiver receivers) -> void
 
         def dispatch: (Remote::Configuration::Repository::ChangeSet changes, Remote::Configuration::Repository repository) -> void
 

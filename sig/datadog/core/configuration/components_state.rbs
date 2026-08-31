@@ -8,13 +8,22 @@ module Datadog
 
         @di_implicitly_enabled: bool
 
-        def initialize: (telemetry_enabled: bool, remote_started: bool?, ?di_implicitly_enabled: bool) -> void
+        @open_feature_activated: bool
+
+        def initialize: (
+          telemetry_enabled: bool,
+          remote_started: bool?,
+          ?di_implicitly_enabled: bool,
+          ?open_feature_activated: bool
+        ) -> void
 
         def telemetry_enabled?: () -> bool
 
         def remote_started?: () -> bool
 
         def di_implicitly_enabled?: () -> bool
+
+        def open_feature_activated?: () -> bool
       end
     end
   end

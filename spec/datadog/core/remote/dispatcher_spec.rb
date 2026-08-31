@@ -146,6 +146,23 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
     end
   end
 
+  describe "#add_receivers" do
+    let(:added_receiver) { described_class::Receiver.new(matcher, &receiver_block) }
+
+    it "adds each receiver once" do
+      dispatcher.add_receivers(added_receiver)
+      dispatcher.add_receivers(added_receiver)
+
+      expect(dispatcher.receivers).to eq([receiver, added_receiver])
+    end
+
+    it "returns a snapshot" do
+      dispatcher.receivers << added_receiver
+
+      expect(dispatcher.receivers).to eq([receiver])
+    end
+  end
+
   describe Datadog::Core::Remote::Dispatcher::Matcher::Product do
     subject(:matcher) { described_class.new([product]) }
 
