@@ -119,6 +119,30 @@ namespace :github do
     report_task_durations(durations)
   end
 
+  task :annotate_test_failures do
+    file = "tmp/rspec/failures.txt"
+    next unless File.exist?(file)
+
+    content = File.read(file)
+    next if content.strip.empty?
+
+    # GitHub Actions truncates large annotations in the UI; above this size,
+    # fall back to failed example titles only.
+    annotation_size_threshold = 4096
+
+    if content.bytesize <= annotation_size_threshold
+      puts "::error title=RSpec failure::#{escape_annotation(content)}"
+    else
+      titles = content.scan(/^rspec \S+:\d+ # (.+)$/).map(&:first)
+      summary = titles.map { |title| "- #{title}" }.join("\n")
+      puts "::error title=RSpec failures (#{titles.length}, see logs for details)::#{escape_annotation(summary)}"
+    end
+  end
+
+  def escape_annotation(text)
+    text.gsub("%", "%25").gsub("\r", "%0D").gsub("\n", "%0A")
+  end
+
   def junit_suite_time(file)
     File.read(file)[/<testsuite\b[^>]*\btime="([\d.]+)"/, 1].to_f
   rescue Errno::ENOENT
