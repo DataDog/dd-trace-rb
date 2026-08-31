@@ -884,8 +884,7 @@ void thread_context_collector_on_gc_start(VALUE self_instance) {
   // Here we record the wall-time first and in on_gc_finish we record it second to try to avoid having wall-time be slightly < cpu-time
   long wall_time_at_start_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
 
-  // If our start timestamp is not OK, we don't start tracking this GC: leaving the fields as INVALID_TIME makes
-  // on_gc_finish skip it, rather than have it compute a bogus duration from a 0 start time
+  // If our start timestamp is not OK, we skip tracking this GC as well
   if (wall_time_at_start_ns == 0) return;
 
   thread_context->gc_tracking.wall_time_at_start_ns = wall_time_at_start_ns;
