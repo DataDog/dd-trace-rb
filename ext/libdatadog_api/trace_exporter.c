@@ -27,14 +27,14 @@ typedef struct {
 } raw_span_owner;
 
 /* Internal: convert a Ruby Span into the supplied raw Rust span owner */
-static void convert_ruby_span_to_rust(VALUE span, VALUE native_events, raw_span_owner *owner);
+static void convert_ruby_span_to_rust(VALUE span, VALUE native_events_supported, raw_span_owner *owner);
 
 /* TracerSpan methods */
 static VALUE _native_from_span(VALUE klass, VALUE span);
 
 /* TraceExporter methods */
 static VALUE _native_exporter_new(int argc, VALUE *argv, VALUE klass);
-static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events);
+static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events_supported);
 static VALUE _native_before_fork(VALUE self);
 static VALUE _native_after_fork_in_parent(VALUE self);
 static VALUE _native_after_fork_in_child(VALUE self);
@@ -260,11 +260,7 @@ static inline VALUE event_hash_value(VALUE hash, ID key) {
   return rb_hash_fetch(hash, ID2SYM(key));
 }
 
-/*
- * Validate one scalar native attribute without retaining any Rust resources.
- * The conversion calls also prove that integers fit the libdatadog wire type.
- */
-static void validate_event_scalar(VALUE attribute, int type) {
+static void validate_event_scalar(VALUE key, VALUE attribute, int type) {
   ENFORCE_TYPE(attribute, T_HASH);
 
   switch (type) {
@@ -273,7 +269,13 @@ static void validate_event_scalar(VALUE attribute, int type) {
       break;
     case SPAN_EVENT_BOOL: {
       VALUE value = event_hash_value(attribute, event_bool_value_id);
-      if (value != Qtrue && value != Qfalse) rb_raise(rb_eTypeError, "span event boolean attribute must be true or false");
+      if (value != Qtrue && value != Qfalse) {
+        private_raise_exception(
+          rb_exc_new_str(rb_eTypeError, rb_sprintf(
+            "span event attribute '%"PRIsVALUE"' has boolean value %"PRIsVALUE" but must be true or false",
+            key, rb_inspect(value))),
+          "span event attribute has invalid boolean value");
+      }
       break;
     }
     case SPAN_EVENT_INT:
@@ -288,9 +290,13 @@ static void validate_event_scalar(VALUE attribute, int type) {
 }
 
 /*
- * Call SpanEvent#to_native_format and convert each attributes hash to an array
- * of key/value pairs. All Ruby calls and type/range validation happen here,
- * before any Rust allocation. The returned structure remains Ruby-owned.
+ * Build a validated, Ruby-owned snapshot of a span's events for the native
+ * exporter. Each SpanEvent is converted via to_native_format, its attributes
+ * flattened to [key, hash] pairs, and every scalar/array value type- and
+ * range-checked here so a validation failure raises before any Rust
+ * allocation. Returns an array of [name, time, pairs] triples consumed by
+ * build_native_events; *max_array_length is set to the largest array
+ * attribute length, for sizing the conversion scratch buffer.
  */
 static VALUE normalize_span_events(VALUE span, size_t *max_array_length) {
   VALUE events = rb_ivar_get(span, at_events_id);
@@ -325,7 +331,7 @@ static VALUE normalize_span_events(VALUE span, size_t *max_array_length) {
 
         int type = NUM2INT(event_hash_value(attribute, event_type_id));
         if (type != SPAN_EVENT_ARRAY) {
-          validate_event_scalar(attribute, type);
+          validate_event_scalar(key, attribute, type);
           continue;
         }
 
@@ -349,7 +355,7 @@ static VALUE normalize_span_events(VALUE span, size_t *max_array_length) {
           ENFORCE_TYPE(value, T_HASH);
           int value_type = NUM2INT(event_hash_value(value, event_type_id));
           if (value_type != element_type) rb_raise(rb_eArgError, "span event arrays must be homogeneous");
-          validate_event_scalar(value, value_type);
+          validate_event_scalar(key, value, value_type);
         }
       }
     }
@@ -475,22 +481,33 @@ typedef struct {
   span_event_array_scratch value;
 } span_event_array_scratch_alignment;
 
-/* Release every event resource still owned by a conversion context. Event
- * pointers are cleared as libdatadog consumes them. The caller's ensure
- * handler owns the raw span separately. */
-static VALUE cleanup_span_conversion(VALUE arg) {
+/* Free event resources that the conversion context still owns at cleanup
+ * time. build_native_events allocates each event into ctx->events[i];
+ * build_rust_span transfers ownership to the Rust span via add_event and
+ * NULLs the slot. Events left non-NULL here were never attached (an
+ * exception interrupted build_rust_span) and are freed now. The raw span
+ * itself is owned by the caller's separate ensure handler. */
+static VALUE free_span_conversion(VALUE arg) {
   span_conversion_ctx *ctx = (span_conversion_ctx *)arg;
   if (ctx->events != NULL) {
     for (long i = 0; i < ctx->event_count; i++) {
-      if (ctx->events[i] != NULL) ddog_tracer_span_event_free(ctx->events[i]);
+      if (ctx->events[i] != NULL) {
+        ddog_tracer_span_event_free(ctx->events[i]);
+        ctx->events[i] = NULL;
+      }
     }
   }
-  if (ctx->allocation != NULL) ruby_xfree(ctx->allocation);
+  if (ctx->allocation != NULL) {
+    ruby_xfree(ctx->allocation);
+    ctx->allocation = NULL;
+    ctx->events = NULL;
+    ctx->array_scratch = NULL;
+  }
   return Qnil;
 }
 
-/* Attach one normalized Ruby attribute to an event. Array setters borrow the
- * shared scratch storage only for the duration of the FFI call. */
+/* Attach one normalized Ruby attribute to an event. Unknown type codes are
+ * unreachable because normalize_span_events already rejected them. */
 static ddog_TraceExporterError *set_native_event_attribute(
     ddog_TracerSpanEvent *event,
     VALUE key,
@@ -519,7 +536,7 @@ static ddog_TraceExporterError *set_native_event_attribute(
     case SPAN_EVENT_ARRAY:
       break;
     default:
-      return NULL; /* normalize_span_events rejected this type. */
+      return NULL;
   }
 
   VALUE array_value = event_hash_value(attribute, event_array_value_id);
@@ -569,7 +586,7 @@ static ddog_TraceExporterError *set_native_event_attribute(
           (struct ddog_Slice_F64){.ptr = out, .len = (uintptr_t)length});
     }
     default:
-      return NULL; /* normalize_span_events rejected this type. */
+      return NULL;
   }
 }
 
@@ -1050,20 +1067,20 @@ static VALUE build_rust_span(VALUE arg) {
   return Qnil;
 }
 
-static void convert_ruby_span_to_rust(VALUE span, VALUE native_events, raw_span_owner *owner) {
+static void convert_ruby_span_to_rust(VALUE span, VALUE native_events_supported, raw_span_owner *owner) {
   span_conversion_ctx ctx = {
     .span = span,
     .normalized_events = Qnil,
     .owner = owner,
   };
-  if (native_events == Qtrue) {
+  if (native_events_supported == Qtrue) {
     ctx.normalized_events = normalize_span_events(span, &ctx.max_array_length);
     ctx.event_count = RARRAY_LEN(ctx.normalized_events);
   }
 
   rb_ensure(
       build_rust_span, (VALUE)&ctx,
-      cleanup_span_conversion, (VALUE)&ctx);
+      free_span_conversion, (VALUE)&ctx);
   RB_GC_GUARD(ctx.normalized_events);
 }
 
@@ -1371,7 +1388,7 @@ static int check_if_pending_exception(void) {
 typedef struct {
   const ddog_TraceExporter *exporter;
   VALUE                     traces;
-  VALUE                     native_events;
+  VALUE                     native_events_supported;
   long                      trace_count;
   raw_span_owner            span_owner;
   ddog_TracerTraceChunks   *chunks;  /* NULL after send consumes it */
@@ -1399,7 +1416,7 @@ static VALUE build_and_send_traces(VALUE arg) {
     check_exporter_error("Failed to begin trace chunk", begin_err);
     for (long j = 0; j < span_count; j++) {
       convert_ruby_span_to_rust(
-          rb_ary_entry(chunk_spans, j), ctx->native_events, &ctx->span_owner);
+          rb_ary_entry(chunk_spans, j), ctx->native_events_supported, &ctx->span_owner);
 
       ddog_TraceExporterError *push_err =
           ddog_tracer_trace_chunks_push_span(ctx->chunks, ctx->span_owner.span);
@@ -1511,9 +1528,9 @@ static VALUE free_send_resources(VALUE arg) {
   return Qnil;
 }
 
-static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events) {
+static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events_supported) {
   ENFORCE_TYPE(traces, T_ARRAY);
-  if (native_events != Qtrue && native_events != Qfalse) {
+  if (native_events_supported != Qtrue && native_events_supported != Qfalse) {
     rb_raise(rb_eTypeError, "native_events_supported must be true or false");
   }
 
@@ -1544,7 +1561,7 @@ static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events) 
   send_traces_ctx ctx = {
     .exporter    = wrapper->exporter,
     .traces      = traces,
-    .native_events = native_events,
+    .native_events_supported = native_events_supported,
     .trace_count = trace_count,
     .span_owner  = {.span = NULL},
     .chunks      = chunks,

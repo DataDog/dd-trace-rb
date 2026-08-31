@@ -36,6 +36,20 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
     Datadog::Tracing::Span.new("web.request", **defaults.merge(overrides))
   end
 
+  def expect_native_event_rejection(attributes, error, message)
+    event = instance_double(
+      Datadog::Tracing::SpanEvent,
+      to_native_format: {
+        "name" => "event",
+        "time_unix_nano" => 123,
+        "attributes" => attributes,
+      }
+    )
+
+    expect { tracer_span_class._native_from_span(make_ruby_span(events: [event])) }
+      .to raise_error(error, message)
+  end
+
   # ---------------------------------------------------------------------------
   # Tests
   # ---------------------------------------------------------------------------
@@ -205,17 +219,35 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
 
     context "with malformed native event input" do
       it "rejects it before allocating Rust resources" do
-        event = double(
-          "malformed event",
-          to_native_format: {
-            "name" => "event",
-            "time_unix_nano" => 123,
-            "attributes" => {"invalid" => {type: 99}},
-          }
+        expect_native_event_rejection(
+          {"invalid" => {type: 99}},
+          ArgumentError,
+          /unsupported span event attribute type/
         )
+      end
 
-        expect { tracer_span_class._native_from_span(make_ruby_span(events: [event])) }
-          .to raise_error(ArgumentError, /unsupported span event attribute type/)
+      it "reports the attribute key and value when a boolean attribute is not true or false" do
+        expect_native_event_rejection(
+          {"flag" => {type: 1, bool_value: "yes"}},
+          TypeError,
+          /span event attribute 'flag' has boolean value "yes" but must be true or false/
+        )
+      end
+
+      it "rejects nested span event arrays before allocating Rust resources" do
+        expect_native_event_rejection(
+          {"nested" => {type: 4, array_value: {values: [{type: 4, array_value: {values: []}}]}}},
+          ArgumentError,
+          /nested span event arrays are not supported/
+        )
+      end
+
+      it "rejects non-homogeneous span event arrays before allocating Rust resources" do
+        expect_native_event_rejection(
+          {"mixed" => {type: 4, array_value: {values: [{type: 0, string_value: "a"}, {type: 2, int_value: 1}]}}},
+          ArgumentError,
+          /span event arrays must be homogeneous/
+        )
       end
     end
 

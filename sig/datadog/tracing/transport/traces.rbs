@@ -42,7 +42,7 @@ module Datadog
           def self?.encode_trace: (untyped encoder, untyped trace, logger: untyped, native_events_supported: untyped) -> untyped
         end
         class Transport < Core::Transport::Transport
-          include SpanEvents
+          include SpanEventsNegotiation
 
           def send_traces: (Array[Tracing::TraceOperation] traces) -> untyped
 

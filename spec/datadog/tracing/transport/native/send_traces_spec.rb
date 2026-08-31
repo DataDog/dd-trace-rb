@@ -122,6 +122,10 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
     Datadog::Tracing::Span.new(name, **defaults.merge(overrides))
   end
 
+  def last_payload
+    MessagePack.unpack(mock_agent.requests.last.fetch(:body))
+  end
+
   # ---------------------------------------------------------------------------
   # Tests
   # ---------------------------------------------------------------------------
@@ -209,7 +213,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       responses = exporter._native_send_traces([[span]], true)
 
       expect(responses.first.ok?).to be true
-      payload = MessagePack.unpack(mock_agent.requests.last.fetch(:body))
+      payload = last_payload
       events = payload.dig(0, 0, "span_events")
       expected = MessagePack.unpack(MessagePack.pack(span.events.map(&:to_native_format)))
       expect(events).to eq(expected)
@@ -226,7 +230,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       responses = exporter._native_send_traces([[span]], true)
 
       expect(responses.first.ok?).to be true
-      payload = MessagePack.unpack(mock_agent.requests.last.fetch(:body))
+      payload = last_payload
       event = payload.dig(0, 0, "span_events", 0)
       expect(event).to include("name" => "exception")
       expect(event.dig("attributes", "attempt")).to eq("type" => 2, "int_value" => 2)
@@ -247,7 +251,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       responses = exporter._native_send_traces([[span]], true)
 
       expect(responses.first.ok?).to be true
-      payload = MessagePack.unpack(mock_agent.requests.last.fetch(:body))
+      payload = last_payload
       expect(payload.dig(0, 0, "span_events", 0, "attributes", "values")).to eq(
         "type" => 4,
         "array_value" => {"values" => []}

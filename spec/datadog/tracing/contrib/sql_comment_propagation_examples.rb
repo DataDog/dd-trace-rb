@@ -135,7 +135,9 @@ RSpec.shared_examples_for "with sql comment base hash injection" do |span_op_nam
   let(:profiler) { nil }
 
   before do
-    allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info, tracer: tracer, profiler: profiler))
+    components = double(agent_info: agent_info, tracer: tracer, profiler: profiler)
+    allow(Datadog).to receive(:send).with(:components).and_return(components)
+    allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
   end
 
   context "when inject_sql_basehash is enabled and experimental_propagate_process_tags_enabled is true" do
