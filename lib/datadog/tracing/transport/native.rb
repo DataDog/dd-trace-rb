@@ -3,7 +3,7 @@
 require "json"
 require_relative "trace_formatter"
 require_relative "statistics"
-require_relative "span_events"
+require_relative "span_events_negotiation"
 
 module Datadog
   module Tracing

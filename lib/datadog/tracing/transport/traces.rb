@@ -7,7 +7,7 @@ require_relative "../../core/transport/transport"
 require_relative "../../core/utils/enumerable_compat"
 require_relative "http/client"
 require_relative "serializable_trace"
-require_relative "span_events"
+require_relative "span_events_negotiation"
 require_relative "trace_formatter"
 
 module Datadog
