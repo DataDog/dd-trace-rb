@@ -122,10 +122,6 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
     Datadog::Tracing::Span.new(name, **defaults.merge(overrides))
   end
 
-  # ---------------------------------------------------------------------------
-  # Helpers
-  # ---------------------------------------------------------------------------
-
   def last_payload
     MessagePack.unpack(mock_agent.requests.last.fetch(:body))
   end
