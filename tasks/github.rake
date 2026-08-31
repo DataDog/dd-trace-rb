@@ -110,13 +110,50 @@ namespace :github do
       cmd = "bundle exec rake spec:#{task["task"]}'[--seed #{rng.rand(0xFFFF)}]'"
 
       junit_files_before = Dir["tmp/rspec/*.xml"]
-      Bundler.with_unbundled_env { sh(env, cmd) }
+
+      begin
+        Bundler.with_unbundled_env { sh(env, cmd) }
+      rescue RuntimeError
+        raise annotate_test_failures(env, cmd)
+      end
+
       junit_files_after = Dir["tmp/rspec/*.xml"] - junit_files_before
 
       [task["task"], junit_files_after.sum { |file| junit_suite_time(file) }]
     end
 
     report_task_durations(durations)
+  end
+
+  def annotate_test_failures(env, cmd)
+    env_prefix = env.map { |k, v| "#{k}=#{v}" }.join(" ")
+    repro_command = "#{env_prefix} #{cmd}"
+
+    file = ENV.fetch("RSPEC_FAILURES_FILE", "tmp/rspec/failures.txt")
+    return "RSpec failure" unless File.exist?(file)
+
+    content = File.read(file)
+    return "RSpec failure" if content.strip.empty?
+
+    # GitHub Actions truncates large annotations in the UI; above this size,
+    # fall back to failed example titles only.
+    annotation_size_threshold = 4096
+
+    title = escape_annotation("RSpec failure: #{repro_command}")
+
+    summary = if content.bytesize <= annotation_size_threshold
+      content
+    else
+      content[/^Failed examples:.*/m] || content
+    end
+
+    body = "#{title}\n\n#{summary}"
+    puts "::error title=#{title}::#{escape_annotation(body)}"
+    body
+  end
+
+  def escape_annotation(text)
+    text.gsub("%", "%25").gsub("\r", "%0D").gsub("\n", "%0A")
   end
 
   def junit_suite_time(file)
