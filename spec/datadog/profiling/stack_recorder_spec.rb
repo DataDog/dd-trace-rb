@@ -752,13 +752,30 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             # Doing this on the main thread instead made these examples flaky on CI: the object would survive the
             # GC below and the recorder would (correctly!) keep reporting it. That's the same class of problem the
             # enclosing `before` documents, see https://bugs.ruby-lang.org/issues/19460.
-            record_id = Thread.new { sample_allocation(Object.new) }.value
+            #
+            # That's still not airtight, though: the conservative garbage collector also scans the main thread, and a
+            # stale value there that happens to look like a pointer to our object keeps the object alive. While that
+            # happens the recorder is right to keep reporting the object, so there's nothing left for these examples
+            # to check. We record a weak reference of our own so we can ask Ruby whether the object is really gone and
+            # bail out instead of flaking. (Seen on CI as `[true, false, false, false]` for the oldest object.)
+            record_id = Thread.new do
+              object = Object.new
+              id = sample_allocation(object)
+              @sampled_objects[id] = object
+              id
+            end.value
             GC.start
+
+            skip "Ruby's conservative GC kept the sampled object alive" unless @sampled_objects[record_id].nil?
+
             record_id
           end
 
           before do
             GC.disable
+
+            # Weak references to the objects tracked below, so we can check whether Ruby really collected them
+            @sampled_objects = ObjectSpace::WeakMap.new
 
             @record_ids = Array.new(4) { sample_and_clear }
           end
@@ -779,10 +796,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
               stack_recorder.serialize
 
-              GC.enable
-              GC.start
-
-              # Older objects are only cleared at serialization time
+              # Older objects are only cleared at serialization time. (No `GC.start` needed here: records are only
+              # ever dropped by a heap recorder update, and `sample_and_clear` already made sure Ruby collected the
+              # objects.)
               expect(@record_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]
             end
 
@@ -792,14 +808,18 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
                 described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
 
-                test_record_id = sample_and_clear
+                # `ensure` because `sample_and_clear` can `skip` out of the example, and we don't want to leave the
+                # fake serialization dangling when it does
+                begin
+                  test_record_id = sample_and_clear
 
-                expect do
-                  described_class::Testing._native_heap_recorder_reset_last_update(stack_recorder)
-                  recorder_heap_update
-                end.to_not change { is_object_recorded?(test_record_id) }.from(true)
-
-                described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
+                  expect do
+                    described_class::Testing._native_heap_recorder_reset_last_update(stack_recorder)
+                    recorder_heap_update
+                  end.to_not change { is_object_recorded?(test_record_id) }.from(true)
+                ensure
+                  described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
+                end
 
                 # Sanity: after serialization finishes, we can finally clear it
                 expect do
