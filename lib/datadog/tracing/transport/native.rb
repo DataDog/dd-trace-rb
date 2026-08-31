@@ -309,7 +309,13 @@ module Datadog
 
           # Serializes each span's events into the legacy JSON +events+ meta
           # tag when typed native events are not supported. Mutates the spans
-          # in place; returns no value.
+          # in place.
+          #
+          # @param chunks [Array<Array<Datadog::Tracing::Span>>] trace chunks whose
+          #   spans are mutated in place when legacy serialization is applied.
+          # @param native_events_supported [Boolean] when true, returns immediately
+          #   and leaves spans untouched; when false, writes the legacy +events+ tag.
+          # @return [void]
           def apply_legacy_span_events!(chunks, native_events_supported)
             return if native_events_supported
 
@@ -320,6 +326,8 @@ module Datadog
                 span.set_tag("events", span.events.map(&:to_hash).to_json)
               end
             end
+
+            nil
           end
 
           # Warn, at most once per transport, when a batch contains span fields

@@ -11,11 +11,12 @@ module Datadog
         # between the typed field and legacy JSON metadata. Only successful
         # capability responses are cached so a later flush can recover.
         #
-        # The memo is read/written outside the transport's +@send_mutex+. Two
-        # concurrent sends can both observe it unset and each issue an
-        # +agent_info.fetch+; the duplicate fetch is self-correcting (the last
-        # writer wins) and cheaper than serializing every send behind the
-        # capability lookup.
+        # The memo is read and written without synchronization, independent of
+        # any lock the including transport holds for its own sends (the native
+        # transport's +@send_mutex+, for example). Two concurrent sends can both
+        # observe it unset and each issue an +agent_info.fetch+; the duplicate
+        # fetch is self-correcting (the last writer wins) and cheaper than
+        # serializing every send behind the capability lookup.
         #
         # @return [Boolean] true if typed span events are supported
         def native_events_supported?
