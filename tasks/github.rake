@@ -120,7 +120,7 @@ namespace :github do
   end
 
   task :annotate_test_failures do
-    file = "tmp/rspec/failures.txt"
+    file = ENV.fetch("RSPEC_FAILURES_FILE", "tmp/rspec/failures.txt")
     next unless File.exist?(file)
 
     content = File.read(file)
