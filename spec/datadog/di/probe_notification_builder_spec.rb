@@ -457,7 +457,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
     it "serializes a BasicObject return value" do
       payload = builder.build_executed(context)
-      expect(payload[:debugger][:snapshot][:captures][:return][:arguments][:"@return"]).to eq(
+      expect(payload[:debugger][:snapshot][:captures][:return][:arguments][:@return]).to eq(
         type: "BasicObject", fields: {}
       )
     end
