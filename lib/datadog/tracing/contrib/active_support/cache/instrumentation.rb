@@ -101,8 +101,8 @@ module Datadog
               end
             end
 
-            # A callable is never invoked here, as instrumentation must not call customer code.
-            # The value {ResolveNamespace} captured when ActiveSupport resolved it is used instead.
+            # The `:namespace` option may be a `Proc`, which only ActiveSupport may invoke.
+            # {ResolvedNamespace} records what ActiveSupport resolved it to, so read that.
             def set_cache_namespace_tag(span, namespace)
               namespace = Thread.current[RESOLVED_NAMESPACE_KEY] if namespace.respond_to?(:call)
               return unless namespace
@@ -171,8 +171,9 @@ module Datadog
               def read_multi(*keys, **options, &block)
                 return super if Instrumentation.nested_multiread?
 
-                # Rails also accepts the options as a trailing hash. The split is kept in
-                # separate locals because the bare `super` below forwards `keys` and `options`.
+                # Rails also accepts the options as a trailing hash. Bare `super` forwards
+                # whatever `keys` and `options` hold, so the split goes into new locals to
+                # leave the arguments Rails receives untouched.
                 trailing_options = keys[-1] if keys[-1].instance_of?(Hash)
                 names = trailing_options ? keys[0..-2] : keys
 
@@ -234,13 +235,13 @@ module Datadog
 
             RESOLVED_NAMESPACE_KEY = "datadog_active_support_cache_resolved_namespace"
 
-            # `#namespace_key` returns the key it is given prefixed with `"#{namespace}:"`, so the
-            # namespace is whatever it put in front of that key. It is the single place ActiveSupport
-            # applies the namespace, and exists since Rails 5.2; older versions inline it into
-            # `#normalize_key`, where the key is not yet expanded and the prefix cannot be isolated.
-            module ResolveNamespace
+            # Records the namespace ActiveSupport applied to a key, so that a `Proc` namespace can
+            # be tagged from the value ActiveSupport resolved instead of by invoking it again.
+            module ResolvedNamespace
               private
 
+              # `super` returns the key prefixed with `"#{namespace}:"`, so the namespace is the
+              # bytes ahead of the key, less the separator. Verified on Rails 5.2 through 8.1.
               def namespace_key(key, _options = nil)
                 super.tap do |namespaced_key|
                   next unless key.is_a?(::String) && namespaced_key.is_a?(::String)
@@ -254,19 +255,17 @@ module Datadog
 
             DELETE_NAMESPACE_KEY = "datadog_active_support_cache_delete_namespace"
 
-            # ActiveSupport only forwards the call options to the `#delete` event since Rails 8, so
-            # on older versions the namespace never reaches the payload. `#delete` itself still has
-            # both the store options and the ones given to the call, so the namespace is carried
-            # from there to the event.
-            module BackfillDeleteNamespace
+            # ActiveSupport only forwards the call options to the `#delete` event since Rails 8.
+            # On older versions the namespace never reaches the payload, so it is carried over
+            # from the `#delete` call, which still sees it.
+            module DeleteNamespaceBackfill
               include InstanceMethods
 
               def delete(name, options = nil)
                 previous = Thread.current[DELETE_NAMESPACE_KEY]
                 namespace = dd_cache_namespace(options)
-                # A callable is the one namespace `#delete` cannot report on these versions:
-                # putting one in the payload would let Rails' debug logging normalize the key
-                # with it, invoking it once more.
+                # A `Proc` namespace is dropped: putting one in the payload would let Rails'
+                # debug logging normalize the key with it, invoking it a second time.
                 Thread.current[DELETE_NAMESPACE_KEY] = namespace.respond_to?(:call) ? nil : namespace
                 super
               ensure

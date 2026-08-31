@@ -36,12 +36,12 @@ module Datadog
             end
             RESOLVED_NAMESPACE_KEY: ::String
 
-            module ResolveNamespace
+            module ResolvedNamespace
               def namespace_key: (untyped key, ?untyped _options) -> untyped
             end
             DELETE_NAMESPACE_KEY: ::String
 
-            module BackfillDeleteNamespace
+            module DeleteNamespaceBackfill
               def delete: (any name, ?::Hash[::Symbol, any]? options) -> untyped
 
               def instrument: (::Symbol operation, any key, ?::Hash[::Symbol, any]? call_options) ?{ (any payload) -> untyped } -> untyped
