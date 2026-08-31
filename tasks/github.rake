@@ -110,7 +110,13 @@ namespace :github do
       cmd = "bundle exec rake spec:#{task["task"]}'[--seed #{rng.rand(0xFFFF)}]'"
 
       junit_files_before = Dir["tmp/rspec/*.xml"]
-      Bundler.with_unbundled_env { sh(env, cmd) }
+
+      begin
+        Bundler.with_unbundled_env { sh(env, cmd) }
+      rescue RuntimeError
+        raise annotate_test_failures(env, cmd)
+      end
+
       junit_files_after = Dir["tmp/rspec/*.xml"] - junit_files_before
 
       [task["task"], junit_files_after.sum { |file| junit_suite_time(file) }]
@@ -119,25 +125,31 @@ namespace :github do
     report_task_durations(durations)
   end
 
-  task :annotate_test_failures do
+  def annotate_test_failures(env, cmd)
+    env_prefix = env.map { |k, v| "#{k}=#{v}" }.join(" ")
+    repro_command = "#{env_prefix} #{cmd}"
+
     file = ENV.fetch("RSPEC_FAILURES_FILE", "tmp/rspec/failures.txt")
-    next unless File.exist?(file)
+    return "RSpec failure" unless File.exist?(file)
 
     content = File.read(file)
-    next if content.strip.empty?
+    return "RSpec failure" if content.strip.empty?
 
     # GitHub Actions truncates large annotations in the UI; above this size,
     # fall back to failed example titles only.
     annotation_size_threshold = 4096
 
+    title = escape_annotation("RSpec failure: #{repro_command}")
+
     if content.bytesize <= annotation_size_threshold
-      puts "::error title=RSpec failure::#{escape_annotation(content)}"
+      body = "#{title}\n\n#{content}"
+      puts "::error title=#{title}::#{escape_annotation(body)}"
+      body
     else
-      titles = content.scan(/^rspec \S+:\d+ # (.+)$/).map(&:first)
-      summary = titles.map { |title| "- #{title}" }.join("\n")
-      seed_line = content[/^Randomized with seed \d+$/]
-      summary = "#{summary}\n\n#{seed_line}" if seed_line
-      puts "::error title=RSpec failures (#{titles.length}, see logs for details)::#{escape_annotation(summary)}"
+      summary = content[/^Failed examples:.*/m] || content
+      body = "#{title}\n\n#{summary}"
+      puts "::error title=#{title}::#{escape_annotation(body)}"
+      body
     end
   end
 

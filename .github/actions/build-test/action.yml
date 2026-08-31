@@ -31,11 +31,6 @@ runs:
       COVERAGE_DIR: coverage/versions/${{ inputs.alias }}/${{ inputs.container-id }}
       CI_TEST_SEED: "${{ github.run_id }}"
 
-  - name: Annotate test failures
-    if: ${{ failure() }}
-    run: bundle exec rake github:annotate_test_failures
-    shell: bash
-
   - name: Display debug info
     if: ${{ !cancelled() }}
     shell: bash
