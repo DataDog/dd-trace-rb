@@ -366,7 +366,6 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(observed_calls.first).to be_a(Datadog::DI::Context)
           expect(observed_calls.first.return_value).to eq 2
           expect(observed_calls.first.duration).to be_a(Float)
-          # expect(observed_calls.first.serialized_entry_args).to eq(arg: 2)
         end
       end
 
@@ -622,12 +621,18 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       let(:first_calls) { [] }
 
+      before do
+        hook_method(first_probe) { |payload| first_calls << payload }
+        # Establish the precondition: the method is already instrumented
+        # by the earlier probe.
+        expect(first_probe.instrumentation_module).not_to be_nil
+      end
+
       after do
         instrumenter.unhook(first_probe)
       end
 
       it "captures positional args under their real names for the later probe" do
-        hook_method(first_probe) { |payload| first_calls << payload }
         hook_method(probe) { |payload| observed_calls << payload }
 
         expect(HookTestClass.new.hook_test_method_with_arg(2)).to eq 2
@@ -2418,40 +2423,42 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    def names_for(method_name)
+    def positional_param_names(method_name)
       instrumenter.send(:extract_positional_param_names, target_class.instance_method(method_name))
     end
 
     it "returns required positional names in order" do
-      expect(names_for(:only_req)).to eq([:a, :b])
+      expect(positional_param_names(:only_req)).to eq([:a, :b])
     end
 
     it "includes optional positional parameters" do
-      expect(names_for(:req_and_opt)).to eq([:a, :b])
+      expect(positional_param_names(:req_and_opt)).to eq([:a, :b])
     end
 
     it "stops at a rest parameter, keeping the leading fixed positionals" do
-      expect(names_for(:leading_req_then_rest)).to eq([:a, :b])
+      expect(positional_param_names(:leading_req_then_rest)).to eq([:a, :b])
     end
 
     it "stops at a leading rest parameter, dropping post-splat positionals" do
-      expect(names_for(:rest_first)).to eq([])
+      expect(positional_param_names(:rest_first)).to eq([])
     end
 
     it "ignores keyword and keyword-splat parameters" do
-      expect(names_for(:kwargs_only)).to eq([])
+      expect(positional_param_names(:kwargs_only)).to eq([])
     end
 
     it "ignores block parameters" do
-      expect(names_for(:block_only)).to eq([])
+      expect(positional_param_names(:block_only)).to eq([])
     end
 
     it "returns an empty array for a method with no parameters" do
-      expect(names_for(:no_params)).to eq([])
+      expect(positional_param_names(:no_params)).to eq([])
     end
 
     it "returns a nil name for a generated method (attr_writer) with no parameter name" do
-      expect(names_for(:written=)).to eq([nil])
+      # attr_writer-generated methods expose a nameless [:req] parameter; this
+      # shape is a stable MRI attribute contract across the supported range.
+      expect(positional_param_names(:written=)).to eq([nil])
     end
 
     it "returns nil and logs when parameter extraction raises" do
