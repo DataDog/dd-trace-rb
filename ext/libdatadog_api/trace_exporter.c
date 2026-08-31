@@ -370,6 +370,9 @@ typedef struct {
   size_t                 capacity;
 } snapshot_attribute_ctx;
 
+/* Link keys, values, and tracestate are pre-stringified by SpanLink#to_hash,
+ * so a non-String here is a programming error, not user data. Enforce strictly
+ * rather than skip-and-warn like the meta setter (meta values are raw user tags). */
 static void snapshot_link_string(VALUE string, owned_link_string *snapshot) {
   ENFORCE_TYPE(string, T_STRING);
   snapshot->len = (size_t)RSTRING_LEN(string);
@@ -954,7 +957,6 @@ static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
   }
   set_prepared_metastruct(owner->span, &metastruct);
 
-  /* 5. Populate meta, metrics, and meta_struct */
   hash_iter_ctx ctx = {.span = owner->span, .error = NULL, .skipped = 0};
 
   VALUE rb_meta = rb_ivar_get(span, at_meta_id);
@@ -1542,17 +1544,17 @@ void trace_exporter_init(VALUE tracing_module) {
 
   /* Methods */
   id_duration_method = rb_intern("duration");
-  id_to_hash          = rb_intern("to_hash");
-  id_to_h             = rb_intern("to_h");
-  id_negative_p       = rb_intern("negative?");
+  id_to_hash         = rb_intern("to_hash");
+  id_to_h            = rb_intern("to_h");
+  id_negative_p      = rb_intern("negative?");
 
   /* SpanLink#to_hash fields */
-  link_trace_id_id = rb_intern("trace_id");
+  link_trace_id_id      = rb_intern("trace_id");
   link_trace_id_high_id = rb_intern("trace_id_high");
-  link_span_id_id = rb_intern("span_id");
-  link_attributes_id = rb_intern("attributes");
-  link_tracestate_id = rb_intern("tracestate");
-  link_flags_id = rb_intern("flags");
+  link_span_id_id       = rb_intern("span_id");
+  link_attributes_id    = rb_intern("attributes");
+  link_tracestate_id    = rb_intern("tracestate");
+  link_flags_id         = rb_intern("flags");
 
   /* Response.new */
   id_new = rb_intern("new");
