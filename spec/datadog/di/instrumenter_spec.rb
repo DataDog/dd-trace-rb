@@ -355,10 +355,8 @@ RSpec.describe Datadog::DI::Instrumenter do
          capture_snapshot: true}
       end
 
-      # Snapshot serialization calls Object/Kernel methods (e.g. #class,
-      # #instance_variables) on the receiver. A BasicObject provides none of
-      # them, so a snapshot of a BasicObject receiver cannot be captured; with
-      # propagate_all_exceptions enabled the underlying NoMethodError surfaces.
+      # propagate_all_exceptions lets the NoMethodError from receiver
+      # serialization surface here; otherwise the probe boundary swallows it.
       it "cannot serialize a BasicObject receiver" do
         hook_method(probe) do |payload|
           observed_calls << payload

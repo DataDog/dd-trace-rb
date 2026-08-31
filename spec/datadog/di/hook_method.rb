@@ -91,8 +91,6 @@ class YieldingMethodMissingHookTestClass
   end
 end
 
-# A BasicObject subclass: instances are valid method receivers but do not
-# respond to Object/Kernel methods such as #class or #instance_variables.
 class HookBasicObjectTestClass < BasicObject
   def initialize
     @ivar = 2442

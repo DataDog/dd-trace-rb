@@ -455,9 +455,8 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       )
     end
 
-    # Snapshot serialization calls #class on the value being serialized, which
-    # a BasicObject does not provide, so a BasicObject return value cannot be
-    # serialized into the snapshot and the underlying NoMethodError surfaces.
+    # build_executed serializes the return value with no error boundary, so the
+    # NoMethodError from #class propagates.
     it "cannot serialize a BasicObject return value" do
       expect do
         builder.build_executed(context)
