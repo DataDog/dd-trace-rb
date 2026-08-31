@@ -193,10 +193,13 @@ services:
       - "127.0.0.1:${DD_TRACE_AGENT_PORT}:9126"
       - "127.0.0.1:${OTLP_GRPC_PORT}:4317"
       - "127.0.0.1:${OTLP_HTTP_PORT}:4318"
+    depends_on:
+      - ddagent
     env_file: ./.env
     environment:
       - LOG_LEVEL=DEBUG
       - TRACE_LANGUAGE=ruby
+      - DD_TRACE_AGENT_URL=http://${DD_REAL_AGENT_HOST}:${DD_REAL_AGENT_PORT}
       - PORT=${DD_TRACE_AGENT_PORT}
       - OTLP_GRPC_PORT=${OTLP_GRPC_PORT}
       - OTLP_HTTP_PORT=${OTLP_HTTP_PORT}
