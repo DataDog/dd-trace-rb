@@ -49,7 +49,7 @@ RSpec.describe Datadog::OpenFeature::Transport::HTTP do
   end
 
   describe "#send_flag_evaluations" do
-    subject(:transport) { described_class.build_flagevaluations(agent_settings: test_agent_settings, logger: logger) }
+    let(:transport) { described_class.build_flagevaluations(agent_settings: test_agent_settings, logger: logger) }
 
     before { stub_request(:post, %r{/evp_proxy/v2/api/v2/flagevaluation}).to_return(status: 201, body: "") }
 
