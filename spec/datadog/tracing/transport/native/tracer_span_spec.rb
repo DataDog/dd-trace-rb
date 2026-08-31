@@ -115,7 +115,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
       end
 
       it "normalizes every link before allocating the Rust span" do
-        bad_link = double("span link")
+        bad_link = instance_double(Datadog::Tracing::SpanLink)
         allow(bad_link).to receive(:to_hash).and_raise("normalization failed")
         span = make_ruby_span
         span.links.concat([link, bad_link])
@@ -125,7 +125,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         GC.start
       end
 
-      it "rejects invalid UTF-8 atomically" do
+      it "rejects invalid UTF-8" do
         invalid_link = Datadog::Tracing::SpanLink.new(
           Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2),
           attributes: {"valid" => "value", "invalid" => "\xff".b}
@@ -151,7 +151,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
           calls << key
           raise "default proc failed"
         end
-        stateful_link = double("span link", to_hash: canonical)
+        stateful_link = instance_double(Datadog::Tracing::SpanLink, to_hash: canonical)
         span = make_ruby_span
         span.links << stateful_link
 
@@ -160,20 +160,33 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
             .to raise_error(RuntimeError, "default proc failed")
         end
         expect(calls).to eq([:tracestate] * 20)
+
+        # A successful conversion after repeated failures proves the aborted
+        # snapshots left no corrupt native state behind.
+        span.links.replace([Datadog::Tracing::SpanLink.new(
+          Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2)
+        )])
+        expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
         GC.start
       end
 
       it "releases prepared meta_struct storage when links is not an array" do
         span = make_ruby_span
         span.set_metastruct_tag("_dd.stack", {frames: [{file: "app.rb", line: 42}]})
-        # Bypass the Ruby-level Array contract to exercise the C type check that
-        # runs after meta_struct storage has already been allocated.
-        span.instance_variable_set(:@links, "not an array")
+        # The public #links setter has no type enforcement, so a non-Array value
+        # reaches the C type check that runs after meta_struct storage has
+        # already been allocated.
+        span.links = "not an array"
 
         20.times do
           expect { tracer_span_class._native_from_span(span) }
             .to raise_error(TypeError, /rb_links/)
         end
+
+        # A valid conversion after repeated type-check failures proves the
+        # aborted paths freed their meta_struct storage without corruption.
+        span.links = []
+        expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
         GC.start
       end
     end
