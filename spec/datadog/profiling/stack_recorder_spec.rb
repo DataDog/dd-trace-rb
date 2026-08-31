@@ -808,14 +808,18 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
                 described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
 
-                test_record_id = sample_and_clear
+                # `ensure` because `sample_and_clear` can `skip` out of the example, and we don't want to leave the
+                # fake serialization dangling when it does
+                begin
+                  test_record_id = sample_and_clear
 
-                expect do
-                  described_class::Testing._native_heap_recorder_reset_last_update(stack_recorder)
-                  recorder_heap_update
-                end.to_not change { is_object_recorded?(test_record_id) }.from(true)
-
-                described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
+                  expect do
+                    described_class::Testing._native_heap_recorder_reset_last_update(stack_recorder)
+                    recorder_heap_update
+                  end.to_not change { is_object_recorded?(test_record_id) }.from(true)
+                ensure
+                  described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
+                end
 
                 # Sanity: after serialization finishes, we can finally clear it
                 expect do
