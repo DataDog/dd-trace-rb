@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.42.0.dev)
+    datadog (2.43.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.5)
       libdatadog (~> 40.0.0.2.0)
@@ -98,7 +98,7 @@ GEM
     simplecov_json_formatter (0.1.4)
     stripe (11.7.0)
     warning (1.6.0)
-    webmock (3.26.2)
+    webmock (3.26.3)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)

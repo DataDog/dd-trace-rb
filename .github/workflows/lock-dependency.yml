@@ -53,7 +53,7 @@ jobs:
           - name: ruby
             version: "2.5"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}-gnu-gcc-g9b9386d296819d954c1eb665ac0c5b81169805e7
+      image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
       env:
         BUNDLE_GEMFILE: gemfiles/${{ matrix.engine.name }}-${{ matrix.engine.version }}.gemfile
         BUNDLE_WITHOUT: check
@@ -69,6 +69,10 @@ jobs:
       - id: checksum
         run: |
           echo "eligible=$(ruby -r./tasks/security_capabilities -e 'print SecurityCapabilities.for_version(RUBY_VERSION)[:checksum]')" >> "$GITHUB_OUTPUT"
+      # `dependency:lock` globs only appraisal gemfiles, so the parent needs its
+      # pre-lock here. Loaded directly rather than through rake: the Rakefile's
+      # development requires are unavailable until `bundle install` below.
+      - run: ruby -r./tasks/prelock -e 'Prelock.call(ENV.fetch("BUNDLE_GEMFILE"))'
       - run: bundle lock --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin${{ steps.checksum.outputs.eligible == 'true' && ' --add-checksums' || '' }}
       - run: bundle install
       - run: bundle exec rake dependency:all
