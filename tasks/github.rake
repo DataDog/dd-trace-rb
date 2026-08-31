@@ -135,6 +135,8 @@ namespace :github do
     else
       titles = content.scan(/^rspec \S+:\d+ # (.+)$/).map(&:first)
       summary = titles.map { |title| "- #{title}" }.join("\n")
+      seed_line = content[/^Randomized with seed \d+$/]
+      summary = "#{summary}\n\n#{seed_line}" if seed_line
       puts "::error title=RSpec failures (#{titles.length}, see logs for details)::#{escape_annotation(summary)}"
     end
   end

@@ -9,7 +9,7 @@
 require "rspec/core/formatters/base_text_formatter"
 
 class FailuresOnlyFormatter < RSpec::Core::Formatters::BaseTextFormatter
-  RSpec::Core::Formatters.register self, :dump_failures, :dump_summary
+  RSpec::Core::Formatters.register self, :dump_failures, :dump_summary, :seed
 
   def message(_notification)
   end
@@ -17,6 +17,16 @@ class FailuresOnlyFormatter < RSpec::Core::Formatters::BaseTextFormatter
   def dump_pending(_notification)
   end
 
-  def seed(_notification)
+  def dump_summary(summary)
+    super
+    @dumped_summary = true
+  end
+
+  # RSpec notifies :seed twice (once before the run starts, once after the
+  # summary); only the second carries the seed actually used.
+  def seed(notification)
+    return unless @dumped_summary
+
+    super
   end
 end
