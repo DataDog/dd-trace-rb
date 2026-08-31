@@ -42,7 +42,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
           request_blocked: "false",
           block_failure: "false",
           rate_limited: "false",
-          input_truncated: "false"
+          input_truncated: "false",
         }
       )
 

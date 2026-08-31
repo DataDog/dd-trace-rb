@@ -179,7 +179,7 @@ module Datadog
         if status == "ERROR"
           diagnostics[:exception] = { # steep:ignore
             type: exception ? exception.class.name : "Error",
-            message: exception ? exception.message : message
+            message: exception ? exception.message : message,
           }
         end
 
@@ -379,6 +379,7 @@ module Datadog
             thread_id: nil,
             version: 2,
           },
+          runtime_id: Core::Environment::Identity.id,
           # TODO add tests that the trace/span id is correctly propagated
           "dd.trace_id": active_trace&.id&.to_s,
           "dd.span_id": active_span&.id&.to_s,
@@ -405,7 +406,7 @@ module Datadog
           when String
             segment
           when EL::Expression
-            serializer.serialize_value_for_message(segment.evaluate(context))
+            serializer.serialize_value_for_message(segment.evaluate(context), name: segment.redaction_identifier)
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end

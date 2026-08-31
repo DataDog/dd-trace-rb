@@ -83,7 +83,7 @@ module Datadog
             hostname: Datadog::Core::Environment::Platform.hostname,
             kernel_name: Datadog::Core::Environment::Platform.kernel_name,
             kernel_release: Datadog::Core::Environment::Platform.kernel_release,
-            kernel_version: Datadog::Core::Environment::Platform.kernel_version
+            kernel_version: Datadog::Core::Environment::Platform.kernel_version,
           }.freeze
         end
 

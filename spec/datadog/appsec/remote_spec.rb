@@ -22,7 +22,7 @@ RSpec.describe Datadog::AppSec::Remote do
       it "returns capabilities" do
         expect(described_class.capabilities).to eq([
           4, 128, 16, 32, 64, 8, 256, 512, 1024, 65_536, 131_072, 8_388_608, 2_097_152, 2_147_483_648,
-          4_294_967_296, 8_589_934_592, 17_179_869_184, 34_359_738_368, 8_796_093_022_208
+          4_294_967_296, 8_589_934_592, 17_179_869_184, 34_359_738_368, 8_796_093_022_208,
         ])
       end
     end
@@ -82,7 +82,7 @@ RSpec.describe Datadog::AppSec::Remote do
           {
             version: "2.2",
             metadata: {
-              rules_version: "1.5.2"
+              rules_version: "1.5.2",
             },
             rules: [
               {
@@ -90,27 +90,27 @@ RSpec.describe Datadog::AppSec::Remote do
                 name: "Block IP Addresses",
                 tags: {
                   type: "block_ip",
-                  category: "security_response"
+                  category: "security_response",
                 },
                 conditions: [
                   {
                     parameters: {
                       inputs: [
                         {
-                          address: "http.client_ip"
-                        }
+                          address: "http.client_ip",
+                        },
                       ],
-                      data: "blocked_ips"
+                      data: "blocked_ips",
                     },
-                    operator: "ip_match"
-                  }
+                    operator: "ip_match",
+                  },
                 ],
                 transformers: [],
                 on_match: [
-                  "block"
-                ]
-              }
-            ]
+                  "block",
+                ],
+              },
+            ],
           }.to_json
         end
 
@@ -123,7 +123,7 @@ RSpec.describe Datadog::AppSec::Remote do
                 "v" => 1,
               },
               "hashes" => {"sha256" => Digest::SHA256.hexdigest(rules.to_json)},
-              "length" => rules.to_s.length
+              "length" => rules.to_s.length,
             }
           )
         end
@@ -183,7 +183,7 @@ RSpec.describe Datadog::AppSec::Remote do
             {
               version: "2.2",
               metadata: {
-                rules_version: "2.0.0"
+                rules_version: "2.0.0",
               },
               rules: [
                 {
@@ -192,7 +192,7 @@ RSpec.describe Datadog::AppSec::Remote do
                   tags: {
                     type: "sql_injection",
                     category: "exploit",
-                    module: "rasp"
+                    module: "rasp",
                   },
                   conditions: [
                     {
@@ -200,12 +200,12 @@ RSpec.describe Datadog::AppSec::Remote do
                       parameters: {
                         resource: [{address: "server.db.statement"}],
                         params: [{address: "server.request.query"}],
-                        db_type: [{address: "server.db.system"}]
-                      }
-                    }
+                        db_type: [{address: "server.db.system"}],
+                      },
+                    },
                   ],
-                  on_match: ["block-sqli"]
-                }
+                  on_match: ["block-sqli"],
+                },
               ],
               actions: [
                 {
@@ -214,10 +214,10 @@ RSpec.describe Datadog::AppSec::Remote do
                   parameters: {
                     status_code: "418",
                     grpc_status_code: "42",
-                    type: "auto"
-                  }
-                }
-              ]
+                    type: "auto",
+                  },
+                },
+              ],
             }.to_json
           end
 
@@ -246,7 +246,7 @@ RSpec.describe Datadog::AppSec::Remote do
                   "v" => 1,
                 },
                 "hashes" => {"sha256" => Digest::SHA256.hexdigest(rules_v2)},
-                "length" => rules_v2.length
+                "length" => rules_v2.length,
               }
             )
           end
@@ -282,7 +282,7 @@ RSpec.describe Datadog::AppSec::Remote do
             expect(call_order).to eq([
               [:remove, "datadog/603646/ASM_DD/v1/config"],
               [:add, "datadog/603646/ASM_DD/v2/config"],
-              [:remove, "ASM_DD/default"]
+              [:remove, "ASM_DD/default"],
             ])
           end
         end
