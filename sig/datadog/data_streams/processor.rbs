@@ -35,12 +35,15 @@ module Datadog
 
         include Core::Workers::Polling
         include Core::Workers::IntervalLoop
+        include Core::Workers::Async::Thread
+        include Core::Workers::Async::Thread::PrependedMethods
 
         def initialize: (interval: ::Float, logger: Core::Logger, settings: Core::Configuration::Settings, agent_settings: Core::Configuration::AgentSettings, agent_info: Core::Environment::AgentInfo, ?buffer_size: ::Integer) -> void
         def track_kafka_produce: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> true
         def track_kafka_consume: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> true
         def set_produce_checkpoint: (type: ::String, destination: ::String, ?manual_checkpoint: bool, ?tags: ::Hash[::String, ::String]) ?{ (::String, ::String) -> void } -> ::String?
         def set_consume_checkpoint: (type: ::String, source: ::String, ?manual_checkpoint: bool, ?tags: ::Hash[::String, ::String]) ?{ (::String) -> ::String? } -> ::String?
+        def restart_flush_thread: () -> bool?
 
         private
 
@@ -52,6 +55,7 @@ module Datadog
 
         def decode_pathway_b64: (::String encoded_ctx) -> PathwayContext?
         def perform: () -> (bool | nil)
+        def discard_inherited_state_after_fork!: () -> void
         def flush_stats: () -> void
 
         def process_events: () -> void

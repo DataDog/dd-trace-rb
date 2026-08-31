@@ -2,50 +2,45 @@
 
 // This file exports functions used to access private Ruby VM APIs and internals.
 // To do this, it imports a few VM internal (private) headers.
+// We rely on the datadog-ruby_core_source gem to get access to private VM headers; see
+// https://github.com/DataDog/datadog-ruby_core_source for details.
 //
 // **Important Note**: Our medium/long-term plan is to stop relying on all private Ruby headers, and instead request and
 // contribute upstream changes so that they become official public VM APIs.
 //
 // In the meanwhile, be very careful when changing things here :)
 
-#ifdef RUBY_MJIT_HEADER
-  // Pick up internal structures from the private Ruby MJIT header file
-  #include RUBY_MJIT_HEADER
-#else
-  // The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
-  // the datadog-ruby_core_source gem to get access to private VM headers.
+#include <ruby/defines.h>
 
-  // We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
-  // See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
+// We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
+// See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wattributes"
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic ignored "-Wexpansion-to-defined"
+  #include <vm_core.h>
+#pragma GCC diagnostic pop
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+  #include <iseq.h>
+#pragma GCC diagnostic pop
+
+#ifndef NO_INTERNAL_CLASS_HEADER_INCLUDE
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
-  #pragma GCC diagnostic ignored "-Wattributes"
-  #pragma GCC diagnostic ignored "-Wpragmas"
-  #pragma GCC diagnostic ignored "-Wexpansion-to-defined"
-    #include <vm_core.h>
+    #include <internal/class.h>
   #pragma GCC diagnostic pop
+#endif
 
+#include <ruby.h>
+
+#ifndef NO_RACTOR_HEADER_INCLUDE
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
-    #include <iseq.h>
+    #include <ractor_core.h>
   #pragma GCC diagnostic pop
-
-  #ifndef NO_INTERNAL_CLASS_HEADER_INCLUDE
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wunused-parameter"
-      #include <internal/class.h>
-    #pragma GCC diagnostic pop
-  #endif
-
-  #include <ruby.h>
-
-  #ifndef NO_RACTOR_HEADER_INCLUDE
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wunused-parameter"
-      #include <ractor_core.h>
-    #pragma GCC diagnostic pop
-  #endif
-
 #endif
 
 // This file can't include datadog_ruby_common.h so we replicate this here
@@ -70,7 +65,9 @@ static const rb_callable_method_entry_t* safe_vm_frame_method_entry(const rb_con
 // if the argument passed in is not actually a `Thread` instance.
 static inline rb_thread_t *thread_struct_from_object(VALUE thread) {
   static const rb_data_type_t *thread_data_type = NULL;
-  if (UNLIKELY(thread_data_type == NULL)) thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
+  if (UNLIKELY(thread_data_type == NULL)) {
+    thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
+  }
 
   return (rb_thread_t *) rb_check_typeddata(thread, thread_data_type);
 }
@@ -80,7 +77,9 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
   #ifndef NO_RB_NATIVE_THREAD
     struct rb_native_thread* native_thread = thread_struct_from_object(thread)->nt;
     // This can be NULL on Ruby 3.3 with MN threads (RUBY_MN_THREADS=1)
-    if (native_thread == NULL) return 0;
+    if (native_thread == NULL) {
+      return 0;
+    }
     return native_thread->thread_id;
   #else
     return thread_struct_from_object(thread)->thread_id;
@@ -104,87 +103,93 @@ bool is_current_thread_holding_the_gvl(void) {
 }
 
 #ifdef HAVE_RUBY_RACTOR_H
-  static inline rb_ractor_t *ddtrace_get_ractor(void) {
-    #ifndef USE_RACTOR_INTERNAL_APIS_DIRECTLY // Ruby >= 3.3
-      return thread_struct_from_object(rb_thread_current())->ractor;
-    #else
-      return GET_RACTOR();
-    #endif
-  }
+static inline rb_ractor_t *ddtrace_get_ractor(void) {
+  #ifndef USE_RACTOR_INTERNAL_APIS_DIRECTLY // Ruby >= 3.3
+    return thread_struct_from_object(rb_thread_current())->ractor;
+  #else
+    return GET_RACTOR();
+  #endif
+}
 #endif
 
 #ifndef NO_GVL_OWNER // Ruby < 2.6 doesn't have the owner/running field
-  // NOTE: Reading the owner in this is a racy read, because we're not grabbing the lock that Ruby uses to protect it.
-  //
-  // While we could potentially grab this lock, I (@ivoanjo) think we actually don't need it because:
-  // * In the case where a thread owns the GVL and calls `gvl_owner`, it will always see the correct value. That's
-  //   because every thread sets itself as the owner when it grabs the GVL and unsets itself at the end.
-  //   That means that `is_current_thread_holding_the_gvl` is always accurate.
-  // * In a case where we observe a different thread, then this may change by the time we do something with this value
-  //   anyway. So unless we want to prevent the Ruby scheduler from switching threads, we need to deal with races here.
-  current_gvl_owner gvl_owner(void) {
-    const rb_thread_t *current_owner =
-      #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
-        ddtrace_get_ractor()->threads.sched.running;
-      #elif HAVE_RUBY_RACTOR_H
-        ddtrace_get_ractor()->threads.gvl.owner;
-      #else
-        GET_VM()->gvl.owner;
-      #endif
-
-    if (current_owner == NULL) return (current_gvl_owner) {.valid = false};
-
-    #ifndef NO_RB_NATIVE_THREAD
-      struct rb_native_thread* current_owner_native_thread = current_owner->nt;
-
-      // This can be NULL on Ruby 3.3 with MN threads (RUBY_MN_THREADS=1)
-      if (current_owner_native_thread == NULL) return (current_gvl_owner) {.valid = false};
-
-      return (current_gvl_owner) {.valid = true, .owner = current_owner_native_thread->thread_id};
+// NOTE: Reading the owner in this is a racy read, because we're not grabbing the lock that Ruby uses to protect it.
+//
+// While we could potentially grab this lock, I (@ivoanjo) think we actually don't need it because:
+// * In the case where a thread owns the GVL and calls `gvl_owner`, it will always see the correct value. That's
+//   because every thread sets itself as the owner when it grabs the GVL and unsets itself at the end.
+//   That means that `is_current_thread_holding_the_gvl` is always accurate.
+// * In a case where we observe a different thread, then this may change by the time we do something with this value
+//   anyway. So unless we want to prevent the Ruby scheduler from switching threads, we need to deal with races here.
+current_gvl_owner gvl_owner(void) {
+  const rb_thread_t *current_owner =
+    #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
+      ddtrace_get_ractor()->threads.sched.running;
+    #elif HAVE_RUBY_RACTOR_H
+      ddtrace_get_ractor()->threads.gvl.owner;
     #else
-      return (current_gvl_owner) {.valid = true, .owner = current_owner->thread_id};
+      GET_VM()->gvl.owner;
     #endif
+
+  if (current_owner == NULL) {
+    return (current_gvl_owner) {.valid = false};
   }
-#else
-  current_gvl_owner gvl_owner(void) {
-    rb_vm_t *vm = GET_VM();
 
-    // BIG Issue: Ruby < 2.6 did not have the owner field. The really nice thing about the owner field is that it's
-    // "atomic" -- when a thread sets it, it "declares" two things in a single step
-    // * Declaration 1: Someone has the GVL
-    // * Declaration 2: That someone is the specific thread
-    //
-    // Observation 1: On older versions of Ruby, this ownership concept is actually split. Specifically, `gvl.acquired`
-    // is a boolean that represents declaration 1 above, and `vm->running_thread` (or `ruby_current_thread`/
-    // `ruby_current_execution_context_ptr`) represents declaration 2.
-    //
-    // Observation 2: In addition, when a thread releases the GVL, it only sets `gvl.acquired` back to 0 **BUT CRUCIALLY
-    // DOES NOT CHANGE THE OTHER global variables**.
-    //
-    // Observation 1+2 above lead to the following possible race:
-    // * Thread A grabs the GVL (`gvl.acquired == 1`)
-    // * Thread A sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread A`)
-    // * Thread A releases the GVL (`gvl.acquired == 0` + `running_thread == Thread A`)
-    // * Thread B grabs the GVL (`gvl.acquired == 1` + `running_thread == Thread A`)
-    // * Thread A calls gvl_owner. Due to the current state (`gvl.acquired == 1` + `running_thread == Thread A`), this
-    //   function returns an incorrect result.
-    // * Thread B finally sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread B`)
-    //
-    // This is especially problematic because we use `gvl_owner` to implement `is_current_thread_holding_the_gvl` which
-    // is called in a signal handler to decide "is it safe for me to call `rb_postponed_job_register_one` or not".
-    // (See constraints in `collectors_cpu_and_wall_time_worker.c` comments for why).
-    //
-    // Thus an incorrect `is_current_thread_holding_the_gvl` result may lead to issues inside `rb_postponed_job_register_one`.
-    //
-    // For this reason we default to use the "no signals workaround" on Ruby 2.5 by default, and we print a
-    // warning when customers force-enable it.
-    bool gvl_acquired = vm->gvl.acquired != 0;
-    rb_thread_t *current_owner = vm->running_thread;
+  #ifndef NO_RB_NATIVE_THREAD
+    struct rb_native_thread* current_owner_native_thread = current_owner->nt;
 
-    if (!gvl_acquired || current_owner == NULL) return (current_gvl_owner) {.valid = false};
+    // This can be NULL on Ruby 3.3 with MN threads (RUBY_MN_THREADS=1)
+    if (current_owner_native_thread == NULL) {
+      return (current_gvl_owner) {.valid = false};
+    }
 
+    return (current_gvl_owner) {.valid = true, .owner = current_owner_native_thread->thread_id};
+  #else
     return (current_gvl_owner) {.valid = true, .owner = current_owner->thread_id};
+  #endif
+}
+#else
+current_gvl_owner gvl_owner(void) {
+  rb_vm_t *vm = GET_VM();
+
+  // BIG Issue: Ruby < 2.6 did not have the owner field. The really nice thing about the owner field is that it's
+  // "atomic" -- when a thread sets it, it "declares" two things in a single step
+  // * Declaration 1: Someone has the GVL
+  // * Declaration 2: That someone is the specific thread
+  //
+  // Observation 1: On older versions of Ruby, this ownership concept is actually split. Specifically, `gvl.acquired`
+  // is a boolean that represents declaration 1 above, and `vm->running_thread` (or `ruby_current_thread`/
+  // `ruby_current_execution_context_ptr`) represents declaration 2.
+  //
+  // Observation 2: In addition, when a thread releases the GVL, it only sets `gvl.acquired` back to 0 **BUT CRUCIALLY
+  // DOES NOT CHANGE THE OTHER global variables**.
+  //
+  // Observation 1+2 above lead to the following possible race:
+  // * Thread A grabs the GVL (`gvl.acquired == 1`)
+  // * Thread A sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread A`)
+  // * Thread A releases the GVL (`gvl.acquired == 0` + `running_thread == Thread A`)
+  // * Thread B grabs the GVL (`gvl.acquired == 1` + `running_thread == Thread A`)
+  // * Thread A calls gvl_owner. Due to the current state (`gvl.acquired == 1` + `running_thread == Thread A`), this
+  //   function returns an incorrect result.
+  // * Thread B finally sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread B`)
+  //
+  // This is especially problematic because we use `gvl_owner` to implement `is_current_thread_holding_the_gvl` which
+  // is called in a signal handler to decide "is it safe for me to call `rb_postponed_job_register_one` or not".
+  // (See constraints in `collectors_cpu_and_wall_time_worker.c` comments for why).
+  //
+  // Thus an incorrect `is_current_thread_holding_the_gvl` result may lead to issues inside `rb_postponed_job_register_one`.
+  //
+  // For this reason we default to use the "no signals workaround" on Ruby 2.5 by default, and we print a
+  // warning when customers force-enable it.
+  bool gvl_acquired = vm->gvl.acquired != 0;
+  rb_thread_t *current_owner = vm->running_thread;
+
+  if (!gvl_acquired || current_owner == NULL) {
+    return (current_gvl_owner) {.valid = false};
   }
+
+  return (current_gvl_owner) {.valid = true, .owner = current_owner->thread_id};
+}
 #endif // NO_GVL_OWNER
 
 // Taken from upstream vm_core.h at commit d9cf0388599a3234b9f3c06ddd006cd59a58ab8b (November 2022, Ruby 3.2 trunk)
@@ -192,7 +197,7 @@ bool is_current_thread_holding_the_gvl(void) {
 // to support tid_for (see below)
 // Modifications: None
 #if defined(__linux__) || defined(__FreeBSD__)
-# define RB_THREAD_T_HAS_NATIVE_ID
+  #define RB_THREAD_T_HAS_NATIVE_ID
 #endif
 
 uint64_t native_thread_id_for(VALUE thread) {
@@ -200,7 +205,9 @@ uint64_t native_thread_id_for(VALUE thread) {
   #if !defined(NO_THREAD_TID) && defined(RB_THREAD_T_HAS_NATIVE_ID)
     #ifndef NO_RB_NATIVE_THREAD
       struct rb_native_thread* native_thread = thread_struct_from_object(thread)->nt;
-      if (native_thread == NULL) return 0;
+      if (native_thread == NULL) {
+        return 0;
+      }
       return native_thread->tid;
     #else
       return thread_struct_from_object(thread)->tid;
@@ -212,7 +219,9 @@ uint64_t native_thread_id_for(VALUE thread) {
       uint64_t result;
       // On macOS, this gives us the same identifier that shows up in activity monitor
       int error = pthread_threadid_np(pthread_id, &result);
-      if (error) rb_syserr_fail(error, "Unexpected failure in pthread_threadid_np");
+      if (error) {
+        rb_syserr_fail(error, "Unexpected failure in pthread_threadid_np");
+      }
       return result;
     #else
       // Fallback, when we have nothing better (e.g. on Ruby < 3.1 on Linux)
@@ -244,11 +253,12 @@ void ddtrace_thread_list(VALUE result_array) {
   // called from a different Ractor, but I'm not sure...
   #ifdef HAVE_RUBY_RACTOR_H
     rb_ractor_t *current_ractor = ddtrace_get_ractor();
-    ccan_list_for_each(&current_ractor->threads.set, thread, lt_node) {
+    ccan_list_for_each(&current_ractor->threads.set, thread, lt_node)
   #else
     rb_vm_t *vm = GET_VM();
-    list_for_each(&vm->living_threads, thread, vmlt_node) {
+    list_for_each(&vm->living_threads, thread, vmlt_node)
   #endif
+    {
       switch (thread->status) {
         case THREAD_RUNNABLE:
         case THREAD_STOPPED:
@@ -316,63 +326,72 @@ VALUE thread_name_for(VALUE thread) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 static inline int
-calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
-{
-    VM_ASSERT(iseq);
-    VM_ASSERT(ISEQ_BODY(iseq));
-    VM_ASSERT(ISEQ_BODY(iseq)->iseq_encoded);
-    VM_ASSERT(ISEQ_BODY(iseq)->iseq_size);
-    if (! pc) {
-        if (ISEQ_BODY(iseq)->type == ISEQ_TYPE_TOP) {
-            VM_ASSERT(! ISEQ_BODY(iseq)->local_table);
-            VM_ASSERT(! ISEQ_BODY(iseq)->local_table_size);
-            return 0;
-        }
-        # ifndef NO_INT_FIRST_LINENO // Ruby 3.2+
-          if (lineno) *lineno = ISEQ_BODY(iseq)->location.first_lineno;
-        # else
-          if (lineno) *lineno = FIX2INT(ISEQ_BODY(iseq)->location.first_lineno);
-        #endif
-#ifdef USE_ISEQ_NODE_ID
-        if (node_id) *node_id = -1;
-#endif
-        return 1;
+calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id) {
+  VM_ASSERT(iseq);
+  VM_ASSERT(ISEQ_BODY(iseq));
+  VM_ASSERT(ISEQ_BODY(iseq)->iseq_encoded);
+  VM_ASSERT(ISEQ_BODY(iseq)->iseq_size);
+  if (pc == NULL) {
+    if (ISEQ_BODY(iseq)->type == ISEQ_TYPE_TOP) {
+      VM_ASSERT(! ISEQ_BODY(iseq)->local_table);
+      VM_ASSERT(! ISEQ_BODY(iseq)->local_table_size);
+      return 0;
     }
-    else {
-        ptrdiff_t n = pc - ISEQ_BODY(iseq)->iseq_encoded;
-        VM_ASSERT(n <= ISEQ_BODY(iseq)->iseq_size);
-        VM_ASSERT(n >= 0);
-        ASSUME(n >= 0);
-        size_t pos = n; /* no overflow */
-        if (LIKELY(pos)) {
-            /* use pos-1 because PC points next instruction at the beginning of instruction */
-            pos--;
-        }
+    #ifndef NO_INT_FIRST_LINENO // Ruby 3.2+
+      if (lineno) {
+        *lineno = ISEQ_BODY(iseq)->location.first_lineno;
+      }
+    #else
+      if (lineno) {
+        *lineno = FIX2INT(ISEQ_BODY(iseq)->location.first_lineno);
+      }
+    #endif
+#ifdef USE_ISEQ_NODE_ID
+    if (node_id) {
+      *node_id = -1;
+    }
+#endif
+    return 1;
+  } else {
+    ptrdiff_t n = pc - ISEQ_BODY(iseq)->iseq_encoded;
+    VM_ASSERT(n <= ISEQ_BODY(iseq)->iseq_size);
+    VM_ASSERT(n >= 0);
+    ASSUME(n >= 0);
+    size_t pos = n; /* no overflow */
+    if (LIKELY(pos)) {
+      /* use pos-1 because PC points next instruction at the beginning of instruction */
+      pos--;
+    } else {
 #if VMDEBUG && defined(HAVE_BUILTIN___BUILTIN_TRAP)
-        else {
-            /* SDR() is not possible; that causes infinite loop. */
-            rb_print_backtrace();
-            __builtin_trap();
-        }
+      /* SDR() is not possible; that causes infinite loop. */
+      rb_print_backtrace();
+      __builtin_trap();
 #endif
-
-        // In PROF-11475 we spotted a crash when calling `rb_iseq_line_no` from this method.
-        // We were only able to reproduce this issue on Ruby 2.6 and 2.7, not 2.5 or the 3.x series (tried 3.0, 3.2 and 3.4).
-        // Note that going out of bounds doesn't crash every time, as usual with C we may just read garbage or get lucky.
-        //
-        // For those problematic Rubies, we observed that when we try to take a sample in the middle of processing the
-        // VM `LEAVE` instruction, the value of `n` can violate the documented assumptions above and be
-        // `n > ISEQ_BODY(iseq)->iseq_size)`.
-        //
-        // To work around this and any other potential issues, we validate here that the bytecode position is sane.
-        if (RB_UNLIKELY(n < 0 || n > ISEQ_BODY(iseq)->iseq_size)) return 0;
-
-        if (lineno) *lineno = rb_iseq_line_no(iseq, pos);
-#ifdef USE_ISEQ_NODE_ID
-        if (node_id) *node_id = rb_iseq_node_id(iseq, pos);
-#endif
-        return 1;
     }
+
+    // In PROF-11475 we spotted a crash when calling `rb_iseq_line_no` from this method.
+    // We were only able to reproduce this issue on Ruby 2.6 and 2.7, not 2.5 or the 3.x series (tried 3.0, 3.2 and 3.4).
+    // Note that going out of bounds doesn't crash every time, as usual with C we may just read garbage or get lucky.
+    //
+    // For those problematic Rubies, we observed that when we try to take a sample in the middle of processing the
+    // VM `LEAVE` instruction, the value of `n` can violate the documented assumptions above and be
+    // `n > ISEQ_BODY(iseq)->iseq_size)`.
+    //
+    // To work around this and any other potential issues, we validate here that the bytecode position is sane.
+    if (RB_UNLIKELY(n < 0 || n > ISEQ_BODY(iseq)->iseq_size)) {
+      return 0;
+    }
+
+    if (lineno) {
+      *lineno = rb_iseq_line_no(iseq, pos);
+    }
+#ifdef USE_ISEQ_NODE_ID
+    if (node_id) {
+      *node_id = rb_iseq_node_id(iseq, pos);
+    }
+#endif
+    return 1;
+  }
 }
 #pragma GCC diagnostic pop
 
@@ -381,11 +400,12 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
 // to support our custom rb_profile_frames (see below)
 // Modifications: None
 static inline int
-calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
-{
-    int lineno;
-    if (calc_pos(iseq, pc, &lineno, NULL)) return lineno;
-    return 0;
+calc_lineno(const rb_iseq_t *iseq, const VALUE *pc) {
+  int lineno;
+  if (calc_pos(iseq, pc, &lineno, NULL)) {
+    return lineno;
+  }
+  return 0;
 }
 
 // Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
@@ -444,176 +464,180 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 //    disagree, and quite a few of them seem oversights/bugs (speculation from my part) rather than deliberate
 //    decisions.
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *stack_buffer) {
-    int i;
-    // Modified from upstream: Instead of using `GET_EC` to collect info from the current thread,
-    // support sampling any thread (including the current) passed as an argument
-    rb_thread_t *th = thread_struct_from_object(thread);
-    const rb_execution_context_t *ec = th->ec;
+  int i;
+  // Modified from upstream: Instead of using `GET_EC` to collect info from the current thread,
+  // support sampling any thread (including the current) passed as an argument
+  rb_thread_t *th = thread_struct_from_object(thread);
+  const rb_execution_context_t *ec = th->ec;
 
-    // As of this writing, we don't support profiling with MN enabled, and this only happens in that mode, but as we
-    // probably want to experiment with it in the future, I've decided to import https://github.com/ruby/ruby/pull/9310
-    // here.
-    if (ec == NULL) return 0;
+  // As of this writing, we don't support profiling with MN enabled, and this only happens in that mode, but as we
+  // probably want to experiment with it in the future, I've decided to import https://github.com/ruby/ruby/pull/9310
+  // here.
+  if (ec == NULL) {
+    return 0;
+  }
 
-    // Avoid sampling dead threads
-    if (th->status == THREAD_KILLED) return 0;
+  // Avoid sampling dead threads
+  if (th->status == THREAD_KILLED) {
+    return 0;
+  }
 
-    const rb_control_frame_t *cfp = ec->cfp;
+  const rb_control_frame_t *cfp = ec->cfp;
 
-    // This happens on newly-created threads (we even had a flaky test because of it)
-    if (cfp == NULL) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
+  // This happens on newly-created threads (we even had a flaky test because of it)
+  if (cfp == NULL) {
+    return PLACEHOLDER_STACK_IN_NATIVE_CODE;
+  }
 
-    // I suspect this won't happen for ddtrace, but just-in-case we've imported a potential fix for
-    // https://github.com/ruby/ruby/pull/13643 by assuming that these can be NULL/zero with the cfp being non-NULL yet.
-    if (ec->vm_stack == NULL || ec->vm_stack_size == 0) return 0;
+  // I suspect this won't happen for ddtrace, but just-in-case we've imported a potential fix for
+  // https://github.com/ruby/ruby/pull/13643 by assuming that these can be NULL/zero with the cfp being non-NULL yet.
+  if (ec->vm_stack == NULL || ec->vm_stack_size == 0) {
+    return 0;
+  }
 
-    const rb_control_frame_t *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
-    #ifndef NO_JIT_RETURN
-      const rb_control_frame_t *top = cfp;
-    #endif
-    const rb_callable_method_entry_t *cme;
+  const rb_control_frame_t *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
+  #ifndef NO_JIT_RETURN
+    const rb_control_frame_t *top = cfp;
+  #endif
+  const rb_callable_method_entry_t *cme;
 
-    // `vm_backtrace.c` includes this check in several methods. This happens on newly-created threads, and may
-    // also (not entirely sure) happen on dead threads
-    if (end_cfp == NULL) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
+  // `vm_backtrace.c` includes this check in several methods. This happens on newly-created threads, and may
+  // also (not entirely sure) happen on dead threads
+  if (end_cfp == NULL) {
+    return PLACEHOLDER_STACK_IN_NATIVE_CODE;
+  }
 
-    // Fix: Skip dummy frame that shows up in main thread.
-    //
-    // According to a comment in `backtrace_each` (`vm_backtrace.c`), there's two dummy frames that we should ignore
-    // at the base of every thread's stack.
-    // (see https://github.com/ruby/ruby/blob/4bd38e8120f2fdfdd47a34211720e048502377f1/vm_backtrace.c#L890-L914 )
-    //
-    // One is being pointed to by `RUBY_VM_END_CONTROL_FRAME(ec)`, and so we need to advance to the next one, and
-    // reaching it will be used as a condition to break out of the loop below.
-    //
-    // Note that in `backtrace_each` there's two calls to `RUBY_VM_NEXT_CONTROL_FRAME`, but the loop bounds there
-    // are computed in a different way, so the two calls really are equivalent to one here.
-    end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
+  // Fix: Skip dummy frame that shows up in main thread.
+  //
+  // According to a comment in `backtrace_each` (`vm_backtrace.c`), there's two dummy frames that we should ignore
+  // at the base of every thread's stack.
+  // (see https://github.com/ruby/ruby/blob/4bd38e8120f2fdfdd47a34211720e048502377f1/vm_backtrace.c#L890-L914 )
+  //
+  // One is being pointed to by `RUBY_VM_END_CONTROL_FRAME(ec)`, and so we need to advance to the next one, and
+  // reaching it will be used as a condition to break out of the loop below.
+  //
+  // Note that in `backtrace_each` there's two calls to `RUBY_VM_NEXT_CONTROL_FRAME`, but the loop bounds there
+  // are computed in a different way, so the two calls really are equivalent to one here.
+  end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
-    // See comment on `record_placeholder_stack_in_native_code` for a full explanation of what this means (and why we don't just return 0)
-    if (end_cfp <= cfp) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
+  // See comment on `record_placeholder_stack_in_native_code` for a full explanation of what this means (and why we don't just return 0)
+  if (end_cfp <= cfp) {
+    return PLACEHOLDER_STACK_IN_NATIVE_CODE;
+  }
 
-    // This is the position just after the top of the stack -- e.g. where a new frame pushed on the stack would end up.
-    const rb_control_frame_t *top_sentinel = RUBY_VM_NEXT_CONTROL_FRAME(cfp);
+  // This is the position just after the top of the stack -- e.g. where a new frame pushed on the stack would end up.
+  const rb_control_frame_t *top_sentinel = RUBY_VM_NEXT_CONTROL_FRAME(cfp);
 
-    // We iterate the stack from bottom (beginning of thread) to the top (currently-active frame). This is different
-    // from upstream rb_profile_frames, but actually matches what `backtrace_each` does (yes, different Ruby VM APIs
-    // iterate in different directions).
-    // We do this to better take advantage of the `same_frame` caching mechanism: By starting from the bottom of the
-    // stack towards the top, we can usually keep most of the stack intact when the code is only going up and down
-    // a few methods at the top. Before this change, the cache was really only useful if between samples the app had
-    // not moved from the current stack, as adding or removing one frame would invalidate the existing cache (because
-    // every position would shift).
-    cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
+  // We iterate the stack from bottom (beginning of thread) to the top (currently-active frame). This is different
+  // from upstream rb_profile_frames, but actually matches what `backtrace_each` does (yes, different Ruby VM APIs
+  // iterate in different directions).
+  // We do this to better take advantage of the `same_frame` caching mechanism: By starting from the bottom of the
+  // stack towards the top, we can usually keep most of the stack intact when the code is only going up and down
+  // a few methods at the top. Before this change, the cache was really only useful if between samples the app had
+  // not moved from the current stack, as adding or removing one frame would invalidate the existing cache (because
+  // every position would shift).
+  cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
-    for (i=0; i<limit && cfp != top_sentinel; cfp = RUBY_VM_NEXT_CONTROL_FRAME(cfp)) {
-        if (cfp->iseq && !cfp->pc) {
-          // Fix: Do nothing -- this frame should not be used
-          //
-          // rb_profile_frames does not do this check, but `backtrace_each` (`vm_backtrace.c`) does. This frame is not
-          // exposed by the Ruby backtrace APIs and for now we want to match its behavior 1:1
+  for (i=0; i<limit && cfp != top_sentinel; cfp = RUBY_VM_NEXT_CONTROL_FRAME(cfp)) {
+    if (cfp->iseq && !cfp->pc) {
+      // Fix: Do nothing -- this frame should not be used
+      //
+      // rb_profile_frames does not do this check, but `backtrace_each` (`vm_backtrace.c`) does. This frame is not
+      // exposed by the Ruby backtrace APIs and for now we want to match its behavior 1:1
+    } else if (cfp->ep == NULL) {
+      // Do nothing -- this frame should not be used
+      //
+      // We're not sure this can ever happen, but we've seen a crash inside `VM_FRAME_RUBYFRAME_P` below (which
+      // dereferences `cfp->ep`), so "just in case" we're adding this extra sanity check to avoid crashing on a
+      // NULL `ep`.
+    } else if (VM_FRAME_RUBYFRAME_P(cfp)) {
+      if (start > 0) {
+        start--;
+        continue;
+      }
+
+      cme = safe_vm_frame_method_entry(cfp);
+
+      // Upstream (Ruby 4.0) does:
+      // if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
+      //   buff[i] = (VALUE)cme;
+      // } else {
+      //   buff[i] = (VALUE)cfp->iseq;
+      // }
+      // We get both the iseq and CME because we need both to format like Ruby backtraces
+
+      stack_buffer[i].same_frame =
+        stack_buffer[i].is_ruby_frame &&
+        stack_buffer[i].as.ruby_frame.iseq == cfp->iseq &&
+        stack_buffer[i].as.ruby_frame.caching_pc == cfp->pc &&
+        stack_buffer[i].cme == cme;
+
+      if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
+        i++;
+        continue;
+      }
+
+      stack_buffer[i].as.ruby_frame.iseq = cfp->iseq;
+      stack_buffer[i].as.ruby_frame.caching_pc = (void *) cfp->pc;
+      stack_buffer[i].cme = cme;
+
+      // The topmost frame may not have an updated PC because the JIT
+      // may not have set one.  The JIT compiler will update the PC
+      // before entering a new function (so that `caller` will work),
+      // so only the topmost frame could possibly have an out of date PC
+      #ifndef NO_JIT_RETURN
+        if (cfp == top && cfp->jit_return) {
+          stack_buffer[i].as.ruby_frame.line = 0;
+        } else {
+          stack_buffer[i].as.ruby_frame.line = calc_lineno(cfp->iseq, cfp->pc);
         }
-        else if (cfp->ep == NULL) {
-          // Do nothing -- this frame should not be used
-          //
-          // We're not sure this can ever happen, but we've seen a crash inside `VM_FRAME_RUBYFRAME_P` below (which
-          // dereferences `cfp->ep`), so "just in case" we're adding this extra sanity check to avoid crashing on a
-          // NULL `ep`.
+      #else // Ruby < 3.1
+        stack_buffer[i].as.ruby_frame.line = calc_lineno(cfp->iseq, cfp->pc);
+      #endif
+
+      stack_buffer[i].is_ruby_frame = true;
+      i++;
+    } else {
+      cme = get_cfunc_method_entry(cfp);
+      if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
+        if (start > 0) {
+          start--;
+          continue;
         }
-        else if (VM_FRAME_RUBYFRAME_P(cfp)) {
-            if (start > 0) {
-                start--;
-                continue;
-            }
 
-            cme = safe_vm_frame_method_entry(cfp);
+        stack_buffer[i].same_frame =
+          !stack_buffer[i].is_ruby_frame &&
+          stack_buffer[i].cme == cme;
 
-            // Upstream (Ruby 4.0) does:
-            // if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
-            //   buff[i] = (VALUE)cme;
-            // } else {
-            //   buff[i] = (VALUE)cfp->iseq;
-            // }
-            // We get both the iseq and CME because we need both to format like Ruby backtraces
-
-            stack_buffer[i].same_frame =
-              stack_buffer[i].is_ruby_frame &&
-              stack_buffer[i].as.ruby_frame.iseq == cfp->iseq &&
-              stack_buffer[i].as.ruby_frame.caching_pc == cfp->pc &&
-              stack_buffer[i].cme == cme;
-
-            if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
-              i++;
-              continue;
-            }
-
-            stack_buffer[i].as.ruby_frame.iseq = cfp->iseq;
-            stack_buffer[i].as.ruby_frame.caching_pc = (void *) cfp->pc;
-            stack_buffer[i].cme = cme;
-
-            // The topmost frame may not have an updated PC because the JIT
-            // may not have set one.  The JIT compiler will update the PC
-            // before entering a new function (so that `caller` will work),
-            // so only the topmost frame could possibly have an out of date PC
-            #ifndef NO_JIT_RETURN
-              if (cfp == top && cfp->jit_return) {
-                stack_buffer[i].as.ruby_frame.line = 0;
-              } else {
-                stack_buffer[i].as.ruby_frame.line = calc_lineno(cfp->iseq, cfp->pc);
-              }
-            #else // Ruby < 3.1
-              stack_buffer[i].as.ruby_frame.line = calc_lineno(cfp->iseq, cfp->pc);
-            #endif
-
-            stack_buffer[i].is_ruby_frame = true;
-            i++;
+        if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
+          i++;
+          continue;
         }
-        else {
-            cme = get_cfunc_method_entry(cfp);
-            if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
-                if (start > 0) {
-                    start--;
-                    continue;
-                }
 
-                stack_buffer[i].same_frame =
-                  !stack_buffer[i].is_ruby_frame &&
-                  stack_buffer[i].cme == cme;
-
-                if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
-                  i++;
-                  continue;
-                }
-
-                stack_buffer[i].cme = cme;
-                stack_buffer[i].is_ruby_frame = false;
-                i++;
-            }
-        }
+        stack_buffer[i].cme = cme;
+        stack_buffer[i].is_ruby_frame = false;
+        i++;
+      }
     }
+  }
 
-    return i;
+  return i;
 }
-
-// Support code for older Rubies that cannot use the MJIT header
-#ifndef RUBY_MJIT_HEADER
-
-#define MJIT_STATIC // No-op on older Rubies
 
 // Taken from upstream include/ruby/backward/2/bool.h at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) Ruby developers <ruby-core@ruby-lang.org>
 // to support our custom rb_profile_frames (see above)
 // Modifications: None
 #ifndef FALSE
-# define FALSE false
+  #define FALSE false
 #elif FALSE
-# error FALSE must be false
+  #error FALSE must be false
 #endif
 
 #ifndef TRUE
-# define TRUE true
+  #define TRUE true
 #elif ! TRUE
-# error TRUE must be true
+  #error TRUE must be true
 #endif
 
 // Taken from upstream vm_insnhelper.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
@@ -640,7 +664,6 @@ check_method_entry(VALUE obj, int can_be_svar) {
 
   return NULL;
 }
-#endif // RUBY_MJIT_HEADER
 
 // Identical to upstream rb_vm_frame_method_entry (vm_insnhelper.c) with two additions:
 // 1. FIXNUM_P check on ep[FLAGS] before each iteration to detect torn EPs
@@ -650,25 +673,28 @@ check_method_entry(VALUE obj, int can_be_svar) {
 // a child frame's SPECVAL can still point to the parent's old stack EP whose flags
 // slot has been overwritten with (VALUE)env for GC marking.
 static const rb_callable_method_entry_t *
-safe_vm_frame_method_entry(const rb_control_frame_t *cfp)
-{
-    const VALUE *ep = cfp->ep;
-    rb_callable_method_entry_t *me;
+safe_vm_frame_method_entry(const rb_control_frame_t *cfp) {
+  const VALUE *ep = cfp->ep;
+  rb_callable_method_entry_t *me;
 
-    // Torn-EP check before VM_ENV_LOCAL_P, check_method_entry, and VM_ENV_PREV_EP
-    // dereference ep
-    while (FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS]) && !VM_ENV_LOCAL_P(ep)) {
-        if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) {
-            return me;
-        }
-        ep = VM_ENV_PREV_EP(ep);
-        if (ep == NULL) return NULL;
+  // Torn-EP check before VM_ENV_LOCAL_P, check_method_entry, and VM_ENV_PREV_EP
+  // dereference ep
+  while (FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS]) && !VM_ENV_LOCAL_P(ep)) {
+    if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) {
+      return me;
     }
+    ep = VM_ENV_PREV_EP(ep);
+    if (ep == NULL) {
+      return NULL;
+    }
+  }
 
-    // If we exited because of a torn EP (failed FIXNUM_P), bail out
-    if (!FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS])) return NULL;
+  // If we exited because of a torn EP (failed FIXNUM_P), bail out
+  if (!FIXNUM_P(ep[VM_ENV_DATA_INDEX_FLAGS])) {
+    return NULL;
+  }
 
-    return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
+  return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
 }
 
 // Optimized version of rb_vm_frame_method_entry() for cfunc frames.
@@ -682,43 +708,41 @@ get_cfunc_method_entry(const rb_control_frame_t *cfp) {
 }
 
 #ifndef NO_RACTORS
-  // This API and definition are exported as a public symbol by the VM BUT the function header is not defined in any public header, so we
-  // repeat it here to be able to use in our code.
-  #ifndef USE_RACTOR_INTERNAL_APIS_DIRECTLY
-    // Disable fast path for detecting multiple Ractors. Unfortunately this symbol is no longer visible on modern Ruby
-    // versions, so we need to do a bit more work.
-    struct rb_ractor_struct *ruby_single_main_ractor = NULL;
+// This API and definition are exported as a public symbol by the VM BUT the function header is not defined in any public header, so we
+// repeat it here to be able to use in our code.
+#ifndef USE_RACTOR_INTERNAL_APIS_DIRECTLY
+// Disable fast path for detecting multiple Ractors. Unfortunately this symbol is no longer visible on modern Ruby
+// versions, so we need to do a bit more work.
+struct rb_ractor_struct *ruby_single_main_ractor = NULL;
 
-    // Alternative implementation of rb_ractor_main_p_ that avoids relying on non-public symbols
-    bool rb_ractor_main_p_(void) {
-      // We need to get the main ractor in a bit of a roundabout way, since Ruby >= 3.3 hid `GET_VM()`
-      return ddtrace_get_ractor() == thread_struct_from_object(rb_thread_current())->vm->ractor.main_ractor;
-    }
-  #else
-    // Directly access Ruby internal fast path for detecting multiple Ractors.
-    extern struct rb_ractor_struct *ruby_single_main_ractor;
-
-    // Ruby 3.0 to 3.2 directly expose this symbol, we just need to tell the compiler it exists.
-    bool rb_ractor_main_p_(void);
-  #endif
-
-  // Taken from upstream ractor_core.h at commit d9cf0388599a3234b9f3c06ddd006cd59a58ab8b (November 2022, Ruby 3.2 trunk)
-  // to allow us to ensure that we're always operating on the main ractor (if Ruby has ractors)
-  // Modifications:
-  // * None
-  bool ddtrace_rb_ractor_main_p(void)
-  {
-      if (ruby_single_main_ractor) {
-          return true;
-      }
-      else {
-          return rb_ractor_main_p_();
-      }
-  }
+// Alternative implementation of rb_ractor_main_p_ that avoids relying on non-public symbols
+bool rb_ractor_main_p_(void) {
+  // We need to get the main ractor in a bit of a roundabout way, since Ruby >= 3.3 hid `GET_VM()`
+  return ddtrace_get_ractor() == thread_struct_from_object(rb_thread_current())->vm->ractor.main_ractor;
+}
 #else
-  // Simplify callers on older Rubies, instead of having them probe if the VM supports Ractors we just tell them that yes
-  // they're always on the main Ractor
-  bool ddtrace_rb_ractor_main_p(void) { return true; }
+// Directly access Ruby internal fast path for detecting multiple Ractors.
+extern struct rb_ractor_struct *ruby_single_main_ractor;
+
+// Ruby 3.0 to 3.2 directly expose this symbol, we just need to tell the compiler it exists.
+bool rb_ractor_main_p_(void);
+#endif
+
+// Taken from upstream ractor_core.h at commit d9cf0388599a3234b9f3c06ddd006cd59a58ab8b (November 2022, Ruby 3.2 trunk)
+// to allow us to ensure that we're always operating on the main ractor (if Ruby has ractors)
+// Modifications:
+// * None
+bool ddtrace_rb_ractor_main_p(void) {
+  if (ruby_single_main_ractor) {
+    return true;
+  } else {
+    return rb_ractor_main_p_();
+  }
+}
+#else
+// Simplify callers on older Rubies, instead of having them probe if the VM supports Ractors we just tell them that yes
+// they're always on the main Ractor
+bool ddtrace_rb_ractor_main_p(void) { return true; }
 #endif // NO_RACTORS
 
 // This is a tweaked and inlined version of
@@ -730,17 +754,23 @@ static const rb_iseq_t *maybe_thread_invoke_proc_iseq(VALUE thread_value) {
   rb_thread_t *thread = thread_struct_from_object(thread_value);
 
   #ifndef NO_THREAD_INVOKE_ARG // Ruby 2.6+
-    if (thread->invoke_type != thread_invoke_type_proc) return NULL;
+    if (thread->invoke_type != thread_invoke_type_proc) {
+      return NULL;
+    }
 
     VALUE proc = thread->invoke_arg.proc.proc;
   #else
-    if (thread->first_func || !thread->first_proc) return NULL;
+    if (thread->first_func || !thread->first_proc) {
+      return NULL;
+    }
 
     VALUE proc = thread->first_proc;
   #endif
 
   const rb_iseq_t *iseq = rb_proc_get_iseq(proc, 0);
-  if (iseq == NULL) return NULL;
+  if (iseq == NULL) {
+    return NULL;
+  }
 
   rb_iseq_check(iseq);
   return iseq;
@@ -749,7 +779,9 @@ static const rb_iseq_t *maybe_thread_invoke_proc_iseq(VALUE thread_value) {
 VALUE invoke_location_for(VALUE thread, int *line_location) {
   const rb_iseq_t *iseq = maybe_thread_invoke_proc_iseq(thread);
 
-  if (iseq == NULL) return Qnil;
+  if (iseq == NULL) {
+    return Qnil;
+  }
 
   *line_location = NUM2INT(rb_iseq_first_lineno(iseq));
   return ddtrace_iseq_path(iseq);
@@ -783,102 +815,104 @@ static inline int ddtrace_imemo_type(VALUE imemo) {
 // Safety: This function assumes the object passed in is of the imemo type. But in the worst case, you'll just get
 // a string that doesn't make any sense.
 #ifndef NO_IMEMO_NAME
-  const char *imemo_kind(VALUE imemo) {
-    return rb_imemo_name(ddtrace_imemo_type(imemo));
-  }
+const char *imemo_kind(VALUE imemo) {
+  return rb_imemo_name(ddtrace_imemo_type(imemo));
+}
 #else
-  const char *imemo_kind(__attribute__((unused)) VALUE imemo) {
-    return NULL;
-  }
+const char *imemo_kind(__attribute__((unused)) VALUE imemo) {
+  return NULL;
+}
 #endif
 
 // This is used to workaround a VM bug. See "handle_sampling_signal" in "collectors_cpu_and_wall_time_worker" for details.
 #ifdef NO_POSTPONED_TRIGGER
-  void *objspace_ptr_for_gc_finalize_deferred_workaround(void) {
-    return GET_VM()->objspace;
-  }
+void *objspace_ptr_for_gc_finalize_deferred_workaround(void) {
+  return GET_VM()->objspace;
+}
 #endif
 
 #ifndef HAVE_RUBY_THREAD_STORAGE_API
-  #include "gvl_profiling_helper.h"
+#include "gvl_profiling_helper.h"
 
-  // Hack: In Ruby 3.3+ we attach gvl profiling state to Ruby threads using the
-  // rb_internal_thread_specific_* APIs. These APIs did not exist on Ruby <= 3.2. On Ruby <= 3.2 we instead store the
-  // needed data inside the `rb_thread_t` structure, specifically in `stat_insn_usage` as a Ruby FIXNUM.
-  //
-  // Why `stat_insn_usage`? We needed some per-thread storage, and while looking at the Ruby VM sources I noticed
-  // that `stat_insn_usage` has been in `rb_thread_t` for a long time, but is not used anywhere in the VM
-  // code. There's a comment attached to it "/* statistics data for profiler */" but other than marking this
-  // field for GC, I could not find any place in the VM commit history or on GitHub where this has ever been used.
-  //
-  // Thus, since this hack is only for Ruby <= 3.2, which presumably will never see this field either removed or used
-  // we... kinda take it for our own usage. It's ugly, I know...
-  //
-  // 64-bit pointers actually use 48-bit virtual addresses (https://muxup.com/2023q4/storing-data-in-pointers),
-  // so we are sure the addresses fit in Fixnums.
-  per_thread_context *get_per_thread_context(VALUE thread) {
-    VALUE current_value = thread_struct_from_object(thread)->stat_insn_usage;
-    return RB_FIXNUM_P(current_value) ? (per_thread_context *) FIX2LONG(current_value) : NULL;
-  }
+// Hack: In Ruby 3.3+ we attach gvl profiling state to Ruby threads using the
+// rb_internal_thread_specific_* APIs. These APIs did not exist on Ruby <= 3.2. On Ruby <= 3.2 we instead store the
+// needed data inside the `rb_thread_t` structure, specifically in `stat_insn_usage` as a Ruby FIXNUM.
+//
+// Why `stat_insn_usage`? We needed some per-thread storage, and while looking at the Ruby VM sources I noticed
+// that `stat_insn_usage` has been in `rb_thread_t` for a long time, but is not used anywhere in the VM
+// code. There's a comment attached to it "/* statistics data for profiler */" but other than marking this
+// field for GC, I could not find any place in the VM commit history or on GitHub where this has ever been used.
+//
+// Thus, since this hack is only for Ruby <= 3.2, which presumably will never see this field either removed or used
+// we... kinda take it for our own usage. It's ugly, I know...
+//
+// 64-bit pointers actually use 48-bit virtual addresses (https://muxup.com/2023q4/storing-data-in-pointers),
+// so we are sure the addresses fit in Fixnums.
+per_thread_context *get_per_thread_context(VALUE thread) {
+  VALUE current_value = thread_struct_from_object(thread)->stat_insn_usage;
+  return RB_FIXNUM_P(current_value) ? (per_thread_context *) FIX2LONG(current_value) : NULL;
+}
 
-  void set_per_thread_context(VALUE thread, per_thread_context *value) {
-    if (!RB_FIXABLE((intptr_t) value)) {
-      rb_bug("per_thread_context pointer does not fit in a Fixnum: %p", value);
-    }
-    thread_struct_from_object(thread)->stat_insn_usage = value ? LONG2FIX((intptr_t) value) : Qfalse;
+void set_per_thread_context(VALUE thread, per_thread_context *value) {
+  if (!RB_FIXABLE((intptr_t) value)) {
+    rb_bug("per_thread_context pointer does not fit in a Fixnum: %p", value);
   }
+  thread_struct_from_object(thread)->stat_insn_usage = value ? LONG2FIX((intptr_t) value) : Qfalse;
+}
 #endif
 
 // Is the VM smack in the middle of raising an exception?
 bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)->ec->raised_flag > 0; }
 
 #ifndef NO_CURRENT_FIBER_FOR
-  // The following three declarations are all
-  // taken from upstream cont.c at commit d97884a58be32e829fd03a80cd521f4733d65c79 (February 2025, master branch)
-  // (See the Ruby project copyright and license above)
-  // to enable building `current_fiber_for`.
-  //
-  // We needed to copy them because they aren't otherwise exposed in any VM APIs or headers.
-  // @ivoanjo: I manually checked the Ruby 3.1, 3.2, 3.3 and 3.4 branches + master, and the parts we care about in these
-  // structures have not changed in many years (in fact, last change I spotted was for 2.7).
-  enum context_type {
-      CONTINUATION_CONTEXT = 0,
-      FIBER_CONTEXT = 1
-  };
+// The following three declarations are all
+// taken from upstream cont.c at commit d97884a58be32e829fd03a80cd521f4733d65c79 (February 2025, master branch)
+// (See the Ruby project copyright and license above)
+// to enable building `current_fiber_for`.
+//
+// We needed to copy them because they aren't otherwise exposed in any VM APIs or headers.
+// @ivoanjo: I manually checked the Ruby 3.1, 3.2, 3.3 and 3.4 branches + master, and the parts we care about in these
+// structures have not changed in many years (in fact, last change I spotted was for 2.7).
+enum context_type {
+  CONTINUATION_CONTEXT = 0,
+  FIBER_CONTEXT = 1
+};
 
-  typedef struct rb_context_struct { // This declaration is incomplete -- only contains up to `self` which is the part we care about
-      enum context_type type;
-      int argc;
-      int kw_splat;
-      VALUE self;
-  } rb_context_t;
+typedef struct rb_context_struct { // This declaration is incomplete -- only contains up to `self` which is the part we care about
+  enum context_type type;
+  int argc;
+  int kw_splat;
+  VALUE self;
+} rb_context_t;
 
-  struct rb_fiber_struct { // This declaration is incomplete -- only contains the first entry which is the part we care about
-    rb_context_t cont;
-  };
+struct rb_fiber_struct { // This declaration is incomplete -- only contains the first entry which is the part we care about
+  rb_context_t cont;
+};
 
-  VALUE current_fiber_for(VALUE thread) {
-    VALUE self = thread_struct_from_object(thread)->ec->fiber_ptr->cont.self;
-    return self == 0 ? Qnil : self;
+VALUE current_fiber_for(VALUE thread) {
+  VALUE self = thread_struct_from_object(thread)->ec->fiber_ptr->cont.self;
+  return self == 0 ? Qnil : self;
+}
+
+void self_test_current_fiber_for(void) {
+  VALUE expected_current_fiber = current_fiber_for(rb_thread_current());
+  VALUE actual_current_fiber = rb_fiber_current();
+
+  if (expected_current_fiber == Qnil) {
+    // On purpose above we tried reading before calling `rb_fiber_current()` so the fiber may have not existed yet.
+    // But now it should be there.
+    expected_current_fiber = current_fiber_for(rb_thread_current());
   }
 
-  void self_test_current_fiber_for(void) {
-    VALUE expected_current_fiber = current_fiber_for(rb_thread_current());
-    VALUE actual_current_fiber = rb_fiber_current();
-
-    if (expected_current_fiber == Qnil) {
-      // On purpose above we tried reading before calling `rb_fiber_current()` so the fiber may have not existed yet.
-      // But now it should be there.
-      expected_current_fiber = current_fiber_for(rb_thread_current());
-    }
-
-    if (expected_current_fiber != actual_current_fiber) rb_raise(rb_eRuntimeError, "current_fiber_for() self-test failed");
+  if (expected_current_fiber != actual_current_fiber) {
+    rb_raise(rb_eRuntimeError, "current_fiber_for() self-test failed");
   }
+}
 #else
-  NORETURN(VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread));
+NORETURN(VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread));
 
-  VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread) { rb_raise(rb_eRuntimeError, "Not implemented for Ruby < 3.1"); }
-  void self_test_current_fiber_for(void) { } // Nothing to do
+VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread) { rb_raise(rb_eRuntimeError, "Not implemented for Ruby < 3.1"); }
+void self_test_current_fiber_for(void) { } // Nothing to do
 #endif
 
 // Variant of functions related to Thread::Backtrace::Location#label in Ruby 4.0
@@ -889,7 +923,9 @@ bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)
 
 // Return true if a given location is a C method or supposed to behave like one.
 static bool location_cfunc_p(const rb_callable_method_entry_t *cme) {
-  if (!cme) return false;
+  if (!cme) {
+    return false;
+  }
 
   switch (cme->def->type) {
     case VM_METHOD_TYPE_CFUNC:
@@ -926,12 +962,20 @@ static bool is_metaclass(VALUE mod, VALUE* attached) {
   return false;
 }
 
-static VALUE alloc_free_rb_mod_name(VALUE mod) {
+VALUE ddtrace_alloc_free_rb_mod_name(VALUE mod) {
 #ifdef NO_ALLOC_FREE_MOD_NAME
-  return rb_attr_get(mod, rb_intern("__classpath__"));
+  VALUE name = rb_attr_get(mod, rb_intern("__classpath__"));
 #else
-  return rb_mod_name(mod);
+  VALUE name = rb_mod_name(mod);
 #endif
+  // While Module#const_set rejects empty strings,
+  // an empty String is possible if `rb_const_set(mod, "", val)` was used
+  // but that's not understandable so consider those anonymous too.
+  if (name == Qnil || RSTRING_LEN(name) == 0) {
+    return Qnil;
+  } else {
+    return name;
+  }
 }
 
 // Ruby 3.3+ has a `permanent_classpath` flag on rb_classext_struct.
@@ -945,6 +989,16 @@ static bool has_permanent_classpath(DDTRACE_UNUSED VALUE mod, DDTRACE_UNUSED VAL
 #else // 3.2 and older
   return memchr(RSTRING_PTR(mod_name), '#', RSTRING_LEN(mod_name)) == NULL;
 #endif
+}
+
+VALUE ddtrace_permanent_mod_name(VALUE mod) {
+  VALUE name = ddtrace_alloc_free_rb_mod_name(mod);
+
+  if (NIL_P(name) || !has_permanent_classpath(mod, name)) {
+    return Qnil;
+  } else {
+    return name;
+  }
 }
 
 #define ONLY_METHOD_NAME ((ssize_t) -1)
@@ -961,11 +1015,12 @@ static ssize_t rb_gen_method_name(VALUE owner, VALUE method_name, char *buf, siz
   if (is_metaclass(owner, &mod)) {
     separator = '.';
   }
-  VALUE mod_name = alloc_free_rb_mod_name(mod);
+
+  VALUE mod_name = ddtrace_permanent_mod_name(mod);
 
   // Exclude non-permanent names (e.g. `#<Module:0x0123>::Foo`) which break flamegraph aggregation
   // since they contain addresses that differ across processes/runs.
-  if (NIL_P(mod_name) || !has_permanent_classpath(mod, mod_name)) {
+  if (NIL_P(mod_name)) {
     return ONLY_METHOD_NAME;
   }
 
@@ -1083,4 +1138,18 @@ void* ddtrace_cme_cfunc_func(const rb_callable_method_entry_t *cme) {
 
 const char *ddtrace_cme_original_method_name(const rb_callable_method_entry_t *cme) {
   return rb_id2name(cme->def->original_id);
+}
+
+// This function is not present in the VM headers, but is a public symbol that can be invoked.
+int rb_objspace_internal_object_p(VALUE obj);
+
+bool ddtrace_is_internal_object_p(VALUE obj) {
+  if (RB_SPECIAL_CONST_P(obj)) {
+    // Ruby special constants are not internal, except Qundef.
+    // See enum ruby_special_consts in CRuby.
+    return obj == Qundef;
+  } else {
+    // rb_objspace_internal_object_p() assumes non-immediate, so check that first above
+    return rb_objspace_internal_object_p(obj);
+  }
 }

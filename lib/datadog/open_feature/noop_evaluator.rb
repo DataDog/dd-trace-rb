@@ -7,6 +7,11 @@ module Datadog
   module OpenFeature
     # This class is a noop interface of evaluation logic
     class NoopEvaluator
+      # Privacy-preserving default before configuration is present.
+      def observe_full_evaluation_data
+        false
+      end
+
       def initialize(_configuration)
         # no-op
       end

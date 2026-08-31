@@ -31,6 +31,7 @@ CORE_WITH_LIBDATADOG_API = [
   "spec/datadog/open_feature_spec.rb",
   "spec/datadog/core/libdatadog_extconf_helpers_spec.rb",
   "spec/datadog/core/datadog_ruby_common_spec.rb",
+  "spec/datadog/tracing/otel_thread_context_spec.rb",
 ].freeze
 
 # Native trace exporter / transport specs (spec/datadog/tracing/transport/native).
@@ -54,6 +55,9 @@ DSM_ENABLED_LIBRARIES = [
   :kafka,
   :karafka,
 ].freeze
+
+# The Rakefile is only for development, enable testing the profiler on macOS
+ENV["DD_PROFILING_MACOS_TESTING"] = "true"
 
 # rubocop:disable Metrics/BlockLength
 namespace :test do
@@ -90,7 +94,7 @@ end
 desc "Run RSpec"
 namespace :spec do
   # REMINDER: If adding a new task here, make sure also add it to the `Matrixfile`
-  task all: [:main, :benchmark, :custom_cop,
+  task all: [:main, :benchmark, :custom_cop, :tasks,
     :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
     :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
     :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
@@ -100,6 +104,8 @@ namespace :spec do
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = "spec/**/*_spec.rb"
     t.exclude_pattern = "spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,error_tracking,rubocop,ai_guard}/**/*_spec.rb," \
+                        " spec/github/**/*_spec.rb," \
+                        " spec/tasks/**/*_spec.rb," \
                         " spec/**/{auto_instrument,opentelemetry,process,ai_guard}_spec.rb," \
                         " spec/**/*_rails_spec.rb," \
                         " spec/datadog/core/environment/execution_spec.rb," \
@@ -118,6 +124,16 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:custom_cop) do |t, args|
     t.pattern = "spec/rubocop/**/*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
+  end
+
+  RSpec::Core::RakeTask.new(:github) do |t, args|
+    t.pattern = "spec/github/**/*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
+  end
+
+  RSpec::Core::RakeTask.new(:tasks) do |t, args|
+    t.pattern = "spec/tasks/**/*_spec.rb"
     t.rspec_opts = args.to_a.join(" ")
   end
 
@@ -514,8 +530,8 @@ namespace :spec do
     task all: [:main, :ractors]
 
     task :compile_native_extensions do
-      # "bundle exec rake compile" currently only works on MRI Ruby on Linux
-      if RUBY_ENGINE == "ruby" && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("2.3.0")
+      # "bundle exec rake compile" currently only works on CRuby
+      if RUBY_ENGINE == "ruby"
         Rake::Task[:clean].invoke
         Rake::Task[:compile].invoke
       end
