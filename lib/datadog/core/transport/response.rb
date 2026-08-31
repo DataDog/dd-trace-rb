@@ -70,7 +70,7 @@ module Datadog
         end
 
         def to_s
-          "#{super}, error_type:#{error.class} error:#{error}"
+          "#{self.class}, error_type:#{error.class} error:#{error}"
         end
 
         def inspect

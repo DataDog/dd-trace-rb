@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative 'ext'
-require_relative '../ext'
-require_relative '../integration'
-require_relative '../patcher'
-require_relative '../../../core/telemetry/logger'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "ext"
+require_relative "../ext"
+require_relative "../integration"
+require_relative "../patcher"
+require_relative "../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -19,9 +19,9 @@ module Datadog
           module_function
 
           def patch
-            require 'uri'
-            require 'json'
-            require_relative 'quantize'
+            require "uri"
+            require "json"
+            require_relative "quantize"
 
             ::OpenSearch::Transport::Client.prepend(Client)
           end
@@ -33,7 +33,8 @@ module Datadog
             def perform_request(method, path, params = {}, body = nil, headers = nil)
               response = nil
               # rubocop:disable Metrics/BlockLength
-              Tracing.trace('opensearch.query', service: datadog_configuration[:service_name]) do |span|
+              Tracing.trace("opensearch.query", service: datadog_configuration[:service_name]) do |span|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 # Set generic tags
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
@@ -62,11 +63,6 @@ module Datadog
                   )
                 end
 
-                # Tag original global service name if not used
-                if span.service != Datadog.configuration.service
-                  span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
-                end
-
                 # Set url tags
                 span.set_tag(OpenSearch::Ext::TAG_URL, url)
                 span.set_tag(OpenSearch::Ext::TAG_HOST, host)
@@ -84,7 +80,7 @@ module Datadog
                 span.resource = "#{method} #{quantized_url}"
                 Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
               rescue => e
-                Datadog.logger.error(e.message)
+                Datadog.logger.error("#{e.class}: #{e.message}")
                 Datadog::Core::Telemetry::Logger.report(e)
                 # TODO: Refactor the code to streamline the execution without ensure
               ensure
@@ -100,10 +96,10 @@ module Datadog
                   if response.respond_to?(:status)
                     span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.status)
                   end
-                  if response.respond_to?(:headers) && (response.headers || {})['content-length']
+                  if response.respond_to?(:headers) && (response.headers || {})["content-length"]
                     span.set_tag(
                       OpenSearch::Ext::TAG_RESPONSE_CONTENT_LENGTH,
-                      response.headers['content-length'].to_i
+                      response.headers["content-length"].to_i
                     )
                   end
                 end

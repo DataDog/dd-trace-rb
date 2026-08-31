@@ -16,7 +16,7 @@ module Datadog
       def running?: () -> bool
 
       def reset_after_fork: () -> void
-      def mark_profiler_failed: () -> true
+      def disable_reporting: () -> true
     end
   end
 end

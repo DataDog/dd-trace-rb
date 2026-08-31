@@ -4,9 +4,11 @@ module Datadog
       module Rails
         module Gateway
           module Watcher
-            def self.watch: () -> untyped
+            def self.watch: () -> void
 
-            def self.watch_request_action: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> untyped
+            def self.watch_request_action: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> void
+
+            def self.watch_response_body_json: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> void
           end
         end
       end

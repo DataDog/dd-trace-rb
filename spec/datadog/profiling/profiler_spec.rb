@@ -4,7 +4,7 @@ require "datadog/profiling/spec_helper"
 require "datadog/profiling/profiler"
 
 RSpec.describe Datadog::Profiling::Profiler do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
   subject(:profiler) do
     described_class.new(worker: worker, scheduler: scheduler)
@@ -12,22 +12,6 @@ RSpec.describe Datadog::Profiling::Profiler do
 
   let(:worker) { instance_double(Datadog::Profiling::Collectors::CpuAndWallTimeWorker) }
   let(:scheduler) { instance_double(Datadog::Profiling::Scheduler) }
-
-  describe '.enabled?' do
-    subject(:enabled?) { profiler.enabled? }
-
-    let(:scheduler) { instance_double('Datadog::Profiling::Scheduler', running?: running) }
-
-    context 'when the profiler is running' do
-      let(:running) { true }
-      it { is_expected.to be(true) }
-    end
-
-    context 'when the profiler is not running' do
-      let(:running) { false }
-      it { is_expected.to be(false) }
-    end
-  end
 
   describe "#start" do
     subject(:start) { profiler.start }
@@ -59,15 +43,32 @@ RSpec.describe Datadog::Profiling::Profiler do
   end
 
   describe "#shutdown!" do
-    subject(:shutdown!) { profiler.shutdown! }
+    subject(:shutdown!) { profiler.shutdown!(report_last_profile: report_last_profile) }
+
+    let(:report_last_profile) { true }
 
     it "signals worker and scheduler to disable and stop" do
-      expect(worker).to receive(:stop)
+      expect(worker).to receive(:stop).ordered
 
+      expect(scheduler).to_not receive(:disable_reporting)
       expect(scheduler).to receive(:enabled=).with(false)
       expect(scheduler).to receive(:stop).with(true)
 
       shutdown!
+    end
+
+    context "when report_last_profile is false" do
+      let(:report_last_profile) { false }
+
+      it "disables reporting before stopping the scheduler" do
+        expect(worker).to receive(:stop).ordered
+
+        expect(scheduler).to receive(:disable_reporting).ordered
+        expect(scheduler).to receive(:enabled=).with(false).ordered
+        expect(scheduler).to receive(:stop).with(true).ordered
+
+        shutdown!
+      end
     end
   end
 
@@ -90,7 +91,7 @@ RSpec.describe Datadog::Profiling::Profiler do
       before do
         allow(scheduler).to receive(:enabled=)
         allow(scheduler).to receive(:stop)
-        allow(scheduler).to receive(:mark_profiler_failed)
+        allow(scheduler).to receive(:disable_reporting)
       end
 
       it "logs the issue" do
@@ -100,7 +101,7 @@ RSpec.describe Datadog::Profiling::Profiler do
       end
 
       it "marks the profiler as having failed in the scheduler" do
-        expect(scheduler).to receive(:mark_profiler_failed)
+        expect(scheduler).to receive(:disable_reporting)
 
         worker_on_failure
       end

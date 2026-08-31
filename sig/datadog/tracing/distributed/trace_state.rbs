@@ -1,0 +1,24 @@
+module Datadog
+  module Tracing
+    module Distributed
+      class TraceState
+        def self.from_digest: (TraceDigest digest, ?propagate_sampling: bool) -> TraceState
+        def self.serialize_digest: (TraceDigest digest) -> ::String?
+        def self.extract: (::String? tracestate) -> TraceState
+        def self.split: (::String? tracestate) -> ::Array[::String]?
+
+        attr_reader unknown_vendors: ::String?
+        attr_reader datadog: Datadog
+        attr_reader open_telemetry: OpenTelemetry
+
+        def initialize: (?unknown_vendors: ::String?, ?datadog: Datadog?, ?open_telemetry: OpenTelemetry?) -> void
+
+        private
+
+        def self.serialize: (unknown_vendors: ::String?, datadog: Datadog, open_telemetry: OpenTelemetry) -> ::String?
+        def self.select_leading_vendors: (Datadog datadog, OpenTelemetry open_telemetry) -> ::Array[::String]
+        def self.add_leading_vendor: (::Array[::String] leading_vendors, Datadog | OpenTelemetry state) -> void
+      end
+    end
+  end
+end

@@ -1,0 +1,15 @@
+module Datadog
+  module AppSec
+    module Utils
+      module HTTP
+        module Body
+          type body = ::String | ::StringIO | ::IO | nil
+
+          DEFAULT_BYTESIZE_LIMIT: ::Integer
+
+          def self.parse: (body, media_type: MediaType, ?limit: ::Integer) -> Datadog::Helpers::json?
+        end
+      end
+    end
+  end
+end

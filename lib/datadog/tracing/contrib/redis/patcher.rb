@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'ext'
-require_relative 'configuration/resolver'
+require_relative "../patcher"
+require_relative "ext"
+require_relative "configuration/resolver"
 
 module Datadog
   module Tracing
@@ -30,8 +30,8 @@ module Datadog
                 # For `redis-rb` 3.x
                 return client if respond_to?(:client)
 
-                Datadog.logger.warn 'Fail to apply configuration on redis client instance with ' \
-                                                        '`Datadog.configure_onto(redis)`.'
+                Datadog.logger.warn "Fail to apply configuration on redis client instance with " \
+                                                        "`Datadog.configure_onto(redis)`."
 
                 # Null object instead of raising error
                 self
@@ -49,10 +49,10 @@ module Datadog
             module InstanceMethods
               def datadog_pin=(_pin)
                 Datadog.logger.warn \
-                  '`Datadog.configure_onto(redis)` is not supported on Redis 5+. To instrument ' \
+                  "`Datadog.configure_onto(redis)` is not supported on Redis 5+. To instrument " \
                   "a redis instance with custom configuration, please initialize it with:\n" \
                   "  `Redis.new(..., custom: { datadog: { service_name: 'my-service' } })`.\n\n" \
-                  'See: https://github.com/DataDog/dd-trace-rb/blob/master/docs/GettingStarted.md#redis'
+                  "See: https://github.com/DataDog/dd-trace-rb/blob/master/docs/GettingStarted.md#redis"
               end
             end
           end
@@ -69,14 +69,14 @@ module Datadog
           def patch
             # Redis 5+ extracts RedisClient to its own gem and provide instrumentation interface
             if Integration.redis_client_compatible?
-              require_relative 'trace_middleware'
+              require_relative "trace_middleware"
 
               ::RedisClient.register(TraceMiddleware)
             end
 
             if Integration.redis_compatible?
-              if Integration.redis_version < Gem::Version.new('5.0.0')
-                require_relative 'instrumentation'
+              if Integration.redis_version < Gem::Version.new("5.0.0")
+                require_relative "instrumentation"
 
                 ::Redis.include(DatadogPinPatch)
                 ::Redis::Client.include(Instrumentation)

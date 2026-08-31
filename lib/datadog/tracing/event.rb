@@ -46,7 +46,7 @@ module Datadog
       end
 
       def subscribe(&block)
-        raise ArgumentError, 'Must give a block to subscribe!' unless block
+        raise ArgumentError, "Must give a block to subscribe!" unless block
 
         subscriptions << block
       end
@@ -62,7 +62,7 @@ module Datadog
           block.call(*args)
         rescue => e
           Datadog.logger.debug do
-            "Error while handling '#{name}' event with '#{block}': #{e.class.name} #{e.message} " \
+            "Error while handling '#{name}' event with '#{block}': #{e.class}: #{e.message} " \
             "at #{Array(e.backtrace).first}"
           end
         end

@@ -12,6 +12,9 @@ module Datadog
               module LazyRouter
                 def serve: (untyped req) -> untyped
               end
+              module RecognizeRouter
+                def recognize: (untyped req) -> untyped
+              end
             end
           end
         end

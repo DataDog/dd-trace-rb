@@ -4,6 +4,7 @@ module Datadog
       module Faraday
         class Integration
           include Datadog::AppSec::Contrib::Integration
+          extend Datadog::AppSec::Contrib::Integration::ClassMethods
 
           MINIMUM_VERSION: ::Gem::Version
 
@@ -15,7 +16,7 @@ module Datadog
 
           def self.auto_instrument?: () -> bool
 
-          def patcher: () -> Datadog::AppSec::Contrib::Faraday::Patcher
+          def patcher: () -> singleton(Patcher)
         end
       end
     end

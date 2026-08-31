@@ -1,22 +1,41 @@
 # frozen_string_literal: true
 
-require_relative 'metrics'
+require_relative "counter_sampler"
+require_relative "metrics"
+require_relative "security_event"
 
 module Datadog
   module AppSec
-    # This class accumulates the context over the request life-cycle and exposes
-    # interface sufficient for instrumentation to perform threat detection.
+    # Request-bound context providing threat detection interface.
+    #
+    # Activated at the start of a request (see `Contrib::Rack::RequestMiddleware`)
+    # and shared across all instrumentations within that request's lifecycle.
+    #
+    # Accumulates security events, metrics, and state needed for coordinated
+    # threat detection.
+    #
+    # @api private
     class Context
       # Steep: https://github.com/soutaro/steep/issues/1880
       ActiveContextError = Class.new(StandardError) # steep:ignore IncompatibleAssignment
 
       # TODO: add delegators for active trace span
-      attr_reader :trace, :span, :events
+      attr_reader :trace, :span, :metrics
+
+      # Shared mutable storage for counters, flags, and data accumulated during
+      # the request's lifecycle.
+      #
+      # NOTE: This attribute is a subject to change, but in a current form
+      #       it's a `Hash`-like structure.
+      attr_reader :state
+
+      # Sampler for downstream HTTP request/response body analysis.
+      attr_reader :downstream_body_sampler
 
       class << self
         def activate(context)
-          raise ArgumentError, 'not a Datadog::AppSec::Context' unless context.instance_of?(Context)
-          raise ActiveContextError, 'another context is active, nested contexts are not supported' if active
+          raise ArgumentError, "not a Datadog::AppSec::Context" unless context.instance_of?(Context)
+          raise ActiveContextError, "another context is active, nested contexts are not supported" if active
 
           Thread.current[Ext::ACTIVE_CONTEXT_KEY] = context
         end
@@ -35,10 +54,16 @@ module Datadog
       def initialize(trace, span, waf_runner)
         @trace = trace
         @span = span
-        @events = []
         @waf_runner = waf_runner
         @metrics = Metrics::Collector.new
-        @interrupted = false
+        @downstream_body_sampler = CounterSampler.new(
+          Datadog.configuration.appsec.api_security.downstream_body_analysis.sample_rate
+        )
+        @state = {
+          events: [],
+          interrupted: false,
+          downstream_body_analyzed_count: 0,
+        }
       end
 
       def run_waf(persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
@@ -48,21 +73,25 @@ module Datadog
         result
       end
 
-      def run_rasp(type, persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
+      def run_rasp(type, persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT, phase: nil)
         result = @waf_runner.run(persistent_data, ephemeral_data, timeout)
 
-        Metrics::Telemetry.report_rasp(type, result)
-        @metrics.record_rasp(result)
+        Metrics::Telemetry.report_rasp(type, result, phase: phase)
+        @metrics.record_rasp(result, type: type, phase: phase)
 
         result
       end
 
+      def events
+        @state[:events]
+      end
+
       def mark_as_interrupted!
-        @interrupted = true
+        @state[:interrupted] = true
       end
 
       def interrupted?
-        @interrupted
+        @state[:interrupted]
       end
 
       def waf_runner_ruleset_version
@@ -73,8 +102,14 @@ module Datadog
         @waf_runner.waf_addresses
       end
 
-      def extract_schema
-        @waf_runner.run({'waf.context.processor' => {'extract-schema' => true}}, {})
+      def extract_schema!
+        persistent_data = {"waf.context.processor" => {"extract-schema" => true}}
+        waf_result = run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+        security_event = AppSec::SecurityEvent.new(waf_result, trace: trace, span: span)
+
+        @state[:schema_extracted] = security_event.schema?
+
+        events.push(security_event)
       end
 
       def export_metrics
@@ -82,12 +117,14 @@ module Datadog
 
         Metrics::Exporter.export_waf_metrics(@metrics.waf, @span)
         Metrics::Exporter.export_rasp_metrics(@metrics.rasp, @span)
+        Metrics::Exporter.export_downstream_response_metrics(@metrics.downstream_responses, @span)
       end
 
       def export_request_telemetry
         return if @trace.nil?
 
         Metrics::TelemetryExporter.export_waf_request_metrics(@metrics.waf, self)
+        Metrics::TelemetryExporter.export_api_security_metrics(self)
       end
 
       def finalize!

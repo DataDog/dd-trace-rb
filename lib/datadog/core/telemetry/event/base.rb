@@ -10,7 +10,7 @@ module Datadog
           # It must be one of the stings defined in the Telemetry V2
           # specification for event names.
           def type
-            raise NotImplementedError, 'Must be implemented by subclass'
+            raise NotImplementedError, "Must be implemented by subclass"
           end
 
           # The JSON payload for the event.

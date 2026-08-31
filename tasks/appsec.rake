@@ -1,26 +1,26 @@
 namespace :appsec do
   namespace :ruleset do
     task :update do |_task, args|
-      require 'uri'
-      require 'net/http'
+      require "uri"
+      require "net/http"
 
       version = args.to_a[0]
-      raise ArgumentError, 'You must provide a version' if version.nil?
+      raise ArgumentError, "You must provide a version" if version.nil?
 
       # You need to generate a token with the `repo` scope
       # and configure SSO for DataDog's GitHub organization
-      token = ENV['GITHUB_TOKEN']
-      raise ArgumentError, 'You must set GITHUB_TOKEN env variable' if token.nil?
+      token = ENV["GITHUB_TOKEN"]
+      raise ArgumentError, "You must set GITHUB_TOKEN env variable" if token.nil?
 
-      ['recommended', 'strict'].each do |ruleset|
+      ["recommended", "strict"].each do |ruleset|
         uri = URI("https://api.github.com/repos/DataDog/appsec-event-rules/contents/build/#{ruleset}.json?ref=#{version}")
 
         http = Net::HTTP.new(uri.host, uri.port)
         http.use_ssl = true
 
         request = Net::HTTP::Get.new(uri)
-        request['Authorization'] = "Bearer #{token}"
-        request['Accept'] = 'application/vnd.github.raw+json'
+        request["Authorization"] = "Bearer #{token}"
+        request["Accept"] = "application/vnd.github.raw+json"
 
         http.request(request) do |response|
           case response
@@ -28,7 +28,7 @@ namespace :appsec do
             filename = "lib/datadog/appsec/assets/waf_rules/#{ruleset}.json"
             raise "File '#{filename}' was moved or deleted, please review the rake task" unless File.exist?(filename)
 
-            File.open(filename, 'wb') do |f|
+            File.open(filename, "wb") do |f|
               response.read_body do |chunk|
                 f << chunk
               end

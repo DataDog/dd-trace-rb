@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'rails_route_serializer'
-require_relative 'grape_route_serializer'
-require_relative 'sinatra_route_serializer'
+require_relative "rails_route_serializer"
+require_relative "grape_route_serializer"
+require_relative "sinatra_route_serializer"
 
 module Datadog
   module AppSec
@@ -19,14 +19,21 @@ module Datadog
             Enumerator.new do |yielder|
               @routes.each do |route|
                 if route.dispatcher?
-                  yielder.yield RailsRouteSerializer.serialize(route)
+                  if route.verb.include?("|")
+                    # report separate route for each method for multi-method routes
+                    route.verb.split("|").each do |method|
+                      yielder.yield RailsRouteSerializer.serialize(route, method_override: method)
+                    end
+                  else
+                    yielder.yield RailsRouteSerializer.serialize(route)
+                  end
                 elsif mounted_grape_app?(route.app.rack_app)
                   route.app.rack_app.routes.each do |grape_route|
                     yielder.yield GrapeRouteSerializer.serialize(grape_route, path_prefix: route.path.spec.to_s)
                   end
                 elsif mounted_sinatra_app?(route.app.rack_app)
                   route.app.rack_app.routes.each do |method, sinatra_routes|
-                    next if method == 'HEAD'
+                    next if method == "HEAD"
 
                     sinatra_routes.each do |sinatra_route, _, _|
                       yielder.yield SinatraRouteSerializer.serialize(

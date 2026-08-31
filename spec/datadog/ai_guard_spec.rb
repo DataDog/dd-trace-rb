@@ -57,35 +57,30 @@ RSpec.describe Datadog::AIGuard do
   end
 
   describe ".evaluate" do
-    context "when AI Guard is enabled" do
+    context "when AI Guard is enabled", webmock: true do
       include_context :ai_guard_enabled
 
       let(:messages) do
         [
-          Datadog::AIGuard::Evaluation::Message.new(role: :system, content: "Hello")
+          Datadog::AIGuard::Evaluation::Message.new(role: :system, content: "Hello"),
         ]
       end
 
       before do
         Datadog.configuration.ai_guard.enabled = true
 
-        WebMock.enable!
-
         stub_request(:post, "https://app.datadoghq.com/api/v2/ai-guard/evaluate")
           .to_return do |request|
             {
               status: 200,
               body: raw_response.to_json,
-              headers: {"Content-Type" => "application/json"}
+              headers: {"Content-Type" => "application/json"},
             }
           end
       end
 
       after do
         Datadog.configuration.reset!
-
-        WebMock.reset!
-        WebMock.disable!
       end
 
       context "when result is ALLOW" do
@@ -96,13 +91,14 @@ RSpec.describe Datadog::AIGuard do
                 "action" => "ALLOW",
                 "reason" => "No rule match",
                 "tags" => [],
-                "is_blocking_enabled" => false
-              }
-            }
+                "tag_probs" => {},
+                "is_blocking_enabled" => false,
+              },
+            },
           }
         end
 
-        it "returns Datadog::AIGuard::Evaluation::Result when allow_raise is set to false" do
+        it "returns Datadog::AIGuard::Evaluation::Result when allow_raise is set to true" do
           result = described_class.evaluate(*messages, allow_raise: true)
 
           aggregate_failures "result properties" do
@@ -122,9 +118,10 @@ RSpec.describe Datadog::AIGuard do
                 "action" => "DENY",
                 "reason" => "Rule match",
                 "tags" => ["indirect-prompt-injection"],
-                "is_blocking_enabled" => true
-              }
-            }
+                "tag_probs" => {"indirect-prompt-injection" => 0.95},
+                "is_blocking_enabled" => true,
+              },
+            },
           }
         end
 
@@ -135,7 +132,7 @@ RSpec.describe Datadog::AIGuard do
         end
 
         it "returns Datadog::AIGuard::Evaluation::Result when allow_raise is set to false" do
-          result = described_class.evaluate(*messages)
+          result = described_class.evaluate(*messages, allow_raise: false)
 
           aggregate_failures "result properties" do
             expect(result).to be_a(Datadog::AIGuard::Evaluation::Result)
@@ -152,7 +149,7 @@ RSpec.describe Datadog::AIGuard do
 
       let(:messages) do
         [
-          Datadog::AIGuard::Evaluation::Message.new(role: :system, content: "Hello")
+          Datadog::AIGuard::Evaluation::Message.new(role: :system, content: "Hello"),
         ]
       end
 

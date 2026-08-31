@@ -5,8 +5,6 @@ on: # yamllint disable-line rule:truthy
     branches:
       - master
   pull_request:
-    branches:
-      - master
 
 # Default permissions for all jobs
 permissions: {}
@@ -38,8 +36,11 @@ jobs:
       SKIP_SIMPLECOV: 1
       DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
       DD_REMOTE_CONFIGURATION_ENABLED: false
+      DATADOG_GEM_CI: true
+      BUNDLE_GEMFILE: gemfiles/ruby-${{ matrix.ruby.version }}.gemfile
+      BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       # bundler appears to match both prerelease and release rubies when we
@@ -47,7 +48,7 @@ jobs:
       # head rubies
       - if: ${{ matrix.ruby.version == 'head' }}
         run: sed -i~ -e '/spec\.required_ruby_version/d' datadog.gemspec
-      - uses: ruby/setup-ruby@8aeb6ff8030dd539317f8e1769a044873b56ea71 # v1.268.0
+      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           ruby-version: ${{ matrix.ruby.version }}
       - name: Install rubygems
@@ -63,7 +64,7 @@ jobs:
       - name: Install dependencies
         run: bundle install
       - name: Run specs
-        run: bundle exec rake spec:main
+        run: bundle exec rake spec:core_with_libdatadog_api spec:main spec:profiling
 
   complete:
     name: Test macOS (complete)

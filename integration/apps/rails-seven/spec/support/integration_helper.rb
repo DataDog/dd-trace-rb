@@ -33,6 +33,19 @@ module IntegrationHelper
         end
       end
     end
+
+    def symdb_test
+      if RUBY_ENGINE == 'jruby'
+        before(:all) do
+          skip "Symbol database is not supported on JRuby"
+        end
+      end
+      if RUBY_VERSION < "2.7"
+        before(:all) do
+          skip "Symbol database requires Ruby 2.7 or higher"
+        end
+      end
+    end
   end
 
   def self.included(base)

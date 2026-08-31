@@ -14,7 +14,9 @@ require "webrick"
 # We also have "integration" specs, where we exercise the Ruby code together with the C code and libdatadog to ensure
 # that things come out of libdatadog as we expected.
 RSpec.describe Datadog::Profiling::HttpTransport do
-  before { skip_if_profiling_not_supported(self) }
+  before do
+    skip_if_profiling_not_supported
+  end
 
   subject(:http_transport) do
     described_class.new(
@@ -22,6 +24,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       site: site,
       api_key: api_key,
       upload_timeout_seconds: upload_timeout_seconds,
+      use_system_dns: use_system_dns,
     )
   end
 
@@ -43,15 +46,23 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:site) { nil }
   let(:api_key) { nil }
   let(:upload_timeout_seconds) { 10 }
+  let(:use_system_dns) { false }
+
+  let(:metrics) {
+    [
+      ["ruby_global_lock_wait_time_total", 123],
+    ]
+  }
 
   let(:flush) do
     Datadog::Profiling::Flush.new(
       start: start,
       finish: finish,
       encoded_profile: encoded_profile,
-      code_provenance_file_name: code_provenance_file_name,
       code_provenance_data: code_provenance_data,
+      metrics: metrics,
       tags_as_array: tags_as_array,
+      process_tags: process_tags,
       internal_metadata: {no_signals_workaround_enabled: true},
       info_json: info_json,
     )
@@ -63,17 +74,17 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:start_timestamp) { start.iso8601(9) }
   let(:end_timestamp) { finish.iso8601(9) }
   let(:pprof_file_name) { "profile.pprof" }
-  let(:code_provenance_file_name) { "the_code_provenance_file_name.json" }
   let(:code_provenance_data) { "the_code_provenance_data" }
   let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
+  let(:process_tags) { "" }
   let(:info_json) do
     JSON.generate(
       {
         application: {
-          start_time: "2024-01-24T11:17:22Z"
+          start_time: "2024-01-24T11:17:22Z",
         },
         runtime: {
-          engine: "ruby"
+          engine: "ruby",
         },
       }
     )
@@ -82,23 +93,38 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:info_string_keys) do
     {
       "application" => {
-        "start_time" => "2024-01-24T11:17:22Z"
+        "start_time" => "2024-01-24T11:17:22Z",
       },
       "runtime" => {
-        "engine" => "ruby"
+        "engine" => "ruby",
       },
     }
   end
 
   describe "#initialize" do
+    let(:upload_timeout_milliseconds) { upload_timeout_seconds * 1_000 }
+
     context "when agent_settings are provided" do
       it "picks the :agent working mode for the exporter" do
         expect(described_class)
           .to receive(:_native_validate_exporter)
-          .with([:agent, "http://192.168.0.1:12345/"])
+          .with([:agent, upload_timeout_milliseconds, false, "http://192.168.0.1:12345/"])
           .and_return([:ok, nil])
 
         http_transport
+      end
+
+      context "when use_system_dns is true" do
+        let(:use_system_dns) { true }
+
+        it "passes use_system_dns as true to the exporter" do
+          expect(described_class)
+            .to receive(:_native_validate_exporter)
+            .with([:agent, upload_timeout_milliseconds, true, "http://192.168.0.1:12345/"])
+            .and_return([:ok, nil])
+
+          http_transport
+        end
       end
 
       context "when ssl is enabled" do
@@ -107,7 +133,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         it "picks the :agent working mode with https reporting" do
           expect(described_class)
             .to receive(:_native_validate_exporter)
-            .with([:agent, "https://192.168.0.1:12345/"])
+            .with([:agent, upload_timeout_milliseconds, false, "https://192.168.0.1:12345/"])
             .and_return([:ok, nil])
 
           http_transport
@@ -121,7 +147,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         it "picks the :agent working mode with unix domain stocket reporting" do
           expect(described_class)
             .to receive(:_native_validate_exporter)
-            .with([:agent, "unix:///var/run/datadog/apm.socket"])
+            .with([:agent, upload_timeout_milliseconds, false, "unix:///var/run/datadog/apm.socket"])
             .and_return([:ok, nil])
 
           http_transport
@@ -134,7 +160,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         it "provides the correct ipv6 address-safe url to the exporter" do
           expect(described_class)
             .to receive(:_native_validate_exporter)
-            .with([:agent, "http://[1234:1234::1]:12345/"])
+            .with([:agent, upload_timeout_milliseconds, false, "http://[1234:1234::1]:12345/"])
             .and_return([:ok, nil])
 
           http_transport
@@ -149,26 +175,35 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       it "ignores them and picks the :agent working mode using the agent_settings" do
         expect(described_class)
           .to receive(:_native_validate_exporter)
-          .with([:agent, "http://192.168.0.1:12345/"])
+          .with([:agent, upload_timeout_milliseconds, false, "http://192.168.0.1:12345/"])
           .and_return([:ok, nil])
 
         http_transport
       end
 
       context "when agentless mode is allowed" do
-        around do |example|
-          ClimateControl.modify("DD_PROFILING_AGENTLESS" => "true") do
-            example.run
-          end
-        end
+        with_env "DD_PROFILING_AGENTLESS" => "true"
 
         it "picks the :agentless working mode with the given site and api key" do
           expect(described_class)
             .to receive(:_native_validate_exporter)
-            .with([:agentless, site, api_key])
+            .with([:agentless, upload_timeout_milliseconds, false, site, api_key])
             .and_return([:ok, nil])
 
           http_transport
+        end
+
+        context "when use_system_dns is true" do
+          let(:use_system_dns) { true }
+
+          it "passes use_system_dns as true to the exporter" do
+            expect(described_class)
+              .to receive(:_native_validate_exporter)
+              .with([:agentless, upload_timeout_milliseconds, true, site, api_key])
+              .and_return([:ok, nil])
+
+            http_transport
+          end
         end
       end
     end
@@ -186,11 +221,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     subject(:export) { http_transport.export(flush) }
 
     it "calls the native export method with the data from the flush" do
-      upload_timeout_milliseconds = 10_000
-
       expect(described_class).to receive(:_native_do_export).with(
         kind_of(Array), # exporter_configuration
-        upload_timeout_milliseconds,
         flush,
       ).and_return([:ok, 200])
 
@@ -269,14 +301,25 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
   describe "#exporter_configuration" do
     it "returns the current exporter configuration" do
-      expect(http_transport.exporter_configuration).to eq [:agent, "http://192.168.0.1:12345/"]
+      expect(http_transport.exporter_configuration).to eq [
+        :agent,
+        upload_timeout_seconds * 1_000,
+        false,
+        "http://192.168.0.1:12345/",
+      ]
+    end
+  end
+
+  describe "#config_without_api_key" do
+    it "returns the exporter mode and url/site" do
+      expect(http_transport.send(:config_without_api_key)).to eq "agent: http://192.168.0.1:12345/"
     end
   end
 
   context "integration testing" do
     shared_context "HTTP server" do
       http_server do |http_server|
-        http_server.mount_proc('/', &server_proc)
+        http_server.mount_proc("/", &server_proc)
       end
       let(:hostname) { "127.0.0.1" }
       let(:server_proc) do
@@ -301,8 +344,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     shared_examples "correctly reports profiling data" do
       let(:expected_data_in_payload) {
         {
-          "attachments" => contain_exactly(pprof_file_name, code_provenance_file_name),
-          "tags_profiler" => start_with("tag_a:value_a,tag_b:value_b,runtime_platform:#{RUBY_PLATFORM.split("-").first}"),
+          "attachments" => contain_exactly(pprof_file_name, "metrics.json", "code-provenance.json"),
+          "tags_profiler" => start_with("tag_a:value_a,tag_b:value_b,runtime_platform:#{RUBY_PLATFORM.split("-").first.sub("arm", "aarch")}"),
           "start" => start_timestamp,
           "end" => end_timestamp,
           "family" => "ruby",
@@ -310,6 +353,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           "endpoint_counts" => nil,
           "internal" => hash_including("no_signals_workaround_enabled" => true),
           "info" => info_string_keys,
+          "process_tags" => nil,
         }
       }
 
@@ -343,7 +387,9 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         # The pprof data is compressed in the datadog serializer, nothing to do
         expect(body.fetch(pprof_file_name)).to eq encoded_profile_bytes
         # This one needs to be compressed
-        expect(Zstd.decompress(body.fetch(code_provenance_file_name))).to eq code_provenance_data
+        expect(Zstd.decompress(body.fetch("code-provenance.json"))).to eq code_provenance_data
+
+        expect(Zstd.decompress(body.fetch("metrics.json"))).to eq '[["ruby_global_lock_wait_time_total",123]]'
       end
     end
 
@@ -353,6 +399,22 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       http_transport.export(flush)
 
       expect(request.request_uri.to_s).to eq "http://127.0.0.1:#{port}/profiling/v1/input"
+    end
+
+    context "when process tags are enabled" do
+      let(:process_tags) { "entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:bin,entrypoint.type:script" }
+
+      it "includes the process tags in the payload" do
+        success = http_transport.export(flush)
+
+        expect(success).to be true
+
+        boundary = request["content-type"][%r{^multipart/form-data; boundary=(.+)}, 1]
+        body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
+        event_data = JSON.parse(body.fetch("event"))
+
+        expect(event_data["process_tags"]).to eq(process_tags)
+      end
     end
 
     context "when code provenance data is not available" do
@@ -368,15 +430,17 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
         event_data = JSON.parse(body.fetch("event"))
 
-        expect(event_data).to match(expected_data_in_payload.merge("attachments" => [pprof_file_name]))
+        expect(event_data).to match(
+          expected_data_in_payload.merge("attachments" => contain_exactly(pprof_file_name, "metrics.json"))
+        )
 
-        expect(body[code_provenance_file_name]).to be nil
+        expect(body["code-provenance.json"]).to be nil
       end
     end
 
     context "via unix domain socket" do
       define_http_server_uds do |http_server|
-        http_server.mount_proc('/', &server_proc)
+        http_server.mount_proc("/", &server_proc)
       end
       let(:adapter) { Datadog::Core::Transport::Ext::UnixSocket::ADAPTER }
       let(:uds_path) { uds_socket_path }
@@ -391,7 +455,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       end
 
       it "logs an error" do
-        expect(Datadog.logger).to receive(:warn).with(/ddog_prof_Exporter_send failed/)
+        expect(Datadog.logger).to receive(:warn).with(/ddog_prof_Exporter_send_blocking failed/)
         expect(Datadog::Core::Telemetry::Logger).to receive(:error).with("Failed to report profiling data")
 
         http_transport.export(flush)

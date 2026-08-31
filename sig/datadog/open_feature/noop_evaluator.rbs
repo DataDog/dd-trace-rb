@@ -9,6 +9,8 @@ module Datadog
         context: ::OpenFeature::SDK::EvaluationContext::fields_t,
         expected_type: ::Symbol
       ) -> ResolutionDetails
+
+      def observe_full_evaluation_data: () -> false
     end
   end
 end

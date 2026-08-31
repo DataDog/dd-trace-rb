@@ -1,0 +1,23 @@
+module Datadog
+  module SymbolDatabase
+    module Transport
+      module Symbols
+        class Request < Core::Transport::Request
+          @form: Hash[String, Datadog::Core::Vendor::Multipart::Post::UploadIO]
+
+          attr_reader form: Hash[String, Datadog::Core::Vendor::Multipart::Post::UploadIO]
+
+          def initialize: (Hash[String, Datadog::Core::Vendor::Multipart::Post::UploadIO] form) -> void
+        end
+
+        class Client < Core::Transport::HTTP::Client
+          def build_env: (Request request) -> Core::Transport::HTTP::Env
+        end
+
+        class Transport < Core::Transport::Transport
+          def send_symbols: (Hash[String, Datadog::Core::Vendor::Multipart::Post::UploadIO] form) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
+        end
+      end
+    end
+  end
+end

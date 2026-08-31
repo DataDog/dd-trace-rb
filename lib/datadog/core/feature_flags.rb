@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
 module Datadog
   module Core
@@ -37,14 +37,14 @@ module Datadog
           #       moved into C extension
           @value = json?(value) ? JSON.parse(value) : value
         rescue JSON::ParserError => e
-          raise Error, "Failed to parse JSON value: #{e.class}: #{e}"
+          raise Error, "Failed to parse JSON value: #{e.class}: #{e.message}"
         end
 
         # Check if the resolution resulted in an error
         #
         # @return [Boolean] True if there was an error
         def error?
-          reason == 'ERROR'
+          reason == "ERROR"
         end
 
         private

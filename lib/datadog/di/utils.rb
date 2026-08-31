@@ -82,15 +82,31 @@ module Datadog
       # we just strip leading directory components from the "probe path"
       # until we get a match via a "suffix of the suffix".
 
+      # Returns +path+ with Windows-style backslash separators translated to
+      # forward slashes (DEBUG-5111). Used to normalize probe source paths
+      # that originate from IDE tooling running on Windows.
+      module_function def normalize_windows_separators(path)
+        path.tr("\\", "/")
+      end
+
       # Returns whether the provided +path+ matches the user-designated
       # file suffix (of a line probe).
       #
-      # If suffix is an absolute path (i.e., it starts with a slash), the path
-      # must be identical for it to match.
+      # Backslash separators in +suffix+ are translated to forward slashes
+      # (DEBUG-5111) so paths typed by IDE tooling on Windows can match.
+      # Case-insensitive matching (DEBUG-5107) is opt-in via
+      # +case_insensitive: true+; callers that orchestrate matching against a
+      # set of known paths perform case-sensitive comparisons first and only
+      # fall back to case-insensitive when no case-sensitive match is found
+      # (see the design comment above, steps 5-8).
+      #
+      # If suffix is an absolute path (i.e., it starts with a slash, possibly
+      # after backslash normalization), the path must be identical for it to
+      # match.
       #
       # If suffix is not an absolute path, the path matches if its suffix is
       # the provided suffix, at a path component boundary.
-      module_function def path_matches_suffix?(path, suffix)
+      module_function def path_matches_suffix?(path, suffix, case_insensitive: false)
         if path.nil?
           raise ArgumentError, "nil path passed"
         end
@@ -98,18 +114,19 @@ module Datadog
           raise ArgumentError, "nil suffix passed"
         end
 
-        if suffix.start_with?('/')
+        suffix = normalize_windows_separators(suffix)
+        if case_insensitive
+          path = path.downcase
+          suffix = suffix.downcase
+        end
+
+        if suffix.start_with?("/")
           path == suffix
         else
           # Exact match is not possible here, meaning any matching path
           # has to be longer than the suffix. Require full component matches,
           # meaning either the first character of the suffix is a slash
           # or the previous character in the path is a slash.
-          # For now only check for forward slashes for Unix-like OSes;
-          # backslash is a legitimate character of a file name in Unix
-          # therefore simply permitting forward or back slash is not
-          # sufficient, we need to perform an OS check to know which
-          # path separator to use.
           !!
           if path.length > suffix.length && path.end_with?(suffix)
             previous_char = path[path.length - suffix.length - 1]
@@ -125,15 +142,26 @@ module Datadog
       # +spec+. Attempts all of the fuzzy matches by stripping directories
       # from the front of +spec+. Does not consider othr known paths to
       # identify the case of (potentially) multiple matching paths for +spec+.
+      #
+      # Matching is attempted case-sensitively first (steps 5-6 in the design
+      # comment above) and only falls back to case-insensitive (steps 7-8)
+      # when no case-sensitive match is found.
       module_function def path_can_match_spec?(path, spec)
-        return true if path_matches_suffix?(path, spec)
+        # Normalize Windows-style backslash separators (DEBUG-5111) so the
+        # suffix-shortening loop's "/+" regex can strip leading components.
+        spec = normalize_windows_separators(spec)
 
-        spec = spec.dup
-        loop do
-          return false unless spec.include?('/')
-          spec.sub!(%r{.*/+}, '')
-          return true if path_matches_suffix?(path, spec)
+        [false, true].each do |case_insensitive|
+          working_spec = spec.dup
+          return true if path_matches_suffix?(path, working_spec, case_insensitive: case_insensitive)
+
+          loop do
+            break unless working_spec.include?("/")
+            working_spec.sub!(%r{.*/+}, "")
+            return true if path_matches_suffix?(path, working_spec, case_insensitive: case_insensitive)
+          end
         end
+        false
       end
     end
   end

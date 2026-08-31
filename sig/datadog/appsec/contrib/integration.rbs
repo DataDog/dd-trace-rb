@@ -2,19 +2,51 @@ module Datadog
   module AppSec
     module Contrib
       module Integration
-        RegisteredIntegration: untyped
+        interface _Patcher
+          def patch: () -> void
 
-        def self.included: (untyped base) -> untyped
+          def patched?: () -> bool
+        end
+
+        interface _IntegrationInstance
+          def patcher: () -> _Patcher
+        end
+
+        interface _IntegrationClass
+          def loaded?: () -> bool
+
+          def compatible?: () -> bool
+
+          def auto_instrument?: () -> bool
+
+          def new: () -> _IntegrationInstance
+        end
+
+        type klass = _IntegrationClass
+
+        class RegisteredIntegration < ::Struct[[::Symbol, klass, ::Hash[::Symbol, untyped]]]
+          def self.new: (::Symbol name, klass klass, ::Hash[::Symbol, untyped] options) -> instance
+
+          attr_accessor name: ::Symbol
+
+          attr_accessor klass: klass
+
+          attr_accessor options: ::Hash[::Symbol, untyped]
+        end
 
         module ClassMethods
-          def register_as: (untyped name, ?::Hash[untyped, untyped] options) -> untyped
+          def register_as: (::Symbol name, ?::Hash[::Symbol, untyped] options) -> void
 
           def compatible?: () -> bool
         end
 
-        def self.register: (untyped integration, untyped name, untyped options) -> untyped
+        self.@registry: ::Hash[::Symbol, RegisteredIntegration]
 
-        def self.registry: () -> untyped
+        def self.included: (::Module base) -> void
+
+        def self.register: (untyped integration, ::Symbol name, ::Hash[::Symbol, untyped] options) -> RegisteredIntegration
+
+        def self.registry: () -> ::Hash[::Symbol, RegisteredIntegration]
       end
     end
   end

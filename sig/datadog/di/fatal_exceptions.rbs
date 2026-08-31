@@ -1,0 +1,7 @@
+module Datadog
+  module DI
+    FATAL_EXCEPTION_CLASSES: ::Array[singleton(::Exception)]
+
+    def self.reraise_if_fatal: (::Exception exc) -> void
+  end
+end

@@ -1,18 +1,18 @@
-require 'json'
-require_relative 'appraisal_conversion'
+require "json"
+require_relative "appraisal_conversion"
 
 # rubocop:disable Metrics/BlockLength
 namespace :github do
   task :generate_batches do
-    matrix = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
+    matrix = eval(File.read("Matrixfile")).freeze # rubocop:disable Security/Eval
 
     # TODO: These are the execptions, find a way to describe those service dependencies in CI using a more generic mechansim.
     misc_candidates = [
-      'mongodb',
-      'elasticsearch',
-      'opensearch',
-      'presto',
-      'dalli',
+      "mongodb",
+      "elasticsearch",
+      "opensearch",
+      "presto",
+      "dalli",
     ]
 
     ruby_version = RUBY_VERSION[0..2]
@@ -22,18 +22,14 @@ namespace :github do
 
     matrix.each do |key, spec_metadata|
       spec_metadata.each do |group, rubies|
-        matched = if RUBY_PLATFORM == 'java'
-          rubies.include?("✅ #{ruby_version}") && rubies.include?('✅ jruby')
-        else
-          rubies.include?("✅ #{ruby_version}")
-        end
+        matched = rubies.include?("✅ #{ruby_version}")
 
         next unless matched
 
         gemfile = begin
           AppraisalConversion.to_bundle_gemfile(group)
         rescue
-          'Gemfile'
+          "Gemfile"
         end
 
         task = {task: key, group: group, gemfile: gemfile}
@@ -47,24 +43,19 @@ namespace :github do
     end
 
     # Seed
-    rng = (ENV['CI_TEST_SEED'] && ENV['CI_TEST_SEED'] != '') ? Random.new(ENV['CI_TEST_SEED'].to_i) : Random.new
-    matching_tasks.shuffle!(random: rng)
-
     batch_count = 7
-    batch_count *= 2 if RUBY_PLATFORM == 'java'
 
     tasks_per_job = (matching_tasks.size.to_f / batch_count).ceil
 
-    batched_matrix = {'include' => []}
+    batched_matrix = {"include" => []}
 
     matching_tasks.each_slice(tasks_per_job).with_index do |task_group, index|
-      batched_matrix['include'] << {'batch' => index.to_s, 'tasks' => task_group}
+      batched_matrix["include"] << {"batch" => index.to_s, "tasks" => task_group}
     end
 
     data = {
-      seed: rng.seed,
       batches: batched_matrix,
-      misc: {'include' => [{'batch' => "0", 'tasks' => misc_tasks}]}
+      misc: {"include" => [{"batch" => "0", "tasks" => misc_tasks}]},
     }
 
     # Output the JSON
@@ -72,16 +63,15 @@ namespace :github do
   end
 
   task :generate_batch_summary do
-    batches_json = ENV['batches_json']
-    raise 'batches_json environment variable not set' unless batches_json
+    batches_json = ENV["batches_json"]
+    raise "batches_json environment variable not set" unless batches_json
 
     data = JSON.parse(batches_json)
-    summary = ENV['GITHUB_STEP_SUMMARY']
+    summary = ENV["GITHUB_STEP_SUMMARY"]
 
-    File.open(summary, 'a') do |f|
-      f.puts "*__Seed__: #{ENV["CI_TEST_SEED"]}*"
-      data['include'].each do |batch|
-        rows = batch['tasks'].map do |t|
+    File.open(summary, "a") do |f|
+      data["include"].each do |batch|
+        rows = batch["tasks"].map do |t|
           "* #{t["task"]} (#{t["group"]})"
         end
 
@@ -97,21 +87,13 @@ namespace :github do
   end
 
   task :run_batch_build do
-    tasks = JSON.parse(ENV['BATCHED_TASKS'] || {})
+    tasks = JSON.parse(ENV["BATCHED_TASKS"] || {})
 
     tasks.each do |task|
-      env = {'BUNDLE_GEMFILE' => task['gemfile']}
-      cmd = 'bundle check || bundle install'
-      # This retry mechanism is a generic way to improve the reliability in Github Actions,
-      # since network issues can cause the `bundle install` command to fail,
-      # even when Bundler has been configured to retry
-      #
-      # Furthermore, for JRuby 9.2, `bundle install` command failed ocassionally with the NameError.
-      #
-      # Mitigate the flakiness by retrying the command up to 3 times.
-      #
-      # https://github.com/jruby/jruby/issues/7508
-      # https://github.com/jruby/jruby/issues/3656
+      env = {"BUNDLE_GEMFILE" => task["gemfile"]}
+      cmd = "bundle check || bundle install"
+      # Retry mechanism to improve reliability in Github Actions,
+      # since network issues can cause `bundle install` to fail.
       with_retry do
         Bundler.with_unbundled_env { sh(env, cmd) }
       end
@@ -119,15 +101,83 @@ namespace :github do
   end
 
   task :run_batch_tests do
-    tasks = JSON.parse(ENV['BATCHED_TASKS'] || {})
+    tasks = JSON.parse(ENV["BATCHED_TASKS"] || {})
 
-    rng = Random.new(ENV['CI_TEST_SEED'].to_i)
+    rng = Random.new(ENV["CI_TEST_SEED"].to_i)
 
-    tasks.each do |task|
-      env = {'BUNDLE_GEMFILE' => task['gemfile']}
+    durations = tasks.map do |task|
+      env = {"BUNDLE_GEMFILE" => task["gemfile"]}
       cmd = "bundle exec rake spec:#{task["task"]}'[--seed #{rng.rand(0xFFFF)}]'"
 
-      Bundler.with_unbundled_env { sh(env, cmd) }
+      junit_files_before = Dir["tmp/rspec/*.xml"]
+
+      begin
+        Bundler.with_unbundled_env { sh(env, cmd) }
+      rescue RuntimeError
+        raise annotate_test_failures(env, cmd)
+      end
+
+      junit_files_after = Dir["tmp/rspec/*.xml"] - junit_files_before
+
+      [task["task"], junit_files_after.sum { |file| junit_suite_time(file) }]
+    end
+
+    report_task_durations(durations)
+  end
+
+  def annotate_test_failures(env, cmd)
+    env_prefix = env.map { |k, v| "#{k}=#{v}" }.join(" ")
+    repro_command = "#{env_prefix} #{cmd}"
+
+    file = ENV.fetch("RSPEC_FAILURES_FILE", "tmp/rspec/failures.txt")
+    return "RSpec failure" unless File.exist?(file)
+
+    content = File.read(file)
+    return "RSpec failure" if content.strip.empty?
+
+    # GitHub Actions truncates large annotations in the UI; above this size,
+    # fall back to failed example titles only.
+    annotation_size_threshold = 4096
+
+    title = escape_annotation("RSpec failure: #{repro_command}")
+
+    summary = if content.bytesize <= annotation_size_threshold
+      content
+    else
+      content[/^Failed examples:.*/m] || content
+    end
+
+    body = "#{title}\n\n#{summary}"
+    puts "::error title=#{title}::#{escape_annotation(body)}"
+    body
+  end
+
+  def escape_annotation(text)
+    text.gsub("%", "%25").gsub("\r", "%0D").gsub("\n", "%0A")
+  end
+
+  def junit_suite_time(file)
+    File.read(file)[/<testsuite\b[^>]*\btime="([\d.]+)"/, 1].to_f
+  rescue Errno::ENOENT
+    0.0
+  end
+
+  def report_task_durations(durations)
+    summary = ENV["GITHUB_STEP_SUMMARY"]
+    return if summary.to_s.empty?
+
+    rows = durations.map { |(task, time)| "| #{task} | #{time.round(1)}s |" }
+
+    File.open(summary, "a") do |f|
+      f.puts <<~SUMMARY
+        <details>
+        <summary>Task durations</summary>
+
+        | Task | Duration |
+        | --- | --- |
+        #{rows.join("\n")}
+        </details>
+      SUMMARY
     end
   end
 

@@ -8,17 +8,24 @@ module Datadog
       #
       # Methods prefixed with _native_ are implemented in `collectors_idle_sampling_helper.c`
       class IdleSamplingHelper
+        # @rbs @worker_thread: untyped
+        # @rbs @start_stop_mutex: ::Thread::Mutex
+        # @rbs @thread_context_collector: Datadog::Profiling::Collectors::ThreadContext?
+
         private
 
-        attr_accessor :failure_exception
+        attr_accessor :failure_exception #: ::Exception?
 
         public
 
-        def initialize
+        #: (thread_context_collector: Datadog::Profiling::Collectors::ThreadContext) -> void
+        def initialize(thread_context_collector:)
           @worker_thread = nil
           @start_stop_mutex = Mutex.new
+          @thread_context_collector = thread_context_collector
         end
 
+        #: () -> (nil | true)
         def start
           @start_stop_mutex.synchronize do
             return if @worker_thread&.alive?
@@ -32,14 +39,14 @@ module Datadog
             @worker_thread = Thread.new do
               Thread.current.name = self.class.name
 
-              self.class._native_idle_sampling_loop(self)
+              self.class._native_idle_sampling_loop(self, @thread_context_collector)
 
               Datadog.logger.debug("IdleSamplingHelper thread stopping cleanly")
             rescue Exception => e # rubocop:disable Lint/RescueException
               @failure_exception = e
               Datadog.logger.warn(
                 "IdleSamplingHelper thread error. " \
-                "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+                "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
               )
               Datadog::Core::Telemetry::Logger.report(e, description: "IdleSamplingHelper thread error")
             end
@@ -50,6 +57,7 @@ module Datadog
           true
         end
 
+        #: () -> void
         def stop
           @start_stop_mutex.synchronize do
             Datadog.logger.debug("Requesting IdleSamplingHelper thread shut down")

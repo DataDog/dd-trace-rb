@@ -11,6 +11,10 @@ module Datadog
 
         @barrier: Barrier
         @logger: Core::Logger
+        @settings: untyped
+        @capabilities: Datadog::Core::Remote::Client::Capabilities
+        @agent_settings: Datadog::Core::Configuration::AgentSettings
+        @transport: untyped
 
         def initialize: (untyped settings, Datadog::Core::Remote::Client::Capabilities capabilities, Datadog::Core::Configuration::AgentSettings agent_settings, logger: Core::Logger) -> void
 
@@ -24,6 +28,12 @@ module Datadog
 
         def shutdown!: () -> void
 
+        def after_fork: () -> void
+
+        def add_products: (*::String products) -> void
+
+        def remove_products: (*::String products) -> void
+
         def self.build: (
           untyped settings,
           Datadog::Core::Configuration::AgentSettings agent_settings,
@@ -35,6 +45,7 @@ module Datadog
           type timeout_s = ::Integer | ::Float
 
           @once: bool
+          @waited: bool
           @timeout: timeout_s?
 
           @mutex: ::Thread::Mutex

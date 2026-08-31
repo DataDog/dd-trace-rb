@@ -6,7 +6,7 @@
 #include "ruby_helpers.h"
 
 #define BASE_OVERHEAD_PCT 1.0
-#define BASE_SAMPLING_INTERVAL 50
+#define BASE_SAMPLING_INTERVAL 1
 
 #define ADJUSTMENT_WINDOW_NS SECONDS_AS_NS(1)
 #define ADJUSTMENT_WINDOW_SAMPLES 100
@@ -51,7 +51,7 @@ void discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler, long now_
 
 void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead, long now_ns) {
   if (target_overhead <= 0 || target_overhead > 100) {
-    rb_raise(rb_eArgError, "Target overhead must be a double between ]0,100] was %f", target_overhead);
+    raise_error(rb_eArgError, "Target overhead must be a double between ]0,100] was %f", target_overhead);
   }
   sampler->target_overhead = target_overhead;
   return discrete_dynamic_sampler_reset(sampler, now_ns);
@@ -369,7 +369,7 @@ static VALUE _native_new(VALUE klass) {
 
   long now_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
   if (now_ns == 0) {
-    rb_raise(rb_eRuntimeError, "failed to get clock time");
+    raise_error(rb_eRuntimeError, "failed to get clock time");
   }
   discrete_dynamic_sampler_init(&state->sampler, "test sampler", now_ns);
 

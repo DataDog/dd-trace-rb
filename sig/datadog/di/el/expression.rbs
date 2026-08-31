@@ -2,19 +2,23 @@ module Datadog
   module DI
     module EL
       class Expression
-        @dsl_expr: untyped
+        @dsl_expr: String
 
-        @evaluator: untyped
+        @evaluator: Evaluator
 
-        def initialize: (untyped dsl_expr, untyped compiled_expr) -> void
+        @redaction_identifier: ::String?
 
-        attr_reader dsl_expr: untyped
+        def initialize: (::String dsl_expr, ::String compiled_expr, ?regexps: ::Array[::Regexp], ?redaction_identifier: ::String?) -> void
 
-        attr_reader evaluator: untyped
+        attr_reader dsl_expr: String
 
-        def evaluate: (untyped context) -> untyped
+        attr_reader evaluator: Evaluator
 
-        def satisfied?: (untyped context) -> untyped
+        attr_reader redaction_identifier: ::String?
+
+        def evaluate: (Context context) -> any
+
+        def satisfied?: (Context context) -> bool
       end
     end
   end

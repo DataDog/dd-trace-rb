@@ -2,9 +2,12 @@
 #include <datadog/crashtracker.h>
 
 #include "datadog_ruby_common.h"
+#include "helpers.h"
 
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self);
+
+void crashtracker_report_exception_init(VALUE crashtracker_class);
 
 static bool first_init = true;
 
@@ -17,6 +20,9 @@ void crashtracker_init(VALUE core_module) {
 
   rb_define_singleton_method(crashtracker_class, "_native_start_or_update_on_fork", _native_start_or_update_on_fork, -1);
   rb_define_singleton_method(crashtracker_class, "_native_stop", _native_stop, 0);
+
+  // Initialize Ruby non-signal-crash reporting
+  crashtracker_report_exception_init(crashtracker_class);
 }
 
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
@@ -41,16 +47,12 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   ENFORCE_TYPE(action, T_SYMBOL);
   ENFORCE_TYPE(upload_timeout_seconds, T_FIXNUM);
 
-  if (action != start_action && action != update_on_fork_action) rb_raise(rb_eArgError, "Unexpected action: %+"PRIsVALUE, action);
+  if (action != start_action && action != update_on_fork_action) raise_error(rb_eArgError, "Unexpected action: %+"PRIsVALUE, action);
 
   VALUE version = datadog_gem_version();
 
-  // Tags and endpoint are heap-allocated, so after here we can't raise exceptions otherwise we'll leak this memory
+  // Tags are heap-allocated, so after here we can't raise exceptions otherwise we'll leak this memory
   // Start of exception-free zone to prevent leaks {{
-  ddog_Endpoint *endpoint = ddog_endpoint_from_url(char_slice_from_ruby_string(agent_base_url));
-  if (endpoint == NULL) {
-    rb_raise(rb_eRuntimeError, "Failed to create endpoint from agent_base_url: %"PRIsVALUE, agent_base_url);
-  }
   ddog_Vec_Tag tags = convert_tags(tags_as_array);
 
   ddog_crasht_Config config = {
@@ -67,9 +69,11 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     // overriding what Ruby set up seems a saner default to keep anyway.
     .create_alt_stack = false,
     .use_alt_stack = true,
-    .endpoint = endpoint,
+    .endpoint = {.url = char_slice_from_ruby_string(agent_base_url)},
     .resolve_frames = DDOG_CRASHT_STACKTRACE_COLLECTION_ENABLED_WITH_SYMBOLS_IN_RECEIVER,
     .timeout_ms = FIX2INT(upload_timeout_seconds) * 1000,
+    .collect_all_threads = true,
+    .max_threads = 128,
   };
 
   ddog_crasht_Metadata metadata = {
@@ -100,16 +104,15 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
       ) :
       ddog_crasht_update_on_fork(config, receiver_config, metadata);
 
-  first_init = false;
+  // We use first_init to know which of [init, reconfigure] needs to be called. BUT if init failed we actually need
+  // to call init next time again, not reconfigure.
+  if (result.tag == DDOG_VOID_RESULT_OK) first_init = false;
 
   // Clean up before potentially raising any exceptions
   ddog_Vec_Tag_drop(tags);
-  ddog_endpoint_drop(endpoint);
   // }} End of exception-free zone to prevent leaks
 
-  if (result.tag == DDOG_VOID_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to start/update the crash tracker: %"PRIsVALUE, get_error_details_and_drop(&result.err));
-  }
+  CHECK_VOID_RESULT("Failed to start/update the crash tracker", result);
 
   return Qtrue;
 }
@@ -117,9 +120,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self) {
   ddog_VoidResult result = ddog_crasht_disable();
 
-  if (result.tag == DDOG_VOID_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to stop the crash tracker: %"PRIsVALUE, get_error_details_and_drop(&result.err));
-  }
+  CHECK_VOID_RESULT("Failed to stop the crash tracker", result);
 
   return Qtrue;
 }

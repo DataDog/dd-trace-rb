@@ -1,22 +1,22 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/appsec/spec_helper'
-require 'rack/test'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/appsec/spec_helper"
+require "rack/test"
 
-require 'sqlite3'
-require 'active_record'
-require 'datadog/tracing'
-require 'datadog/appsec'
+require "sqlite3"
+require "active_record"
+require "datadog/tracing"
+require "datadog/appsec"
 
-RSpec.describe 'Span metrics integration test' do
+RSpec.describe "Span metrics integration test" do
   include Rack::Test::Methods
 
   before do
-    stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-      klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
+    stub_const("User", Class.new(ActiveRecord::Base)).tap do |klass|
+      klass.establish_connection({adapter: "sqlite3", database: ":memory:"})
 
-      klass.connection.create_table 'users', force: :cascade do |t|
+      klass.connection.create_table "users", force: :cascade do |t|
         t.string :name, null: false
       end
 
@@ -57,11 +57,11 @@ RSpec.describe 'Span metrics integration test' do
       use Datadog::Tracing::Contrib::Rack::TraceMiddleware
       use Datadog::AppSec::Contrib::Rack::RequestMiddleware
 
-      map '/waf' do
-        run ->(_env) { [200, {'Content-Type' => 'text/html'}, ['OK']] }
+      map "/waf" do
+        run ->(_env) { [200, {"Content-Type" => "text/html"}, ["OK"]] }
       end
 
-      map '/rasp' do
+      map "/rasp" do
         run(
           lambda do |env|
             request = Rack::Request.new(env)
@@ -69,7 +69,7 @@ RSpec.describe 'Span metrics integration test' do
               "SELECT * FROM users WHERE name = '#{request.params["name"]}'"
             )
 
-            [200, {'Content-Type' => 'text/html'}, [users.join(',')]]
+            [200, {"Content-Type" => "text/html"}, [users.join(",")]]
           end
         )
       end
@@ -80,38 +80,38 @@ RSpec.describe 'Span metrics integration test' do
 
   let(:http_service_entry_span) do
     Datadog::Tracing::Transport::TraceFormatter.format!(trace)
-    spans.find { |s| s.name == 'rack.request' }
+    spans.find { |s| s.name == "rack.request" }
   end
 
-  describe 'HTTP service entry span metrics' do
+  describe "HTTP service entry span metrics" do
     subject(:response) { last_response }
 
-    context 'when WAF check triggered for HTTP request' do
+    context "when WAF check triggered for HTTP request" do
       before do
-        get('/waf', {}, {'REMOTE_ADDR' => '127.0.0.1', 'HTTP_USER_AGENT' => 'Nessus SOAP'})
+        get("/waf", {}, {"REMOTE_ADDR" => "127.0.0.1", "HTTP_USER_AGENT" => "Nessus SOAP"})
       end
 
       it { expect(response).to be_ok }
 
-      it 'contains span WAF metrics' do
-        expect(http_service_entry_span.metrics).to have_key('_dd.appsec.waf.timeouts')
-        expect(http_service_entry_span.metrics).to have_key('_dd.appsec.waf.duration')
-        expect(http_service_entry_span.metrics).to have_key('_dd.appsec.waf.duration_ext')
+      it "contains span WAF metrics" do
+        expect(http_service_entry_span.metrics).to have_key("_dd.appsec.waf.timeouts")
+        expect(http_service_entry_span.metrics).to have_key("_dd.appsec.waf.duration")
+        expect(http_service_entry_span.metrics).to have_key("_dd.appsec.waf.duration_ext")
       end
     end
 
-    context 'when RASP check triggered for database query' do
+    context "when RASP check triggered for database query" do
       before do
-        get('/rasp', {'name' => "Bob'; OR 1=1"}, {'REMOTE_ADDR' => '127.0.0.1'})
+        get("/rasp", {"name" => "Bob'; OR 1=1"}, {"REMOTE_ADDR" => "127.0.0.1"})
       end
 
       it { expect(response).to be_ok }
 
-      it 'contains span RASP metrics' do
-        expect(http_service_entry_span.metrics).to have_key('_dd.appsec.rasp.rule.eval')
-        expect(http_service_entry_span.metrics).to have_key('_dd.appsec.rasp.duration')
-        expect(http_service_entry_span.metrics).to have_key('_dd.appsec.rasp.duration_ext')
-        expect(http_service_entry_span.metrics).not_to have_key('_dd.appsec.rasp.timeout')
+      it "contains span RASP metrics" do
+        expect(http_service_entry_span.metrics).to have_key("_dd.appsec.rasp.rule.eval")
+        expect(http_service_entry_span.metrics).to have_key("_dd.appsec.rasp.duration")
+        expect(http_service_entry_span.metrics).to have_key("_dd.appsec.rasp.duration_ext")
+        expect(http_service_entry_span.metrics).not_to have_key("_dd.appsec.rasp.timeout")
       end
     end
   end

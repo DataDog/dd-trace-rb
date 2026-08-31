@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../core/transport/http/api/endpoint'
+require_relative "../../../core/transport/http/api/endpoint"
 
 module Datadog
   module DI
@@ -18,9 +18,11 @@ module Datadog
 
               def call(env, &block)
                 event_payload = Core::Vendor::Multipart::Post::UploadIO.new(
-                  StringIO.new(env.request.parcel.data), 'application/json', 'event.json'
+                  StringIO.new(env.request.parcel.data),
+                  env.request.parcel.content_type,
+                  "event.json",
                 )
-                env.form = {'event' => event_payload}
+                env.form = {"event" => event_payload}
 
                 super
               end

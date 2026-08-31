@@ -3,7 +3,7 @@ require "datadog/profiling/spec_helper"
 require "datadog/profiling/scheduler"
 
 RSpec.describe Datadog::Profiling::Scheduler do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
   let(:exporter) { instance_double(Datadog::Profiling::Exporter) }
   let(:transport) { instance_double(Datadog::Profiling::HttpTransport) }
@@ -254,7 +254,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
     context "when the profiler was marked as failed" do
       before do
-        scheduler.mark_profiler_failed
+        scheduler.disable_reporting
         expect(exporter).to_not receive(:can_flush?)
       end
 

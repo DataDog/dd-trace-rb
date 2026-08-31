@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../http'
-require_relative '../analytics'
-require_relative '../http_annotation_helper'
-require_relative '../../../core/telemetry/logger'
+require_relative "../../metadata/ext"
+require_relative "../http"
+require_relative "../analytics"
+require_relative "../http_annotation_helper"
+require_relative "../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -28,6 +28,7 @@ module Datadog
               Tracing.trace(Ext::SPAN_REQUEST) do |span, trace|
                 begin
                   span.service = service_name(host, request_options, client_config)
+                  span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                   span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
                   if Tracing::Distributed::PropagationPolicy.enabled?(
@@ -35,13 +36,13 @@ module Datadog
                     global_config: Datadog.configuration.tracing[:httprb],
                     trace: trace
                   )
-                    Contrib::HTTP.inject(trace, req)
+                    Contrib::HTTP.inject(trace, req.headers)
                   end
 
                   # Add additional request specific tags to the span.
                   annotate_span_with_request!(span, req, request_options)
                 rescue => e
-                  logger.error("error preparing span for http.rb request: #{e}, Source: #{e.backtrace}")
+                  logger.error("error preparing span for http.rb request: #{e.class}: #{e.message}, Source: #{e.backtrace}")
                   Datadog::Core::Telemetry::Logger.report(e)
                 ensure
                   res = super(req, options)
@@ -64,11 +65,6 @@ module Datadog
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                   req_options[:peer_service]
                 )
-              end
-
-              # Tag original global service name if not used
-              if span.service != Datadog.configuration.service
-                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
               end
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -110,14 +106,14 @@ module Datadog
               if request_options[:error_status_codes].include? response.code.to_i
                 # https://github.com/DataDog/dd-trace-rb/issues/1116
                 # parsing the response body message will alter downstream application behavior
-                span.set_error(["Error #{response.code}", 'Error'])
+                span.set_error(["Error #{response.code}", "Error"])
               end
 
               span.set_tags(
                 Datadog.configuration.tracing.header_tags.response_tags(response.headers)
               )
             rescue => e
-              logger.error("error preparing span from http.rb response: #{e}, Source: #{e.backtrace}")
+              logger.error("error preparing span from http.rb response: #{e.class}: #{e.message}, Source: #{e.backtrace}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 

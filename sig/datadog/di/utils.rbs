@@ -1,7 +1,8 @@
 module Datadog
   module DI
     module Utils
-      def self?.path_matches_suffix?: (String path, String suffix) -> bool
+      def self?.normalize_windows_separators: (::String path) -> ::String
+      def self?.path_matches_suffix?: (::String path, ::String suffix, ?case_insensitive: bool) -> bool
       def self?.path_can_match_spec?: (String path, String suffix) -> bool
     end
   end

@@ -9,7 +9,7 @@ module Datadog
           module_function
 
           def patched?
-            Patcher.instance_variable_get(:@patched)
+            !!Patcher.instance_variable_get(:@patched)
           end
 
           def target_version
@@ -17,9 +17,11 @@ module Datadog
           end
 
           def patch
-            require_relative 'request_ssrf_detection_patch'
+            require_relative "request_ssrf_detection_patch"
 
             ::RestClient::Request.prepend(RequestSSRFDetectionPatch)
+
+            Patcher.instance_variable_set(:@patched, true)
           end
         end
       end

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../environment/platform'
-require_relative '../environment/process'
-require_relative '../utils/hash'
+require_relative "../environment/platform"
+require_relative "../environment/process"
+require_relative "../utils/hash"
 
 module Datadog
   module Core
@@ -10,11 +10,9 @@ module Datadog
       # Module defining methods for collecting metadata for telemetry
       module Request
         class << self
-          using Core::Utils::Hash::Refinement
-
           def build_payload(event, seq_id, debug: false)
             hash = {
-              api_version: 'v2',
+              api_version: "v2",
               application: application,
               debug: debug,
               host: host,
@@ -52,7 +50,7 @@ module Datadog
               runtime_version: Core::Environment::Ext::ENGINE_VERSION,
               service_name: config.service,
               service_version: config.version,
-              tracer_version: tracer_version
+              tracer_version: tracer_version,
             }
 
             tag_process_tags!(app, config)
@@ -66,7 +64,7 @@ module Datadog
               hostname: Core::Environment::Platform.hostname,
               kernel_name: Core::Environment::Platform.kernel_name,
               kernel_release: Core::Environment::Platform.kernel_release,
-              kernel_version: Core::Environment::Platform.kernel_version
+              kernel_version: Core::Environment::Platform.kernel_version,
             }
           end
 

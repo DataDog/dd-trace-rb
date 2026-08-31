@@ -19,7 +19,7 @@ module Datadog
             #   possibly including more information in the `payload` argument.
             # @param trace [Proc] whether to trace the event. Defaults to returning `true`.
             def initialize(span_name, span_options, on_start: nil, on_finish: nil, trace: nil)
-              raise ArgumentError, 'Must be given either on_start or on_finish' unless on_start || on_finish
+              raise ArgumentError, "Must be given either on_start or on_finish" unless on_start || on_finish
 
               @span_name = span_name
               @span_options = span_options
@@ -125,7 +125,7 @@ module Datadog
                 @block&.call(span, name, id, payload)
               rescue => e
                 Datadog.logger.debug(
-                  "ActiveSupport::Notifications handler for '#{name}' failed: #{e.class.name} #{e.message}"
+                  "ActiveSupport::Notifications handler for '#{name}' failed: #{e.class}: #{e.message}"
                 )
               end
             end
@@ -147,7 +147,7 @@ module Datadog
                   callback.call(event, key, *args)
                 rescue => e
                   Datadog.logger.debug(
-                    "ActiveSupport::Notifications '#{key}' callback for '#{event}' failed: #{e.class.name} #{e.message}"
+                    "ActiveSupport::Notifications '#{key}' callback for '#{event}' failed: #{e.class}: #{e.message}"
                   )
                 end
               end

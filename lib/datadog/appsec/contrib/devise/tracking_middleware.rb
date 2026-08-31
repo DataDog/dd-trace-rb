@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative '../../anonymizer'
+require_relative "ext"
+require_relative "../../anonymizer"
 
 module Datadog
   module AppSec
@@ -9,8 +9,8 @@ module Datadog
       module Devise
         # A Rack middleware capable of tracking currently signed user
         class TrackingMiddleware
-          WARDEN_KEY = 'warden'
-          SESSION_ID_KEY = 'session_id'
+          WARDEN_KEY = "warden"
+          SESSION_ID_KEY = "session_id"
 
           def initialize(app)
             @app = app
@@ -23,13 +23,13 @@ module Datadog
             return @app.call(env) unless AppSec.active_context
 
             unless env.key?(WARDEN_KEY)
-              Datadog.logger.debug { 'AppSec: unable to track requests, due to missing warden manager' }
+              Datadog.logger.debug { "AppSec: unable to track requests, due to missing warden manager" }
               return @app.call(env)
             end
 
             context = AppSec.active_context
             if context.trace.nil? || context.span.nil?
-              Datadog.logger.debug { 'AppSec: unable to track requests, due to missing trace or span' }
+              Datadog.logger.debug { "AppSec: unable to track requests, due to missing trace or span" }
               return @app.call(env)
             end
 
@@ -49,7 +49,7 @@ module Datadog
                 #        passing them at first place.
                 #        This is a temporary situation until we refactor events model.
                 AppSec::Instrumentation.gateway.push(
-                  'identity.set_user', AppSec::Instrumentation::Gateway::User.new(user_id, nil, user_session_id)
+                  "identity.set_user", AppSec::Instrumentation::Gateway::User.new(user_id, nil, user_session_id)
                 )
               end
 
@@ -67,7 +67,7 @@ module Datadog
             session_serializer = warden.session_serializer
 
             key = session_key_for(session_serializer, ::Devise.default_scope)
-            id = session_serializer.session[key]&.dig(0, 0)
+            id = extract_record_id(session_serializer.session[key])
 
             return id if ::Devise.mappings.size == 1
             return "#{::Devise.default_scope}:#{id}" if id
@@ -76,12 +76,27 @@ module Datadog
               next if scope == ::Devise.default_scope
 
               key = session_key_for(session_serializer, scope)
-              id = session_serializer.session[key]&.dig(0, 0)
+              id = extract_record_id(session_serializer.session[key])
 
               return "#{scope}:#{id}" if id
             end
 
             nil
+          end
+
+          # NOTE: This supports Devise's default session serialization:
+          #       `[record.to_key, record.authenticatable_salt]`,
+          #       e.g. `[[1], "0abc..."]`
+          #
+          # WARNING: Applications can redefine Warden serialization, replacing
+          #          this default format
+          def extract_record_id(serialized_record)
+            return unless serialized_record.is_a?(Array)
+
+            record_key = serialized_record[0]
+            return unless record_key.is_a?(Array)
+
+            record_key[0]
           end
 
           def session_key_for(session_serializer, scope)

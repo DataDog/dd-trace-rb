@@ -1,0 +1,9 @@
+module Datadog
+  module Core
+    module EVP
+      SUBDOMAIN_HEADER_NAME: ::String
+      EVENT_PLATFORM_INTAKE_SUBDOMAIN: ::String
+      PAYLOAD_SIZE_LIMIT_BYTES: ::Integer
+    end
+  end
+end

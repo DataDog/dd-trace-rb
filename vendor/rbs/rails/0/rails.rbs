@@ -5,8 +5,25 @@ module ActionDispatch
 end
 
 module ActiveRecord
+  def self.gem_version: () -> ::Gem::Version
+
   module Base
   end
+
+  module ConnectionAdapters
+    module SQLite3Adapter
+    end
+
+    module Mysql2Adapter
+    end
+
+    module PostgreSQLAdapter
+    end
+  end
+end
+
+module ActiveSupport
+  def self.on_load: (::Symbol) { (untyped) -> void } -> void
 end
 
 module Rails

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/settings'
-require_relative '../ext'
+require_relative "../../configuration/settings"
+require_relative "../ext"
 
 module Datadog
   module Tracing
@@ -12,7 +12,7 @@ module Datadog
           # @public_api
           class Settings < Contrib::Configuration::Settings
             DEFAULT_HEADERS = {
-              response: %w[Content-Type X-Request-ID]
+              response: %w[Content-Type X-Request-ID],
             }.freeze
 
             option :enabled do |o|
@@ -33,7 +33,11 @@ module Datadog
               o.default 1.0
             end
 
-            option :distributed_tracing, default: true, type: :bool
+            option :distributed_tracing do |o|
+              o.type :bool
+              o.env Ext::ENV_DISTRIBUTED_TRACING
+              o.default true
+            end
             option :headers, default: DEFAULT_HEADERS, type: :hash
             option :resource_script_names, default: false, type: :bool
 

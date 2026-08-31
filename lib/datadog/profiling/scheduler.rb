@@ -24,7 +24,7 @@ module Datadog
       attr_reader \
         :exporter,
         :transport,
-        :profiler_failed
+        :reporting_disabled
 
       public
 
@@ -36,7 +36,7 @@ module Datadog
       )
         @exporter = exporter
         @transport = transport
-        @profiler_failed = false
+        @reporting_disabled = false
         @stop_requested = false
 
         # Workers::Async::Thread settings
@@ -65,7 +65,7 @@ module Datadog
       rescue Exception => e # rubocop:disable Lint/RescueException
         Datadog.logger.warn(
           "Profiling::Scheduler thread error. " \
-          "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+          "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
         )
         on_failure_proc&.call
         Datadog::Core::Telemetry::Logger.report(e, description: "Profiling::Scheduler thread error")
@@ -83,14 +83,15 @@ module Datadog
         true
       end
 
-      # This is called by the Profiler class whenever an issue happened in the profiler. This makes sure that even
-      # if there is data to be flushed, we don't try to flush it.
-      def mark_profiler_failed
-        @profiler_failed = true
+      # Called by the Profiler when it wants to prevent any further reporting,
+      # even if there is data to be flushed.
+      # Used when the profiler failed or we're otherwise in a hurry to shut down.
+      def disable_reporting
+        @reporting_disabled = true
       end
 
       def work_pending?
-        !profiler_failed && exporter.can_flush? && (run_loop? || !stop_requested?)
+        !reporting_disabled && exporter.can_flush? && (run_loop? || !stop_requested?)
       end
 
       def reset_after_fork
@@ -135,7 +136,7 @@ module Datadog
           transport.export(flush)
         rescue => e
           Datadog.logger.warn(
-            "Unable to report profile. Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+            "Unable to report profile. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
           )
           Datadog::Core::Telemetry::Logger.report(e, description: "Unable to report profile")
         end

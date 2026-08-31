@@ -4,33 +4,43 @@ module Datadog
       module Rack
         module Gateway
           class Request < Instrumentation::Gateway::Argument
-            attr_reader env: untyped
+            @env: ::Rack::env
 
-            def initialize: (untyped env) -> void
+            @request: ::Rack::Request?
 
-            def request: () -> untyped
+            attr_reader env: ::Rack::env
 
-            def query: () -> untyped
+            def initialize: (::Rack::env env) -> void
 
-            def headers: () -> untyped
+            def request: () -> ::Rack::Request
 
-            def body: () -> untyped
+            def query: () -> ::Rack::query
 
-            def method: () -> untyped
+            def headers: () -> Hash[String, String]
 
-            def url: () -> untyped
+            def method: () -> String
 
-            def cookies: () -> untyped
+            def url: () -> String
 
-            def host: () -> untyped
+            def fullpath: () -> String
 
-            def user_agent: () -> untyped
+            def path: () -> String
 
-            def remote_addr: () -> untyped
+            def cookies: () -> Hash[String, String]
 
-            def form_hash: () -> untyped
+            def host: () -> String
 
-            def client_ip: () -> (nil | untyped)
+            def user_agent: () -> String
+
+            def remote_addr: () -> String
+
+            def form_hash: () -> Hash[String, any]?
+
+            def body_bytesize: (Integer limit) -> Integer?
+
+            def collectable_body?: () -> bool
+
+            def client_ip: () -> String?
           end
         end
       end

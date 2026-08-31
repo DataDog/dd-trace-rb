@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/settings'
-require_relative '../ext'
+require_relative "../../configuration/settings"
+require_relative "../ext"
 
-require_relative '../../propagation/sql_comment/ext'
+require_relative "../../propagation/sql_comment/ext"
 
 module Datadog
   module Tracing
@@ -54,6 +54,12 @@ module Datadog
 
             option :append_comment do |o|
               o.type :bool
+              o.default false
+            end
+
+            option :inject_sql_basehash do |o|
+              o.type :bool
+              o.env Contrib::Propagation::SqlComment::Ext::ENV_DBM_INJECT_SQL_BASEHASH
               o.default false
             end
 

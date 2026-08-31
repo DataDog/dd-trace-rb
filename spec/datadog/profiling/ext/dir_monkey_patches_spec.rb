@@ -7,7 +7,7 @@ require "datadog/profiling/ext/dir_monkey_patches"
 # test executes. They do this by only applying these monkey patches in a separate process.
 RSpec.describe Datadog::Profiling::Ext::DirMonkeyPatches do
   before do
-    skip_if_profiling_not_supported(self)
+    skip_if_profiling_not_supported
 
     File.write("#{temporary_directory}/file1", "file1")
     File.write("#{temporary_directory}/file2", "file2")
@@ -239,7 +239,7 @@ RSpec.describe Datadog::Profiling::Ext::DirMonkeyPatches do
     end
 
     describe "#each_child" do
-      before { skip("API not available on Ruby 2.5") if RUBY_VERSION.start_with?("2.5.") }
+      before { skip("API not available on Ruby 2.5") if RubyVersion.is?("< 2.6") }
 
       let(:expected_hold_resume_calls_count) { 1 + temporary_files_count }
 
@@ -278,7 +278,7 @@ RSpec.describe Datadog::Profiling::Ext::DirMonkeyPatches do
     end
 
     describe "#children" do
-      before { skip("API not available on Ruby 2.5") if RUBY_VERSION.start_with?("2.5.") }
+      before { skip("API not available on Ruby 2.5") if RubyVersion.is?("< 2.6") }
 
       it "matches the ruby behavior without monkey patching" do
         test_with_and_without_monkey_patch do

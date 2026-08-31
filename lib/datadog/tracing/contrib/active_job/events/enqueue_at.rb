@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../../metadata/ext'
-require_relative '../../analytics'
-require_relative '../ext'
-require_relative '../event'
+require_relative "../../../metadata/ext"
+require_relative "../../analytics"
+require_relative "../ext"
+require_relative "../event"
 
 module Datadog
   module Tracing
@@ -14,7 +14,7 @@ module Datadog
           module EnqueueAt
             include ActiveJob::Event
 
-            EVENT_NAME = 'enqueue_at.active_job'
+            EVENT_NAME = "enqueue_at.active_job"
 
             module_function
 
@@ -28,7 +28,10 @@ module Datadog
 
             def on_start(span, event, _id, payload)
               span.name = span_name
-              span.service = configuration[:service_name] if configuration[:service_name]
+              if configuration[:service_name]
+                span.service = configuration[:service_name]
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
+              end
               span.resource = payload[:job].class.name
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENQUEUE_AT)
 
@@ -39,7 +42,7 @@ module Datadog
 
               set_common_tags(span, payload)
             rescue => e
-              Datadog.logger.debug(e.message)
+              Datadog.logger.debug { "#{e.class}: #{e.message}" }
             end
           end
         end

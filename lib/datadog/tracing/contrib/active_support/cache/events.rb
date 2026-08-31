@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'events/cache'
+require_relative "events/cache"
 
 module Datadog
   module Tracing

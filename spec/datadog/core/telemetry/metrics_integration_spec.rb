@@ -1,24 +1,17 @@
-require 'spec_helper'
+require "spec_helper"
 
 RSpec.describe Datadog::Core::Telemetry::Component do
+  reset_at_fork_monkey_patch_for_components!
+
   before(:all) do
-    if RUBY_VERSION < '2.6'
+    if RubyVersion.is?("< 2.6")
       # The tests here are flaking in CI on Ruby 2.5.
       # Once I add diagnostics to investigate why they are failing, they
       # stop failing.
       # After 3 weeks of trying to figure this out I am skipping
       # the failing runtimes.
-      skip 'flaky in CI'
+      skip "flaky in CI"
     end
-
-    # We need to ensure the patch is present.
-    # There is a unit test for the patcher itself which clears the callbacks,
-    # we need to reinstall our callback if the callback got installed before
-    # that test is run and this test is run even later.
-    described_class.const_get(:ONLY_ONCE).send(:reset_ran_once_state_for_tests)
-
-    # Clear out existing handlers so that our handler is registered exactly once.
-    Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
   end
 
   let(:settings) do
@@ -29,31 +22,21 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
-  let(:component) do
-    described_class.build(settings, agent_settings, logger)
-  end
-
-  let(:agent_settings) do
-    Datadog::Core::Configuration::AgentSettingsResolver.call(settings)
-  end
-
   let(:logger) { logger_allowing_debug }
 
   # Uncomment for debugging to see the log entries.
-  #let(:logger) { Logger.new(STDERR) }
+  # let(:logger) { Logger.new(STDERR) }
 
   let(:components) do
-    double(Datadog::Core::Configuration::Components,
-      settings: settings,
-      agent_settings: agent_settings,
-      # This is required for the forking tests.
-      telemetry: component,
-      # Forking test logges to this logger in the forked child process.
-      logger: logger,
-      # Crash tracking registers a handler via at fork monkey patch,
-      # this handler tries to access the crash tracking component from the
-      # global component tree.
-      crashtracker: nil,)
+    Datadog::Core::Configuration::Components.new(settings)
+  end
+
+  let(:component) do
+    components.telemetry
+  end
+
+  let(:agent_settings) do
+    components.agent_settings
   end
 
   after do
@@ -62,8 +45,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
   let(:initial_event) do
     double(Datadog::Core::Telemetry::Event::AppStarted,
-      payload: {hello: 'world'},
-      type: 'app-started',
+      payload: {hello: "world"},
+      type: "app-started",
       app_started?: true,)
   end
 
@@ -82,26 +65,26 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     metrics_event = events[1].events.first
     expect(metrics_event).to be_a(Datadog::Core::Telemetry::Event::GenerateMetrics)
     expect(metrics_event.payload).to match(
-      namespace: 'ns',
+      namespace: "ns",
       series: [
-        metric: 'hello',
+        metric: "hello",
         points: [[Integer, 1]],
-        type: 'count',
+        type: "count",
         tags: [],
         common: true,
       ],
     )
   end
 
-  context 'when worker is started before metrics are submitted' do
-    it 'emits metrics' do
+  context "when worker is started before metrics are submitted" do
+    it "emits metrics" do
       expect(Datadog::Core::Telemetry::Event::AppStarted).to receive(:new).and_return(initial_event)
       expect(component.worker).to receive(:send_event).twice do |event|
         events << event
         response
       end.ordered
       component.start(components: components)
-      component.inc('ns', 'hello', 1)
+      component.inc("ns", "hello", 1)
       # Assert that the flush succeeded, because we were sometimes not
       # getting both of the events.
       expect(component.flush).to be true
@@ -110,14 +93,14 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
-  context 'when metrics are submitted before worker is started' do
-    it 'emits metrics' do
+  context "when metrics are submitted before worker is started" do
+    it "emits metrics" do
       expect(Datadog::Core::Telemetry::Event::AppStarted).to receive(:new).and_return(initial_event)
       expect(component.worker).to receive(:send_event).twice do |event|
         events << event
         response
       end.ordered
-      component.inc('ns', 'hello', 1)
+      component.inc("ns", "hello", 1)
       expect(component.worker.running?).to be false
       component.start(components: components)
       # Assert that the flush succeeded, because we were sometimes not
@@ -132,7 +115,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     # the fork executes.
     # Only test the forking case when worker is started after the fork
     # (in the forked child).
-    context 'in forked child' do
+    context "in forked child" do
       forking_platform_only
 
       before do
@@ -140,13 +123,13 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         expect(Datadog).to receive(:components).at_least(:once).and_return(components)
       end
 
-      it 'emits child but not parent metrics' do
+      it "emits child but not parent metrics" do
         expect(Datadog::Core::Telemetry::Event::AppStarted).to receive(:new).and_return(initial_event)
         expect(component.worker).to receive(:send_event).twice do |event|
           events << event
           response
         end.ordered
-        component.inc('ns', 'hello', 1)
+        component.inc("ns", "hello", 1)
         expect(component.worker.running?).to be false
 
         expect(component.metrics_manager.collections.keys).to eq(%w[ns])
@@ -157,7 +140,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
           # We expect namespaces to have been reset.
           expect(component.metrics_manager.collections).to be_empty
 
-          component.inc('child-ns', 'child-metric', 1)
+          component.inc("child-ns", "child-metric", 1)
           expect(component.worker.running?).to be false
 
           # We expect only child namespace to be present.
@@ -174,12 +157,12 @@ RSpec.describe Datadog::Core::Telemetry::Component do
           metrics_event = events[1].events.first
           expect(metrics_event).to be_a(Datadog::Core::Telemetry::Event::GenerateMetrics)
           expect(metrics_event.payload).to match(
-            namespace: 'child-ns',
+            namespace: "child-ns",
             series: [
               # Child only - no parent metric sent.
-              metric: 'child-metric',
+              metric: "child-metric",
               points: [[Integer, 1]],
-              type: 'count',
+              type: "count",
               tags: [],
               common: true,
             ],

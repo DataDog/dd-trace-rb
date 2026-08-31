@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require_relative 'tracer'
-require_relative 'flush'
-require_relative 'context_provider'
-require_relative 'sync_writer'
-require_relative 'sampling/span/rule_parser'
-require_relative 'sampling/span/sampler'
-require_relative 'diagnostics/environment_logger'
-require_relative 'contrib/component'
+require_relative "tracer"
+require_relative "flush"
+require_relative "context_provider"
+require_relative "sync_writer"
+require_relative "sampling/span/rule_parser"
+require_relative "sampling/span/sampler"
+require_relative "diagnostics/environment_logger"
+require_relative "contrib/component"
 
 module Datadog
   module Tracing
@@ -54,7 +54,7 @@ module Datadog
 
       def build_context_provider(settings)
         scope = case settings.tracing.context_scope
-        when 'thread'
+        when "thread"
           Tracing::ThreadScope.new
         else
           Tracing::FiberIsolatedScope.new
@@ -117,7 +117,28 @@ module Datadog
           return writer
         end
 
+        if settings.tracing.native_transport && (transport = build_native_transport(agent_settings))
+          options = options.merge(transport: transport)
+        end
+
         Tracing::Writer.new(agent_settings: agent_settings, **options)
+      end
+
+      def build_native_transport(agent_settings)
+        require_relative "transport/native"
+
+        unless Transport::Native.supported?
+          Datadog.logger.warn(
+            "Native transport requested but not available: #{Transport::Native::UNSUPPORTED_REASON}. " \
+            "Falling back to default HTTP transport."
+          )
+          return nil
+        end
+
+        Transport::Native::Transport.new(
+          agent_settings: agent_settings,
+          logger: Datadog.logger
+        )
       end
 
       def subscribe_to_writer_events!(writer, sampler_delegator, test_mode)
@@ -172,6 +193,17 @@ module Datadog
 
         def sample!(trace)
           @sampler.sample!(trace)
+        end
+
+        def reconsider_sample_resource!(trace)
+          return unless @sampler.respond_to?(:reconsider_sample_resource!)
+
+          @sampler.reconsider_sample_resource!(trace)
+        end
+
+        def resource_sampling?
+          @sampler.respond_to?(:resource_sampling?) &&
+            @sampler.resource_sampling?
         end
 
         def update(*args, **kwargs)

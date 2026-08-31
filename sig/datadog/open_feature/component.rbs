@@ -13,9 +13,21 @@ module Datadog
 
       @worker: Exposures::Worker
 
-      attr_reader telemetry: Core::Telemetry::Component
+      @flag_eval_metrics_hook: Hooks::FlagEvalMetricsHook?
+
+      @flag_eval_evp_hook: Hooks::FlagEvalEVPHook?
+
+      @flag_eval_evp_writer: FlagEvaluation::Writer?
+
+      @span_enrichment_hook: Hooks::SpanEnrichmentHook?
 
       attr_reader engine: EvaluationEngine
+
+      attr_reader flag_eval_metrics_hook: Hooks::FlagEvalMetricsHook?
+
+      attr_reader flag_eval_evp_hook: Hooks::FlagEvalEVPHook?
+
+      attr_reader span_enrichment_hook: Hooks::SpanEnrichmentHook?
 
       def self.build: (
         Core::Configuration::Settings settings,
@@ -31,9 +43,15 @@ module Datadog
         telemetry: Core::Telemetry::Component
       ) -> void
 
-      def flush: () -> void
-
       def shutdown!: () -> void
+
+      private
+
+      def create_flag_eval_metrics_hook: () -> Hooks::FlagEvalMetricsHook?
+
+      def create_flag_eval_evp_hook: () -> Hooks::FlagEvalEVPHook?
+
+      def create_span_enrichment_hook: () -> Hooks::SpanEnrichmentHook?
     end
   end
 end

@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require 'resque'
+require "resque"
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative '../sidekiq/ext'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "../sidekiq/ext"
 
 module Datadog
   module Tracing
@@ -35,7 +35,8 @@ module Datadog
             return yield unless datadog_configuration && Tracing.enabled?
 
             Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|
-              span.resource = args.first.is_a?(Hash) && args.first['job_class'] || name
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
+              span.resource = args.first.is_a?(Hash) && args.first["job_class"] || name
               span.type = Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
 
               span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_COMPONENT)

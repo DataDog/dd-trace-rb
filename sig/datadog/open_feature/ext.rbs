@@ -5,13 +5,31 @@ module Datadog
 
       ERROR: ::String
 
+      DEFAULT: ::String
+
       UNKNOWN_TYPE: ::String
+
+      PARSE_ERROR: ::String
 
       GENERAL: ::String
 
       PROVIDER_FATAL: ::String
 
       PROVIDER_NOT_READY: ::String
+
+      FLAG_NOT_FOUND: ::String
+
+      TYPE_MISMATCH: ::String
+
+      TARGETING_KEY_MISSING: ::String
+
+      INVALID_CONTEXT: ::String
+
+      STANDARD_ERROR_CODES: ::Array[::String]
+
+      METADATA_ALLOCATION_KEY: ::String
+
+      METADATA_OBSERVE_FULL_EVALUATION_DATA: ::String
     end
   end
 end

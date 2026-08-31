@@ -3,11 +3,7 @@ require "datadog/di/spec_helper"
 RSpec.describe "Dynamic instrumentation benchmarks", :memcheck_valgrind_skip do
   di_test
 
-  around do |example|
-    ClimateControl.modify("VALIDATE_BENCHMARK" => "true") do
-      example.run
-    end
-  end
+  with_env "VALIDATE_BENCHMARK" => "true"
 
   benchmarks_to_validate = [
     "di_instrument", "di_snapshot",
@@ -15,7 +11,7 @@ RSpec.describe "Dynamic instrumentation benchmarks", :memcheck_valgrind_skip do
 
   benchmarks_to_validate.each do |benchmark|
     describe benchmark do
-      timeout = if benchmark == 'di_snapshot'
+      timeout = if benchmark == "di_snapshot"
         20
       else
         10

@@ -1,0 +1,11 @@
+module Datadog
+  module SymbolDatabase
+    module Configuration
+      module Settings
+        def self.extended: (untyped base) -> void
+
+        def self.add_settings!: (untyped base) -> void
+      end
+    end
+  end
+end

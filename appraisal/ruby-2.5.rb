@@ -10,6 +10,7 @@ appraise 'rails4-mysql2' do
   gem 'mysql2', '< 1'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
+  gem 'bigdecimal', '< 2' # Rails 4.2 uses BigDecimal.new, removed in bigdecimal 2.0
 end
 
 appraise 'rails4-postgres' do
@@ -18,6 +19,7 @@ appraise 'rails4-postgres' do
   gem 'pg', '< 1.0'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
+  gem 'bigdecimal', '< 2' # Rails 4.2 uses BigDecimal.new, removed in bigdecimal 2.0
 end
 
 appraise 'rails4-semantic-logger' do
@@ -26,6 +28,7 @@ appraise 'rails4-semantic-logger' do
   gem 'pg', '< 1.0'
   gem 'sprockets', '< 4'
   gem 'rails_semantic_logger', '~> 4.0'
+  gem 'bigdecimal', '< 2' # Rails 4.2 uses BigDecimal.new, removed in bigdecimal 2.0
 end
 
 appraise 'rails4-postgres-redis' do
@@ -36,6 +39,7 @@ appraise 'rails4-postgres-redis' do
   gem 'redis', '< 4.0'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
+  gem 'bigdecimal', '< 2' # Rails 4.2 uses BigDecimal.new, removed in bigdecimal 2.0
 end
 
 appraise 'rails4-postgres-sidekiq' do
@@ -46,6 +50,7 @@ appraise 'rails4-postgres-sidekiq' do
   gem 'activejob'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
+  gem 'bigdecimal', '< 2' # Rails 4.2 uses BigDecimal.new, removed in bigdecimal 2.0
 end
 
 appraise 'rails5-mysql2' do
@@ -221,9 +226,17 @@ build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday', min: '0.14.0')
 build_coverage_matrix('excon')
 build_coverage_matrix('rest-client')
-build_coverage_matrix('mongo', min: '2.1.0')
+build_coverage_matrix('mongo', min: '2.11.0')
 build_coverage_matrix('dalli')
 build_coverage_matrix('devise', min: '3.2.1', meta: { min: { 'bigdecimal' => '1.3.4' } })
+
+appraise 'kicks-min' do
+  gem 'kicks', '= 3.0.0' # kicks 3.1+ requires Ruby 3.0+
+end
+
+appraise 'sneakers' do
+  gem 'sneakers', '= 2.12.0' # Sneakers is not receiving updates anymore and 2.12.0 is the last version
+end
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 5'
@@ -258,7 +271,6 @@ appraise 'contrib' do
   gem 'roda', '>= 2.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq'
-  gem 'sneakers', '>= 2.12.0'
   gem 'bunny', '~> 2.19.0' # uninitialized constant OpenSSL::SSL::TLS1_3_VERSION for jruby, https://github.com/ruby-amqp/bunny/issues/645
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0', '< 2.0.0'
@@ -287,10 +299,17 @@ build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' =
   end
 end
 
-appraise 'contrib-old' do
+appraise 'presto-client' do
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 end
 
-appraise 'core-old' do
+appraise 'dogstatsd-ruby4' do
   gem 'dogstatsd-ruby', '~> 4'
+end
+
+appraise 'environment' do
+  gem 'spring', '>= 2.0.2'
+  gem 'cucumber', '>= 3'
+  gem 'logger'
+  gem 'minitest'
 end

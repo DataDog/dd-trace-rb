@@ -11,12 +11,16 @@ end
 
 class Gem::BasicSpecification
   def platform: () -> Gem::Platform
-  def version: () -> String
+  def version: () -> Gem::Version
   def name: () -> String
   def gem_dir: () -> String
   def extension_dir: () -> String
   def extensions: () -> Array[String]
   def executables: () -> Array[String]?
+end
+
+class Gem::Version
+  def segments: () -> ::Array[::Integer]
 end
 
 class Gem::Specification

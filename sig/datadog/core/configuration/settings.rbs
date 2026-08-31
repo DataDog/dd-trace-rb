@@ -33,25 +33,27 @@ module Datadog
 
           def enabled=: (bool) -> void
 
-          def trace_rate_limit: () -> Integer
+          def instrument: (::Symbol) -> void
 
-          def trace_rate_limit=: (Integer) -> void
+          def trace_rate_limit: () -> ::Integer
 
-          def obfuscator_key_regex: () -> String
+          def trace_rate_limit=: (::Integer) -> void
 
-          def obfuscator_key_regex=: (String) -> void
+          def obfuscator_key_regex: () -> ::String
 
-          def obfuscator_value_regex: () -> String
+          def obfuscator_key_regex=: (::String) -> void
 
-          def obfuscator_value_regex=: (String) -> void
+          def obfuscator_value_regex: () -> ::String
+
+          def obfuscator_value_regex=: (::String) -> void
 
           def waf_debug: () -> bool
 
           def waf_debug=: (bool) -> void
 
-          def ruleset: () -> (String | Symbol |  File | StringIO | ::Hash[untyped, untyped])
+          def ruleset: () -> (::String | ::Symbol |  File | StringIO | ::Hash[untyped, untyped])
 
-          def ruleset=: (String | Symbol |  File | StringIO | ::Hash[untyped, untyped]) -> void
+          def ruleset=: (::String | ::Symbol |  File | StringIO | ::Hash[untyped, untyped]) -> void
 
           def block: () -> _AppSecBlock
 
@@ -71,23 +73,25 @@ module Datadog
 
           def enabled=: (bool) -> void
 
-          def endpoint: () -> String
+          def instrument: (::Symbol) -> void
 
-          def endpoint=: (String) -> void
+          def endpoint: () -> ::String
 
-          def app_key: () -> String
+          def endpoint=: (::String) -> void
 
-          def app_key=: (String) -> void
+          def app_key: () -> ::String
 
-          def timeout_ms: () -> Integer
+          def app_key=: (::String) -> void
+
+          def timeout_ms: () -> ::Integer
 
           def timeout_ms=: () -> void
 
-          def max_content_size_bytes: () -> Integer
+          def max_content_size_bytes: () -> ::Integer
 
-          def max_content_size_bytes=: (Integer) -> void
+          def max_content_size_bytes=: (::Integer) -> void
 
-          def max_messages_length: () -> Integer
+          def max_messages_length: () -> ::Integer
 
           def max_messages_length=: () -> void
         end
@@ -97,17 +101,15 @@ module Datadog
 
           def enabled=: (bool) -> void
 
-          def untargeted_trace_points: () -> bool
-
-          def untargeted_trace_points=: (bool) -> void
-
-          def propagate_all_exceptions: () -> bool
-
-          def propagate_all_exceptions=: (bool) -> void
+          def using_default?: (Symbol option_name) -> bool
 
           def redacted_identifiers: () -> Array[String]
 
           def redacted_identifiers=: (Array[String]) -> void
+
+          def redaction_excluded_identifiers: () -> Array[String]
+
+          def redaction_excluded_identifiers=: (Array[String]) -> void
 
           def redacted_type_names: () -> Array[String]
 
@@ -128,6 +130,42 @@ module Datadog
           def max_capture_attribute_count: () -> Integer
 
           def max_capture_attribute_count=: (Integer) -> void
+
+          def max_time_to_serialize_ms: () -> Integer
+
+          def max_time_to_serialize_ms=: (Integer) -> void
+
+          def internal: () -> _DIInternal
+        end
+
+        interface _DIInternal
+          def untargeted_trace_points: () -> bool
+
+          def untargeted_trace_points=: (bool) -> void
+
+          def propagate_all_exceptions: () -> bool
+
+          def propagate_all_exceptions=: (bool) -> void
+
+          def min_send_interval: () -> Float
+
+          def min_send_interval=: (Float) -> void
+
+          def snapshot_queue_capacity: () -> Integer
+
+          def snapshot_queue_capacity=: (Integer) -> void
+
+          def development: () -> bool
+
+          def development=: (bool) -> void
+
+          def trace_logging: () -> bool
+
+          def trace_logging=: (bool) -> void
+
+          def max_processing_time: () -> Float?
+
+          def max_processing_time=: (Float?) -> void
         end
 
         interface _TemplatesBlock
@@ -146,6 +184,30 @@ module Datadog
 
         interface _OpenFeature
           def enabled: () -> bool
+
+          def span_enrichment_enabled: () -> bool
+
+          def span_enrichment_enabled=: (bool) -> void
+
+          def evaluation_counts_enabled: () -> bool
+        end
+
+        interface _SymbolDatabase
+          def enabled: () -> bool
+
+          def enabled=: (bool) -> void
+
+          def internal: () -> _SymbolDatabaseInternal
+        end
+
+        interface _SymbolDatabaseInternal
+          def force_upload: () -> bool
+
+          def force_upload=: (bool) -> void
+
+          def trace_logging: () -> bool
+
+          def trace_logging=: (bool) -> void
         end
 
         def initialize: (*untyped _) -> untyped
@@ -153,6 +215,8 @@ module Datadog
         def env: -> String?
 
         def api_key: -> String?
+
+        def hostname: -> String?
 
         def service: -> String?
 
@@ -187,6 +251,8 @@ module Datadog
         def tracing: () -> untyped
 
         def opentelemetry: () -> OpenTelemetry::Configuration::Settings::_OpenTelemetry
+
+        def symbol_database: (?untyped? options) -> _SymbolDatabase
       end
     end
   end

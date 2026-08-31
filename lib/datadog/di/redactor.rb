@@ -13,6 +13,10 @@ module Datadog
     # redaction. Additional names can be provided by the user via the
     # settings.dynamic_instrumentation.redacted_identifiers setting or
     # the DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS environment
+    # variable. Users can also exclude specific identifiers from the default
+    # redaction list via the
+    # settings.dynamic_instrumentation.redaction_excluded_identifiers setting or
+    # the DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS environment
     # variable. Currently no class names are subject to redaction by default;
     # class names can be provided via the
     # settings.dynamic_instrumentation.redacted_type_names setting or
@@ -61,7 +65,10 @@ module Datadog
           names.map! do |name|
             normalize(name)
           end
-          Set.new(names)
+          excluded = settings.dynamic_instrumentation.redaction_excluded_identifiers.map do |name|
+            normalize(name)
+          end
+          Set.new(names) - Set.new(excluded)
         end
       end
 
@@ -179,8 +186,23 @@ module Datadog
       ]
 
       # Input can be a string or a symbol.
+      #
+      # Hash keys captured in snapshots often originate from a Rack environment
+      # (Rack/Rails/Sinatra middleware and controllers all keep `env` in scope).
+      # Rack rewrites incoming HTTP header names to the CGI form
+      # `HTTP_<HEADER>` with dashes converted to underscores — for example,
+      # `Authorization` becomes `HTTP_AUTHORIZATION`, `Cookie` becomes
+      # `HTTP_COOKIE`, `X-API-Key` becomes `HTTP_X_API_KEY`. Without stripping
+      # the prefix here, those keys normalize to `httpauthorization`,
+      # `httpcookie`, `httpxapikey`, etc., none of which appear in the default
+      # identifier list — so the values would not be matched against entries
+      # like `authorization`, `cookie`, or `xapikey`. The `\Ahttp_` anchor
+      # limits the strip to the literal CGI form, so identifiers that merely
+      # begin with the letters `http` (e.g. `httpinfo`) are unaffected. The
+      # strip must run before the punctuation gsub: the gsub removes the
+      # underscore, after which `\Ahttp_` could never match.
       def normalize(str)
-        str.to_s.strip.downcase.gsub(/[-_$@]/, "")
+        str.to_s.strip.downcase.sub(/\Ahttp_/, "").tr("-_$@", "")
       end
     end
   end

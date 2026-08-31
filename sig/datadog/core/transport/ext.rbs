@@ -11,6 +11,8 @@ module Datadog
 
           HEADER_CONTAINER_ID: ::String
 
+          HEADER_CONTAINER_TAGS_HASH: ::String
+
           HEADER_ENTITY_ID: ::String
 
           HEADER_EXTERNAL_ENV: ::String

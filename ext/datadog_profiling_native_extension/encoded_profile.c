@@ -1,6 +1,7 @@
 #include "encoded_profile.h"
 #include "datadog_ruby_common.h"
 #include "libdatadog_helpers.h"
+#include "ruby_helpers.h"
 
 // This class exists to wrap a ddog_prof_EncodedProfile into a Ruby object
 // This file implements the native bits of the Datadog::Profiling::EncodedProfile class
@@ -41,7 +42,7 @@ VALUE from_ddog_prof_EncodedProfile(ddog_prof_EncodedProfile profile) {
 static ddog_ByteSlice get_bytes(ddog_prof_EncodedProfile *state) {
   ddog_prof_Result_ByteSlice raw_bytes = ddog_prof_EncodedProfile_bytes(state);
   if (raw_bytes.tag == DDOG_PROF_RESULT_BYTE_SLICE_ERR_BYTE_SLICE) {
-    rb_raise(rb_eRuntimeError, "Failed to get bytes from profile: %"PRIsVALUE, get_error_details_and_drop(&raw_bytes.err));
+    raise_error(rb_eRuntimeError, "Failed to get bytes from profile: %"PRIsVALUE, get_error_details_and_drop(&raw_bytes.err));
   }
   return raw_bytes.ok;
 }

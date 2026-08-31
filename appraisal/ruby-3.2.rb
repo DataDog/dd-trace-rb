@@ -58,10 +58,15 @@ appraise 'rails71' do
   gem 'rails', '~> 7.1.0'
 end
 
+appraise 'rails81' do
+  gem 'rails', '~> 8.1.0'
+end
+
 appraise 'rails8-mysql2' do
   gem 'rails', '~> 8.0.0'
   gem 'mysql2', '~> 0.5', platform: :ruby
   gem 'lograge', '~> 0.11'
+  gem 'bootsnap', '>= 1.7'
   gem 'net-smtp'
 end
 
@@ -134,18 +139,34 @@ appraise 'http' do
   gem 'typhoeus'
 end
 
+appraise 'http6' do
+  gem 'ethon'
+  gem 'http', '~> 6'
+  gem 'httpclient'
+  gem 'typhoeus'
+end
+
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
-build_coverage_matrix('faraday')
+build_coverage_matrix('faraday', meta: { 'faraday-follow_redirects' => nil })
 build_coverage_matrix('excon')
 build_coverage_matrix('rest-client')
-build_coverage_matrix('mongo', min: '2.1.0')
+build_coverage_matrix('mongo', min: '2.11.0')
 build_coverage_matrix('dalli', [2])
 build_coverage_matrix('karafka', min: '2.3.0')
 build_coverage_matrix('waterdrop', min: '2.8.8.rc1')
 build_coverage_matrix('devise', min: '3.2.1')
-build_coverage_matrix('openfeature', min: '0.3.1', gem: 'openfeature-sdk')
+build_coverage_matrix('openfeature', min: '0.5.1', gem: 'openfeature-sdk', meta: {
+  'opentelemetry-sdk' => '~> 1.1',
+  'opentelemetry-metrics-sdk' => '>= 0.8',
+})
+build_coverage_matrix('ruby-llm', gem: 'ruby_llm')
+build_coverage_matrix('kicks', min: '3.0.0')
+
+appraise 'sneakers' do
+  gem 'sneakers', '= 2.12.0' # Sneakers is not receiving updates anymore and 2.12.0 is the last version
+end
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 7'
@@ -180,7 +201,6 @@ appraise 'contrib' do
   gem 'roda', '>= 2.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq', '~> 7'
-  gem 'sneakers', '>= 2.12.0'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0'
 end
@@ -201,7 +221,14 @@ end
 end
 
 build_coverage_matrix('redis', [3, 4])
-build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' => nil })
+build_coverage_matrix('rack', 1..2, meta: {
+  # rack-contrib >= 2.0.0 requires Rack::MediaType (Rack 2.0+); 1.8.0 is the
+  # newest release supporting Rack 1.x (see .bundler-audit.yml).
+  1 => { 'rack-contrib' => '1.8.0' },
+  2 => { 'rack-contrib' => nil },
+  :latest => { 'rack-contrib' => nil },
+  'rack-test' => nil,
+})
 
 [2, 3, 4].each do |n|
   appraise "sinatra-#{n}" do
@@ -216,6 +243,8 @@ appraise 'opentelemetry' do
   gem 'opentelemetry-sdk', '~> 1.1'
   gem 'opentelemetry-metrics-sdk', '>= 0.8'
   gem 'opentelemetry-exporter-otlp-metrics', '>= 0.4'
+  gem 'opentelemetry-logs-sdk', '>= 0.1'
+  gem 'opentelemetry-exporter-otlp-logs', '>= 0.1'
 end
 
 appraise 'opentelemetry_otlp' do
@@ -230,10 +259,17 @@ appraise 'opentelemetry_otlp_1_5' do
   gem 'opentelemetry-exporter-otlp'
 end
 
-appraise 'contrib-old' do
+appraise 'presto-client' do
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 end
 
-appraise 'core-old' do
+appraise 'dogstatsd-ruby4' do
   gem 'dogstatsd-ruby', '~> 4'
+end
+
+appraise 'environment' do
+  gem 'spring', '>= 2.0.2'
+  gem 'cucumber', '>= 3'
+  gem 'logger'
+  gem 'minitest'
 end

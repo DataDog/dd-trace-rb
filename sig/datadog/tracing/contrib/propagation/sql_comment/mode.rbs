@@ -4,12 +4,13 @@ module Datadog
       module Propagation
         module SqlComment
           class Mode < ::Struct[untyped]
-            def initialize: (string mode, bool append) -> void
+            def initialize: (string mode, bool append, bool inject_sql_basehash) -> void
 
             def enabled?: -> bool
             def service?: -> bool
             def full?: -> bool
             def append?: -> bool
+            def inject_sql_basehash?: -> bool
           end
         end
       end

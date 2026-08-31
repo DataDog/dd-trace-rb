@@ -1,0 +1,25 @@
+module Datadog
+  module AppSec
+    module Utils
+      module HTTP
+        module URLEncoded
+          type param_value = (String | Array[String?])?
+
+          type params = Hash[String, param_value]
+
+          DEFAULT_BYTESIZE_LIMIT: Integer
+
+          AMPERSAND_BYTE: Integer
+
+          EQUALS_BYTE: Integer
+
+          def self?.parse: (String?, ?limit: Integer) -> params
+
+          private
+
+          def self?.add_param: (params params, String key, String? value) -> void
+        end
+      end
+    end
+  end
+end

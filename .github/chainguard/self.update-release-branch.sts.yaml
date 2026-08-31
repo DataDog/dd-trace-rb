@@ -1,0 +1,12 @@
+issuer: https://token.actions.githubusercontent.com
+
+subject: repo:DataDog/dd-trace-rb:ref:refs/heads/master
+
+claim_pattern:
+  event_name: workflow_dispatch
+  repository: DataDog/dd-trace-rb
+  job_workflow_ref: DataDog/dd-trace-rb/\.github/workflows/publish\.yml@refs/heads/master
+
+permissions:
+  contents: write
+  pull_requests: write

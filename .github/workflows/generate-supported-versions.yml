@@ -9,44 +9,48 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
+      id-token: write
+    env:
+      BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+      BUNDLE_FROZEN: "true"
     steps:
       - name: Checkout code
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@8aeb6ff8030dd539317f8e1769a044873b56ea71 # v1.268.0
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
-          ruby-version: "3.3"
+          ruby-version: "4.0.1"
 
       - name: Update latest
         run: bundle exec ruby .github/scripts/update_supported_versions.rb
 
       - run: git diff
 
-      - name: Generate GitHub App Token
+      - name: Get GitHub Token via dd-octo-sts
         id: generate-token
-        uses: actions/create-github-app-token@7e473efe3cb98aa54f8d4bac15400b15fad77d94 # v2.2.0
+        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
         with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          scope: DataDog/dd-trace-rb
+          policy: self.generate-supported-versions
 
       - name: Create Pull Request
-        id: cpr
-        uses: peter-evans/create-pull-request@84ae59a2cdc2258d6fa0732dd66352dddae2a412 # v7.0.9
+        uses: ./.github/actions/signed-commit-pr
         with:
           token: ${{ steps.generate-token.outputs.token }}
           branch: auto-generate/update-supported-versions
           title: '[🤖] Update Supported Versions'
           base: master
           labels: dev/internal, integrations
-          commit-message: "Test creating supported versions"
-          delete-branch: true
-          sign-commits: true
+          commit-message: "[🤖] Update Supported Versions: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          add-paths: |
+            docs/integration_versions.md
+            docs/integration_versions.json
           body: |
             This is a PR to update the table for supported integration versions.
             The supported versions markdown is generated from the minimum and maximum tested versions of each integration,

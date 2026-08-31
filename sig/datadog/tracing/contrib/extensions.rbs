@@ -15,6 +15,7 @@ module Datadog
             def []: (untyped integration_name, ?::Symbol key) -> untyped
             def integrations_pending_activation: () -> untyped
             def instrumented_integrations: () -> untyped
+            def instrumented_built_in_integrations: () -> untyped
             def reset!: () -> untyped
             def fetch_integration: (untyped name) -> untyped
             def ignore_integration_load_errors?: () -> (untyped | false)

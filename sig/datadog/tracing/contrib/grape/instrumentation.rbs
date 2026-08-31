@@ -3,10 +3,14 @@ module Datadog
     module Contrib
       module Grape
         module Instrumentation
-          def self.included: (untyped base) -> untyped
-          module ClassMethods
+          module GenerateApiMethodPatch
             def generate_api_method: (*untyped params) ?{ () -> untyped } -> untyped
           end
+
+          module ExecutePatch
+            def execute: (*untyped args) -> untyped
+          end
+
           module InstanceMethods
             def run: (*untyped args) -> untyped
           end

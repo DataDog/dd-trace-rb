@@ -80,6 +80,14 @@
 
 **Note:** Call `OpenTelemetry::SDK.configure` after `Datadog.configure` and call it again whenever Datadog configuration changes to update the meter provider.
 
+> [!WARNING]
+> `OpenTelemetry::SDK.configure` does not shut down the previously-installed providers. The replaced provider's background threads (`PeriodicMetricReader` for metrics, `BatchLogRecordProcessor` for logs) keep running until garbage collected. Before calling `OpenTelemetry::SDK.configure` again, shut down the existing providers explicitly:
+>
+> ```ruby
+> OpenTelemetry.meter_provider.shutdown
+> OpenTelemetry.logger_provider.shutdown
+> ```
+
 **Configuration Options:**
 
 - `DD_METRICS_OTEL_ENABLED` - Enable metrics export (default: false)
@@ -92,6 +100,16 @@
 
 **Note:** Minimum `opentelemetry-metrics-sdk` is v0.8.0 (contains critical bug fixes). Minimum `opentelemetry-exporter-otlp-metrics` is v0.4.0. Use the latest versions for best support. If you spot any issue with the OpenTelemetry API affecting the `datadog` gem, [please do open a GitHub issue](https://github.com/DataDog/dd-trace-rb/issues).
 
+## Configuring OpenTelemetry Logs
+
+**Configuration Options:**
+
+- `DD_LOGS_OTEL_ENABLED` - Enable logs export (default: false)
+- `OTEL_EXPORTER_OTLP_LOGS_PROTOCOL` - Protocol: `http/protobuf` (default); `grpc` and `http/json` are not yet supported.
+- `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` - Custom endpoint (defaults to the Datadog agent otlp endpoint)
+
+> [!WARNING]
+> When OpenTelemetry logs export is enabled, Datadog log injection is disabled to avoid duplicate trace correlation fields.
 
 ## Limitations
 

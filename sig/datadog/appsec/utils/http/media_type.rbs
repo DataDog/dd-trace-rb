@@ -3,19 +3,30 @@ module Datadog
     module Utils
       module HTTP
         class MediaType
-          class ParseError < ::StandardError
-          end
-
           WILDCARD: ::String
+
           TOKEN_RE: ::Regexp
+
           PARAMETER_RE: ::Regexp
+
           MEDIA_TYPE_RE: ::Regexp
 
+          @type: ::String
+
+          @subtype: ::String
+
+          @parameters: ::Hash[::String, ::String]
+
           attr_reader type: ::String
+
           attr_reader subtype: ::String
+
           attr_reader parameters: ::Hash[::String, ::String]
 
-          def initialize: (::String) -> void
+          def self.parse: (::String? media) -> MediaType?
+
+          def initialize: (type: ::String, subtype: ::String, ?parameters: ::Hash[::String, ::String]) -> void
+
           def to_s: () -> ::String
         end
       end

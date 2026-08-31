@@ -5,43 +5,43 @@ module Datadog
       # Encoder interface that provides the logic to encode traces and service
       # @abstract
       module Encoder
-        def content_type: () -> String
+        def content_type: () -> ::String
 
-        def encode: (untyped obj) -> String
+        def encode: (any obj) -> ::String
 
-        def join: (Array[untyped] encoded_data) -> String
+        def join: (::Array[::String] encoded_data) -> ::String
 
-        def decode: (String obj)-> untyped
+        def decode: (::String obj) -> any
       end
 
       # Encoder for the JSON format
       module JSONEncoder
         extend Encoder
 
-        CONTENT_TYPE: String
+        CONTENT_TYPE: ::String
 
-        def self?.content_type: () -> String
+        def self?.content_type: () -> ::String
 
-        def self?.encode: (untyped obj) -> String
+        def self?.encode: (any obj) -> ::String
 
-        def self?.join: (Array[untyped] encoded_data) -> String
+        def self?.join: (::Array[::String] encoded_data) -> ::String
 
-        def self?.decode: (String obj)-> untyped
+        def self?.decode: (::String obj) -> any
       end
 
       # Encoder for the Msgpack format
       module MsgpackEncoder
         extend Encoder
 
-        CONTENT_TYPE: String
+        CONTENT_TYPE: ::String
 
-        def self?.content_type: () -> String
+        def self?.content_type: () -> ::String
 
-        def self?.encode: (untyped obj) -> String
+        def self?.encode: (any obj) -> ::String
 
-        def self?.join: (Array[untyped] encoded_data) -> String
+        def self?.join: (::Array[::String] encoded_data) -> ::String
 
-        def self?.decode: (String obj)-> untyped
+        def self?.decode: (::String obj) -> any
       end
     end
   end

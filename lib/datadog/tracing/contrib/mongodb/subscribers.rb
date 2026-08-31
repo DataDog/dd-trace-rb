@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
-require_relative '../analytics'
-require_relative 'ext'
-require_relative '../ext'
-require_relative 'parsers'
-require_relative '../../metadata/ext'
+require_relative "../analytics"
+require_relative "ext"
+require_relative "../ext"
+require_relative "parsers"
+require_relative "../../metadata/ext"
 
 module Datadog
   module Tracing
@@ -30,6 +30,8 @@ module Datadog
             span = Tracing.trace(Ext::SPAN_COMMAND, service: service, type: Ext::SPAN_TYPE_COMMAND)
             set_span(event, span)
 
+            span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
+
             # build a quantized Query using the Parser module
             query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
             serialized_query = serialize_query(query)
@@ -39,11 +41,6 @@ module Datadog
                 Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                 datadog_configuration[:peer_service]
               )
-            end
-
-            # Tag original global service name if not used
-            if span.service != Datadog.configuration.service
-              span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
             end
 
             span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
@@ -60,10 +57,10 @@ module Datadog
 
             # add operation tags; the full query is stored and used as a resource,
             # since it has been quantized and reduced
-            span.set_tag(Ext::TAG_DB, query['database'])
-            span.set_tag(Ext::TAG_COLLECTION, query['collection'])
-            span.set_tag(Ext::DB::TAG_COLLECTION, query['collection'])
-            span.set_tag(Ext::TAG_OPERATION, query['operation'])
+            span.set_tag(Ext::TAG_DB, query["database"])
+            span.set_tag(Ext::TAG_COLLECTION, query["collection"])
+            span.set_tag(Ext::DB::TAG_COLLECTION, query["collection"])
+            span.set_tag(Ext::TAG_OPERATION, query["operation"])
             span.set_tag(Ext::TAG_QUERY, serialized_query)
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, event.address.host)
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, event.address.port)
@@ -73,7 +70,7 @@ module Datadog
             # set the resource with the quantized query
             span.resource = serialized_query
           rescue => e
-            Datadog.logger.debug("error when handling MongoDB 'started' event: #{e}")
+            Datadog.logger.debug("error when handling MongoDB 'started' event: #{e.class}: #{e.message}")
           end
           # rubocop:enable Metrics/AbcSize
 
@@ -85,7 +82,7 @@ module Datadog
             # the framework itself, so we set only the error and the message
             span.set_error(event)
           rescue => e
-            Datadog.logger.debug("error when handling MongoDB 'failed' event: #{e}")
+            Datadog.logger.debug("error when handling MongoDB 'failed' event: #{e.class}: #{e.message}")
           ensure
             # whatever happens, the Span must be removed from the local storage and
             # it must be finished to prevent any leak
@@ -98,10 +95,10 @@ module Datadog
             return unless span
 
             # add fields that are available only after executing the query
-            rows = event.reply.fetch('n', nil)
+            rows = event.reply.fetch("n", nil)
             span.set_tag(Ext::TAG_ROWS, rows) unless rows.nil?
           rescue => e
-            Datadog.logger.debug("error when handling MongoDB 'succeeded' event: #{e}")
+            Datadog.logger.debug("error when handling MongoDB 'succeeded' event: #{e.class}: #{e.message}")
           ensure
             # whatever happens, the Span must be removed from the local storage and
             # it must be finished to prevent any leak
@@ -118,8 +115,8 @@ module Datadog
               # Incorrect Hash#to_s serialization. The Mongo command should only be encoded as JSON.
               # This code path should be removed, and is only kept to avoid a breaking change.
               Datadog::Core.log_deprecation(key: :mongo_json_command) do
-                'MongoDB integration: `json_command: false` causes invalid command serialization. ' \
-                'Use `json_command: true` or `DD_TRACE_MONGO_JSON_COMMAND=1` instead.'
+                "MongoDB integration: `json_command: false` causes invalid command serialization. " \
+                "Use `json_command: true` or `DD_TRACE_MONGO_JSON_COMMAND=1` instead."
               end
 
               query.to_s

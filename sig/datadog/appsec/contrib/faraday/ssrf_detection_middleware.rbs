@@ -3,11 +3,29 @@ module Datadog
     module Contrib
       module Faraday
         class SSRFDetectionMiddleware < ::Faraday::Middleware
-          def call: (untyped env) -> void
+          REDIRECT_STATUS_CODES: Range[Integer]
+
+          SAMPLE_BODY_KEY: Symbol
+
+          def call: (::Faraday::Env env) -> ::Faraday::Response
 
           private
 
-          attr_reader app: untyped
+          def on_complete: (::Faraday::Env env, context: Context) -> void
+
+          def mark_body_sampling!: (::Faraday::Env env, context: Context) -> void
+
+          def parse_request_body: (Utils::HTTP::Body::body body, content_type: String?) -> Helpers::json?
+
+          def parse_response_body: (Utils::HTTP::Body::body body, headers: Hash[String, String], context: Context) -> Helpers::json?
+
+          def readable_body?: (Utils::HTTP::Body::body body) -> bool
+
+          def read_body: (Utils::HTTP::Body::body body, limit: Integer) -> String?
+
+          def normalize_headers: (::Faraday::Utils::Headers? headers) -> Hash[String, String]
+
+          def handle: (SecurityEngine::result result, context: Context) -> void
         end
       end
     end

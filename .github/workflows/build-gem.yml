@@ -12,14 +12,12 @@ on: # yamllint disable-line rule:truthy
     branches:
       - master
   pull_request:
-    branches:
-      - master
 
 # Default permissions for all jobs
 permissions: {}
 
 env:
-  GEM_HOST: 'https://rubygems.pkg.github.com/DataDog'
+  GEM_HOST: "https://rubygems.pkg.github.com/DataDog"
 
 jobs:
   build:
@@ -29,16 +27,19 @@ jobs:
         type:
           - final
           - dev
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: Build gem (${{ matrix.type }})
+    env:
+      BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+      BUNDLE_FROZEN: "true"
     steps:
       - name: Checkout
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@8aeb6ff8030dd539317f8e1769a044873b56ea71 # v1.268.0
+      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
-          ruby-version: '3.2'
+          ruby-version: "4.0.1"
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
       - name: Patch version
         if: ${{ matrix.type != 'final' }}
@@ -58,15 +59,17 @@ jobs:
           # Test result
           grep -e allowed_push_host datadog.gemspec
       - name: Build gem
+        env:
+          BUNDLE_FROZEN: "false"
         run: bundle exec rake build
       - name: List gem
         run: |
           find pkg
       - name: Upload artifact
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
-          path: 'pkg/*.gem'
+          name: "datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}"
+          path: "pkg/*.gem"
   test:
     strategy:
       fail-fast: false
@@ -74,23 +77,24 @@ jobs:
         type:
           - final
           - dev
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: Test gem
     needs:
       - build
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
-          path: 'pkg'
+          name: "datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}"
+          path: "pkg"
       - name: List gem
         run: |
           find pkg
-      - uses: ruby/setup-ruby@8aeb6ff8030dd539317f8e1769a044873b56ea71 # v1.268.0
+      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
-          ruby-version: '3.2'
+          ruby-version: "4.0.1"
       - name: Install gem
+        # zizmor: ignore[adhoc-packages] installs the artifact just built by this workflow, not an external dependency
         run: |
           gem install pkg/*.gem
   push:
@@ -99,26 +103,35 @@ jobs:
       matrix:
         type:
           - dev
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: Push gem
     needs:
       - test
     if: ${{ inputs.push }}
+    permissions:
+      id-token: write
+      packages: write
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
-          path: 'pkg'
+          name: "datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}"
+          path: "pkg"
       - name: List gem
         run: |
           find pkg
+      - name: Get GitHub Token via dd-octo-sts
+        id: generate-token
+        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        with:
+          scope: DataDog/dd-trace-rb
+          policy: self.build-gem
       - name: Set up GitHub Packages authentication
         run: |
           mkdir -p ~/.gem
           cat > ~/.gem/credentials <<'CREDENTIALS'
           ---
-          :github: Bearer ${{ secrets.GITHUB_TOKEN }}
+          :github: Bearer ${{ steps.generate-token.outputs.token }}
           CREDENTIALS
           chmod 0600 ~/.gem/credentials
       - name: Push gem

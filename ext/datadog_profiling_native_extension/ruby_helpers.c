@@ -7,88 +7,91 @@
 
 // The following global variables are initialized at startup to save expensive lookups later.
 // They are not expected to be mutated outside of init.
-static VALUE module_object_space = Qnil;
-static ID _id2ref_id = Qnil;
 static ID inspect_id = Qnil;
 static ID to_s_id = Qnil;
 
 void ruby_helpers_init(void) {
-  rb_global_variable(&module_object_space);
-
-  module_object_space = rb_const_get(rb_cObject, rb_intern("ObjectSpace"));
-  _id2ref_id = rb_intern("_id2ref");
   inspect_id = rb_intern("inspect");
   to_s_id = rb_intern("to_s");
 }
 
-#define MAX_RAISE_MESSAGE_SIZE 256
+// Use `raise_syserr` the macro instead, as it provides additional argument checks.
+void private_raise_syserr(int syserr_errno, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  VALUE detailed_message = rb_vsprintf(fmt, args);
+  va_end(args);
+
+  VALUE exception = rb_syserr_new_str(syserr_errno, detailed_message);
+  private_raise_exception(exception, fmt);
+}
 
 typedef struct {
   VALUE exception_class;
-  char exception_message[MAX_RAISE_MESSAGE_SIZE];
+  int syserr_errno;
+  const char *format_string;
+  va_list va_args;
 } raise_args;
 
+// Called via rb_thread_call_with_gvl from private_grab_gvl_and_raise.
+// Formats the message with rb_vsprintf (which requires the GVL) and raises.
 static void *trigger_raise(void *raise_arguments) {
   raise_args *args = (raise_args *) raise_arguments;
-  rb_raise(args->exception_class, "%s", args->exception_message);
+
+  VALUE detailed_message = rb_vsprintf(args->format_string, args->va_args);
+
+  VALUE exception;
+  if (args->syserr_errno) {
+    exception = rb_syserr_new_str(args->syserr_errno, detailed_message);
+  } else {
+    exception = rb_exc_new_str(args->exception_class, detailed_message);
+  }
+
+  private_raise_exception(exception, args->format_string);
+
+  return NULL;
 }
 
-void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...) {
+void private_grab_gvl_and_raise(VALUE exception_class, int syserr_errno, const char *format_string, ...) {
   raise_args args;
 
-  args.exception_class = exception_class;
+  if (syserr_errno != 0) {
+    args.exception_class = Qnil;
+    args.syserr_errno = syserr_errno;
+  } else {
+    args.exception_class = exception_class;
+    args.syserr_errno = 0;
+  }
 
-  va_list format_string_arguments;
-  va_start(format_string_arguments, format_string);
-  vsnprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, format_string, format_string_arguments);
+  args.format_string = format_string;
+  va_start(args.va_args, format_string);
 
   if (is_current_thread_holding_the_gvl()) {
-    rb_raise(
-      rb_eRuntimeError,
-      "grab_gvl_and_raise called by thread holding the global VM lock. exception_message: '%s'",
-      args.exception_message
+    VALUE detailed_message = rb_vsprintf(format_string, args.va_args);
+    va_end(args.va_args);
+
+    VALUE wrapped_message = rb_sprintf(
+      "grab_gvl_and_raise called by thread holding the global VM lock: %"PRIsVALUE,
+      detailed_message
     );
+    char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
+    snprintf(
+      telemetry_message,
+      MAX_RAISE_MESSAGE_SIZE,
+      "grab_gvl_and_raise called by thread holding the global VM lock: %s",
+      format_string
+    );
+    VALUE exception = rb_exc_new_str(rb_eRuntimeError, wrapped_message);
+    private_raise_exception(exception, telemetry_message);
   }
 
   rb_thread_call_with_gvl(trigger_raise, &args);
 
-  rb_bug("[ddtrace] Unexpected: Reached the end of grab_gvl_and_raise while raising '%s'\n", args.exception_message);
+  va_end(args.va_args);
+  rb_bug("[ddtrace] Unexpected: Reached the end of grab_gvl_and_raise while raising '%s'\n", format_string);
 }
 
-typedef struct {
-  int syserr_errno;
-  char exception_message[MAX_RAISE_MESSAGE_SIZE];
-} syserr_raise_args;
-
-static void *trigger_syserr_raise(void *syserr_raise_arguments) {
-  syserr_raise_args *args = (syserr_raise_args *) syserr_raise_arguments;
-  rb_syserr_fail(args->syserr_errno, args->exception_message);
-}
-
-void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...) {
-  syserr_raise_args args;
-
-  args.syserr_errno = syserr_errno;
-
-  va_list format_string_arguments;
-  va_start(format_string_arguments, format_string);
-  vsnprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, format_string, format_string_arguments);
-
-  if (is_current_thread_holding_the_gvl()) {
-    rb_raise(
-      rb_eRuntimeError,
-      "grab_gvl_and_raise_syserr called by thread holding the global VM lock. syserr_errno: %d, exception_message: '%s'",
-      syserr_errno,
-      args.exception_message
-    );
-  }
-
-  rb_thread_call_with_gvl(trigger_syserr_raise, &args);
-
-  rb_bug("[ddtrace] Unexpected: Reached the end of grab_gvl_and_raise_syserr while raising '%s'\n", args.exception_message);
-}
-
-void raise_syserr(
+void private_raise_enforce_syserr(
   int syserr_errno,
   bool have_gvl,
   const char *expression,
@@ -96,45 +99,12 @@ void raise_syserr(
   int line,
   const char *function_name
 ) {
+  const char *format = "Failure returned by '%s' at %s:%d:in `%s'";
   if (have_gvl) {
-    rb_exc_raise(rb_syserr_new_str(syserr_errno, rb_sprintf("Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name)));
+    private_raise_exception(rb_syserr_new_str(syserr_errno, rb_sprintf(format, expression, file, line, function_name)), format);
   } else {
-    grab_gvl_and_raise_syserr(syserr_errno, "Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name);
+    private_grab_gvl_and_raise(Qnil, syserr_errno, format, expression, file, line, function_name);
   }
-}
-
-static VALUE _id2ref(VALUE obj_id) {
-  // Call ::ObjectSpace._id2ref natively. It will raise if the id is no longer valid
-  return rb_funcall(module_object_space, _id2ref_id, 1, obj_id);
-}
-
-static VALUE _id2ref_failure(DDTRACE_UNUSED VALUE _unused1, DDTRACE_UNUSED VALUE _unused2) {
-  return Qfalse;
-}
-
-// See notes on header for important details
-bool ruby_ref_from_id(VALUE obj_id, VALUE *value) {
-  // Call ::ObjectSpace._id2ref natively. It will raise if the id is no longer valid
-  // so we need to call it via rb_rescue2
-  // TODO: Benchmark rb_rescue2 vs rb_protect here
-  VALUE result = rb_rescue2(
-    _id2ref,
-    obj_id,
-    _id2ref_failure,
-    Qnil,
-    rb_eRangeError, // rb_eRangeError is the error used to flag invalid ids
-    0 // Required by API to be the last argument
-  );
-
-  if (result == Qfalse) {
-    return false;
-  }
-
-  if (value != NULL) {
-    (*value) = result;
-  }
-
-  return true;
 }
 
 // Not part of public headers but is externed from Ruby
@@ -181,36 +151,6 @@ size_t ruby_obj_memsize_of(VALUE obj) {
   }
 }
 
-// Inspired by rb_class_of but without actually returning classes or potentially doing assertions
-static bool ruby_is_obj_with_class(VALUE obj) {
-  if (!RB_SPECIAL_CONST_P(obj)) {
-    return true;
-  }
-  if (obj == RUBY_Qfalse) {
-    return true;
-  }
-  else if (obj == RUBY_Qnil) {
-    return true;
-  }
-  else if (obj == RUBY_Qtrue) {
-    return true;
-  }
-  else if (RB_FIXNUM_P(obj)) {
-    return true;
-  }
-  else if (RB_STATIC_SYM_P(obj)) {
-    return true;
-  }
-  else if (RB_FLONUM_P(obj)) {
-    return true;
-  }
-
-  return false;
-}
-
-// This function is not present in the VM headers, but is a public symbol that can be invoked.
-int rb_objspace_internal_object_p(VALUE obj);
-
 #ifdef NO_RB_OBJ_INFO
   const char* safe_object_info(DDTRACE_UNUSED VALUE obj) { return "(No rb_obj_info for current Ruby)"; }
 #else
@@ -222,8 +162,7 @@ int rb_objspace_internal_object_p(VALUE obj);
 #endif
 
 VALUE ruby_safe_inspect(VALUE obj) {
-  if (!ruby_is_obj_with_class(obj))       return rb_str_new_cstr("(Not an object)");
-  if (rb_objspace_internal_object_p(obj)) return rb_sprintf("(VM Internal, %s)", safe_object_info(obj));
+  if (ddtrace_is_internal_object_p(obj))  return rb_sprintf("(VM Internal, %s)", safe_object_info(obj));
   // @ivoanjo: I saw crashes on Ruby 3.1.4 when trying to #inspect matchdata objects. I'm not entirely sure why this
   // is needed, but since we only use this method for debug purposes I put in this alternative and decided not to
   // dig deeper.

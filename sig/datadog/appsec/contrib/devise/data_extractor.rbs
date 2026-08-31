@@ -9,7 +9,7 @@ module Datadog
 
           @mode: ::String
 
-          @devise_scopes: ::Hash[::String, ::String?]
+          @devise_scopes: ::Hash[::String, ::Symbol?]
 
           def initialize: (mode: ::String) -> void
 
@@ -19,7 +19,7 @@ module Datadog
 
           private
 
-          def find_devise_scope: (untyped object) -> ::String?
+          def find_devise_scope: (untyped object) -> ::Symbol?
 
           def transform: (untyped value) -> ::String?
 

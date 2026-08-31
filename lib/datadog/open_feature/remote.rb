@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../core/remote/dispatcher'
+require_relative "../core/remote/dispatcher"
 
 module Datadog
   module OpenFeature
@@ -8,7 +8,7 @@ module Datadog
     module Remote
       class << self
         FFE_FLAG_CONFIGURATION_RULES = 1 << 46
-        FFE_PRODUCTS = ['FFE_FLAGS'].freeze
+        FFE_PRODUCTS = ["FFE_FLAGS"].freeze
         FFE_CAPABILITIES = [FFE_FLAG_CONFIGURATION_RULES].freeze
 
         def capabilities
@@ -41,7 +41,7 @@ module Datadog
                   engine.reconfigure!(read_content(content))
                   content.applied
                 rescue EvaluationEngine::ReconfigurationError => e
-                  content.errored("Error applying OpenFeature configuration: #{e.message}")
+                  content.errored("Error applying OpenFeature configuration: #{e.class}: #{e.message}")
                 end
               when :delete
                 # NOTE: For now, we treat deletion as clearing the configuration

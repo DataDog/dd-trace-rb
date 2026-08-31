@@ -1,8 +1,8 @@
 FROM ruby:3.3.0-bullseye
 
 # Make apt non-interactive
-RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
-  && echo 'DPkg::Options "--force-confnew";' >> /etc/apt/apt.conf.d/90circleci
+RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90ci \
+  && echo 'DPkg::Options "--force-confnew";' >> /etc/apt/apt.conf.d/90ci
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -35,7 +35,7 @@ ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 # Reinstall a recent version of the trace to help Docker cache dependencies.
 # Bump this version periodically.
-RUN gem install datadog -v 1.20.0
+RUN gem install datadog -v 2.28.0
 
 WORKDIR /app
 

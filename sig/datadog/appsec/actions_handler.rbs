@@ -1,13 +1,13 @@
 module Datadog
   module AppSec
     module ActionsHandler
-      def handle: (WAF::actions actions_hash) -> void
+      def self?.handle: (WAF::actions actions_hash) -> void
 
-      def interrupt_execution: (WAF::action action_params) -> void
+      def self?.interrupt_execution: (WAF::action action_params) -> void
 
-      def generate_stack: (WAF::action action_params) -> void
+      def self?.generate_stack: (WAF::action action_params) -> void
 
-      def generate_schema: (WAF::action action_params) -> void
+      def self?.generate_schema: (WAF::action action_params) -> void
     end
   end
 end

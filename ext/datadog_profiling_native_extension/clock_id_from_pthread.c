@@ -1,7 +1,7 @@
 #include "extconf.h"
 
 // This file is only compiled on systems where pthread_getcpuclockid() is available;
-// Otherwise we compile clock_id_noop.c
+// Otherwise we compile clock_id_from_mach.c (macOS)
 #ifdef HAVE_PTHREAD_GETCPUCLOCKID
 
 #include <pthread.h>
@@ -11,6 +11,7 @@
 #include "clock_id.h"
 #include "helpers.h"
 #include "private_vm_api_access.h"
+#include "ruby_helpers.h"
 #include "time_helpers.h"
 
 // Validate that our home-cooked pthread_id_for() matches pthread_self() for the current thread
@@ -18,7 +19,7 @@ void self_test_clock_id(void) {
   rb_nativethread_id_t expected_pthread_id = pthread_self();
   rb_nativethread_id_t actual_pthread_id = pthread_id_for(rb_thread_current());
 
-  if (expected_pthread_id != actual_pthread_id) rb_raise(rb_eRuntimeError, "pthread_id_for() self-test failed");
+  if (expected_pthread_id != actual_pthread_id) raise_error(rb_eRuntimeError, "pthread_id_for() self-test failed");
 }
 
 // Safety: This function is assumed never to raise exceptions by callers

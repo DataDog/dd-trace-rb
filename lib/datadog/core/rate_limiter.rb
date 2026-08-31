@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'utils/time'
+require_relative "utils/time"
 
 module Datadog
   module Core
@@ -14,6 +14,7 @@ module Datadog
       #
       # @return [Boolean] whether a resource conforms with the current limit
       def allow?(size = 1)
+        raise NotImplementedError
       end
 
       # The effective rate limiting ratio based on
@@ -21,6 +22,7 @@ module Datadog
       #
       # @return [Float] recent allowance ratio
       def effective_rate
+        raise NotImplementedError
       end
     end
 

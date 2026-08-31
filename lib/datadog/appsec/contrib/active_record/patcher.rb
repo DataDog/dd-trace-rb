@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'instrumentation'
+require_relative "instrumentation"
 
 module Datadog
   module AppSec
@@ -11,7 +11,7 @@ module Datadog
           module_function
 
           def patched?
-            Patcher.instance_variable_get(:@patched)
+            !!Patcher.instance_variable_get(:@patched)
           end
 
           def target_version
@@ -52,7 +52,7 @@ module Datadog
           end
 
           def patch_sqlite3_adapter
-            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new('7.1')
+            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
               Instrumentation::InternalExecQueryAdapterPatch
             elsif ::ActiveRecord.gem_version.segments.first == 4
               Instrumentation::Rails4ExecQueryAdapterPatch
@@ -61,10 +61,11 @@ module Datadog
             end
 
             ::ActiveRecord::ConnectionAdapters::SQLite3Adapter.prepend(instrumentation_module)
+            Patcher.instance_variable_set(:@patched, true)
           end
 
           def patch_mysql2_adapter
-            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new('7.1')
+            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
               Instrumentation::InternalExecQueryAdapterPatch
             elsif ::ActiveRecord.gem_version.segments.first == 4
               Instrumentation::Rails4ExecQueryAdapterPatch
@@ -73,6 +74,7 @@ module Datadog
             end
 
             ::ActiveRecord::ConnectionAdapters::Mysql2Adapter.prepend(instrumentation_module)
+            Patcher.instance_variable_set(:@patched, true)
           end
 
           def patch_postgresql_adapter
@@ -83,7 +85,7 @@ module Datadog
             end
 
             if defined?(::ActiveRecord::ConnectionAdapters::JdbcAdapter)
-              instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new('7.1')
+              instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
                 Instrumentation::InternalExecQueryAdapterPatch
               elsif ::ActiveRecord.gem_version.segments.first == 4
                 Instrumentation::Rails4ExecQueryAdapterPatch
@@ -93,6 +95,7 @@ module Datadog
             end
 
             ::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.prepend(instrumentation_module)
+            Patcher.instance_variable_set(:@patched, true)
           end
         end
       end

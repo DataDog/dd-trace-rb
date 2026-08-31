@@ -2,26 +2,35 @@ module Datadog
   module DI
     module Transport
       module Input
-        class EncodedParcel
-          include Datadog::Core::Transport::Parcel
-        end
-
         class Request < Datadog::Core::Transport::Request
-          @serialized_tags: untyped
+          @serialized_tags: String
 
-          attr_reader serialized_tags: untyped
+          attr_reader serialized_tags: String
 
-          def initialize: (untyped parcel, untyped serialized_tags) -> void
+          def initialize: (Core::Transport::Parcel parcel, String serialized_tags) -> void
         end
 
         class Transport < Core::Transport::Transport
+          @telemetry: Datadog::Core::Telemetry::Component?
+
           MAX_SERIALIZED_SNAPSHOT_SIZE: ::Integer
           MAX_CHUNK_SIZE: ::Integer
           DEFAULT_CHUNK_SIZE: ::Integer
 
-          def send_input: (untyped payload, untyped tags) -> untyped
+          attr_reader telemetry: Datadog::Core::Telemetry::Component?
 
-          def send_input_chunk: (untyped chunked_payload, untyped serialized_tags) -> untyped
+          def initialize: (
+            Datadog::Core::Transport::HTTP::API::Map apis,
+            ::String default_api,
+            logger: Datadog::Core::Logger,
+            ?telemetry: Datadog::Core::Telemetry::Component?
+          ) -> void
+
+          def send_input: (Array[Hash[Symbol, untyped]] payload, Hash[String, String] tags, on_serialization_error: ^(String, Exception) -> void) -> Array[Hash[Symbol, untyped]]
+
+          def send_input_chunk: (String chunked_payload, String serialized_tags) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
+
+          def encoder: () -> singleton(Core::Encoding::JSONEncoder)
         end
       end
     end

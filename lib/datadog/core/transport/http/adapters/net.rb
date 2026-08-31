@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../../../core/transport/response'
-require_relative '../../../../core/vendor/multipart-post/net/http/post/multipart'
+require_relative "../../../../core/transport/response"
+require_relative "../../../../core/vendor/multipart-post/net/http/post/multipart"
 
 module Datadog
   module Core
@@ -90,9 +90,9 @@ module Datadog
               path = env.path
               case query = env.query
               when Hash
-                path = path + '?' + URI.encode_www_form(query)
+                path = path + "?" + URI.encode_www_form(query)
               when String
-                path = path + '?' + query
+                path = path + "?" + query
               when nil
                 # Nothing
               else

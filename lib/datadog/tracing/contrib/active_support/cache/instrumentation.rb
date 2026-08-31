@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../../../core/utils'
-require_relative '../../../metadata/ext'
-require_relative '../ext'
-require_relative 'event'
+require_relative "../../../../core/utils"
+require_relative "../../../metadata/ext"
+require_relative "../ext"
+require_relative "event"
 
 module Datadog
   module Tracing
@@ -51,12 +51,9 @@ module Datadog
                 service: Datadog.configuration.tracing[:active_support][:cache_service],
                 resource: action
               ) do |span|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CACHE)
-
-                if span.service != Datadog.configuration.service
-                  span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
-                end
 
                 span.set_tag(Ext::TAG_CACHE_BACKEND, store) if store
 

@@ -602,7 +602,7 @@ Aws::S3::Client.new.list_buckets
 | Key            | Env Var                     | Type     | Description                                                                                                                                                                             | Default |
 | -------------- | --------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | `enabled` | `DD_TRACE_AWS_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `service_name` | `DD_TRACE_AWS_SERVICE_NAME` | `String` | Name of application running the `aws` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `aws`   |
+| `service_name` | `DD_TRACE_AWS_SERVICE_NAME` | `String` | Name of application running the `aws` instrumentation. May be overridden by `global_default_service_name`. When using Rails auto-instrumentation, set via environment variable or configure explicitly in your initializer. [See _Additional Configuration_ for more details](#additional-configuration) | `aws`   |
 | `peer_service` | `DD_TRACE_AWS_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                    | `nil`   |
 
 ### Concurrent Ruby
@@ -744,9 +744,9 @@ end
 | Key                   | Env Var                       | Type     | Description                                                                                                                                                                               | Default |
 | --------------------- | ----------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | `enabled` | `DD_TRACE_ETHON_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `service_name`        | `DD_TRACE_ETHON_SERVICE_NAME` | `String` | Name of application running the `ethon` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `ethon` |
+| `service_name`        | `DD_TRACE_ETHON_SERVICE_NAME` | `String` | Name of application running the `ethon` instrumentation. May be overridden by `global_default_service_name`. When using Rails auto-instrumentation, set via environment variable or configure explicitly in your initializer. [See _Additional Configuration_ for more details](#additional-configuration) | `ethon` |
 | `peer_service`        | `DD_TRACE_ETHON_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                      | `nil`   |
-| `distributed_tracing` |                               | `Bool`   | Enables [distributed tracing](#distributed-tracing)                                                                                                                                       | `true`  |
+| `distributed_tracing` | `DD_TRACE_ETHON_DISTRIBUTED_TRACING` | `Bool`   | Enables [distributed tracing](#distributed-tracing)                                                                                                                                       | `true`  |
 | `split_by_domain`     |                               | `Bool`   | Uses the request domain as the service name when set to `true`.                                                                                                                           | `false` |
 
 ### Excon
@@ -779,7 +779,7 @@ connection.get
 | `enabled` | `DD_TRACE_EXCON_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_EXCON_SERVICE_NAME`       | `String`         | Name of application running the `excon` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                          | `excon`                                                           |
 | `peer_service`        | `DD_TRACE_EXCON_PEER_SERVICE`       | `String`         | Name of external service the application connects to                                                                                                                                                                                                                               | `nil`                                                             |
-| `distributed_tracing` |                                     | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                | `true`                                                            |
+| `distributed_tracing` | `DD_TRACE_EXCON_DISTRIBUTED_TRACING` | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                | `true`                                                            |
 | `split_by_domain`     |                                     | `Bool`           | Uses the request domain as the service name when set to `true`.                                                                                                                                                                                                                    | `false`                                                           |
 | `on_error`            |                                     | `Proc`           | Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets error on the span by default.                                                                                                                                           | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 | `error_status_codes`  | `DD_TRACE_EXCON_ERROR_STATUS_CODES` | `Array`\|`Range` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600`                                                       |
@@ -842,9 +842,9 @@ connection.get('/foo')
 | Key                   | Env Var                               | Type             | Description                                                                                                                                                                                                                                                                        | Default                                                           |
 | --------------------- | ------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | `enabled` | `DD_TRACE_FARADAY_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `service_name`        | `DD_TRACE_FARADAY_SERVICE_NAME`       | `String`         | Name of application running the `faraday` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                        | `faraday`                                                         |
+| `service_name`        | `DD_TRACE_FARADAY_SERVICE_NAME`       | `String`         | Name of application running the `faraday` instrumentation. May be overridden by `global_default_service_name`. When using Rails auto-instrumentation, set via environment variable or configure explicitly in your initializer. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                        | `faraday`                                                         |
 | `peer_service`        | `DD_TRACE_FARADAY_PEER_SERVICE`       | `String`         | Name of external service the application connects to                                                                                                                                                                                                                               | `nil`                                                             |
-| `distributed_tracing` |                                       | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                | `true`                                                            |
+| `distributed_tracing` | `DD_TRACE_FARADAY_DISTRIBUTED_TRACING` | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                | `true`                                                            |
 | `split_by_domain`     |                                       | `Bool`           | Uses the request domain as the service name when set to `true`.                                                                                                                                                                                                                    | `false`                                                           |
 | `on_error`            |                                       | `Proc`           | Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets an error on the span by default.                                                                                                                                        | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 | `error_status_codes`  | `DD_TRACE_FARADAY_ERROR_STATUS_CODES` | `Array`\|`Range` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600`                                                       |
@@ -884,7 +884,15 @@ end
 
 The GraphQL integration activates instrumentation for GraphQL queries.
 
-To activate your integration, use the `Datadog.configure` method:
+<div class="alert alert-warning">
+When onboarding an [auto instrumented GraphQL application](#rails-or-hanami-applications), you **MUST** set the environment variable `DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER=1`.
+
+This enables support for [Endpoint Observability](https://docs.datadoghq.com/internal_developer_portal/software_catalog/endpoints/).
+
+It is **not** possible to change the unified tracer option in a `Datadog.configure` block.
+</div>
+
+When manually activating your integration, use the `Datadog.configure` method:
 
 ```ruby
 # Inside Rails initializer or equivalent
@@ -908,15 +916,14 @@ The `instrument :graphql` method accepts the following parameters. Additional op
 | ------------------------ | -------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | `enabled`                | `DD_TRACE_GRAPHQL_ENABLED` | `Bool`   | Whether the integration should create spans.                                                                                                                                                                    | `true`           |
 | `schemas`                |                            | `Array`  | Array of `GraphQL::Schema` objects (that support class-based schema only) to trace. If you do not provide any, then tracing will applied to all the schemas.                                                    | `[]`             |
-| `with_unified_tracer`    | `DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER` | `Bool`   | (Recommended) Enable to instrument with `UnifiedTrace` tracer for `graphql` >= v2.2, **enabling support for Endpoints list** in the Service Catalog. `with_deprecated_tracer` has priority over this. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead. This option is disabled by default to maintain backwards compatibility, but **will become the default in `datadog` 3.0.0**. | `false` |
+| `with_unified_tracer`    | `DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER` | `Bool`   | (Recommended) Enable to instrument with `UnifiedTrace` tracer for `graphql` >= v2.2, **enabling support for [Endpoint Observability](https://docs.datadoghq.com/internal_developer_portal/software_catalog/endpoints/)**. For auto instrumented applications, you **MUST** use the environment variable. `with_deprecated_tracer` has priority over this. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead. This option is disabled by default to maintain backwards compatibility, but **will become the default in `datadog` 3.0.0**. | `false` |
 | `with_deprecated_tracer` |                            | `Bool`   | (Not recommended) Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. This has priority over `with_unified_tracer`. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead | `false` |
 | `service_name`           |                            | `String` | Service name used for graphql instrumentation                                                                                                                                                                   | `'ruby-graphql'` |
 | `error_extensions` | `DD_TRACE_GRAPHQL_ERROR_EXTENSIONS` | `Array` | List of extension keys to include in the span event reported for GraphQL queries with errors. | `[]` |
 | `error_tracking` | `DD_TRACE_GRAPHQL_ERROR_TRACKING` | `Bool` | (Recommended) Surface GraphQL errors in Error Tracking. | `false` |
 
 
-Once an instrumentation strategy is selected (`with_unified_tracer: true`, `with_deprecated_tracer: true`, or *no option set* which defaults to `GraphQL::Tracing::DataDogTrace`), it is not possible to change the instrumentation strategy in the same Ruby process.
-This is especially important for [auto instrumented applications](#rails-or-hanami-applications) because an automatic initial instrumentation is always applied at startup, thus such applications will always instrument GraphQL with the default strategy (`GraphQL::Tracing::DataDogTrace`).
+Once an instrumentation strategy is selected (`with_unified_tracer: true`, `with_deprecated_tracer: true`, or *no option set* which defaults to `GraphQL::Tracing::DataDogTrace`), it is not possible to change the instrumentation strategy.
 
 **Manually configuring GraphQL schemas**
 
@@ -1001,7 +1008,7 @@ client.my_endpoint(DemoMessage.new(contents: 'hello!'))
 | `enabled` | `DD_TRACE_GRPC_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_GRPC_SERVICE_NAME` | `String` | Name of application running the `grpc` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `grpc`                                                             |
 | `peer_service`        | `DD_TRACE_GRPC_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                     | `nil`                                                              |
-| `distributed_tracing` |                              | `Bool`   | Enables [distributed tracing](#distributed-tracing)                                                                                                                                      | `true`                                                             |
+| `distributed_tracing` | `DD_TRACE_GRPC_DISTRIBUTED_TRACING` | `Bool`   | Enables [distributed tracing](#distributed-tracing)                                                                                                                                      | `true`                                                             |
 | `on_error`            |                              | `Proc`   | Custom error handler invoked when there is an error. A `Proc` that accepts `span` and `error` parameters. Sets error on the span by default.                                             | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
 
 **Configuring clients to use different settings**
@@ -1068,9 +1075,9 @@ end
 | Key                   | Env Var                              | Type             | Description                                                                                                                                                                                                                                                                            | Default     |
 | --------------------- | ------------------------------------ | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
 | `enabled` | `DD_TRACE_HTTPRB_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `service_name`        | `DD_TRACE_HTTPRB_SERVICE_NAME`       | `String`         | Name of application running the `httprb` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                             | `httprb`    |
+| `service_name`        | `DD_TRACE_HTTPRB_SERVICE_NAME`       | `String`         | Name of application running the `httprb` instrumentation. May be overridden by `global_default_service_name`. When using Rails auto-instrumentation, set via environment variable or configure explicitly in your initializer. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                             | `httprb`    |
 | `peer_service`        | `DD_TRACE_HTTPRB_PEER_SERVICE`       | `String`         | Name of external service the application connects to                                                                                                                                                                                                                                   | `nil`       |
-| `distributed_tracing` |                                      | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                    | `true`      |
+| `distributed_tracing` | `DD_TRACE_HTTPRB_DISTRIBUTED_TRACING` | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                    | `true`      |
 | `split_by_domain`     |                                      | `Bool`           | Uses the request domain as the service name when set to `true`.                                                                                                                                                                                                                        | `false`     |
 | `error_status_codes`  | `DD_TRACE_HTTPRB_ERROR_STATUS_CODES` | `Array`\|`Range` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...**600**]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600` |
 
@@ -1098,7 +1105,7 @@ end
 | `enabled` | `DD_TRACE_HTTPCLIENT_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_HTTPCLIENT_SERVICE_NAME`       | `String`         | Name of application running the `httpclient` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                     | `httpclient` |
 | `peer_service`        | `DD_TRACE_HTTPCLIENT_PEER_SERVICE`       | `String`         | Name of external service the application connects to                                                                                                                                                                                                                               | `nil`        |
-| `distributed_tracing` |                                          | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                | `true`       |
+| `distributed_tracing` | `DD_TRACE_HTTPCLIENT_DISTRIBUTED_TRACING` | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                | `true`       |
 | `split_by_domain`     |                                          | `Bool`           | Uses the request domain as the service name when set to `true`.                                                                                                                                                                                                                    | `false`      |
 | `error_status_codes`  | `DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES` | `Array`\|`Range` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600`  |
 
@@ -1162,7 +1169,7 @@ end
 | Key                   | Env Var                    | Type   | Description                                                                                                                                                                  | Default |
 | --------------------- | -------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | `enabled`             | `DD_TRACE_KARAFKA_ENABLED` | `Bool` | Specifies whether the integration should create spans.                                                                                                                       | `true`  |
-| `distributed_tracing` |                            | `Bool` | Enables [distributed tracing](#distributed-tracing) (when iterating through the kafka messages, each of the messages' traces will be resumed for the duration of the block). | `false` |
+| `distributed_tracing` | `DD_TRACE_KARAFKA_DISTRIBUTED_TRACING` | `Bool` | Enables [distributed tracing](#distributed-tracing) (when iterating through the kafka messages, each of the messages' traces will be resumed for the duration of the block). | `false` |
 
 ### WaterDrop
 
@@ -1184,7 +1191,33 @@ end
 | Key                   | Env Var                      | Type   | Description                                                                                                          | Default |
 | --------------------- | ---------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------- | ------- |
 | `enabled`             | `DD_TRACE_WATERDROP_ENABLED` | `Bool` | Specifies whether the integration should create spans.                                                               | `true`  |
-| `distributed_tracing` |                              | `Bool` | Enables [distributed tracing](#distributed-tracing) (the trace context will be injected onto the produced messages). | `false` |
+| `distributed_tracing` | `DD_TRACE_WATERDROP_DISTRIBUTED_TRACING` | `Bool` | Enables [distributed tracing](#distributed-tracing) (the trace context will be injected onto the produced messages). | `false` |
+
+### Kicks
+
+The Kicks integration is a server-side middleware which traces job executions.
+
+<div class="alert alert-warning">
+Kicks is a continuation of Sneakers, and the two cannot be active at the same time because they share the same Ruby class namespace. Existing Sneakers configuration is automatically merged with any Kicks configuration.
+</div>
+
+You can enable it through `Datadog.configure`:
+
+```ruby
+require 'datadog'
+
+Datadog.configure do |c|
+  c.tracing.instrument :kicks, **options
+end
+```
+
+The following keyword arguments are available for `options`:
+
+| Key        | Env Var | Type   | Description                                                                                                                                                                 | Default                                                           |
+| ---------- | - | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `enabled`  | `DD_TRACE_SNEAKERS_ENABLED` | `Bool` | Whether the integration should create spans.                                                                      | `true`                                                            |
+| `tag_body` | | `Bool` | Whether to tag the job message on spans.                                                                                                                 | `false`                                                           |
+| `on_error` | | `Proc` | Custom error handler invoked when a job raises an error. Receives `span` and `error` as arguments. By default, sets the error on the span. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### MongoDB
 
@@ -1271,7 +1304,7 @@ client.query("SELECT * FROM users WHERE group='x'")
 | `enabled` | `DD_TRACE_MYSQL2_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_MYSQL2_SERVICE_NAME` | `String` | Name of application running the `mysql2` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                                                                                                               | `mysql2`                                                          |
 | `peer_service`        | `DD_TRACE_MYSQL2_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                                                                                                                                                                                                     | `nil`                                                             |
-| `comment_propagation` | `DD_DBM_PROPAGATION_MODE`      | `String` | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: _Note that enabling SQL comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other third parties that have been granted access to the database._ | `'disabled'`                                                      |
+| `comment_propagation` | `DD_DBM_PROPAGATION_MODE`      | `String` | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `dynamic_service` \| `full`). <br /><br />**Important**: _Note that enabling SQL comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other third parties that have been granted access to the database._ | `'disabled'`                                                      |
 | `append_comment` | | `Bool` | Appends the SQL comment propagation to the query string. Prepends the comment if `false`. For long query strings, the appended propagation comment might be truncated, causing loss of correlation between the query and trace. | `false` |
 | `on_error`            |                                | `Proc`   | Custom error handler invoked when MySQL raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors that are handled at the application level.                                                                                                                                                              | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
@@ -1306,9 +1339,9 @@ content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
 | Key                   | Env Var                            | Type             | Description                                                                                                                                                                                                                                                                        | Default     |
 | --------------------- | ---------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
 | `enabled` | `DD_TRACE_HTTP_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `service_name`        | `DD_TRACE_NET_HTTP_SERVICE_NAME`   | `String`         | Name of application running the `net/http` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                       | `net/http`  |
+| `service_name`        | `DD_TRACE_NET_HTTP_SERVICE_NAME`   | `String`         | Name of application running the `net/http` instrumentation. May be overridden by `global_default_service_name`. When using Rails auto-instrumentation, set via environment variable or configure explicitly in your initializer. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                       | `net/http`  |
 | `peer_service`        | `DD_TRACE_NET_HTTP_PEER_SERVICE`   | `String`         | Name of external service the application connects to                                                                                                                                                                                                                               | `nil`       |
-| `distributed_tracing` |                                    | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                | `true`      |
+| `distributed_tracing` | `DD_TRACE_HTTP_DISTRIBUTED_TRACING` | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                | `true`      |
 | `split_by_domain`     |                                    | `Bool`           | Uses the request domain as the service name when set to `true`.                                                                                                                                                                                                                    | `false`     |
 | `error_status_codes`  | `DD_TRACE_HTTP_ERROR_STATUS_CODES` | `Array`\|`Range` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600` |
 
@@ -1374,7 +1407,7 @@ end
 | `enabled`             | `DD_TRACE_PG_ENABLED`      | `true`                                     | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_PG_SERVICE_NAME` | `String`                                   | Name of application running the `pg` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                                                                                                                 | `pg`                                                              |
 | `peer_service`        | `DD_TRACE_PG_PEER_SERVICE` | `String`                                   | Name of external service the application connects to                                                                                                                                                                                                                                                                                                                   | `nil`                                                             |
-| `comment_propagation` | `DD_DBM_PROPAGATION_MODE`  | `String`                                   | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: _Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database._ | `'disabled'`                                                      |
+| `comment_propagation` | `DD_DBM_PROPAGATION_MODE`  | `String`                                   | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `dynamic_service` \| `full`). <br /><br />**Important**: _Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database._ | `'disabled'`                                                      |
 | `append_comment` | | `Bool` | Appends the SQL comment propagation to the query string. Prepends the comment if `false`. For long query strings, the appended propagation comment might be truncated, causing loss of correlation between the query and trace. | `false` |
 | `on_error`            |                            | `Proc`                                     | Custom error handler invoked when PG raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors from Postgres that are handled at the application level.                                                                                                                                                 | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
@@ -1430,10 +1463,10 @@ end
 | Key        | Env Var                         | Type   | Description                                                                                                                                                                 | Default                                                            |
 | ---------- | ------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | `enabled`  | `DD_TRACE_QUE_ENABLED`          | `Bool` | Whether the integration should create spans.                                                                           | `true`                                                             |
+| `distributed_tracing` | `DD_TRACE_QUE_DISTRIBUTED_TRACING` | `Bool` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `tag_args` | `DD_TRACE_QUE_TAG_ARGS_ENABLED` | `Bool` | Enable tagging of a job's args field. `true` for on, `false` for off.                                                                                                       | `false`                                                            |
 | `tag_data` | `DD_TRACE_QUE_TAG_DATA_ENABLED` | `Bool` | Enable tagging of a job's data field. `true` for on, `false` for off.                                                                                                       | `false`                                                            |
 | `on_error` |                                 | `Proc` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
-
 ### Racecar
 
 The Racecar integration provides tracing for Racecar jobs.
@@ -1484,7 +1517,7 @@ run app
 | -------------------------------- | - | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
 | `enabled` | `DD_TRACE_RACK_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `application`                    | | [`Rack Application`](https://github.com/rack/rack/blob/800e53fbe15b3424b7a8946b067bf6f2e648d5a8/SPEC.rdoc#label-Rack+applications)      | Your Rack application. Required for `middleware_names`.                                                                                                                                                                                                                                                                                                                              | `nil`                                            |
-| `distributed_tracing`            | | `Bool`   | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received                                                                                                                                                                                                                          | `true`                                           |
+| `distributed_tracing`            | `DD_TRACE_RACK_DISTRIBUTED_TRACING` | `Bool`   | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received                                                                                                                                                                                                                          | `true`                                           |
 | `headers`                        | | `Hash`   | Hash of HTTP request or response headers to add as tags to the `rack.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. This option overrides the global `DD_TRACE_HEADER_TAGS`, see [Applying header tags to root spans][header tags] for more information. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
 | `middleware_names`               | | `Bool`   | Enable this if you want to use the last executed middleware class as the resource name for the `rack` span. If enabled alongside the `rails` instrumention, `rails` takes precedence by setting the `rack` resource name to the active `rails` controller when applicable. Requires `application` option to use.                                                                     | `false`                                          |
 | `quantize`                       | | `Hash`   | Hash containing options for quantization. May include `:query` or `:fragment`.                                                                                                                                                                                                                                                                                                       | `{}`                                             |
@@ -1560,6 +1593,8 @@ The Rails integration will trace requests, database calls, templates rendering, 
 
 To enable the Rails instrumentation, use the [Rails auto instrumentation instructions](#rails-or-hanami-applications).
 
+**Note on auto-instrumentation timing:** When using `require 'datadog/auto_instrument'` in your Gemfile, instrumentation is applied before `config/initializers/*.rb` files load. Some configuration options (like `tracing.contrib.global_default_service_name.enabled`) must be set via environment variables rather than in your initializer. See [Configuration timing with auto-instrumentation](#configuration-timing-with-auto-instrumentation) for details.
+
 Alternatively, you can also create an initializer file in your `config/initializers` folder:
 
 ```ruby
@@ -1576,7 +1611,7 @@ end
 | Key                   | Env Var | Type     | Description                                                                                                                                                 | Default                                                         |
 | --------------------- | - | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | `enabled` | `DD_TRACE_RAILS_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `distributed_tracing` | | `Bool`   | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true`                                                          |
+| `distributed_tracing` | `DD_TRACE_RAILS_DISTRIBUTED_TRACING` | `Bool`   | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true`                                                          |
 | `request_queuing`     | | `Bool`   | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details.                     | `false`                                                         |
 | `middleware`          | | `Bool`   | Add the trace middleware to the Rails application. Set to `false` if you don't want the middleware to load.                                                 | `true`                                                          |
 | `middleware_names`    | | `Bool`   | Enables any short-circuited middleware requests to display the middleware name as a resource for the trace.                                                 | `false`                                                         |
@@ -1585,12 +1620,12 @@ end
 
 **Supported versions**
 
-| MRI Versions | JRuby Versions | Rails Versions |
-| ------------ | -------------- | -------------- |
-| 2.5          |                | 4.2 - 6.1      |
-| 2.6 - 2.7    | 9.2 - 9.3      | 5.0 - 6.1      |
-| 3.0 - 3.1    | 9.4            | 6.1 - 7.1      |
-| 3.2 - 3.4    |                | 6.1 - 8.0      |
+| MRI Versions | Rails Versions |
+| ------------ | -------------- |
+| 2.5          | 4.2 - 6.1      |
+| 2.6 - 2.7    | 5.0 - 6.1      |
+| 3.0 - 3.1    | 6.1 - 7.1      |
+| 3.2 - 4.0    | 6.1 - 8.1      |
 
 Instrumentation for the [Rails Runner](https://guides.rubyonrails.org/command_line.html#bin-rails-runner) command is only supported for Rails 5.1 or higher.
 
@@ -1687,7 +1722,7 @@ redis.set 'foo', 'bar'
 | Key            | Env Var                       | Type     | Description                                                                                                                                                                               | Default |
 | -------------- | ----------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | `enabled` | `DD_TRACE_REDIS_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `service_name` | `DD_TRACE_REDIS_SERVICE_NAME` | `String` | Name of application running the `redis` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `redis` |
+| `service_name` | `DD_TRACE_REDIS_SERVICE_NAME` | `String` | Name of application running the `redis` instrumentation. May be overridden by `global_default_service_name`. When using Rails auto-instrumentation, set via environment variable or configure explicitly in your initializer. [See _Additional Configuration_ for more details](#additional-configuration) | `redis` |
 | `peer_service` | `DD_TRACE_REDIS_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                      | `nil`   |
 | `command_args` | `DD_REDIS_COMMAND_ARGS`       | `Bool`   | Show the command arguments (for example, `key` in `GET key`) as resource name and tag. If `false`, only the command name is shown (for example, `GET`).                                   | false   |
 
@@ -1825,7 +1860,7 @@ end
 | `enabled` | `DD_TRACE_REST_CLIENT_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_REST_CLIENT_SERVICE_NAME` | `String` | Name of application running the `rest_client` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `rest_client` |
 | `peer_service`        | `DD_TRACE_REST_CLIENT_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                            | `nil`         |
-| `distributed_tracing` |                                     | `Bool`   | Enables [distributed tracing](#distributed-tracing)                                                                                                                                             | `true`        |
+| `distributed_tracing` | `DD_TRACE_REST_CLIENT_DISTRIBUTED_TRACING` | `Bool`   | Enables [distributed tracing](#distributed-tracing)                                                                                                                                             | `true`        |
 | `split_by_domain`     |                                     | `Bool`   | Uses the request domain as the service name when set to `true`.                                                                                                                                 | `false`       |
 
 ### Roda
@@ -1949,7 +1984,7 @@ end
 | Key                   | Env Var | Type   | Description                                                                                                                                                                                                                                                                                                                                                                                                                                           | Default                                                           |
 | --------------------- | - | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | `enabled` | `DD_TRACE_SIDEKIQ_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `distributed_tracing` | | `Bool` | Enabling [distributed tracing](#distributed-tracing) creates a parent-child relationship between the `sidekiq.push` span and the `sidekiq.job` span. <br /><br />**Important**: _Enabling distributed_tracing for asynchronous processing can result in drastic changes in your trace graph. Such cases include long running jobs, retried jobs, and jobs scheduled in the far future. Make sure to inspect your traces after enabling this feature._ | `false`                                                           |
+| `distributed_tracing` | `DD_TRACE_SIDEKIQ_DISTRIBUTED_TRACING` | `Bool` | Enabling [distributed tracing](#distributed-tracing) creates a parent-child relationship between the `sidekiq.push` span and the `sidekiq.job` span. <br /><br />**Important**: _Enabling distributed_tracing for asynchronous processing can result in drastic changes in your trace graph. Such cases include long running jobs, retried jobs, and jobs scheduled in the far future. Make sure to inspect your traces after enabling this feature._ | `false`                                                           |
 | `on_error`            | | `Proc` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors.                                                                                                                                                                                                                                                                           | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 | `quantize`            | | `Hash` | Hash containing options for quantization of job arguments.                                                                                                                                                                                                                                                                                                                                                                                            | `{}`                                                              |
 
@@ -2006,13 +2041,17 @@ end
 | Key                     | Env Var | Type   | Description                                                                                                                                                                                                                                                                                                                                                                             | Default                                          |
 | ----------------------- | - | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
 | `enabled` | `DD_TRACE_SINATRA_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `distributed_tracing`   | | `Bool` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received                                                                                                                                                                                                                             | `true`                                           |
+| `distributed_tracing`   | `DD_TRACE_SINATRA_DISTRIBUTED_TRACING` | `Bool` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received                                                                                                                                                                                                                             | `true`                                           |
 | `headers`               | | `Hash` | Hash of HTTP request or response headers to add as tags to the `sinatra.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. This option overrides the global `DD_TRACE_HEADER_TAGS`, see [Applying header tags to root spans][header tags] for more information. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
 | `resource_script_names` | | `Bool` | Prepend resource names with script name                                                                                                                                                                                                                                                                                                                                                 | `false`                                          |
 
 ### Sneakers
 
 The Sneakers integration is a server-side middleware which will trace job executions.
+
+<div class="alert alert-warning">
+Kicks is a continuation of Sneakers, and the two cannot be active at the same time because they share the same Ruby class namespace. Existing Sneakers configuration is automatically merged with any Kicks configuration.
+</div>
 
 You can enable it through `Datadog.configure`:
 
@@ -2096,7 +2135,7 @@ client.query("SELECT * FROM users WHERE group='x'")
 | `enabled` | `DD_TRACE_TRILOGY_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name` | `DD_TRACE_TRILOGY_SERVICE_NAME` | `String` | Name of application running the `trilogy` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `trilogy` |
 | `peer_service` | `DD_TRACE_TRILOGY_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                        | `nil`     |
-| `comment_propagation` | `DD_DBM_PROPAGATION_MODE` | `String` | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: _Note that enabling SQL comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other third parties that have been granted access to the database._ | `'disabled'` |
+| `comment_propagation` | `DD_DBM_PROPAGATION_MODE` | `String` | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `dynamic_service` \| `full`). <br /><br />**Important**: _Note that enabling SQL comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other third parties that have been granted access to the database._ | `'disabled'` |
 | `append_comment` | | `Bool` | Appends the SQL comment propagation to the query string. Prepends the comment if `false`. For long query strings, the appended propagation comment might be truncated, causing loss of correlation between the query and trace. | `false` |
 | `on_error` | | `Proc` | Custom error handler invoked when MySQL raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors that are handled at the application level. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
@@ -2122,7 +2161,7 @@ To change the default behavior of `datadog`, you can use, in order of priority, 
 
 For example, if `tracing.sampling.default_rate` is configured by [Remote Configuration](#remote-configuration), changing its value through the `Datadog.configure` block will have no effect.
 
-**Available configuration options:**
+### Available configuration options
 
 | Setting                                                | Env Var                                                 | Type                                  | Default                      | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------------------------------------------------ | ------------------------------------------------------- | ------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2135,12 +2174,11 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `env`                                                  | `DD_ENV`                                                | `String`                              | `nil`                        | Your application environment. (e.g. `production`, `staging`, etc.) This value is set as a tag on all traces.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `service`                                              | `DD_SERVICE`                                            | `String`                              | _Ruby filename_              | Your application's default service name. (e.g. `billing-api`) This value is set as a tag on all traces.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `tags`                                                 | `DD_TAGS`                                               | `Hash`                                | `nil`                        | Custom tags in value pairs separated by `,` (e.g. `layer:api,team:intake`) These tags are set on all traces. See [Environment and tags](#environment-and-tags) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `time_now_provider`                                    |                                                         | `Proc`                                | `->{ Time.now }`             | Changes how time is retrieved. See [Setting the time provider](#setting-the-time-provider) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `version`                                              | `DD_VERSION`                                            | `String`                              | `nil`                        | Your application version (e.g. `2.5`, `202003181415`, `1.3-alpha`, etc.) This value is set as a tag on all traces.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `telemetry.enabled`                                    | `DD_INSTRUMENTATION_TELEMETRY_ENABLED`                  | `Bool`                                | `true`                       | Allows you to enable sending telemetry data to Datadog. Can be disabled, as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | **Tracing**                                            |                                                         |                                       |                              |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `tracing.contrib.peer_service_mapping`                 | `DD_TRACE_PEER_SERVICE_MAPPING`                         | `Hash`                                | `nil`                        | Defines remapping of `peer.service` tag across all instrumentation. Provide a list of `old_value1:new_value1, old_value2:new_value2, ...`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `tracing.contrib.global_default_service_name.enabled`  | `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`     | `Bool`                                | `false`                      | Changes the default value for `service_name` to the application service name across all instrumentation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `tracing.contrib.global_default_service_name.enabled`  | `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`     | `Bool`                                | `false`                      | Changes the default value for `service_name` to the application service name across all instrumentation. **For Rails applications using auto-instrumentation (`require 'datadog/auto_instrument'`), this must be set via the environment variable, not in `config/initializers/datadog.rb`.** See [Configuration timing with auto-instrumentation](#configuration-timing-with-auto-instrumentation) for details.                                                                                                                                                                                                                                                                                                                                                |
 | `tracing.context_scope`                                | `DD_TRACE_CONTEXT_SCOPE`                                | `String`                              | `'fiber_isolated'`           | Configures how a trace is propagated within the Ruby process. This changes the trace continuity when spans are created in different Fibers or Threads. `'thread'` (recommended): The active trace is bound to `Thread.current`, the same for all Fiber execution in a Thread. `'fiber_isolated'` (default): The active trace is bound to `Fiber.current`.                                                                                                                                                                                                                                                                            |
 | `tracing.propagation_extract_first`                    | `DD_TRACE_PROPAGATION_EXTRACT_FIRST`                    | `Bool`                                | `false`                      | Stop searching after detecting the first valid propagation format. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `tracing.propagation_style_extract`                    | `DD_TRACE_PROPAGATION_STYLE_EXTRACT`                    | `Array`                               | `['Datadog','tracecontext']` | Distributed tracing propagation formats to extract. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
@@ -2234,6 +2272,57 @@ Datadog.configure { |c| c.diagnostics.startup_logs.enabled = true }
 ```
 
 By default, this will be activated whenever `datadog` detects the application is running in a non-development environment.
+
+### Configuration timing with auto-instrumentation
+
+When using `require 'datadog/auto_instrument'` in Rails applications, instrumentation is applied **before** your `config/initializers/*.rb` files are loaded.
+
+**This timing has important implications for certain configuration options:**
+
+Some configuration options are read when integrations are patched (during auto-instrumentation). These options must be set via **environment variables** rather than in `config/initializers/datadog.rb` for Rails applications using auto-instrumentation.
+
+**Options that must be environment variables with Rails auto-instrumentation:**
+
+- `tracing.contrib.global_default_service_name.enabled` (`DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`)
+- GraphQL `with_unified_tracer` (`DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER`)
+
+**Example:**
+
+```bash
+# Set via environment variables for Rails auto-instrumentation
+DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED=true
+DD_SERVICE=my-service
+```
+
+**Alternative approaches:**
+
+1. **Keep auto-instrumentation, override service names per-integration:**
+   ```ruby
+   # Auto-instrumentation still runs; this overrides the defaults
+   Datadog.configure do |c|
+     c.service = 'my-service'
+     # Only configure integrations where you want a custom service name
+     c.tracing.instrument :redis, service_name: 'my-service'
+     c.tracing.instrument :faraday, service_name: 'my-service'
+   end
+   ```
+2. **Use manual instrumentation**: Remove `require: 'datadog/auto_instrument'` from your Gemfile. This lets you configure all options (including `tracing.contrib.global_default_service_name.enabled`) in your initializer, but you must manually instrument each integration you use by calling `c.tracing.instrument` for every one.
+   ```ruby
+   # Gemfile - without auto-instrumentation
+   gem 'datadog'
+   ```
+   ```ruby
+   # config/initializers/datadog.rb - you must enable each integration
+   Datadog.configure do |c|
+     c.service = 'my-service'
+     c.tracing.contrib.global_default_service_name.enabled = true
+     # Must instrument every integration you use
+     c.tracing.instrument :redis
+     c.tracing.instrument :faraday
+     c.tracing.instrument :rails
+     # ... and so on for each integration
+   end
+   ```
 
 ### Sampling
 
@@ -2728,23 +2817,6 @@ DD_TRACE_AGENT_URL=unix:///tmp/ddagent/trace.sock
 Note: You cannot mix UDS and TCP configurations. If you set `c.agent.uds_path`, you must not set `c.agent.host`
 or `c.agent.port`.
 
-### Setting the time provider
-
-By default, tracing uses a monotonic clock to measure the duration of spans, and timestamps (`->{ Time.now }`) for the start and end time.
-
-When testing, it might be helpful to use a different time provider.
-
-To change the function that provides timestamps, configure the following:
-
-```ruby
-Datadog.configure do |c|
-  # For Timecop, for example, `->{ Time.now_without_mock_time }` allows the tracer to use the real wall time.
-  c.time_now_provider = -> { Time.now_without_mock_time }
-end
-```
-
-Span duration calculation will still use the system monotonic clock when available, thus not being affected by this setting.
-
 ### Metrics
 
 The tracer and its integrations can produce some additional metrics that can provide useful insight into the performance of your application. These metrics are collected with `dogstatsd-ruby`, and can be sent to the same Datadog agent to which you send your traces.
@@ -2856,6 +2928,44 @@ Alternatively, set error tracking parameters inside a `Datadog.configure` block 
 - Absolute path: For example, `/app/lib/mypackage/main.rb` to instrument that file, or `/app/lib/mypackage/` to instrument every Ruby file in that folder.
 - Relative path: For example, for a program running in the `app` directory, use `./lib/mypackage/main.rb` to instrument the `main.rb` file, or`./lib/mypackage/` to instrument every Ruby file in that folder.
 
+
+### Dynamic Instrumentation
+
+Dynamic Instrumentation allows you to add log probes, metric probes, and span probes to running applications without restarts or redeployments. For setup instructions, see [Dynamic Instrumentation](DynamicInstrumentation.md).
+
+#### Configuration
+
+| Environment variable | Type | Description | Default |
+|---|---|---|---|
+| `DD_DYNAMIC_INSTRUMENTATION_ENABLED` | `Boolean` | Enables or disables Dynamic Instrumentation. `true` enables at boot; `false` disables and blocks UI-driven enablement through remote configuration. When unset (the default), Dynamic Instrumentation is off at boot but can be enabled from the Datadog UI when a probe is created. | `false` |
+| `DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS` | `Array` | Comma-separated list of variable/key names to redact in addition to the built-in list. Names are normalized (underscores, dashes, `@`, `$` removed) and matched case-insensitively. | `[]` |
+| `DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS` | `Array` | Comma-separated list of variable/key names to exclude from the built-in redaction list, allowing their values to be captured. | `[]` |
+| `DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES` | `Array` | Comma-separated list of class names whose values will be redacted. Suffix with `*` for wildcard matching (for example, `Foo*` redacts `Foo`, `FooBar`, `Foo::Bar`). | `[]` |
+| `DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE` | `Integer` | Time budget (in milliseconds) per probe fire for capture-expression evaluation. | `200` |
+
+Alternatively, set DI parameters inside a `Datadog.configure` block:
+
+| Setting | Type | Description | Default |
+|---|---|---|---|
+| `c.dynamic_instrumentation.enabled` | `Boolean` | Enable or disable Dynamic Instrumentation. | `false` |
+| `c.dynamic_instrumentation.redacted_identifiers` | `Array` | Variable/key names to redact in addition to the built-in list. | `[]` |
+| `c.dynamic_instrumentation.redaction_excluded_identifiers` | `Array` | Variable/key names to exclude from the built-in redaction list. | `[]` |
+| `c.dynamic_instrumentation.redacted_type_names` | `Array` | Class names whose values will be redacted. Suffix with `*` for wildcard. | `[]` |
+| `c.dynamic_instrumentation.max_time_to_serialize_ms` | `Integer` | Per-probe-fire time budget (in milliseconds) for capture-expression evaluation. | `200` |
+
+#### Symbol Database
+
+When Dynamic Instrumentation is enabled, the tracer can extract and upload symbol information (class names, method signatures, parameter names) from your application to enable auto-completion in the DI UI. Symbol Database upload follows Dynamic Instrumentation: by default it uploads symbols only when Dynamic Instrumentation is actually enabled (via `DD_DYNAMIC_INSTRUMENTATION_ENABLED` or implicit enablement through the DI UI), and stays off otherwise. When it uploads, it activates automatically using Remote Configuration. Set `DD_SYMBOL_DATABASE_UPLOAD_ENABLED` (or `c.symbol_database.enabled`) to `true`/`false` to override: `true` uploads regardless of Dynamic Instrumentation, `false` disables it entirely.
+
+| Environment variable | Type | Description | Default |
+|---|---|---|---|
+| `DD_SYMBOL_DATABASE_UPLOAD_ENABLED` | `Boolean` | Enable or disable symbol database upload. | Unset: uploads only when Dynamic Instrumentation is actually enabled |
+
+| Setting | Type | Description | Default |
+|---|---|---|---|
+| `c.symbol_database.enabled` | `Boolean, nil` | Enable or disable symbol database upload; `nil` (unset) follows Dynamic Instrumentation. | Unset (`nil`): uploads only when Dynamic Instrumentation is actually enabled |
+
+Symbol Database requires MRI Ruby 2.7+ and Remote Configuration (enabled by default). For details on what is extracted, which code is included, and behavior differences across Ruby versions, see [Dynamic Instrumentation — Symbol Database](DynamicInstrumentation.md#symbol-database).
 
 ## Known issues and suggested configurations
 

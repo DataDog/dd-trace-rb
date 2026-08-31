@@ -1,12 +1,13 @@
-require 'open3'
+require "open3"
+require "set"
 
-require_relative 'appraisal_conversion'
-require_relative 'runtime_matcher'
+require_relative "appraisal_conversion"
+require_relative "runtime_matcher"
 
 # rubocop:disable Metrics/BlockLength
 namespace :edge do
-  desc 'Update all the groups with gemspec dependencies'
-  task :gemspec do |_t, _args|
+  desc "Update all the groups with gemspec dependencies"
+  task :gemspec do
     candidates = Set.new
 
     TEST_METADATA.each do |_, metadata|
@@ -15,7 +16,7 @@ namespace :edge do
       end
     end
 
-    gemspec_runtime_dependencies = Gem::Specification.load('datadog.gemspec').dependencies
+    gemspec_runtime_dependencies = Gem::Specification.load("datadog.gemspec").dependencies
 
     candidates.each do |group|
       next if group.empty?
@@ -24,8 +25,8 @@ namespace :edge do
 
       Bundler.with_unbundled_env do
         output, = Open3.capture2e(
-          {'BUNDLE_GEMFILE' => gemfile.to_s},
-          "bundle lock --update=#{gemspec_runtime_dependencies.map(&:name).join(" ")}"
+          {"BUNDLE_GEMFILE" => gemfile.to_s},
+          "bundle lock --update #{gemspec_runtime_dependencies.map(&:name).join(" ")}"
         )
 
         puts output
@@ -33,24 +34,24 @@ namespace :edge do
     end
   end
 
-  desc 'Update groups with targeted dependencies'
+  desc "Update groups with targeted dependencies"
   task :update do |_t, args|
     # Naming convention:
     #
     # Key: integration name, the same as the name of spec task in Rakefile and MatrixFile
     # Value: gem name
     allowlist = {
-      'stripe' => 'stripe',
-      'elasticsearch' => 'elasticsearch',
-      'opensearch' => 'opensearch-ruby',
-      'rack' => 'rack',
-      'faraday' => 'faraday',
-      'excon' => 'excon',
-      'rest_client' => 'rest-client',
-      'mongodb' => 'mongo',
-      'dalli' => 'dalli',
-      'redis' => 'redis',
-      'karafka' => 'karafka',
+      "stripe" => "stripe",
+      "elasticsearch" => "elasticsearch",
+      "opensearch" => "opensearch-ruby",
+      "rack" => "rack",
+      "faraday" => "faraday",
+      "excon" => "excon",
+      "rest_client" => "rest-client",
+      "mongodb" => "mongo",
+      "dalli" => "dalli",
+      "redis" => "redis",
+      "karafka" => "karafka",
       # Add more integrations here, when they are extracted to its own isolated group
     }
 
@@ -65,7 +66,7 @@ namespace :edge do
         gemfile = AppraisalConversion.to_bundle_gemfile(group)
 
         Bundler.with_unbundled_env do
-          output, = Open3.capture2e({'BUNDLE_GEMFILE' => gemfile.to_s}, "bundle lock --update=#{gem}")
+          output, = Open3.capture2e({"BUNDLE_GEMFILE" => gemfile.to_s}, "bundle lock --update=#{gem}")
 
           puts output
         end

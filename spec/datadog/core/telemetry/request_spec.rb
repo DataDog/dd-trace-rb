@@ -1,16 +1,16 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/telemetry/request'
+require "datadog/core/telemetry/request"
 
 RSpec.describe Datadog::Core::Telemetry::Request do
-  describe '.build_payload' do
+  describe ".build_payload" do
     subject { described_class.build_payload(event, seq_id) }
-    let(:event) { double('event', payload: payload, type: request_type) }
-    let(:seq_id) { double('seq_id') }
-    let(:payload) { double('payload') }
-    let(:request_type) { double('request_type') }
+    let(:event) { double("event", payload: payload, type: request_type) }
+    let(:seq_id) { double("seq_id") }
+    let(:payload) { double("payload") }
+    let(:request_type) { double("request_type") }
 
-    let(:api_version) { 'v2' }
+    let(:api_version) { "v2" }
     let(:debug) { false }
     let(:runtime_id) { Datadog::Core::Environment::Identity.id }
     let!(:before_time) { Time.now.to_i }
@@ -29,14 +29,15 @@ RSpec.describe Datadog::Core::Telemetry::Request do
       }
     end
 
-    let(:env) { 'env' }
-    let(:language_name) { 'ruby' }
+    let(:env) { "env" }
+    let(:language_name) { "ruby" }
     let(:language_version) { RUBY_VERSION }
     let(:runtime_name) { RUBY_ENGINE }
     let(:runtime_version) { Datadog::Core::Environment::Ext::ENGINE_VERSION }
-    let(:service_name) { 'service' }
-    let(:service_version) { 'version' }
+    let(:service_name) { "service" }
+    let(:service_version) { "version" }
     let(:tracer_version) { Datadog::Core::Environment::Identity.gem_datadog_version_semver2 }
+    let(:process_tags_enabled) { false }
 
     let(:host) do
       {
@@ -59,30 +60,56 @@ RSpec.describe Datadog::Core::Telemetry::Request do
         c.env = env
         c.service = service_name
         c.version = service_version
+        c.experimental_propagate_process_tags_enabled = process_tags_enabled
       end
     end
 
-    it do
-      is_expected.to match(
-        api_version: api_version,
-        application: application,
-        debug: debug,
-        host: host,
-        payload: payload,
-        request_type: request_type,
-        runtime_id: runtime_id,
-        seq_id: seq_id,
-        tracer_time: be_between(before_time, after_time),
-      )
+    context "when process tags propagation is disabled" do
+      it do
+        is_expected.to match(
+          api_version: api_version,
+          application: application,
+          debug: debug,
+          host: host,
+          payload: payload,
+          request_type: request_type,
+          runtime_id: runtime_id,
+          seq_id: seq_id,
+          tracer_time: be_between(before_time, after_time),
+        )
+      end
     end
 
-    context 'when Datadog::CI is loaded and ci mode is enabled' do
+    context "when process tags propagation is enabled" do
+      let(:process_tags_enabled) { true }
+      let(:process_tags) { "entrypoint.workdir:test,entrypoint.name:test_script" }
+
       before do
-        stub_const('Datadog::CI::VERSION::STRING', '1.2.3')
+        allow(Datadog::Core::Environment::Process).to receive(:serialized).and_return(process_tags)
+      end
+
+      it do
+        is_expected.to match(
+          api_version: api_version,
+          application: application.merge(process_tags: process_tags),
+          debug: debug,
+          host: host,
+          payload: payload,
+          request_type: request_type,
+          runtime_id: runtime_id,
+          seq_id: seq_id,
+          tracer_time: be_between(before_time, after_time),
+        )
+      end
+    end
+
+    context "when Datadog::CI is loaded and ci mode is enabled" do
+      before do
+        stub_const("Datadog::CI::VERSION::STRING", "1.2.3")
         expect(Datadog).to receive(:configuration).and_return(
           double(
-            'configuration',
-            ci: double('ci', enabled: true),
+            "configuration",
+            ci: double("ci", enabled: true),
             env: env,
             service: service_name,
             version: service_version,

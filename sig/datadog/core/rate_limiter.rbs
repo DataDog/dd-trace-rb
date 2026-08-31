@@ -1,9 +1,9 @@
 module Datadog
   module Core
     class RateLimiter
-      def allow?: (?::Integer size) -> void
+      def allow?: (?::Integer size) -> bool
 
-      def effective_rate: () -> void
+      def effective_rate: () -> ::Float
     end
 
     class TokenBucket < RateLimiter

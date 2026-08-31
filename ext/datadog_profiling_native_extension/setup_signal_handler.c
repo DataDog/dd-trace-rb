@@ -9,29 +9,35 @@
 
 // Used by Collectors::CpuAndWallTimeWorker to setup SIGPROF signal handlers used for cpu/wall-time profiling.
 
+static VALUE existing_signal_handler_exception_class = Qnil;
+
 static void install_sigprof_signal_handler_internal(
   void (*signal_handler_function)(int, siginfo_t *, void *),
   const char *handler_pretty_name,
-  void (*signal_handler_to_replace)(int, siginfo_t *, void *)
+  void (*signal_handler_to_replace)(int, siginfo_t *, void *),
+  bool should_raise_on_failure
 );
 
 void empty_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) { }
 
 void install_sigprof_signal_handler(void (*signal_handler_function)(int, siginfo_t *, void *), const char *handler_pretty_name) {
-  install_sigprof_signal_handler_internal(signal_handler_function, handler_pretty_name, NULL);
+  install_sigprof_signal_handler_internal(signal_handler_function, handler_pretty_name, NULL, true);
 }
 
-void replace_sigprof_signal_handler_with_empty_handler(void (*expected_existing_handler)(int, siginfo_t *, void *)) {
-  install_sigprof_signal_handler_internal(empty_signal_handler, "empty_signal_handler", expected_existing_handler);
+void replace_sigprof_signal_handler_with_empty_handler(void (*expected_existing_handler)(int, siginfo_t *, void *), bool should_raise_on_failure) {
+  install_sigprof_signal_handler_internal(empty_signal_handler, "empty_signal_handler", expected_existing_handler, should_raise_on_failure);
 }
 
 static void install_sigprof_signal_handler_internal(
   void (*signal_handler_function)(int, siginfo_t *, void *),
   const char *handler_pretty_name,
-  void (*signal_handler_to_replace)(int, siginfo_t *, void *)
+  void (*signal_handler_to_replace)(int, siginfo_t *, void *),
+  bool should_raise_on_failure
 ) {
   struct sigaction existing_signal_handler_config = {.sa_sigaction = NULL};
   struct sigaction signal_handler_config = {
+    // NOTE: Deliberately not SA_ONSTACK. `handle_sampling_signal` uses "am I running on the alternate signal stack?"
+    // to detect that if it interrupted another signal handler from the Ruby VM, see `is_running_on_alternate_signal_stack` for details.
     .sa_flags = SA_RESTART | SA_SIGINFO,
     .sa_sigaction = signal_handler_function
   };
@@ -52,8 +58,7 @@ static void install_sigprof_signal_handler_internal(
   ) { return; }
 
   if (existing_signal_handler_config.sa_handler != NULL || existing_signal_handler_config.sa_sigaction != NULL) {
-    // An unexpected/unknown signal handler already existed. Currently we don't support this situation, so let's just back out
-    // of the installation.
+    // An unexpected/unknown signal handler already existed.
 
     if (sigaction(SIGPROF, &existing_signal_handler_config, NULL) != 0) {
       rb_exc_raise(
@@ -71,8 +76,12 @@ static void install_sigprof_signal_handler_internal(
       );
     }
 
-    rb_raise(
-      rb_eRuntimeError,
+    // If should_raise_on_failure is false (e.g., during cleanup), just return silently.
+    // This can happen if we failed to install our handler earlier due to a pre-existing handler.
+    if (!should_raise_on_failure) return;
+
+    raise_error(
+      existing_signal_handler_exception_class,
       "Could not install profiling signal handler (%s): There's a pre-existing SIGPROF signal handler",
       handler_pretty_name
     );
@@ -95,8 +104,14 @@ static inline void toggle_sigprof_signal_handler_for_current_thread(int action) 
   sigset_t signals_to_toggle;
   sigemptyset(&signals_to_toggle);
   sigaddset(&signals_to_toggle, SIGPROF);
+
   int error = pthread_sigmask(action, &signals_to_toggle, NULL);
-  if (error) rb_exc_raise(rb_syserr_new_str(error, rb_sprintf("Unexpected failure in pthread_sigmask, action=%d", action)));
+  if (error) {
+    const char *message = (action == SIG_BLOCK) ?
+      "Unexpected failure in pthread_sigmask: action SIG_BLOCK" :
+      "Unexpected failure in pthread_sigmask: action SIG_UNBLOCK";
+    private_raise_syserr(error, message, message);
+  }
 }
 
 void block_sigprof_signal_handler_from_running_in_current_thread(void) {
@@ -112,4 +127,13 @@ VALUE is_sigprof_blocked_in_current_thread(void) {
   sigemptyset(&current_signals);
   ENFORCE_SUCCESS_GVL(pthread_sigmask(0, NULL, &current_signals));
   return sigismember(&current_signals, SIGPROF) ? Qtrue : Qfalse;
+}
+
+void setup_signal_handler_init(VALUE profiling_module) {
+  existing_signal_handler_exception_class = rb_define_class_under(
+    profiling_module,
+    "ExistingSignalHandler",
+    rb_eRuntimeError
+  );
+  rb_gc_register_mark_object(existing_signal_handler_exception_class);
 }

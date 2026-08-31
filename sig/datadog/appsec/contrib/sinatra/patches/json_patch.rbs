@@ -4,7 +4,9 @@ module Datadog
       module Sinatra
         module Patches
           module JsonPatch
-            def json: (untyped object, ?::Hash[untyped, untyped] options) -> untyped
+            @request: ::Sinatra::Request
+
+            def json: (untyped object, ?untyped options) -> ::String
           end
         end
       end

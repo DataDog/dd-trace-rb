@@ -1,6 +1,6 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog'
+require "datadog"
 
 RSpec.describe Datadog::Core::Configuration::Option do
   subject(:option) { described_class.new(definition, context) }
@@ -20,15 +20,16 @@ RSpec.describe Datadog::Core::Configuration::Option do
       type_options: type_options,
     )
   end
-  let(:default) { double('default') }
+  let(:default) { double("default") }
   let(:default_proc) { nil }
   let(:env) { nil }
   let(:env_parser) { nil }
   let(:type) { nil }
   let(:type_options) { {} }
   let(:setter) { proc { setter_value } }
-  let(:setter_value) { double('setter_value') }
-  let(:context) { double('configuration object') }
+  let(:setter_value) { double("setter_value") }
+  let(:context_class) { Class.new { include Datadog::Core::Configuration::Base } }
+  let(:context) { context_class.new }
 
   # When setting the setting value, we make sure to duplicate it to avoid unwanted modifications
   # to make sure specs pass when comparing result ex. expect(result).to be value
@@ -40,16 +41,42 @@ RSpec.describe Datadog::Core::Configuration::Option do
     end
   end
 
-  describe '#initialize' do
+  describe "#initialize" do
     it { expect(option.definition).to be(definition) }
   end
 
-  describe '#set' do
+  describe "#name_with_settings_path" do
+    subject(:name_with_settings_path) { option.name_with_settings_path }
+
+    context "when the option context has no settings path" do
+      it { is_expected.to eq("test_name") }
+    end
+
+    context "when the option belongs to nested settings" do
+      let(:base_class) do
+        Class.new do
+          include Datadog::Core::Configuration::Base
+
+          settings :tracing do
+            settings :rails do
+              option :enabled
+            end
+          end
+        end
+      end
+      let(:context) { base_class.new.tracing.rails }
+      let(:definition) { context.class.options[:enabled] }
+
+      it { is_expected.to eq("tracing.rails.enabled") }
+    end
+  end
+
+  describe "#set" do
     subject(:set) { option.set(value) }
 
-    let(:value) { double('value') }
+    let(:value) { double("value") }
 
-    context 'when no value has been set' do
+    context "when no value has been set" do
       before do
         allow(definition).to receive(:after_set).and_return nil
         expect(context).to receive(:instance_exec) do |*args, &block|
@@ -61,9 +88,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
       it { is_expected.to be(setter_value) }
 
-      context 'when an :after_set event is defined' do
+      context "when an :after_set event is defined" do
         let(:after_set) { proc { after_set_value } }
-        let(:after_set_value) { double('after_set_value') }
+        let(:after_set_value) { double("after_set_value") }
 
         before do
           allow(definition).to receive(:after_set).and_return(after_set)
@@ -77,7 +104,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           end
         end
 
-        context 'then #get is invoked' do
+        context "then #get is invoked" do
           subject(:get) { option.get }
 
           before { set }
@@ -87,10 +114,10 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
     end
 
-    context 'when a value has already been set' do
-      let(:old_value) { double('old value') }
+    context "when a value has already been set" do
+      let(:old_value) { double("old value") }
 
-      context 'when an :after_set event is not defined' do
+      context "when an :after_set event is not defined" do
         before do
           allow(context).to receive(:instance_exec)
           allow(definition).to receive(:after_set).and_return nil
@@ -108,7 +135,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
             .and_return(value)
         end
 
-        it 'invokes the setter with both old and new values' do
+        it "invokes the setter with both old and new values" do
           # Set new value
           is_expected.to be value
           expect(context).to have_received(:instance_exec)
@@ -116,9 +143,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
         end
       end
 
-      context 'when an :after_set event is defined' do
+      context "when an :after_set event is defined" do
         let(:after_set) { proc { after_set_value } }
-        let(:after_set_value) { double('after_set_value') }
+        let(:after_set_value) { double("after_set_value") }
 
         before do
           allow(definition).to receive(:after_set).and_return(after_set)
@@ -149,7 +176,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           option.set(old_value)
         end
 
-        context 'then #get is invoked' do
+        context "then #get is invoked" do
           subject(:get) { option.get }
 
           before { set }
@@ -158,8 +185,8 @@ RSpec.describe Datadog::Core::Configuration::Option do
         end
       end
 
-      context 'with precedence REMOTE_CONFIGURATION' do
-        let(:after_set) { double('after_set block') }
+      context "with precedence REMOTE_CONFIGURATION" do
+        let(:after_set) { double("after_set block") }
         let(:setter) { proc { |value| value } }
 
         before do
@@ -177,7 +204,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           allow(Datadog.logger).to receive(:info)
         end
 
-        it 'overrides with value with the same precedence' do
+        it "overrides with value with the same precedence" do
           expect(after_set).to receive(:call).with(
             :override,
             :original_value,
@@ -187,23 +214,23 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(option.get).to eq(:override)
         end
 
-        it 'does not override with value with precedence PROGRAMMATIC' do
+        it "does not override with value with precedence PROGRAMMATIC" do
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
           expect(option.get).to eq(:original_value)
         end
 
-        it 'does not override with value with precedence DEFAULT' do
+        it "does not override with value with precedence DEFAULT" do
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
           expect(option.get).to eq(:original_value)
         end
 
-        it 'does not record info log for successful override' do
+        it "does not record info log for successful override" do
           allow(Datadog.logger).to receive(:info)
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
           expect(Datadog.logger).to_not receive(:info)
         end
 
-        it 'records info log for ignored override' do
+        it "records info log for ignored override" do
           allow(Datadog.logger).to receive(:info)
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
           expect(Datadog.logger).to have_received(:info) do |&block|
@@ -212,8 +239,8 @@ RSpec.describe Datadog::Core::Configuration::Option do
         end
       end
 
-      context 'with precedence PROGRAMMATIC' do
-        let(:after_set) { double('after_set block') }
+      context "with precedence PROGRAMMATIC" do
+        let(:after_set) { double("after_set block") }
         let(:setter) { proc { |value| value } }
 
         before do
@@ -230,7 +257,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           allow(Datadog.logger).to receive(:info)
         end
 
-        it 'overrides with value with precedence REMOTE_CONFIGURATION' do
+        it "overrides with value with precedence REMOTE_CONFIGURATION" do
           expect(after_set).to receive(:call).with(
             :override,
             :original_value,
@@ -240,7 +267,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(option.get).to eq(:override)
         end
 
-        it 'overrides with value with the same precedence' do
+        it "overrides with value with the same precedence" do
           expect(after_set).to receive(:call).with(
             :override,
             :original_value,
@@ -250,13 +277,13 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(option.get).to eq(:override)
         end
 
-        it 'does not override with value with precedence DEFAULT' do
+        it "does not override with value with precedence DEFAULT" do
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
           expect(option.get).to eq(:original_value)
         end
       end
 
-      context 'with precedence DEFAULT' do
+      context "with precedence DEFAULT" do
         let(:after_set) { instance_double(Proc) }
         let(:setter) { proc { |value| value } }
 
@@ -273,7 +300,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           option.set(:original_value, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
         end
 
-        it 'overrides with value with precedence REMOTE_CONFIGURATION' do
+        it "overrides with value with precedence REMOTE_CONFIGURATION" do
           expect(after_set).to receive(:call).with(
             :override,
             :original_value,
@@ -283,7 +310,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(option.get).to eq(:override)
         end
 
-        it 'overrides with value with precedence PROGRAMMATIC' do
+        it "overrides with value with precedence PROGRAMMATIC" do
           expect(after_set).to receive(:call).with(
             :override,
             :original_value,
@@ -293,7 +320,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(option.get).to eq(:override)
         end
 
-        it 'overrides with value with the same precedence' do
+        it "overrides with value with the same precedence" do
           expect(after_set).to receive(:call).with(
             :override,
             :original_value,
@@ -305,221 +332,221 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
     end
 
-    context 'value validation' do
+    context "value validation" do
       before { allow(context).to receive(:instance_exec) }
 
-      context 'when type is not defined' do
-        it 'does not raise exception' do
+      context "when type is not defined" do
+        it "does not raise exception" do
           expect { set }.not_to raise_exception
         end
       end
 
-      context 'when type is defined' do
-        context 'type is invalid' do
+      context "when type is defined" do
+        context "type is invalid" do
           let(:type) { :nullable_string }
-          let(:value) { 'Hello' }
-          it 'raise exception' do
+          let(:value) { "Hello" }
+          it "raise exception" do
             expect { set }.to raise_exception(Datadog::Core::Configuration::Option::InvalidDefinitionError)
           end
         end
 
-        context 'Integer' do
+        context "Integer" do
           let(:type) { :int }
 
-          context 'valid value' do
+          context "valid value" do
             let(:value) { 1 }
 
-            it 'does not raise exception' do
+            it "does not raise exception" do
               expect { set }.not_to raise_exception
             end
           end
 
-          context 'invalid value' do
+          context "invalid value" do
             let(:value) { true }
 
-            it 'raise exception' do
+            it "raise exception" do
               expect { set }.to raise_exception(ArgumentError)
             end
 
-            context 'that is a float' do
+            context "that is a float" do
               let(:value) { 10.1 }
 
-              it 'raises exception' do
+              it "raises exception" do
                 expect { set }.to raise_exception(ArgumentError)
               end
             end
           end
         end
 
-        context 'Float' do
+        context "Float" do
           let(:type) { :float }
 
-          context 'valid value' do
+          context "valid value" do
             let(:value) { 10.0 }
 
-            it 'does not raise exception' do
+            it "does not raise exception" do
               expect { set }.not_to raise_exception
             end
 
-            context 'that is an integer' do
+            context "that is an integer" do
               let(:value) { 10 }
 
-              it 'does not raise exception' do
+              it "does not raise exception" do
                 expect { set }.not_to raise_exception
               end
             end
 
-            context 'that is a rational' do
+            context "that is a rational" do
               let(:value) { 1/3r }
 
-              it 'does not raise exception' do
+              it "does not raise exception" do
                 expect { set }.not_to raise_exception
               end
             end
           end
 
-          context 'invalid value' do
+          context "invalid value" do
             let(:value) { true }
 
-            it 'raise exception' do
+            it "raise exception" do
               expect { set }.to raise_exception(ArgumentError)
             end
           end
         end
 
-        context 'String' do
+        context "String" do
           let(:type) { :string }
 
-          context 'valid value' do
-            let(:value) { 'Hello' }
+          context "valid value" do
+            let(:value) { "Hello" }
 
-            it 'does not raise exception' do
+            it "does not raise exception" do
               expect { set }.not_to raise_exception
             end
           end
 
-          context 'invalid value' do
-            let(:value) { ['Hello'] }
+          context "invalid value" do
+            let(:value) { ["Hello"] }
 
-            it 'raise exception' do
+            it "raise exception" do
               expect { set }.to raise_exception(ArgumentError)
             end
           end
         end
 
-        context 'Array' do
+        context "Array" do
           let(:type) { :array }
 
-          context 'valid value' do
+          context "valid value" do
             let(:value) { [] }
 
-            it 'does not raise exception' do
+            it "does not raise exception" do
               expect { set }.not_to raise_exception
             end
           end
 
-          context 'invalid value' do
-            let(:value) { 'Hello' }
+          context "invalid value" do
+            let(:value) { "Hello" }
 
-            it 'raise exception' do
+            it "raise exception" do
               expect { set }.to raise_exception(ArgumentError)
             end
           end
         end
 
-        context 'Hash' do
+        context "Hash" do
           let(:type) { :hash }
 
-          context 'valid value' do
+          context "valid value" do
             let(:value) { {} }
 
-            it 'does not raise exception' do
+            it "does not raise exception" do
               expect { set }.not_to raise_exception
             end
           end
 
-          context 'invalid value' do
-            let(:value) { ['Hello'] }
+          context "invalid value" do
+            let(:value) { ["Hello"] }
 
-            it 'raise exception' do
+            it "raise exception" do
               expect { set }.to raise_exception(ArgumentError)
             end
           end
         end
 
-        context 'Bool' do
+        context "Bool" do
           let(:type) { :bool }
 
-          context 'valid value' do
+          context "valid value" do
             let(:value) { true }
 
-            it 'does not raise exception' do
+            it "does not raise exception" do
               expect { set }.not_to raise_exception
             end
           end
 
-          context 'invalid value' do
+          context "invalid value" do
             let(:value) { :hello }
 
-            it 'raise exception' do
+            it "raise exception" do
               expect { set }.to raise_exception(ArgumentError)
             end
           end
         end
 
-        context 'Proc' do
+        context "Proc" do
           let(:type) { :proc }
 
-          context 'valid value' do
+          context "valid value" do
             let(:value) { -> {} }
 
-            it 'does not raise exception' do
+            it "does not raise exception" do
               expect { set }.not_to raise_exception
             end
           end
 
-          context 'invalid value' do
-            let(:value) { ['Hello'] }
+          context "invalid value" do
+            let(:value) { ["Hello"] }
 
-            it 'raise exception' do
+            it "raise exception" do
               expect { set }.to raise_exception(ArgumentError)
             end
           end
         end
 
-        context 'Symbol' do
+        context "Symbol" do
           let(:type) { :symbol }
 
-          context 'valid value' do
+          context "valid value" do
             let(:value) { :hello }
 
-            it 'does not raise exception' do
+            it "does not raise exception" do
               expect { set }.not_to raise_exception
             end
           end
 
-          context 'invalid value' do
+          context "invalid value" do
             let(:value) { true }
 
-            it 'raise exception' do
+            it "raise exception" do
               expect { set }.to raise_exception(ArgumentError)
             end
           end
         end
 
-        context 'Nil values' do
+        context "Nil values" do
           let(:type) { :string }
           let(:type_options) { {nilable: true} }
           let(:value) { nil }
 
-          it 'does not raise exception' do
+          it "does not raise exception" do
             expect { set }.to_not raise_exception
           end
 
-          context 'value is not nil' do
-            let(:value) { ['Hello'] }
+          context "value is not nil" do
+            let(:value) { ["Hello"] }
 
-            it 'does raise exception' do
+            it "does raise exception" do
               expect { set }.to raise_exception(ArgumentError)
             end
           end
@@ -528,11 +555,11 @@ RSpec.describe Datadog::Core::Configuration::Option do
     end
   end
 
-  describe '#unset' do
+  describe "#unset" do
     before { allow(Datadog.logger).to receive(:info) }
 
     # Sanity check for the combinatorial test setup that follows
-    it 'expect precedence list to not be empty' do
+    it "expect precedence list to not be empty" do
       expect(Datadog::Core::Configuration::Option::Precedence::LIST).to_not be_empty
     end
 
@@ -554,31 +581,31 @@ RSpec.describe Datadog::Core::Configuration::Option do
     # | rc, default                | default             | rc              |
 
     # We don't need to test all precedence set combinations.
-    context 'with preset precedence' do
+    context "with preset precedence" do
       before do
         allow(context).to(receive(:instance_exec)) { |value, _| value }
       end
 
-      context 'when no precedence value is set and try to unset a precedence that is not set' do
+      context "when no precedence value is set and try to unset a precedence that is not set" do
         before { option.unset(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC) }
 
-        it 'does not modify the option' do
+        it "does not modify the option" do
           expect(option.get).to eq(default)
           expect(option.send(:precedence_set)).to eq(Datadog::Core::Configuration::Option::Precedence::DEFAULT)
         end
       end
 
-      context 'when no precedence value is set and try to unset DEFAULT' do
+      context "when no precedence value is set and try to unset DEFAULT" do
         before { option.unset(Datadog::Core::Configuration::Option::Precedence::DEFAULT) }
 
-        it 'does not modify the option' do
+        it "does not modify the option" do
           expect(option.get).to eq(default)
           expect(option.send(:precedence_set)).to eq(Datadog::Core::Configuration::Option::Precedence::DEFAULT)
         end
       end
 
-      context 'with a single precedence value set' do
-        context 'when unsetting lower precedence' do
+      context "with a single precedence value set" do
+        context "when unsetting lower precedence" do
           before do
             option.set(
               Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
@@ -588,13 +615,13 @@ RSpec.describe Datadog::Core::Configuration::Option do
             option.unset(Datadog::Core::Configuration::Option::Precedence::DEFAULT)
           end
 
-          it 'does not modify the option' do
+          it "does not modify the option" do
             expect(option.get).to eq(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
             expect(option.send(:precedence_set)).to eq(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
           end
         end
 
-        context 'when unsetting same precedence' do
+        context "when unsetting same precedence" do
           before do
             option.set(
               Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
@@ -604,13 +631,13 @@ RSpec.describe Datadog::Core::Configuration::Option do
             option.unset(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
           end
 
-          it 'removes the only precedence value' do
+          it "removes the only precedence value" do
             expect(option.get).to eq(default)
             expect(option.send(:precedence_set)).to eq(Datadog::Core::Configuration::Option::Precedence::DEFAULT)
           end
         end
 
-        context 'when unsetting higher precedence' do
+        context "when unsetting higher precedence" do
           before do
             option.set(
               Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
@@ -620,15 +647,15 @@ RSpec.describe Datadog::Core::Configuration::Option do
             option.unset(Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
           end
 
-          it 'does not modify the option' do
+          it "does not modify the option" do
             expect(option.get).to eq(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
             expect(option.send(:precedence_set)).to eq(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
           end
         end
       end
 
-      context 'with multiple precedence values set' do
-        context 'when unsetting the higher precedence' do
+      context "with multiple precedence values set" do
+        context "when unsetting the higher precedence" do
           before do
             option.set(
               Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT,
@@ -642,13 +669,13 @@ RSpec.describe Datadog::Core::Configuration::Option do
             option.unset(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
           end
 
-          it 'falls back to lower precedence value' do
+          it "falls back to lower precedence value" do
             expect(option.get).to eq(Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT)
             expect(option.send(:precedence_set)).to eq(Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT)
           end
         end
 
-        context 'when unsetting the lower precedence' do
+        context "when unsetting the lower precedence" do
           before do
             option.set(
               Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT,
@@ -662,7 +689,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
             option.unset(Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT)
           end
 
-          it 'does not modify the option' do
+          it "does not modify the option" do
             expect(option.get).to eq(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
             expect(option.send(:precedence_set)).to eq(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
           end
@@ -670,215 +697,215 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
     end
 
-    context 'with a custom setter' do
-      let(:setter) { ->(value, _) { value + '+setter' } }
+    context "with a custom setter" do
+      let(:setter) { ->(value, _) { value + "+setter" } }
 
-      it 'invokes the setter only once when restoring a value' do
-        option.set('prog', precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
-        option.set('default', precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
+      it "invokes the setter only once when restoring a value" do
+        option.set("prog", precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+        option.set("default", precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
 
         option.unset(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
 
-        expect(option.get).to eq('default+setter')
+        expect(option.get).to eq("default+setter")
       end
     end
   end
 
-  describe '#get' do
+  describe "#get" do
     subject(:get) { option.get }
 
-    shared_examples_for 'env coercion' do
+    shared_examples_for "env coercion" do
       # As we now always set default value, we also need to change default to corresponding type
-      context 'when type is defined' do
-        context ':hash' do
+      context "when type is defined" do
+        context ":hash" do
           let(:type) { :hash }
           let(:default) { {} }
 
-          context 'value with commas' do
-            let(:env_value) { 'key1:value1,key2:value2' }
+          context "value with commas" do
+            let(:env_value) { "key1:value1,key2:value2" }
 
-            it 'coerce value' do
-              expect(option.get).to eq({'key1' => 'value1', 'key2' => 'value2'})
+            it "coerce value" do
+              expect(option.get).to eq({"key1" => "value1", "key2" => "value2"})
             end
 
-            context 'remove empty values' do
-              let(:env_value) { 'key1:value1,key2:value2,,,key3:value3,' }
+            context "remove empty values" do
+              let(:env_value) { "key1:value1,key2:value2,,,key3:value3," }
 
-              it 'coerce value' do
-                expect(option.get).to eq({'key1' => 'value1', 'key2' => 'value2', 'key3' => 'value3'})
+              it "coerce value" do
+                expect(option.get).to eq({"key1" => "value1", "key2" => "value2", "key3" => "value3"})
               end
             end
           end
         end
 
-        context ':int' do
+        context ":int" do
           let(:type) { :int }
           let(:default) { 0 }
-          let(:env_value) { '1234' }
+          let(:env_value) { "1234" }
 
-          it 'coerce value' do
+          it "coerce value" do
             expect(option.get).to eq 1234
           end
 
-          context 'with an octal number' do
-            let(:env_value) { '010' }
-            it 'parses in base 10' do
+          context "with an octal number" do
+            let(:env_value) { "010" }
+            it "parses in base 10" do
               expect(option.get).to eq 10
             end
           end
 
-          context 'with a float' do
-            let(:env_value) { '10.1' }
-            it 'errors' do
+          context "with a float" do
+            let(:env_value) { "10.1" }
+            it "errors" do
               expect { option.get }.to raise_exception(ArgumentError)
             end
           end
 
-          context 'with not a number' do
-            let(:env_value) { 'not a number' }
-            it 'errors' do
+          context "with not a number" do
+            let(:env_value) { "not a number" }
+            it "errors" do
               expect { option.get }.to raise_exception(ArgumentError)
             end
           end
         end
 
-        context ':float' do
+        context ":float" do
           let(:type) { :float }
           let(:default) { 0.0 }
-          let(:env_value) { '12.34' }
+          let(:env_value) { "12.34" }
 
-          it 'coerce value' do
+          it "coerce value" do
             expect(option.get).to eq 12.34
           end
 
-          context 'with not a number' do
-            let(:env_value) { 'not a number' }
-            it 'errors' do
+          context "with not a number" do
+            let(:env_value) { "not a number" }
+            it "errors" do
               expect { option.get }.to raise_exception(ArgumentError)
             end
           end
         end
 
-        context ':array' do
+        context ":array" do
           let(:type) { :array }
           let(:default) { [] }
-          context 'value with commas' do
-            let(:env_value) { '12,34' }
+          context "value with commas" do
+            let(:env_value) { "12,34" }
 
-            it 'coerce value' do
-              expect(option.get).to eq ['12', '34']
+            it "coerce value" do
+              expect(option.get).to eq ["12", "34"]
             end
 
-            context 'remove empty values' do
-              let(:env_value) { '12,34,,,56,' }
+            context "remove empty values" do
+              let(:env_value) { "12,34,,,56," }
 
-              it 'coerce value' do
-                expect(option.get).to eq ['12', '34', '56']
+              it "coerce value" do
+                expect(option.get).to eq ["12", "34", "56"]
               end
             end
           end
         end
 
-        context ':bool' do
+        context ":bool" do
           let(:type) { :bool }
           let(:default) { false }
-          context 'with value 1' do
-            let(:env_value) { '1' }
+          context "with value 1" do
+            let(:env_value) { "1" }
 
-            it 'cource value' do
+            it "cource value" do
               expect(option.get).to eq true
             end
           end
 
-          context 'with value true' do
-            let(:env_value) { 'true' }
+          context "with value true" do
+            let(:env_value) { "true" }
 
-            it 'cource value' do
+            it "cource value" do
               expect(option.get).to eq true
             end
           end
 
-          context 'other value' do
-            let(:env_value) { 'something' }
+          context "other value" do
+            let(:env_value) { "something" }
 
-            it 'cource value' do
+            it "cource value" do
               expect(option.get).to eq false
             end
           end
         end
 
-        context 'invalid type' do
+        context "invalid type" do
           let(:type) { :invalid_type }
-          let(:default) { '0' }
-          let(:env_value) { '1' }
+          let(:default) { "0" }
+          let(:env_value) { "1" }
 
-          it 'raise exception' do
+          it "raise exception" do
             expect { option.get }.to raise_exception(Datadog::Core::Configuration::Option::InvalidDefinitionError)
           end
         end
       end
     end
 
-    shared_context 'with env_parser' do
+    shared_context "with env_parser" do
       let(:env_parser) do
         proc do |env_value|
           env_value
         end
       end
 
-      it 'passes the env variable value to the env_parser' do
+      it "passes the env variable value to the env_parser" do
         expect(context).to receive(:instance_exec).with(env_value, &env_parser)
 
         get
       end
     end
 
-    context 'when env is defined' do
+    context "when env is defined" do
       before do
         allow(context).to receive(:instance_exec) do |*args|
           args[0]
         end
       end
 
-      let(:env) { 'TEST' }
+      let(:env) { "TEST" }
 
-      context 'when env is not set' do
-        it 'use default value' do
+      context "when env is not set" do
+        it "use default value" do
           expect(option.get).to be default
         end
       end
 
-      context 'when env is set' do
+      context "when env is set" do
         around do |example|
           ClimateControl.modify(env => env_value) do
             example.run
           end
         end
 
-        let(:env_value) { 'test' }
+        let(:env_value) { "test" }
 
-        it 'uses env var value' do
+        it "uses env var value" do
           expect(option.get).to eq env_value
         end
 
-        it 'set precedence_set to environment' do
+        it "set precedence_set to environment" do
           option.get
           expect(option.send(:precedence_set)).to eq described_class::Precedence::ENVIRONMENT
         end
 
-        it 'falls back to default when unsetting env' do
+        it "falls back to default when unsetting env" do
           option.get
           option.unset(described_class::Precedence::ENVIRONMENT)
           expect(option.get).to eq default
         end
 
-        it_behaves_like 'env coercion'
-        it_behaves_like 'with env_parser'
+        it_behaves_like "env coercion"
+        it_behaves_like "with env_parser"
       end
     end
 
-    context 'when #set' do
-      context 'hasn\'t been called' do
+    context "when #set" do
+      context "hasn't been called" do
         before do
           expect(context).to receive(:instance_exec) do |*args, &block|
             expect(args.first).to be(default)
@@ -889,21 +916,21 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         it { is_expected.to be(default) }
 
-        context 'and #get is called twice' do
+        context "and #get is called twice" do
           before do
             allow(definition).to receive(:default)
               .and_return(default)
           end
 
-          it 'keeps and re-uses the same default object' do
+          it "keeps and re-uses the same default object" do
             is_expected.to be default
             expect(option.get).to be default
           end
         end
       end
 
-      context 'has been called' do
-        let(:value) { double('value') }
+      context "has been called" do
+        let(:value) { double("value") }
 
         before do
           expect(context).to receive(:instance_exec) do |*args, &block|
@@ -920,40 +947,40 @@ RSpec.describe Datadog::Core::Configuration::Option do
     end
 
     # Stubbed config files.
-    context 'with local config file' do
-      let(:env) { 'TEST' }
+    context "with local config file" do
+      let(:env) { "TEST" }
       let(:setter) { proc { |value| value } }
       before do
         allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
-          {local: {id: '12345', config: {'TEST' => 'test'}}}
+          {local: {id: "12345", config: {"TEST" => "test"}}}
         )
       end
 
-      it 'uses the local config file' do
-        expect(option.get).to eq 'test'
+      it "uses the local config file" do
+        expect(option.get).to eq "test"
       end
     end
 
-    context 'with fleet config file' do
-      let(:env) { 'TEST' }
+    context "with fleet config file" do
+      let(:env) { "TEST" }
       let(:setter) { proc { |value| value } }
       before do
         allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
-          {fleet: {id: '56789', config: {'TEST' => 'test'}}}
+          {fleet: {id: "56789", config: {"TEST" => "test"}}}
         )
       end
 
-      it 'uses the fleet config file' do
-        expect(option.get).to eq 'test'
+      it "uses the fleet config file" do
+        expect(option.get).to eq "test"
       end
     end
   end
 
-  describe '#reset' do
+  describe "#reset" do
     subject(:reset) { option.reset }
 
-    context 'when a value has been set' do
-      let(:value) { double('value') }
+    context "when a value has been set" do
+      let(:value) { double("value") }
 
       before do
         allow(definition).to receive(:resetter).and_return nil
@@ -962,8 +989,8 @@ RSpec.describe Datadog::Core::Configuration::Option do
         option.set(value)
       end
 
-      context 'and no resetter is defined' do
-        context 'then #get is invoked' do
+      context "and no resetter is defined" do
+        context "then #get is invoked" do
           subject(:get) { option.get }
 
           before { reset }
@@ -974,9 +1001,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
         end
       end
 
-      context 'and a resetter is defined' do
+      context "and a resetter is defined" do
         let(:resetter) { proc { resetter_value } }
-        let(:resetter_value) { double('resetter_value') }
+        let(:resetter_value) { double("resetter_value") }
 
         before do
           allow(definition).to receive(:resetter).and_return(resetter)
@@ -988,7 +1015,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           end
         end
 
-        context 'then #get is invoked' do
+        context "then #get is invoked" do
           subject(:get) { option.get }
 
           before { reset }
@@ -997,19 +1024,19 @@ RSpec.describe Datadog::Core::Configuration::Option do
         end
       end
 
-      it 'resets precedence to DEFAULT' do
+      it "resets precedence to DEFAULT" do
         reset
         expect(option.send(:precedence_set)).to eq(Datadog::Core::Configuration::Option::Precedence::DEFAULT)
       end
 
-      context 'with previous value in different precedence' do
+      context "with previous value in different precedence" do
         before do
           allow(context).to receive(:instance_exec).with(:value, any_args).and_return(:value)
 
           option.set(:value, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
         end
 
-        it 'resetting removes all old precedence values store' do
+        it "resetting removes all old precedence values store" do
           reset
 
           # For unset to try to restore an old precedence value
@@ -1023,14 +1050,14 @@ RSpec.describe Datadog::Core::Configuration::Option do
     end
   end
 
-  describe '#default_value' do
+  describe "#default_value" do
     subject(:default_value) { option.default_value }
 
-    let(:default) { double('default') }
+    let(:default) { double("default") }
 
-    context 'when default is a block' do
+    context "when default is a block" do
       let(:default) { proc {} }
-      let(:block_default) { double('block default') }
+      let(:block_default) { double("block default") }
 
       before do
         expect(context).to receive(:instance_eval) do |&block|
@@ -1042,16 +1069,70 @@ RSpec.describe Datadog::Core::Configuration::Option do
       it { is_expected.to be block_default }
     end
 
-    context 'when default is not a block' do
+    context "when default is not a block" do
       it do
         is_expected.to be default
       end
     end
 
-    context 'when default_proc is defined' do
-      let(:default_proc) { proc { 'default_proc' } }
+    context "when default_proc is defined" do
+      let(:default_proc) { proc { "default_proc" } }
 
       it { is_expected.to be default_proc }
+    end
+  end
+
+  describe "#values_per_precedence" do
+    subject(:values_per_precedence) { option.values_per_precedence }
+
+    let(:default) { :default_value }
+    let(:setter) { proc { |value| value } }
+
+    before do
+      allow(context).to receive(:instance_exec) do |*args, &block|
+        if block == setter
+          args.first
+        elsif block == env_parser
+          env_parser.call(*args)
+        else
+          args.first
+        end
+      end
+    end
+
+    it "returns the resolved values keyed by precedence" do
+      option.set(:programmatic_value, precedence: described_class::Precedence::PROGRAMMATIC)
+
+      expect(values_per_precedence).to eq(
+        described_class::Precedence::PROGRAMMATIC => :programmatic_value
+      )
+    end
+
+    it "filters out unset precedence values" do
+      option.set(:programmatic_value, precedence: described_class::Precedence::PROGRAMMATIC)
+      option.unset(described_class::Precedence::PROGRAMMATIC)
+
+      expect(values_per_precedence).to eq(
+        described_class::Precedence::DEFAULT => :default_value
+      )
+    end
+
+    context "when environment values are available but the option was never read" do
+      let(:env) { "TEST" }
+      let(:env_value) { "env-value" }
+
+      around do |example|
+        ClimateControl.modify(env => env_value) do
+          example.run
+        end
+      end
+
+      it "materializes default and environment values before returning them" do
+        expect(values_per_precedence).to eq(
+          described_class::Precedence::DEFAULT => :default_value,
+          described_class::Precedence::ENVIRONMENT => "env-value"
+        )
+      end
     end
   end
 end

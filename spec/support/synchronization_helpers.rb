@@ -1,9 +1,15 @@
-require 'English'
+require "English"
 
 module SynchronizationHelpers
+  # Runs the given block in a fork, allowing you to perform RSpec assertions in a fork
+  # and have them be reported in the parent process.
+  #
+  # You can alternatively use `execute_in_fork: true` {ForkableExample}
+  # if your whole example or example group should run in a forked process.
   def expect_in_fork(fork_expectations: nil, timeout_seconds: 10, trigger_stacktrace_on_kill: false, debug: false)
     fork_expectations ||= proc { |status:, stdout:, stderr:|
-      expect(status && status.success?).to be(true), "STDOUT:`#{stdout}` STDERR:`#{stderr}"
+      expect(status && status.success?).to be(true),
+        "Status:#{status.inspect} STDOUT:`#{stdout}` STDERR:`#{stderr}"
     }
 
     if debug
@@ -13,8 +19,8 @@ module SynchronizationHelpers
       return rv
     end
 
-    fork_stdout = Tempfile.new('datadog-rspec-expect-in-fork-stdout')
-    fork_stderr = Tempfile.new('datadog-rspec-expect-in-fork-stderr')
+    fork_stdout = Tempfile.new("datadog-rspec-expect-in-fork-stdout")
+    fork_stderr = Tempfile.new("datadog-rspec-expect-in-fork-stderr")
     begin
       # Start in fork
       pid = fork do
@@ -24,7 +30,9 @@ module SynchronizationHelpers
         $stderr.reopen(fork_stderr) # STDERR captures RSpec failures. We print it in case the fork fails on exit.
         $stderr.sync = true
 
-        yield
+        RSpec::Mocks.with_temporary_scope do
+          yield
+        end
       end
 
       # Wait for fork to finish, retrieve its status.
@@ -45,9 +53,9 @@ module SynchronizationHelpers
       crash_note = nil
 
       if trigger_stacktrace_on_kill
-        crash_note = ' (Crashing Ruby to get stacktrace as requested by `trigger_stacktrace_on_kill`)'
+        crash_note = " (Crashing Ruby to get stacktrace as requested by `trigger_stacktrace_on_kill`)"
         begin
-          Process.kill('SEGV', pid)
+          Process.kill("SEGV", pid)
           warn "Waiting for child process to exit after SEGV signal... #{crash_note}"
           Process.wait(pid)
         rescue
@@ -61,7 +69,7 @@ module SynchronizationHelpers
       raise "Failure or timeout in `expect_in_fork`#{crash_note}, STDOUT: `#{stdout}`, STDERR: `#{stderr}`", cause: e
     ensure
       begin
-        Process.kill('KILL', pid)
+        Process.kill("KILL", pid)
       rescue
         nil
       end # Prevent zombie processes on failure
@@ -81,7 +89,7 @@ module SynchronizationHelpers
       yield
     end
     _, status = Process.wait2(pid)
-    fork_expectations.call(status: status, stdout: '', stderr: '')
+    fork_expectations.call(status: status, stdout: "", stderr: "")
   end
 
   # Waits for the condition provided by the block argument to return truthy.
@@ -97,14 +105,14 @@ module SynchronizationHelpers
   # @param [Integer] attempts number of attempts at checking the condition
   # @param [Numeric] backoff wait time between condition checking attempts
   def try_wait_until(seconds: nil, attempts: nil, backoff: nil)
-    raise 'Provider either `seconds` or `attempts` & `backoff`, not both' if seconds && (attempts || backoff)
+    raise "Provider either `seconds` or `attempts` & `backoff`, not both" if seconds && (attempts || backoff)
 
     spec = if seconds
       "#{seconds} seconds"
     elsif attempts || backoff
       "#{attempts} attempts with backoff: #{backoff}"
     else
-      'none'
+      "none"
     end
 
     if seconds

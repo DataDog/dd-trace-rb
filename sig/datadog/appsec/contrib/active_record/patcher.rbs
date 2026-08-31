@@ -5,7 +5,7 @@ module Datadog
         module Patcher
           def self?.patched?: () -> bool
 
-          def self?.target_version: () -> Gem::Version?
+          def self?.target_version: () -> ::Gem::Version?
 
           def self?.patch: () -> void
 

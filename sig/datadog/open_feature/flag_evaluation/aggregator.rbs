@@ -1,0 +1,176 @@
+module Datadog
+  module OpenFeature
+    module FlagEvaluation
+      class Aggregator
+        type context_value = ::String | bool | ::Integer | ::Float
+        type context = ::Hash[::String, context_value]
+        type raw_context = ::Hash[any, any]
+        type full_key = [::String, ::String, ::String, bool, ::String, ::String?, ::String?, bool]
+        type degraded_key = [::String, ::String, ::String, bool, ::String]
+        type entry = {
+          count: ::Integer,
+          first_evaluation: ::Integer,
+          last_evaluation: ::Integer,
+          runtime_default: bool,
+          error_message: ::String?,
+          targeting_key: ::String?,
+          context_attrs: context?,
+          observe_full_evaluation_data: bool
+        }
+        type snapshot = {
+          full: ::Hash[full_key, entry],
+          degraded: ::Hash[degraded_key, entry],
+          dropped_degraded_overflow: ::Integer
+        }
+
+        MAX_CONTEXT_FIELDS: ::Integer
+
+        MAX_VALUE_LENGTH: ::Integer
+
+        MAX_KEY_LENGTH: ::Integer
+
+        MAX_LIST_ELEMENTS: ::Integer
+
+        MAX_STRUCTURE_PROPERTIES: ::Integer
+
+        MAX_SNAPSHOT_DEPTH: ::Integer
+
+        MAX_VISITED_NODES: ::Integer
+
+        EVAL_SCALE_TARGET_FLAGS: ::Integer
+
+        EVAL_SCALE_FULL_BUCKETS_PER_FLAG: ::Integer
+
+        EVAL_SCALE_USERS_PER_FLAG: ::Integer
+
+        EVAL_SCALE_PER_FLAG_HEADROOM_MULTIPLIER: ::Integer
+
+        EVAL_SCALE_DEGRADED_BUCKETS_PER_FLAG: ::Integer
+
+        EVAL_SCALE_FULL_BUCKET_TARGET: ::Integer
+
+        EVAL_SCALE_PER_FLAG_BUCKET_TARGET: ::Integer
+
+        EVAL_SCALE_DEGRADED_BUCKET_TARGET: ::Integer
+
+        DEFAULT_GLOBAL_CAP: ::Integer
+
+        DEFAULT_PER_FLAG_CAP: ::Integer
+
+        DEFAULT_DEGRADED_CAP: ::Integer
+
+        CTX_TAG_STRING: ::String
+
+        CTX_TAG_BOOL: ::String
+
+        CTX_TAG_INTEGER: ::String
+
+        CTX_TAG_FLOAT: ::String
+
+        CTX_TAG_OTHER: ::String
+
+        REASON_MAX_CONTEXT_FIELDS: ::String
+
+        REASON_MAX_VALUE_LENGTH: ::String
+
+        REASON_MAX_KEY_LENGTH: ::String
+
+        REASON_MAX_LIST_ELEMENTS: ::String
+
+        REASON_MAX_STRUCTURE_PROPERTIES: ::String
+
+        REASON_MAX_SNAPSHOT_DEPTH: ::String
+
+        REASON_MAX_VISITED_NODES: ::String
+
+        REASON_CYCLE: ::String
+
+        @global_cap: ::Integer
+
+        @per_flag_cap: ::Integer
+
+        @degraded_cap: ::Integer
+
+        @mutex: ::Thread::Mutex
+
+        @full: ::Hash[full_key, entry]
+
+        @degraded: ::Hash[degraded_key, entry]
+
+        @per_flag_full: ::Hash[::String, ::Integer]
+
+        @global_count: ::Integer
+
+        @dropped_degraded_overflow: ::Integer
+
+        attr_reader dropped_degraded_overflow: ::Integer
+
+        def initialize: (
+          ?global_cap: ::Integer,
+          ?per_flag_cap: ::Integer,
+          ?degraded_cap: ::Integer
+        ) -> void
+
+        def record: (
+          flag_key: ::String,
+          variant: ::String?,
+          allocation_key: ::String?,
+          targeting_key: ::String?,
+          eval_time_ms: ::Integer,
+          attrs: context?,
+          ?error_message: ::String?,
+          ?runtime_default: bool?,
+          ?observe_full_evaluation_data: bool
+        ) -> void
+
+        def flush_and_reset: () -> snapshot
+
+        def self.bounded_context_snapshot: (
+          raw_context? attrs,
+          ?excluded_key: ::String?
+        ) -> [context, ::Array[::String]]
+
+        def canonical_context_key: (context? attrs) -> ::String
+
+        private
+
+        def self.context_key_string: (any key) -> ::String?
+
+        def self.bounded_flatten: (
+          ::String prefix,
+          any value,
+          context output,
+          ::Hash[::Integer, bool] seen,
+          ::Integer depth,
+          ::Set[::String] reasons,
+          ::Array[::Integer] budget
+        ) -> void
+
+        def context_value_bytes: (context_value value) -> ::String
+
+        def length_delimited: (::String string) -> ::String
+
+        def new_entry: (
+          ::Integer evaluation_time_ms,
+          runtime_default: bool,
+          observe_full_evaluation_data: bool,
+          ?error_message: ::String?,
+          ?targeting_key: ::String?,
+          ?context_attrs: context?
+        ) -> entry
+
+        def observe: (entry entry, ::Integer evaluation_time_ms, bool observe_full_evaluation_data) -> void
+
+        def add_to_degraded: (
+          ::String flag_key,
+          ::String variant,
+          ::String allocation_key,
+          bool runtime_default,
+          ::String error_message,
+          ::Integer evaluation_time_ms,
+          bool observe_full_evaluation_data
+        ) -> void
+      end
+    end
+  end
+end

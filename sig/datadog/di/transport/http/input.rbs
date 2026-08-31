@@ -4,18 +4,18 @@ module Datadog
       module HTTP
         module Input
           class Client < Core::Transport::HTTP::Client
-            def send_input_payload: (untyped request) -> untyped
+            def send_input_payload: (Core::Transport::Request request) -> Core::Transport::Response
           end
 
           module API
             class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
-              @encoder: untyped
+              @encoder: singleton(Core::Encoding::JSONEncoder)
 
               HEADER_CONTENT_TYPE: "Content-Type"
 
-              attr_reader encoder: untyped
+              attr_reader encoder: singleton(Core::Encoding::JSONEncoder)
 
-              def initialize: (untyped path, untyped encoder) -> void
+              def initialize: (String path, singleton(Core::Encoding::JSONEncoder) encoder) -> void
 
               def call: (untyped env) { (?) -> untyped } -> untyped
             end

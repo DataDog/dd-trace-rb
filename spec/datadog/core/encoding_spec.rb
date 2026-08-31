@@ -1,20 +1,20 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/encoding'
+require "datadog/core/encoding"
 
 RSpec.describe Datadog::Core::Encoding do
-  let(:obj) { [{'foo' => 'bar'}] }
+  let(:obj) { [{"foo" => "bar"}] }
 
-  context 'Msgpack encoding' do
+  context "Msgpack encoding" do
     let(:encoder) { Datadog::Core::Encoding::MsgpackEncoder }
 
     subject(:deserialized) { MessagePack.unpack(encoded) }
 
-    describe '#content_type' do
-      it { expect(encoder.content_type).to eq('application/msgpack') }
+    describe "#content_type" do
+      it { expect(encoder.content_type).to eq("application/msgpack") }
     end
 
-    describe '#encode' do
+    describe "#encode" do
       let(:encoded) { encoder.encode(obj) }
 
       it do
@@ -22,7 +22,7 @@ RSpec.describe Datadog::Core::Encoding do
       end
     end
 
-    describe '#join' do
+    describe "#join" do
       let(:encoded) { encoder.join(elements) }
       let(:elements) { [encoder.encode(obj), encoder.encode(obj)] }
 
@@ -32,16 +32,16 @@ RSpec.describe Datadog::Core::Encoding do
     end
   end
 
-  context 'JSON encoding' do
+  context "JSON encoding" do
     let(:encoder) { Datadog::Core::Encoding::JSONEncoder }
 
     subject(:deserialized) { JSON.parse(encoded) }
 
-    describe '#content_type' do
-      it { expect(encoder.content_type).to eq('application/json') }
+    describe "#content_type" do
+      it { expect(encoder.content_type).to eq("application/json") }
     end
 
-    describe '#encode' do
+    describe "#encode" do
       let(:encoded) { encoder.encode(obj) }
 
       it do
@@ -49,7 +49,7 @@ RSpec.describe Datadog::Core::Encoding do
       end
     end
 
-    describe '#join' do
+    describe "#join" do
       let(:encoded) { encoder.join(elements) }
       let(:elements) { [encoder.encode(obj), encoder.encode(obj)] }
 

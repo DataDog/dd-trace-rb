@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/settings'
-require_relative '../../status_range_matcher'
-require_relative '../../status_range_env_parser'
-require_relative '../ext'
+require_relative "../../configuration/settings"
+require_relative "../../status_range_matcher"
+require_relative "../../status_range_env_parser"
+require_relative "../ext"
 
 module Datadog
   module Tracing
@@ -32,8 +32,11 @@ module Datadog
               o.default 1.0
             end
 
-            option :distributed_tracing, default: true, type: :bool
-
+            option :distributed_tracing do |o|
+              o.type :bool
+              o.env Ext::ENV_DISTRIBUTED_TRACING
+              o.default true
+            end
             option :service_name do |o|
               o.type :string, nilable: true
               o.default do

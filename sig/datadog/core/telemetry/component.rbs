@@ -3,7 +3,6 @@ module Datadog
     module Telemetry
       class Component
         ENDPOINT_COLLECTION_MESSAGE_LIMIT: Integer
-	ONLY_ONCE: Core::Utils::OnlyOnce
 
         @enabled: bool
         @log_collection_enabled: bool
@@ -36,7 +35,7 @@ module Datadog
 
         def flush: (?timeout: Numeric?) -> bool?
 
-        def client_configuration_change!: (Array[[String, Numeric | bool | String]] changes) -> void
+        def client_configuration_change!: (Event::AppClientConfigurationChange::configuration_changes changes) -> void
 
         def emit_closing!: () -> void
 

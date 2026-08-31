@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'logger'
-require 'json'
+require "logger"
+require "json"
 
 module Datadog
   module Core
@@ -12,7 +12,7 @@ module Datadog
           attr_accessor :logger
 
           def initialize(logger = nil)
-            @logger = logger || Logger.new($stdout).tap do |l|
+            @logger = logger || Logger.new($stderr).tap do |l|
               l.level = ::Logger::INFO
               l.progname = nil
               l.formatter = proc do |_severity, datetime, _progname, msg|
