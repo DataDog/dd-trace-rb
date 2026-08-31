@@ -37,6 +37,7 @@ module Datadog
             #   - `:port` — port when the subname uses authority syntax: `//host[:port]`
             #   - `:database` — best-effort database name
             def parse(connection_string)
+              # @type var result: metadata
               result = {host: nil, port: nil, database: nil}
               return result unless connection_string.is_a?(String) && connection_string.valid_encoding?
 
@@ -55,7 +56,9 @@ module Datadog
 
                   if userinfo_end && userinfo_end >= authority_start
                     connection_string =
-                      connection_string[0...authority_start] + connection_string[(userinfo_end + 1)..-1].to_s
+                      # Steep: https://github.com/soutaro/steep/issues/1219
+                      connection_string[0...authority_start] + # steep:ignore NoMethod
+                      connection_string[(userinfo_end + 1)..-1].to_s
                   end
                 end
 
