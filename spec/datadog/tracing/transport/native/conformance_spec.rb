@@ -435,7 +435,7 @@ RSpec.describe "Native transport wire-level conformance" do
           raise "unexpected default key: #{key}"
         end
       end
-      stateful_link = double("span link", to_hash: canonical)
+      stateful_link = instance_double(Datadog::Tracing::SpanLink, to_hash: canonical)
       trace = make_trace([{name: "consumer", links: [stateful_link]}])
 
       link = send_and_decode([trace]).first.first["span_links"].first
@@ -453,7 +453,7 @@ RSpec.describe "Native transport wire-level conformance" do
 
     it "normalizes links before borrowing scalar string pointers" do
       trace = nil
-      stateful_link = double("span link")
+      stateful_link = instance_double(Datadog::Tracing::SpanLink)
       allow(stateful_link).to receive(:to_hash) do
         span = trace.spans.first
         span.name.replace("n" * 512)
@@ -477,6 +477,28 @@ RSpec.describe "Native transport wire-level conformance" do
         "service" => "s" * 512,
         "resource" => "r" * 512,
         "type" => "t" * 512
+      )
+    end
+
+    it "snapshots empty attribute values without copying bytes" do
+      link = Datadog::Tracing::SpanLink.new(
+        Datadog::Tracing::TraceDigest.new(
+          trace_id: 5,
+          span_id: 6,
+          trace_sampling_priority: 0
+        ),
+        attributes: {"empty" => ""}
+      )
+      trace = make_trace([{name: "consumer", links: [link]}])
+
+      decoded = send_and_decode([trace]).first.first["span_links"].first
+
+      expect(decoded).to eq(
+        "trace_id" => 5,
+        "trace_id_high" => 0,
+        "span_id" => 6,
+        "attributes" => {"empty" => ""},
+        "flags" => 0x8000_0000
       )
     end
   end

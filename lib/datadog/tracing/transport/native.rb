@@ -272,9 +272,6 @@ module Datadog
             # Each trace segment becomes one inner array (one trace chunk).
             chunks = traces.map(&:spans)
 
-            # The native exporter only serializes scalar fields, meta, metrics,
-            # meta_struct, and span links; span events are not yet converted and
-            # would be dropped. Warn (once) so the loss is visible.
             warn_unsupported_fields!(chunks)
 
             # Serialize the native send and hold the mutex across it so a
