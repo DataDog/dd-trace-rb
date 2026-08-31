@@ -487,6 +487,9 @@ module Datadog
       # earlier probe instrumented), matching the nil that #hook_method assigns
       # for a method it cannot resolve. Called at hook time so the source
       # location and parameter names read below come from the user's method.
+      #
+      # @param target_method [UnboundMethod, nil]
+      # @return [UnboundMethod, nil]
       def original_target_method(target_method)
         return target_method unless target_method
         return target_method unless target_method.owner.is_a?(InstrumentedMethodMarker)
@@ -561,7 +564,7 @@ module Datadog
       # @yield invokes the original method via super and returns its value
       # @return [Object] the original method's return value, or re-raises its exception
       def run_method_probe(args, kwargs, target_block, target_self,
-        probe, responder, loc, method_name, positional_param_names = nil)
+        probe, responder, loc, method_name, positional_param_names)
         # Disabled probe: skip DI processing entirely. enter_probe is not
         # called on this path so the guard is never set — there is no DI
         # work to guard, and any nested probed methods invoked by the
@@ -580,7 +583,7 @@ module Datadog
               # We do not need the stack for condition evaluation, therefore
               # stack is not passed to Context here.
               context = Context.new(
-                locals: serializer.combine_args(args, kwargs, target_self, param_names: positional_param_names),
+                locals: serializer.combine_args(args, kwargs, target_self, positional_param_names: positional_param_names),
                 target_self: target_self,
                 probe: probe, settings: settings, serializer: serializer,
               )
@@ -629,7 +632,7 @@ module Datadog
             # Arguments may be mutated by the method, therefore
             # they need to be serialized prior to method invocation.
             serialized_entry_args = if probe.capture_snapshot?
-              serializer.serialize_args(args, kwargs, target_self, param_names: positional_param_names,
+              serializer.serialize_args(args, kwargs, target_self, positional_param_names: positional_param_names,
                 **probe.snapshot_serializer_limits(settings))
             end
 
@@ -640,7 +643,7 @@ module Datadog
                 entry_context = Context.new(
                   probe: probe, settings: settings, serializer: serializer,
                   target_self: target_self,
-                  locals: serializer.combine_args(args, kwargs, target_self, param_names: positional_param_names),
+                  locals: serializer.combine_args(args, kwargs, target_self, positional_param_names: positional_param_names),
                 )
                 entry_capture_expressions, entry_capture_evaluation_errors =
                   capture_expression_evaluator.evaluate(probe, entry_context)
@@ -714,7 +717,7 @@ module Datadog
             # TODO capture arguments at exit
 
             capture_expression_locals = if probe.capture_expressions_only?
-              serializer.combine_args(args, kwargs, target_self, param_names: positional_param_names)
+              serializer.combine_args(args, kwargs, target_self, positional_param_names: positional_param_names)
             end
             context = Context.new(locals: capture_expression_locals, target_self: target_self,
               probe: probe, settings: settings, serializer: serializer,

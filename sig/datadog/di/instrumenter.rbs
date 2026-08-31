@@ -1,6 +1,8 @@
 module Datadog
   module DI
     class Instrumenter
+      type positional_param_names_type = ::Array[::Symbol?]?
+
       class Location
         def initialize: (String path, Integer lineno, String? label) -> void
 
@@ -80,7 +82,7 @@ module Datadog
       # at this layer. responder is a duck-typed interface
       # (#probe_executed_callback, #probe_condition_evaluation_failed_callback,
       # #probe_disabled_callback) with no shared base class to name.
-      def run_method_probe: (::Array[untyped] args, ::Hash[::Symbol, untyped] kwargs, ::Proc? target_block, any target_self, Probe probe, untyped responder, [::String, ::Integer]? loc, ::String method_name, ?::Array[::Symbol?]? positional_param_names) { () -> untyped } -> untyped
+      def run_method_probe: (::Array[untyped] args, ::Hash[::Symbol, untyped] kwargs, ::Proc? target_block, any target_self, Probe probe, untyped responder, [::String, ::Integer]? loc, ::String method_name, positional_param_names_type positional_param_names) { () -> untyped } -> untyped
 
       # Ruby < 3 only. Splits a splat-captured argument list into
       # [positional_args, kwargs]; the trailing hash, if any, becomes kwargs.
@@ -92,7 +94,7 @@ module Datadog
 
       def original_target_method: (::UnboundMethod? target_method) -> ::UnboundMethod?
 
-      def extract_positional_param_names: (::UnboundMethod target_method) -> ::Array[::Symbol?]?
+      def extract_positional_param_names: (::UnboundMethod target_method) -> positional_param_names_type
 
       def line_trace_point_callback: (Probe probe, RubyVM::InstructionSequence? iseq, untyped responder, TracePoint tp) -> void
 
