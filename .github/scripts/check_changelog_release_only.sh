@@ -13,7 +13,7 @@ if [[ -z "${BASE_SHA:-}" ]]; then
     exit 1
 fi
 
-changed_files=$(git diff --name-only "${BASE_SHA}"...HEAD)
+changed_files=$(git diff --no-renames --name-only "${BASE_SHA}"...HEAD)
 
 touches_changelog=false
 if grep -qx 'CHANGELOG.md' <<< "${changed_files}"; then
