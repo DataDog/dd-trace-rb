@@ -129,6 +129,21 @@ jobs:
             echo "::error::See $DOC_URL for how to reproduce this locally and how to fix or document a CVE finding."
           fi
 
+  changelog-release-only:
+    name: changelog/release-only
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Check CHANGELOG.md is only changed by release PRs
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: .github/scripts/check_changelog_release_only.sh
+
   checksum-coverage:
     name: checksum-coverage
     runs-on: ubuntu-24.04
@@ -229,6 +244,7 @@ jobs:
       - 'yaml-lint'
       - 'checksum-coverage'
       - 'bundler-audit'
+      - 'changelog-release-only'
     runs-on: ubuntu-24.04
     steps:
       - run: echo "Done"
