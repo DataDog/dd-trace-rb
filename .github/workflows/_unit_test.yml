@@ -129,7 +129,9 @@ jobs:
         TEST_DATADOG_INTEGRATION: "1"
     services:
       agent:
-        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.37.0
+        # Pinned by digest for https://github.com/DataDog/dd-apm-test-agent/pull/410
+        # Switch to the v1.66.0 tag once it is released.
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent@sha256:67a560e0dbd928534e6d680362a5407d382acc263cb976c4a7a294070abfba26
         env:
           LOG_LEVEL: DEBUG
           TRACE_LANGUAGE: ruby
@@ -216,7 +218,9 @@ jobs:
       options: --link mongodb:mongodb_secondary
     services:
       agent:
-        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.37.0
+        # Pinned by digest for https://github.com/DataDog/dd-apm-test-agent/pull/410
+        # Switch to the v1.66.0 tag once it is released.
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent@sha256:67a560e0dbd928534e6d680362a5407d382acc263cb976c4a7a294070abfba26
         env:
           LOG_LEVEL: DEBUG
           TRACE_LANGUAGE: ruby
