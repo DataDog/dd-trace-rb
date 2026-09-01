@@ -1,7 +1,7 @@
 # Builds a matrix of versions to test for a given integration.
 #
 # Shared between `appraisal/generate.rb` (which defines a real `appraise`/`gem`
-# backed by `Appraisal::Appraisal`) and `tasks/appraisal_verify.rb` (which
+# backed by `Appraisal::Appraisal`) and `appraisal/orphans.rb` (which
 # defines lightweight stubs that only record names), so both operate on the
 # same integration -> appraisal-name mapping.
 #

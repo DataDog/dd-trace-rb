@@ -16,8 +16,8 @@ require 'bundler'
 require 'appraisal/appraisal'
 
 require_relative '../tasks/appraisal_conversion'
-require_relative '../tasks/appraisal_coverage'
 require_relative '../tasks/security_capabilities'
+require_relative 'coverage_matrix_helper'
 require_relative 'source_options'
 
 gemfile = Appraisal::Gemfile.new.tap do |g|
