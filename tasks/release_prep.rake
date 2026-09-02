@@ -21,11 +21,31 @@ namespace :release_prep do
     Gem::Version.new(version).tap { |v| ReleaseNotes.fail!(invalid_version) if v.prerelease? || v.segments.length != 3 }
 
     previous = ReleaseNotes.previous_version
-    changelog = ReleaseNotes.draft_changelog(version)
 
+    entries = ReleaseNotes::Fragments.read_all
+    highlights_path = "unreleased/highlights.md"
+    highlights = File.exist?(highlights_path) ? File.read(highlights_path) : nil
+
+    # Highlights are release-page-only (see unreleased/README.md); the release
+    # body and CHANGELOG.md are rendered separately so they don't leak in.
+    release_body = ReleaseNotes::Fragments.render(entries, highlights: highlights)
+    changelog = ReleaseNotes::Fragments.render(entries)
+
+    ReleaseNotes.create_draft_release(version, release_body)
+
+    # `render` already pimped `changelog` with its own link-definition block; inserting
+    # that block mid-file would give the file two, and PimpMyChangelog::Parser#content
+    # truncates on the *first* separator it finds, silently dropping everything after
+    # it. `changelog:format` re-pimps the whole file below, so strip the block back off
+    # before inserting.
+    changelog = changelog.split(PimpMyChangelog::Pimper::SEPARATOR).first.to_s.rstrip
     ReleaseNotes.insert_changelog(version, changelog)
     Rake::Task["changelog:format"].invoke
     ReleaseNotes.rewrite_footer(version, previous)
+
+    # Runs last: only delete the source fragments once the draft release and
+    # CHANGELOG.md have both been written successfully.
+    ReleaseNotes::Fragments.consume!(entries, highlights_path: highlights_path)
 
     # `version:bump` also asserts the resulting gemspec matches the version.
     Rake::Task["version:bump"].invoke(version)
