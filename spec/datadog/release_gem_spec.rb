@@ -23,6 +23,7 @@ RSpec.describe "gem release process" do
            |\.rubocop_todo.yml
            |\.semgrepignore
            |\.simplecov
+           |\.vale\.ini
            |\.yardopts
            |\.yamllint.yml
            |ext/\.gitignore
@@ -41,6 +42,7 @@ RSpec.describe "gem release process" do
            |datadog\.gemspec
            |docker-compose\.yml
            |mise\.toml
+           |release-design\.md
            |shell\.nix
            |default\.nix
            |flake\.nix
@@ -76,6 +78,8 @@ RSpec.describe "gem release process" do
             |vendor/rbs
             |suppressions
             |rubocop
+            |unreleased
+            |vale
           )/
         }x
 
