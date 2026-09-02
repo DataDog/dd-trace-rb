@@ -74,7 +74,7 @@ module Datadog
         #
         # Note: this does not use Core::Utils::Time.now because this constant
         # gets initialized before a user has a chance to configure the library.
-        START_TIME = Time.now.utc.freeze
+        START_TIME = ::Time.now.utc.freeze
 
         #: () -> ::Hash[::Symbol, untyped]
         def collect_platform_info
