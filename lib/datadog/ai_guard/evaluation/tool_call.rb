@@ -13,6 +13,10 @@ module Datadog
           @arguments = arguments
         end
 
+        def with_arguments(arguments)
+          ToolCall.new(tool_name, id: id, arguments: arguments)
+        end
+
         def to_h
           {id: id, function: {name: tool_name, arguments: arguments}}
         end

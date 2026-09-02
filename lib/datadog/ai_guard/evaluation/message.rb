@@ -20,6 +20,14 @@ module Datadog
           end
         end
 
+        def with_content(content)
+          Message.new(role: role, content: content, tool_call: tool_call, tool_call_id: tool_call_id)
+        end
+
+        def with_tool_call(tool_call)
+          Message.new(role: role, content: content, tool_call: tool_call, tool_call_id: tool_call_id)
+        end
+
         def to_h
           if tool_call
             {role: role, tool_calls: [tool_call.to_h]}

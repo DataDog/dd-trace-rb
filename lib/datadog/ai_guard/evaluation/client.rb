@@ -5,7 +5,6 @@ module Datadog
     module Evaluation
       module Client
         def self.evaluate(messages)
-          messages = messages.map(&:to_h)
           request = Request.new(messages)
           transport = AIGuard.transport
 
@@ -21,14 +20,14 @@ module Datadog
 
           redaction =
             if Datadog.configuration.ai_guard.redaction_enabled
-              Redaction.redact(messages, replacements: response.redaction_replacements)
+              Redaction.apply(messages, replacements: response.redaction_replacements)
             else
               Redaction.skipped(messages)
             end
 
           result = Result.new(response, messages: redaction.messages)
 
-          Outcome.new(result, redaction)
+          Outcome.new(result, redaction, blocking_enabled: response.blocking_enabled?)
         end
       end
     end

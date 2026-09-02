@@ -5,24 +5,11 @@ module Datadog
     module Redaction
       SEGMENT_PATTERN = /\A([A-Za-z0-9_]+)(?:\[([0-9]+)\])?\z/
 
-      # Example inputs (AI Guard /evaluate contract):
-      #
-      #   messages = [
-      #     {role: "user", content: "my ssn is 123-45-6789"},
-      #     {role: "assistant", content: [{type: "text", text: "the secret is abc"}]},
-      #     {role: "assistant", tool_calls: [{id: "1", function: {name: "f", arguments: "{\"ssn\":\"123\"}"}}]},
-      #   ]
-      #
-      #   replacements = [
-      #     {"path" => "messages[0].content", "replacement" => "my ssn is [REDACTED]"},
-      #     {"path" => "messages[1].content[0].text", "replacement" => "the secret is [REDACTED]"},
-      #     {"path" => "messages[2].tool_calls[0].function.arguments", "replacement" => "{\"ssn\":\"[REDACTED]\"}"},
-      #   ]
       def self.skipped(messages)
         Result.new(messages, applied: 0, failures: 0, performed: false)
       end
 
-      def self.redact(messages, replacements:)
+      def self.apply(messages, replacements:)
         return Result.new(messages, applied: 0, failures: 0, performed: true) unless messages.is_a?(::Array) && replacements
         return Result.new(messages, applied: 0, failures: 1, performed: true) unless replacements.is_a?(::Array)
         return Result.new(messages, applied: 0, failures: 0, performed: true) if replacements.empty?
@@ -31,8 +18,6 @@ module Datadog
         by_path = {}
         conflicting = {}
 
-        # Validate and dedup: keep one replacement per path; a path asked to become two
-        # different strings is dropped as a conflict.
         replacements.each do |entry|
           unless entry.is_a?(::Hash)
             failures += 1
@@ -59,66 +44,88 @@ module Datadog
           by_path[path] = replacement
         end
 
-        root = {messages: messages}
-        targets = []
+        edits = {}
+        applied = 0
 
-        # Resolve every path to a writable string slot. Two passes: collect first, write
-        # after, so a later failure never leaves a half-redacted payload.
         by_path.each do |path, replacement|
-          # "messages[0].content[1].text" => [["messages", 0], ["content", 1], ["text", nil]]
-          segments = path.split(".").map do |segment|
-            match = SEGMENT_PATTERN.match(segment)
-            match && [match[1], match[2]&.to_i]
-          end
+          target = resolve(messages, path)
 
-          first_name, first_index = segments.first
-          allowed =
-            segments.none?(&:nil?) && first_name == "messages" && first_index && (
-              (segments.length == 2 && segments[1] == ["content", nil]) ||
-              (segments.length == 3 && segments[1][0] == "content" && segments[1][1] && segments[2] == ["text", nil]) ||
-              (segments.length == 4 && segments[1][0] == "tool_calls" && segments[1][1] &&
-                segments[2] == ["function", nil] && segments[3] == ["arguments", nil])
-            )
-
-          unless allowed
+          unless target
             failures += 1
             next
           end
 
-          node = root
-          reached = true
-          segments[0...-1].each do |name, index|
-            key = name.to_sym
-            unless node.is_a?(::Hash) && node.key?(key)
-              reached = false
-              break
-            end
+          index, kind, sub = target
+          edit = (edits[index] ||= {parts: {}})
 
-            node = node[key]
-            if index
-              unless node.is_a?(::Array) && index < node.length
-                reached = false
-                break
-              end
-
-              node = node[index]
-            end
+          case kind
+          when :content then edit[:content] = replacement
+          when :arguments then edit[:arguments] = replacement
+          when :text then edit[:parts][sub] = replacement
           end
 
-          terminal = segments.last[0].to_sym
-          unless reached && node.is_a?(::Hash) && node[terminal].is_a?(::String)
-            failures += 1
-            next
-          end
-
-          targets << [node, terminal, replacement]
+          applied += 1
         end
 
-        targets.each { |container, key, replacement| container[key] = replacement }
+        return Result.new(messages, applied: 0, failures: failures, performed: true) if edits.empty?
 
-        Result.new(messages, applied: targets.size, failures: failures, performed: true)
+        redacted = messages.each_with_index.map do |message, index|
+          edit = edits[index]
+          edit ? rebuild(message, edit) : message
+        end
+
+        Result.new(redacted, applied: applied, failures: failures, performed: true)
       rescue
         Result.new(messages, applied: 0, failures: 1, performed: true)
+      end
+
+      def self.resolve(messages, path)
+        segments = path.split(".").map do |segment|
+          match = SEGMENT_PATTERN.match(segment)
+          match && [match[1], match[2]&.to_i]
+        end
+        return if segments.any?(&:nil?)
+
+        first_name, index = segments.first
+        return unless first_name == "messages" && index
+
+        message = messages[index]
+        return unless message
+
+        if (tool_call = message.tool_call)
+          return unless segments.length == 4 && segments[1] == ["tool_calls", 0] &&
+            segments[2] == ["function", nil] && segments[3] == ["arguments", nil]
+          return unless tool_call.arguments.is_a?(::String)
+
+          [index, :arguments, nil]
+        elsif message.content.is_a?(::Array)
+          return unless segments.length == 3 && segments[1][0] == "content" &&
+            segments[1][1] && segments[2] == ["text", nil]
+
+          part = message.content[segments[1][1]]
+          return unless part.is_a?(Evaluation::ContentPart::Text)
+
+          [index, :text, segments[1][1]]
+        else
+          return unless segments.length == 2 && segments[1] == ["content", nil]
+          return unless message.content.is_a?(::String)
+
+          [index, :content, nil]
+        end
+      end
+
+      def self.rebuild(message, edit)
+        if edit.key?(:content)
+          message.with_content(edit[:content])
+        elsif edit.key?(:arguments)
+          message.with_tool_call(message.tool_call.with_arguments(edit[:arguments]))
+        else
+          content = message.content.each_with_index.map do |part, index|
+            edit[:parts].key?(index) ? part.with_text(edit[:parts][index]) : part
+          end
+
+          message.with_content(content)
+        end
       end
     end
   end
