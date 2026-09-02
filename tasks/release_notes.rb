@@ -160,5 +160,11 @@ module ReleaseNotes
         raise ValidationError, "#{path}: prefix #{entry["prefix"].inspect} must be one of #{PREFIXES.inspect}"
       end
     end
+
+    def consume!(entries, highlights_path: nil)
+      entries.each { |entry| File.delete(entry.fetch("_path")) }
+      File.delete(highlights_path) if highlights_path && File.exist?(highlights_path)
+      nil
+    end
   end
 end

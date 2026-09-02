@@ -274,4 +274,38 @@ RSpec.describe ReleaseNotes::Fragments do
       expect(described_class.render([])).to eq("")
     end
   end
+
+  describe ".consume!" do
+    it "deletes exactly the files backing the given entries" do
+      write_fragment("keep.json", {
+        "type" => "Fixed", "prefix" => "Tracing",
+        "pull_request" => "https://github.com/DataDog/dd-trace-rb/pull/1", "message" => "Keep me.",
+      })
+      write_fragment("consume.json", {
+        "type" => "Fixed", "prefix" => "Tracing",
+        "pull_request" => "https://github.com/DataDog/dd-trace-rb/pull/2", "message" => "Consume me.",
+      })
+      entries = described_class.read_all(dir: @unreleased_dir).select { |e| e["message"] == "Consume me." }
+
+      described_class.consume!(entries)
+
+      expect(File.exist?(File.join(@unreleased_dir, "consume.json"))).to be false
+      expect(File.exist?(File.join(@unreleased_dir, "keep.json"))).to be true
+    end
+
+    it "deletes the highlights file when given and present" do
+      highlights_path = File.join(@unreleased_dir, "highlights.md")
+      File.write(highlights_path, "# Highlights")
+
+      described_class.consume!([], highlights_path: highlights_path)
+
+      expect(File.exist?(highlights_path)).to be false
+    end
+
+    it "does not raise when highlights_path is given but absent" do
+      missing_path = File.join(@unreleased_dir, "highlights.md")
+
+      expect { described_class.consume!([], highlights_path: missing_path) }.not_to raise_error
+    end
+  end
 end
