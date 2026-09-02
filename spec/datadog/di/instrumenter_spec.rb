@@ -2127,8 +2127,11 @@ RSpec.describe Datadog::DI::Instrumenter do
           id: 1, type: :log, rate_limit: 1)
       end
 
-      it "falls back to the probe's own rate limiter" do
+      before do
         expect(instrumenter.correlation_sampler).to be_nil
+      end
+
+      it "falls back to the probe's own rate limiter" do
         expect(probe.rate_limiter).to receive(:allow?).and_return(true)
         expect(instrumenter.send(:emit?, probe)).to be(true)
       end

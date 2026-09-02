@@ -283,7 +283,6 @@ RSpec.describe Datadog::Core::BorrowingTokenBucket do
       expect(bucket.available_tokens).to eq(-10)
 
       allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0.5)
-      # 0.5s * 20/s = 10 tokens refilled, back to zero.
       expect(bucket.available?).to be(false)
       expect(bucket.available_tokens).to eq(0)
     end

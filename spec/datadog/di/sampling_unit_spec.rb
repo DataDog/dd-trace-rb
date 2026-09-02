@@ -15,10 +15,10 @@ RSpec.describe Datadog::DI::SamplingUnit do
 
   describe ".current" do
     context "with an active APM trace" do
-      before { stub_active_trace("trace-1") }
+      before { stub_active_trace(123) }
 
       it "keys on the trace id" do
-        expect(described_class.current.key).to eq("trace-1")
+        expect(described_class.current.key).to eq(123)
       end
     end
 
