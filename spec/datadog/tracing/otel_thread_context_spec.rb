@@ -3,6 +3,12 @@ require "spec_helper"
 require "datadog/tracing/otel_thread_context"
 
 RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? do
+  around(:each) do |example|
+    Thread.new do
+      example.run
+    end.join
+  end
+
   describe ".set" do
     def decode_context(raw)
       return unless raw
@@ -37,12 +43,6 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? d
 
       before do
         fail("libdatadog built without otel-thread-ctx") unless described_class.supported?
-      end
-
-      around(:each) do |example|
-        Thread.new do
-          example.run
-        end.join
       end
 
       it "sets the thread context" do
@@ -127,6 +127,49 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? d
         expect { failed.join }.to raise_error(StandardError)
 
         expect(decode_context(described_class::Testing._native_read)).to be_nil
+      end
+    end
+  end
+
+  describe ".clear" do
+    context "when enabled" do
+      before(:all) do
+        described_class.enable!
+      end
+
+      context "when a context record was attached" do
+        before(:each) do
+          described_class.set(trace_id: 1, span_id: 1, local_root_span_id: 1)
+        end
+
+        it "returns true" do
+          expect(described_class.clear).to eq(true)
+        end
+
+        it "detaches the context record" do
+          described_class.clear
+          expect(described_class::Testing._native_read).to be_nil
+        end
+
+        it "remains detached after a fiber switch" do
+          fiber = Fiber.new do
+            described_class.set(trace_id: 1, span_id: 1, local_root_span_id: 1)
+            described_class.clear
+
+            Fiber.yield
+
+            described_class::Testing._native_read
+          end
+
+          fiber.resume
+          expect(fiber.resume).to be_nil
+        end
+      end
+
+      context "when no record was attached" do
+        it "returns false" do
+          expect(described_class.clear).to eq(false)
+        end
       end
     end
   end
