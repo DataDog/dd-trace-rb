@@ -6,8 +6,7 @@ module Datadog
   module DI
     # Decides whether a capturing Live Debugger probe hit emits a snapshot,
     # coordinating every capturing probe in one trace and bounding total volume
-    # with process-wide budgets. Implements the sampling mechanism in the Casual
-    # Correlation requirements.
+    # with process-wide budgets.
     #
     # @api private
     class CorrelationSampler
@@ -21,9 +20,9 @@ module Datadog
       # Snapshots per second, process-wide, across all emits.
       GLOBAL_RATE = 20
 
-      # Snapshots one probe may emit within one trace.
-      # Set to 1 to pass current system tests; the implementation supports a
-      # higher limit for more snapshot emissions per probe.
+      # Snapshots one probe may emit within one trace. The mechanism supports
+      # a higher limit; the value is set to 1 so each probe contributes at most
+      # one snapshot per trace.
       PER_PROBE_BUDGET = 1
 
       # Snapshots all probes together may emit within one trace.
@@ -102,12 +101,12 @@ module Datadog
       # Must hold the lock.
       def emit_top?(key, probe)
         unless global_limiter.available? && top_limiter.allow?
-          store(key, TraceBudget.new(0, per_probe_budget))
+          store(key, TraceBudget.new(all_budget: 0, per_probe_limit: per_probe_budget))
           return false
         end
 
         global_limiter.consume
-        budget = TraceBudget.new(all_budget, per_probe_budget)
+        budget = TraceBudget.new(all_budget: all_budget, per_probe_limit: per_probe_budget)
         budget.admit(probe.id)
         store(key, budget)
         true
@@ -123,13 +122,11 @@ module Datadog
       end
 
       # Stores the trace's budget, evicting the oldest trace when the ledger
-      # exceeds the bound. Ruby hashes preserve insertion order, so the first
-      # key is the oldest. Must hold the lock.
+      # exceeds the bound. Must hold the lock.
       def store(key, budget)
         trace_budgets[key] = budget
         if trace_budgets.size > max_entries
-          oldest = trace_budgets.first
-          trace_budgets.delete(oldest.first) if oldest
+          trace_budgets.delete(trace_budgets.first.first)
         end
         nil
       end
@@ -142,7 +139,7 @@ module Datadog
       class TraceBudget
         # @param all_budget [Integer] all-probe counter start value
         # @param per_probe_limit [Integer] per-probe counter start value
-        def initialize(all_budget, per_probe_limit)
+        def initialize(all_budget:, per_probe_limit:)
           @all_remaining = all_budget
           @per_probe_limit = per_probe_limit
           @per_probe = {}

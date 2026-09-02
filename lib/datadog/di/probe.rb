@@ -167,8 +167,7 @@ module Datadog
       end
 
       # Whether the probe captures data: a full snapshot, or at least one
-      # capture expression. Coordinated sampling applies only to capturing
-      # probes; non-capturing probes keep their own per-probe rate limit.
+      # capture expression.
       #
       # @return [Boolean]
       def capturing?

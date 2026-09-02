@@ -128,6 +128,7 @@ module Datadog
       # @return [CaptureExpressionEvaluator]
       attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
+      # Datadog::DI::CorrelationSampler coordinating capturing-probe sampling.
       attr_reader :correlation_sampler
       attr_reader :instrumenter
       attr_reader :probe_repository
