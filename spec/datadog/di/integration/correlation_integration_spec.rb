@@ -141,7 +141,7 @@ RSpec.describe "Correlation integration" do
       flush
 
       expect(snapshots.size).to eq(1)
-      expect(snapshots.first[:runtimeId]).to eq(Datadog::Core::Environment::Identity.id)
+      expect(snapshots.first[:runtime_id]).to eq(Datadog::Core::Environment::Identity.id)
     end
   end
 
