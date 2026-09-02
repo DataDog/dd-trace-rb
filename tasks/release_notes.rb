@@ -4,6 +4,10 @@ require "date"
 require "json"
 require "net/http"
 
+if Gem.loaded_specs.key?("pimpmychangelog")
+  require "pimpmychangelog"
+end
+
 module ReleaseNotes
   REPO = "DataDog/dd-trace-rb"
   REPO_URL = "https://github.com/#{REPO}"
@@ -96,7 +100,33 @@ module ReleaseNotes
     ].freeze
     REQUIRED_FIELDS = %w[type prefix pull_request message].freeze
 
+    SECTION_ORDER = TYPES
+
     module_function
+
+    def render(entries, highlights: nil)
+      return highlights.to_s if entries.empty?
+
+      sections = SECTION_ORDER.map do |type|
+        type_entries = entries.select { |e| e["type"] == type }
+        next if type_entries.empty?
+
+        lines = type_entries.sort_by { |e| e["prefix"] }.map { |e| render_line(e) }
+        "### #{type}\n\n#{lines.join("\n")}"
+      end.compact
+
+      blocks = [highlights, *sections].compact
+      body = blocks.join("\n\n")
+      pimped = PimpMyChangelog::Pimper.new(*REPO.split("/"), body).better_changelog
+      pimped.sub(/\n*\z/, "")
+    end
+
+    def render_line(entry)
+      pr_number = entry["pull_request"].split("/").last
+      credit = entry["author"] ? " (@#{entry["author"]})" : ""
+      "* #{entry["prefix"]}: #{entry["message"]} (##{pr_number})#{credit}"
+    end
+    private_class_method :render_line
 
     def read_all(dir: "unreleased")
       Dir.glob(File.join(dir, "*.json")).sort.map { |path| read_one(path) }
