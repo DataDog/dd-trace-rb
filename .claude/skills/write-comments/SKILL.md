@@ -35,7 +35,7 @@ Default to **no comment**. A comment must earn its place by saying something the
   # @public_api
   def baggage
   ```
-- It cites an external source: spec section, RFC, ticket, formula, algorithm name. E.g.:
+- It cites an external source: spec section, RFC, ticket, formula, algorithm name. This is a public repo — never cite or link an internal-only resource (an internal RFC, wiki page, Slack thread, JIRA ticket, incident, or other datadoghq-internal reference), even by name with no URL; cite only sources a non-Datadog reader can look up themselves. E.g.:
   ```ruby
   # Golden ratio constant for optimal distribution.
   # @see https://en.wikipedia.org/wiki/Hash_function#Fibonacci_hashing
