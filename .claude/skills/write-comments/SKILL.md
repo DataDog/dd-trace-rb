@@ -79,6 +79,6 @@ Default to **no comment**. A comment must earn its place by saying something the
 
 **Ratio check before finishing:** if a diff has more than roughly one comment per 15 lines of new code, or if any comment would still be true after deleting the code it narrates, cut comments until that stops being the case.
 
-**When editing existing files:** do not add comments to code you merely moved or reformatted. Do not remove existing comments unless they are now factually wrong.
+**When editing existing files:** do not add comments to code you merely moved or reformatted. For comments outside the scope of your change, don't remove them unless they are now factually wrong — that's unrelated cleanup churn. Comments on code you're actually touching or reviewing still follow the "Never write" rules above, even if factually correct.
 
 **Prefer over commenting:** a clearer name, an extracted well-named function, a named constant instead of a literal, or a test that demonstrates the behavior.
