@@ -42,7 +42,6 @@ RSpec.describe "gem release process" do
            |datadog\.gemspec
            |docker-compose\.yml
            |mise\.toml
-           |release-design\.md
            |shell\.nix
            |default\.nix
            |flake\.nix
