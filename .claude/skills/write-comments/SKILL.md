@@ -15,7 +15,7 @@ Default to **no comment**. A comment must earn its place by saying something the
   ```ruby
   # Note: this does not use Core::Utils::Time.now because this constant
   # gets initialized before a user has a chance to configure the library.
-  START_TIME = Time.now.utc.freeze
+  START_TIME = ::Time.now.utc.freeze
   ```
 - It warns of a real hazard: ordering constraints, thread/async safety, mutation of a shared value, a caller invariant that isn't type-enforced. E.g.:
   ```ruby
