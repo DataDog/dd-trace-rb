@@ -190,4 +190,88 @@ RSpec.describe ReleaseNotes::Fragments do
       expect { described_class.validate_examples!(dir: @unreleased_dir) }.not_to raise_error
     end
   end
+
+  describe ".render" do
+    def entry(type:, prefix:, pr:, message:, author: nil)
+      e = {
+        "type" => type,
+        "prefix" => prefix,
+        "pull_request" => "https://github.com/DataDog/dd-trace-rb/pull/#{pr}",
+        "message" => message,
+      }
+      e["author"] = author if author
+      e
+    end
+
+    it "groups entries by type into headed sections" do
+      entries = [
+        entry(type: "Fixed", prefix: "Tracing", pr: 100, message: "Fix a bug."),
+        entry(type: "Added", prefix: "Core", pr: 101, message: "Add a thing."),
+      ]
+
+      result = described_class.render(entries)
+
+      expect(result).to include("### Added")
+      expect(result).to include("### Fixed")
+      expect(result.index("### Added")).to be < result.index("### Fixed")
+    end
+
+    it "omits sections with no entries" do
+      entries = [entry(type: "Fixed", prefix: "Tracing", pr: 100, message: "Fix a bug.")]
+
+      result = described_class.render(entries)
+
+      expect(result).not_to include("### Added")
+      expect(result).not_to include("### Changed")
+    end
+
+    it "sorts entries within a section by prefix" do
+      entries = [
+        entry(type: "Fixed", prefix: "Tracing", pr: 100, message: "Tracing fix."),
+        entry(type: "Fixed", prefix: "AppSec", pr: 101, message: "AppSec fix."),
+      ]
+
+      result = described_class.render(entries)
+
+      expect(result.index("AppSec fix.")).to be < result.index("Tracing fix.")
+    end
+
+    it "renders the prefix, message, and linked PR number" do
+      entries = [entry(type: "Fixed", prefix: "Tracing", pr: 6300, message: "Fix a bug.")]
+
+      result = described_class.render(entries)
+
+      expect(result).to include("* Tracing: Fix a bug. ([#6300][])")
+      expect(result).to include("[#6300]: https://github.com/DataDog/dd-trace-rb/issues/6300")
+    end
+
+    it "renders the author credit and link when present" do
+      entries = [entry(type: "Fixed", prefix: "Tracing", pr: 6300, message: "Fix a bug.", author: "octocat")]
+
+      result = described_class.render(entries)
+
+      expect(result).to include("([@octocat][])")
+      expect(result).to include("[@octocat]: https://github.com/octocat")
+    end
+
+    it "preserves Markdown formatting in the message" do
+      entries = [entry(type: "Fixed", prefix: "Tracing", pr: 100, message: "Fix `ActiveRecord` bug.")]
+
+      result = described_class.render(entries)
+
+      expect(result).to include("Fix `ActiveRecord` bug.")
+    end
+
+    it "prepends highlights, blank-line separated, when given" do
+      entries = [entry(type: "Fixed", prefix: "Tracing", pr: 100, message: "Fix a bug.")]
+
+      result = described_class.render(entries, highlights: "## Highlights\n\nBig release!")
+
+      expect(result).to start_with("## Highlights\n\nBig release!\n\n### Fixed")
+    end
+
+    it "returns an empty string when there are no entries and no highlights" do
+      expect(described_class.render([])).to eq("")
+    end
+  end
 end
