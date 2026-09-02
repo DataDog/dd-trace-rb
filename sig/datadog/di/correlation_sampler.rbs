@@ -58,11 +58,11 @@ module Datadog
       class TraceBudget
         @all_remaining: ::Integer
 
-        @per_probe_limit: ::Integer
+        @per_probe_budget: ::Integer
 
         @per_probe: ::Hash[::String, ::Integer]
 
-        def initialize: (all_budget: ::Integer, per_probe_limit: ::Integer) -> void
+        def initialize: (all_budget: ::Integer, per_probe_budget: ::Integer) -> void
 
         attr_reader all_remaining: ::Integer
 

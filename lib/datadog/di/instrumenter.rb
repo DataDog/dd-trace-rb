@@ -81,16 +81,17 @@ module Datadog
 
       # Initializes the instrumenter.
       #
-      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
-      # @param serializer [Serializer] serializer for captured values
-      # @param logger [DI::Logger] logger for instrumenter diagnostics
+      # @param settings [Datadog::Core::Configuration::Settings] active DI/core settings
+      # @param serializer [Datadog::DI::Serializer] serializes captured values into snapshots
+      # @param logger [Datadog::DI::Logger] DI logger used for diagnostic output
       # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical rate-limit skip metric
       # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
-      # @param correlation_sampler [CorrelationSampler, nil] coordinated
-      #   sampling gate for capturing probes; nil disables coordination and each
-      #   probe falls back to its own rate limiter
-      # @param code_tracker [CodeTracker, nil] code tracker for line probe installation
-      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component instrumenter errors are reported through
+      # @param correlation_sampler [Datadog::DI::CorrelationSampler, nil] coordinated
+      #   sampling gate for capturing probes; nil disables coordination
+      # @param code_tracker [Datadog::DI::CodeTracker, nil] global code tracker, or nil when
+      #   tracking is not active
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] telemetry sink, or nil
+      #   when telemetry is disabled
       # @return [void]
       def initialize(settings, serializer, logger, guardrails_telemetry:, capture_expression_evaluator:,
         correlation_sampler: nil, code_tracker: nil, telemetry: nil)
@@ -120,8 +121,7 @@ module Datadog
       attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
       # Coordinated-sampling delegate shared across capturing probes, or nil
-      # when correlation is not wired (then emit? falls back to per-probe rate
-      # limits).
+      # when coordination is disabled.
       attr_reader :correlation_sampler
 
       # The code tracker is a global singleton created lazily by
@@ -513,8 +513,8 @@ module Datadog
       # snapshot. Delegates the decision to the correlation sampler so probes
       # in one sampling unit share it. Only capturing probes are coordinated;
       # non-capturing probes keep their own per-probe rate limit. Fails open: if
-      # the correlation sampler is absent or the gate raises, fall back to the
-      # probe's own rate limiter.
+      # the correlation sampler is absent (the nil, coordination-disabled mode)
+      # or the gate raises, fall back to the probe's own rate limiter.
       def emit?(probe)
         correlation_sampler = self.correlation_sampler
         if correlation_sampler && probe.capturing?

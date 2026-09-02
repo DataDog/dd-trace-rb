@@ -2,10 +2,10 @@
 
 module Datadog
   module DI
-    # Identifies the correlation unit that groups related Live Debugger probe
-    # hits: the active APM trace. The unit is resolved from existing tracer
-    # context only (an in-process read of the active trace). When no trace is
-    # active the hit belongs to no unit and is not correlated.
+    # Correlation unit that groups related Live Debugger probe hits by their
+    # active APM trace. Resolved from existing tracer context only (an
+    # in-process read of the active trace); when no trace is active the hit
+    # belongs to no unit and is not correlated.
     #
     # @api private
     class SamplingUnit
@@ -13,6 +13,11 @@ module Datadog
       #
       # @return [SamplingUnit]
       def self.current
+        # Checked per call, not hoisted to load time: DI may be required before
+        # Datadog::Tracing, so this constant can transition undefined->defined
+        # after boot. Called on every capturing probe firing; the single
+        # SamplingUnit allocation per fire is accepted to keep the correlation
+        # unit an explicit object.
         if defined?(Datadog::Tracing)
           trace = Datadog::Tracing.active_trace
           if trace && (trace_id = trace.id)
@@ -23,14 +28,12 @@ module Datadog
         NONE
       end
 
-      # @param key [String, Integer, nil] the trace id, or nil when no trace is
-      #   active
+      # @param key [Integer, nil] the trace id, or nil when no trace is active
       def initialize(key)
         @key = key
       end
 
-      # Groups hits that share one emit-or-drop decision; nil when no trace is
-      # active.
+      # Trace id shared by hits in this unit; nil when no trace is active.
       attr_reader :key
 
       NONE = new(nil)

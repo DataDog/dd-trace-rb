@@ -5,9 +5,8 @@ require "datadog/di"
 # through the real Component, Instrumenter, ProbeManager and notification
 # builder. The correlation gate is exercised with real instrumentation; the
 # active APM trace is stubbed at the Datadog::Tracing seam the gate reads from.
-# The process-wide TOP/GLOBAL limits and starvation are covered in the unit
-# spec, where the limits are constructed small; here the Component builds
-# CorrelationSampler with production limits, ample for these examples.
+# The Component builds CorrelationSampler with production limits, ample for
+# these examples.
 
 class CorrelationIntegrationTestClass
   def alpha
@@ -72,6 +71,9 @@ RSpec.describe "Correlation integration" do
 
   let(:probe_manager) { component.probe_manager }
 
+  let(:trace_id) { 123 }
+  let(:span_id) { 456 }
+
   # Captures every snapshot payload the worker would enqueue.
   let(:snapshots) { [] }
 
@@ -111,7 +113,7 @@ RSpec.describe "Correlation integration" do
   end
 
   context "active APM trace" do
-    before { stub_trace("trace-abc", "span-1") }
+    before { stub_trace(trace_id, span_id) }
 
     it "emits a nested capturing chain together, sharing the trace id" do
       probe_manager.add_probe(method_probe("p-alpha", "alpha"))
@@ -121,7 +123,7 @@ RSpec.describe "Correlation integration" do
       flush
 
       expect(snapshots.size).to eq(2)
-      expect(snapshots.map { |s| s[:"dd.trace_id"] }.uniq).to eq(["trace-abc"])
+      expect(snapshots.map { |s| s[:"dd.trace_id"] }.uniq).to eq([trace_id.to_s])
     end
 
     it "bounds one probe to the per-probe counter within a trace" do
@@ -145,7 +147,7 @@ RSpec.describe "Correlation integration" do
   end
 
   context "non-capturing probes" do
-    before { stub_trace("trace-abc", "span-1") }
+    before { stub_trace(trace_id, span_id) }
 
     it "bypasses coordination and keeps its own rate limit" do
       probe_manager.add_probe(non_capturing_probe("p-inner", "inner", rate_limit: 5000))
@@ -173,11 +175,11 @@ RSpec.describe "Correlation integration" do
   context "fail-open" do
     let(:propagate_all_exceptions) { false }
 
-    before { stub_trace("trace-abc", "span-1") }
+    before { stub_trace(trace_id, span_id) }
 
     it "still emits when the gate raises" do
       probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
-      allow(component.correlation_sampler).to receive(:emit?).and_raise("gate boom")
+      expect(component.correlation_sampler).to receive(:emit?).and_raise("gate boom")
 
       CorrelationIntegrationTestClass.new.inner
       flush
@@ -189,7 +191,7 @@ RSpec.describe "Correlation integration" do
   context "gate raises with propagate_all_exceptions" do
     let(:propagate_all_exceptions) { true }
 
-    before { stub_trace("trace-abc", "span-1") }
+    before { stub_trace(trace_id, span_id) }
 
     it "re-raises the gate error to the caller" do
       probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
