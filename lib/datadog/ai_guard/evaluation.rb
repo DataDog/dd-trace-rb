@@ -50,14 +50,14 @@ module Datadog
             span.set_metastruct_tag(
               Ext::METASTRUCT_TAG,
               {
-                messages: truncate_content(truncate_messages(result.messages)),
+                messages: truncate_content(truncate_messages(result.messages.map(&:to_h))),
                 attack_categories: result.tags,
                 sds: result.sds_findings,
                 tag_probs: result.tag_probabilities,
               }
             )
 
-            if allow_raise && (result.deny? || result.abort?) && result.blocking_enabled?
+            if allow_raise && (result.deny? || result.abort?) && outcome.blocking_enabled?
               span.set_tag(Ext::BLOCKED_TAG, true)
               raise AIGuardAbortError.new(action: result.action, reason: result.reason, tags: result.tags)
             end
@@ -66,10 +66,10 @@ module Datadog
           end
         end
 
-        def perform_no_op
+        def perform_no_op(messages)
           AIGuard.logger&.warn("AI Guard is disabled, messages were not evaluated")
 
-          NoOpResult.new
+          NoOpResult.new(messages)
         end
 
         private

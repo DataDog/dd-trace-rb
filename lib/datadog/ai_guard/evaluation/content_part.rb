@@ -17,6 +17,10 @@ module Datadog
             :text
           end
 
+          def with_text(text)
+            Text.new(text)
+          end
+
           def to_h
             {type: type.to_s, text: text}
           end

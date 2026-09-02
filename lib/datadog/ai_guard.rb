@@ -85,7 +85,7 @@ module Datadog
         if enabled?
           Evaluation.perform(messages, allow_raise: allow_raise)
         else
-          Evaluation.perform_no_op
+          Evaluation.perform_no_op(messages)
         end
       end
 

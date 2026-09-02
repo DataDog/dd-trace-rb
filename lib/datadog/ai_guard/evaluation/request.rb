@@ -15,7 +15,7 @@ module Datadog
           {
             data: {
               attributes: {
-                messages: @messages,
+                messages: @messages.map(&:to_h),
                 meta: {
                   service: Datadog.configuration.service,
                   env: Datadog.configuration.env,

@@ -9,8 +9,7 @@ module Datadog
         extend Forwardable
 
         def_delegators :@response, :action, :reason, :tags, :tag_probabilities,
-                                   :sds_findings, :redaction_replacements,
-                                   :allow?, :deny?, :abort?, :blocking_enabled?
+                                   :sds_findings, :allow?, :deny?, :abort?
 
         attr_reader :messages
 
