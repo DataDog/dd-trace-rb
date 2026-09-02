@@ -19,6 +19,18 @@ module Datadog
             raise ArgumentError, "Expected an instance of #{ToolCall.name} for :tool_call argument"
           end
         end
+
+        def to_h
+          if tool_call
+            {role: role, tool_calls: [tool_call.to_h]}
+          elsif content.is_a?(::Array)
+            {role: role, content: content.map(&:to_h)}
+          elsif tool_call_id
+            {role: role, tool_call_id: tool_call_id, content: content}
+          else
+            {role: role, content: content}
+          end
+        end
       end
     end
   end

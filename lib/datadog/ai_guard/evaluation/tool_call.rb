@@ -12,6 +12,10 @@ module Datadog
           @id = id
           @arguments = arguments
         end
+
+        def to_h
+          {id: id, function: {name: tool_name, arguments: arguments}}
+        end
       end
     end
   end

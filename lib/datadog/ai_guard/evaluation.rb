@@ -39,16 +39,18 @@ module Datadog
               end
             end
 
-            request = Request.new(messages)
-            result = request.perform
+            outcome = Client.evaluate(messages)
+            result = outcome.result
+            redaction = outcome.redaction
 
             span.set_tag(Ext::ACTION_TAG, result.action)
             span.set_tag(Ext::REASON_TAG, result.reason)
+            span.set_tag(Ext::REDACTED_TAG, redaction.redacted?) if redaction.performed?
 
             span.set_metastruct_tag(
               Ext::METASTRUCT_TAG,
               {
-                messages: truncate_content(truncate_messages(request.serialized_messages)),
+                messages: truncate_content(truncate_messages(result.messages)),
                 attack_categories: result.tags,
                 sds: result.sds_findings,
                 tag_probs: result.tag_probabilities,
