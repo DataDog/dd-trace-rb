@@ -9,6 +9,8 @@ description: 'Use whenever writing or reviewing a code comment anywhere in this 
 
 Default to **no comment**. A comment must earn its place by saying something the code cannot. Always be terse.
 
+**Exception: `@public_api` docstrings.** Normal YARD conventions apply (description, `@param`, `@return`, `@raise`, `@example`, `@see`) — this is shipped customer docs (`docs/PublicApi.md`), not internal noise. The method body below the docstring still follows the rules above.
+
 **Write a comment only when:**
 
 - It explains *why*, not *what*: a non-obvious tradeoff, a workaround for an upstream bug (link it), a perf choice that looks wrong but isn't. E.g.:
@@ -63,10 +65,10 @@ Default to **no comment**. A comment must earn its place by saying something the
   # Step 2: validate
   ```
 - Repetition of what a good name already says — if the comment adds no information the identifier doesn't already convey, delete the comment; if the identifier is too vague to convey it, rename instead of commenting.
-- Restatements of the type signature in prose on non-public surfaces. Type the parameter in `sig/` (see the `write-rbs` skill) instead of restating it in a `@param`/`@return` comment. This does not apply to `@public_api` YARD docs (see the `baggage` example above) — those tags are the public contract, not internal type narration. E.g.:
+- Restatements of the type signature in prose on non-public surfaces (the `@public_api` exception above covers YARD docstrings). Type the parameter in `sig/` (see the `write-rbs` skill) instead of restating it in a `@param`/`@return` comment. E.g.:
   ```ruby
-  # @param mod [Module] The module
-  def safe_mod_name(mod)
+  # @param [PG::Result] result
+  def annotate_span_with_result!(span, result)
   ```
 - Duplicates of something already stated in a nearby docstring or README. State it once, in the most discoverable place.
 - The same comment copy-pasted across multiple call sites or files in one diff — a "shotgun surgery" signal. Consolidate the logic or the explanation into one place and reference it from the others, rather than repeating it.
