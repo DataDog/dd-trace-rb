@@ -1,13 +1,15 @@
 name: Prepare release
 
 # Prepares a release PR for a new version:
-#   1. Reads the approved GitHub draft release body for tag vX.Y.Z
+#   1. Renders the unreleased changelog fragments and creates the GitHub draft
+#      release for tag vX.Y.Z (see `release_prep:prepare` / `ReleaseNotes.create_draft_release`)
 #   2. Writes the changelog into CHANGELOG.md and rewrites the compare-link footer
 #   3. Regenerates docs/integration_versions.md and docs/integration_versions.json
 #   4. Bumps the gem version (lib/datadog/version.rb, gemfiles, tools/*.lock)
 #   5. Opens a `release`-labelled PR targeting master
 #
-# Compose and approve the draft release first; this workflow does not publish.
+# The draft release is created by this workflow; nothing needs to be
+# hand-created or pre-approved beforehand. This workflow does not publish.
 on: # yamllint disable-line rule:truthy
   workflow_dispatch:
     inputs:
