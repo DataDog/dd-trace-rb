@@ -55,6 +55,27 @@ module ReleaseNotes
     changelog.strip
   end
 
+  def create_draft_release(version, body)
+    uri = URI("#{API_URL}/repos/#{REPO}/releases")
+    request = Net::HTTP::Post.new(uri)
+    request["Authorization"] = "Bearer #{ENV["GITHUB_TOKEN"]}"
+    request["Accept"] = "application/vnd.github+json"
+    request["X-GitHub-Api-Version"] = "2022-11-28"
+    request["User-Agent"] = "dd-trace-rb-release-prep"
+    request["Content-Type"] = "application/json"
+    request.body = {
+      tag_name: "v#{version}",
+      name: "v#{version}",
+      body: body,
+      draft: true,
+    }.to_json
+
+    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(request) }
+    fail!("Failed to create draft release for v#{version}: #{response.code} #{response.body}") unless response.is_a?(Net::HTTPSuccess)
+
+    nil
+  end
+
   def insert_changelog(version, changelog)
     content = File.read(CHANGELOG_FILE)
     match = content.match(/\[Unreleased\]/)
