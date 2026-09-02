@@ -9,7 +9,16 @@ description: 'Use whenever writing or reviewing a code comment anywhere in this 
 
 Default to **no comment**: a comment must earn its place by saying something the code cannot.
 
-**Exception:** `@public_api` docstrings follow normal YARD conventions (`@param`, `@return`, `@raise`, `@example`, `@see`) — they're shipped customer docs (`docs/PublicApi.md`). The method body still follows the rules below.
+**Exception:** `@public_api` docstrings follow normal YARD conventions (`@param`, `@return`, `@raise`, `@example`, `@see`) — they're shipped customer docs (`docs/PublicApi.md`). The method body still follows the rules below. E.g.:
+```ruby
+# Returns the baggage for the current trace.
+#
+# If there is no active trace, a new one is created.
+#
+# @return [Datadog::Tracing::Distributed::Baggage] The baggage for the current trace.
+# @public_api
+def baggage
+```
 
 **Write a comment only when:**
 
@@ -26,16 +35,6 @@ Default to **no comment**: a comment must earn its place by saying something the
   # For async support, a {Datadog::Tracing::TraceOperation} should be employed
   # per execution context (e.g. Thread, etc.)
   class TraceOperation
-  ```
-- Documents a `@public_api` contract in YARD. E.g.:
-  ```ruby
-  # Returns the baggage for the current trace.
-  #
-  # If there is no active trace, a new one is created.
-  #
-  # @return [Datadog::Tracing::Distributed::Baggage] The baggage for the current trace.
-  # @public_api
-  def baggage
   ```
 - Cites an external source (spec, RFC, ticket, formula, algorithm) — never an internal-only one (wiki, Slack, JIRA, incident), even by name. Only cite what a non-Datadog reader can look up. E.g.:
   ```ruby
