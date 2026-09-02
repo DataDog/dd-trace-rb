@@ -63,7 +63,7 @@ Default to **no comment**. A comment must earn its place by saying something the
   # Step 2: validate
   ```
 - Repetition of what a good name already says — if the comment adds no information the identifier doesn't already convey, delete the comment; if the identifier is too vague to convey it, rename instead of commenting.
-- Restatements of the type signature in prose. Type the parameter in `sig/` (see the `write-rbs` skill) instead of restating it in a `@param`/`@return` comment. E.g.:
+- Restatements of the type signature in prose on non-public surfaces. Type the parameter in `sig/` (see the `write-rbs` skill) instead of restating it in a `@param`/`@return` comment. This does not apply to `@public_api` YARD docs (see the `baggage` example above) — those tags are the public contract, not internal type narration. E.g.:
   ```ruby
   # @param mod [Module] The module
   def safe_mod_name(mod)
