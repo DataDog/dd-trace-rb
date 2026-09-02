@@ -12,7 +12,7 @@
           },
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/shims/require-skill\" write-comments '^(?!gemfiles/|vendor/rbs/).*\\.(rb|rbs|c|h|ya?ml|md)$'",
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/shims/require-skill\" write-comments '^(?!gemfiles/|vendor/rbs/).*\\.(rb|rbs|rake|gemspec|c|h|ya?ml|md)$'",
             "timeout": 5
           }
         ]
