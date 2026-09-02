@@ -264,9 +264,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       )
     end
 
-    it "includes the per-process runtime id in the envelope" do
-      expect(payload[:runtimeId]).to be_a(String)
-      expect(payload[:runtimeId]).to eq(Datadog::Core::Environment::Identity.id)
+    it "includes the per-process runtime id in the envelope as snake_case" do
+      expect(payload[:runtime_id]).to be_a(String)
+      expect(payload[:runtime_id]).to eq(Datadog::Core::Environment::Identity.id)
     end
 
     context "with template" do
@@ -311,7 +311,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           },
           duration: 0,
           host: nil,
-          runtimeId: String,
+          runtime_id: String,
         }
       end
 
@@ -352,7 +352,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             },
           },
           message: nil,
-          runtimeId: String,
+          runtime_id: String,
           service: "test service",
           timestamp: Integer,
           logger: {
@@ -429,7 +429,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             },
           },
           message: nil,
-          runtimeId: String,
+          runtime_id: String,
           service: "test service",
           timestamp: Integer,
           logger: {
