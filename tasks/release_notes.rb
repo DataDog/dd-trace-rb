@@ -76,3 +76,54 @@ module ReleaseNotes
     abort "::error::#{message}"
   end
 end
+
+module ReleaseNotes
+  module Fragments
+    class ValidationError < StandardError; end
+
+    TYPES = %w[Added Changed Fixed].freeze
+    PREFIXES = [
+      "Core",
+      "Tracing",
+      "Profiling",
+      "AppSec",
+      "AI Guard",
+      "Dynamic Instrumentation",
+      "Data Streams",
+      "Error Tracking",
+      "Open Feature",
+      "OpenTelemetry",
+    ].freeze
+    REQUIRED_FIELDS = %w[type prefix pull_request message].freeze
+
+    module_function
+
+    def read_all(dir: "unreleased")
+      Dir.glob(File.join(dir, "*.json")).sort.map { |path| read_one(path) }
+    end
+
+    def read_one(path)
+      entry = JSON.parse(File.read(path))
+      validate!(entry, path)
+      entry.merge("_path" => path)
+    rescue JSON::ParserError => e
+      raise ValidationError, "#{path}: invalid JSON (#{e.message})"
+    end
+
+    def validate!(entry, path)
+      REQUIRED_FIELDS.each do |field|
+        next if entry[field].to_s != ""
+
+        raise ValidationError, "#{path}: missing required field #{field.inspect}"
+      end
+
+      unless TYPES.include?(entry["type"])
+        raise ValidationError, "#{path}: type #{entry["type"].inspect} must be one of #{TYPES.inspect}"
+      end
+
+      unless PREFIXES.include?(entry["prefix"])
+        raise ValidationError, "#{path}: prefix #{entry["prefix"].inspect} must be one of #{PREFIXES.inspect}"
+      end
+    end
+  end
+end
