@@ -43,6 +43,37 @@ RSpec.describe ReleaseNotes, webmock: true do
       expect(described_class.draft_changelog(version)).to eq("* Fix a bug")
     end
   end
+
+  describe ".create_draft_release" do
+    let(:version) { "2.36.0" }
+    let(:releases_url) { "https://api.github.com/repos/DataDog/dd-trace-rb/releases" }
+
+    around do |example|
+      original = ENV["GITHUB_TOKEN"]
+      ENV["GITHUB_TOKEN"] = "test-token"
+      example.run
+      ENV["GITHUB_TOKEN"] = original
+    end
+
+    it "creates a draft release with the given tag and body" do
+      stub = stub_request(:post, releases_url)
+        .with(
+          body: hash_including("tag_name" => "v2.36.0", "draft" => true, "body" => "* Fix a bug."),
+        )
+        .to_return(status: 201, body: "{}")
+
+      described_class.create_draft_release(version, "* Fix a bug.")
+
+      expect(stub).to have_been_requested
+    end
+
+    it "fails loudly on a non-2xx response" do
+      stub_request(:post, releases_url).to_return(status: 422, body: "unprocessable")
+
+      expect { described_class.create_draft_release(version, "* Fix a bug.") }
+        .to raise_error(SystemExit)
+    end
+  end
 end
 
 RSpec.describe ReleaseNotes::Fragments do
