@@ -26,6 +26,8 @@ namespace :release_prep do
     highlights_path = "unreleased/highlights.md"
     highlights = File.exist?(highlights_path) ? File.read(highlights_path) : nil
 
+    ReleaseNotes.fail!("No changelog fragments and no highlights found in unreleased/; nothing to release") if entries.empty? && highlights.to_s.strip.empty?
+
     # Highlights are release-page-only (see unreleased/README.md); the release
     # body and CHANGELOG.md are rendered separately so they don't leak in.
     release_body = ReleaseNotes::Fragments.render(entries, highlights: highlights)
