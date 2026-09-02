@@ -43,7 +43,7 @@ def baggage
   DEFAULT_KNUTH_FACTOR = 11400714819323198485
   ```
 
-**Never write:**
+**NEVER write:**
 
 - Narration of nearby code — the comment just restates in prose what a block, loop, or call already does. E.g.:
   ```ruby
