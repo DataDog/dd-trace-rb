@@ -151,9 +151,9 @@ module Datadog
       # @return [void]
       def store(key, budget)
         trace_budgets[key] = budget
-        if trace_budgets.size > max_entries
-          trace_budgets.delete(trace_budgets.first.first)
-        end
+        # Hash#shift removes and returns the oldest entry (insertion order),
+        # evicting the LRU trace when the ledger exceeds its bound.
+        trace_budgets.shift if trace_budgets.size > max_entries
         nil
       end
 
