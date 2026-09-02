@@ -2121,6 +2121,19 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    describe "#emit? with nil correlation_sampler" do
+      let(:probe) do
+        Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
+          id: 1, type: :log, rate_limit: 1)
+      end
+
+      it "falls back to the probe's own rate limiter" do
+        expect(instrumenter.correlation_sampler).to be_nil
+        expect(probe.rate_limiter).to receive(:allow?).and_return(true)
+        expect(instrumenter.send(:emit?, probe)).to be(true)
+      end
+    end
+
     describe "method probe enforcement" do
       let(:probe) do
         Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
