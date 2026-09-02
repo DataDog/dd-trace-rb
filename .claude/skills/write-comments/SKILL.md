@@ -7,9 +7,9 @@ description: 'Use whenever writing or reviewing a code comment anywhere in this 
 
 ## Code comments
 
-Default to **no comment**. A comment must earn its place by saying something the code cannot. Always be terse.
+Default to **no comment**: a comment must earn its place by saying something the code cannot.
 
-**Exception: `@public_api` docstrings.** Normal YARD conventions apply (description, `@param`, `@return`, `@raise`, `@example`, `@see`) — this is shipped customer docs (`docs/PublicApi.md`), not internal noise. The method body below the docstring still follows the rules above.
+**Exception:** `@public_api` docstrings follow normal YARD conventions (`@param`, `@return`, `@raise`, `@example`, `@see`) — they're shipped customer docs (`docs/PublicApi.md`). The method body still follows the rules below.
 
 **Write a comment only when:**
 
@@ -27,7 +27,7 @@ Default to **no comment**. A comment must earn its place by saying something the
   # per execution context (e.g. Thread, etc.)
   class TraceOperation
   ```
-- It documents a public API contract in YARD docstring format — and only for exported/public surfaces. E.g.:
+- Documents a `@public_api` contract in YARD. E.g.:
   ```ruby
   # Returns the baggage for the current trace.
   #
@@ -37,7 +37,7 @@ Default to **no comment**. A comment must earn its place by saying something the
   # @public_api
   def baggage
   ```
-- It cites an external source: spec section, RFC, ticket, formula, algorithm name. This is a public repo — never cite or link an internal-only resource (an internal RFC, wiki page, Slack thread, JIRA ticket, incident, or other datadoghq-internal reference), even by name with no URL; cite only sources a non-Datadog reader can look up themselves. E.g.:
+- Cites an external source (spec, RFC, ticket, formula, algorithm) — never an internal-only one (wiki, Slack, JIRA, incident), even by name. Only cite what a non-Datadog reader can look up. E.g.:
   ```ruby
   # Golden ratio constant for optimal distribution.
   # @see https://en.wikipedia.org/wiki/Hash_function#Fibonacci_hashing
@@ -46,7 +46,7 @@ Default to **no comment**. A comment must earn its place by saying something the
 
 **Never write:**
 
-- Narration of code the comment sits near — not just the literal next line, but any nearby block, loop, or call whose behavior the comment merely describes in prose. E.g.:
+- Narration of nearby code — the comment just restates in prose what a block, loop, or call already does. E.g.:
   ```ruby
   # increment counter
   counter += 1
@@ -64,14 +64,14 @@ Default to **no comment**. A comment must earn its place by saying something the
   # Step 1: parse input
   # Step 2: validate
   ```
-- Repetition of what a good name already says — if the comment adds no information the identifier doesn't already convey, delete the comment; if the identifier is too vague to convey it, rename instead of commenting.
-- Restatements of the type signature in prose on non-public surfaces (the `@public_api` exception above covers YARD docstrings). Type the parameter in `sig/` (see the `write-rbs` skill) instead of restating it in a `@param`/`@return` comment. E.g.:
+- Repetition of what a good name already says. Delete the comment, or rename if the identifier is the weak link.
+- Type restatements in prose (non-public surfaces). Type it in `sig/` instead (`write-rbs` skill). E.g.:
   ```ruby
   # @param [PG::Result] result
   def annotate_span_with_result!(span, result)
   ```
-- Duplicates of something already stated in a nearby docstring or README. State it once, in the most discoverable place.
-- The same comment copy-pasted across multiple call sites or files in one diff — a "shotgun surgery" signal. Consolidate the logic or the explanation into one place and reference it from the others, rather than repeating it.
+- Duplicates of a nearby docstring or README. State it once, in the most discoverable place.
+- The same comment copy-pasted across multiple sites in one diff. Consolidate into one place and reference it.
 - Narration of the change or of your own process. That belongs in the commit message or PR description. E.g.:
   ```ruby
   # Added error handling
@@ -81,6 +81,21 @@ Default to **no comment**. A comment must earn its place by saying something the
 
 **Ratio check before finishing:** if a diff has more than roughly one comment per 15 lines of new code, or if any comment would still be true after deleting the code it narrates, cut comments until that stops being the case.
 
-**When editing existing files:** do not add comments to code you merely moved or reformatted. For comments outside the scope of your change, don't remove them unless they are now factually wrong — that's unrelated cleanup churn. Comments on code you're actually touching or reviewing still follow the "Never write" rules above, even if factually correct.
+**When editing existing files:** don't add comments to code you merely moved or reformatted. Don't remove comments outside your change's scope unless they're now wrong — that's unrelated churn. Comments on code you're actually touching still follow the rules above.
 
 **Prefer over commenting:** a clearer name, an extracted well-named function, a named constant instead of a literal, or a test that demonstrates the behavior.
+
+## Style
+
+Always be terse. One line beats a paragraph; a fragment beats a full sentence. E.g.:
+
+```ruby
+# Workaround for JRuby not supporting Process.fork.
+```
+
+not:
+
+```ruby
+# This is a workaround that we need because JRuby does not support
+# the Process.fork method, which is used elsewhere in this codebase.
+```
