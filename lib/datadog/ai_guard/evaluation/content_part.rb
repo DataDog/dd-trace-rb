@@ -16,6 +16,10 @@ module Datadog
           def type
             :text
           end
+
+          def to_h
+            {type: type.to_s, text: text}
+          end
         end
 
         # An image URL content part. Accepts an absolute URL or a base64 data URI.
@@ -28,6 +32,10 @@ module Datadog
 
           def type
             :image_url
+          end
+
+          def to_h
+            {type: type.to_s, image_url: {url: url}}
           end
         end
       end
