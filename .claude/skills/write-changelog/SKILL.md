@@ -47,7 +47,7 @@ file names. Use inline code spans for identifiers, matching existing
 
 > Fix missing peer tags for database queries traced through `ActiveRecord`.
 
-End with terminal punctuation (`.`, `!`, or `?`) — CI lints this with vale.
+End with terminal punctuation (`.`, `!`, or `?`) — CI lints this with vale and checks for trailing whitespace.
 
 ## 5. Fill `pull_request` and `author`
 
@@ -81,6 +81,7 @@ bundle exec rake changelog:render
 
 `changelog:lint` checks the schema (required fields, closed enums).
 `changelog:render` previews how the entry will look once rendered into
-`CHANGELOG.md`. Message hygiene (punctuation, whitespace) is additionally
-checked by CI via vale (`bundle exec rake changelog:lint_messages` to run
-that check locally, if `vale` is installed).
+`CHANGELOG.md`. Message hygiene is checked by `changelog:lint_messages`,
+which runs both a Ruby-based trailing-whitespace check and vale for
+punctuation and style validation. CI runs this as a required step after
+installing a pinned vale binary.
