@@ -102,6 +102,11 @@ module ReleaseNotes
       Dir.glob(File.join(dir, "*.json")).sort.map { |path| read_one(path) }
     end
 
+    def validate_examples!(dir: "unreleased")
+      Dir.glob(File.join(dir, "examples", "*.json")).sort.each { |path| read_one(path) }
+      nil
+    end
+
     def read_one(path)
       entry = JSON.parse(File.read(path))
       validate!(entry, path)

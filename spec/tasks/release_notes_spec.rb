@@ -159,4 +159,35 @@ RSpec.describe ReleaseNotes::Fragments do
         .to raise_error(ReleaseNotes::Fragments::ValidationError, /prefix/)
     end
   end
+
+  describe ".validate_examples!" do
+    it "passes when every example is schema-valid" do
+      FileUtils.mkdir_p(File.join(@unreleased_dir, "examples"))
+      write_fragment("examples/basic.json", {
+        "type" => "Added",
+        "prefix" => "Core",
+        "pull_request" => "https://github.com/DataDog/dd-trace-rb/pull/1",
+        "message" => "Example entry.",
+      })
+
+      expect { described_class.validate_examples!(dir: @unreleased_dir) }.not_to raise_error
+    end
+
+    it "raises when an example is schema-invalid" do
+      FileUtils.mkdir_p(File.join(@unreleased_dir, "examples"))
+      write_fragment("examples/broken.json", {
+        "type" => "NotARealType",
+        "prefix" => "Core",
+        "pull_request" => "https://github.com/DataDog/dd-trace-rb/pull/1",
+        "message" => "Broken example.",
+      })
+
+      expect { described_class.validate_examples!(dir: @unreleased_dir) }
+        .to raise_error(ReleaseNotes::Fragments::ValidationError, /broken\.json/)
+    end
+
+    it "passes when there is no examples directory" do
+      expect { described_class.validate_examples!(dir: @unreleased_dir) }.not_to raise_error
+    end
+  end
 end
