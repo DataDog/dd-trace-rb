@@ -6,7 +6,7 @@ changelog fragment per notable change to this directory.
 ## Adding an entry
 
 1. Copy a file from `examples/` (e.g. `examples/basic.json`).
-2. Rename it to a timestamp, e.g. `date +%Y%m%d%H%M%S`.json`.
+2. Rename it to a timestamp, e.g. `$(date +%Y%m%d%H%M%S).json`.
 3. Fill in the fields:
    - `type`: `Added`, `Changed`, or `Fixed`.
    - `prefix`: the product area this change belongs to. One of `Core`,
@@ -33,7 +33,11 @@ GitHub release, not inside `CHANGELOG.md` itself), create or edit
 
 Run `bundle exec rake changelog:lint` to check the schema, and
 `bundle exec rake changelog:render` to preview how your entry (and every
-other pending entry) will render in the next `CHANGELOG.md`.
+other pending entry) will render in the next `CHANGELOG.md`. Message hygiene
+is checked separately by `bundle exec rake changelog:lint_messages`, which
+runs both a Ruby-based trailing-whitespace check and vale for punctuation
+and style validation. CI runs this as a required step, so a message that
+fails it will fail your PR.
 
 ## What happens at release time
 
