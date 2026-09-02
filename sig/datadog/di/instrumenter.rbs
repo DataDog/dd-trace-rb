@@ -31,7 +31,7 @@ module Datadog
 
       @correlation_sampler: CorrelationSampler?
 
-      @lock: Mutex
+      @lock: ::Thread::Mutex
 
       @capture_expression_evaluator: CaptureExpressionEvaluator?
 
@@ -86,7 +86,7 @@ module Datadog
 
       private
 
-      attr_reader lock: Mutex
+      attr_reader lock: ::Thread::Mutex
 
       def emit?: (Probe probe) -> bool
 

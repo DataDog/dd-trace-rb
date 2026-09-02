@@ -79,6 +79,9 @@ module Datadog
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
+      # @param correlation_sampler [Datadog::DI::CorrelationSampler, nil] coordinated
+      #   sampling gate for capturing probes; nil disables coordination and each
+      #   probe falls back to its own rate limiter.
       def initialize(settings, serializer, logger, code_tracker: nil, correlation_sampler: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
@@ -97,6 +100,9 @@ module Datadog
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :code_tracker
+      # Coordinated-sampling delegate shared across capturing probes, or nil
+      # when correlation is not wired (then emit? falls back to per-probe rate
+      # limits).
       attr_reader :correlation_sampler
 
       # The code tracker is a global singleton created lazily by

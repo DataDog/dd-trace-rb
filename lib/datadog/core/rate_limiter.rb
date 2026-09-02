@@ -183,7 +183,12 @@ module Datadog
     class BorrowingTokenBucket
       attr_reader :rate, :max_tokens
 
-      # @param rate [Numeric] refill rate, in tokens per second
+      # @param rate [Numeric] refill rate, in tokens per second. Unlike
+      #   {TokenBucket}, this bucket has no special-case handling for a zero
+      #   or negative rate: a zero rate never becomes available (matching
+      #   TokenBucket's "never allow"), and a negative rate is unsupported —
+      #   it drives the balance ever more negative rather than always allowing.
+      #   Callers must pass a positive rate.
       # @param max_tokens [Numeric] ceiling the balance refills toward
       def initialize(rate, max_tokens: rate)
         raise ArgumentError, "rate must be a number: #{rate}" unless rate.is_a?(Numeric)
@@ -219,11 +224,14 @@ module Datadog
 
       private
 
+      # Adds rate * elapsed-seconds to the balance since the last refill,
+      # capping at max_tokens; the balance may still be negative afterward.
       def refill
         now = Core::Utils::Time.get_time
         @tokens += @rate * (now - @last_refill)
         @tokens = @max_tokens if @tokens > @max_tokens
         @last_refill = now
+        nil
       end
     end
 

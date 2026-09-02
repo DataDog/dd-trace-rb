@@ -102,6 +102,7 @@ module Datadog
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :code_tracker
+      # Datadog::DI::CorrelationSampler coordinating capturing-probe sampling.
       attr_reader :correlation_sampler
       attr_reader :instrumenter
       attr_reader :probe_repository

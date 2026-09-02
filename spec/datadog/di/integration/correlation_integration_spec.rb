@@ -36,8 +36,10 @@ RSpec.describe "Correlation integration" do
   end
 
   before do
-    allow(Datadog::DI::Transport::HTTP).to receive(:diagnostics).and_return(diagnostics_transport)
-    allow(Datadog::DI::Transport::HTTP).to receive(:input).and_return(input_transport)
+    allow(Datadog::DI::Transport::HTTP).to receive_messages(
+      diagnostics: diagnostics_transport,
+      input: input_transport,
+    )
     allow(diagnostics_transport).to receive(:send_diagnostics)
     allow(input_transport).to receive(:send_input)
     allow(Datadog::DI).to receive(:current_component).and_return(component)
@@ -74,7 +76,6 @@ RSpec.describe "Correlation integration" do
   let(:snapshots) { [] }
 
   before do
-    allow(diagnostics_transport).to receive(:send_diagnostics)
     allow(component.probe_notifier_worker).to receive(:add_snapshot) do |payload|
       snapshots << payload
     end
@@ -98,13 +99,11 @@ RSpec.describe "Correlation integration" do
   def stub_trace(trace_id, span_id)
     trace = instance_double(Datadog::Tracing::TraceOperation, id: trace_id)
     span = instance_double(Datadog::Tracing::SpanOperation, id: span_id)
-    allow(Datadog::Tracing).to receive(:active_trace).and_return(trace)
-    allow(Datadog::Tracing).to receive(:active_span).and_return(span)
+    allow(Datadog::Tracing).to receive_messages(active_trace: trace, active_span: span)
   end
 
   def stub_no_trace
-    allow(Datadog::Tracing).to receive(:active_trace).and_return(nil)
-    allow(Datadog::Tracing).to receive(:active_span).and_return(nil)
+    allow(Datadog::Tracing).to receive_messages(active_trace: nil, active_span: nil)
   end
 
   def flush
@@ -184,6 +183,19 @@ RSpec.describe "Correlation integration" do
       flush
 
       expect(snapshots.size).to eq(1)
+    end
+  end
+
+  context "gate raises with propagate_all_exceptions" do
+    let(:propagate_all_exceptions) { true }
+
+    before { stub_trace("trace-abc", "span-1") }
+
+    it "re-raises the gate error to the caller" do
+      probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
+      allow(component.correlation_sampler).to receive(:emit?).and_raise("gate boom")
+
+      expect { CorrelationIntegrationTestClass.new.inner }.to raise_error(RuntimeError, /gate boom/)
     end
   end
 end

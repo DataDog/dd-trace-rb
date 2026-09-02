@@ -154,7 +154,7 @@ RSpec.describe Datadog::DI::CorrelationSampler do
 
       it "evicts the oldest trace, resetting its counters" do
         p = probe("a")
-        expect(correlation.emit?(p, unit(1))).to be(true)  # top, per-probe → 0
+        expect(correlation.emit?(p, unit(1))).to be(true)  # top, per-probe -> 0
         expect(correlation.emit?(p, unit(1))).to be(false) # capped in trace 1
 
         correlation.emit?(probe("b"), unit(2)) # ledger: {1, 2}
@@ -168,25 +168,25 @@ RSpec.describe Datadog::DI::CorrelationSampler do
 
   describe Datadog::DI::CorrelationSampler::TraceBudget do
     it "consumes one per-probe and one all token together" do
-      budget = described_class.new(2, 5)
+      budget = described_class.new(all_budget: 2, per_probe_limit: 5)
       expect(budget.admit("a")).to be(true)
       expect(budget.all_remaining).to eq(1)
     end
 
     it "returns false when the all counter is exhausted" do
-      budget = described_class.new(2, 5)
+      budget = described_class.new(all_budget: 2, per_probe_limit: 5)
       2.times { budget.admit("a") }
       expect(budget.admit("a")).to be(false)
     end
 
     it "returns false when a probe's per-probe counter is exhausted" do
-      budget = described_class.new(100, 1)
+      budget = described_class.new(all_budget: 100, per_probe_limit: 1)
       expect(budget.admit("a")).to be(true)
       expect(budget.admit("a")).to be(false)
     end
 
     it "defaults an unseen probe's counter to the per-probe limit" do
-      budget = described_class.new(100, 5)
+      budget = described_class.new(all_budget: 100, per_probe_limit: 5)
       expect(budget.admit("unseen")).to be(true)
       expect(budget.all_remaining).to eq(99)
     end

@@ -62,7 +62,7 @@ module Datadog
 
         @per_probe: ::Hash[::String, ::Integer]
 
-        def initialize: (::Integer all_budget, ::Integer per_probe_limit) -> void
+        def initialize: (all_budget: ::Integer, per_probe_limit: ::Integer) -> void
 
         attr_reader all_remaining: ::Integer
 
