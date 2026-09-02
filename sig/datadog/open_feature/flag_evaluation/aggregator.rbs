@@ -5,7 +5,7 @@ module Datadog
         type context_value = ::String | bool | ::Integer | ::Float
         type context = ::Hash[::String, context_value]
         type raw_context = ::Hash[any, any]
-        type full_key = [::String, ::String, ::String, bool, ::String, ::String, ::String]
+        type full_key = [::String, ::String, ::String, bool, ::String, ::String?, ::String?, bool]
         type degraded_key = [::String, ::String, ::String, bool, ::String]
         type entry = {
           count: ::Integer,
@@ -14,7 +14,8 @@ module Datadog
           runtime_default: bool,
           error_message: ::String?,
           targeting_key: ::String?,
-          context_attrs: context?
+          context_attrs: context?,
+          observe_full_evaluation_data: bool
         }
         type snapshot = {
           full: ::Hash[full_key, entry],
@@ -118,12 +119,16 @@ module Datadog
           eval_time_ms: ::Integer,
           attrs: context?,
           ?error_message: ::String?,
-          ?runtime_default: bool?
+          ?runtime_default: bool?,
+          ?observe_full_evaluation_data: bool
         ) -> void
 
         def flush_and_reset: () -> snapshot
 
-        def self.bounded_context_snapshot: (raw_context? attrs) -> [context, ::Array[::String]]
+        def self.bounded_context_snapshot: (
+          raw_context? attrs,
+          ?excluded_key: ::String?
+        ) -> [context, ::Array[::String]]
 
         def canonical_context_key: (context? attrs) -> ::String
 
@@ -148,12 +153,13 @@ module Datadog
         def new_entry: (
           ::Integer evaluation_time_ms,
           runtime_default: bool,
+          observe_full_evaluation_data: bool,
           ?error_message: ::String?,
           ?targeting_key: ::String?,
           ?context_attrs: context?
         ) -> entry
 
-        def observe: (entry entry, ::Integer evaluation_time_ms) -> void
+        def observe: (entry entry, ::Integer evaluation_time_ms, bool observe_full_evaluation_data) -> void
 
         def add_to_degraded: (
           ::String flag_key,
@@ -161,7 +167,8 @@ module Datadog
           ::String allocation_key,
           bool runtime_default,
           ::String error_message,
-          ::Integer evaluation_time_ms
+          ::Integer evaluation_time_ms,
+          bool observe_full_evaluation_data
         ) -> void
       end
     end

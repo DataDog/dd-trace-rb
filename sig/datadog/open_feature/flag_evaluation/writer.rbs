@@ -42,6 +42,10 @@ module Datadog
 
         REASON_SNAPSHOT_ERROR: ::String
 
+        TARGETING_KEY_FIELD: ::String
+
+        TARGETING_KEY_HASH_PREFIX: ::String
+
         @transport: Transport::HTTP
 
         @logger: Core::Logger
@@ -87,6 +91,7 @@ module Datadog
           ?runtime_default: bool?,
           ?targeting_key: any,
           ?attrs: Aggregator::raw_context?,
+          ?observe_full_evaluation_data: bool,
           **any event
         ) -> void
 
@@ -103,6 +108,7 @@ module Datadog
         def snapshot_string: (any value) -> ::String?
         def snapshot_targeting_key: (any value) -> ::String?
         def snapshot_integer: (any value) -> ::Integer
+        def normalized_error_code: (any value) -> ::String?
 
         def start_background_thread: () -> void
 
@@ -139,6 +145,8 @@ module Datadog
           flush_time_ms: ::Integer,
           tier: ::Symbol
         ) -> event
+
+        def prefixed_targeting_key_digest: (::String targeting_key) -> ::String
 
         def send_payload_batches: (::Array[event] events) -> void
 

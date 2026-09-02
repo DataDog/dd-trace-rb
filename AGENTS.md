@@ -227,7 +227,6 @@ Ruby idioms:
 # Gotchas
 
 - Pipe `rspec` and `rake test:*` output through `2>&1 | tee /tmp/full_rspec.log | grep -E 'Pending:|Failures:|Finished' -A 99` for concise but complete results.
-- Transport noise (`Internal error during Datadog::Tracing::Transport::HTTP::Client request`) is expected unless debugging transport logic.
 - Thread leaks: use `rspec --seed <N>` and inspect `docs/DevelopmentGuide.md#ensuring-tests-dont-leak-resources`.
 - `docker compose run` failures: run `docker compose pull` before retrying.
 - `ProbeNotifierWorker#flush` blocks until queues are empty; never add `sleep` after it.
@@ -248,4 +247,5 @@ Ruby idioms:
 - If a requested change contradicts code evidence, alert the user before proceeding.
 - If a requested web page is inaccessible, state this and explain the basis for any suggestions.
 - Read the specialized personas under `.cursor/rules/` when writing code (`code-style.mdc`) or tests (`testing.mdc`).
+- Claude Code skills and hooks live under `.claude/`; see `.claude/hooks/README.md` for the hook build, test, and native re-verification workflow.
 - This `AGENTS.md` is a living document; update it when CI or scripts evolve, and update specialized personas as appropriate.
