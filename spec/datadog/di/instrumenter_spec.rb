@@ -6,6 +6,10 @@ require "datadog/di/probe"
 require "datadog/di/capture_expression"
 require "datadog/di/proc_responder"
 require "datadog/di/logger"
+require "datadog/di/probe_manager"
+require "datadog/di/probe_notification_builder"
+require "datadog/di/probe_notifier_worker"
+require "datadog/di/probe_repository"
 require_relative "hook_line"
 require_relative "hook_method"
 
@@ -2282,6 +2286,84 @@ RSpec.describe Datadog::DI::Instrumenter do
           HookLineTestClass.new.test_method
 
           expect(observed_calls.length).to eq 1
+        end
+      end
+    end
+
+    describe "condition error enforcement" do
+      let(:propagate_all_exceptions) { false }
+
+      before do
+        Object.const_set(:DITestClass, Class.new do
+          def test_method(arg)
+            arg + 1
+          end
+        end)
+      end
+
+      after do
+        instrumenter.unhook(probe)
+        manager.close
+        Object.send(:remove_const, :DITestClass)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: 1, type: :log, type_name: "DITestClass", method_name: "test_method",
+          condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()")
+        )
+      end
+
+      let(:probe_notification_builder) do
+        instance_double(Datadog::DI::ProbeNotificationBuilder)
+      end
+
+      let(:probe_notifier_worker) do
+        instance_double(Datadog::DI::ProbeNotifierWorker)
+      end
+
+      let(:probe_repository) do
+        Datadog::DI::ProbeRepository.new
+      end
+
+      let(:manager) do
+        Datadog::DI::ProbeManager.new(settings, instrumenter, probe_notification_builder,
+          probe_notifier_worker, logger, probe_repository)
+      end
+
+      context "when the global snapshot limit admits a condition error" do
+        let(:snapshot) { double("snapshot") }
+
+        before do
+          allow(probe_notification_builder).to receive(:build_condition_evaluation_failed)
+            .and_return(snapshot)
+        end
+
+        it "emits the condition error snapshot through the probe manager" do
+          expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot)
+
+          instrumenter.hook_method(probe, manager)
+
+          expect(DITestClass.new.test_method(42)).to eq 43
+        end
+      end
+
+      context "when the global snapshot limit rejects a condition error" do
+        before do
+          expect(instrumenter.global_snapshot_rate_limiter).to receive(:allow?).and_return(false)
+        end
+
+        it "does not emit the condition error snapshot and logs at trace" do
+          expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+          expect(probe_notifier_worker).not_to receive(:add_snapshot)
+
+          instrumenter.hook_method(probe, manager)
+
+          expect(DITestClass.new.test_method(42)).to eq 43
+
+          expect(logger).to have_received(:trace) do |&block|
+            expect(block.call).to match(/global rate limit/)
+          end
         end
       end
     end
