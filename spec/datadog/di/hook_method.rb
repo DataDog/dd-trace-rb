@@ -70,6 +70,14 @@ class HookTestClass
     [arg, options]
   end
 
+  def method_with_splat(first, *rest)
+    [first, rest]
+  end
+
+  def method_kwarg_name_collision(path, **opts)
+    [path, opts]
+  end
+
   def exception_method
     raise TestException, "Test exception"
   end
