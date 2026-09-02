@@ -488,16 +488,14 @@ RSpec.describe Datadog::DI::ProbeManager do
       end
 
       before do
-        allow(instrumenter).to receive(:global_snapshot_rate_limiter).and_return(global_limiter)
+        expect(instrumenter).to receive(:global_snapshot_rate_limiter).and_return(global_limiter)
       end
 
       it "builds and enqueues the condition error snapshot" do
+        snapshot = double("snapshot")
         expect(probe_notification_builder).to receive(:build_condition_evaluation_failed)
-          .with(context, expr, exc).and_return({error: "data"})
-        expect(probe_notifier_worker).to receive(:add_snapshot) do |payload|
-          expect(payload).to be_a(Hash)
-          expect(payload).to eq({error: "data"})
-        end
+          .with(context, expr, exc).and_return(snapshot)
+        expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot)
 
         manager.probe_condition_evaluation_failed_callback(context, expr, exc)
       end
@@ -514,6 +512,8 @@ RSpec.describe Datadog::DI::ProbeManager do
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
 
         manager.probe_condition_evaluation_failed_callback(context, expr, exc)
+
+        expect(per_probe_limiter).to have_received(:allow?)
       end
     end
 
