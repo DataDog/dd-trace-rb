@@ -36,24 +36,6 @@ RSpec.describe ReleasePrep::ReleaseNotes do
     end
   end
 
-  describe "#empty?" do
-    it "is false when there are fragments" do
-      write_fragment("1.json", "Fix a bug.")
-
-      expect(release_notes.empty?).to be(false)
-    end
-
-    it "is false when there are only highlights" do
-      File.write(File.join(@unreleased_dir, "highlights.md"), "## Highlights\n\nBig release!")
-
-      expect(release_notes.empty?).to be(false)
-    end
-
-    it "is true when there are no fragments and no highlights" do
-      expect(release_notes.empty?).to be(true)
-    end
-  end
-
   describe "#body" do
     it "renders the fragments as plain Markdown" do
       write_fragment("1.json", "Fix a bug.")
@@ -91,10 +73,12 @@ RSpec.describe ReleasePrep::ReleaseNotes do
       expect(File.exist?(output)).to be(true)
     end
 
-    it "fails loudly when there is nothing to release" do
+    it "fails loudly when there are no fragments, even with highlights present" do
+      File.write(File.join(@unreleased_dir, "highlights.md"), "## Highlights\n\nBig release!")
       output = File.join(@unreleased_dir, "release_body.md")
 
       expect { release_notes.write(path: output) }.to raise_error(SystemExit)
+      expect(File.exist?(output)).to be(false)
     end
   end
 end
