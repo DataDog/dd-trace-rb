@@ -111,7 +111,6 @@ module Datadog
         :MODULE_CONST_DEFINED, :KERNEL_CLASS
 
       # @param logger [Logger] Logger instance (SymbolDatabase::Logger facade or compatible)
-      # @param settings [Configuration::Settings] Tracer settings
       def initialize(logger:, settings:)
         @logger = logger
         @settings = settings
@@ -127,7 +126,6 @@ module Datadog
       # For full extraction with proper FQN-based nesting and per-file method grouping,
       # use extract_all instead. This method is kept for single-module extraction in tests.
       #
-      # @param mod [Module, Class] The module or class to extract from
       # @return [Scope, nil] FILE scope wrapping extracted scope, or nil if filtered out
       def extract(mod)
         return nil unless Module === mod
@@ -223,8 +221,6 @@ module Datadog
       # Safe Module#name lookup — some classes override the singleton `name` method
       # (e.g. Faker::Travel::Airport defines `def name(size:, region:)` in class << self,
       # which shadows Module#name and raises ArgumentError when called without args).
-      # @param mod [Module] The module
-      # @return [String, nil] Module name or nil
       def safe_mod_name(mod)
         MODULE_NAME.bind(mod).call
       rescue Exception => e # standard:disable Lint/RescueException
@@ -256,9 +252,6 @@ module Datadog
       # in Ruby 2.7) so the question is strictly "is there an autoload
       # registered directly on this namespace?" and ancestors' pending
       # autoloads at the same name do not affect the result.
-      # @param mod_name [String]
-      # @param mod [Module]
-      # @return [Boolean]
       def resolves_to_same_module?(mod_name, mod)
         current = Object
         mod_name.split("::").each do |seg|
@@ -314,7 +307,6 @@ module Datadog
         # (/usr/local/bin/ruby), C extensions (.so/.bundle), and other
         # non-source files that appear in method source_location.
         return false unless path.end_with?(".rb")
-        # Exclude gem paths
         return false if path.include?("/gems/")
         # Exclude Ruby stdlib
         return false if path.include?("/ruby/")
@@ -342,7 +334,6 @@ module Datadog
       # This handles patterns like `module ApplicationCable; class Channel...; end; end`
       # where the namespace module itself has no methods but defines user-code classes.
       #
-      # @param mod [Module] The module
       # @return [String, nil] Source file path or nil
       def find_source_file(mod)
         fallback = nil
@@ -359,7 +350,6 @@ module Datadog
           fallback ||= path # steep:ignore
         end
 
-        # Try singleton methods
         mod.singleton_methods(false).each do |method_name|
           method = mod.method(method_name)
           location = method.source_location
@@ -459,8 +449,6 @@ module Datadog
 
       # Extract MODULE scope (without file_hash — that belongs on the FILE root scope).
       # Does not include nested classes — nesting is handled by extract_all via FQN splitting.
-      # @param mod [Module] The module
-      # @return [Scope] The module scope
       def extract_module_scope(mod)
         source_file = find_source_file(mod)
 
@@ -475,8 +463,6 @@ module Datadog
       end
 
       # Extract CLASS scope
-      # @param klass [Class] The class
-      # @return [Scope] The class scope
       def extract_class_scope(klass)
         methods = klass.instance_methods(false)
         start_line, end_line = calculate_class_line_range(klass, methods)
@@ -497,7 +483,6 @@ module Datadog
       # Calculate class line range from method locations.
       # Start from the earliest method start, end at the latest method end (derived
       # from iseq trace_points so methods spanning multiple lines aren't truncated).
-      # @param klass [Class] The class
       # @param methods [Array<Symbol>] Method names
       # @return [Array<Integer, Integer>] [start_line, end_line]
       def calculate_class_line_range(klass, methods)
@@ -522,7 +507,6 @@ module Datadog
       end
 
       # Build language specifics for CLASS
-      # @param klass [Class] The class
       # @return [Hash] Language-specific metadata
       def build_class_language_specifics(klass)
         specifics = {}
@@ -567,8 +551,6 @@ module Datadog
       end
 
       # Extract method scopes from a class
-      # @param klass [Class] The class
-      # @return [Array<Scope>] Method scopes
       def extract_method_scopes(klass)
         scopes = []
 
@@ -591,10 +573,7 @@ module Datadog
       end
 
       # Extract a single method scope
-      # @param klass [Class] The class
-      # @param method_name [Symbol] Method name
       # @param method_type [Symbol] :instance or :class
-      # @return [Scope, nil] Method scope or nil
       def extract_method_scope(klass, method_name, method_type)
         method = klass.instance_method(method_name)
         location = method.source_location
@@ -627,8 +606,6 @@ module Datadog
       end
 
       # Get method visibility
-      # @param klass [Class] The class
-      # @param method_name [Symbol] Method name
       # @return [String] 'public', 'private', or 'protected'
       def method_visibility(klass, method_name)
         if klass.private_instance_methods(false).include?(method_name)
@@ -643,9 +620,7 @@ module Datadog
       # Extract targetable lines and end_line from a method's bytecode.
       # Returns [ranges, end_line] where ranges is an array of {start:, end:} hashes
       # or nil if iseq is unavailable (C-extension methods).
-      # @param method [Method, UnboundMethod] The method
       # @param start_line [Integer] Fallback end_line if iseq unavailable
-      # @return [Array(Array<Hash>, Integer), Array(nil, Integer)]
       def extract_targetable_lines(method, start_line)
         iseq = RubyVM::InstructionSequence.of(method)
         unless iseq
@@ -694,8 +669,6 @@ module Datadog
       # Does NOT include `self` — Ruby's implicit receiver is not a declared parameter.
       # Java skips slot 0 (this) for the same reason. .NET uploads `this` but the web-ui
       # filters it for dotnet. Ruby follows Java's approach: don't upload it.
-      # @param method [UnboundMethod] The method
-      # @return [Array<Symbol>] Parameter symbols
       def extract_method_parameters(method)
         method_name = begin
           method.name.to_s
@@ -755,7 +728,6 @@ module Datadog
       # The Module references are pointer-sized and the modules are already kept
       # alive in ObjectSpace, so adding them to the index costs no extra retention.
       #
-      # @return [Hash{String=>Array<Array(String, Module, Array<Symbol>)>}]
       def build_per_file_index
         index = {}
         seen = 0
@@ -833,7 +805,6 @@ module Datadog
       # ends. The returned Scope is the only thing the caller needs to keep alive
       # — once the caller drops it, the entire per-file working set is collectable.
       #
-      # @param file_path [String]
       # @param entries [Array<Array(String, Module, Array<Symbol>)>] tuples produced by build_per_file_index
       # @return [Scope, nil] FILE scope, or nil if nothing extractable
       def build_file_scope(file_path, entries)
@@ -936,7 +907,6 @@ module Datadog
       # Determine scope type (CLASS or MODULE) for a fully-qualified name.
       # Looks up the actual Ruby constant to check if it's a Class.
       # @param fqn [String] Fully-qualified name (e.g. "Authentication::Strategies")
-      # @return [String] 'CLASS' or 'MODULE'
       def resolve_scope_type(fqn)
         current = Object
         fqn.split("::").each do |seg|
@@ -960,7 +930,6 @@ module Datadog
       # Convert a single file tree (built by build_file_scope) to a FILE Scope.
       # @param file_path [String] Source file path
       # @param root [Hash] Tree node from build_file_scope
-      # @return [Scope] FILE scope
       def convert_tree_to_scope(file_path, root)
         file_hash = FileHash.compute(file_path, logger: @logger)
         lang = {}
@@ -979,7 +948,6 @@ module Datadog
 
       # Convert a single hash node to a Scope object (recursive).
       # @param node [Hash] Tree node
-      # @return [Scope] Scope object
       def convert_node_to_scope(node)
         # Build method scopes from collected method entries
         method_scopes = Core::Utils::EnumerableCompat.filter_map(node[:methods]) do |method_info|
@@ -1022,9 +990,6 @@ module Datadog
       # Build a METHOD scope from a pre-resolved instance method.
       # Used by extract_all path where methods are collected in Pass 1.
       # @param klass [Module] The class/module (for visibility lookup)
-      # @param method_name [Symbol] Method name
-      # @param method [UnboundMethod] The method object
-      # @return [Scope, nil] Method scope or nil
       def build_instance_method_scope(klass, method_name, method)
         location = method.source_location
         return nil unless location
@@ -1056,8 +1021,6 @@ module Datadog
 
       # Extract symbols (constants, class variables) from a module or class.
       # Class variables are emitted only for classes; constants for both.
-      # @param mod [Module] The module or class
-      # @return [Array<Symbol>] Symbols
       def extract_scope_symbols(mod)
         symbols = []
 

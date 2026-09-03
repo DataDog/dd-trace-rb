@@ -2,7 +2,6 @@
 
 module Datadog
   module AppSec
-    # SampleRate basic sample rate
     class SampleRate
       attr_reader :rate
 

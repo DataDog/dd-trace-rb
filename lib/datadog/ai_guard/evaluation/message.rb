@@ -3,7 +3,6 @@
 module Datadog
   module AIGuard
     module Evaluation
-      # Message class for AI Guard
       class Message
         attr_reader :role, :content, :tool_call, :tool_call_id
 

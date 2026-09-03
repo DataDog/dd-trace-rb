@@ -4,7 +4,6 @@ module Datadog
   module AppSec
     module Contrib
       module Faraday
-        # Patcher for Faraday
         module Patcher
           module_function
 

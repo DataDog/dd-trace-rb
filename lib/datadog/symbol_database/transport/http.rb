@@ -19,9 +19,7 @@ module Datadog
         )
 
         # Builds a transport for the symbols upload endpoint.
-        # @param agent_settings [Core::Configuration::AgentSettingsResolver::AgentSettings]
         #   Agent connection settings (host, port, timeout, etc.)
-        # @param logger [Logger] Logger instance
         # @param headers [Hash, nil] Optional additional headers
         # @return [Symbols::Transport] Transport for the symbols endpoint
         def self.symbols(

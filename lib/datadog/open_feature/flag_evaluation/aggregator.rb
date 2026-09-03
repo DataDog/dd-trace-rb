@@ -114,7 +114,6 @@ module Datadog
           evaluation_time_ms = eval_time_ms.to_i
 
           @mutex.synchronize do
-            # --- Full tier ---
             if (entry = @full[full_key])
               observe(entry, evaluation_time_ms, observe_full_evaluation_data)
               return

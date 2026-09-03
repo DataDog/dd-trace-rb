@@ -2,9 +2,7 @@
 
 module Datadog
   module DI
-    # Configuration for DI
     module Configuration
-      # Settings
       module Settings
         def self.extended(base)
           base = base.singleton_class unless base.is_a?(Class)

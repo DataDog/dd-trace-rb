@@ -41,7 +41,6 @@ module Datadog
                 # Send request
                 http_response = yield(env)
 
-                # Build response
                 Response.new(http_response)
               end
 

@@ -41,7 +41,6 @@ module Datadog
         )
           raise ArgumentError, "missing required key: :id" if id.nil?
 
-          # enforce types
 
           raise TypeError, ":id must be a String" unless id.is_a?(String)
           raise TypeError, ":email must be a String" unless email.nil? || email.is_a?(String)

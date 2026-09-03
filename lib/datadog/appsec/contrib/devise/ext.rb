@@ -4,7 +4,6 @@ module Datadog
   module AppSec
     module Contrib
       module Devise
-        # Devise integration constants
         module Ext
           EVENT_LOGIN_SUCCESS = "users.login.success"
           EVENT_LOGIN_FAILURE = "users.login.failure"

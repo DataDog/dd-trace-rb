@@ -5,7 +5,6 @@ module Datadog
     module Evaluation
       # Namespace for content part types used in multi-modal messages.
       module ContentPart
-        # A text content part.
         class Text
           attr_reader :text
 

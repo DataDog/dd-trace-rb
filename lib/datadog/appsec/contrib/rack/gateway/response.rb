@@ -7,7 +7,6 @@ module Datadog
     module Contrib
       module Rack
         module Gateway
-          # Gateway Response argument.
           class Response < Instrumentation::Gateway::Argument
             attr_reader :body, :status, :headers, :context
 

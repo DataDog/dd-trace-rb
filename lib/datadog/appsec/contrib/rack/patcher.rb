@@ -7,7 +7,6 @@ module Datadog
   module AppSec
     module Contrib
       module Rack
-        # Patcher for Rack integration
         module Patcher
           module_function
 

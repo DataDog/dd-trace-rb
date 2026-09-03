@@ -4,7 +4,6 @@ module Datadog
   module AppSec
     module APISecurity
       module EndpointCollection
-        # This module serializes Sinatra routes.
         module SinatraRouteSerializer
           module_function
 

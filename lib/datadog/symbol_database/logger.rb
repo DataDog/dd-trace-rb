@@ -32,7 +32,6 @@ module Datadog
 
       # Log at trace level (sub-debug). No-op unless DD_TRACE_DEBUG is set.
       # @yield Block that returns the log message string
-      # @return [void]
       def trace(&block)
         if settings.symbol_database.internal.trace_logging
           debug(&block)

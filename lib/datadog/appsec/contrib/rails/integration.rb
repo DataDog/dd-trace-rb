@@ -9,7 +9,6 @@ module Datadog
   module AppSec
     module Contrib
       module Rails
-        # Description of Rails integration
         class Integration
           include Datadog::AppSec::Contrib::Integration
 

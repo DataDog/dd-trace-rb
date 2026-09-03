@@ -62,7 +62,6 @@ module Datadog
           end
 
           def add_middleware(app)
-            # Add trace middleware
             if include_middleware?(Datadog::Tracing::Contrib::Rack::TraceMiddleware, app)
               app.middleware.insert_after(
                 Datadog::Tracing::Contrib::Rack::TraceMiddleware,

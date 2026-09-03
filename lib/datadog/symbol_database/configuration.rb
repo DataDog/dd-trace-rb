@@ -2,7 +2,6 @@
 
 module Datadog
   module SymbolDatabase
-    # Configuration for symbol database
     module Configuration
       # Configuration settings for symbol database upload feature.
       #
@@ -15,20 +14,16 @@ module Datadog
       module Settings
         # Hook called when this module is extended into a class.
         # @param base [Class, Module] The class or module being extended
-        # @return [void]
         def self.extended(base)
           base = base.singleton_class unless base.is_a?(Class)
           add_settings!(base)
         end
 
         # Add symbol_database settings block to base class.
-        # @param base [Class] Base class
-        # @return [void]
         def self.add_settings!(base)
           base.class_eval do
             # steep:ignore:start
             settings :symbol_database do
-              # @return [Boolean, nil]
               # When nil (the default), symbol database mirrors Dynamic
               # Instrumentation: it is advertised and built alongside DI, but
               # only extracts and uploads symbols when DI is actually enabled

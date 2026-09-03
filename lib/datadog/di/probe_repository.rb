@@ -32,7 +32,6 @@ module Datadog
       # this block is safe.
       #
       # @yield Block to execute while holding the lock
-      # @return The return value of the block
       def synchronize(&block)
         @lock.synchronize(&block)
       end
@@ -59,7 +58,6 @@ module Datadog
 
       # Adds a probe to the installed probes collection.
       #
-      # @param probe [Probe] The probe to add
       def add_installed(probe)
         @lock.synchronize do
           @installed_probes[probe.id] = probe
@@ -68,7 +66,6 @@ module Datadog
 
       # Removes a probe from the installed probes collection.
       #
-      # @param probe_id [String] The ID of the probe to remove
       # @return [Probe, nil] The removed probe if found, nil otherwise
       def remove_installed(probe_id)
         @lock.synchronize do
@@ -97,7 +94,6 @@ module Datadog
 
       # Adds a probe to the pending probes collection.
       #
-      # @param probe [Probe] The probe to add
       def add_pending(probe)
         @lock.synchronize do
           @pending_probes[probe.id] = probe
@@ -106,7 +102,6 @@ module Datadog
 
       # Removes a probe from the pending probes collection.
       #
-      # @param probe_id [String] The ID of the probe to remove
       # @return [Probe, nil] The removed probe if found, nil otherwise
       def remove_pending(probe_id)
         @lock.synchronize do
@@ -116,7 +111,6 @@ module Datadog
 
       # Clears all pending probes.
       #
-      # @return [void]
       def clear_pending
         @lock.synchronize do
           @pending_probes.clear
@@ -148,7 +142,6 @@ module Datadog
       # Failed probes are tracked by ID with their error message to prevent
       # repeated installation attempts that would fail again.
       #
-      # @param probe_id [String] The probe ID
       # @param message [String] The error message describing why the probe failed
       def add_failed(probe_id, message)
         @lock.synchronize do
@@ -161,7 +154,6 @@ module Datadog
       # Called when remote configuration removes a probe that previously
       # failed to install, cleaning up the failure tracking.
       #
-      # @param probe_id [String] The ID of the probe to remove
       # @return [String, nil] The removed error message if found, nil otherwise
       def remove_failed(probe_id)
         @lock.synchronize do

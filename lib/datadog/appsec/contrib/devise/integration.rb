@@ -7,7 +7,6 @@ module Datadog
   module AppSec
     module Contrib
       module Devise
-        # Description of Devise integration
         class Integration
           include Datadog::AppSec::Contrib::Integration
 

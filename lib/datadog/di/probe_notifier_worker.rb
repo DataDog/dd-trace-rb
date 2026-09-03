@@ -26,7 +26,6 @@ module Datadog
     class ProbeNotifierWorker
       # @param probe_repository [ProbeRepository] Repository for looking up probes.
       #   Used for handling serialization errors (disabling affected probes).
-      # @param probe_notification_builder [ProbeNotificationBuilder] Builder for
       #   creating status notifications. Used for reporting ERROR status.
       def initialize(settings, logger, agent_settings:,
         probe_repository:, probe_notification_builder:, telemetry: nil)
@@ -60,7 +59,6 @@ module Datadog
       # The thread batches and sends probe statuses and snapshots to the agent.
       # If the process forks, the thread is automatically restarted in the child.
       #
-      # @return [void]
       def start
         return if @thread && @pid == Process.pid
         @stop_requested = false
@@ -217,7 +215,6 @@ module Datadog
       # Called by transport when a snapshot fails to serialize.
       #
       # @param probe_id [String] ID of the probe that produced bad data
-      # @param exception [Exception] The serialization exception
       def handle_serialization_error(probe_id, exception)
         # Only installed probes produce snapshots, so a serialization
         # error can only come from an installed probe.

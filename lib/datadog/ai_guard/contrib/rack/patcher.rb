@@ -4,7 +4,6 @@ module Datadog
   module AIGuard
     module Contrib
       module Rack
-        # Patcher for Rack integration
         module Patcher
           module_function
 

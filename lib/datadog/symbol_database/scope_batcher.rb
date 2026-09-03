@@ -71,8 +71,6 @@ module Datadog
       # Add a scope to the batch.
       # Triggers immediate upload if batch reaches 400 scopes.
       # Resets inactivity timer if batch not full.
-      # @param scope [Scope] The scope to add
-      # @return [void]
       def add_scope(scope)
         # @type var scopes_to_upload: ::Array[Scope]?
         scopes_to_upload = nil
@@ -103,7 +101,6 @@ module Datadog
           @uploaded_modules.add(scope.name)
           @file_count += 1
 
-          # Add the scope
           @scopes << scope
 
           # Check if batch size reached (AFTER adding)
@@ -130,7 +127,6 @@ module Datadog
       end
 
       # Force upload of current batch immediately.
-      # @return [void]
       def flush
         # @type var scopes_to_upload: ::Array[Scope]?
         scopes_to_upload = nil
@@ -146,7 +142,6 @@ module Datadog
       end
 
       # Shutdown and upload remaining scopes.
-      # @return [void]
       def shutdown
         # @type var scopes_to_upload: ::Array[Scope]?
         scopes_to_upload = nil
@@ -191,7 +186,6 @@ module Datadog
 
       # Reset state. Private so production code cannot accidentally invoke it;
       # tests call via +send(:reset)+.
-      # @return [void]
       def reset
         # @type var thread_to_join: ::Thread?
         thread_to_join = nil
@@ -219,7 +213,6 @@ module Datadog
 
       # Start the timer thread if not already running.
       # Must be called from within @mutex.synchronize.
-      # @return [void]
       def ensure_timer_running
         return unless @timer_enabled
         return if @timer_thread&.alive?
@@ -240,7 +233,6 @@ module Datadog
       # because Ruby < 3.2 returns self for both signal and timeout (no way to
       # distinguish). The flag is set by add_scope before signaling, and cleared
       # by the timer thread after waking.
-      # @return [void]
       def timer_loop
         loop do
           should_flush = false
@@ -275,8 +267,6 @@ module Datadog
       end
 
       # Perform upload via uploader.
-      # @param scopes [Array<Scope>] Scopes to upload
-      # @return [void]
       def perform_upload(scopes)
         return if scopes.nil? || scopes.empty?
 

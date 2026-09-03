@@ -11,7 +11,6 @@ module Datadog
   module AppSec
     module Contrib
       module Devise
-        # Devise patcher
         module Patcher
           GUARD_ONCE_PER_APP = Hash.new do |hash, key|
             hash[key] = Datadog::Core::Utils::OnlyOnce.new

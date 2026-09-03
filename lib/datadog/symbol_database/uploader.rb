@@ -36,7 +36,6 @@ module Datadog
       # Initialize uploader.
       # @param settings [Configuration::Settings] Tracer settings (for service, env, version metadata)
       # @param agent_settings [Configuration::AgentSettings] Agent connection settings
-      # @param logger [Logger] Logger instance
       # @param telemetry [Telemetry, nil] Optional telemetry component for error reporting
       def initialize(settings:, agent_settings:, logger:, telemetry: nil)
         @settings = settings
@@ -60,8 +59,6 @@ module Datadog
       # Wraps in ServiceVersion, serializes to JSON, compresses with GZIP,
       # builds multipart form, and POSTs to /symdb/v1/input via transport.
       # No retries — single attempt, matching Python behavior.
-      # @param scopes [Array<Scope>] Scopes to upload
-      # @return [void]
       def upload_scopes(scopes)
         return if scopes.empty?
 
@@ -119,7 +116,6 @@ module Datadog
       # @param scope_count [Integer] Number of scopes (for logging)
       # @param upload_id [String] UUID identifying the logical upload
       # @param batch_num [Integer] 1-indexed batch number within the upload
-      # @return [void]
       def perform_http_upload(compressed_data, scope_count, upload_id:, batch_num:)
         form = build_multipart_form(compressed_data, upload_id: upload_id, batch_num: batch_num)
         response = @transport.send_symbols(form)
@@ -184,7 +180,6 @@ module Datadog
       # therefore gets a fresh upload_id and batch counter.
       # Synchronized: ScopeBatcher releases its mutex before calling
       # upload_scopes, so this can be entered concurrently.
-      # @return [Array<(String, Integer)>]
       def next_upload_metadata
         @metadata_mutex.synchronize do
           if @upload_pid != Process.pid

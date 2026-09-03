@@ -169,7 +169,6 @@ module Datadog
       # Whether this probe captures user data, either as a full snapshot
       # or via capture expressions.
       #
-      # @return [Boolean]
       def capturing?
         capture_snapshot? || capture_expressions?
       end

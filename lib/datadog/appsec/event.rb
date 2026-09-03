@@ -7,7 +7,6 @@ require_relative "compressed_json"
 
 module Datadog
   module AppSec
-    # AppSec event
     module Event
       ATTRIBUTES_SCHEMA_KEY_PREFIX = "_dd.appsec.s."
       ATTRIBUTES_SCHEMA_MAX_COMPRESSED_SIZE = 25000

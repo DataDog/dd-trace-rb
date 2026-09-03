@@ -25,13 +25,11 @@ module Datadog
       # configuration
       #
       # @param flag_key [String] The key of the feature flag
-      # @param default_value [Object] The default value to return if the flag is
       #                              not found or evaluation itself fails
       # @param expected_type [Symbol] The expected type of the flag
       # @param context [Hash] The context of the evaluation, containing targeting key
       #                       and other attributes
       #
-      # @return [ResolutionDetails] The assignment for the flag
       def get_assignment(flag_key, default_value:, expected_type:, context:)
         result = @configuration.get_assignment(flag_key, expected_type, context)
 

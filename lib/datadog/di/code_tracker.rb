@@ -56,7 +56,6 @@ module Datadog
       # :script_compiled), since those are guaranteed to be whole-file
       # iseqs and are authoritative.
       #
-      # @return [void]
       def backfill_registry
         iseqs = DI.file_iseqs
         have_iseq_type = DI.respond_to?(:iseq_type)
@@ -291,7 +290,6 @@ module Datadog
       #
       # @param suffix [String] file path or suffix to match
       # @param line [Integer] target line number
-      # @return [Array(String, RubyVM::InstructionSequence), nil]
       def iseq_for_line(suffix, line)
         # Try whole-file iseq first — it always covers all lines.
         result = iseqs_for_path_suffix(suffix)
@@ -299,7 +297,6 @@ module Datadog
 
         # Fall back to per-method iseqs.
         registry_lock.synchronize do
-          # Resolve the path using the per-method registry keys.
           path = resolve_path_suffix(suffix, per_method_registry.keys)
           return nil unless path
 

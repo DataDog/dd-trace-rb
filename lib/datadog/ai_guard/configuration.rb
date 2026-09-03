@@ -5,9 +5,7 @@ require_relative "configuration/ext"
 
 module Datadog
   module AIGuard
-    # Configuration module for AI Guard
     module Configuration
-      # AI Guard specific settings
       module Settings
         def self.extended(base)
           base = base.singleton_class unless base.is_a?(Class)

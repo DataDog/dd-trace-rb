@@ -54,7 +54,6 @@ module Datadog
       # is not re-invoked, so probes wiped here would never be redelivered.
       # Preserving the repo lets {#reopen} replay the probes locally.
       #
-      # @return [void]
       def stop
         definition_trace_point.disable
         probe_repository.synchronize do
@@ -77,7 +76,6 @@ module Datadog
       # between stop and reopen), it is demoted to pending so the trace
       # point or code tracker can re-install it if the target reappears.
       #
-      # @return [void]
       def reopen
         definition_trace_point.enable
         probe_repository.synchronize do
@@ -103,7 +101,6 @@ module Datadog
       # probe instrumentation. Called during component teardown.
       # Unlike {#stop}, this is not reversible.
       #
-      # @return [void]
       def close
         definition_trace_point.disable
         clear_hooks
@@ -115,7 +112,6 @@ module Datadog
       # and clears all probe collections (installed, pending, failed).
       # Called during component shutdown to clean up resources.
       #
-      # @return [void]
       def clear_hooks
         probe_repository.clear_all do |probe|
           instrumenter.unhook(probe)
@@ -139,7 +135,6 @@ module Datadog
       # On successful installation, sends INSTALLED status to the backend.
       # On failure, sends ERROR status to the backend before re-raising.
       #
-      # @param probe [Probe] the probe to install
       # @return [Boolean] true if installed, false if pending
       # @raise [Error::AlreadyInstrumented] if a probe with the same ID is already installed
       # @raise [Error::ProbePreviouslyFailed] if a probe with the same ID previously failed

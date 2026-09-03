@@ -44,12 +44,10 @@ module Datadog
         # @param enabled [Boolean] desired state from RC: true to start DI,
         #   false to stop it. The `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false`
         #   env var blocks an enable here (see {.explicitly_disabled?}).
-        # @param repository [Datadog::Core::Remote::Configuration::Repository, nil]
         #   the RC repository, passed by {Datadog::Tracing::Remote.apply_lib_config}
         #   so that a stopped->started transition can reconcile against probes that
         #   were delivered in an earlier poll. nil when called outside the RC
         #   dispatch path (e.g. unit tests), in which case no reconcile happens.
-        # @return [void]
         def handle_rc_enablement(enabled, repository = nil)
           # allow_initialization: false because this runs on the remote-config
           # thread (a callback context). The default `true` would synchronously
@@ -129,7 +127,6 @@ module Datadog
         # `settings` argument lets those startup callers pass the settings being
         # configured; the RC handler omits it and reads the global config.
         #
-        # @param settings [Datadog::Core::Configuration::Settings]
         # @return [Boolean] true when the customer set
         #   `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false` (or the programmatic
         #   equivalent), which blocks DI build and RC-driven enablement.

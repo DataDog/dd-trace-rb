@@ -102,11 +102,7 @@ module Datadog
       # Component#start! assigns the now-current tracker here.
       attr_writer :code_tracker
 
-      # Process-wide snapshot rate limiter.
-      # @return [Datadog::Core::TokenBucket]
       attr_reader :global_snapshot_rate_limiter
-      # Process-wide log rate limiter.
-      # @return [Datadog::Core::TokenBucket]
       attr_reader :global_log_rate_limiter
 
       def capture_expression_evaluator

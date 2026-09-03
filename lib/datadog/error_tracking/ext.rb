@@ -2,7 +2,6 @@
 
 module Datadog
   module ErrorTracking
-    # Error Tracking constants
     module Ext
       ENV_HANDLED_ERRORS = "DD_ERROR_TRACKING_HANDLED_ERRORS"
       ENV_HANDLED_ERRORS_INCLUDE = "DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE"

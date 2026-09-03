@@ -5,9 +5,7 @@ require_relative "sample_rate"
 
 module Datadog
   module AppSec
-    # Configuration for AppSec
     module Configuration
-      # Settings
       module Settings
         # rubocop:disable Layout/LineLength
         DEFAULT_OBFUSCATOR_KEY_REGEX = '(?i)pass|pw(?:or)?d|secret|(?:api|private|public|access)[_-]?key|token|consumer[_-]?(?:id|key|secret)|sign(?:ed|ature)|bearer|authorization|jsessionid|phpsessid|asp\.net[_-]sessionid|sid|jwt'

@@ -10,7 +10,6 @@ module Datadog
   module AppSec
     module Contrib
       module Rack
-        # Description of Rack integration
         class Integration
           include Datadog::AppSec::Contrib::Integration
 

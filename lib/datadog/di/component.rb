@@ -57,8 +57,6 @@ module Datadog
         # hash is populated lazily on first access; reading the underlying option
         # before {Component.build} touches the value would NoMethodError on nil.
         #
-        # @param settings [Datadog::Core::Configuration::Settings]
-        # @return [Boolean]
         def explicitly_enabled?(settings)
           !settings.dynamic_instrumentation.using_default?(:enabled) &&
             settings.dynamic_instrumentation.enabled
@@ -118,7 +116,6 @@ module Datadog
       # the order is defensive rather than load-bearing. No-op if already
       # started. Serialized by @lifecycle_mutex.
       #
-      # @return [void]
       def start!
         @lifecycle_mutex.synchronize do
           return if @started
@@ -144,7 +141,6 @@ module Datadog
       # Does not clear out the code tracker.
       # No-op if already stopped. Serialized by @lifecycle_mutex.
       #
-      # @return [void]
       def stop!
         @lifecycle_mutex.synchronize do
           return unless @started

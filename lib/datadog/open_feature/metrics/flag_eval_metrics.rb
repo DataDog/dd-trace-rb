@@ -29,7 +29,6 @@ module Datadog
           "GENERAL" => DEFAULT_ERROR_TYPE,
         }.freeze
 
-        # Reasons that should not include allocation_key in metrics
         EXCLUDE_ALLOCATION_KEY_REASONS = %w[error default disabled].freeze
 
         def initialize(telemetry:, logger:)

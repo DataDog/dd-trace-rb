@@ -5,7 +5,6 @@ require_relative "processor/rule_loader"
 
 module Datadog
   module AppSec
-    # Remote
     module Remote
       class NoRulesError < StandardError; end
 

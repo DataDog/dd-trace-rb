@@ -9,9 +9,7 @@ module Datadog
     class PathwayContext
       # The current pathway hash value (result of FNV-1a hash function)
       attr_accessor :hash
-      # When the pathway started
       attr_accessor :pathway_start
-      # When the current edge started
       attr_accessor :current_edge_start
       # The hash value of the parent checkpoint
       attr_accessor :parent_hash
@@ -19,7 +17,6 @@ module Datadog
       attr_accessor :previous_direction
       # Hash value of the closest checkpoint in opposite direction (used for loop detection)
       attr_accessor :closest_opposite_direction_hash
-      # Edge start time of the closest opposite direction checkpoint
       attr_accessor :closest_opposite_direction_edge_start
 
       def initialize(hash_value:, pathway_start:, current_edge_start:)

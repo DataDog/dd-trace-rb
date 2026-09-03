@@ -3,7 +3,6 @@
 module Datadog
   module AppSec
     module Contrib
-      # Instrument Sinatra.
       module Sinatra
         # Sinatra framework code, used to essentially:
         # - handle configuration entries which are specific to Datadog tracing

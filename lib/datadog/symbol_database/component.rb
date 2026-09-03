@@ -61,9 +61,6 @@ module Datadog
       # enabled and only invokes build when it is, so a disabled component is never
       # constructed. This method gates only on symbol database's own requirements
       # (supported platform, remote config availability).
-      # @param settings [Configuration::Settings] Tracer settings
-      # @param agent_settings [Configuration::AgentSettings] Agent configuration
-      # @param logger [Logger] Logger instance
       # @param telemetry [Core::Telemetry::Component, nil] Telemetry component for error reporting
       # @param di_active [Proc, nil] Predicate returning whether Dynamic
       #   Instrumentation is currently active (started). Gates remote-config
@@ -94,9 +91,6 @@ module Datadog
       attr_reader :settings, :logger, :last_upload_time, :last_upload_scope_count, :upload_in_progress
 
       # Initialize component.
-      # @param settings [Configuration::Settings] Tracer settings
-      # @param agent_settings [Configuration::AgentSettings] Agent configuration
-      # @param logger [Logger] Logger instance
       # @param telemetry [Core::Telemetry::Component, nil] Telemetry component for error reporting
       # @param di_active [Proc, nil] Predicate returning whether Dynamic Instrumentation is currently active
       def initialize(settings, agent_settings, logger, telemetry: nil, di_active: nil)
@@ -169,7 +163,6 @@ module Datadog
       # eager_load=false an under-extracted initial upload self-corrects as the
       # app exercises code.
       #
-      # @return [void]
       def schedule_deferred_upload
         if defined?(::ActiveSupport) && defined?(::Rails::Railtie)
           # Capture self — on_load runs the block via instance_exec on the
@@ -185,7 +178,6 @@ module Datadog
       end
 
       # Whether this component has been shut down.
-      # @return [Boolean]
       def shutdown?
         @scheduler_mutex.synchronize { @shutdown }
       end
@@ -194,7 +186,6 @@ module Datadog
       # The actual extraction is debounced by EXTRACT_DEBOUNCE_INTERVAL seconds —
       # subsequent calls within the window restart the timer.
       # Thread-safe: can be called concurrently from multiple remote config updates.
-      # @return [void]
       def start_upload
         @scheduler_mutex.synchronize do
           return if @shutdown
@@ -246,7 +237,6 @@ module Datadog
       # resume_pending_upload must not restart it) and tear down the scheduler and
       # hot-load hook.
       # Thread-safe: can be called concurrently from multiple remote config updates.
-      # @return [void]
       def stop_upload
         @scheduler_mutex.synchronize { @upload_requested = false }
         suspend_scheduling
@@ -261,7 +251,6 @@ module Datadog
       # replay_current_probes: RC does not re-dispatch the unchanged
       # symbol-database config on DI re-enable, so the tracer restarts the upload
       # from its own retained desire.
-      # @return [void]
       def resume_pending_upload
         requested = @scheduler_mutex.synchronize { @upload_requested }
         start_upload if requested
@@ -274,7 +263,6 @@ module Datadog
       # keep running. Called from the orchestration layer (Tracing::Remote) so
       # Symbol Database's TracePoint and scheduler don't keep uploading after DI
       # is turned off. No-op if uploads were never started.
-      # @return [void]
       def stop_for_di_disable
         return if @settings.symbol_database.internal.force_upload
         return unless @settings.symbol_database.enabled.nil?
@@ -318,7 +306,6 @@ module Datadog
       # rooted by the VM — class loads would keep growing @hot_load_buffer for the
       # rest of the process lifetime (enqueue_hot_load's @shutdown check skips
       # re-scheduling but only after the buffer push).
-      # @return [void]
       def shutdown!
         @scheduler_mutex.synchronize do
           @hot_load_tracepoint&.disable
@@ -398,7 +385,6 @@ module Datadog
       # the parent — backend dedup of identical-content uploads is the
       # backend's responsibility, not the tracer's.
       #
-      # @return [void]
       def after_fork!
         # Disable the inherited TracePoint before dropping the reference: fork
         # copies the enabled TP into the child, where it remains rooted by the
@@ -442,7 +428,6 @@ module Datadog
       # start_upload (which installs the TracePoint under @scheduler_mutex). Without
       # that, a stop interleaved with a start could leave an enabled TracePoint
       # rooted by the VM after this returned.
-      # @return [void]
       def suspend_scheduling
         @scheduler_mutex.synchronize do
           @hot_load_tracepoint&.disable
@@ -463,7 +448,6 @@ module Datadog
       # — where Symbol Database mirrors DI — is gated on DI actually being active,
       # so the tracer never extracts symbols for an application that never
       # enabled Dynamic Instrumentation.
-      # @return [bool]
       def upload_allowed?
         return true if @settings.symbol_database.internal.force_upload
 
@@ -481,7 +465,6 @@ module Datadog
       # disabled feature, not a deferral, so it clears @upload_requested and is
       # not retried. force_upload and explicit true are never gated, so they are
       # never deferred.
-      # @return [bool]
       def deferred_by_di_gate?
         return false if @settings.symbol_database.internal.force_upload
         return false unless @settings.symbol_database.enabled.nil?
@@ -493,8 +476,6 @@ module Datadog
 
       # Check whether the runtime environment supports symbol database upload,
       # logging the reason when it does not.
-      # @param logger [Logger]
-      # @return [Boolean]
       def self.environment_supported?(logger)
         return true if SymbolDatabase.supported_runtime?
 
@@ -509,7 +490,6 @@ module Datadog
 
       # Start the scheduler thread if not already running.
       # Must be called from within @scheduler_mutex.synchronize.
-      # @return [void]
       def ensure_scheduler_thread
         return if @scheduler_thread&.alive?
         @scheduler_thread = Thread.new { scheduler_loop }
@@ -519,7 +499,6 @@ module Datadog
       # then runs extract_and_upload. Loops indefinitely so that hot-load
       # signals fired after the initial upload trigger subsequent incremental
       # uploads.
-      # @return [void]
       def scheduler_loop
         loop do
           # should_fire = true means the debounce deadline elapsed without further
@@ -576,7 +555,6 @@ module Datadog
       # Extract symbols and upload. First call runs extract_all (full ObjectSpace
       # walk); subsequent calls drain the hot-load buffer and extract just the
       # newly-loaded modules via Extractor#extract.
-      # @return [void]
       def extract_and_upload
         @mutex.synchronize { @upload_in_progress = true }
 
@@ -639,7 +617,6 @@ module Datadog
 
       # Drain the hot-load buffer, dedup by object_id, return the array of
       # FILE scopes from per-module extraction.
-      # @return [Array<Scope>]
       def extract_hot_load_buffer
         modules = @hot_load_buffer_mutex.synchronize { @hot_load_buffer.shift(@hot_load_buffer.length) }
         return [] if modules.empty?
@@ -654,7 +631,6 @@ module Datadog
       # the module onto @hot_load_buffer and signals the scheduler. Singleton
       # classes are filtered for the same reason as in Extractor#extract_all.
       # Must be called from within @scheduler_mutex.synchronize.
-      # @return [void]
       def install_hot_load_hook
         return if @hot_load_tracepoint
         component = self
@@ -692,8 +668,6 @@ module Datadog
 
       # Enqueue a hot-loaded module and signal the scheduler.
       # Called from the TracePoint :class block — must be cheap.
-      # @param mod [Module]
-      # @return [void]
       def enqueue_hot_load(mod)
         @hot_load_buffer_mutex.synchronize { @hot_load_buffer << mod }
         @scheduler_mutex.synchronize do

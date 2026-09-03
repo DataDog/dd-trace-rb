@@ -5,7 +5,6 @@ require_relative "utils/http/media_range"
 
 module Datadog
   module AppSec
-    # AppSec response
     class Response
       SECURITY_RESPONSE_ID_PLACEHOLDER = "[security_response_id]"
 

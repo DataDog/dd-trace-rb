@@ -4,9 +4,7 @@ require_relative "gateway/middleware"
 
 module Datadog
   module AppSec
-    # Instrumentation for AppSec
     module Instrumentation
-      # Instrumentation gateway implementation
       class Gateway
         def initialize
           @middlewares = Hash.new { |h, k| h[k] = [] }

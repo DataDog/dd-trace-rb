@@ -2,7 +2,6 @@
 
 module Datadog
   module AppSec
-    # Instrumentation for AppSec
     module Instrumentation
     end
   end

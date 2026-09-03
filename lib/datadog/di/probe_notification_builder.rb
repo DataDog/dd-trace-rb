@@ -157,7 +157,6 @@ module Datadog
 
       # Builds a probe status notification payload.
       #
-      # @param probe [Probe] the probe to build status for
       # @param message [String] human-readable status message
       # @param status [String] status value (RECEIVED, INSTALLED, EMITTING, ERROR)
       # @param exception [Exception, nil] exception to include for ERROR status
@@ -220,7 +219,6 @@ module Datadog
       #    we still report the exception type, and a missing/wrong message
       #    is better than invoking customer code or reporting nothing.
       #
-      # @param exception [Exception] the exception to serialize
       # @return [Hash{Symbol => String?}] hash with :type and :message keys
       def serialize_throwable(exception)
         msg = DI.exception_message(exception)
@@ -274,8 +272,6 @@ module Datadog
       # path/lineno/label directly, avoiding the round-trip of formatting
       # to strings and regex-parsing back.
       #
-      # @param locations [Array<Thread::Backtrace::Location>]
-      # @return [Array<Hash>]
       def format_backtrace_locations(locations)
         locations.map do |loc|
           {fileName: loc.path, function: loc.label, lineNumber: loc.lineno}
@@ -291,7 +287,6 @@ module Datadog
       # Ruby backtrace format: "/path/file.rb:42:in `method_name'"
       #
       # @param backtrace [Array<String>, nil] from Exception#backtrace
-      # @return [Array<Hash>]
       def format_backtrace_strings(backtrace)
         return [] if backtrace.nil?
 

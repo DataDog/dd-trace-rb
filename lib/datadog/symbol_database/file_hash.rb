@@ -23,7 +23,6 @@ module Datadog
       # Uses Git's blob hash algorithm: SHA1("blob <size>\0<content>")
       # Returns nil on any error (file not found, permission denied, etc.)
       #
-      # @param file_path [String] Path to the file
       # @param logger [#debug] Logger for error reporting
       # @return [String, nil] 40-character hex-encoded SHA-1 hash, or nil if error
       def compute(file_path, logger:)

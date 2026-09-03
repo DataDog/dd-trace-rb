@@ -9,7 +9,6 @@ module Datadog
   module AppSec
     module Contrib
       module Sinatra
-        # Description of Sinatra integration
         class Integration
           include Datadog::AppSec::Contrib::Integration
 

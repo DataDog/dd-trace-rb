@@ -44,7 +44,6 @@ module Datadog
         instrumented_files.include?(file_path)
       end
 
-      # Generate the proc used in the TracePoint
       def generate_filter(to_instrument_scope, handled_errors_include = nil)
         case to_instrument_scope
         # If DD_ERROR_TRACKING_HANDLED_ERRORS is set

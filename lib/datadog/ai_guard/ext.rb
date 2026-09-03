@@ -2,7 +2,6 @@
 
 module Datadog
   module AIGuard
-    # AI Guard specific constants
     module Ext
       PRODUCT_BIT = 0x20
 

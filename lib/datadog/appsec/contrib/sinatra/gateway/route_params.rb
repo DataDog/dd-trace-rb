@@ -7,7 +7,6 @@ module Datadog
     module Contrib
       module Sinatra
         module Gateway
-          # Gateway Route Params argument.
           class RouteParams < Instrumentation::Gateway::Argument
             attr_reader :params
 

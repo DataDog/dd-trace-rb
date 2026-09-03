@@ -13,7 +13,6 @@ module Datadog
           base.extend(ClassMethods)
         end
 
-        # Class-level methods for Integration
         module ClassMethods
           def register_as(name, options = {})
             Integration.register(self, name, options)

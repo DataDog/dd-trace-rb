@@ -4,7 +4,6 @@ module Datadog
   module AppSec
     module Contrib
       module Rack
-        # Rack integration constants
         module Ext
           COLLECTABLE_REQUEST_HEADERS = [
             "accept",

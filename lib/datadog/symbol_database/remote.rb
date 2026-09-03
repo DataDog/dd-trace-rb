@@ -55,7 +55,6 @@ module Datadog
         end
 
         # Create receivers for remote configuration.
-        # @return [Array<Receiver>] Array of receivers
         def receivers(_telemetry)
           receiver do |repository, changes|
             telemetry = lookup_telemetry
@@ -78,7 +77,6 @@ module Datadog
 
         # Create a single receiver for the product.
         # @param products [Array<String>] Product names to match
-        # @return [Array<Receiver>] Receiver array
         def receiver(products = [PRODUCT], &block)
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(products)
           [Core::Remote::Dispatcher::Receiver.new(matcher, &block)]
@@ -90,7 +88,6 @@ module Datadog
         # component tree isn't built yet (very early boot) or the lookup raises.
         # `allow_initialization: false` avoids triggering component-tree construction
         # from inside an RC receiver callback.
-        # @return [Core::Telemetry::Component, nil]
         # @api private
         def lookup_telemetry
           Datadog.send(:components, allow_initialization: false)&.telemetry
@@ -103,7 +100,6 @@ module Datadog
         # @param component [Component] Symbol database component
         # @param change [Change] Configuration change (:insert, :update, :delete)
         # @param telemetry [Core::Telemetry::Component, nil] Telemetry for error reporting
-        # @return [void]
         # @api private
         def process_change(component, change, telemetry)
           case change.type
@@ -139,7 +135,6 @@ module Datadog
         # Enable upload if config has upload_symbols: true.
         # @param component [Component] Symbol database component
         # @param content [Content] Remote config content
-        # @return [void]
         # @api private
         def enable_upload(component, content)
           config = parse_config(content, component.logger)
@@ -158,7 +153,6 @@ module Datadog
 
         # Disable upload.
         # @param component [Component] Symbol database component
-        # @return [void]
         # @api private
         def disable_upload(component)
           component.logger.debug { "symdb: upload disabled via remote config" }

@@ -4,9 +4,7 @@ require_relative "ext"
 
 module Datadog
   module ErrorTracking
-    # Configuration for ErrorTracking
     module Configuration
-      # Settings
       module Settings
         def self.extended(base)
           base = base.singleton_class unless base.is_a?(Class)
