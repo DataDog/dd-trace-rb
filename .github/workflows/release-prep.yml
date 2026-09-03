@@ -5,10 +5,11 @@ name: Prepare release
 #   2. Renders the unreleased/ changelog fragments into the GitHub release
 #      body (release_prep:release_body)
 #   3. Creates the draft GitHub release for tag vX.Y.Z (gh release create --draft)
-#   4. Writes the changelog into CHANGELOG.md and rewrites the compare-link
-#      footer (release_prep:changelog)
-#   5. Regenerates docs/integration_versions.md and docs/integration_versions.json
-#   6. Bumps the gem version (version:bump: lib/datadog/version.rb, gemfiles, tools/*.lock)
+#   4. Writes the changelog into CHANGELOG.md, rewrites the compare-link footer,
+#      and deletes the consumed unreleased/ fragments (release_prep:changelog)
+#   5. Bumps the gem version (version:bump: lib/datadog/version.rb, gemfiles, tools/*.lock)
+#   6. Regenerates docs/integration_versions.md and docs/integration_versions.json
+#      from the bumped version
 #   7. Opens a `release`-labelled PR targeting master
 #
 # The draft release is created by step 3; nothing needs to be hand-created
