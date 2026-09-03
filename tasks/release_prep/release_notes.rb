@@ -24,16 +24,12 @@ module ReleasePrep
       "v#{@version}"
     end
 
-    def empty?
-      @fragments.empty? && @highlights.empty?
-    end
-
     def body
       [@highlights.to_s, @fragments.render].reject(&:empty?).join("\n\n")
     end
 
     def write(path: OUTPUT_FILE)
-      ReleasePrep.fail_if_nothing_to_release!(@fragments, @highlights)
+      ReleasePrep.fail_if_no_fragments!(@fragments)
 
       FileUtils.mkdir_p(File.dirname(path))
       File.write(path, body)

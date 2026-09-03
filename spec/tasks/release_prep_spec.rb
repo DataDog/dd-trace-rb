@@ -25,25 +25,15 @@ RSpec.describe ReleasePrep do
     end
   end
 
-  describe ".fail_if_nothing_to_release!" do
-    let(:fragments) { ReleasePrep::Fragments.new([]) }
-    let(:highlights) { ReleasePrep::Highlights::Missing.new }
-
-    it "fails when there are no fragments and no highlights" do
-      expect { described_class.fail_if_nothing_to_release!(fragments, highlights) }
+  describe ".fail_if_no_fragments!" do
+    it "fails when there are no changelog fragments" do
+      expect { described_class.fail_if_no_fragments!(ReleasePrep::Fragments.new([])) }
         .to raise_error(SystemExit)
     end
 
     it "passes when there are fragments" do
-      expect { described_class.fail_if_nothing_to_release!(ReleasePrep::Fragments.new([:fragment]), highlights) }
+      expect { described_class.fail_if_no_fragments!(ReleasePrep::Fragments.new([:fragment])) }
         .not_to raise_error
-    end
-
-    it "passes when there are only highlights" do
-      highlights = ReleasePrep::Highlights.new(File.join(Dir.mktmpdir, "highlights.md"))
-      allow(highlights).to receive(:empty?).and_return(false)
-
-      expect { described_class.fail_if_nothing_to_release!(fragments, highlights) }.not_to raise_error
     end
   end
 end
