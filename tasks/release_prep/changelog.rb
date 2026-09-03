@@ -22,7 +22,7 @@ module ReleasePrep
     end
 
     def insert_version(version, content)
-      match = File.read(@path).match(/\[Unreleased\]/)
+      match = File.read(@path).match(/\n## \[Unreleased\]/)
       ReleasePrep.fail!("Could not find [Unreleased] marker in #{@path}") unless match
 
       section = "\n## [#{version}] - #{Date.today}\n\n#{content}".rstrip

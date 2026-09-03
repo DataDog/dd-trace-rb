@@ -65,6 +65,20 @@ RSpec.describe ReleasePrep::Changelog do
 
       expect { changelog.insert_version("2.43.0", "") }.to raise_error(SystemExit)
     end
+
+    it "fails loudly rather than splicing into the footer when only the compare link matches" do
+      footer_only = <<~MD
+        # CHANGELOG
+
+        ## [2.42.0] - 2026-08-31
+
+        [Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.42.0...master
+      MD
+      changelog = described_class.new(path: write_changelog(footer_only))
+
+      expect { changelog.insert_version("2.43.0", "### Fixed\n\n* Tracing: Fix a bug. (#1)") }
+        .to raise_error(SystemExit)
+    end
   end
 
   describe "#rewrite_footer" do

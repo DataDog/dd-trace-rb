@@ -25,7 +25,7 @@ module ReleasePrep
     end
 
     def body
-      [@highlights.to_s, @fragments.render].reject(&:empty?).join("\n\n")
+      [@highlights.to_s, @fragments.render].reject { |part| part.strip.empty? }.join("\n\n")
     end
 
     def write(path: OUTPUT_FILE)
