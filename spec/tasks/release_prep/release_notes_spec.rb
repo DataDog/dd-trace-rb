@@ -49,6 +49,13 @@ RSpec.describe ReleasePrep::ReleaseNotes do
 
       expect(release_notes.body).to start_with("## Highlights\n\nBig release!\n\n### Fixed")
     end
+
+    it "omits a whitespace-only highlights file" do
+      write_fragment("1.json", "Fix a bug.")
+      File.write(File.join(@unreleased_dir, "highlights.md"), "  \n")
+
+      expect(release_notes.body).to start_with("### Fixed")
+    end
   end
 
   describe "#write" do
