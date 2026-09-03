@@ -150,14 +150,14 @@ RSpec.describe ReleasePrep::Fragments do
     it "deletes exactly its own fragments' files" do
       write_fragment("keep.json", valid_entry("message" => "Keep me."))
       write_fragment("consume.json", valid_entry("message" => "Consume me."))
-      keep_only = described_class.new(
-        described_class.read_all(dir: @unreleased_dir).select { |f| f.message == "Keep me." }
+      consume_only = described_class.new(
+        described_class.read_all(dir: @unreleased_dir).select { |f| f.message == "Consume me." }
       )
 
-      keep_only.consume!
+      consume_only.consume!
 
+      expect(File.exist?(File.join(@unreleased_dir, "consume.json"))).to be(false)
       expect(File.exist?(File.join(@unreleased_dir, "keep.json"))).to be(true)
-      expect(File.exist?(File.join(@unreleased_dir, "consume.json"))).to be(true)
     end
 
     it "deletes every fragment's file and the highlights file when present" do
