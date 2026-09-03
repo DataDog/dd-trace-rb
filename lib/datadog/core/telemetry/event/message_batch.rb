@@ -4,7 +4,6 @@ module Datadog
   module Core
     module Telemetry
       module Event
-        # Telemetry class for the 'message-batch' event.
         class MessageBatch < Base
           attr_reader :events
 

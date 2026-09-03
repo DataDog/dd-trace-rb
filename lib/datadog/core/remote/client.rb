@@ -41,7 +41,6 @@ module Datadog
         private
 
         def process_response(response)
-          # when response is completely empty, do nothing as in: leave as is
           if response.empty?
             logger.debug { "remote: empty response => NOOP" }
 
@@ -71,48 +70,35 @@ module Datadog
 
         def apply_config(paths, targets, contents)
           changes = repository.transaction do |current, transaction|
-            # paths to be removed: previously applied paths minus ingress paths
             (current.paths - paths).each { |p| transaction.delete(p) }
 
-            # go through each ingress path
             paths.each do |path|
-              # match target with path
               target = targets[path]
 
-              # abort entirely if matching target not found
               raise SyncError, "no target for path '#{path}'" if target.nil?
 
-              # new paths are not in previously applied paths
               new = !current.paths.include?(path)
 
-              # updated paths are in previously applied paths
-              # but the content hash changed
               changed = current.paths.include?(path) && !current.contents.find_content(path, target)
 
-              # skip if unchanged
               same = !new && !changed
 
               next if same
 
-              # match content with path and target
               content = contents.find_content(path, target)
 
-              # abort entirely if matching content not found
               if content.nil?
                 raise SyncError, "no valid content for target at path '#{path}'"
               end
 
-              # to be added or updated << config
               # TODO: metadata (hash, version, etc...)
               transaction.insert(path, target, content) if new
               transaction.update(path, target, content) if changed
             end
 
-            # save backend opaque backend state
             transaction.set(opaque_backend_state: targets.opaque_backend_state)
             transaction.set(targets_version: targets.version)
 
-            # upon transaction end, new list of applied config + metadata (add, change, remove) will be saved
             # TODO: also remove stale config (matching removed) from cache (client configs is exhaustive list of paths)
           end
 
@@ -127,7 +113,7 @@ module Datadog
           state = repository.state
 
           client_tracer_tags = [
-            "platform:#{native_platform}", # native platform
+            "platform:#{native_platform}",
             # "asm.config.rules:#{}", # TODO: defined|undefined
             # "asm.config.enabled:#{}", # TODO: true|false|undefined
             # TODO: Inaccurate if tracing is extracted and version diverges from the datadog gem.

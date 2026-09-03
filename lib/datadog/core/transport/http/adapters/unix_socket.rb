@@ -9,7 +9,6 @@ module Datadog
     module Transport
       module HTTP
         module Adapters
-          # Adapter for Unix sockets
           class UnixSocket < Adapters::Net
             attr_reader \
               :filepath, # DEV(1.0): Rename to `uds_path`
@@ -33,7 +32,6 @@ module Datadog
             end
 
             def open(&block)
-              # Open connection
               connection = HTTP.new(
                 uds_path,
                 read_timeout: timeout,

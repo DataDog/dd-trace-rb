@@ -6,7 +6,6 @@ require_relative "configuration"
 # @public_api
 module Datadog
   module Core
-    # Used to decorate Datadog module with additional behavior
     module Extensions
       def self.extended(base)
         base.extend(Core::Configuration)

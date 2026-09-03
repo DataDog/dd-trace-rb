@@ -58,7 +58,6 @@ module Datadog
           def option(name, attributes = {}, &block)
             builder = OptionDefinition::Builder.new(name, attributes, &block)
             options[name] = builder.to_definition.tap do
-              # Resolve and define helper functions
               helpers = default_helpers(name)
               # Prevent unnecessary creation of an identical copy of helpers if there's nothing to merge
               helpers = helpers.merge(builder.helpers) unless builder.helpers.empty?
@@ -129,7 +128,6 @@ module Datadog
             self.class.options.key?(name)
           end
 
-          # Is this option's value the default fallback value?
           def using_default?(name)
             get_option(name) # Resolve value check if environment variable overwrote the default
             options[name].default_precedence?
@@ -147,7 +145,6 @@ module Datadog
 
           private
 
-          # Ensure option DSL is loaded
           def resolve_option(name)
             option = options[name]
             return option if option

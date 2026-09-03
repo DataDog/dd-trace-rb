@@ -8,7 +8,6 @@ module Datadog
   module Core
     module Telemetry
       module Transport
-        # Namespace for HTTP transport components
         module HTTP
           AGENT_TELEMETRY = Telemetry::API::Endpoint.new(
             "/telemetry/proxy/api/v2/apmtelemetry",
@@ -36,7 +35,6 @@ module Datadog
               headers: headers
             ) do |transport|
               transport.api "agentless_telemetry", AGENTLESS_TELEMETRY
-              # Call block to apply any customization, if provided
               yield(transport) if block_given?
             end.to_transport(Core::Telemetry::Transport::Telemetry::Transport).tap do |transport|
               transport.api_key = api_key
@@ -57,7 +55,6 @@ module Datadog
             ) do |transport|
               transport.api "agent_telemetry", AGENT_TELEMETRY
 
-              # Call block to apply any customization, if provided
               yield(transport) if block_given?
             end.to_transport(Core::Telemetry::Transport::Telemetry::Transport)
           end

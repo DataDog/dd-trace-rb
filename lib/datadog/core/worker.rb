@@ -2,7 +2,6 @@
 
 module Datadog
   module Core
-    # Base class for work tasks
     class Worker
       attr_reader \
         :task

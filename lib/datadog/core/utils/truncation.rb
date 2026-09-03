@@ -3,7 +3,6 @@
 module Datadog
   module Core
     module Utils
-      # Helper methods for truncating data
       module Truncation
         module_function
 

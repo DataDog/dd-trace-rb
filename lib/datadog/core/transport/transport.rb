@@ -36,7 +36,6 @@ module Datadog
         end
       end
 
-      # Base class for transports.
       class Transport
         attr_reader :client, :apis, :default_api, :current_api_id, :logger
 

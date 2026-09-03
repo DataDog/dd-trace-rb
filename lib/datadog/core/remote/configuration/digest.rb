@@ -6,7 +6,6 @@ module Datadog
   module Core
     module Remote
       class Configuration
-        # Represent a list of Configuration::Digest
         class DigestList < Array
           class << self
             def parse(hash)

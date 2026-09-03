@@ -14,7 +14,6 @@ module Datadog
         module HTTP
           # HTTP transport behavior for remote configuration
           module Config
-            # Response from HTTP transport for remote configuration
             class Response
               include Core::Transport::HTTP::Response
 
@@ -158,7 +157,6 @@ module Datadog
                 end
               end
 
-              # When value decoding fails
               class DecodeError < ConfigError
                 def initialize(key, value)
                   message = "could not decode key #{key.inspect}: #{value.inspect}"
@@ -167,7 +165,6 @@ module Datadog
                 end
               end
 
-              # When value parsing fails
               class ParseError < ConfigError
                 def initialize(key, value)
                   message = "could not parse key #{key.inspect}: #{value.inspect}"
@@ -178,7 +175,6 @@ module Datadog
             end
 
             module API
-              # Endpoint for remote configuration
               class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
                 HEADER_CONTENT_TYPE = "Content-Type"
 
@@ -190,16 +186,13 @@ module Datadog
                 end
 
                 def call(env, &block)
-                  # Encode body & type
                   env.headers[HEADER_CONTENT_TYPE] = encoder.content_type
                   env.body = env.request.parcel.data
 
-                  # Query for response
                   http_response = super
 
                   response_options = {}
 
-                  # Build and return a response
                   Config::Response.new(http_response, response_options)
                 end
               end

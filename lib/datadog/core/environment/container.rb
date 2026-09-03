@@ -6,7 +6,6 @@ require_relative "ext"
 module Datadog
   module Core
     module Environment
-      # For container environments
       module Container
         UUID_PATTERN = "[0-9a-f]{8}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{12}"
         CONTAINER_PATTERN = "[0-9a-f]{64}"
@@ -145,17 +144,13 @@ module Datadog
 
             platform = parts[0][PLATFORM_REGEX, :platform]
 
-            # Extract container_id and task_uid based on path structure
             container_id = task_uid = nil
             if parts.length >= 2
-              # Try standard container regex first
               if (container_id = parts[-1][CONTAINER_REGEX, :container])
-                # For 3+ parts, also extract task_uid
                 if parts.length > 2
                   task_uid = parts[-2][POD_REGEX, :pod] || parts[1][POD_REGEX, :pod]
                 end
               else
-                # Fall back to Fargate regex
                 container_id = parts[-1][FARGATE_14_CONTAINER_REGEX, :container]
               end
             end
@@ -169,7 +164,7 @@ module Datadog
             end
           end
 
-          @entry = Entry.new # Empty entry if no valid cgroup entry is found
+          @entry = Entry.new
         rescue => e
           Datadog.logger.debug(
             "Error while reading container entry. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"

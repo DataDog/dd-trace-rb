@@ -2,7 +2,6 @@
 
 module Datadog
   module Core
-    # Namespace for handling application environment
     module Environment
       # Defines helper methods for environment
       # @public_api

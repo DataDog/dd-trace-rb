@@ -6,8 +6,6 @@ require_relative "environment/git"
 
 module Datadog
   module Core
-    # This module builds a hash of tags.
-    #
     # @api private
     module TagBuilder
       def self.fixed_environment_tags
@@ -34,7 +32,6 @@ module Datadog
           "runtime-id" => Environment::Identity.id,
           # Process ID changes upon a fork.
           "process_id" => Process.pid.to_s,
-          # Unified service tagging.
           "env" => settings.env,
           "service" => settings.service,
           "version" => settings.version,

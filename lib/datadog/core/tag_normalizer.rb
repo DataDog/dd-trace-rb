@@ -15,8 +15,8 @@ module Datadog
       INVALID_TAG_CHARACTERS = %r{[^\p{L}0-9_\-:./]}
       LEADING_INVALID_CHARS_NO_DIGITS = %r{\A[^\p{L}:]++}
       LEADING_INVALID_CHARS_WITH_DIGITS = %r{\A[^\p{L}0-9:./]++}
-      MAX_BYTE_SIZE = 200 # Represents the general max tag length
-      MAX_PROCESS_VALUE_BYTE_SIZE = 100 # Represents the max tag length for process tags
+      MAX_BYTE_SIZE = 200
+      MAX_PROCESS_VALUE_BYTE_SIZE = 100
       VALID_ASCII_TAG = %r{\A[a-z:][a-z0-9:./-]*\z}
 
       # Based on https://github.com/DataDog/datadog-agent/blob/45799c842bbd216bcda208737f9f11cade6fdd95/pkg/trace/traceutil/normalize.go#L131
@@ -29,9 +29,7 @@ module Datadog
       # - Consecutive underscores are merged into a single underscore
       # - Maximum length is 200 characters
       # If it's a tag value, allow it to start with a digit
-      # @param original_value [String] The original string
       # @param remove_digit_start_char [Boolean] - whether to remove the leading digit (currently only used for tag values)
-      # @return [String] The normalized string
       def self.normalize(original_value, remove_digit_start_char: false)
         # DEV-3.0: Ideally this encode call should be replaced with Datadog::Core::Utils.utf8_encode once it
         #          is safe to modify the default behavior.
@@ -63,8 +61,6 @@ module Datadog
       # Process tags values follow an additional piece of normalization:
       # - must not be more than 100 bytes
       # - and must not contain colons
-      # @param value [String] The original string
-      # @return [String] The normalized string
       def self.normalize_process_value(value)
         value = normalize(value)
         return value if value.empty?

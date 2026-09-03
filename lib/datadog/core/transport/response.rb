@@ -55,7 +55,6 @@ module Datadog
         end
       end
 
-      # A generic error response for internal errors
       class InternalErrorResponse
         include Response
 

@@ -6,7 +6,6 @@ module Datadog
   module Core
     module Telemetry
       module Event
-        # Telemetry event class for sending 'app-endpoints' payload
         class AppEndpointsLoaded < Base
           def initialize(endpoints, is_first:)
             @endpoints = endpoints

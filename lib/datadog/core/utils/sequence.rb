@@ -3,7 +3,6 @@
 module Datadog
   module Core
     module Utils
-      # Generates values from a consistent sequence
       class Sequence
         def initialize(seed = 0)
           @seed = seed

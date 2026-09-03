@@ -50,14 +50,11 @@ module Datadog
             @length ||= @data.size
           end
 
-          # Sets this configuration as successfully applied.
           def applied
             @apply_state = ApplyState::ACKNOWLEDGED
             @apply_error = nil
           end
 
-          # Sets this configuration as not successfully applied, with
-          # a message describing the error.
           def errored(error_message)
             @apply_state = ApplyState::ERROR
             @apply_error = error_message
@@ -68,10 +65,8 @@ module Datadog
             # Set until the component consuming the configuration has acknowledged it was applied.
             UNACKNOWLEDGED = 1
 
-            # Set when the configuration has been successfully applied.
             ACKNOWLEDGED = 2
 
-            # Set when the configuration has been unsuccessfully applied.
             ERROR = 3
           end
 
@@ -84,7 +79,6 @@ module Datadog
           private_class_method :new
         end
 
-        # ContentList stores a list of Content instances.
         # It provides convenient methods for finding content based on
         # Configuration::Path and Configuration::Target.
         class ContentList < Array

@@ -40,9 +40,6 @@ module Datadog
           raise Error, "Failed to parse JSON value: #{e.class}: #{e.message}"
         end
 
-        # Check if the resolution resulted in an error
-        #
-        # @return [Boolean] True if there was an error
         def error?
           reason == "ERROR"
         end

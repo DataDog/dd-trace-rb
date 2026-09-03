@@ -5,7 +5,6 @@ require_relative "../../ruby_version"
 module Datadog
   module Core
     module Utils
-      # Helper methods for managing forking behavior
       module Forking
         def self.included(base)
           base.prepend(ClassExtensions) if base.is_a?(Class)
@@ -41,7 +40,6 @@ module Datadog
           @fork_pid ||= Process.pid
         end
 
-        # Adds additional functionality for Classes that implement Forking
         module ClassExtensions
           # Addresses an edge case where forking before invoking #update_fork_pid! on the
           # object will cause forking to not be detected in the fork when it should have.

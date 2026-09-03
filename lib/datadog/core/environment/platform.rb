@@ -7,7 +7,6 @@ require_relative "identity"
 module Datadog
   module Core
     module Environment
-      # For gathering information about the platform
       module Platform
         module_function
 

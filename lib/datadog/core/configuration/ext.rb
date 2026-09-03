@@ -3,8 +3,6 @@
 module Datadog
   module Core
     module Configuration
-      # Constants for configuration settings
-      # e.g. Env vars, default values, enums, etc...
       module Ext
         # @public_api
         module Diagnostics

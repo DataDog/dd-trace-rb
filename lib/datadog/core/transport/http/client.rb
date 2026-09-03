@@ -19,10 +19,8 @@ module Datadog
           end
 
           def send_request(action, request)
-            # Build request into env
             env = build_env(request)
 
-            # Get responses from API.
             # All of our APIs send only one type of request each.
             instance.endpoint.call(env) do |request_env|
               instance.call(request_env)

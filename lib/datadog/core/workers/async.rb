@@ -26,7 +26,6 @@ module Datadog
             base.prepend(PrependedMethods)
           end
 
-          # Methods that must be prepended
           module PrependedMethods
             def perform(*args)
               unless started?
@@ -56,7 +55,6 @@ module Datadog
             @run_async = false
             Datadog.logger.debug { "Forcibly terminating worker thread for: #{self}" }
             worker.terminate
-            # Wait for the worker thread to end
             begin
               Timeout.timeout(SHUTDOWN_TIMEOUT) do
                 worker.join
@@ -183,10 +181,8 @@ module Datadog
           def stop_fork
             mutex_after_fork.synchronize do
               if forked?
-                # Trigger callback to allow workers to reset themselves accordingly
                 after_fork
 
-                # Reset and turn off
                 @pid = Process.pid
                 @run_async = false
               end
@@ -196,10 +192,8 @@ module Datadog
           def restart_after_fork(&block)
             mutex_after_fork.synchronize do
               if forked?
-                # Trigger callback to allow workers to reset themselves accordingly
                 after_fork
 
-                # Start worker
                 start_worker(&block)
               end
             end

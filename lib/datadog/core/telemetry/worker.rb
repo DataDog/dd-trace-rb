@@ -45,9 +45,7 @@ module Datadog
           @ticks_per_extended_heartbeat = (extended_heartbeat_interval_seconds / metrics_aggregation_interval_seconds).to_i
           @current_ticks = 0
 
-          # Workers::Polling settings
           self.enabled = enabled
-          # Workers::IntervalLoop settings
           self.loop_base_interval = metrics_aggregation_interval_seconds
           # We actually restart the worker after fork, but this is done
           # via the AtForkMonkeyPatch rather than the worker fork policy
@@ -85,7 +83,6 @@ module Datadog
 
           @initial_event = initial_event
 
-          # starts async worker
           # perform should return true if thread was actually started,
           # false otherwise
           perform
@@ -318,7 +315,6 @@ module Datadog
           uniq_logs = all_logs.group_by(&:itself).map do |_, logs|
             log = logs.first
             if logs.size > 1
-              # New log event with a count of repeated occurrences
               Event::Log.new(message: log.message, level: log.level, stack_trace: log.stack_trace, count: logs.size)
             else
               log

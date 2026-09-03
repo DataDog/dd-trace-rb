@@ -3,7 +3,6 @@
 module Datadog
   module Core
     module Remote
-      # Repository update dispatcher
       class Dispatcher
         attr_reader :receivers
 
@@ -35,7 +34,6 @@ module Datadog
           end
         end
 
-        # Matcher checks if the path matches
         class Matcher
           def initialize(&block)
             @block = block

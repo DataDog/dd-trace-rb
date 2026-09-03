@@ -17,7 +17,6 @@ module Datadog
         #   @return [Precedence::Value]
         attr_reader :definition, :precedence_set
 
-        # Option setting precedence.
         module Precedence
           # Represents an Option precedence level.
           # Each precedence has a `numeric` value; higher values means higher precedence.
@@ -59,7 +58,6 @@ module Datadog
           # Configuration that comes from default values
           DEFAULT = Value.new(0, :default, "default").freeze
 
-          # All precedences, sorted from highest to lowest
           LIST = [REMOTE_CONFIGURATION, PROGRAMMATIC, FLEET_STABLE, ENVIRONMENT, LOCAL_STABLE, DEFAULT].sort.reverse.freeze
         end
 
@@ -94,7 +92,6 @@ module Datadog
         # @param value [Object] the new value to be associated with this option
         # @param precedence [Precedence] from what precedence order this new value comes from
         def set(value, precedence: Precedence::PROGRAMMATIC)
-          # Is there a higher precedence value set?
           if @precedence_set > precedence
             # This should be uncommon, as higher precedence values tend to
             # happen later in the application lifecycle.
@@ -121,13 +118,11 @@ module Datadog
           # If we are unsetting the currently active value, we have to restore
           # a lower precedence one...
           if precedence == @precedence_set
-            # Find a lower precedence value that is already set.
             Precedence::LIST.each do |p|
               # DEV: This search can be optimized, but the list is small, and unset is
               # DEV: only called from direct user interaction in the Datadog UI.
               next unless p < precedence
 
-              # Look for value that is set.
               # The hash `@value_per_precedence` has a custom default value of `UNSET`.
               if (value = @value_per_precedence[p]) != UNSET
                 internal_set(value, p)
@@ -135,7 +130,6 @@ module Datadog
               end
             end
 
-            # If no value is left to fall back on, reset this option
             reset
           end
 
@@ -171,7 +165,6 @@ module Datadog
 
           # Reset back to the lowest precedence, to allow all `set`s to succeed right after a reset.
           @precedence_set = Precedence::DEFAULT
-          # Reset all stored values
           @value_per_precedence = Hash.new(UNSET)
         end
 
@@ -211,7 +204,7 @@ module Datadog
 
           case @definition.type
           when :hash
-            values = value.split(",") # By default we only want to support comma separated strings
+            values = value.split(",")
 
             values.each_with_object({}) do |v, hash| # $ Hash[String, String]
               v.gsub!(/\A[\s,]*+|[\s,]*+\Z/, "")
@@ -305,7 +298,6 @@ module Datadog
           end
         end
 
-        # Directly manipulates the current value and currently set precedence.
         def internal_set(value, precedence)
           old_value = @value
           (@value = context_exec(validate_type(value), old_value, &definition.setter)).tap do |v|

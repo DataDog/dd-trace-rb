@@ -18,7 +18,6 @@ module Datadog
           base.prepend(PrependedMethods)
         end
 
-        # Methods that must be prepended
         module PrependedMethods
           def perform(*args)
             super if enabled?
@@ -27,7 +26,6 @@ module Datadog
 
         def stop(force_stop = false, timeout = DEFAULT_SHUTDOWN_TIMEOUT)
           if running?
-            # Attempt graceful stop and wait
             stop_loop
             graceful = join(timeout)
 
@@ -50,9 +48,7 @@ module Datadog
           @enabled
         end
 
-        # Allow worker to be started
         def enabled=(value)
-          # Coerce to boolean
           @enabled = (value == true)
         end
       end

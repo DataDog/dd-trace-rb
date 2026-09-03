@@ -3,7 +3,6 @@
 module Datadog
   module Core
     module Environment
-      # Retrieves garbage collection statistics
       module GC
         module_function
 

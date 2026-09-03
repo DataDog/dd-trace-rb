@@ -5,7 +5,6 @@ require "ipaddr"
 module Datadog
   module Core
     module Utils
-      # Common Network utility functions.
       module Network
         DEFAULT_IP_HEADERS_NAMES = %w[
           x-forwarded-for
@@ -27,9 +26,6 @@ module Datadog
           # Returns a client IP associated with the request if it was
           #   retrieved successfully.
           #
-          #
-          # @param [Datadog::Core::HeaderCollection, #get, nil] headers The request headers
-          # @param [Array<String>] list of headers to check.
           # @return [String] IP value without the port and the zone indentifier.
           # @return [nil] when no valid IP value found.
           def stripped_ip_from_request_headers(headers, ip_headers_to_check: DEFAULT_IP_HEADERS_NAMES)
@@ -38,7 +34,6 @@ module Datadog
             ip&.to_s
           end
 
-          # @param [String] IP value.
           # @return [String] IP value without the port and the zone indentifier.
           # @return [nil] when no valid IP value found.
           def stripped_ip(ip)
@@ -48,8 +43,6 @@ module Datadog
 
           private
 
-          # @param [String] IP value.
-          # @return [IPaddr]
           # @return [nil] when no valid IP value found.
           def ip_to_ipaddr(ip)
             return unless ip

@@ -6,7 +6,6 @@ module Datadog
   module Core
     module Telemetry
       module Event
-        # Telemetry class for the 'logs' event.
         # Logs with the same content are deduplicated at flush time.
         class Log < Base
           LEVELS = {

@@ -7,7 +7,6 @@ module Datadog
     module Transport
       module HTTP
         module API
-          # Endpoint
           class Endpoint
             attr_reader :verb
             attr_reader :path

@@ -29,7 +29,6 @@ module Datadog
           Datadog.logger
         end
 
-        # Are we logging the environment data?
         def log?
           startup_logs_enabled = Datadog.configuration.diagnostics.startup_logs.enabled
           if startup_logs_enabled.nil?
@@ -41,7 +40,6 @@ module Datadog
         end
       end
 
-      # Collects and logs Core diagnostic information
       module EnvironmentLogger
         extend EnvironmentLogging
 
@@ -58,7 +56,6 @@ module Datadog
         end
       end
 
-      # Collects environment information for Core diagnostic logging
       module EnvironmentCollector
         class << self
           def collect_config!
@@ -82,55 +79,45 @@ module Datadog
             }
           end
 
-          # @return [String] current time in ISO8601 format
           def date
             Core::Utils::Time.now.utc.iso8601
           end
 
           # Best portable guess of OS information.
-          # @return [String] platform string
           def os_name
             RbConfig::CONFIG["host"]
           end
 
-          # @return [String] datadog version
           def version
             Datadog::VERSION::STRING
           end
 
-          # @return [String] "ruby"
           def lang
             Core::Environment::Ext::LANG
           end
 
           # Supported Ruby language version.
           # Will be distinct from VM version for non-MRI environments.
-          # @return [String]
           def lang_version
             Core::Environment::Ext::LANG_VERSION
           end
 
-          # @return [String] configured application environment
           def env
             Datadog.configuration.env
           end
 
-          # @return [String] configured application service name
           def service
             Datadog.configuration.service
           end
 
-          # @return [String] configured application version
           def dd_version
             Datadog.configuration.version
           end
 
-          # @return [Boolean, nil] debug mode enabled in configuration
           def debug
             !!Datadog.configuration.diagnostics.debug
           end
 
-          # @return [Hash, nil] concatenated list of global tracer tags configured
           def tags
             tags = Datadog.configuration.tags
             return nil if tags.empty?
@@ -138,14 +125,12 @@ module Datadog
             hash_serializer(tags)
           end
 
-          # @return [Boolean, nil] runtime metrics enabled in configuration
           def runtime_metrics_enabled
             Datadog.configuration.runtime_metrics.enabled
           end
 
           # Ruby VM name and version.
           # Examples: "ruby-2.7.1", "jruby-9.2.11.1", "truffleruby-20.1.0"
-          # @return [String, nil]
           def vm
             # RUBY_ENGINE_VERSION returns the VM version, which
             # will differ from RUBY_VERSION for non-mri VMs.
@@ -157,7 +142,6 @@ module Datadog
             end
           end
 
-          # @return [Boolean, nil] health metrics enabled in configuration
           def health_metrics_enabled
             !!Datadog.configuration.health_metrics.enabled
           end
@@ -168,7 +152,6 @@ module Datadog
             false
           end
 
-          # @return [Boolean] whether the tracer exports metrics over OTLP
           def otlp_metrics_export_enabled
             metrics = opentelemetry_settings&.metrics
             # A "none" exporter skips the OTLP metric reader even when metrics are enabled
@@ -176,7 +159,6 @@ module Datadog
             !!(metrics&.enabled && metrics.exporter != "none")
           end
 
-          # @return [Boolean] whether the tracer exports logs over OTLP
           def otlp_logs_export_enabled
             logs = opentelemetry_settings&.logs
             # A "none" exporter skips the OTLP log record processor even when logs are enabled

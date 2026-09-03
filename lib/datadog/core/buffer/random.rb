@@ -3,9 +3,6 @@
 module Datadog
   module Core
     module Buffer
-      # Buffer that accumulates items for a consumer.
-      # Consumption can happen from a different thread.
-
       # Buffer that stores objects. The buffer has a maximum size and when
       # the buffer is full, a random object is discarded.
       class Random
@@ -33,13 +30,10 @@ module Datadog
         def concat(items)
           return if closed?
 
-          # Segment items into underflow and overflow
           underflow, overflow = overflow_segments(items)
 
-          # Concatenate items do not exceed capacity.
           add_all!(underflow) unless underflow.nil?
 
-          # Iteratively replace items, to ensure pseudo-random replacement.
           overflow&.each { |item| replace!(item) }
         end
 
@@ -59,17 +53,14 @@ module Datadog
           concat(items)
         end
 
-        # Stored items are returned and the local buffer is reset.
         def pop
           drain!
         end
 
-        # Return the current number of stored items.
         def length
           @items.length
         end
 
-        # Return if the buffer is empty.
         def empty?
           @items.empty?
         end
@@ -97,18 +88,14 @@ module Datadog
           overflow_size = (@max_size > 0) ? (@items.length + items.length) - @max_size : 0
 
           if overflow_size > 0
-            # Items will overflow
             if overflow_size < items.length
-              # Partial overflow
               underflow_end_index = items.length - overflow_size - 1
               underflow = items[0..underflow_end_index]
               overflow = items[(underflow_end_index + 1)..-1]
             else
-              # Total overflow
               overflow = items
             end
           else
-            # Items do not exceed capacity.
             underflow = items
           end
 
@@ -128,14 +115,11 @@ module Datadog
         end
 
         def replace!(item)
-          # Choose random item to be replaced
           replace_index = rand(@items.length)
 
-          # Replace random item
           discarded_item = @items[replace_index]
           @items[replace_index] = item
 
-          # Return discarded item
           discarded_item
         end
 

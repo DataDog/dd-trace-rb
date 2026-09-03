@@ -7,7 +7,6 @@ module Datadog
   module Core
     module Remote
       class Configuration
-        # TargetMap stores information regarding Configuration::Path and Configuration::Target
         class TargetMap < Hash
           class << self
             def parse(hash)

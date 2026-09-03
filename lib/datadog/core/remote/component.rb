@@ -76,7 +76,6 @@ module Datadog
           @worker.start
         end
 
-        # Is the Remote Configuration worker running?
         def started?
           @worker.started?
         end
@@ -93,7 +92,6 @@ module Datadog
           @worker.stop
         end
 
-        # Recreates the remote configuration client after a fork.
         # This ensures each forked process has a unique client ID and fresh state.
         def after_fork
           @client = Client.new(@transport, @capabilities, settings: @settings, logger: @logger)
@@ -109,7 +107,6 @@ module Datadog
           @capabilities.remove_products(*products)
         end
 
-        # Barrier provides a mechanism to fence execution until a condition happens
         class Barrier
           def initialize(timeout = nil)
             @once = false

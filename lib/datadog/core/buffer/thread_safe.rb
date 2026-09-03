@@ -20,8 +20,6 @@ module Datadog
           @mutex = Mutex.new
         end
 
-        # Add a new ``item`` in the local queue. This method doesn't block the execution
-        # even if the buffer is full. In that case, a random item is discarded.
         def push(item)
           synchronize { super }
         end
@@ -30,17 +28,14 @@ module Datadog
           synchronize { super }
         end
 
-        # Return the current number of stored items.
         def length
           synchronize { super }
         end
 
-        # Return if the buffer is empty.
         def empty?
           synchronize { super }
         end
 
-        # Stored items are returned and the local buffer is reset.
         def pop
           synchronize { super }
         end

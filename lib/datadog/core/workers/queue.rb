@@ -21,7 +21,6 @@ module Datadog
           base.prepend(PrependedMethods)
         end
 
-        # Methods that must be prepended
         module PrependedMethods
           def perform(*args)
             if work_pending?
@@ -45,7 +44,6 @@ module Datadog
           buffer.shift
         end
 
-        # Are there more items to be processed next?
         def work_pending?
           !buffer.empty?
         end
@@ -66,7 +64,6 @@ module Datadog
           # Specific workers can override it to be more or less
           timeout ||= 5
 
-          # Nothing needs to be done if the worker is not enabled.
           return nil unless enabled?
 
           unless running?
@@ -86,21 +83,6 @@ module Datadog
 
           started = Utils::Time.get_time
           loop do
-            # The AppStarted event is triggered by the worker itself,
-            # from the worker thread. As such the main thread has no way
-            # to delay itself until that event is queued and we need some
-            # way to wait until that event is sent out to assert on it in
-            # the test suite. Check the run once flag which *should*
-            # indicate the event has been queued (at which point our queue
-            # depth check should wait until it's sent).
-            # This is still a hack because the flag can be overridden
-            # either way with or without the event being sent out.
-            # Note that if the AppStarted sending fails, this check
-            # will return false and flushing will be blocked until the
-            # 15 second timeout.
-            # Note that the first wait interval between telemetry event
-            # sending is 10 seconds, the timeout needs to be strictly
-            # greater than that.
             return true if idle?
 
             return false if Utils::Time.get_time - started > timeout

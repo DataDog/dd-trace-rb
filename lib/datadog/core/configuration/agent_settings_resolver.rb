@@ -196,7 +196,6 @@ module Datadog
           end
         end
 
-        # Unix socket path in the file system
         def uds_path
           return nil unless should_use_uds?
 

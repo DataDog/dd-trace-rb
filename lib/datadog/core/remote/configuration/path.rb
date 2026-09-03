@@ -4,7 +4,6 @@ module Datadog
   module Core
     module Remote
       class Configuration
-        # Path stores path information
         class Path
           class ParseError < StandardError; end
 

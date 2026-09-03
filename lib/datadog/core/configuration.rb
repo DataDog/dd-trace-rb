@@ -8,7 +8,6 @@ require_relative "pin"
 
 module Datadog
   module Core
-    # Configuration provides a unique access point for configurations
     module Configuration
       # Used to ensure that @components initialization/reconfiguration is performed one-at-a-time, by a single thread.
       #
@@ -161,7 +160,6 @@ module Datadog
       end
 
       def logger
-        # avoid initializing components if they didn't already exist
         current_components = components(allow_initialization: false)
 
         if current_components
@@ -219,7 +217,7 @@ module Datadog
         safely_synchronize do |write_components|
           if components?
             @components.shutdown!
-            @temp_logger = nil # Reset to ensure instance and log level are reset for next run
+            @temp_logger = nil
           end
 
           write_components.call(nil)

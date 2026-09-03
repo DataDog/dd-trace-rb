@@ -5,7 +5,6 @@ require_relative "option"
 module Datadog
   module Core
     module Configuration
-      # Represents a definition for an integration configuration option
       class OptionDefinition
         IDENTITY = ->(new_value, _old_value) { new_value }
 
@@ -71,10 +70,8 @@ module Datadog
             @setter = OptionDefinition::IDENTITY
             @type = nil
             @type_options = {}
-            # If options were supplied, apply them.
             apply_options!(options)
 
-            # Apply block if given.
             yield(self) if block_given?
 
             validate_options!
@@ -131,7 +128,6 @@ module Datadog
             value
           end
 
-          # For applying options for OptionDefinition
           def apply_options!(options = {})
             return if options.nil? || options.empty?
 

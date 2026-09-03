@@ -5,7 +5,6 @@ require_relative "transport/http"
 module Datadog
   module Core
     module Remote
-      # Endpoint negotiation
       class Negotiation
         attr_reader :logger
 

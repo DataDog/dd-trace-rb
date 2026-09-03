@@ -53,10 +53,6 @@ module Datadog
         # Returns the environment variable value if the environment variable is a supported Datadog configuration (starts with DD_ or OTEL_)
         # or if it is not a Datadog configuration. Otherwise, it returns nil.
         #
-        # @param name [String] Environment variable name
-        # @param default_value [String, nil] Default value to return if the environment variable is not set
-        # @param source_env [Hash[String, String]] Environment variables to use
-        # @return [String, nil] The environment variable value
         # @raise [RuntimeError] if the configuration is not supported
         def get_environment_variable(name, default_value = nil, source_env: @source_env)
           # datadog-ci-rb is using dd-trace-rb config DSL, which uses this method.

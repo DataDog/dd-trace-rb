@@ -45,7 +45,6 @@ module Datadog
           # `slice!` with a {Range} argument.
           @items.slice!(@max_size, FIXNUM_MAX)
 
-          # We should replace a random item with the new one
           replace_index = rand(@max_size)
           @items[replace_index] = item
         end

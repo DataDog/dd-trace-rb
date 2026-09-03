@@ -53,7 +53,6 @@ module Datadog
           )
         end
 
-        # @param enabled [Boolean] Determines whether telemetry events should be sent to the API
         def initialize( # standard:disable Metrics/MethodLength
           settings:,
           agent_settings:,
@@ -184,7 +183,6 @@ module Datadog
           @worker.enqueue(Event::AppClientConfigurationChange.new(changes, "remote_config"))
         end
 
-        # Report application endpoints
         def app_endpoints_loaded(endpoints, page_size: ENDPOINT_COLLECTION_MESSAGE_LIMIT)
           return unless enabled?
 
@@ -193,27 +191,22 @@ module Datadog
           end
         end
 
-        # Increments a count metric.
         def inc(namespace, metric_name, value, tags: {}, common: true)
           @metrics_manager.inc(namespace, metric_name, value, tags: tags, common: common)
         end
 
-        # Decremenets a count metric.
         def dec(namespace, metric_name, value, tags: {}, common: true)
           @metrics_manager.dec(namespace, metric_name, value, tags: tags, common: common)
         end
 
-        # Tracks gauge metric.
         def gauge(namespace, metric_name, value, tags: {}, common: true)
           @metrics_manager.gauge(namespace, metric_name, value, tags: tags, common: common)
         end
 
-        # Tracks rate metric.
         def rate(namespace, metric_name, value, tags: {}, common: true)
           @metrics_manager.rate(namespace, metric_name, value, tags: tags, common: common)
         end
 
-        # Tracks distribution metric.
         def distribution(namespace, metric_name, value, tags: {}, common: true)
           @metrics_manager.distribution(namespace, metric_name, value, tags: tags, common: common)
         end

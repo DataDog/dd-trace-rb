@@ -10,9 +10,7 @@ require_relative "../environment/ext"
 module Datadog
   module Core
     module Transport
-      # HTTP transport
       module HTTP
-        # Add adapters to registry
         Builder::REGISTRY.set(
           Core::Transport::HTTP::Adapters::Net,
           Core::Configuration::Ext::Agent::HTTP::ADAPTER
@@ -44,7 +42,6 @@ module Datadog
             # The caller must define APIs before we set the default API.
             yield transport
 
-            # Apply any settings given by options
             transport.headers(headers) if headers
           end
         end
@@ -63,7 +60,6 @@ module Datadog
             Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION =>
               Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION,
           }.tap do |headers|
-            # Add application container info
             headers.merge!(Core::Environment::Container.to_headers)
 
             # TODO: inject configuration rather than reading from global here

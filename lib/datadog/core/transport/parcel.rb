@@ -39,34 +39,20 @@ module Datadog
       # @see Core::Encoding::JSONEncoder for JSON encoding utilities
       # @see Core::Transport::Request which wraps Parcels for transmission
       class Parcel
-        # Creates a new Parcel with pre-encoded data.
-        #
-        # @param data [String] The already-encoded data (e.g., JSON string, MessagePack bytes)
-        # @param content_type [String, nil] MIME type of the data (e.g., 'application/json')
-        # @param content_encoding [String, nil] Encoding applied to data (e.g., 'gzip')
         def initialize(data, content_type: nil, content_encoding: nil)
           @data = data
           @content_type = content_type
           @content_encoding = content_encoding
         end
 
-        # @!attribute [r] data
-        #   @return [String] The encoded data payload
         attr_reader :data
 
-        # Returns the length of the encoded data.
-        #
-        # @return [Integer] Number of bytes in the data
         def length
           data.length
         end
 
-        # @!attribute [r] content_type
-        #   @return [String, nil] MIME type of the data (e.g., 'application/json')
         attr_reader :content_type
 
-        # @!attribute [r] content_encoding
-        #   @return [String, nil] Encoding applied to data (e.g., 'gzip')
         attr_reader :content_encoding
       end
     end

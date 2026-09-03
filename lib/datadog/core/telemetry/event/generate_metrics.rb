@@ -6,7 +6,6 @@ module Datadog
   module Core
     module Telemetry
       module Event
-        # Telemetry class for the 'generate-metrics' event
         class GenerateMetrics < Base
           attr_reader :namespace, :metric_series
 

@@ -6,8 +6,6 @@ require_relative "../utils/sequence"
 module Datadog
   module Core
     module Telemetry
-      # Collection of telemetry events.
-      #
       # @api private
       module Event
       end

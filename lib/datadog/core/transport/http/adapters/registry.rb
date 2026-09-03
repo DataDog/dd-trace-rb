@@ -5,7 +5,6 @@ module Datadog
     module Transport
       module HTTP
         module Adapters
-          # List of available adapters
           class Registry
             def initialize
               @adapters = {}

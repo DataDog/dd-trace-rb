@@ -34,7 +34,6 @@ module Datadog
     module Configuration
       # Global components for the trace library.
       class Components
-        # Class-level constant to ensure fork patch is applied only once
         PATCH_ONLY_ONCE = Utils::OnlyOnce.new
 
         class << self
@@ -164,14 +163,12 @@ module Datadog
           StableConfig.log_result(@logger)
           Deprecations.log_deprecations_from_all_sources(@logger)
 
-          # Register fork handling once globally
           self.class::PATCH_ONLY_ONCE.run do
             Utils::AtForkMonkeyPatch.apply!
             Utils::SpawnMonkeyPatch.apply!(
               env_provider: Core::Environment::Identity.method(:runtime_propagation_envs),
             )
 
-            # Register callback that calls Components.after_fork
             Utils::AtForkMonkeyPatch.at_fork(:child) do
               # Access via global to avoid capturing 'self'
               Datadog.send(:components, allow_initialization: false)&.after_fork
@@ -183,7 +180,6 @@ module Datadog
           # the Core resolver from within your product/component's namespace.
           @agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
 
-          # Exposes agent capability information for detection by any components
           @agent_info = Core::Environment::AgentInfo.new(agent_settings, logger: @logger)
 
           @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
@@ -206,8 +202,6 @@ module Datadog
           @ai_guard = Datadog::AIGuard::Component.build(settings, logger: @logger, telemetry: telemetry)
           @open_feature = OpenFeature::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
-          # Only build symbol database when enabled, so a disabled component is
-          # never constructed.
           @symbol_database =
             if self.class.enable_symbol_database?(settings, @dynamic_instrumentation)
               # di_active is a live predicate, not a snapshot: DI may start after
@@ -232,7 +226,6 @@ module Datadog
           @environment_logger_extra[:dynamic_instrumentation_enabled] =
             !!(@dynamic_instrumentation && settings.dynamic_instrumentation.enabled)
 
-          # Configure non-privileged components.
           Datadog::Tracing::Contrib::Component.configure(settings)
 
           # Load the core Rails Railtie when Rails is present so all products benefit from Rails-specific setup.
@@ -241,7 +234,6 @@ module Datadog
           end
         end
 
-        # Called when a fork is detected
         def after_fork
           telemetry.after_fork
           remote&.after_fork
@@ -259,7 +251,6 @@ module Datadog
           Datadog.send(:safely_synchronize) { tracer.sampler.sampler = sampler }
         end
 
-        # Starts up components
         def startup!(settings, old_state: nil)
           telemetry.start(old_state&.telemetry_enabled?, components: self)
 
@@ -312,35 +303,27 @@ module Datadog
         # If it has another instance to compare to, it will compare
         # and avoid tearing down parts still in use.
         def shutdown!(replacement = nil)
-          # Shutdown remote configuration
           remote&.shutdown!
 
           # Shutdown DI after remote, since remote config triggers DI operations.
           dynamic_instrumentation&.shutdown!
 
-          # Shutdown Symbol Database
           symbol_database&.shutdown!
 
-          # Shutdown OpenFeature component
           open_feature&.shutdown!
 
-          # Decommission AppSec
           appsec&.shutdown!
 
-          # Shutdown AIGuard component
           ai_guard&.shutdown!
 
           # Shutdown the old tracer, unless it's still being used.
           # (e.g. a custom tracer instance passed in.)
           tracer.shutdown! unless replacement && tracer.equal?(replacement.tracer)
 
-          # Shutdown old profiler
           profiler&.shutdown!
 
-          # Shutdown workers
           runtime_metrics.stop(true, close_metrics: false)
 
-          # Shutdown Data Streams Monitoring processor
           data_streams&.stop(true)
 
           # Shutdown the old metrics, unless they are still being used.
@@ -379,7 +362,6 @@ module Datadog
           telemetry.shutdown!
         end
 
-        # Returns the current state of various components.
         def state
           # di_implicitly_enabled distinguishes RC-driven start from explicit
           # start (env var or programmatic) so that an explicit

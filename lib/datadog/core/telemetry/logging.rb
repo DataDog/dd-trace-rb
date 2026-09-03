@@ -31,7 +31,6 @@ module Datadog
             return unless backtrace
             return if backtrace.empty?
 
-            # vendored deps
             vendored_deps = Gem.path.any? { |p| p.start_with?(GEM_ROOT) }
 
             backtrace.map do |line|
@@ -45,7 +44,6 @@ module Datadog
           end
         end
 
-        # @param exception [Exception] The exception to report
         # @param level [Symbol] The log level (:error, :warn, :info, :debug)
         # @param description [String, nil] A low cardinality description, without dynamic data
         def report(exception, level: :error, description: nil)

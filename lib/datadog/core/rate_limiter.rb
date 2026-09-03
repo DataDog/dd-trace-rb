@@ -4,7 +4,6 @@ require_relative "utils/time"
 
 module Datadog
   module Core
-    # Checks for rate limiting on a resource.
     class RateLimiter
       # Checks if resource of specified size can be
       # conforms with the current limit.
@@ -102,7 +101,6 @@ module Datadog
         @conforming_messages.to_f / @total_messages
       end
 
-      # @return [Numeric] number of tokens currently available
       def available_tokens
         @tokens
       end
@@ -113,8 +111,6 @@ module Datadog
         now = Core::Utils::Time.get_time
         elapsed = now - @last_refill
 
-        # Update the number of available tokens, but ensure we do not exceed the max
-        # we return the min of tokens + rate*elapsed, or max tokens
         refill_tokens(@rate * elapsed)
 
         @last_refill = now
@@ -134,15 +130,12 @@ module Datadog
       end
 
       def should_allow?(size = 1)
-        # rate limit of 0 blocks everything
         return false if @rate.zero?
 
-        # negative rate limit disables rate limiting
         return true if @rate < 0
 
         refill_since_last_message
 
-        # if tokens < 1 we don't allow?
         return false if @tokens < size
 
         @tokens -= size
@@ -181,12 +174,10 @@ module Datadog
     # {Datadog::Core::RateLimiter} that accepts all resources,
     # with no limits.
     class UnlimitedLimiter < RateLimiter
-      # @return [Boolean] always +true+
       def allow?(_ = 1)
         true
       end
 
-      # @return [Float] always 100%
       def effective_rate
         1.0
       end

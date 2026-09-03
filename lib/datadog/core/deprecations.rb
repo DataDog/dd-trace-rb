@@ -2,10 +2,7 @@
 
 module Datadog
   module Core
-    # Contains behavior for handling deprecated functions in the codebase.
     module Deprecations
-      # Records the occurrence of a deprecated operation in this library.
-      #
       # Currently, these operations are logged to `Datadog.logger` at `warn` level.
       #
       # `disallowed_next_major` adds a message informing that the deprecated operation
@@ -23,7 +20,6 @@ module Datadog
           message
         end
 
-        # Track the deprecation being logged.
         deprecation_logged!(key)
 
         nil
@@ -31,13 +27,10 @@ module Datadog
 
       private
 
-      # Determines whether a deprecation message should be logged.
-      #
       # Internal use only.
       def log_deprecation?(key)
         return true if key.nil?
 
-        # Only allow a deprecation to be logged once.
         !logged_deprecations.key?(key)
       end
 
@@ -47,8 +40,6 @@ module Datadog
         logged_deprecations[key] += 1
       end
 
-      # Tracks what deprecation warnings have already been logged
-      #
       # Internal use only.
       def logged_deprecations
         @logged_deprecations ||= Hash.new(0)

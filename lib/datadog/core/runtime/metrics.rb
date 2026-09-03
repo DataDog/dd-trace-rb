@@ -13,38 +13,31 @@ require_relative "../environment/process"
 module Datadog
   module Core
     module Runtime
-      # For generating runtime metrics
       class Metrics < Core::Metrics::Client
         def initialize(telemetry:, **options)
           super
 
-          # Initialize service list
           @services = Set.new(options.fetch(:services, []))
           @service_tags = nil
           compile_service_tags!
 
-          # Initialize the collection of runtime-id
           @runtime_id_enabled = options.fetch(:experimental_runtime_id_enabled, false)
 
           @process_tags_enabled = options.fetch(:experimental_propagate_process_tags_enabled)
         end
 
-        # Associate service with runtime metrics
         def register_service(service)
           return unless enabled? && service
 
           service = service.to_s
 
           unless @services.include?(service)
-            # Add service to list and update services tag
             services << service
 
-            # Recompile the service tags
             compile_service_tags!
           end
         end
 
-        # Flush all runtime metrics to Statsd client
         def flush
           return unless enabled?
 
@@ -115,7 +108,6 @@ module Datadog
             # Add runtime-id dynamically because it might change during runtime.
             options[:tags].concat(["runtime-id:#{Core::Environment::Identity.id}"]) if @runtime_id_enabled
 
-            # Add process tags when enabled
             if @process_tags_enabled
               options[:tags].concat(Core::Environment::Process.tags)
             end

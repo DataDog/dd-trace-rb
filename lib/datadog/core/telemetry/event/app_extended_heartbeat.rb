@@ -6,7 +6,6 @@ module Datadog
   module Core
     module Telemetry
       module Event
-        # Telemetry class for the 'app-extended-heartbeat' event
         class AppExtendedHeartbeat < AppStarted
           def initialize(settings:, agent_settings:)
             @configuration = configuration(settings, agent_settings)

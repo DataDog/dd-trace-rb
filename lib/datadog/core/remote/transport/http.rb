@@ -17,7 +17,6 @@ module Datadog
   module Core
     module Remote
       module Transport
-        # Namespace for HTTP transport components
         module HTTP
           ROOT = Negotiation::API::Endpoint.new(
             "/info",
@@ -44,7 +43,6 @@ module Datadog
             ) do |transport|
               transport.api "root", ROOT
 
-              # Call block to apply any customization, if provided
               yield(transport) if block_given?
             end.to_transport(Core::Remote::Transport::Negotiation::Transport)
           end
@@ -63,7 +61,6 @@ module Datadog
             ) do |transport|
               transport.api "v7", V7
 
-              # Call block to apply any customization, if provided
               yield(transport) if block_given?
             end.to_transport(Core::Remote::Transport::Config::Transport)
           end

@@ -5,8 +5,6 @@ require_relative "metrics_collection"
 module Datadog
   module Core
     module Telemetry
-      # MetricsManager aggregates and flushes metrics and distributions
-      #
       # @api private
       class MetricsManager
         attr_reader :enabled
@@ -31,7 +29,6 @@ module Datadog
         def dec(namespace, metric_name, value, tags: {}, common: true)
           return unless @enabled
 
-          # collection is thread-safe internally
           collection = fetch_or_create_collection(namespace)
           collection.dec(metric_name, value, tags: tags, common: common)
         end
@@ -39,7 +36,6 @@ module Datadog
         def gauge(namespace, metric_name, value, tags: {}, common: true)
           return unless @enabled
 
-          # collection is thread-safe internally
           collection = fetch_or_create_collection(namespace)
           collection.gauge(metric_name, value, tags: tags, common: common)
         end
@@ -47,7 +43,6 @@ module Datadog
         def rate(namespace, metric_name, value, tags: {}, common: true)
           return unless @enabled
 
-          # collection is thread-safe internally
           collection = fetch_or_create_collection(namespace)
           collection.rate(metric_name, value, tags: tags, common: common)
         end
@@ -55,7 +50,6 @@ module Datadog
         def distribution(namespace, metric_name, value, tags: {}, common: true)
           return unless @enabled
 
-          # collection is thread-safe internally
           collection = fetch_or_create_collection(namespace)
           collection.distribution(metric_name, value, tags: tags, common: common)
         end

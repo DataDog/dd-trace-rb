@@ -40,8 +40,8 @@ module Datadog
 
           if RubyVersion.is?("< 3.1")
             [
-              ::Process.singleton_class, # Process.fork
-              ::Kernel.singleton_class,  # Kernel.fork
+              ::Process.singleton_class,
+              ::Kernel.singleton_class,
               ::Object,                  # fork without explicit receiver (it's defined as a method in ::Kernel)
               # Note: Modifying Object as we do here is irreversible. During tests, this
               # change will stick around even if we otherwise stub `Process` and `Kernel`
@@ -167,16 +167,13 @@ module Datadog
               proc do
                 AtForkMonkeyPatch.run_at_fork_blocks(:child, snapshot: snapshot)
 
-                # Invoke original block
                 yield
               end
             end
 
             begin
-              # Run pre-fork callbacks in the parent, just before forking.
               AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot: snapshot, started: started)
 
-              # Start fork. If a block is provided, use the wrapped version.
               result = child_block.nil? ? super : super(&child_block)
             rescue Exception => e # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
               # The fork or a before-fork callback failed and we are still in

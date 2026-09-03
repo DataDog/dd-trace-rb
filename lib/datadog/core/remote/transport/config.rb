@@ -10,11 +10,9 @@ module Datadog
     module Remote
       module Transport
         module Config
-          # Config request
           class Request < Datadog::Core::Transport::Request
           end
 
-          # Config transport
           class Transport < Core::Transport::Transport
             def send_config(payload)
               encoder = Core::Encoding::JSONEncoder

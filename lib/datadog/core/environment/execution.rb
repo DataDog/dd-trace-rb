@@ -5,10 +5,8 @@ require "set"
 module Datadog
   module Core
     module Environment
-      # Provides information about the execution environment on the current process.
       module Execution
         class << self
-          # Is this process running in a development environment?
           # This can be used to make decisions about when to enable
           # background systems like worker threads or telemetry.
           def development?
@@ -32,12 +30,10 @@ module Datadog
 
           private
 
-          # Is this process running a test?
           def test?
             rspec? || minitest? || cucumber?
           end
 
-          # Is this process running inside on a Read–eval–print loop?
           # DEV: REPLs always set the program name to the exact REPL name.
           def repl?
             REPL_PROGRAM_NAMES.include?($PROGRAM_NAME)
@@ -54,7 +50,6 @@ module Datadog
           RSPEC_PROGRAM_NAME = "/rspec"
           private_constant :RSPEC_PROGRAM_NAME
 
-          # Check if Minitest is present and installed to run.
           def minitest?
             # Minitest >= 5
             (defined?(::Minitest) &&

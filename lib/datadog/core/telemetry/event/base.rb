@@ -13,7 +13,6 @@ module Datadog
             raise NotImplementedError, "Must be implemented by subclass"
           end
 
-          # The JSON payload for the event.
           def payload
             {}
           end

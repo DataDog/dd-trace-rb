@@ -3,7 +3,6 @@
 module Datadog
   module Core
     module Utils
-      # Common database-related utility functions.
       module Time
         # timecop monkey-patches Time.now, Process.clock_gettime, etc:
         # https://github.com/travisjeffery/timecop/blob/v0.9.11/lib/timecop/time_extensions.rb
@@ -27,8 +26,6 @@ module Datadog
         end
 
         # Current wall time.
-        #
-        # @return [Time] current time object
         original_time_now_name = ::Time.respond_to?(:now_without_mock_time) ? :now_without_mock_time : :now
         define_singleton_method(:now, &::Time.method(original_time_now_name))
 

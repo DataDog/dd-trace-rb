@@ -33,7 +33,6 @@ module Datadog
         # :nocov:
       end
 
-      # Encoder for the JSON format
       module JSONEncoder
         extend Encoder
 
@@ -58,7 +57,6 @@ module Datadog
         end
       end
 
-      # Encoder for the Msgpack format
       module MsgpackEncoder
         extend Encoder
 

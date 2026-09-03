@@ -4,7 +4,6 @@ module Datadog
   module Core
     module Contrib
       module Rails
-        # common utilities for Rails
         module Utils
           def self.app_name
             application_name = if ::Rails::VERSION::MAJOR >= 6

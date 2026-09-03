@@ -3,7 +3,6 @@
 module Datadog
   module Core
     module Git
-      # Defines constants for Git tags
       module Ext
         TAG_REPOSITORY_URL = "_dd.git.repository_url"
         TAG_COMMIT_SHA = "_dd.git.commit.sha"

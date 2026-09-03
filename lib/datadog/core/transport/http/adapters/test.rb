@@ -7,7 +7,6 @@ module Datadog
     module Transport
       module HTTP
         module Adapters
-          # Adapter for testing
           class Test
             attr_reader \
               :buffer,
@@ -41,7 +40,6 @@ module Datadog
             def url
             end
 
-            # Response for test adapter
             class Response
               include Datadog::Core::Transport::Response
 

@@ -7,7 +7,6 @@ require_relative "../environment/process"
 module Datadog
   module Core
     module Crashtracking
-      # This module builds a hash of tags
       module TagBuilder
         def self.call(settings)
           hash = Core::TagBuilder.tags(settings).merge(

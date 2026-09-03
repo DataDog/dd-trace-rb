@@ -6,7 +6,6 @@ module Datadog
   module Core
     module Telemetry
       module Event
-        # Telemetry class for the 'distributions' event
         class Distributions < GenerateMetrics
           def type
             "distributions"

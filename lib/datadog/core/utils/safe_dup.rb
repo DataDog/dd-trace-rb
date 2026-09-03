@@ -3,7 +3,6 @@
 module Datadog
   module Core
     module Utils
-      # Helper methods for safer dup
       module SafeDup
         # Steep: https://github.com/soutaro/steep/issues/2001
         def self.frozen_or_dup(v) # steep:ignore MethodBodyTypeMismatch

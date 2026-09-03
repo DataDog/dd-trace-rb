@@ -13,7 +13,6 @@ module Datadog
         module HTTP
           # HTTP transport behavior for agent feature negotiation
           module Negotiation
-            # Response from HTTP transport for agent feature negotiation
             class Response
               include Datadog::Core::Transport::HTTP::Response
 
@@ -44,23 +43,19 @@ module Datadog
             end
 
             module API
-              # Endpoint for negotiation
               class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
                 def initialize(path)
                   super(:get, path)
                 end
 
                 def call(env, &block)
-                  # Query for response
                   http_response = super
 
-                  # Process the response
                   body = JSON.parse(http_response.payload, symbolize_names: true) if http_response.ok?
 
                   # TODO: there should be more processing here to ensure a proper response_options
                   response_options = body.is_a?(Hash) ? body : {}
 
-                  # Build and return a trace response
                   Negotiation::Response.new(http_response, response_options)
                 end
               end

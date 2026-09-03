@@ -6,7 +6,6 @@ module Datadog
   module Core
     module Remote
       class Configuration
-        # Repository
         class Repository
           attr_reader \
             :contents,
@@ -63,7 +62,6 @@ module Datadog
             State.new(self)
           end
 
-          # State store the repository state
           class State
             attr_reader \
               :root_version,
@@ -119,7 +117,6 @@ module Datadog
             end
           end
 
-          # Encapsulates transaction operations
           class Transaction
             attr_reader :operations
 
@@ -144,9 +141,7 @@ module Datadog
             end
           end
 
-          # Operation
           module Operation
-            # Delete contents base on path
             class Delete
               attr_reader :path
 
@@ -164,7 +159,6 @@ module Datadog
               end
             end
 
-            # Insert content into the repository contents
             class Insert
               attr_reader :path, :target, :content
 
@@ -185,7 +179,6 @@ module Datadog
               end
             end
 
-            # Update existing repository's contents
             class Update
               attr_reader :path, :target, :content
 
@@ -206,7 +199,6 @@ module Datadog
               end
             end
 
-            # Set repository metadata
             class Set
               attr_reader :opaque_backend_state, :targets_version
 
@@ -229,7 +221,6 @@ module Datadog
           private_constant :Operation
 
           module Change
-            # Delete change
             class Deleted
               attr_reader :path, :previous
 
@@ -243,7 +234,6 @@ module Datadog
               end
             end
 
-            # Insert change
             class Inserted
               attr_reader :path, :content
 
@@ -257,7 +247,6 @@ module Datadog
               end
             end
 
-            # Update change
             class Updated
               attr_reader :path, :content, :previous
 
@@ -273,7 +262,6 @@ module Datadog
             end
           end
 
-          # Store list of Changes
           class ChangeSet < Array
             def paths
               map(&:path)

@@ -11,7 +11,6 @@ module Datadog
       class << self
         def build_from(value)
           case value
-          # A Ruby {Exception} is the most common parameter type.
           when Exception then new(value.class, value.message, full_backtrace(value))
           # Steep: Steep doesn't like an array with up to 3 elements to be passed here: it thinks the array is unbounded.
           when Array then new(*value) # steep:ignore UnexpectedPositionalArgument
@@ -21,7 +20,7 @@ module Datadog
             new(value.class, value.message)
           when String then new(nil, value)
           when Error then value
-          else Error.new # Blank error
+          else Error.new
           end
         end
 
@@ -68,7 +67,6 @@ module Datadog
           return unless trace
 
           if trace[0]
-            # Add Exception information to error line
             backtrace << trace[0]
             backtrace << ": "
             backtrace << ex.message.to_s

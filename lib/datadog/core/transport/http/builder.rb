@@ -21,15 +21,12 @@ module Datadog
             :logger
 
           def initialize(logger: Datadog.logger)
-            # Global settings
             @default_adapter = nil
             @default_headers = {}
 
-            # Client settings
             @apis = Datadog::Core::Transport::HTTP::API::Map.new
             @default_api = nil
 
-            # API settings
             @api_options = {}
 
             @logger = logger
@@ -67,7 +64,6 @@ module Datadog
           def api(key, spec, options = {})
             options = options.dup
 
-            # Copy spec into API map
             @apis[key] = spec
 
             # Apply as default API, if specified to do so.
@@ -79,7 +75,6 @@ module Datadog
             # API is set as the default API in the transport by this line.
             @default_api = key if options.delete(:default) || @default_api.nil?
 
-            # Save all other settings for initialization
             (@api_options[key] ||= {}).merge!(options)
           end
 
@@ -102,22 +97,18 @@ module Datadog
               instances.tap do
                 api_options = @api_options[key].dup
 
-                # Resolve the adapter to use for this API
                 adapter = api_options.delete(:adapter) || @default_adapter
                 raise NoAdapterForApiError, key if adapter.nil?
 
-                # Resolve fallback and merge headers
                 fallback = api_options.delete(:fallback)
                 api_options[:headers] = @default_headers.merge(api_options[:headers] || {})
 
-                # Add API::Instance with all settings
                 instances[key] = API::Instance.new(
                   spec,
                   adapter,
                   api_options
                 )
 
-                # Configure fallback, if provided.
                 instances.with_fallbacks(key => fallback) unless fallback.nil?
               end
             end

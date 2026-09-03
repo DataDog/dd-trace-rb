@@ -3,7 +3,6 @@
 module Datadog
   module Core
     module Transport
-      # Defines request for transport operations
       class Request
         attr_reader \
           :parcel

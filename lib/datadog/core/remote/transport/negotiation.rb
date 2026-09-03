@@ -28,11 +28,9 @@ module Datadog
     module Remote
       module Transport
         module Negotiation
-          # Negotiation request
           class Request < Datadog::Core::Transport::Request
           end
 
-          # Negotiation transport
           class Transport < Core::Transport::Transport
             # TODO steep is complaining about this method, I tried to make
             # it work but between module inclusions and steep diagnostics

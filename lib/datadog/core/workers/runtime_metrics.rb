@@ -31,10 +31,8 @@ module Datadog
             )
           end
 
-          # Workers::Async::Thread settings
           self.fork_policy = options.fetch(:fork_policy, Workers::Async::Thread::FORK_POLICY_STOP)
 
-          # Workers::IntervalLoop settings
           self.loop_base_interval = options.fetch(:interval, DEFAULT_FLUSH_INTERVAL)
           self.loop_back_off_ratio = options[:back_off_ratio] if options.key?(:back_off_ratio)
           self.loop_back_off_max = options.fetch(:back_off_max, DEFAULT_BACK_OFF_MAX)
@@ -48,7 +46,6 @@ module Datadog
         end
 
         def register_service(service)
-          # Start the worker
           metrics.register_service(service).tap { perform }
         end
 

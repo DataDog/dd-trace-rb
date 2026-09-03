@@ -5,11 +5,9 @@ module Datadog
     module Telemetry
       # Telemetry metrics data model (internal Datadog metrics for client libraries)
       module Metric
-        # Base class for all metric types
         class Base
           attr_reader :name, :tags, :values, :common
 
-          # @param name [String] metric name
           # @param tags [Array<String>|Hash{String=>String}] metric tags as hash or array of "tag:val" strings
           # @param common [Boolean] true if the metric is common for all languages, false for Ruby-specific metric
           def initialize(name, tags: {}, common: true)
@@ -62,11 +60,9 @@ module Datadog
           end
         end
 
-        # Base class for metrics that require aggregation interval
         class IntervalMetric < Base
           attr_reader :interval
 
-          # @param name [String] metric name
           # @param tags [Array<String>|Hash{String=>String}] metric tags as hash of array of "tag:val" strings
           # @param common [Boolean] true if the metric is common for all languages, false for Ruby-specific metric
           # @param interval [Integer] metrics aggregation interval in seconds

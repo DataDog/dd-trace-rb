@@ -7,7 +7,6 @@ require_relative "../utils/hash"
 module Datadog
   module Core
     module Telemetry
-      # Module defining methods for collecting metadata for telemetry
       module Request
         class << self
           def build_payload(event, seq_id, debug: false)

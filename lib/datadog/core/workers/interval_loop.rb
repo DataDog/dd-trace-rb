@@ -23,7 +23,6 @@ module Datadog
           base.prepend(PrependedMethods)
         end
 
-        # Methods that must be prepended
         module PrependedMethods
           def perform(*args)
             perform_loop do
@@ -159,8 +158,6 @@ module Datadog
 
           loop do
             if work_pending?
-              # There's work to do...
-              # Run the task
               yield
             end
 

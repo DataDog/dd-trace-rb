@@ -76,7 +76,6 @@ module Datadog
               end
             end
 
-            # Apply any additional settings from block
             yield(self) if block_given?
           end
 

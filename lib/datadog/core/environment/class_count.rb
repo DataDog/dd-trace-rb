@@ -3,7 +3,6 @@
 module Datadog
   module Core
     module Environment
-      # Retrieves number of classes from runtime
       module ClassCount
         def self.value
           ::ObjectSpace.count_objects[:T_CLASS]

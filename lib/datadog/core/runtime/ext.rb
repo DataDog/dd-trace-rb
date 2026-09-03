@@ -9,7 +9,6 @@ module Datadog
         TAG_LANG = "language"
         TAG_PROCESS_ID = "process_id"
 
-        # Metrics
         # @public_api
         module Metrics
           ENV_ENABLED = "DD_RUNTIME_METRICS_ENABLED"

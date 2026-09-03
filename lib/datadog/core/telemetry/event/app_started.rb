@@ -7,7 +7,6 @@ module Datadog
   module Core
     module Telemetry
       module Event
-        # Telemetry class for the 'app-started' event
         class AppStarted < Base
           def initialize(components:)
             # To not hold a reference to the component tree, generate
@@ -111,7 +110,6 @@ module Datadog
               opentelemetry_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
             )
 
-            # Track ssi configurations
             instrumentation_source = if Datadog.const_defined?(:SingleStepInstrument, false) &&
                 Datadog::SingleStepInstrument.const_defined?(:LOADED, false) &&
                 Datadog::SingleStepInstrument::LOADED
@@ -154,7 +152,6 @@ module Datadog
               )
             end
 
-            # Add some more custom additional payload values here
             if settings.logger.instance
               logger_instance_option = resolve_option(settings, "logger.instance")
               logger_instance_option.values_per_precedence.each do |precedence, value|
@@ -162,7 +159,6 @@ module Datadog
               end
             end
 
-            # Configuration options (regular + integration specific)
             collect_all_configuration_options(settings).each do |option|
               option.values_per_precedence.each do |precedence, value|
                 list << conf_value(option_telemetry_name(option), to_telemetry_value(value), precedence)

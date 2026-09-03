@@ -23,10 +23,8 @@ module Datadog
             end
 
             def call(env)
-              # Add headers to request env, unless empty.
               env.headers.merge!(headers) unless headers.empty?
 
-              # Send request env to the adapter.
               adapter.call(env)
             end
           end

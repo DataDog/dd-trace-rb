@@ -7,7 +7,6 @@ require_relative "../environment/identity"
 module Datadog
   module Core
     module Metrics
-      # For defining and adding default options to metrics
       module Options
         DEFAULT = {
           tags: DEFAULT_TAGS = [

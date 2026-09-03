@@ -24,7 +24,6 @@ module Datadog
                 end
 
                 def call(env, &block)
-                  # Encode body & type
                   env.headers[HEADER_CONTENT_TYPE] = encoder.content_type
                   env.headers.update(headers(
                     request_type: env.request.request_type,

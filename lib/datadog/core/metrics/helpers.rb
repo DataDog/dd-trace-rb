@@ -3,7 +3,6 @@
 module Datadog
   module Core
     module Metrics
-      # For defining and adding helpers to metrics
       module Helpers
         [
           :count,

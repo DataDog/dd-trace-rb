@@ -41,7 +41,6 @@ module Datadog
           ).tap(&:start)
         end
 
-        # Reports unhandled exceptions to the crash tracker if available and appropriate.
         # This is called from the at_exit hook to report unhandled exceptions.
         def self.report_unhandled_exception(exception)
           return unless exception &&
@@ -63,8 +62,6 @@ module Datadog
           end
         end
 
-        # Gets the latest tags from the current configuration.
-        #
         # We always fetch fresh tags because:
         # After forking, we need the latest tags, not the parent's tags, such as the pid or runtime-id
         def self.latest_tags(settings)
@@ -112,7 +109,6 @@ module Datadog
             [file, function, line]
           end
 
-          # Add truncation indicator frame if we had to cut off frames
           if was_truncated
             truncated_count = all_backtrace_locations.length - max_exception_stack_frames
             frames_data << ["<truncated>", "<truncated #{truncated_count} more frames>", 0]

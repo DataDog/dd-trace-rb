@@ -8,7 +8,6 @@ module Datadog
     module Transport
       module HTTP
         module Adapters
-          # Adapter for Net::HTTP
           class Net
             attr_reader \
               :hostname,
@@ -50,12 +49,10 @@ module Datadog
             def get(env)
               get = ::Net::HTTP::Get.new(net_http_path_from_env(env), env.headers)
 
-              # Connect and send the request
               http_response = open do |http|
                 http.request(get)
               end
 
-              # Build and return response
               Response.new(http_response)
             end
 
@@ -73,12 +70,10 @@ module Datadog
                 )
               end
 
-              # Connect and send the request
               http_response = open do |http|
                 http.request(post)
               end
 
-              # Build and return response
               Response.new(http_response)
             end
 
@@ -94,7 +89,6 @@ module Datadog
               when String
                 path = path + "?" + query
               when nil
-                # Nothing
               else
                 raise ArgumentError, "Invalid type for query: #{query}"
               end

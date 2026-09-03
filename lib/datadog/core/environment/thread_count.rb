@@ -3,7 +3,6 @@
 module Datadog
   module Core
     module Environment
-      # Retrieves number of threads from runtime
       module ThreadCount
         module_function
 
