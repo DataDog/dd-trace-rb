@@ -2,11 +2,6 @@
 
 require "date"
 require "json"
-require "net/http"
-
-if Gem.loaded_specs.key?("pimpmychangelog")
-  require "pimpmychangelog"
-end
 
 module ReleaseNotes
   REPO = "DataDog/dd-trace-rb"
@@ -127,10 +122,7 @@ module ReleaseNotes
         "### #{type}\n\n#{lines.join("\n")}"
       end.compact
 
-      blocks = [highlights, *sections].compact
-      body = blocks.join("\n\n")
-      pimped = PimpMyChangelog::Pimper.new(*REPO.split("/"), body).better_changelog
-      pimped.sub(/\n*\z/, "")
+      [highlights, *sections].compact.join("\n\n").sub(/\n*\z/, "")
     end
 
     def render_line(entry)

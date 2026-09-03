@@ -267,22 +267,30 @@ RSpec.describe ReleaseNotes::Fragments do
       expect(result.index("AppSec fix.")).to be < result.index("Tracing fix.")
     end
 
-    it "renders the prefix, message, and linked PR number" do
+    it "renders the prefix, message, and PR number" do
       entries = [entry(type: "Fixed", prefix: "Tracing", pr: 6300, message: "Fix a bug.")]
 
       result = described_class.render(entries)
 
-      expect(result).to include("* Tracing: Fix a bug. ([#6300][])")
-      expect(result).to include("[#6300]: https://github.com/DataDog/dd-trace-rb/issues/6300")
+      expect(result).to include("* Tracing: Fix a bug. (#6300)")
     end
 
-    it "renders the author credit and link when present" do
+    it "leaves linkification to the changelog:format rake task" do
       entries = [entry(type: "Fixed", prefix: "Tracing", pr: 6300, message: "Fix a bug.", author: "octocat")]
 
       result = described_class.render(entries)
 
-      expect(result).to include("([@octocat][])")
-      expect(result).to include("[@octocat]: https://github.com/octocat")
+      expect(result).not_to include("[]")
+      expect(result).not_to include("[#6300]:")
+      expect(result).not_to include("[@octocat]:")
+    end
+
+    it "renders the author credit when present" do
+      entries = [entry(type: "Fixed", prefix: "Tracing", pr: 6300, message: "Fix a bug.", author: "octocat")]
+
+      result = described_class.render(entries)
+
+      expect(result).to include("* Tracing: Fix a bug. (#6300) (@octocat)")
     end
 
     it "preserves Markdown formatting in the message" do
