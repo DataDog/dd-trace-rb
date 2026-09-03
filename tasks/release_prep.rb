@@ -18,4 +18,5 @@ end
 
 require_relative "release_prep/changelog"
 require_relative "release_prep/fragments"
+require_relative "release_prep/highlights"
 require_relative "release_prep/release_notes"
