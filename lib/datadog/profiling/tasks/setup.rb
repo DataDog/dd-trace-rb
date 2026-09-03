@@ -27,7 +27,6 @@ module Datadog
 
         def setup_at_fork_hooks
           Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
-            # Restart profiler, if enabled
             Profiling.start_if_enabled
           rescue => e
             Datadog.logger.warn do

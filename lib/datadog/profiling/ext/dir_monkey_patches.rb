@@ -96,22 +96,16 @@ module Datadog
           def foreach(*args, &block)
             if block
               begin
-                # <-- Begin critical region
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 super do |entry_name|
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-                  # <-- We're safe now while running customer code
                   yield entry_name
-                  # <-- We'll go back to the Dir internals, critical region again
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 end
               ensure
-                # <-- End critical region
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
               end
             else
-              # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
-              # other branch once it gets going.
               super
             end
           end
@@ -120,17 +114,13 @@ module Datadog
           def glob(*args, &block)
             if block
               begin
-                # <-- Begin critical region
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 super do |entry_name|
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-                  # <-- We're safe now while running customer code
                   yield entry_name
-                  # <-- We'll go back to the Dir internals, critical region again
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 end
               ensure
-                # <-- End critical region
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
               end
             else
@@ -176,22 +166,16 @@ module Datadog
           def each_child(*args, **kwargs, &block)
             if block
               begin
-                # <-- Begin critical region
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 super do |entry_name|
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-                  # <-- We're safe now while running customer code
                   yield entry_name
-                  # <-- We'll go back to the Dir internals, critical region again
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 end
               ensure
-                # <-- End critical region
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
               end
             else
-              # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
-              # other branch once it gets going.
               super
             end
           end
@@ -214,22 +198,16 @@ module Datadog
           def foreach(*args, **kwargs, &block)
             if block
               begin
-                # <-- Begin critical region
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 super do |entry_name|
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-                  # <-- We're safe now while running customer code
                   yield entry_name
-                  # <-- We'll go back to the Dir internals, critical region again
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 end
               ensure
-                # <-- End critical region
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
               end
             else
-              # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
-              # other branch once it gets going.
               super
             end
           end
@@ -238,17 +216,13 @@ module Datadog
           def glob(*args, **kwargs, &block)
             if block
               begin
-                # <-- Begin critical region
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 super do |entry_name|
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-                  # <-- We're safe now while running customer code
                   yield entry_name
-                  # <-- We'll go back to the Dir internals, critical region again
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 end
               ensure
-                # <-- End critical region
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
               end
             else
@@ -281,46 +255,35 @@ module Datadog
           def each(*args, &block)
             if block
               begin
-                # <-- Begin critical region
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 super do |entry_name|
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-                  # <-- We're safe now while running customer code
                   yield entry_name
-                  # <-- We'll go back to the Dir internals, critical region again
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 end
               ensure
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals # <-- End critical region
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
               end
             else
-              # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
-              # other branch once it gets going.
               super
             end
           end
 
-          if RubyVersion.is?(">= 2.6.0") # This method is Ruby 2.6+
+          if RubyVersion.is?(">= 2.6.0")
             # See note on methods that yield above.
             def each_child(*args, &block)
               if block
                 begin
-                  # <-- Begin critical region
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                   super do |entry_name|
                     Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-                    # <-- We're safe now while running customer code
                     yield entry_name
-                    # <-- We'll go back to the Dir internals, critical region again
                     Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                   end
                 ensure
-                  # <-- End critical region
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
                 end
               else
-                # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
-                # other branch once it gets going.
                 super
               end
             end
@@ -359,21 +322,16 @@ module Datadog
           def each(*args, **kwargs, &block)
             if block
               begin
-                # <-- Begin critical region
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 super do |entry_name|
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-                  # <-- We're safe now while running customer code
                   yield entry_name
-                  # <-- We'll go back to the Dir internals, critical region again
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 end
               ensure
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals # <-- End critical region
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
               end
             else
-              # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
-              # other branch once it gets going.
               super
             end
           end
@@ -382,22 +340,16 @@ module Datadog
           def each_child(*args, **kwargs, &block)
             if block
               begin
-                # <-- Begin critical region
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 super do |entry_name|
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-                  # <-- We're safe now while running customer code
                   yield entry_name
-                  # <-- We'll go back to the Dir internals, critical region again
                   Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 end
               ensure
-                # <-- End critical region
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
               end
             else
-              # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
-              # other branch once it gets going.
               super
             end
           end

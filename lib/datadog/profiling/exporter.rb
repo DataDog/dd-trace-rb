@@ -15,13 +15,11 @@ module Datadog
     class Exporter
       # @rbs @worker: Datadog::Profiling::Collectors::CpuAndWallTimeWorker
 
-      # Profiles with duration less than this will not be reported
       PROFILE_DURATION_THRESHOLD_SECONDS = 1
 
       private
 
       attr_reader :pprof_recorder #: Datadog::Profiling::StackRecorder
-      # The code provenance collector acts both as collector and as a recorder
       attr_reader :code_provenance_collector #: Datadog::Profiling::Collectors::CodeProvenance?
       attr_reader :minimum_duration_seconds #: ::Integer
       attr_reader :time_provider #: singleton(::Time)

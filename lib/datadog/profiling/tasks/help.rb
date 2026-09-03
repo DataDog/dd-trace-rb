@@ -3,7 +3,6 @@
 module Datadog
   module Profiling
     module Tasks
-      # Prints help message for usage of `ddprofrb`
       class Help
         #: () -> untyped
         def run

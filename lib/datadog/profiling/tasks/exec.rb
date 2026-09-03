@@ -3,7 +3,6 @@
 module Datadog
   module Profiling
     module Tasks
-      # Wraps command with Datadog profiling
       class Exec
         attr_reader :args #: untyped
 

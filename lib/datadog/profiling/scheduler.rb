@@ -31,7 +31,7 @@ module Datadog
       def initialize(
         exporter:,
         transport:,
-        interval:, fork_policy: Core::Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default, # seconds
+        interval:, fork_policy: Core::Workers::Async::Thread::FORK_POLICY_RESTART,
         enabled: true
       )
         @exporter = exporter
@@ -39,13 +39,10 @@ module Datadog
         @reporting_disabled = false
         @stop_requested = false
 
-        # Workers::Async::Thread settings
         self.fork_policy = fork_policy
 
-        # Workers::IntervalLoop settings
         self.loop_base_interval = interval
 
-        # Workers::Polling settings
         self.enabled = enabled
       end
 
@@ -105,13 +102,10 @@ module Datadog
           flush_events
         end
 
-        # Update wait time to try to wake consistently on time.
-        # Don't drop below the minimum interval.
         self.loop_wait_time = [loop_base_interval - run_time, MINIMUM_INTERVAL_SECONDS].max
       end
 
       def flush_events
-        # Collect data to be exported
         flush = exporter.flush
 
         return false unless flush
@@ -128,7 +122,7 @@ module Datadog
         # profile containing up to interval + DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS instead of the
         # usual interval seconds.
         if run_loop?
-          jitter_seconds = rand * DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS # floating point number between (0.0...maximum)
+          jitter_seconds = rand * DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS
           sleep(jitter_seconds)
         end
 

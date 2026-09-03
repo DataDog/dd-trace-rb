@@ -37,7 +37,6 @@ module Datadog
 
         private
 
-        # Ruby GC tuning environment variables
         RUBY_GC_TUNING_ENV_VARS = [
           "RUBY_GC_HEAP_FREE_SLOTS",
           "RUBY_GC_HEAP_GROWTH_FACTOR",

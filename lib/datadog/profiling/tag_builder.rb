@@ -11,13 +11,8 @@ module Datadog
     #
     # @api private
     module TagBuilder
-      include Datadog::Profiling::Ext::Transport::HTTP # Tag name constants
+      include Datadog::Profiling::Ext::Transport::HTTP
 
-      # When changing or adding profiling-related tags, make sure they are
-      # kept in sync with
-      # https://docs.google.com/spreadsheets/d/1LOGMf4c4Avbtn36uZ2SWvhIGKRPLM1BoWkUP4JYj7hA/
-      # (Datadog internal link).
-      #
       # For consistency between the different profilers, every tag should be
       # vetted before it gets reported with a profile, as otherwise it's too
       # easy to end up with different tags in different languages.

@@ -293,8 +293,6 @@ module Datadog
           return true
         end
 
-        # Setting is in auto mode. Let's probe to see if we should enable it:
-
         # We don't warn users in this situation because "upgrade your Ruby" is not a great warning
         return true if RubyVersion.is?("< 2.6")
 
