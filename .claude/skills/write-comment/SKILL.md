@@ -24,9 +24,12 @@ def baggage
 
 - It explains *why*, not *what*: a non-obvious tradeoff, a workaround for an upstream bug (link it), a perf choice that looks wrong but isn't. E.g.:
   ```ruby
-  # Note: this does not use Core::Utils::Time.now because this constant
-  # gets initialized before a user has a chance to configure the library.
-  START_TIME = ::Time.now.utc.freeze
+  # We use a custom random number generator because we want no interference
+  # with the default one. Using the default prng, we could break code that
+  # would rely on srand/rand sequences.
+  def self.id_rng
+    @id_rng ||= Random.new
+  end
   ```
 - It warns of a real hazard: ordering constraints, thread/async safety, mutation of a shared value, a caller invariant that isn't type-enforced. E.g.:
   ```ruby
