@@ -24,13 +24,11 @@ namespace :release_prep do
   desc "Render the pending unreleased/ fragments into the GitHub release body (#{ReleasePrep::ReleaseNotes::OUTPUT_FILE})"
   task :release_body, [:version] do |_t, args|
     version = validate_official_version!(args[:version])
-    highlights_path = "unreleased/highlights.md"
-    highlights = File.exist?(highlights_path) ? File.read(highlights_path) : nil
 
     release_notes = ReleasePrep::ReleaseNotes.new(
       version: version,
       fragments: ReleasePrep::Fragments.read_all,
-      highlights: highlights,
+      highlights: ReleasePrep::Highlights.read,
     )
 
     release_notes.write
@@ -43,14 +41,16 @@ namespace :release_prep do
     changelog = ReleasePrep::Changelog.new
     previous = changelog.previous_version
     fragments = ReleasePrep::Fragments.read_all
+    highlights = ReleasePrep::Highlights.read
 
     changelog.insert_version(version, fragments.render)
     Rake::Task["changelog:format"].invoke
     changelog.rewrite_footer(version, previous)
 
-    # Runs last: only delete the source fragments once the draft release and
+    # Runs last: only delete the source files once the draft release and
     # CHANGELOG.md have both been written successfully.
-    fragments.consume!(highlights_path: "unreleased/highlights.md")
+    fragments.consume!
+    highlights.delete!
   end
 
   # Only official releases are prepared: a well-formed MAJOR.MINOR.PATCH

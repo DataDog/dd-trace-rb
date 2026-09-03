@@ -133,15 +133,7 @@ RSpec.describe ReleasePrep::Fragments do
       expect(result).not_to include("[]")
     end
 
-    it "prepends highlights, blank-line separated, when given" do
-      fragments = fragments_for(valid_entry)
-
-      result = fragments.render(highlights: "## Highlights\n\nBig release!")
-
-      expect(result).to start_with("## Highlights\n\nBig release!\n\n### Fixed")
-    end
-
-    it "returns an empty string when there are no fragments and no highlights" do
+    it "returns an empty string when there are no fragments" do
       expect(described_class.new([]).render).to eq("")
     end
   end
@@ -160,20 +152,13 @@ RSpec.describe ReleasePrep::Fragments do
       expect(File.exist?(File.join(@unreleased_dir, "keep.json"))).to be(true)
     end
 
-    it "deletes every fragment's file and the highlights file when present" do
+    it "deletes every fragment's file" do
       write_fragment("1.json", valid_entry)
-      highlights_path = File.join(@unreleased_dir, "highlights.md")
-      File.write(highlights_path, "# Highlights")
+      write_fragment("2.json", valid_entry("message" => "Fix another bug."))
 
-      described_class.read_all(dir: @unreleased_dir).consume!(highlights_path: highlights_path)
+      described_class.read_all(dir: @unreleased_dir).consume!
 
-      expect(File.exist?(File.join(@unreleased_dir, "1.json"))).to be(false)
-      expect(File.exist?(highlights_path)).to be(false)
-    end
-
-    it "does not raise when highlights_path is given but absent" do
-      expect { described_class.new([]).consume!(highlights_path: File.join(@unreleased_dir, "highlights.md")) }
-        .not_to raise_error
+      expect(Dir[File.join(@unreleased_dir, "*.json")]).to be_empty
     end
   end
 
