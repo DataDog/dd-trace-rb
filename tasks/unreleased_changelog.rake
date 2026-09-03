@@ -14,10 +14,7 @@ namespace :changelog do
 
   desc "Render the pending unreleased/ changelog fragments as they would appear in CHANGELOG.md"
   task :render do
-    highlights_path = "unreleased/highlights.md"
-    highlights = File.exist?(highlights_path) ? File.read(highlights_path) : nil
-
-    rendered = ReleasePrep::Fragments.read_all.render(highlights: highlights)
+    rendered = ReleasePrep::Fragments.read_all.render
     puts rendered.empty? ? "(no pending changelog fragments)" : rendered
   end
 

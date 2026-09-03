@@ -3,6 +3,7 @@
 require "fileutils"
 require_relative "../release_prep"
 require_relative "fragments"
+require_relative "highlights"
 
 # The GitHub release being prepared: its tag name and the release notes body
 # written for `gh release create --draft --notes-file`. The body is plain
@@ -13,7 +14,7 @@ module ReleasePrep
   class ReleaseNotes
     OUTPUT_FILE = "tmp/release_body.md"
 
-    def initialize(version:, fragments:, highlights: nil)
+    def initialize(version:, fragments:, highlights:)
       @version = version
       @fragments = fragments
       @highlights = highlights
@@ -24,11 +25,11 @@ module ReleasePrep
     end
 
     def empty?
-      @fragments.empty? && @highlights.to_s.strip.empty?
+      @fragments.empty? && @highlights.empty?
     end
 
     def body
-      @fragments.render(highlights: @highlights)
+      [@highlights.to_s, @fragments.render].reject(&:empty?).join("\n\n")
     end
 
     def write(path: OUTPUT_FILE)

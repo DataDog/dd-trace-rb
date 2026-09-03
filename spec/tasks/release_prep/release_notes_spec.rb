@@ -26,7 +26,7 @@ RSpec.describe ReleasePrep::ReleaseNotes do
     described_class.new(
       version: "2.43.0",
       fragments: ReleasePrep::Fragments.read_all(dir: @unreleased_dir),
-      highlights: File.exist?(File.join(@unreleased_dir, "highlights.md")) ? File.read(File.join(@unreleased_dir, "highlights.md")) : nil,
+      highlights: ReleasePrep::Highlights.read(dir: @unreleased_dir),
     )
   end
 
