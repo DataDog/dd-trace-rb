@@ -45,6 +45,12 @@ def baggage
   # @see https://en.wikipedia.org/wiki/Hash_function#Fibonacci_hashing
   DEFAULT_KNUTH_FACTOR = 11400714819323198485
   ```
+- It documents a struct/instance field or other declaration that has no body to narrate: its valid states, invariants, or concurrency rules aren't derivable from the declaration itself. E.g.:
+  ```c
+  // Accessed under the GVL for most functions EXCEPT on_gvl_waiting(),
+  // which writes to it without the GVL.
+  long gvl_waiting_at;
+  ```
 
 **NEVER write:**
 
@@ -81,7 +87,7 @@ def baggage
   ```
 - Comments on obvious imports, getters/setters, or trivial one-line wrappers.
 
-**Ratio check before finishing:** if a diff has more than roughly one comment per 15 lines of new code, or if any comment would still be true after deleting the code it narrates, cut comments until that stops being the case.
+**Ratio check before finishing:** if a diff has more than roughly one comment per 15 lines of new code, or if any comment would still be true after deleting the code it narrates, cut comments until that stops being the case. Exempt declaration-only blocks (struct/instance field docs with no accompanying logic) from the ratio — density there doesn't imply narration.
 
 **When editing existing files:** don't add comments to code you merely moved or reformatted. Don't remove comments outside your change's scope unless they're now wrong — that's unrelated churn. Comments on code you're actually touching still follow the rules above.
 
