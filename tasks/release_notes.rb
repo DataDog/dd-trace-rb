@@ -6,7 +6,6 @@ require "json"
 module ReleaseNotes
   REPO = "DataDog/dd-trace-rb"
   REPO_URL = "https://github.com/#{REPO}"
-  API_URL = "https://api.github.com"
   CHANGELOG_FILE = "CHANGELOG.md"
 
   PREVIOUS_VERSION_PATTERN = %r{\[Unreleased\]: #{Regexp.escape(REPO_URL)}/compare/v(.+?)\.\.\.master}
@@ -20,46 +19,6 @@ module ReleaseNotes
     fail!("Could not find the [Unreleased] compare link in #{CHANGELOG_FILE}") unless match
 
     match[1]
-  end
-
-  def create_draft_release(version, body)
-    tag_name = "v#{version}"
-    if draft_release_exists?(tag_name)
-      fail!("A draft release for #{tag_name} already exists; delete it before retrying release_prep:prepare")
-    end
-
-    uri = URI("#{API_URL}/repos/#{REPO}/releases")
-    request = Net::HTTP::Post.new(uri)
-    request["Authorization"] = "Bearer #{ENV["GITHUB_TOKEN"]}"
-    request["Accept"] = "application/vnd.github+json"
-    request["X-GitHub-Api-Version"] = "2022-11-28"
-    request["User-Agent"] = "dd-trace-rb-release-prep"
-    request["Content-Type"] = "application/json"
-    request.body = {
-      tag_name: tag_name,
-      name: tag_name,
-      body: body,
-      draft: true,
-    }.to_json
-
-    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(request) }
-    fail!("Failed to create draft release for v#{version}: #{response.code} #{response.body}") unless response.is_a?(Net::HTTPSuccess)
-
-    nil
-  end
-
-  def draft_release_exists?(tag_name)
-    uri = URI("#{API_URL}/repos/#{REPO}/releases?per_page=100")
-    request = Net::HTTP::Get.new(uri)
-    request["Authorization"] = "Bearer #{ENV["GITHUB_TOKEN"]}"
-    request["Accept"] = "application/vnd.github+json"
-    request["X-GitHub-Api-Version"] = "2022-11-28"
-    request["User-Agent"] = "dd-trace-rb-release-prep"
-
-    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(request) }
-    fail!("Failed to list releases while checking for an existing draft: #{response.code} #{response.body}") unless response.is_a?(Net::HTTPSuccess)
-
-    JSON.parse(response.body).any? { |release| release["tag_name"] == tag_name && release["draft"] }
   end
 
   def insert_changelog(version, changelog)
