@@ -23,23 +23,25 @@ RSpec.describe ReleasePrep::Highlights do
 
       highlights = described_class.read(dir: @unreleased_dir)
 
-      expect(highlights.exists?).to be(true)
       expect(highlights.to_s).to eq("## Highlights\n\nBig release!")
       expect(highlights.empty?).to be(false)
     end
 
-    it "is an absent highlights when the file is missing" do
+    it "returns the null object when the file is missing" do
       highlights = described_class.read(dir: @unreleased_dir)
 
-      expect(highlights.exists?).to be(false)
+      expect(highlights).to be_instance_of(described_class::Missing)
       expect(highlights.to_s).to eq("")
       expect(highlights.empty?).to be(true)
     end
 
-    it "is empty when the file is blank" do
+    it "is still the real object when the file is present but blank" do
       File.write(highlights_path, "  \n")
 
-      expect(described_class.read(dir: @unreleased_dir).empty?).to be(true)
+      highlights = described_class.read(dir: @unreleased_dir)
+
+      expect(highlights).to be_instance_of(described_class)
+      expect(highlights.empty?).to be(true)
     end
   end
 
@@ -52,8 +54,16 @@ RSpec.describe ReleasePrep::Highlights do
       expect(File.exist?(highlights_path)).to be(false)
     end
 
-    it "does nothing when absent" do
+    it "is a no-op on the null object" do
       expect { described_class.read(dir: @unreleased_dir).delete! }.not_to raise_error
+    end
+  end
+
+  describe ReleasePrep::Highlights::Missing do
+    it "shares the Highlights API with inert behavior" do
+      expect(described_class.new.to_s).to eq("")
+      expect(described_class.new.empty?).to be(true)
+      expect { described_class.new.delete! }.not_to raise_error
     end
   end
 end
