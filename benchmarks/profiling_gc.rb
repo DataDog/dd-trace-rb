@@ -5,7 +5,6 @@ return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
 require_relative "benchmarks_helper"
 
-# This benchmark measures the performance of GC profiling
 
 class ProfilerGcBenchmark
   def create_profiler

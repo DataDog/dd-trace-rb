@@ -1,4 +1,3 @@
-# Select base image
 ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 

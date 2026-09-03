@@ -45,7 +45,6 @@ namespace :local_config_map do
         # If an alias is not registered as its own config, it is by default deprecated
         deprecations.add(alias_name) unless data.dig(:supportedConfigurations, alias_name)
       end
-      # Add deprecated configs with no replacement provided
       deprecations.add(name) if config["deprecations"]
     end
     result << name
