@@ -43,6 +43,8 @@ namespace :release_prep do
     fragments = ReleasePrep::Fragments.read_all
     highlights = ReleasePrep::Highlights.read
 
+    ReleasePrep.fail_if_nothing_to_release!(fragments, highlights)
+
     changelog.insert_version(version, fragments.render)
     Rake::Task["changelog:format"].invoke
     changelog.rewrite_footer(version, previous)
