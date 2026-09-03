@@ -1,7 +1,6 @@
 # Configuration for GitHub Action `.github/workflows/pull-request-labeler.yml`.
 # See https://github.com/marketplace/actions/labeler for more information.
 
-# Changes to AI Guard
 ai-guard:
 - changed-files:
   - any-glob-to-any-file:
@@ -14,17 +13,14 @@ core:
     - 'lib/datadog/core.rb'
     - 'lib/datadog/core/**'
 
-# Only documentation changes
 docs:
 - changed-files:
   - all-globs-to-all-files: ['**/*.md']
 
-# Only test changes
 dev/testing:
 - changed-files:
   - all-globs-to-all-files: ['{spec/**,integration/**,benchmarks/**}']
 
-# Changes to Profiling
 profiling:
 - changed-files:
   - any-glob-to-any-file:
@@ -32,7 +28,6 @@ profiling:
     - 'lib/datadog/profiling/**'
     - 'ext/datadog_profiling_native_extension/**'
 
-# Changes to CI-App
 ci-app:
 - changed-files:
   - any-glob-to-any-file: ['lib/datadog/ci/**']
@@ -44,7 +39,6 @@ dsm:
     - 'lib/datadog/data_streams.rb'
     - 'lib/datadog/data_streams/**'
 
-# Changes to OpenFeature
 openfeature:
 - changed-files:
   - any-glob-to-any-file:
@@ -59,7 +53,6 @@ dbm:
     - 'lib/datadog/tracing/contrib/propagation/sql_comment/**'
     - 'lib/datadog/tracing/contrib/{pg,mysql2,trilogy}/**'
 
-# Changes to Log Management
 logging:
 - changed-files:
   - any-glob-to-any-file:
@@ -70,7 +63,6 @@ logging:
     - 'lib/datadog/opentelemetry/logs.rb'
     - 'lib/datadog/opentelemetry/sdk/logs_exporter.rb'
 
-# Changes to Serverless Monitoring
 serverless:
 - changed-files:
   - any-glob-to-any-file: ['lib/datadog/appsec/contrib/aws_lambda/**']
@@ -82,24 +74,20 @@ appsec:
     - 'lib/datadog/appsec.rb'
     - 'lib/datadog/appsec/**'
 
-# Changes to Tracing
 tracing:
 - changed-files:
   - any-glob-to-any-file:
     - 'lib/datadog/tracing.rb'
     - 'lib/datadog/tracing/**'
 
-# Changes to Tracing integrations
 integrations:
 - changed-files:
   - any-glob-to-any-file: ['{lib/datadog/tracing/contrib/**,lib/datadog/appsec/contrib/**}']
 
-# Only repository GitHub changes
 dev/github:
 - changed-files:
   - all-globs-to-all-files: ['.github/**']
 
-# Only repository CI changes
 dev/ci:
 - changed-files:
   - all-globs-to-all-files: ['.gitlab-ci.yml']

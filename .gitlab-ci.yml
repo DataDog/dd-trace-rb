@@ -193,7 +193,6 @@ deploy_to_reliability_env:
   needs:
     - save_versions
 
-# Config inversion CI steps
 validate_supported_configurations_v2_local_file:
   rules:
     - when: on_success

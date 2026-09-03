@@ -88,7 +88,6 @@ module.exports = async ({github, context, core}) => {
     let excludedRunIds = new Set();
 
     if (currentWorkflowRunId) {
-      // Get the workflow ID for the current run
       const { data: currentRun } = await github.rest.actions.getWorkflowRun({
         owner: context.repo.owner,
         repo: context.repo.repo,

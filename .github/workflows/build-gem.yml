@@ -13,7 +13,6 @@ on: # yamllint disable-line rule:truthy
       - master
   pull_request:
 
-# Default permissions for all jobs
 permissions: {}
 
 env:
@@ -56,7 +55,6 @@ jobs:
           # Patch in GEM_HOST
           sed datadog.gemspec -i -e "s,^\([\t ]*spec\.metadata\['allowed_push_host'\]\) *= *,\1 = \'${GEM_HOST}\' # ,"
 
-          # Test result
           grep -e allowed_push_host datadog.gemspec
       - name: Build gem
         env:

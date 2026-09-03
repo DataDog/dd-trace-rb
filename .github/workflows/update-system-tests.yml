@@ -27,7 +27,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Default permissions for all jobs
 permissions: {}
 
 jobs:
@@ -48,7 +47,6 @@ jobs:
           repository: "DataDog/system-tests"
           path: system-tests
           persist-credentials: false
-          # Use ref from repository_dispatch payload if available, otherwise from workflow_dispatch
           ref: ${{ github.event.client_payload.ref || github.event.inputs.ref || '' }}
 
       - run: .github/scripts/update_reference.sh
@@ -84,7 +82,6 @@ jobs:
         run: sleep 30
 
       - name: Create Pull Request
-        # Skip PR creation if dry-run is true (from either trigger type)
         if: ${{ github.event.inputs.dry-run != 'true' && github.event.client_payload.dry-run != 'true' }}
         id: cpr
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1

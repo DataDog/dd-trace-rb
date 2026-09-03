@@ -17,7 +17,6 @@ on: # yamllint disable-line rule:truthy
     types:
       - completed
 
-# Default permissions for all jobs
 permissions: {}
 
 concurrency:

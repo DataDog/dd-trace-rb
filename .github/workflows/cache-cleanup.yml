@@ -33,7 +33,6 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           echo "[DEBUG] Fetching cache list..."
-          # Get full cache details
           CACHE_LIST=$(gh cache list --ref "$BRANCH" --limit 100 --json key,sizeInBytes,id)
 
           if [ -z "$CACHE_LIST" ] || [ "$CACHE_LIST" = "[]" ]; then
@@ -47,7 +46,6 @@ jobs:
             echo "|----------|-----------|------|"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          # Extract IDs and process deletions
           echo "$CACHE_LIST" | jq -r '.[] | [.id, .key, .sizeInBytes] | @tsv' | while IFS=$'\t' read -r id key size; do
             # Convert size to human readable format
             if [ "$size" -ge 1048576 ]; then
@@ -60,7 +58,6 @@ jobs:
             gh cache delete "$id"
             echo "[INFO] Processed cache $id"
 
-            # Add row to summary table
             echo "| \`$id\` | \`$key\` | $readable_size |" >> "$GITHUB_STEP_SUMMARY"
           done
 

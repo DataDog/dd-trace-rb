@@ -33,10 +33,9 @@
 
 .execution:
   variables:
-    # Benchmark execution settings
-    REPETITIONS: "4"        # How many times to run each benchmark
-    CPU_AFFINITY: "24-47"    # Which CPUs to use for all benchmarks
-    CPUS_PER_BENCHMARK: "2"  # How many CPUs to use for each benchmark
+    REPETITIONS: "4"
+    CPU_AFFINITY: "24-47"
+    CPUS_PER_BENCHMARK: "2"
 
     # NOTE: GitLab CI does not allow CI job names above 256 characters.
     # Therefore, we use 'BENCHMARKS_<GROUP>' to hold the list of benchmarks to run in each group, otherwise the list (which is longer than 256 characters) would be set as the name of the CI job.

@@ -20,7 +20,6 @@ concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
 
-# Default permissions for all jobs
 permissions: {}
 
 jobs:

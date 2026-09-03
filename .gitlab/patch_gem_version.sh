@@ -40,11 +40,9 @@ echo PRE="${PRE}"
 BUILD="b${git_branch_hash}.${CI}${MONOTONIC_ID}.g${git_short_sha}"
 echo BUILD="${BUILD}"
 
-# Patch in components
 sed lib/datadog/version.rb -i -e  "s/^\([\t ]*PRE\) *= */\1 = \'${PRE}\' # /"
 sed lib/datadog/version.rb -i -e  "s/^\([\t ]*BUILD\) *= */\1 = \'${BUILD}\' # /"
 
-# Test result
 cat lib/datadog/version.rb | grep -e PRE -e BUILD
 
 ruby -Ilib -rdatadog/version -e 'puts Datadog::VERSION::STRING'

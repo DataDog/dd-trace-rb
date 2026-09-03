@@ -42,7 +42,6 @@ namespace :github do
       end
     end
 
-    # Seed
     batch_count = 7
 
     tasks_per_job = (matching_tasks.size.to_f / batch_count).ceil
@@ -58,7 +57,6 @@ namespace :github do
       misc: {"include" => [{"batch" => "0", "tasks" => misc_tasks}]},
     }
 
-    # Output the JSON
     puts JSON.dump(data)
   end
 

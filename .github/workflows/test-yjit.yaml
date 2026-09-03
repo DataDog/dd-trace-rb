@@ -6,7 +6,6 @@ on: # yamllint disable-line rule:truthy
       - master
   pull_request:
 
-# Default permissions for all jobs
 permissions: {}
 
 jobs:

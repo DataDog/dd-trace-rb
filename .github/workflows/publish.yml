@@ -12,7 +12,6 @@ on: # yamllint disable-line rule:truthy
 
 concurrency: "rubygems" # Only one publish job at a time
 
-# Default permissions for all jobs
 permissions: {}
 
 jobs:
@@ -48,7 +47,6 @@ jobs:
             exit 1
           fi
 
-      # Check if the gem version is already published
       - name: Verify gem version
         continue-on-error: ${{ inputs.force }}
         env:
@@ -117,7 +115,6 @@ jobs:
 
             console.log(`Found open milestone ${process.env.GEM_VERSION} (ID: ${versionMilestone.number})`);
 
-      # Check if the commit has passed all Github checks
       - name: Verify check runs
         continue-on-error: ${{ inputs.force }}
         env:
@@ -130,7 +127,6 @@ jobs:
             const script = require('./.github/scripts/publish/verify_check_runs.js')
             await script({github, context, core})
 
-      # Check if the commit has passed external CI checks
       - name: Verify commit status
         continue-on-error: ${{ inputs.force }}
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
@@ -140,7 +136,6 @@ jobs:
             const script = require('./.github/scripts/publish/verify_commit_status.js')
             await script({github, context, core})
 
-      # Check if the commit has all the checks passed
       - name: Verify deferred commit data
         continue-on-error: ${{ inputs.force }}
         # NOTE:
@@ -396,7 +391,6 @@ jobs:
           JOB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           TEMP_BRANCH="update-document-v${GEM_VERSION}"
 
-          # Create and checkout a new branch from the tag
           git checkout -b "${TEMP_BRANCH}" "v${GEM_VERSION}"
           git push origin "${TEMP_BRANCH}"
 

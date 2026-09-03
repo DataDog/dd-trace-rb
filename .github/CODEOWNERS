@@ -1,10 +1,8 @@
 * @DataDog/ruby-guild
 
-# Public Documentation
 docs/Compatibility.md @DataDog/documentation
 docs/GettingStarted.md @DataDog/documentation
 
-# Library
 lib/datadog/ai_guard/ @DataDog/asm-ruby
 lib/datadog/ai_guard.rb @DataDog/asm-ruby
 lib/datadog/appsec/ @DataDog/asm-ruby
@@ -35,7 +33,6 @@ gemfiles/*openfeature* @DataDog/feature-flagging-and-experimentation-sdk @DataDo
 tools/agent-evals/open_feature_guidance/ @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 vendor/rbs/openfeature-sdk/ @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 
-# RBS signatures
 sig/datadog/ai_guard/ @DataDog/asm-ruby @DataDog/ruby-guild
 sig/datadog/ai_guard.rbs @DataDog/asm-ruby @DataDog/ruby-guild
 sig/datadog/appsec/ @DataDog/asm-ruby @DataDog/ruby-guild
@@ -57,7 +54,6 @@ sig/datadog/di.rbs @DataDog/debugger-ruby @DataDog/ruby-guild
 sig/datadog/symbol_database/ @DataDog/debugger-ruby @DataDog/ruby-guild
 sig/datadog/symbol_database.rbs @DataDog/debugger-ruby @DataDog/ruby-guild
 
-# Specs
 spec/datadog/ai_guard/ @DataDog/asm-ruby
 spec/datadog/ai_guard_spec.rb @DataDog/asm-ruby
 spec/datadog/appsec/ @DataDog/asm-ruby
@@ -77,6 +73,5 @@ spec/datadog/di_spec.rb @DataDog/debugger-ruby @DataDog/ruby-guild
 spec/datadog/symbol_database/ @DataDog/debugger-ruby @DataDog/ruby-guild
 spec/datadog/symbol_database_spec.rb @DataDog/debugger-ruby @DataDog/ruby-guild
 
-# Nix
 *.nix @DataDog/nix-guild @DataDog/ruby-guild
 flake.* @DataDog/nix-guild @DataDog/ruby-guild

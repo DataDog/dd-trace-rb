@@ -42,7 +42,6 @@ namespace :version do
 
     gem_name = load_gemspec_name
 
-    # Update the versions under gemfiles/ and tools/
     sh "perl -p -i -e 's/\\b#{gem_name} \\(\\d+\\.\\d+\\.\\d+[^)]*\\)/#{gem_name} (#{next_version})/' gemfiles/*.lock tools/*.lock"
   end
 

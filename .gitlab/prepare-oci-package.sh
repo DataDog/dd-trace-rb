@@ -4,14 +4,12 @@
 
 set -euo pipefail
 
-## Early checks
 
 if [[ "$OS" != "linux" ]]; then
   echo "Only linux packages are supported. Exiting"
   exit 0
 fi
 
-## Obtain injector source
 
 injector_repo="https://github.com/DataDog/datadog-injector-rb.git"
 injector_ref="v1.4.0"
@@ -23,7 +21,6 @@ git clone "${injector_repo}" --branch "${injector_ref}" "${injector_path}"
 
 mkdir sources
 
-# Copy injector runtime source
 cp -Rv "${injector_path}/src"/* sources
 
 # host injection expects a specific name
@@ -32,7 +29,6 @@ ln -rs sources/injector.rb sources/host_inject.rb
 # Kubernetes injection expects a specific name
 ln -rs sources/injector.rb sources/auto_inject.rb
 
-## Copy system injector rules
 
 cp ../lib-injection/requirements.json sources/requirements.json
 
@@ -40,7 +36,6 @@ cp ../lib-injection/requirements.json sources/requirements.json
 
 cp -r "../tmp/${ARCH}"/* sources
 
-## Add `datadog` gem version information
 
 cp ../tmp/version sources
 

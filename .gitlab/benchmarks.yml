@@ -1,15 +1,9 @@
-# -----------------------------------------------------
-# Benchmarking Platform configuration
-# -----------------------------------------------------
 
 variables:
   GITLAB_BENCHMARKS_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-gitlab
   GITLAB_DDPROF_BENCHMARK_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-ddprof-benchmark
   BASE_CI_IMAGE: registry.ddbuild.io/ci/benchmarking-platform:dd-trace-rb
 
-# -----------------------------------------------------
-# Macrobenchmarks
-# -----------------------------------------------------
 
 .macrobenchmarks:
   stage: macrobenchmarks
@@ -154,9 +148,6 @@ profiling-and-tracing-and-appsec:
     DD_PROFILING_ENABLED: "true"
     DD_APPSEC_ENABLED: "true"
 
-# -----------------------------------------------------
-# Microbenchmarks that report to statsd
-# -----------------------------------------------------
 
 ddprof-benchmark:
   stage: microbenchmarks
@@ -202,9 +193,6 @@ ddprof-benchmark:
     KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
 
 
-# -----------------------------------------------------
-# Microbenchmarks
-# -----------------------------------------------------
 
 # Configuration for executing microbenchmarks in parallel
 # Choose which benchmarks to execute, with how many CPUs, on what CI job
@@ -241,7 +229,6 @@ microbenchmarks:
   rules: *microbenchmark-rules
   timeout: 1h
   variables:
-    # GitLab CI variables passed to bp-runner
     CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
     CI_COMMIT_SHA: $CI_COMMIT_SHA
     CI_PROJECT_NAME: $CI_PROJECT_NAME
@@ -308,7 +295,6 @@ open-feature-microbenchmarks:
   timeout: 1h
   allow_failure: true
   variables:
-    # GitLab CI variables passed to bp-runner
     CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
     CI_COMMIT_SHA: $CI_COMMIT_SHA
     CI_PROJECT_NAME: $CI_PROJECT_NAME

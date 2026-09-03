@@ -50,7 +50,6 @@ class GemfileProcessor
     gemfiles.each do |gemfile_name|
       runtime = File.basename(gemfile_name).split('_').first
       next unless runtime == 'ruby'
-      # parse the gemfile
       if gemfile_name.end_with?('.gemfile.lock')
         process_lockfile(gemfile_name, runtime)
       end
@@ -98,7 +97,6 @@ class GemfileProcessor
     remote.respond_to?(:host) ? remote.host : remote.to_s
   end
 
-  # Helper: Validate the version format
   def version_valid?(version, unspecified)
     return true if unspecified
     return false if version.nil? || version.strip.empty?

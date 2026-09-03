@@ -4,12 +4,10 @@ require "net/http"
 require "uri"
 require "json"
 
-# Disable exiting on command failure
 agent_host = ENV["DD_AGENT_HOST"] || raise("DD_AGENT_HOST is not set")
 agent_port = ENV["DD_TRACE_AGENT_PORT"] || raise("DD_TRACE_AGENT_PORT is not set")
 
 begin
-  # Check if test agent is running
   summary_uri = URI.parse("http://#{agent_host}:#{agent_port}/test/trace_check/summary")
   summary_response = Net::HTTP.get_response(summary_uri)
 
@@ -20,7 +18,6 @@ begin
     exit 0
   end
 
-  # Check for test failures
   failures_uri = URI.parse("http://#{agent_host}:#{agent_port}/test/trace_check/failures")
   failures_response = Net::HTTP.get_response(failures_uri)
 

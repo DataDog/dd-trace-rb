@@ -14,7 +14,6 @@ loader = ::Steep::Services::FileLoader.new(base_dir: project.base_dir)
 ignored_paths_with_folders = datadog_target&.source_pattern&.ignores
 
 ignored_files = ignored_paths_with_folders.each_with_object([]) do |ignored_path, result|
-  # If the ignored path is a folder, add all the .rb files in the folder to the ignored paths
   if ignored_path.end_with?("/")
     result.push(*Dir.glob(ignored_path + "**/*.rb"))
   else
@@ -22,16 +21,13 @@ ignored_files = ignored_paths_with_folders.each_with_object([]) do |ignored_path
   end
 end
 
-# List signature files that are not related to ignored files
 signature_paths_with_ignored_files = loader.each_path_in_patterns(datadog_target.signature_pattern)
 signature_paths = signature_paths_with_ignored_files.reject do |sig_path|
   corresponding_lib_file = sig_path.to_s.sub(/^sig/, "lib").sub(/\.rbs$/, ".rb")
   ignored_paths_with_folders.any? do |ignored|
     if ignored.end_with?("/")
-      # Directory ignore - check if signature file is inside this directory
       corresponding_lib_file.start_with?(ignored)
     else
-      # File ignore - check if signature file matches exactly
       corresponding_lib_file == ignored
     end
   end
@@ -204,7 +200,6 @@ def is_typed?(type, initialize: false)
       compute_multiple_types(type.required_keywords.values),
       compute_multiple_types(type.optional_keywords.values),
       is_typed?(type.rest_keywords),
-      # We set initialize to true in the caller method if the method is initialize
       is_typed?(type.return_type, initialize: initialize)
     )
   when ::RBS::Types::Intersection,
@@ -224,7 +219,6 @@ def is_typed?(type, initialize: false)
   end
 end
 
-# sig files stats
 untyped_methods = []
 partially_typed_methods = []
 typed_methods_size = 0
