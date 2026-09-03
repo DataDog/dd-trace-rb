@@ -3,11 +3,9 @@ module Datadog
     module Remote
       module Transport
         module Config
-          # Config request
           class Request < Datadog::Core::Transport::Request
           end
 
-          # Config response
           module Response
             attr_reader roots: untyped
 
@@ -22,7 +20,6 @@ module Datadog
             def empty?: () -> bool
           end
 
-          # Config transport
           class Transport < Core::Transport::Transport
             def send_config: (untyped payload) -> untyped
           end

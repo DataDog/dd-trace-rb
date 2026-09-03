@@ -3,9 +3,7 @@ module Datadog
     module Remote
       module Transport
         module HTTP
-          # HTTP transport behavior for remote configuration
           module Config
-            # Response from HTTP transport for remote configuration
             class Response
               @empty: untyped
 
@@ -43,7 +41,6 @@ module Datadog
             end
 
             module API
-              # Extensions for HTTP API Spec
               module Spec
                 @config: untyped
 
@@ -54,12 +51,10 @@ module Datadog
                 def send_config: (untyped env) { (?) -> untyped } -> untyped
               end
 
-              # Extensions for HTTP API Instance
               module Instance
                 def send_config: (untyped env) -> untyped
               end
 
-              # Endpoint for remote configuration
               class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
                 @encoder: untyped
 

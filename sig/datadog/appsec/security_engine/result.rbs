@@ -51,7 +51,6 @@ module Datadog
           def input_truncated?: () -> bool
         end
 
-        # A result that indicates a security rule match
         class Match < Base
           def match?: () -> bool
 
