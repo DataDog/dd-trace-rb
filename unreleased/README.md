@@ -31,10 +31,10 @@ GitHub release, not inside `CHANGELOG.md` itself), create or edit
 
 ## Validating your entry
 
-Run `bundle exec rake changelog:lint` to check the schema, and
-`bundle exec rake changelog:render` to preview how your entry (and every
+Run `bundle exec rake unreleased:lint` to check the schema, and
+`bundle exec rake unreleased:render` to preview how your entry (and every
 other pending entry) will render in the next `CHANGELOG.md`. Message hygiene
-is checked separately by `bundle exec rake changelog:lint_messages`, which
+is checked separately by `bundle exec rake unreleased:lint_messages`, which
 runs both a Ruby-based trailing-whitespace check and vale for punctuation
 and style validation. CI runs this as a required step, so a message that
 fails it will fail your PR.

@@ -41,7 +41,7 @@ jobs:
 
       - name: Validate changelog fragment schema
         if: steps.changed.outputs.files != ''
-        run: bundle exec rake changelog:lint
+        run: bundle exec rake unreleased:lint
 
       - name: Install vale
         if: steps.changed.outputs.files != ''
@@ -57,4 +57,4 @@ jobs:
 
       - name: Lint changelog fragment messages
         if: steps.changed.outputs.files != ''
-        run: bundle exec rake changelog:lint_messages
+        run: bundle exec rake unreleased:lint_messages

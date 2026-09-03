@@ -2,8 +2,8 @@
 
 require_relative "release_prep"
 
-namespace :changelog do
-  desc "Validate unreleased/*.json changelog fragments (schema only; message hygiene is checked by changelog:lint_messages)"
+namespace :unreleased do
+  desc "Validate unreleased/*.json changelog fragments (schema only; message hygiene is checked by unreleased:lint_messages)"
   task :lint do
     ReleasePrep::Fragments.read_all
     ReleasePrep::Fragments.read_examples
