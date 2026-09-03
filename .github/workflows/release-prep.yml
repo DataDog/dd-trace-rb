@@ -4,16 +4,20 @@ name: Prepare release
 #   1. Validates the version (release_prep:validate)
 #   2. Renders the unreleased/ changelog fragments into the GitHub release
 #      body (release_prep:release_body)
-#   3. Creates the draft GitHub release for tag vX.Y.Z (gh release create --draft)
-#   4. Writes the changelog into CHANGELOG.md, rewrites the compare-link footer,
+#   3. Writes the changelog into CHANGELOG.md, rewrites the compare-link footer,
 #      and deletes the consumed unreleased/ fragments (release_prep:changelog)
-#   5. Bumps the gem version (version:bump: lib/datadog/version.rb, gemfiles, tools/*.lock)
-#   6. Regenerates docs/integration_versions.md and docs/integration_versions.json
+#   4. Bumps the gem version (version:bump: lib/datadog/version.rb, gemfiles, tools/*.lock)
+#   5. Regenerates docs/integration_versions.md and docs/integration_versions.json
 #      from the bumped version
+#   6. Creates the draft GitHub release for tag vX.Y.Z (gh release create --draft)
 #   7. Opens a `release`-labelled PR targeting master
 #
-# The draft release is created by step 3; nothing needs to be hand-created
-# or pre-approved beforehand. This workflow does not publish.
+# Steps 1-5 only mutate the ephemeral runner workspace: nothing persists
+# unless step 7 commits it, so a failed run leaves no GitHub state behind.
+# The external side effects come last; if step 7 fails after the draft was
+# created, delete the draft before re-running. The draft release is created
+# by step 6; nothing needs to be hand-created or pre-approved beforehand.
+# This workflow does not publish.
 on: # yamllint disable-line rule:truthy
   workflow_dispatch:
     inputs:
@@ -70,17 +74,6 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: bundle exec rake "release_prep:release_body[${VERSION}]"
 
-      - name: Create draft release
-        env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
-          VERSION: ${{ inputs.version }}
-        run: |
-          if gh release view "v${VERSION}" >/dev/null 2>&1; then
-            echo "::error::A release for v${VERSION} already exists; delete it before retrying"
-            exit 1
-          fi
-          gh release create "v${VERSION}" --draft --title "v${VERSION}" --notes-file tmp/release_body.md
-
       - name: Update CHANGELOG.md
         env:
           VERSION: ${{ inputs.version }}
@@ -95,6 +88,17 @@ jobs:
 
       - name: Update supported integration versions
         run: bundle exec ruby .github/scripts/update_supported_versions.rb
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            echo "::error::A release for v${VERSION} already exists; delete it before retrying"
+            exit 1
+          fi
+          gh release create "v${VERSION}" --draft --title "v${VERSION}" --notes-file tmp/release_body.md
 
       - name: Create release Pull Request
         uses: ./.github/actions/signed-commit-pr
