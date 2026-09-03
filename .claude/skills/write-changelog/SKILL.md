@@ -55,7 +55,7 @@ End with terminal punctuation (`.`, `!`, or `?`) — CI lints this with vale and
   `https://github.com/DataDog/dd-trace-rb/pull/6300`. If the PR doesn't
   exist yet (you're working before opening one), use a placeholder like
   `https://github.com/DataDog/dd-trace-rb/pull/TBD` and tell the user to
-  fill in the real number before merging — CI's `changelog:lint` only
+  fill in the real number before merging — CI's `unreleased:lint` only
   checks the field is present, not that the URL resolves.
 - `author`: only set this for an external (non-Datadog) contributor,
   to their GitHub handle. Omit it otherwise.
@@ -75,13 +75,13 @@ Then edit the new file's fields per steps 2-5 above.
 ## 7. Validate
 
 ```bash
-bundle exec rake changelog:lint
-bundle exec rake changelog:render
+bundle exec rake unreleased:lint
+bundle exec rake unreleased:render
 ```
 
-`changelog:lint` checks the schema (required fields, closed enums).
-`changelog:render` previews how the entry will look once rendered into
-`CHANGELOG.md`. Message hygiene is checked by `changelog:lint_messages`,
+`unreleased:lint` checks the schema (required fields, closed enums).
+`unreleased:render` previews how the entry will look once rendered into
+`CHANGELOG.md`. Message hygiene is checked by `unreleased:lint_messages`,
 which runs both a Ruby-based trailing-whitespace check and vale for
 punctuation and style validation. CI runs this as a required step after
 installing a pinned vale binary.
