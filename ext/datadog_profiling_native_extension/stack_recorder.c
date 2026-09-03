@@ -475,19 +475,15 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   uint8_t next_enabled_pos = 0;
   uint8_t next_disabled_pos = requested_values_count;
 
-  // CPU_SAMPLES is always enabled
   enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_CPU_SAMPLES;
   state->position_for[CPU_SAMPLES_VALUE_ID] = next_enabled_pos++;
 
-  // WALL_TIME is always enabled
   enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_WALL_TIME;
   state->position_for[WALL_TIME_VALUE_ID] = next_enabled_pos++;
 
-  // CPU_TIME is always enabled
   enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_CPU_TIME;
   state->position_for[CPU_TIME_VALUE_ID] = next_enabled_pos++;
 
-  // TIMELINE is always enabled
   enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_TIMELINE;
   state->position_for[TIMELINE_VALUE_ID] = next_enabled_pos++;
 
@@ -840,7 +836,6 @@ static locked_profile_slot sampler_lock_active_profile(stack_recorder_state *sta
     error = pthread_mutex_trylock(&state->mutex_slot_one);
     if (error && error != EBUSY) ENFORCE_SUCCESS_GVL(error);
 
-    // Slot one is active
     if (!error) return (locked_profile_slot) {.mutex = &state->mutex_slot_one, .data = &state->profile_slot_one};
 
     // If we got here, slot one was not active, let's try slot two
@@ -848,7 +843,6 @@ static locked_profile_slot sampler_lock_active_profile(stack_recorder_state *sta
     error = pthread_mutex_trylock(&state->mutex_slot_two);
     if (error && error != EBUSY) ENFORCE_SUCCESS_GVL(error);
 
-    // Slot two is active
     if (!error) return (locked_profile_slot) {.mutex = &state->mutex_slot_two, .data = &state->profile_slot_two};
   }
 
@@ -876,10 +870,8 @@ static profile_slot* serializer_flip_active_and_inactive_slots(stack_recorder_st
   // Grab the lock, thus making this slot inactive
   ENFORCE_SUCCESS_NO_GVL(pthread_mutex_lock(previously_active));
 
-  // Update active_slot
   state->active_slot = (previously_active_slot == 1) ? 2 : 1;
 
-  // Return pointer to previously active slot (now inactive)
   return (previously_active_slot == 1) ? &state->profile_slot_one : &state->profile_slot_two;
 }
 
@@ -910,7 +902,6 @@ static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot) {
   int error = pthread_mutex_trylock(slot_mutex);
 
   if (error == 0) {
-    // Mutex was unlocked
     ENFORCE_SUCCESS_GVL(pthread_mutex_unlock(slot_mutex));
     return Qfalse;
   } else if (error == EBUSY) {

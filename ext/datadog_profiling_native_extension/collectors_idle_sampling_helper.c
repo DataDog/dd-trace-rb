@@ -122,7 +122,6 @@ static VALUE idle_sampling_loop_body(VALUE self_instance) {
 
   thread_context_collector_profiler_internal_thread_started();
 
-  // Release GVL and run the loop waiting for requests
   rb_thread_call_without_gvl(run_idle_sampling_loop, state, interrupt_idle_sampling_loop, state);
 
   return Qtrue;
@@ -143,7 +142,6 @@ static void *run_idle_sampling_loop(void *state_ptr) {
     action next_action;
     void (*run_action_function)(void);
 
-    // Await for an action
     while ((next_action = state->requested_action) == ACTION_WAIT) {
       error = pthread_cond_wait(&state->wakeup, &state->wakeup_mutex);
       if (error) {
@@ -155,7 +153,6 @@ static void *run_idle_sampling_loop(void *state_ptr) {
 
     // There's an action to be taken!
 
-    // Record function, if any
     run_action_function = state->run_action_function;
 
     // Reset buffer for next request

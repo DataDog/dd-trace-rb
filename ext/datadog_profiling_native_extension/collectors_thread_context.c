@@ -1614,7 +1614,6 @@ static void trace_identifiers_for(
   if (RB_TYPE_P(trace_resource, T_STRING)) {
     trace_identifiers_result->trace_endpoint = trace_resource;
   } else if (trace_resource == Qnil) {
-    // Fall back to resource from span, if any
     trace_identifiers_result->trace_endpoint = rb_ivar_get(root_span, at_resource_id /* @resource */);
   }
 }

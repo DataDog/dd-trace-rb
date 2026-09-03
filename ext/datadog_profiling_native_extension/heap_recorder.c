@@ -744,13 +744,11 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
     ID2SYM(rb_intern("num_heap_records")),   /* => */ ULONG2NUM(heap_recorder->heap_records->num_entries),
     ID2SYM(rb_intern("pending_recordings_count")), /* => */ ULONG2NUM(heap_recorder->pending_recordings_count),
 
-    // Stats as of last update
     ID2SYM(rb_intern("last_update_objects_alive")), /* => */ ULONG2NUM(heap_recorder->stats_last_update.objects_alive),
     ID2SYM(rb_intern("last_update_objects_dead")), /* => */ ULONG2NUM(heap_recorder->stats_last_update.objects_dead),
     ID2SYM(rb_intern("last_update_objects_skipped")), /* => */ ULONG2NUM(heap_recorder->stats_last_update.objects_skipped),
     ID2SYM(rb_intern("last_update_objects_frozen")), /* => */ ULONG2NUM(heap_recorder->stats_last_update.objects_frozen),
 
-    // Lifetime stats
     ID2SYM(rb_intern("lifetime_updates_successful")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.updates_successful),
     ID2SYM(rb_intern("lifetime_updates_skipped_concurrent")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.updates_skipped_concurrent),
     ID2SYM(rb_intern("lifetime_updates_skipped_gcgen")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.updates_skipped_gcgen),
@@ -999,7 +997,6 @@ static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, obj
 static object_record* object_record_new(pending_recording pending) {
   object_record *record = calloc(1, sizeof(object_record)); // See "note on calloc vs ruby_xcalloc use" above
   record->record_id = pending.record_id;
-  // Link the object record with the corresponding heap record
   record->heap_record = pending.heap_record;
   record->object_data = pending.object_data;
   return record;
@@ -1160,7 +1157,6 @@ VALUE heap_recorder_testonly_is_object_recorded(heap_recorder *heap_recorder, lo
     raise_error(rb_eArgError, "heap_recorder is NULL");
   }
 
-  // Check if object records contains an object with this record_id
   return st_is_member(heap_recorder->object_records, record_id) ? Qtrue : Qfalse;
 }
 

@@ -1229,7 +1229,6 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("signal_handler_skipped_sample_on_altstack")),  /* => */ UINT2NUM(global_stats.signal_handler_skipped_sample_on_altstack),
     ID2SYM(rb_intern("interrupt_thread_attempts")),                  /* => */ UINT2NUM(state->stats.interrupt_thread_attempts),
 
-    // CPU Stats
     ID2SYM(rb_intern("cpu_sampled")),                /* => */ UINT2NUM(state->stats.cpu_sampled),
     ID2SYM(rb_intern("cpu_skipped")),                /* => */ UINT2NUM(state->stats.cpu_skipped),
     ID2SYM(rb_intern("cpu_effective_sample_rate")),  /* => */ effective_cpu_sample_rate,
@@ -1238,7 +1237,6 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("cpu_sampling_time_ns_total")), /* => */ RUBY_NUM_OR_NIL(state->stats.cpu_sampling_time_ns_total, > 0, ULL2NUM),
     ID2SYM(rb_intern("cpu_sampling_time_ns_avg")),   /* => */ RUBY_AVG_OR_NIL(state->stats.cpu_sampling_time_ns_total, state->stats.cpu_sampled),
 
-    // Allocation stats
     ID2SYM(rb_intern("allocation_sampled")),                /* => */ state->allocation_profiling_enabled ? ULONG2NUM(state->stats.allocation_sampled) : Qnil,
     ID2SYM(rb_intern("allocation_skipped")),                /* => */ state->allocation_profiling_enabled ? ULONG2NUM(state->stats.allocation_skipped) : Qnil,
     ID2SYM(rb_intern("allocation_effective_sample_rate")),  /* => */ effective_allocation_sample_rate,
@@ -1249,7 +1247,6 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("allocation_sampler_snapshot")),       /* => */ allocation_sampler_snapshot,
     ID2SYM(rb_intern("allocations_during_sample")),         /* => */ state->allocation_profiling_enabled ? UINT2NUM(state->stats.allocations_during_sample) : Qnil,
 
-    // GVL profiling stats
     ID2SYM(rb_intern("after_gvl_running")),          /* => */ UINT2NUM(state->stats.after_gvl_running),
     ID2SYM(rb_intern("gvl_dont_sample")),            /* => */ UINT2NUM(state->stats.gvl_dont_sample),
     ID2SYM(rb_intern("gvl_sampling_time_ns_min")),   /* => */ RUBY_NUM_OR_NIL(state->stats.gvl_sampling_time_ns_min, != UINT64_MAX, ULL2NUM),
@@ -1498,7 +1495,6 @@ static VALUE rescued_sample_allocation(VALUE arg) {
   VALUE new_object = rb_tracearg_object(data);
 
   unsigned long allocations_since_last_sample = state->dynamic_sampling_rate_enabled ?
-    // if we're doing dynamic sampling, ask the sampler how many events since last sample
     discrete_dynamic_sampler_events_since_last_sample(&state->allocation_sampler) :
     // if we aren't, then we're sampling every event
     1;

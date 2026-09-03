@@ -20,7 +20,6 @@ static VALUE _native_report_ruby_exception(DDTRACE_UNUSED VALUE _self, VALUE exc
   ENFORCE_TYPE(message, T_STRING);
   ENFORCE_TYPE(frames_data, T_ARRAY);
 
-  // Build stack trace
   ddog_crasht_StackTrace_NewResult stack_result = ddog_crasht_StackTrace_new();
   if (stack_result.tag != DDOG_CRASHT_STACK_TRACE_NEW_RESULT_OK) {
     ddog_Error_drop(&stack_result.err);

@@ -62,7 +62,6 @@ ddog_prof_EncodedProfile *to_ddog_prof_EncodedProfile(VALUE object) {
 static void encoded_profile_typed_data_free(void *state_ptr) {
   ddog_prof_EncodedProfile *state = (ddog_prof_EncodedProfile *) state_ptr;
 
-  // This drops the profile itself
   ddog_prof_EncodedProfile_drop(state);
 
   // This drops the tiny bit of memory we allocated to contain the ` ddog_prof_EncodedProfile` struct
