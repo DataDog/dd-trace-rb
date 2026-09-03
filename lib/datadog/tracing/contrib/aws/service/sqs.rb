@@ -8,7 +8,6 @@ module Datadog
     module Contrib
       module Aws
         module Service
-          # SQS tag handlers.
           class SQS < Base
             def add_tags(span, params)
               queue_url = params[:queue_url]

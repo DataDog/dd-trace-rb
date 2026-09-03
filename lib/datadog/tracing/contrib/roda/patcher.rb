@@ -10,7 +10,6 @@ module Datadog
   module Tracing
     module Contrib
       module Roda
-        # Patcher enables patching of 'roda'
         module Patcher
           include Contrib::Patcher
 

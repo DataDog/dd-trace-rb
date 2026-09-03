@@ -8,7 +8,6 @@ module Datadog
     module Contrib
       module Aws
         module Service
-          # Kinesis tag handlers.
           class Kinesis < Base
             def add_tags(span, params)
               stream_arn = params[:stream_arn]

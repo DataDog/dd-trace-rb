@@ -15,7 +15,6 @@ module Datadog
             base.extend(ClassMethods)
           end
 
-          # Class methods for Kafka events.
           module ClassMethods
             def event_name
               self::EVENT_NAME

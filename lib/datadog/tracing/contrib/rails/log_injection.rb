@@ -3,7 +3,6 @@
 module Datadog
   module Tracing
     module Contrib
-      # Instrument Rails.
       module Rails
         # Rails log injection helper methods
         module LogInjection

@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Sinatra
-        # Description of Sinatra integration
         class Integration
           include Contrib::Integration
 

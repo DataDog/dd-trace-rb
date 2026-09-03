@@ -8,7 +8,6 @@ module Datadog
     module Contrib
       module Aws
         module Service
-          # DynamoDB tag handlers.
           class DynamoDB < Base
             def add_tags(span, params)
               table_name = params[:table_name]

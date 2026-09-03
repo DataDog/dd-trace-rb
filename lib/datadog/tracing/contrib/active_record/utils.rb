@@ -97,7 +97,6 @@ module Datadog
             end
           end
 
-          # @return [Hash]
           def self.default_connection_config
             return @default_connection_config if instance_variable_defined?(:@default_connection_config)
 
@@ -113,7 +112,6 @@ module Datadog
             EMPTY_CONFIG
           end
 
-          # @return [Hash]
           def self.db_config(connection_pool)
             if connection_pool.respond_to? :db_config
               connection_pool.db_config.configuration_hash

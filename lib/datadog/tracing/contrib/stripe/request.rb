@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Stripe
-        # Defines instrumentation for Stripe requests
         module Request
           module_function
 
@@ -21,13 +20,11 @@ module Datadog
 
           def finish_span(event)
             span = event.user_data[:datadog_span]
-            # If no active span, return.
             return nil if span.nil?
 
             begin
               tag_span(span, event)
             ensure
-              # Finish the span
               span.finish
             end
           end

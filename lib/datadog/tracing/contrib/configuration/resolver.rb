@@ -127,7 +127,6 @@ module Datadog
             super
           end
 
-          # Clears the internal cache.
           def reset_cache
             @cache.clear
           end

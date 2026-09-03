@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Resque
-        # Description of Resque integration
         class Integration
           include Contrib::Integration
 

@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Grape
-        # Description of Grape integration
         class Integration
           include Contrib::Integration
 

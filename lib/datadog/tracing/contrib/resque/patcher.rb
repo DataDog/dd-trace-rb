@@ -7,7 +7,6 @@ module Datadog
   module Tracing
     module Contrib
       module Resque
-        # Patcher enables patching of 'resque' module.
         module Patcher
           include Contrib::Patcher
 

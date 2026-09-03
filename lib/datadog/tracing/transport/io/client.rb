@@ -38,7 +38,6 @@ module Datadog
               @request_block.call(out, request)
             end
 
-            # Update statistics
             update_stats_from_response!(response)
 
             response
@@ -47,7 +46,6 @@ module Datadog
               "Internal error during IO transport request. Cause: #{e.class}: #{e.message} " \
                 "Location: #{Array(e.backtrace).first}"
 
-            # Log error
             if stats.consecutive_errors > 0
               Datadog.logger.debug(message)
             else
@@ -55,7 +53,6 @@ module Datadog
               Datadog.logger.error(message)
             end
 
-            # Update statistics
             update_stats_from_exception!(e)
 
             InternalErrorResponse.new(e)
@@ -74,10 +71,8 @@ module Datadog
           def send_default_request(out, request)
             data = request.parcel.data
 
-            # Write to IO
             result = @write_block.call(out, data)
 
-            # Generate a response
             @response_block.call(request, data, result)
           end
         end

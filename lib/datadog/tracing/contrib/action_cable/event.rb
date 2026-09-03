@@ -9,14 +9,12 @@ module Datadog
   module Tracing
     module Contrib
       module ActionCable
-        # Defines basic behaviors for an event.
         module Event
           def self.included(base)
             base.include(ActiveSupport::Notifications::Event)
             base.extend(ClassMethods)
           end
 
-          # Class methods for events.
           module ClassMethods
             def span_options
               if configuration[:service_name]
@@ -42,7 +40,6 @@ module Datadog
             base.extend(ClassMethods)
           end
 
-          # Class methods for events.
           module ClassMethods
             include Contrib::ActionCable::Event::ClassMethods
 

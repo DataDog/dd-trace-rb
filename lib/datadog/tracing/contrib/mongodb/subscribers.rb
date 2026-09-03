@@ -32,7 +32,6 @@ module Datadog
 
             span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
 
-            # build a quantized Query using the Parser module
             query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
             serialized_query = serialize_query(query)
 
@@ -52,7 +51,6 @@ module Datadog
 
             span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, event.address.host)
 
-            # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
             # add operation tags; the full query is stored and used as a resource,
@@ -67,7 +65,6 @@ module Datadog
 
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
 
-            # set the resource with the quantized query
             span.resource = serialized_query
           rescue => e
             Datadog.logger.debug("error when handling MongoDB 'started' event: #{e.class}: #{e.message}")

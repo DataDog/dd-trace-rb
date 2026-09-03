@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Sequel
-        # Patcher enables patching of 'sequel' module.
         module Patcher
           include Contrib::Patcher
 

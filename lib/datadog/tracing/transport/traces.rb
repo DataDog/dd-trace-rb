@@ -23,16 +23,13 @@ module Datadog
           end
         end
 
-        # Traces request
         class Request < Datadog::Core::Transport::Request
         end
 
-        # Traces response
         module Response
           attr_reader :service_rates, :trace_count
         end
 
-        # Traces chunker
         class Chunker
           # Trace agent limit payload size of 10 MiB (since agent v5.11.0):
           # https://github.com/DataDog/datadog-agent/blob/6.14.1/pkg/trace/api/api.go#L46
@@ -45,8 +42,6 @@ module Datadog
           #
           # Single traces larger than +max_size+ will be discarded.
           #
-          # @param encoder [Datadog::Core::Encoding::Encoder]
-          # @param logger [Datadog::Core::Logger]
           # @param max_size [String] maximum acceptable payload size
           def initialize(encoder, logger:, native_events_supported:, max_size: DEFAULT_MAX_PAYLOAD_SIZE)
             @encoder = encoder
@@ -98,10 +93,8 @@ module Datadog
           module_function
 
           def encode_trace(encoder, trace, logger:, native_events_supported:)
-            # Format the trace for transport
             TraceFormatter.format!(trace)
 
-            # Make the trace serializable
             serializable_trace = SerializableTrace.new(trace, native_events_supported: native_events_supported)
 
             # Encode the trace

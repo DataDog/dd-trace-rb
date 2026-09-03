@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Kafka
-        # Patcher enables patching of 'kafka' module.
         module Patcher
           include Contrib::Patcher
 
@@ -19,7 +18,6 @@ module Datadog
           end
 
           def patch
-            # Subscribe to Kafka events
             Events.subscribe!
 
             # Apply monkey patches for additional instrumentation (e.g., DSM)

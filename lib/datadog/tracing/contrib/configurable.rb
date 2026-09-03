@@ -52,12 +52,10 @@ module Datadog
               end
             end
 
-            # Apply the settings
             config&.configure(options, &block)
             config
           end
 
-          # Resets all configuration options
           def reset_configuration!
             @resolver = nil
             @default_configuration = nil

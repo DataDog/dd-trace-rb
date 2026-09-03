@@ -52,7 +52,6 @@ module Datadog
         # Sets the source of where the information for peer.service was extracted from
         # Returns a peer.service value if successfully set or not
         def self.set_peer_service_from_source(span, sources = [])
-          # Filter out sources based on existence of peer.service tag
           sources = filter_peer_service_sources(span, sources)
 
           # Find a possible peer.service source from the list of source tags passed in

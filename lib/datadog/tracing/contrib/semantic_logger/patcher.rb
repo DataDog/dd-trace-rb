@@ -6,7 +6,6 @@ require_relative "instrumentation"
 module Datadog
   module Tracing
     module Contrib
-      # Datadog SemanticLogger integration.
       module SemanticLogger
         # Patcher enables patching of 'semantic_logger' module.
         module Patcher
@@ -18,7 +17,6 @@ module Datadog
             Integration.version
           end
 
-          # patch applies our patch
           def patch
             ::SemanticLogger::Logger.include(Instrumentation)
           end

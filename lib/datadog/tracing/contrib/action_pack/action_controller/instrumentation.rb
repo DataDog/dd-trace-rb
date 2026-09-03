@@ -61,7 +61,6 @@ module Datadog
                 # We repeat this in both start and at finish because the resource may have changed during the request
                 trace.resource = span.resource unless payload[:headers][:request_exception]
 
-                # Set analytics sample rate
                 Utils.set_analytics_sample_rate(span)
 
                 # Measure service stats

@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Mysql2
-        # Description of Mysql2 integration
         class Integration
           include Contrib::Integration
 

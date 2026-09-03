@@ -6,7 +6,6 @@ require_relative "rate_sampler"
 module Datadog
   module Tracing
     module Sampling
-      # Samples at different rates by key.
       class RateByKeySampler < Sampler
         attr_reader \
           :default_key

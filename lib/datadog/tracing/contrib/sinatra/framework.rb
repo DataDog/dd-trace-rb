@@ -3,7 +3,6 @@
 module Datadog
   module Tracing
     module Contrib
-      # Instrument Sinatra.
       module Sinatra
         # Sinatra framework code, used to essentially:
         # - handle configuration entries which are specific to Datadog tracing
@@ -97,7 +96,6 @@ module Datadog
             middlewares(builder).include?(middleware)
           end
 
-          # Introspect middlewares from a builder
           def self.middlewares(builder)
             builder.instance_variable_get(:@use).map do |proc_|
               next :unknown unless proc_.respond_to?(:binding) && proc_.binding.local_variable_defined?(:middleware)

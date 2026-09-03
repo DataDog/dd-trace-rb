@@ -7,7 +7,6 @@ module Datadog
   module Tracing
     module Contrib
       module Trilogy
-        # Patcher enables patching of 'trilogy' module.
         module Patcher
           include Contrib::Patcher
 

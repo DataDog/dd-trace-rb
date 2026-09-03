@@ -12,7 +12,6 @@ module Datadog
   module Tracing
     module Contrib
       module OpenSearch
-        # Patcher enables patching of 'opensearch' module.
         module Patcher
           include Contrib::Patcher
 
@@ -35,19 +34,16 @@ module Datadog
               # rubocop:disable Metrics/BlockLength
               Tracing.trace("opensearch.query", service: datadog_configuration[:service_name]) do |span|
                 span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
-                # Set generic tags
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
                 span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
-                # Set argument tags
                 span.set_tag(OpenSearch::Ext::TAG_METHOD, method)
                 span.set_tag(OpenSearch::Ext::TAG_PATH, path)
 
                 tag_params(params, span)
                 tag_body(body, span)
 
-                # Parse url
                 original_url = transport.get_connection.full_url(path, {})
                 url = URI.parse(original_url)
                 host = url.host
@@ -63,7 +59,6 @@ module Datadog
                   )
                 end
 
-                # Set url tags
                 span.set_tag(OpenSearch::Ext::TAG_URL, url)
                 span.set_tag(OpenSearch::Ext::TAG_HOST, host)
                 span.set_tag(OpenSearch::Ext::TAG_PORT, port)
@@ -71,7 +66,6 @@ module Datadog
 
                 span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host) if host
 
-                # Define span resource
                 quantized_url = if datadog_configuration[:resource_pattern] == Ext::RELATIVE_RESOURCE_PATTERN
                   OpenSearch::Quantize.format_url(url.path)
                 else # Default to Ext::ABSOLUTE_RESOURCE_PATTERN

@@ -40,8 +40,6 @@ module Datadog
           # Returns `true` if the span conforms to the configured patterns,
           # `false` otherwise
           #
-          # @param [SpanOperation] span
-          # @return [Boolean]
           def match?(span)
             # Matching is performed at the end of the lifecycle of a Span,
             # thus both `name` and `service` are guaranteed to be not `nil`.

@@ -7,7 +7,6 @@ module Datadog
   module Tracing
     module Contrib
       module GRPC
-        # Patcher enables patching of 'grpc' module.
         module Patcher
           include Contrib::Patcher
 

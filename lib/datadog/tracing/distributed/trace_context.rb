@@ -110,7 +110,6 @@ module Datadog
           "00-#{format("%032x", trace_id)}-#{format("%016x", parent_id)}-#{format("%02x", trace_flags)}"
         end
 
-        # Sets the trace flag to an existing `trace_flags`.
         def build_trace_flags(digest)
           trace_flags = digest.trace_flags || DEFAULT_TRACE_FLAGS
 

@@ -9,7 +9,6 @@ module Datadog
   module Tracing
     module Contrib
       module Shoryuken
-        # Description of Shoryuken integration
         class Integration
           include Contrib::Integration
 

@@ -30,7 +30,6 @@ module Datadog
               :parent_id,
             ].freeze
 
-            # Encodes a list of traces
             def encode_traces(traces)
               trace_hashes = traces.map do |trace|
                 encode_trace(trace)
@@ -55,7 +54,6 @@ module Datadog
             end
           end
 
-          # Extensions for HTTP client
           module Client
             include Encoder
 
@@ -70,7 +68,6 @@ module Datadog
               req = Transport::Traces::Request.new(parcel)
 
               [send_request(req) do |out, request|
-                # Get already-encoded data from parcel
                 data = request.parcel.data
 
                 # Write to IO
@@ -80,7 +77,6 @@ module Datadog
                   write_data(out, data)
                 end
 
-                # Generate response
                 Traces::Response.new(result)
               end]
             end

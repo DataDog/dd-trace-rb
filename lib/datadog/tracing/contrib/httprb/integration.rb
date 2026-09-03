@@ -9,7 +9,6 @@ module Datadog
   module Tracing
     module Contrib
       module Httprb
-        # Description of Httprb integration
         class Integration
           include Contrib::Integration
 

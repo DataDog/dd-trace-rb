@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module MongoDB
-        # Patcher enables patching of 'mongo' module.
         module Patcher
           include Contrib::Patcher
 
@@ -24,7 +23,6 @@ module Datadog
           end
 
           def add_mongo_monitoring
-            # Subscribe to all COMMAND queries with our subscriber class
             ::Mongo::Monitoring::Global.subscribe(::Mongo::Monitoring::COMMAND, MongoCommandSubscriber.new)
           end
         end

@@ -11,8 +11,6 @@ module Datadog
 
         # Returns `true` if the trace should conforms to this rule, `false` otherwise
         #
-        # @param [TraceOperation] trace
-        # @return [Boolean]
         def match?(trace)
           raise NotImplementedError
         end
@@ -24,8 +22,6 @@ module Datadog
         # - `?` matches any single character
         # - `*` matches any substring
         #
-        # @param glob [String]
-        # @return [#match?(String)]
         def self.glob_to_regex(glob)
           # Optimization for match-all case
           return MATCH_ALL if /\A\*+\z/.match?(glob)

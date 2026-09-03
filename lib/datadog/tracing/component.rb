@@ -10,7 +10,6 @@ require_relative "contrib/component"
 
 module Datadog
   module Tracing
-    # Tracing component
     module Component
       module_function
 
@@ -20,7 +19,6 @@ module Datadog
         tracer = settings.tracing.instance
         return tracer unless tracer.nil?
 
-        # Apply test mode settings if test mode is activated
         if settings.tracing.test_mode.enabled
           trace_flush = build_test_mode_trace_flush(settings)
           sampler = build_test_mode_sampler
@@ -72,7 +70,6 @@ module Datadog
         # But to keep the service alive on the backend side, we need to send one trace per minute.
         post_sampler = build_rate_limit_post_sampler(seconds: 60) unless settings.apm.tracing.enabled
 
-        # Sampling rules are provided
         if (rules = settings.tracing.sampling.rules)
           post_sampler = Tracing::Sampling::RuleSampler.parse(
             rules,

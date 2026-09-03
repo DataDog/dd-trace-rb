@@ -5,13 +5,11 @@ module Datadog
     module Contrib
       module Kafka
         module Instrumentation
-          # Instrumentation for Kafka::Consumer
           module Consumer
             def self.prepended(base)
               base.prepend(InstanceMethods)
             end
 
-            # Instance methods for consumer instrumentation
             module InstanceMethods
               def each_message(**kwargs, &block)
                 return super unless Datadog::DataStreams.enabled?

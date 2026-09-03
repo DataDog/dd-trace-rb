@@ -38,7 +38,6 @@ module Datadog
           end
         end
 
-        # Patcher enables patching of 'sinatra' module.
         module Patcher
           include Contrib::Patcher
 

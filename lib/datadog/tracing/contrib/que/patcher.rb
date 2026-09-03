@@ -6,7 +6,6 @@ module Datadog
   module Tracing
     module Contrib
       module Que
-        # Patcher enables patching of 'que' module.
         module Patcher
           include Contrib::Patcher
 

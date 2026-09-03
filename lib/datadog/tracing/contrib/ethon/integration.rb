@@ -9,7 +9,6 @@ module Datadog
   module Tracing
     module Contrib
       module Ethon
-        # Description of Ethon integration
         class Integration
           include Contrib::Integration
 

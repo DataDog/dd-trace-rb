@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Aws
-        # Description of AWS integration
         class Integration
           include Contrib::Integration
 

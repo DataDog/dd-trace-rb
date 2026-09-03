@@ -8,7 +8,6 @@ module Datadog
     module Contrib
       module Aws
         module Service
-          # S3 tag handlers.
           class S3 < Base
             def add_tags(span, params)
               bucket_name = params[:bucket]

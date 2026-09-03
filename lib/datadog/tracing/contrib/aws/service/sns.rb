@@ -8,7 +8,6 @@ module Datadog
     module Contrib
       module Aws
         module Service
-          # SNS tag handlers.
           class SNS < Base
             def add_tags(span, params)
               topic_arn = params[:topic_arn]

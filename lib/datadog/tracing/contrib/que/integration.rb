@@ -9,7 +9,6 @@ module Datadog
   module Tracing
     module Contrib
       module Que
-        # Description of Que integration
         class Integration
           include Contrib::Integration
 

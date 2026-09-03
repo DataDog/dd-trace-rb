@@ -5,7 +5,6 @@ require_relative "sampler"
 module Datadog
   module Tracing
     module Sampling
-      # {Datadog::Tracing::Sampling::AllSampler} samples all the traces.
       class AllSampler < Sampler
         def sample?(_trace)
           true

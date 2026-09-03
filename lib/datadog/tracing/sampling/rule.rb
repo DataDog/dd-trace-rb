@@ -27,7 +27,6 @@ module Datadog
 
         # Evaluates if the provided `trace` conforms to the `matcher`.
         #
-        # @param [TraceOperation] trace
         # @return [Boolean] whether this rules applies to the trace
         # @return [NilClass] if the matcher fails errs during evaluation
         def match?(trace)

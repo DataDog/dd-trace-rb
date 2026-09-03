@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Karafka
-        # Description of Kafka integration
         class Integration
           include Contrib::Integration
 

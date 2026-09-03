@@ -4,7 +4,6 @@ require_relative "metadata/ext"
 
 module Datadog
   module Tracing
-    # Defines analytics behavior
     module Analytics
       class << self
         def set_sample_rate(span_op, sample_rate)

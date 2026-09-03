@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Sidekiq
-        # Description of Sidekiq integration
         class Integration
           include Contrib::Integration
 

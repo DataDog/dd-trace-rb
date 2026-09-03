@@ -7,7 +7,6 @@ module Datadog
   module Tracing
     module Contrib
       module Mysql2
-        # Patcher enables patching of 'mysql2' module.
         module Patcher
           include Contrib::Patcher
 

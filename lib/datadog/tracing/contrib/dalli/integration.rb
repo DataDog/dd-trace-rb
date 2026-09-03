@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Dalli
-        # Description of Dalli integration
         class Integration
           include Contrib::Integration
 

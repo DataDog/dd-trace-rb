@@ -76,7 +76,6 @@ module Datadog
               span.set_tag(Contrib::Ext::RPC::TAG_METHOD, formatter.legacy_grpc_method)
               span.set_tag(Contrib::Ext::RPC::GRPC::TAG_FULL_METHOD, formatter.grpc_full_method)
 
-              # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
               # Measure service stats

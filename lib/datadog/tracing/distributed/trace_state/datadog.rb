@@ -81,7 +81,6 @@ module Datadog
             # Serializes a {Hash<String,String>} into a `x-datadog-tags`-compatible
             # String.
             #
-            # @param tags [Hash<String,String>] trace tag hash
             # @return [String] serialized tags hash
             # @raise [EncodingError] if tags cannot be serialized to the `x-datadog-tags` format
             def encode(tags)

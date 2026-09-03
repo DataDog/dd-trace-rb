@@ -52,7 +52,6 @@ module Datadog
             # If it's a Hash, try to get the job class from it.
             # This is for ActiveJob compatibility.
             job_class = body["job_class"] if body.is_a?(Hash)
-            # If nothing is available, use the worker class name.
             job_class || worker_instance.class.name
           end
 

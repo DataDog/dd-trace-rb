@@ -26,7 +26,6 @@ module Datadog
           end
 
           module API
-            # Endpoint for submitting trace data
             class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
               HEADER_CONTENT_TYPE = "Content-Type"
               HEADER_TRACE_COUNT = "X-Datadog-Trace-Count"
@@ -42,17 +41,14 @@ module Datadog
               end
 
               def call(env, &block)
-                # Add trace count header
                 env.headers[HEADER_TRACE_COUNT] = env.request.parcel.trace_count.to_s
 
                 # Encode body & type
                 env.headers[HEADER_CONTENT_TYPE] = encoder.content_type
                 env.body = env.request.parcel.data
 
-                # Query for response
                 http_response = super
 
-                # Process the response
                 response_options = {trace_count: env.request.parcel.trace_count}.tap do |options|
                   # Parse service rates, if configured to do so.
                   if service_rates? && !http_response.payload.to_s.empty?
@@ -61,7 +57,6 @@ module Datadog
                   end
                 end
 
-                # Build and return a trace response
                 Traces::Response.new(http_response, response_options)
               end
             end

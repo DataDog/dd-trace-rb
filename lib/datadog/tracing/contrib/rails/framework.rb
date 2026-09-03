@@ -15,7 +15,6 @@ require_relative "../semantic_logger/integration"
 module Datadog
   module Tracing
     module Contrib
-      # Instrument Rails.
       module Rails
         # Rails framework code, used to essentially:
         # - handle configuration entries which are specific to Datadog tracing

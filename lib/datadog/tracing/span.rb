@@ -100,16 +100,13 @@ module Datadog
 
         @events = events || []
 
-        # Mark with the service entry span metric, if applicable
         set_metric(Metadata::Ext::TAG_TOP_LEVEL, 1.0) if service_entry
       end
 
-      # Return whether the duration is started or not
       def started?
         !@start_time.nil?
       end
 
-      # Return whether the duration is stopped or not.
       def stopped?
         !@end_time.nil?
       end

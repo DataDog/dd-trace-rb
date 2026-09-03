@@ -48,7 +48,6 @@ module Datadog
           #
           # @param [Datadog::Tracing::TraceOperation] trace_op trace for the provided span
           # @param [Datadog::Tracing::SpanOperation] span_op Span to apply sampling rules
-          # @return [void]
           def sample!(trace_op, span_op)
             return if trace_op.sampled? && trace_op.priority_sampled?
 

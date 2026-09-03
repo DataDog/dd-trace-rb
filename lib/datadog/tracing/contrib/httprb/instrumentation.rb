@@ -10,13 +10,11 @@ module Datadog
   module Tracing
     module Contrib
       module Httprb
-        # Instrumentation for Httprb
         module Instrumentation
           def self.included(base)
             base.prepend(InstanceMethods)
           end
 
-          # Instance methods for configuration
           module InstanceMethods
             include Contrib::HttpAnnotationHelper
 

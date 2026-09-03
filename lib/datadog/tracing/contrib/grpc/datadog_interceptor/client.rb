@@ -74,7 +74,6 @@ module Datadog
               deadline = find_deadline(call)
               span.set_tag(Ext::TAG_CLIENT_DEADLINE, deadline) if deadline
 
-              # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
               if Tracing::Distributed::PropagationPolicy.enabled?(

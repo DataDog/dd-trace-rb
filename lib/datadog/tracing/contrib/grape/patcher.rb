@@ -9,7 +9,6 @@ module Datadog
   module Tracing
     module Contrib
       module Grape
-        # Patcher enables patching of 'grape' module.
         module Patcher
           include Contrib::Patcher
 
@@ -20,7 +19,6 @@ module Datadog
           end
 
           def patch
-            # Patch endpoints
             ::Grape::Endpoint.prepend(Instrumentation::InstanceMethods)
             if target_version < Gem::Version.new("3.0.0")
               ::Grape::Endpoint.singleton_class.prepend(Instrumentation::GenerateApiMethodPatch)

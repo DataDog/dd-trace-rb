@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Lograge
-        # Description of Lograge integration
         class Integration
           include Contrib::Integration
 

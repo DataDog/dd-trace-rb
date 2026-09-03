@@ -16,12 +16,10 @@ module Datadog
         @context = FiberLocalContext.new
       end
 
-      # Sets the current context.
       def context=(ctx)
         @context.local = ctx
       end
 
-      # Return the local context.
       def context(key = nil)
         current_context = key.nil? ? @context.local : @context.local(key)
 

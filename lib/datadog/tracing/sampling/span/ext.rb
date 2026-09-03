@@ -4,7 +4,6 @@ module Datadog
   module Tracing
     module Sampling
       module Span
-        # Single Span Sampling constants.
         module Ext
           # Accept all spans (100% retention).
           DEFAULT_SAMPLE_RATE = 1.0

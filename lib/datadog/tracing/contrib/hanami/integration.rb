@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Hanami
-        # Description of Hanami integration
         class Integration
           include Contrib::Integration
 

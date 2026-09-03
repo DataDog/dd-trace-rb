@@ -9,13 +9,11 @@ module Datadog
   module Tracing
     module Contrib
       module Rake
-        # Instrumentation for Rake tasks
         module Instrumentation
           def self.included(base)
             base.prepend(InstanceMethods)
           end
 
-          # Instance methods for Rake instrumentation
           module InstanceMethods
             def invoke(*args)
               return super if !enabled? || !instrumented_task?

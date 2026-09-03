@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Redis
-        # Patcher enables patching of 'redis' module.
         module Patcher
           include Contrib::Patcher
 

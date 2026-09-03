@@ -8,7 +8,6 @@ module Datadog
     module Contrib
       module Utils
         module Quantization
-          # Quantization for HTTP resources
           module HTTP
             PLACEHOLDER = "?"
 
@@ -46,7 +45,6 @@ module Datadog
                   uri.query = ((!query.nil? && query.empty?) ? nil : query)
                 end
 
-                # Remove any URI fragments
                 uri.fragment = nil unless options[:fragment] == :show
 
                 if options[:base] == :exclude

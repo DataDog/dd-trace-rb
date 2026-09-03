@@ -10,11 +10,9 @@ require_relative "../../../../datadog/version"
 module Datadog
   module Tracing
     module Contrib
-      # HTTP integration
       module HTTP
         extend CircuitBreaker
 
-        # Description of HTTP integration
         class Integration
           include Contrib::Integration
 

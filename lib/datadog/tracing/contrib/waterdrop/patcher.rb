@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module WaterDrop
-        # Patcher enables patching of 'waterdrop' module.
         module Patcher
           include Contrib::Patcher
 

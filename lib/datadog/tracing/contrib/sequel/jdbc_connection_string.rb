@@ -32,7 +32,6 @@ module Datadog
             # but Hash values can be `nil` when not parseable from the connection string.
             #
             # @param connection_string [String, nil] the JDBC connection string to parse
-            # @return [Hash{Symbol => String, nil}]
             #   - `:host` — host value when the subname uses authority syntax: `//host[:port]`
             #   - `:port` — port when the subname uses authority syntax: `//host[:port]`
             #   - `:database` — best-effort database name

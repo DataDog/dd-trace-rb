@@ -20,7 +20,6 @@ module Datadog
             end
             return yield unless configuration[:request_queuing]
 
-            # parse the request queue time
             start_time = Contrib::Rack::QueueTime.get_request_start(env)
             return yield unless start_time
 

@@ -12,13 +12,11 @@ module Datadog
   module Tracing
     module Contrib
       module Ethon
-        # Ethon EasyPatch
         module EasyPatch
           def self.included(base)
             base.prepend(InstanceMethods)
           end
 
-          # InstanceMethods - implementing instrumentation
           module InstanceMethods
             include Contrib::HttpAnnotationHelper
 
@@ -145,7 +143,6 @@ module Datadog
                 )
               end
 
-              # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)

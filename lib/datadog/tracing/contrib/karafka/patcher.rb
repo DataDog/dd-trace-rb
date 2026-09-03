@@ -65,7 +65,6 @@ module Datadog
           end
         end
 
-        # Patcher enables patching of 'karafka' module.
         module Patcher
           include Contrib::Patcher
 

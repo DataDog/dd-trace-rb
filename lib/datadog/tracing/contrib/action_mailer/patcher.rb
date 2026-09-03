@@ -19,7 +19,6 @@ module Datadog
           end
 
           def patch
-            # Subscribe to ActionMailer events
             Events.subscribe!
           end
         end

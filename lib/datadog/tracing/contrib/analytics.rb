@@ -5,7 +5,6 @@ require_relative "../analytics"
 module Datadog
   module Tracing
     module Contrib
-      # Defines analytics behavior for integrations
       module Analytics
         module_function
 

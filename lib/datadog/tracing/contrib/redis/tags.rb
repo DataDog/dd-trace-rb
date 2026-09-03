@@ -28,7 +28,6 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
-              # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
               span.set_tag Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM

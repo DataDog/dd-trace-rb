@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Dalli
-        # Patcher enables patching of 'dalli' module.
         module Patcher
           include Contrib::Patcher
 

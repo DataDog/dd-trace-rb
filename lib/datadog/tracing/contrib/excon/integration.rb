@@ -9,7 +9,6 @@ module Datadog
   module Tracing
     module Contrib
       module Excon
-        # Description of Excon integration
         class Integration
           include Contrib::Integration
 

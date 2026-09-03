@@ -10,7 +10,6 @@ module Datadog
   module Tracing
     module Contrib
       module Roda
-        # Description of Roda integration
         class Integration
           include Contrib::Integration
 

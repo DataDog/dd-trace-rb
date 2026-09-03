@@ -12,13 +12,11 @@ module Datadog
   module Tracing
     module Contrib
       module HTTP
-        # Instrumentation for Net::HTTP
         module Instrumentation
           def self.included(base)
             base.prepend(InstanceMethods)
           end
 
-          # InstanceMethods - implementing instrumentation
           module InstanceMethods
             include Contrib::HttpAnnotationHelper
 
@@ -80,7 +78,6 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host)
 
-              # Set analytics sample rate
               set_analytics_sample_rate(span, request_options)
 
               span.set_tags(

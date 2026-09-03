@@ -6,7 +6,6 @@ module Datadog
   module Tracing
     module Contrib
       module Excon
-        # Patcher enables patching of 'excon' module.
         module Patcher
           include Contrib::Patcher
 

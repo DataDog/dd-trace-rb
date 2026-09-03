@@ -111,7 +111,6 @@ module Datadog
               ) do |span, trace_op|
                 span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 annotate_span_with_query!(span, service)
-                # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
                 if sql
@@ -179,7 +178,6 @@ module Datadog
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             end
 
-            # @param [PG::Result] result
             def annotate_span_with_result!(span, result)
               span.set_tag(Contrib::Ext::DB::TAG_ROW_COUNT, result.ntuples)
             end

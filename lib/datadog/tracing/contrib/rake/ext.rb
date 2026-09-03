@@ -4,7 +4,6 @@ module Datadog
   module Tracing
     module Contrib
       module Rake
-        # Rake integration constants
         # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
         module Ext
           ENV_ENABLED = "DD_TRACE_RAKE_ENABLED"

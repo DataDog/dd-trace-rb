@@ -5,9 +5,7 @@ module Datadog
     module Diagnostics
       # @public_api
       module Ext
-        # Health
         module Health
-          # Metrics
           module Metrics
             METRIC_API_ERRORS = "datadog.tracer.api.errors"
             METRIC_API_REQUESTS = "datadog.tracer.api.requests"

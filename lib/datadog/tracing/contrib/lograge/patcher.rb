@@ -6,9 +6,7 @@ require_relative "instrumentation"
 module Datadog
   module Tracing
     module Contrib
-      # Datadog Lograge integration.
       module Lograge
-        # Patcher enables patching of 'lograge' module.
         module Patcher
           include Contrib::Patcher
 
@@ -18,7 +16,6 @@ module Datadog
             Integration.version
           end
 
-          # patch applies our patch
           def patch
             # First check Lograge logger directly for when keep_original_rails_log option is used
             used_logger = ::Lograge.logger || ::Lograge::LogSubscribers::ActionController.logger

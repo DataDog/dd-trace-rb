@@ -9,7 +9,6 @@ module Datadog
   module Tracing
     module Contrib
       module Sneakers
-        # Description of Sneakers integration
         class Integration
           include Contrib::Integration
 

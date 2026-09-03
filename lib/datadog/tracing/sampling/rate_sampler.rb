@@ -6,7 +6,6 @@ require_relative "../../core/knuth_sampler"
 module Datadog
   module Tracing
     module Sampling
-      # {Datadog::Tracing::Sampling::RateSampler} is based on a sample rate.
       class RateSampler < Sampler
         KNUTH_FACTOR = 1111111111111111111
 

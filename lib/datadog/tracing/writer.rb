@@ -28,7 +28,6 @@ module Datadog
         transport_options = options.fetch(:transport_options, {})
         @agent_settings = options[:agent_settings]
 
-        # transport and buffers
         @transport = options.fetch(:transport) do
           Transport::HTTP.default(agent_settings: agent_settings, logger: logger, **transport_options)
         end
@@ -86,7 +85,6 @@ module Datadog
       def send_spans(traces, transport)
         return true if traces.empty?
 
-        # Send traces and get responses
         responses = transport.send_traces(traces)
 
         # Tally up successful flushes

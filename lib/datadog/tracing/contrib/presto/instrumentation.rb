@@ -7,15 +7,12 @@ module Datadog
   module Tracing
     module Contrib
       module Presto
-        # Instrumentation for Presto integration
         module Instrumentation
-          # Instrumentation for Presto::Client::Client
           module Client
             def self.included(base)
               base.prepend(InstanceMethods)
             end
 
-            # Instance methods for Presto::Client
             module InstanceMethods
               def run(query)
                 Tracing.trace(

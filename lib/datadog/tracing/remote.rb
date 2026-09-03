@@ -5,7 +5,6 @@ require_relative "configuration/dynamic"
 
 module Datadog
   module Tracing
-    # Remote configuration declaration
     module Remote
       class << self
         PRODUCT = "APM_TRACING"
@@ -49,7 +48,6 @@ module Datadog
         # current contents on each dispatch.
         #
         # @param repository [Core::Remote::Configuration::Repository] the current RC repository
-        # @return [nil]
         def merge_and_apply_configs(repository)
           # Resolve the service identity the same way the RC client registers
           # it with the backend (Core::Remote::Client#service_name =
@@ -182,7 +180,6 @@ module Datadog
         # independent, so a lower-priority config can supply a field the
         # higher-priority one omits.
         #
-        # @param configs_most_specific_first [Array[Hash[String, untyped]]] configs, most-specific first
         # @return [Hash[String, untyped]] the merged lib_config
         def merge_lib_configs(configs_most_specific_first)
           merged = {}
@@ -203,9 +200,7 @@ module Datadog
         # enablement from "dynamic_instrumentation_enabled", and reports the
         # configuration change to telemetry.
         #
-        # @param lib_config [Hash[String, untyped]] the lib_config to apply
         # @param repository [Core::Remote::Configuration::Repository, nil] forwarded to DI enablement
-        # @return [nil]
         def apply_lib_config(lib_config, repository)
           env_vars = Datadog::Tracing::Configuration::Dynamic::OPTIONS.map do |name, env_var, option|
             value = lib_config[name]

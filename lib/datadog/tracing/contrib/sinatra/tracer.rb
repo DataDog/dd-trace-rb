@@ -21,7 +21,6 @@ module Datadog
             app.use TracerMiddleware, app_instance: app
           end
 
-          # Method overrides for Sinatra::Base
           module Base
             def render(engine, data, *)
               return super unless Tracing.enabled?

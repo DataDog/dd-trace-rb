@@ -3,7 +3,6 @@
 module Datadog
   module Tracing
     module Contrib
-      # Defines registerable behavior for integrations
       module Registerable
         def self.included(base)
           base.extend(ClassMethods)
@@ -46,7 +45,6 @@ module Datadog
           end
         end
 
-        # Instance methods for registerable behavior
         module InstanceMethods
           attr_reader \
             :name

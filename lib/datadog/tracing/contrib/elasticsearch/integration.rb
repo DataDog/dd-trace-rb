@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Elasticsearch
-        # Description of Elasticsearch integration
         class Integration
           include Contrib::Integration
 

@@ -11,13 +11,11 @@ module Datadog
   module Tracing
     module Contrib
       module RestClient
-        # RestClient RequestPatch
         module RequestPatch
           def self.included(base)
             base.prepend(InstanceMethods)
           end
 
-          # InstanceMethods - implementing instrumentation
           module InstanceMethods
             def execute(&block)
               uri = URI.parse(url)
@@ -54,7 +52,6 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, uri.host)
 
-              # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, uri.path)

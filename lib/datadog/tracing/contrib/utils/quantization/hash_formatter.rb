@@ -5,7 +5,6 @@ module Datadog
     module Contrib
       module Utils
         module Quantization
-          # Quantization for Hash
           module HashFormatter
             PLACEHOLDER = "?"
             EXCLUDE_KEYS = [].freeze
@@ -58,7 +57,6 @@ module Datadog
               when ::Hash
                 format_hash(value, options)
               when Array
-                # If any are objects, format them.
                 format_array(value, options)
               else
                 options[:placeholder]

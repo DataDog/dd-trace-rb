@@ -17,7 +17,6 @@ module Datadog
             base.prepend(InstanceMethods)
           end
 
-          # Trilogy patch instance methods
           module InstanceMethods
             def query(sql)
               service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
@@ -42,7 +41,6 @@ module Datadog
 
                 span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, connection_options[:host])
 
-                # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
                 span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, connection_options[:database])

@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Roda
-        # Instrumentation for Roda
         module Instrumentation
           def _roda_handle_main_route
             instrument(Ext::SPAN_REQUEST) { super }

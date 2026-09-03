@@ -4,7 +4,6 @@ module Datadog
   module Tracing
     module Contrib
       module Dalli
-        # Dalli integration constants
         # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
         module Ext
           # DEV: Even though this is the dalli integration, all spans are named `memcached.*`.

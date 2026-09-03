@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Racecar
-        # Description of Racecar integration
         class Integration
           include Contrib::Integration
 

@@ -7,9 +7,7 @@ require_relative "../patcher"
 module Datadog
   module Tracing
     module Contrib
-      # Datadog Httprb integration.
       module Httprb
-        # Patcher enables patching of 'httprb' module.
         module Patcher
           include Contrib::Patcher
 

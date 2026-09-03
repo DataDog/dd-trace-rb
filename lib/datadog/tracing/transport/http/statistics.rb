@@ -13,7 +13,6 @@ module Datadog
             base.include(InstanceMethods)
           end
 
-          # Instance methods for HTTP statistics
           module InstanceMethods
             # Decorate metrics for HTTP responses
             def metrics_for_response(response)

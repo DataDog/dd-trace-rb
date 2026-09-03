@@ -6,7 +6,6 @@ module Datadog
   module Tracing
     module Contrib
       module Sidekiq
-        # Patcher enables patching of 'sidekiq' module.
         module Patcher
           include Contrib::Patcher
 

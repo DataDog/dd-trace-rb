@@ -3,7 +3,6 @@
 module Datadog
   module Tracing
     module Contrib
-      # Parsing status range from environment variable
       class StatusRangeEnvParser
         class << self
           def call(value)

@@ -9,7 +9,6 @@ module Datadog
   module Tracing
     module Contrib
       module Httpclient
-        # Description of Httpclient integration
         class Integration
           include Contrib::Integration
 

@@ -47,9 +47,7 @@ module Datadog
 
           attr_reader :logger
 
-          # @param agent_settings [Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings]
           #   Agent connection settings (provides +#url+).
-          # @param logger [Logger]
           def initialize(agent_settings:, logger:)
             unless Native.supported?
               raise "Native transport is not supported: #{UNSUPPORTED_REASON}"
@@ -260,7 +258,6 @@ module Datadog
           # Each trace is a {Datadog::Tracing::TraceSegment} whose +#spans+
           # returns an +Array+ of {Datadog::Tracing::Span}.
           #
-          # @param traces [Array<Datadog::Tracing::TraceSegment>]
           # @return [Array<Response>] one response per batch sent
           def send_traces(traces)
             return [] if traces.empty?
@@ -290,7 +287,6 @@ module Datadog
               exporter._native_send_traces(chunks)
             end
 
-            # Update statistics from the response
             responses.each { |response| update_stats_from_response!(response) }
 
             responses

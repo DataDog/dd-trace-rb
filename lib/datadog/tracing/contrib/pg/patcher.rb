@@ -7,7 +7,6 @@ module Datadog
   module Tracing
     module Contrib
       module Pg
-        # Patcher enables patching of 'pg' module.
         module Patcher
           include Contrib::Patcher
 

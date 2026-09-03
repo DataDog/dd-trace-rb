@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Sequel
-        # Description of Sequel integration
         class Integration
           include Contrib::Integration
 

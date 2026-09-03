@@ -2,14 +2,12 @@
 
 module Datadog
   module Tracing
-    # Event behavior and DSL
     module Events
       def self.included(base)
         base.extend(ClassMethods)
         base.include(InstanceMethods)
       end
 
-      # Class methods
       module ClassMethods
         def build(**event_handlers)
           events = new
@@ -18,7 +16,6 @@ module Datadog
         end
       end
 
-      # Instance methods
       module InstanceMethods
         def subscribe(**event_handlers)
           return unless event_handlers

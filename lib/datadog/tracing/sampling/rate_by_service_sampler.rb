@@ -5,7 +5,6 @@ require_relative "rate_by_key_sampler"
 module Datadog
   module Tracing
     module Sampling
-      # {Datadog::Tracing::Sampling::RateByServiceSampler} samples different services at different rates
       class RateByServiceSampler < RateByKeySampler
         DEFAULT_KEY = "service:,env:"
 
@@ -24,10 +23,8 @@ module Datadog
           # Remove any old services
           delete_if { |key, _| key != DEFAULT_KEY && !rate_by_service.key?(key) }
 
-          # Update each service rate
           update_all(rate_by_service, decision: decision)
 
-          # Emit metric for service cache size
           Datadog.health_metrics.sampling_service_cache_length(length)
         end
 

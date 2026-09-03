@@ -7,7 +7,6 @@ module Datadog
   module Tracing
     # Out-of-the-box instrumentation for tracing
     module Contrib
-      # Auto-activate instrumentation
       def self.auto_instrument!
         require_relative "../../core/contrib/rails/utils"
 
@@ -39,7 +38,6 @@ module Datadog
             # Ignore any instrumentation load errors (otherwise it might spam logs)
             c.tracing.ignore_integration_load_errors = true
 
-            # Activate instrumentation for each integration
             integrations.each do |integration_name|
               c.tracing.instrument integration_name
             end

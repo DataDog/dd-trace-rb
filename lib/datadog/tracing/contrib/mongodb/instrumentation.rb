@@ -8,15 +8,12 @@ module Datadog
   module Tracing
     module Contrib
       module MongoDB
-        # Instrumentation for Mongo integration
         module Instrumentation
-          # Instrumentation for Mongo::Client
           module Client
             def self.included(base)
               base.include(InstanceMethods)
             end
 
-            # Instance methods for Mongo::Client
             module InstanceMethods
               def datadog_pin
                 # safe-navigation to avoid crashes during each query

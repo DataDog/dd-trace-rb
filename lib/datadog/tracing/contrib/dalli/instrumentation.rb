@@ -16,7 +16,6 @@ module Datadog
             base.prepend(InstanceMethods)
           end
 
-          # InstanceMethods - implementing instrumentation
           module InstanceMethods
             def request(op, *args)
               Tracing.trace(Ext::SPAN_COMMAND) do |span|

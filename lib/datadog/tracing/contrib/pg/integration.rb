@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Pg
-        # Description of pg integration
         class Integration
           include Contrib::Integration
 

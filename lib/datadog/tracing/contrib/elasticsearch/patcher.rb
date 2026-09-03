@@ -11,7 +11,6 @@ module Datadog
   module Tracing
     module Contrib
       module Elasticsearch
-        # Patcher enables patching of 'elasticsearch' module.
         module Patcher
           include Contrib::Patcher
 

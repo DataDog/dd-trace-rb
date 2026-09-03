@@ -8,7 +8,6 @@ module Datadog
     module Contrib
       module Aws
         module Service
-          # EventBridge tag handlers.
           class EventBridge < Base
             def add_tags(span, params)
               rule_name = params[:name] || params[:rule]

@@ -326,7 +326,6 @@ module Datadog
         @trace_completed ||= TraceCompleted.new
       end
 
-      # Triggered whenever a trace is completed
       class TraceCompleted < Tracing::Event
         def initialize
           super(:trace_completed)
@@ -522,7 +521,6 @@ module Datadog
           # Use provided tags or default tags if none.
           tags || @tags.dup
         end
-        # Remove version tag if service is not the default service
         if merged_tags.key?(Core::Environment::Ext::TAG_VERSION) && service && service != @default_service
           merged_tags.delete(Core::Environment::Ext::TAG_VERSION)
         end
@@ -531,7 +529,6 @@ module Datadog
 
       # Manually activate and deactivate the trace, when the span completes.
       def manual_trace_activation!(context, trace)
-        # Get the original trace to restore
         original_trace = context.active_trace
 
         # Setup the deactivation callback

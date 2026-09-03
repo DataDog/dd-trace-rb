@@ -76,7 +76,6 @@ module Datadog
         @status = 0
         # stores array of span links
         @links = links || []
-        # stores array of span events
         @span_events = span_events || []
 
         # start_time and end_time track wall clock. In Ruby, wall clock
@@ -91,7 +90,6 @@ module Datadog
         @duration_start = nil
         @duration_end = nil
 
-        # Set tags if provided.
         set_tags(tags) if tags
 
         # Some other SpanOperation-specific behavior
@@ -101,13 +99,11 @@ module Datadog
         if on_error.nil?
           # Nothing, default error handler is already set up.
         elsif on_error.is_a?(Proc)
-          # Subscribe :on_error event
           @events.on_error.wrap_default(&on_error)
         else
           logger.warn("on_error argument to SpanOperation ignored because is not a Proc: #{on_error}")
         end
 
-        # Start the span with start time, if given.
         start(start_time) if start_time
       end
 
@@ -180,7 +176,6 @@ module Datadog
           # but this is not really a serious concern.
           stop(exception: e)
 
-          # Trigger the on_error event
           events.on_error.publish(self, e)
 
           # We must finish the span to trigger callbacks,
@@ -205,10 +200,8 @@ module Datadog
         # Span can only be started once
         return self if started?
 
-        # Trigger before_start event
         events.before_start.publish(self)
 
-        # Start the span
         @start_time = start_time || Core::Utils::Time.now.utc
         @duration_start = start_time.nil? ? duration_marker : nil
 
@@ -233,18 +226,15 @@ module Datadog
         @end_time = stop_time || now
         @duration_end = stop_time.nil? ? duration_marker : nil
 
-        # Trigger after_stop event
         events.after_stop.publish(self, exception)
 
         self
       end
 
-      # Return whether the duration is started or not
       def started?
         !@start_time.nil?
       end
 
-      # Return whether the duration is stopped or not.
       def stopped?
         !@end_time.nil?
       end
@@ -264,10 +254,8 @@ module Datadog
       end
 
       def finish(end_time = nil)
-        # Returned memoized span if already finished
         return span if finished?
 
-        # Stop timing
         stop(end_time)
 
         # Allow subscribers to enrich the span before it is finalized.
@@ -277,7 +265,6 @@ module Datadog
         # Memoize for performance reasons
         @span = build_span
 
-        # Trigger after_finish event
         events.after_finish.publish(span, self)
 
         span

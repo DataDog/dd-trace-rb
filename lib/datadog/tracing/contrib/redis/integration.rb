@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Redis
-        # Description of Redis integration
         class Integration
           include Contrib::Integration
 

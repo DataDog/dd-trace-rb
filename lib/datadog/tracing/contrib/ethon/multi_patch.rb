@@ -8,14 +8,12 @@ module Datadog
   module Tracing
     module Contrib
       module Ethon
-        # Ethon MultiPatch
         module MultiPatch
           def self.included(base)
             # No need to prepend here since add method is included into Multi class
             base.include(InstanceMethods)
           end
 
-          # InstanceMethods - implementing instrumentation
           module InstanceMethods
             def add(easy)
               handles = super
@@ -70,7 +68,6 @@ module Datadog
 
               @datadog_multi_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
-              # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(@datadog_multi_span, analytics_sample_rate) if analytics_enabled?
 
               @datadog_multi_span

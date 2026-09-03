@@ -14,7 +14,6 @@ module Datadog
             def resolve(value)
               return if configurations.empty?
 
-              # Try to find a matching pattern
               _, config = configurations.reverse_each.find do |matcher, _|
                 matcher === if matcher.is_a?(Proc)
                   value

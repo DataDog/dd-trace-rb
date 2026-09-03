@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Presto
-        # Description of Presto integration
         class Integration
           include Contrib::Integration
 

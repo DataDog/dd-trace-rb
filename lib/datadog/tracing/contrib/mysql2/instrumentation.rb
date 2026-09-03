@@ -45,7 +45,6 @@ module Datadog
 
                 set_span_tags(span, query_options)
 
-                # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
                 Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)

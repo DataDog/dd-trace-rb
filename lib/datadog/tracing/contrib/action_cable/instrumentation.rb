@@ -23,7 +23,6 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ON_OPEN)
 
-                # Set the resource name of the trace
                 trace.resource = span.resource
 
                 super

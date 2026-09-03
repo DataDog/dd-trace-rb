@@ -5,9 +5,7 @@ require_relative "ext"
 module Datadog
   module Tracing
     module Diagnostics
-      # Health-related diagnostics
       module Health
-        # Health metrics for diagnostics
         module Metrics
           def self.extended(base)
             base.class_eval do

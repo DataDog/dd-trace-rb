@@ -61,7 +61,6 @@ module Datadog
         end
 
         # @public_api
-        # Tags related to distributed tracing
         module Distributed
           # What mechanism was used to make this trace's sampling decision.
           # @see Datadog::Tracing::Sampling::Ext::Mechanism
@@ -123,7 +122,6 @@ module Datadog
           TAG_CLIENT_IP = "http.client_ip"
           HEADER_USER_AGENT = "User-Agent"
 
-          # General header functionality
           module Headers
             module_function
 
@@ -157,7 +155,6 @@ module Datadog
             end
           end
 
-          # Request headers
           module RequestHeaders
             PREFIX = "http.request.headers"
 
@@ -168,7 +165,6 @@ module Datadog
             end
           end
 
-          # Response headers
           module ResponseHeaders
             PREFIX = "http.response.headers"
 

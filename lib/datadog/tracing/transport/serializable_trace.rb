@@ -91,7 +91,6 @@ module Datadog
               packer.write("span_events")
               packer.write(span.events.map(&:to_native_format))
             else
-              # Serialize span events as meta tags
               span.set_tag("events", span.events.map(&:to_hash).to_json)
             end
           end

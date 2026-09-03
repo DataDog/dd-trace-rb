@@ -29,7 +29,6 @@ module Datadog
           settings_class.include(Configuration::Settings)
         end
 
-        # Helper methods for Datadog module.
         module Helpers
           # The global integration registry.
           #
@@ -54,7 +53,6 @@ module Datadog
           end
         end
 
-        # Configuration methods for Datadog module.
         module Configuration
           # TODO: Is is not possible to separate this configuration method
           # TODO: from core datadog parts ()e.g. the registry).
@@ -62,7 +60,6 @@ module Datadog
           # TODO: but cannot empirically constraints to the contrib domain only.
           # TODO: We should promote most of this logic to core parts of datadog.
           def configure(&block)
-            # Reconfigure core settings
             super
 
             # Activate integrations
@@ -144,7 +141,6 @@ module Datadog
                     o.default false
                   end
 
-                  # Global service name behavior
                   settings :global_default_service_name do
                     # Overrides default service name to global service name
                     #

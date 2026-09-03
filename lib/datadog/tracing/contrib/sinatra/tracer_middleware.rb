@@ -81,7 +81,6 @@ module Datadog
                 end
               end
 
-              # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
               # Measure service stats

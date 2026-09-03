@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Rake
-        # Patcher enables patching of 'rake' module.
         module Patcher
           include Contrib::Patcher
 
@@ -19,7 +18,6 @@ module Datadog
           end
 
           def patch
-            # Add instrumentation patch to Rake task
             ::Rake::Task.include(Instrumentation)
           end
 

@@ -12,7 +12,6 @@ module Datadog
   module Tracing
     module Contrib
       module Rails
-        # Patcher enables patching of 'rails' module.
         module Patcher
           include Contrib::Patcher
 
@@ -78,7 +77,6 @@ module Datadog
             end
           end
 
-          # Configure Rails tracing with settings
           def setup_tracer
             Contrib::Rails::Framework.setup
           end

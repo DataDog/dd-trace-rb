@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Racecar
-        # Patcher enables patching of 'racecar' module.
         module Patcher
           include Contrib::Patcher
 
@@ -19,7 +18,6 @@ module Datadog
           end
 
           def patch
-            # Subscribe to Racecar events
             Events.subscribe!
           end
         end

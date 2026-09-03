@@ -118,7 +118,6 @@ module Datadog
         @trace_state = trace_state || Distributed::TraceState.new
         @baggage = baggage
 
-        # Generic tags
         set_tags(tags) if tags
         set_tags(metrics) if metrics
 
@@ -256,7 +255,6 @@ module Datadog
             TraceOperation.new(logger: logger))
         end
 
-        # Create new span
         span_op = build_span(
           op_name,
           events: events,
@@ -295,10 +293,8 @@ module Datadog
         # Necessary when this trace continues from another, e.g. distributed trace.
         parent_id = parent ? parent.id : @parent_span_id || 0
 
-        # Build events
         span_events = events || SpanOperation::Events.new(logger: logger)
 
-        # Before start: activate the span, publish events.
         span_events.before_start.subscribe do |span_op|
           start_span(span_op)
         end
@@ -313,7 +309,6 @@ module Datadog
           finish_span(span, span_op, parent)
         end
 
-        # Build a new span operation
         SpanOperation.new(
           op_name,
           logger: logger,
@@ -332,7 +327,6 @@ module Datadog
       rescue => e
         logger.debug { "Failed to build new span: #{e.class}: #{e.message}" }
 
-        # Return dummy span
         SpanOperation.new(op_name, logger: logger)
       end
 
@@ -351,7 +345,6 @@ module Datadog
 
         spans = yield(spans) if block_given?
 
-        # Use them to build a trace
         build_trace(spans, !finished)
       end
 
@@ -384,7 +377,6 @@ module Datadog
       # DEV-3.0: Sampling is a side effect of generating the digest.
       # We should move the sample call to inject and right before moving to new contexts(threads, forking etc.)
       def to_digest
-        # Resolve current span ID
         span_id = @active_span&.id
         span_id ||= @parent_span_id unless finished?
         # sample the trace_operation with the tracer
@@ -427,7 +419,6 @@ module Datadog
       end
 
       def to_correlation
-        # Resolve current span ID
         span_id = @active_span&.id
         span_id ||= @parent_span_id unless finished?
 
@@ -493,7 +484,6 @@ module Datadog
           end
         end
 
-        # Triggered before a span starts.
         class SpanBeforeStart < Tracing::Event
           def initialize
             super(:span_before_start)
@@ -567,17 +557,14 @@ module Datadog
       def start_span(span_op)
         activate_span!(span_op)
 
-        # Update active span count
         @active_span_count += 1
 
-        # Publish :span_before_start event
         events.span_before_start.publish(span_op, self)
       rescue => e
         logger.debug { "Error starting span on trace: #{e.class}: #{e.message} Backtrace: #{e.backtrace.first(3)}" }
       end
 
       def before_finish_span(span_op)
-        # Publish :span_before_finish event
         events.span_before_finish.publish(span_op, self)
       rescue => e
         logger.debug { "Error in before_finish_span on trace: #{e.class}: #{e.message} Backtrace: #{e.backtrace.first(3)}" }
@@ -600,13 +587,10 @@ module Datadog
         # context management is enabled.
         @finished = true if span_op == root_span && @auto_finish
 
-        # Update active span count
         @active_span_count -= 1
 
-        # Publish :span_finished event
         events.span_finished.publish(span, self)
 
-        # Publish :trace_finished event
         events.trace_finished.publish(self) if finished?
       rescue => e
         logger.debug { "Error finishing span on trace: #{e.class}: #{e.message} Backtrace: #{e.backtrace.first(3)}" }

@@ -7,7 +7,6 @@ module Datadog
     module Distributed
       # Common fetcher that retrieves fields from a Hash data input
       class Fetcher
-        # @param data [Hash]
         def initialize(data)
           @data = data
         end

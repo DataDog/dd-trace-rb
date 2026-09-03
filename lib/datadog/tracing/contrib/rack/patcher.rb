@@ -15,7 +15,6 @@ module Datadog
           end
 
           def patch
-            # Patch middleware
             require_relative "middlewares"
           end
         end
@@ -86,7 +85,6 @@ module Datadog
           def patch
             MiddlewarePatcher.patch unless MiddlewarePatcher.patched?
 
-            # Patch middleware names
             if !MiddlewareNamePatcher.patched? && get_option(:middleware_names)
               if get_option(:application)
                 MiddlewareNamePatcher.patch

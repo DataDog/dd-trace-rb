@@ -6,7 +6,6 @@ module Datadog
   module Tracing
     module Contrib
       module Shoryuken
-        # Patcher enables patching of 'shoryuken' module.
         module Patcher
           include Contrib::Patcher
 

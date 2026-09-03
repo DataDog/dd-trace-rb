@@ -4,7 +4,6 @@ module Datadog
   module Tracing
     module Contrib
       module Roda
-        # Roda integration constants
         module Ext
           APP = "roda"
           TAG_COMPONENT = "roda"

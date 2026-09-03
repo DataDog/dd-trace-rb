@@ -4,7 +4,6 @@ module Datadog
   module Tracing
     module Contrib
       module Grape
-        # Instrumentation for Grape::Endpoint
         module Instrumentation
           # GenerateApiMethodPatch - class method instrumentation for endpoint render (Grape < 3.0.0)
           module GenerateApiMethodPatch

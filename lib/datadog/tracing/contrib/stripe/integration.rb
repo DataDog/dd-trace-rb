@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Stripe
-        # Description of Stripe integration
         class Integration
           include Contrib::Integration
 

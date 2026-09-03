@@ -20,7 +20,6 @@ module Datadog
                 @hash.each do |key, value|
                   next if value.nil?
 
-                  # Url encode
                   value = ERB::Util.url_encode(value)
 
                   # Escape SQL

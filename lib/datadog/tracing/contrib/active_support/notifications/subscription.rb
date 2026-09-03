@@ -77,13 +77,11 @@ module Datadog
               :callbacks
 
             def start_span(name, id, payload, start = nil)
-              # Run callbacks
               callbacks.run(name, :before_trace, id, payload, start)
 
               # Start a trace
               span = Tracing.trace(@span_name, **@span_options)
 
-              # Start span if time is provided
               span.start(start) unless start.nil?
               payload[:datadog_span] = span
 
@@ -94,16 +92,13 @@ module Datadog
 
             def finish_span(name, id, payload, finish = nil)
               payload[:datadog_span].tap do |span|
-                # If no active span, return.
                 return nil if span.nil?
 
                 # Run handler for event
                 on_finish.run(span, name, id, payload)
 
-                # Finish the span
                 span.finish(finish)
 
-                # Run callbacks
                 callbacks.run(name, :after_trace, span, id, payload, finish)
               end
             end
@@ -113,7 +108,6 @@ module Datadog
               @subscribers ||= {}
             end
 
-            # Wrapper for subscription handler
             class Handler
               attr_reader :block
 
@@ -130,7 +124,6 @@ module Datadog
               end
             end
 
-            # Wrapper for subscription callbacks
             class Callbacks
               attr_reader :blocks
 

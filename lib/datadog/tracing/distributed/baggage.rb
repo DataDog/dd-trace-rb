@@ -74,7 +74,6 @@ module Datadog
 
             data[@baggage_key] = encoded_items.join(",")
 
-            # Record telemetry for successful injection
             record_telemetry_metric("context_header_style.injected", 1, {"header_style" => "baggage"})
           rescue => e
             ::Datadog.logger.warn("Failed to encode and inject baggage header: #{e.class}: #{e.message}")
@@ -106,7 +105,6 @@ module Datadog
         private
 
         def encode_item(item, safe_characters)
-          # Strip whitespace and URL-encode the item
           result = URI.encode_www_form_component(item.strip)
           # Replace '+' with '%20' for space encoding consistency with W3C spec
           result = result.gsub("+", "%20")
@@ -118,7 +116,6 @@ module Datadog
 
               # Convert hex representation back to character
               char = [hex_str.hex].pack("C")
-              # Keep the character as-is if it's in the safe character set, otherwise keep it encoded
               safe_characters.include?(char) ? char : encoded
             else
               encoded
@@ -186,7 +183,6 @@ module Datadog
             key, value = key_value.split("=", 2)
             # If baggage is malformed, return an empty hash
             if key.nil? || value.nil?
-              # Record telemetry for malformed header
               record_telemetry_metric("context_header_style.malformed", 1, {"header_style" => "baggage"})
               return {}
             end
@@ -203,7 +199,6 @@ module Datadog
             end
 
             if key.empty? || value.empty?
-              # Record telemetry for malformed header
               record_telemetry_metric("context_header_style.malformed", 1, {"header_style" => "baggage"})
               return {}
             end
@@ -224,7 +219,6 @@ module Datadog
           baggage_tag_keys = @baggage_tag_keys
           return {} if baggage_tag_keys.empty?
 
-          # If wildcard is specified, use all baggage keys
           baggage_tag_keys = baggage if baggage_tag_keys == BAGGAGE_TAG_KEYS_MATCH_ALL
 
           tags = {}
@@ -239,7 +233,6 @@ module Datadog
           tags
         end
 
-        # Record telemetry metrics for baggage operations
         def record_telemetry_metric(metric_name, value, tags)
           telemetry = ::Datadog.send(:components).telemetry
           telemetry.inc(Tracing::Ext::TELEMETRY_METRICS_NAMESPACE, metric_name, value, tags: tags)

@@ -8,7 +8,6 @@ module Datadog
     module Contrib
       module Aws
         module Service
-          # States tag handlers.
           class States < Base
             def add_tags(span, params)
               state_machine_name = params[:name]

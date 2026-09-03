@@ -8,7 +8,6 @@ module Datadog
     module Contrib
       module ActiveSupport
         module Cache
-          # Support for Redis with ActiveSupport
           module Redis
             # Patching behavior for Redis with ActiveSupport
             module Patcher
@@ -50,7 +49,6 @@ module Datadog
               end
             end
 
-            # Decorate Cache patcher with Redis support
             Cache::Patcher.singleton_class.prepend(Redis::Patcher)
           end
         end

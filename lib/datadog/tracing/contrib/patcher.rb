@@ -39,7 +39,6 @@ module Datadog
 
             patch_only_once.run do
               super.tap do
-                # Emit a metric
                 Datadog.health_metrics.instrumentation_patched(1, tags: default_tags)
                 @patch_successful = true
               end

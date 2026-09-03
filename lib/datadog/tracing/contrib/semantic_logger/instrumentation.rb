@@ -4,13 +4,11 @@ module Datadog
   module Tracing
     module Contrib
       module SemanticLogger
-        # Instrumentation for SemanticLogger
         module Instrumentation
           def self.included(base)
             base.prepend(InstanceMethods)
           end
 
-          # Instance methods for configuration
           module InstanceMethods
             def log(log, message = nil, progname = nil, &block)
               return super unless Datadog.configuration.tracing.log_injection

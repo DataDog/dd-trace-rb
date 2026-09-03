@@ -18,7 +18,6 @@ module Datadog
           def on_response(response)
             super
 
-            # Update statistics
             update_stats_from_response!(response)
           end
 
@@ -35,7 +34,6 @@ module Datadog
               logger.error(message)
             end
 
-            # Update statistics
             update_stats_from_exception!(exception)
           end
         end

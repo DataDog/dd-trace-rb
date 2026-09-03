@@ -64,7 +64,6 @@ module Datadog
           end
         end
 
-        # Start the timer execution.
         def start
           @mutex.synchronize do
             return if @run

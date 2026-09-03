@@ -123,7 +123,6 @@ module Datadog
             true
           end
         when Float
-          # Has to be finite
           return true if value.finite?
 
           Datadog.logger.warn("Attribute #{key} must be a finite number: #{value}.")

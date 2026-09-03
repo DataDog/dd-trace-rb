@@ -17,7 +17,6 @@ module Datadog
         # extracted by the query_builder
         PLACEHOLDER = "?"
 
-        # returns a formatted and normalized query
         def query_builder(command_name, database_name, command)
           # always exclude the command name
           options = Contrib::Utils::Quantization::HashFormatter.merge_options(quantization_options, exclude: [command_name.to_s])

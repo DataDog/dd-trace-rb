@@ -7,7 +7,6 @@ module Datadog
   module Tracing
     module Contrib
       module Sneakers
-        # Patcher enables patching of 'sneakers' module.
         module Patcher
           include Contrib::Patcher
 

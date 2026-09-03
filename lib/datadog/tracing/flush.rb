@@ -19,7 +19,6 @@ module Datadog
         # removed from +trace_op+ as a side effect. Unfinished spans are
         # unaffected.
         #
-        # @param [TraceOperation] trace_op
         # @return [TraceSegment] trace to be flushed, or +nil+ if the trace is not finished
         def consume!(trace_op)
           return unless flush?(trace_op)
@@ -36,7 +35,6 @@ module Datadog
         protected
 
         # Consumes all finished spans from trace.
-        # @return [TraceSegment]
         def get_trace(trace_op)
           trace_op.flush! do |spans|
             spans.select! { |span| single_sampled?(span) } unless trace_op.sampled?

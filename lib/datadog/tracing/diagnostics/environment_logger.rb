@@ -51,7 +51,6 @@ module Datadog
             }
           end
 
-          # @return [Boolean, nil]
           def enabled
             !!Datadog.configuration.tracing.enabled
           end
@@ -122,7 +121,6 @@ module Datadog
           # Concatenated list of integrations activated, with their gem version.
           # Example: "rails@6.0.3,rack@2.2.3"
           #
-          # @return [String, nil]
           def integrations_loaded
             integrations = instrumented_integrations
             return if integrations.empty?

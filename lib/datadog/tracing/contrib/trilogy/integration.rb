@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Trilogy
-        # Description of Trilogy integration
         class Integration
           include Contrib::Integration
 

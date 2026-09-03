@@ -56,8 +56,6 @@ module Datadog
         # DEV-2.0: touch the active span.
         # DEV-3.0: Sample trace here instead of when generating digest.
         #
-        # @param digest [TraceDigest]
-        # @param data [Hash]
         # @return [Boolean] `true` if injected successfully, `false` if no propagation style is configured
         # @return [nil] in case of unrecoverable errors, see `Datadog.logger` output for details.
         def inject!(digest, data)
@@ -74,7 +72,6 @@ module Datadog
 
           result = false
 
-          # Inject all configured propagation styles
           @propagation_style_inject.each do |propagator|
             propagator.inject!(digest, data)
             result = true
@@ -97,7 +94,6 @@ module Datadog
         #
         # This method will never raise errors, but instead log them to `Datadog.logger`.
         #
-        # @param data [Hash]
         def extract(data)
           return unless data
           return if data.empty?
@@ -112,7 +108,6 @@ module Datadog
           extracted_style_name = nil
 
           @propagation_style_extract.each do |propagator|
-            # First extraction?
             unless extracted_trace_digest
               extracted_trace_digest = propagator.extract(data)
               extracted_style_name = @propagation_styles.key(propagator) if extracted_trace_digest
@@ -198,7 +193,6 @@ module Datadog
               extracted_trace_digest
             end
           else
-            # Baggage is the only style
             @baggage_propagator.extract(data)
           end
         end

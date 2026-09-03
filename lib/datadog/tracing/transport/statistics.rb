@@ -6,7 +6,6 @@ require_relative "../../core/diagnostics/health"
 module Datadog
   module Tracing
     module Transport
-      # Tracks statistics for transports
       module Statistics
         def stats
           @stats ||= Counts.new
@@ -23,7 +22,6 @@ module Datadog
             stats.consecutive_errors += 1
           end
 
-          # Send health metrics
           Datadog.health_metrics.send_metrics(
             metrics_for_response(response).values
           )
@@ -40,7 +38,6 @@ module Datadog
           stats.internal_error += 1
           stats.consecutive_errors += 1
 
-          # Send health metrics
           Datadog.health_metrics.send_metrics(
             metrics_for_exception(exception).values
           )
@@ -50,7 +47,6 @@ module Datadog
           {api_errors: Core::Metrics::Metric.new(:api_errors, nil, 1)}
         end
 
-        # Stat counts
         class Counts
           attr_accessor \
             :success,

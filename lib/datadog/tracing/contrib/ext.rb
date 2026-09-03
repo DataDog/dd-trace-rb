@@ -5,7 +5,6 @@ require_relative "../metadata/ext"
 module Datadog
   module Tracing
     module Contrib
-      # Contrib specific constants
       module Ext
         # @public_api
         module DB

@@ -7,7 +7,6 @@ require_relative "instrumentation"
 module Datadog
   module Tracing
     module Contrib
-      # Datadog Net/HTTP integration.
       module HTTP
         # Patcher enables patching of 'net/http' module.
         module Patcher
@@ -19,7 +18,6 @@ module Datadog
             Integration.version
           end
 
-          # patch applies our patch if needed
           def patch
             ::Net::HTTP.include(Instrumentation)
           end

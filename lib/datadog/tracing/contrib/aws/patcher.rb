@@ -7,7 +7,6 @@ module Datadog
   module Tracing
     module Contrib
       module Aws
-        # Patcher enables patching of 'aws' module.
         module Patcher
           include Contrib::Patcher
 

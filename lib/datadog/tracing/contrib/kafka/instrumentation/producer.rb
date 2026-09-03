@@ -5,7 +5,6 @@ module Datadog
     module Contrib
       module Kafka
         module Instrumentation
-          # Instrumentation for Kafka::Producer
           module Producer
             def self.prepended(base)
               base.prepend(InstanceMethods)

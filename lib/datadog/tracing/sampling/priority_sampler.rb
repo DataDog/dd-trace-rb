@@ -8,7 +8,6 @@ require_relative "rate_by_service_sampler"
 module Datadog
   module Tracing
     module Sampling
-      # {Datadog::Tracing::Sampling::PrioritySampler}
       class PrioritySampler
         # NOTE: We do not advise using a pre-sampler. It can save resources,
         # but pre-sampling at rates < 100% may result in partial traces, unless
@@ -47,7 +46,6 @@ module Datadog
             # Check if post sampler has already assigned a priority.
             return true if priority_assigned?(trace)
 
-            # If not, use agent priority values.
             priority = sample ? Sampling::Ext::Priority::AUTO_KEEP : Sampling::Ext::Priority::AUTO_REJECT
             assign_priority!(trace, priority)
           else

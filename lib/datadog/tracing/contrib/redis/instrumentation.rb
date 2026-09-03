@@ -17,7 +17,6 @@ module Datadog
             base.prepend(InstanceMethods)
           end
 
-          # InstanceMethods - implementing instrumentation
           module InstanceMethods
             def call(*args, &block)
               TraceMiddleware.call(self, args[0], service_name, command_args?) { super }

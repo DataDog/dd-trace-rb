@@ -9,7 +9,6 @@ module Datadog
   module Tracing
     module Contrib
       module Faraday
-        # Description of Faraday integration
         class Integration
           include Contrib::Integration
 

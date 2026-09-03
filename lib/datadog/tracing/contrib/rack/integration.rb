@@ -9,7 +9,6 @@ module Datadog
   module Tracing
     module Contrib
       module Rack
-        # Description of Rack integration
         class Integration
           include Contrib::Integration
 

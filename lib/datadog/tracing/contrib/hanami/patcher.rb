@@ -9,7 +9,6 @@ module Datadog
   module Tracing
     module Contrib
       module Hanami
-        # Patcher enables patching of Hanami
         module Patcher
           include Contrib::Patcher
 

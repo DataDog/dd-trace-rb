@@ -6,7 +6,6 @@ module Datadog
   module Tracing
     module Contrib
       module Ethon
-        # Patcher enables patching of 'ethon' module.
         module Patcher
           include Contrib::Patcher
 

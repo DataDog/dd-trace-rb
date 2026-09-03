@@ -8,7 +8,6 @@ module Datadog
   module Tracing
     module Contrib
       module Rake
-        # Description of Rake integration
         class Integration
           include Contrib::Integration
 

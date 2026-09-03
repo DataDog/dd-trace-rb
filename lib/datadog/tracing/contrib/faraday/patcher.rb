@@ -9,7 +9,6 @@ module Datadog
   module Tracing
     module Contrib
       module Faraday
-        # Patcher enables patching of 'faraday' module.
         module Patcher
           include Contrib::Patcher
 

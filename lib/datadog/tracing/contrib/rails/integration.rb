@@ -10,7 +10,6 @@ module Datadog
   module Tracing
     module Contrib
       module Rails
-        # Description of Rails integration
         class Integration
           include Contrib::Integration
 
