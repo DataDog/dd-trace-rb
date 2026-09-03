@@ -946,7 +946,6 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
     end
 
-    # Stubbed config files.
     context "with local config file" do
       let(:env) { "TEST" }
       let(:setter) { proc { |value| value } }

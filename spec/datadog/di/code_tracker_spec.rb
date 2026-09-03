@@ -185,7 +185,6 @@ RSpec.describe Datadog::DI::CodeTracker do
         it "requests to install pending line probes" do
           expect(Datadog::DI).to receive(:current_component).and_return(component)
           expect(probe_manager).to receive(:install_pending_line_probes) do |path|
-            # Should be an absolute path
             expect(path).to start_with("/")
             expect(File.basename(path)).to eq("code_tracker_pending_require.rb")
           end
@@ -197,7 +196,6 @@ RSpec.describe Datadog::DI::CodeTracker do
         it "requests to install pending line probes" do
           expect(Datadog::DI).to receive(:current_component).and_return(component)
           expect(probe_manager).to receive(:install_pending_line_probes) do |path|
-            # Should be an absolute path
             expect(path).to start_with("/")
             expect(File.basename(path)).to eq("code_tracker_pending_load.rb")
           end

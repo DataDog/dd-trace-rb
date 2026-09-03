@@ -1665,7 +1665,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           # Unstub (so it only raises an error once)
           allow(Datadog::Tracing::SpanOperation).to receive(:new).and_call_original
 
-          # Trigger error
           raise error
         end
 
@@ -1951,7 +1950,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
                 expect(trace_op.resource).to eq("/articles/?")
                 expect(child_span.resource).to eq("Articles#show")
 
-                # Override the trace resource
                 trace_op.resource = child_span.resource
 
                 expect(trace_op.resource).to eq("Articles#show")
@@ -2078,7 +2076,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               # Do something
             end
 
-            # Partial flush
             flush!
           end
 
@@ -2110,7 +2107,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           expect(trace_op.finished?).to be true
           expect(trace_op.finished_span_count).to eq(1)
 
-          # Verify final flush
           final_flush = trace_op.flush!
           expect(final_flush.spans).to have(1).items
           expect(final_flush.spans.map(&:name)).to include("grandparent")
@@ -3067,11 +3063,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       it "is a well-formed trace" do
         expect { trace }.to_not raise_error
 
-        # Collect traces from threads
         all_thread_traces = []
         all_thread_traces << @thread_traces.pop until @thread_traces.empty?
 
-        # Collect spans from original trace + threads
         all_spans = (trace.spans + all_thread_traces.collect { |t| t.flush!.spans }).flatten
         expect(all_spans).to have(12).items
 

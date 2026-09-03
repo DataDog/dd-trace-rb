@@ -67,7 +67,6 @@ RSpec.describe Datadog::Tracing::Context do
           it do
             expect(context.active_trace).to be nil
 
-            # Activate finished trace
             context.activate!(trace) do
               expect(context.active_trace).to be nil
             end
@@ -82,7 +81,6 @@ RSpec.describe Datadog::Tracing::Context do
               context.activate!(original_trace)
               expect(context.active_trace).to be original_trace
 
-              # Activate unfinished trace
               context.activate!(trace) do
                 expect(context.active_trace).to be nil
               end
@@ -95,7 +93,6 @@ RSpec.describe Datadog::Tracing::Context do
                 context.activate!(original_trace)
                 expect(context.active_trace).to be original_trace
 
-                # Activate unfinished trace
                 context.activate!(trace) do
                   expect(context.active_trace).to be nil
                   allow(original_trace).to receive(:finished?).and_return(true)
@@ -145,7 +142,6 @@ RSpec.describe Datadog::Tracing::Context do
           it do
             expect(context.active_trace).to be nil
 
-            # Activate unfinished trace
             context.activate!(trace) do
               expect(context.active_trace).to be trace
             end
@@ -160,7 +156,6 @@ RSpec.describe Datadog::Tracing::Context do
               context.activate!(original_trace)
               expect(context.active_trace).to be original_trace
 
-              # Activate unfinished trace
               context.activate!(trace) do
                 expect(context.active_trace).to be trace
               end
@@ -173,7 +168,6 @@ RSpec.describe Datadog::Tracing::Context do
                 context.activate!(original_trace)
                 expect(context.active_trace).to be original_trace
 
-                # Activate unfinished trace
                 context.activate!(trace) do
                   expect(context.active_trace).to be trace
                   allow(original_trace).to receive(:finished?).and_return(true)

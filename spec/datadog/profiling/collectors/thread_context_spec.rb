@@ -2311,7 +2311,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         # All alive threads still in there
         expect(per_thread_context.keys).to include(Thread.main, t1, t2, t3)
 
-        # Get rid of t2
         t2.kill
         t2.join
 

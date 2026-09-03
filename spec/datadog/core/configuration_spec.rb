@@ -82,7 +82,6 @@ RSpec.describe Datadog::Core::Configuration do
             # Components should have changed
             new_components = test_class.send(:components)
 
-            # New components should startup
             expect(new_components)
               .to have_received(:startup!)
               .with(test_class.configuration)

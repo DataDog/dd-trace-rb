@@ -46,25 +46,21 @@ RSpec.describe Datadog::Tracing::SpanOperation do
     before do
       events = span_op.send(:events)
 
-      # after_finish
       allow(callback_spy).to receive(:after_finish)
       events.after_finish.subscribe do |*args|
         callback_spy.after_finish(*args)
       end
 
-      # after_stop
       allow(callback_spy).to receive(:after_stop)
       events.after_stop.subscribe do |*args|
         callback_spy.after_stop(*args)
       end
 
-      # before_finish
       allow(callback_spy).to receive(:before_finish)
       events.before_finish.subscribe do |*args|
         callback_spy.before_finish(*args)
       end
 
-      # before_start
       allow(callback_spy).to receive(:before_start)
       events.before_start.subscribe do |*args|
         callback_spy.before_start(*args)

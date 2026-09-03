@@ -143,7 +143,6 @@ RSpec.describe Datadog::Core::Telemetry::Component do
           component.inc("child-ns", "child-metric", 1)
           expect(component.worker.running?).to be false
 
-          # We expect only child namespace to be present.
           expect(component.metrics_manager.collections.keys).to eq(%w[child-ns])
 
           component.start(components: components)
@@ -159,7 +158,6 @@ RSpec.describe Datadog::Core::Telemetry::Component do
           expect(metrics_event.payload).to match(
             namespace: "child-ns",
             series: [
-              # Child only - no parent metric sent.
               metric: "child-metric",
               points: [[Integer, 1]],
               type: "count",

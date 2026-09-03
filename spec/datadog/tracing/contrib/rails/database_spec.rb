@@ -51,7 +51,6 @@ RSpec.describe "Rails database", execute_in_fork: Rails.version.to_i >= 8 do
       expect(adapter_host.to_s).to eq(span.get_tag("out.host"))
       expect(adapter_port).to eq(span.get_tag("out.port"))
       expect(span.resource).to include("SELECT COUNT(*) FROM")
-      # ensure that the sql.query tag is not set
       expect(span.get_tag("sql.query")).to be_nil
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
         .to eq("active_record")

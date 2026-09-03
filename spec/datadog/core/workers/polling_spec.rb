@@ -90,7 +90,6 @@ RSpec.describe Datadog::Core::Workers::Polling do
         # it may not always go through the same state sequence as the
         # original isssue.
         it "stops the worker" do
-          # Make sure the worker is not running.
           expect(worker.running?).to be false
           expect(worker.run_loop?).to be false
 

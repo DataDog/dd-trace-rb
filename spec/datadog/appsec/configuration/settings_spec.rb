@@ -1,6 +1,5 @@
 require "spec_helper"
 
-# Dummy Integration
 class FakeIntegration
   module Patcher
     module_function

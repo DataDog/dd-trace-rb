@@ -22,7 +22,6 @@ RSpec.describe "Karafka Data Streams Integration" do
       consumer_group: double(id: "test_group"))
 
     raw_messages = messages_data.map do |data|
-      # Create metadata double
       metadata = double("metadata")
       allow(metadata).to receive(:partition).and_return(data[:partition] || partition)
       allow(metadata).to receive(:offset).and_return(data[:offset] || 100)
@@ -30,7 +29,6 @@ RSpec.describe "Karafka Data Streams Integration" do
       allow(metadata).to receive(:raw_headers).and_return(data[:headers] || {})
       allow(metadata).to receive(:respond_to?).with(:raw_headers).and_return(true)
 
-      # Create message double
       msg = double("Karafka::Messages::Message")
       allow(msg).to receive(:topic).and_return(data[:topic] || topic_name)
       allow(msg).to receive(:partition).and_return(data[:partition] || partition)

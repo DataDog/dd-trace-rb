@@ -1107,7 +1107,6 @@ RSpec.describe Datadog::Tracing::Tracer do
               # Don't finish the span, so finished_span_count remains 0
             end
 
-            # No spans should be flushed
             expect(spans).to be_empty
           end
 

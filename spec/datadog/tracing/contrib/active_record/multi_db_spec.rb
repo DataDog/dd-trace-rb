@@ -205,7 +205,6 @@ RSpec.describe "ActiveRecord multi-database implementation" do
 
         it do
           count
-          # Gadget belongs to the default database
           expect(gadget_span.service).to eq(default_db_service_name)
           # Widget belongs to its own database
           expect(widget_span.service).to eq(widget_db_service_name)
@@ -244,7 +243,6 @@ RSpec.describe "ActiveRecord multi-database implementation" do
 
       it do
         count
-        # Gadget belongs to the default database
         expect(gadget_span.service).to eq(default_db_service_name)
         # Widget belongs to its own database
         expect(widget_span.service).to eq(widget_db_service_name)

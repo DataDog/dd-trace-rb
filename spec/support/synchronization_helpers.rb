@@ -22,7 +22,6 @@ module SynchronizationHelpers
     fork_stdout = Tempfile.new("datadog-rspec-expect-in-fork-stdout")
     fork_stderr = Tempfile.new("datadog-rspec-expect-in-fork-stderr")
     begin
-      # Start in fork
       pid = fork do
         # Capture forked output
         $stdout.reopen(fork_stdout)

@@ -94,7 +94,6 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
         include_examples "parsing cgroup file into an array of entries"
       end
 
-      # Cgroups v2 contexts
       context "in a non-containerized v2 environment" do
         include_context "non-containerized v2 environment"
         include_examples "parsing cgroup file into an array of entries"

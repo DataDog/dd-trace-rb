@@ -565,7 +565,6 @@ RSpec.describe "Tracer integration tests" do
           context "with a kept span" do
             let(:rules) { [{name: "single.sampled_span", sample_rate: 1.0}] }
 
-            # it_behaves_like 'flushed complete trace'
             it_behaves_like "set single span sampling tags"
           end
         end
@@ -615,7 +614,6 @@ RSpec.describe "Tracer integration tests" do
         # Initiate IO pipe
         pipe
 
-        # Fork the process
         fork_id = fork do
           allow(tracer).to receive(:shutdown!).and_wrap_original do |m, *args|
             m.call(*args).tap { write.write(graceful_signal) }
@@ -642,7 +640,6 @@ RSpec.describe "Tracer integration tests" do
           nil
         end
 
-        # Read and return any output
         read.read.tap do
           try_wait_until { Process.wait(fork_id, Process::WNOHANG) }
         end
@@ -956,7 +953,6 @@ RSpec.describe "Tracer integration tests" do
         c.tracing.writer = writer
       end
 
-      # Verify Transport::IO is configured
       expect(tracer.writer.transport).to be_a_kind_of(Datadog::Tracing::Transport::IO::Client)
       expect(tracer.writer.transport.encoder).to be(Datadog::Core::Encoding::JSONEncoder)
 

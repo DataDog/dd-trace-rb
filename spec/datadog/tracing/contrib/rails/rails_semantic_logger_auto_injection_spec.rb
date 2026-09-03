@@ -81,7 +81,6 @@ RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >
         context "with semantic logger setup and no log_tags" do
           it "injects trace_id into logs" do
             is_expected.to be_ok
-            # force flush
             SemanticLogger.flush
 
             expect(logs).to_not be_empty
@@ -130,7 +129,6 @@ RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >
 
           it "injects trace correlation context into logs and preserve existing log tags" do
             is_expected.to be_ok
-            # force flush
             SemanticLogger.flush
 
             expect(logs).to_not be_empty
@@ -199,7 +197,6 @@ RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >
         context "with semantic logger setup and no log_tags" do
           it "does not inject trace_id into logs" do
             is_expected.to be_ok
-            # force flush
             SemanticLogger.flush
 
             expect(logs).to_not be_empty
@@ -224,7 +221,6 @@ RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >
 
           it "does not inject trace correlation context and preserve existing log tags" do
             is_expected.to be_ok
-            # force flush
             SemanticLogger.flush
 
             expect(logs).to_not be_empty

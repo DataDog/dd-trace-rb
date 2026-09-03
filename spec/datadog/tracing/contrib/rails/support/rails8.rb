@@ -46,7 +46,6 @@ RSpec.shared_context "Rails 8 test application" do
         config.active_job.queue_adapter = :inline
         if ENV["USE_SIDEKIQ"]
           config.active_job.queue_adapter = :sidekiq
-          # add Sidekiq middleware
           Sidekiq::Testing.server_middleware do |chain|
             chain.add(
               Datadog::Tracing::Contrib::Sidekiq::ServerTracer

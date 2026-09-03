@@ -113,7 +113,6 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
       it "skips already uploaded modules" do
         allow(uploader).to receive(:upload_scopes)
 
-        # Add same scope twice
         context.add_scope(test_scope)
         context.add_scope(test_scope)
 
@@ -137,7 +136,6 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
       it "stops accepting scopes after MAX_FILES limit" do
         allow(uploader).to receive(:upload_scopes)
 
-        # Add MAX_FILES scopes
         described_class::MAX_FILES.times do |i|
           scope = Datadog::SymbolDatabase::Scope.new(scope_type: "CLASS", name: "Class#{i}")
           context.add_scope(scope)
@@ -299,7 +297,6 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
     end
   end
 
-  # === Tests ported from Java SymbolSinkTest ===
 
   describe "multi-scope batching (ported from Java SymbolSinkTest.testMultiScopeFlush)" do
     it "batches multiple scopes into a single upload call" do
@@ -337,7 +334,6 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
       context.add_scope(Datadog::SymbolDatabase::Scope.new(scope_type: "CLASS", name: "ExtraClass"))
       expect(context.size).to eq(1)
 
-      # Flush the remaining
       context.flush
       expect(upload_calls.size).to eq(2)
       expect(upload_calls[1].size).to eq(1)

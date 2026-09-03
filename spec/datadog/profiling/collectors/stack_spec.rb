@@ -331,7 +331,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           # Validate that `golden_result` is still up-to-date
           # For some reason RSpec is terrible at showing differences with eq() and start_with(), so we do it ourselves
           gathered_stack_prefix = gathered_stack.map(&:label)[0, golden_result.size]
-          # puts nil, gathered_stack_prefix, nil, golden_result, nil
           expect(gathered_stack_prefix).to include(*golden_result)
           gathered_stack_prefix.zip(golden_result) { |a, e|
             expect(a).to eq(e)

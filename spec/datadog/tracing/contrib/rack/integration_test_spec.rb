@@ -1411,13 +1411,11 @@ RSpec.describe "Rack integration tests" do
               expect(span.get_tag("http.base_url")).to eq("http://example.org")
               expect(span).to be_root_span
 
-              # Request headers
               expect(span.get_tag("http.request.headers.cache-control")).to eq("no-cache")
               # Make sure non-whitelisted headers don't become tags.
               expect(span.get_tag("http.request.headers.x-request-id")).to be nil
               expect(span.get_tag("http.request.headers.x-fake-request")).to be nil
 
-              # Response headers
               expect(span.get_tag("http.response.headers.content-type")).to eq("text/html")
               expect(span.get_tag("http.response.headers.cache-control")).to eq("max-age=3600")
               expect(span.get_tag("http.response.headers.etag")).to eq('"737060cd8c284d8af7ad3082f209582d"')

@@ -249,7 +249,6 @@ RSpec.describe Datadog::ErrorTracking::Component do
       @gem_lib_dir = File.join(@gem_root_dir, "lib")
       $LOAD_PATH.unshift(@gem_lib_dir) unless $LOAD_PATH.include?(@gem_lib_dir)
 
-      # Create and register the mock gem specification
       mock_gemspec = Gem::Specification.new do |s|
         s.name = "mock-gem"
         s.version = "2.1.1"
@@ -271,7 +270,6 @@ RSpec.describe Datadog::ErrorTracking::Component do
 
       @errortracker = described_class.build(settings, tracer, logger)
 
-      # Require the mock gem files
       require "mock_gem"
 
       # Require all the test modules

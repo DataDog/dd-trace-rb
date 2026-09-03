@@ -619,7 +619,6 @@ RSpec.describe Datadog::DI::Serializer do
         invalid_utf8 = "\x80\xFF".force_encoding(Encoding::UTF_8)
         expect(invalid_utf8.valid_encoding?).to be false
 
-        # Expect logging and telemetry
         expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: ArgumentError/)
         expect(telemetry).to receive(:report).with(
           an_instance_of(ArgumentError),
@@ -646,7 +645,6 @@ RSpec.describe Datadog::DI::Serializer do
 
         invalid_utf8 = "\x80\xFF".force_encoding(Encoding::UTF_8)
 
-        # Expect logging and telemetry for the first (failing) serializer
         expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: ArgumentError/)
         expect(telemetry).to receive(:report).with(
           an_instance_of(ArgumentError),
@@ -701,7 +699,6 @@ RSpec.describe Datadog::DI::Serializer do
     with_di_registry_change
 
     before do
-      # Register a custom serializer that will raise an exception
       Datadog::DI::Serializer.register(condition: lambda { |value| DISerializerCustomExceptionTestClass === value }) do |*args|
         raise "Test exception"
       end
@@ -746,7 +743,6 @@ RSpec.describe Datadog::DI::Serializer do
       end
 
       it "escapes binary data to JSON-safe format" do
-        # Serialize the binary string
         serialized = serializer.serialize_value(binary_string)
 
         # The serializer produces an escaped string in b'...' format
@@ -1062,7 +1058,6 @@ RSpec.describe Datadog::DI::Serializer do
       end
 
       it "handles Latin1 strings with all high-bit bytes" do
-        # All Latin1 high-bit characters (128-255)
         latin1 = (128..255).map { |i| i.chr(Encoding::ISO_8859_1) }.join
         expect(latin1.encoding).to eq(Encoding::ISO_8859_1)
         expect(latin1.valid_encoding?).to be true

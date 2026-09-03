@@ -191,7 +191,6 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       expect(responses.length).to eq(1)
       resp = responses.first
       expect(resp.ok?).to be false
-      # The error should be classified as server or internal
       expect(resp.server_error? || resp.internal_error?).to be true
     end
   end

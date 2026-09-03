@@ -16,7 +16,6 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
   let(:logger) { instance_double(Datadog::SymbolDatabase::Logger, debug: nil) }
   let(:component) { instance_double(Datadog::SymbolDatabase::Component, logger: logger) }
 
-  # Helper to create a mock change object
   def mock_change(type:, data:)
     content = instance_double("Content", data: data)
     allow(content).to receive(:applied)
@@ -239,12 +238,10 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
     # Ruby equivalent: Remote.process_change dispatches to Component.start_upload / stop_upload
 
     it "enables then disables upload via sequential RC changes" do
-      # First: insert with upload_symbols: true
       insert_change = mock_change(type: :insert, data: '{"upload_symbols": true}')
       expect(component).to receive(:start_upload)
       described_class.send(:process_change, component, insert_change, nil)
 
-      # Then: update with upload_symbols: false
       update_change = mock_change(type: :update, data: '{"upload_symbols": false}')
       expect(component).to receive(:stop_upload)
       described_class.send(:process_change, component, update_change, nil)

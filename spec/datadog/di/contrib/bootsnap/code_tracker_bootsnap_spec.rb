@@ -175,7 +175,6 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
       probe_manager.add_probe(probe)
       component.probe_notifier_worker.flush
 
-      # Probe should be installed successfully.
       installed = probe_manager.probe_repository.installed_probes
       expect(installed.length).to eq(1),
         "Expected 1 installed probe, got #{installed.length}. " \

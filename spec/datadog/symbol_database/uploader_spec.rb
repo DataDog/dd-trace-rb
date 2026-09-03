@@ -348,7 +348,6 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
     end
   end
 
-  # === Tests ported from Java BatchUploaderTest ===
 
   describe "multipart upload structure (ported from Java BatchUploaderTest.testUploadMultiPart)" do
     before do
@@ -427,7 +426,6 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
     end
   end
 
-  # === Tests ported from Java BatchUploaderTest ===
 
   describe "multipart upload structure (ported from Java BatchUploaderTest.testUploadMultiPart)" do
     before do

@@ -66,7 +66,6 @@ RSpec.describe "Targeted TracePoint iseq binding" do
     # Load the file to get the require-produced iseq
     load tempfile.path
 
-    # Find the iseq for test_method
     method_iseq = RubyVM::InstructionSequence.of(CompileFileTestTarget.instance_method(:test_method))
 
     fired = false

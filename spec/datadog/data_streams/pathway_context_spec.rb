@@ -31,7 +31,6 @@ RSpec.describe Datadog::DataStreams::PathwayContext do
     end
 
     it "handles edge cases in encoding/decoding" do
-      # Test with zero values
       zero_context = described_class.new(hash_value: 0, pathway_start: Time.at(0), current_edge_start: Time.at(0))
       encoded = zero_context.encode_b64
       decoded = described_class.decode_b64(encoded)
@@ -43,7 +42,6 @@ RSpec.describe Datadog::DataStreams::PathwayContext do
     end
 
     it "handles large values in encoding/decoding" do
-      # Test with large values
       large_hash = 18446744073709551615 # Max uint64
       large_time = Time.now + 1000000 # Far future
 

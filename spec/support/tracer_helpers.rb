@@ -37,7 +37,6 @@ module TracerHelpers
     FauxWriter.new(options)
   end
 
-  # Return some test traces
   def get_test_traces(n, service: "test-app", resource: "/traces", type: "web")
     traces = []
 
@@ -55,7 +54,6 @@ module TracerHelpers
     traces
   end
 
-  # Return some test services
   def get_test_services
     {"rest-api" => {"app" => "rails", "app_type" => "web"},
      "master" => {"app" => "postgres", "app_type" => "db"}}

@@ -116,11 +116,9 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
       let(:traces) { get_test_traces(2) }
 
       it "writes valid JSON with correct trace structure" do
-        # Send traces and capture output
         responses = send_traces
         output = out.string
 
-        # Verify response
         expect(responses).to all(be_a(Datadog::Tracing::Transport::IO::Traces::Response))
 
         # Parse and verify it's valid JSON
@@ -135,9 +133,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
           expect(encoded_trace).to be_an(Array)
           expect(encoded_trace.length).to eq(trace.spans.length)
 
-          # Verify all spans in the trace are correctly encoded
           trace.spans.zip(encoded_trace).each do |span, encoded_span|
-            # Match complete encoded span structure
             expect(encoded_span).to match(
               "error" => 0,
               "meta" => be_a(Hash),

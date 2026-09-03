@@ -150,7 +150,6 @@ RSpec.describe "Datadog::Workers::AsyncTransport integration tests" do
       before do
         skip "TODO: Test is flaky on macOS" if RUBY_PLATFORM.include?("darwin")
 
-        # Activate filter
         filter = Datadog::Tracing::Pipeline::SpanFilter.new do |span|
           span.name[/discard/]
         end
@@ -203,7 +202,6 @@ RSpec.describe "Datadog::Workers::AsyncTransport integration tests" do
       # Let it reach the 10 seconds back-off
       sleep(0.5)
 
-      # Enqueue some work for a final flush
       worker.enqueue_trace(get_test_traces(1))
 
       # Interrupt back off and flush everything immediately

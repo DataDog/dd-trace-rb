@@ -58,7 +58,6 @@ RSpec.describe "Native transport wire-level conformance" do
               content_length = line.split(": ", 2).last.to_i if line.downcase.start_with?("content-length")
             end
 
-            # Read body
             request_body = (content_length > 0) ? c.read(content_length) : ""
             c.print http_response
 

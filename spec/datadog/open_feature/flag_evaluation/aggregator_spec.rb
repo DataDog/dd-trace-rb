@@ -22,7 +22,6 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     end.join.force_encoding(Encoding::BINARY)
   end
 
-  # canonical_context_key
 
   describe "#canonical_context_key" do
     it "returns empty string for nil attrs" do
@@ -559,7 +558,6 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     end
   end
 
-  # flush_and_reset
 
   describe "#flush_and_reset" do
     it "resets full and degraded maps after flush" do

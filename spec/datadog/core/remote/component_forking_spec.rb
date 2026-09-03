@@ -86,7 +86,6 @@ RSpec.describe Datadog::Core::Remote::Component do
           # Client should be a new instance
           expect(child_component.client.object_id).not_to eq(parent_client_object_id)
 
-          # Client ID should be different
           child_client_id = child_component.client.id
           expect(child_client_id).to be_valid_uuid
           expect(child_client_id).not_to eq(parent_client_id)
@@ -94,14 +93,12 @@ RSpec.describe Datadog::Core::Remote::Component do
       end
 
       it "resets healthy flag after fork" do
-        # Make the component healthy in the parent
         component.instance_variable_set(:@healthy, true)
         expect(component.healthy).to be true
 
         expect_in_fork do
           child_component = components.remote
 
-          # Healthy flag should be reset to false
           expect(child_component.healthy).to be false
         end
       end
@@ -222,7 +219,6 @@ RSpec.describe Datadog::Core::Remote::Component do
       expect(parent_client_id).to be_valid_uuid
       expect(parent_runtime_id).to be_valid_uuid
 
-      # Record the parent PID
       parent_pid = Process.pid
 
       # Fork and verify child behavior
@@ -239,7 +235,6 @@ RSpec.describe Datadog::Core::Remote::Component do
         expect(child_client_id).not_to eq(parent_client_id)
         expect(child_client_id).to be_valid_uuid
 
-        # Runtime ID should also be different
         expect(child_runtime_id).not_to eq(parent_runtime_id)
         expect(child_runtime_id).to be_valid_uuid
 

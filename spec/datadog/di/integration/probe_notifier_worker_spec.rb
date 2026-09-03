@@ -55,7 +55,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
   def define_diagnostics_endpoint(http_server)
     http_server.mount_proc("/debugger/v1/diagnostics") do |req, res|
-      # This request is a multipart form post
       expect(req.content_type).to match(%r,^multipart/form-data;,)
       diagnostics_payloads << req.body
     end

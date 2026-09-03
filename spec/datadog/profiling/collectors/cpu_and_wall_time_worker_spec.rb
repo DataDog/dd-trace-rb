@@ -1731,7 +1731,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       proc_called = Queue.new
 
-      # Start the worker
       worker.start(on_failure_proc: proc { proc_called << true })
 
       # We expect this to have been filled by the on_failure_proc

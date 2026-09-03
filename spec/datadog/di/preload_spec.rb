@@ -57,7 +57,6 @@ RSpec.describe "DI initializer" do
 
         require 'datadog'
 
-        # Should still have the open3 entry in code tracker
         unless Datadog::DI.code_tracker.send(:registry).detect { |key, value| key =~ /open3.rb\\z/ }
           raise "Loaded script not found in code tracker registry"
         end

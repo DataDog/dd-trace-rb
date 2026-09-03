@@ -1987,7 +1987,6 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(inner).not_to be_nil
         expect(inner.scope_type).to eq("CLASS")
 
-        # Inner class has its method
         method_scope = inner.scopes.find { |s| s.name == "inner_method" }
         expect(method_scope).not_to be_nil
       end
@@ -2254,7 +2253,6 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         file_scope = find_file_scope(scopes, "ExtractAllFileHashTest")
         expect(file_scope).not_to be_nil
 
-        # file_hash on FILE
         expect(file_scope.language_specifics[:file_hash]).to match(/\A[0-9a-f]{40}\z/)
 
         # NOT on inner CLASS
@@ -2501,7 +2499,6 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         # Autoload registration is still pending — the target was not loaded.
         expect(Object.autoload?(:ExtractAllAutoloadDetached)).to eq(@autoload_target)
 
-        # The leaked class's FILE scope is filtered out.
         leaked_scope = scopes.find { |s| s.scope_type == "FILE" && s.name == @leaked_file }
         expect(leaked_scope).to be_nil
       end

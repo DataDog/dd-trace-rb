@@ -14,7 +14,6 @@ RSpec.describe "Redis mini app test" do
 
   let(:redis_options) { {host: host, port: port} }
   let(:redis) do
-    # Redis instance with custom options
     if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new("5.0.0")
       custom_options = {custom: {datadog: {service_name: "test-service"}}}
       Redis.new(redis_options.merge(custom_options).freeze)

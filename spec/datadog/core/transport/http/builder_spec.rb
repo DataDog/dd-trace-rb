@@ -172,7 +172,6 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
           builder.api(key, endpoint, first_options)
           expect(builder.apis).to include(key => endpoint)
           expect(builder.api_options).to include(key => first_options)
-          # Second pass
           builder.api(key, endpoint, second_options)
           expect(builder.apis).to include(key => endpoint)
           expect(builder.api_options).to include(key => expected_options)

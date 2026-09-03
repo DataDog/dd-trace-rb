@@ -219,7 +219,6 @@ RSpec.describe "Instrumentation integration" do
             # add_snapshot expectation replaces assertion on send_input
             expect(probe_manager.add_probe(probe)).to be false
 
-            # Probe should be pending
             expect(probe_manager.probe_repository.pending_probes).to eq(probe.id => probe)
             expect(probe_manager.probe_repository.installed_probes).to be_empty
 
@@ -1105,7 +1104,6 @@ RSpec.describe "Instrumentation integration" do
         end
 
         it "disables probe after first execution and sends disabled status notification" do
-          # Generate a deeply nested hash (10 keys per level, 5 levels deep)
           deep_hash = generate_deep_hash(10, 5)
 
           # Track all status notifications
@@ -1114,10 +1112,8 @@ RSpec.describe "Instrumentation integration" do
             status_payloads.concat(payloads)
           end
 
-          # Add probe
           probe_manager.add_probe(probe)
 
-          # Expect snapshot on first execution
           expect(component.probe_notifier_worker).to receive(:add_snapshot).once.and_call_original
 
           # Execute the instrumented method
@@ -1138,7 +1134,6 @@ RSpec.describe "Instrumentation integration" do
           expect(emitting_payload).not_to be_nil
           expect(disabled_payload).not_to be_nil
 
-          # Verify disabled notification payload
           expect(disabled_payload).to match(expected_disabled_payload)
 
           # Execute again - should not generate another snapshot or disabled notification
@@ -1592,7 +1587,6 @@ RSpec.describe "Instrumentation integration" do
               expect(probe_manager.probe_repository.pending_probes.length).to eq 0
               expect(probe_manager.probe_repository.installed_probes.length).to eq 1
 
-              # This require does not change instrumentation
               require_relative "instrumentation_integration_test_class_3"
 
               expect(probe_manager.probe_repository.pending_probes.length).to eq 0
@@ -1729,7 +1723,6 @@ RSpec.describe "Instrumentation integration" do
         end
 
         it "disables probe after first execution and sends disabled status notification" do
-          # Generate a deeply nested hash (10 keys per level, 5 levels deep)
           deep_hash = generate_deep_hash(10, 5)
 
           # Track all status notifications
@@ -1738,10 +1731,8 @@ RSpec.describe "Instrumentation integration" do
             status_payloads.concat(payloads)
           end
 
-          # Add probe
           probe_manager.add_probe(probe)
 
-          # Expect snapshot on first execution
           expect(component.probe_notifier_worker).to receive(:add_snapshot).once.and_call_original
 
           # Execute the instrumented method with deep hash as param
@@ -1765,7 +1756,6 @@ RSpec.describe "Instrumentation integration" do
           expect(emitting_payload).not_to be_nil
           expect(disabled_payload).not_to be_nil
 
-          # Verify disabled notification payload
           expect(disabled_payload).to match(expected_disabled_payload)
 
           # Execute again - should not generate another snapshot or disabled notification
@@ -1815,14 +1805,12 @@ RSpec.describe "Instrumentation integration" do
 
         probe_manager.add_probe(probe)
 
-        # Execute the method with binary data
         result = InstrumentationSpecTestClass.new.binary_data_param_method(binary_string, "hello")
         expect(result).to eq(10) # 5 + 5
 
         # Wait for flush to complete
         component.probe_notifier_worker.flush
 
-        # Verify the snapshot was captured
         expect(captured_snapshot).not_to be_nil
 
         # JSON encoding should now succeed with escaped binary data
@@ -1894,7 +1882,6 @@ RSpec.describe "Instrumentation integration" do
 
         probe_manager.add_probe(probe)
 
-        # Execute the method that returns binary data
         result = InstrumentationSpecTestClass.new.binary_data_method
         expect(result.encoding).to eq(Encoding::BINARY)
         expect(result.length).to eq(300)

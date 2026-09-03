@@ -145,7 +145,6 @@ RSpec.describe "Rails Endpoint Collection" do
       end
     end
 
-    # app.initialize!
     app.routes.draw do
       resources :products
 

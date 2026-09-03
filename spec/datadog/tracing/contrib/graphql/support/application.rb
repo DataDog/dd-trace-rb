@@ -21,7 +21,6 @@ require "spec/datadog/tracing/contrib/rails/support/application"
 logger = Logger.new($stdout)
 logger.level = Logger::INFO
 
-# Rails settings
 ENV["RAILS_ENV"] = "test"
 
 # switch Rails import according to installed

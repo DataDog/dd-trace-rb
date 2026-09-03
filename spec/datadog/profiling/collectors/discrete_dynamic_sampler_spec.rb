@@ -274,7 +274,6 @@ RSpec.describe "Datadog::Profiling::Collectors::DiscreteDynamicSampler" do
   end
 
   it "a weird hiccup shouldn't be able to disable sampling for whole minutes" do
-    # A normal load
     simulate_load(duration_seconds: 60, events_per_second: 50, sampling_seconds: 0.0001)
 
     # Followed by a a single super weird sampling event that takes an apparent 1000 seconds to complete

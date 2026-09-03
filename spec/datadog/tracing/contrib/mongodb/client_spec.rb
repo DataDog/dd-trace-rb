@@ -33,7 +33,6 @@ RSpec.describe "Mongo::Client instrumentation" do
   let(:mongo_gem_version) { Gem.loaded_specs["mongo"].version }
 
   before do
-    # Disable Mongo logging
     Mongo::Logger.logger.level = ::Logger::WARN
 
     Datadog.configure do |c|
@@ -314,11 +313,9 @@ RSpec.describe "Mongo::Client instrumentation" do
       let(:collection) { :people }
 
       before do
-        # Insert a document
         client[collection].insert_one(name: "Steve", hobbies: ["hiking", "tennis", "fly fishing"])
         clear_traces!
 
-        # Do #find_all operation
         client[collection].find.each do |document|
           # =>  Yields a BSON::Document.
         end
@@ -336,7 +333,6 @@ RSpec.describe "Mongo::Client instrumentation" do
       let(:collection) { :people }
 
       before do
-        # Insert a document
         client[collection].insert_one(name: "Steve", hobbies: ["hiking"])
         clear_traces!
 
@@ -357,11 +353,9 @@ RSpec.describe "Mongo::Client instrumentation" do
       let(:collection) { :people }
 
       before do
-        # Insert a document
         client[collection].insert_one(name: "Sally", hobbies: ["skiing", "stamp collecting"])
         clear_traces!
 
-        # Do #update_one operation
         client[collection].update_one({name: "Sally"}, "$set" => {"phone_number" => "555-555-5555"})
       end
 
@@ -388,11 +382,9 @@ RSpec.describe "Mongo::Client instrumentation" do
       end
 
       before do
-        # Insert documents
         client[collection].insert_many(documents)
         clear_traces!
 
-        # Do #update_many operation
         client[collection].update_many({}, "$set" => {"phone_number" => "555-555-5555"})
       end
 
@@ -415,11 +407,9 @@ RSpec.describe "Mongo::Client instrumentation" do
       let(:collection) { :people }
 
       before do
-        # Insert a document
         client[collection].insert_one(name: "Sally", hobbies: ["skiing", "stamp collecting"])
         clear_traces!
 
-        # Do #delete_one operation
         client[collection].delete_one(name: "Sally")
       end
 
@@ -446,11 +436,9 @@ RSpec.describe "Mongo::Client instrumentation" do
       end
 
       before do
-        # Insert documents
         client[collection].insert_many(documents)
         clear_traces!
 
-        # Do #delete_many operation
         client[collection].delete_many(name: /$S*/)
       end
 
@@ -520,7 +508,6 @@ RSpec.describe "Mongo::Client instrumentation" do
         let(:drop_database?) { false }
 
         before do
-          # Insert a document
           client[collection].insert_one(name: "Steve", hobbies: ["hiking"])
         rescue Mongo::Auth::Unauthorized
           # Expect this to create an unauthorized error

@@ -336,7 +336,6 @@ RSpec.describe Datadog::OpenTelemetry do
           it "the underlying datadog spans has the same ids as the otel spans" do
             existing_span.finish
             start_span.finish
-            # Verify Span IDs are the same
             expect(existing_span.context.hex_span_id.to_i(16)).to eq(parent.id)
             expect(start_span.context.hex_span_id.to_i(16)).to eq(child.id)
             # Verify Trace IDs are the same
@@ -1038,7 +1037,6 @@ RSpec.describe Datadog::OpenTelemetry do
         end
 
         it "returns all baggage values" do
-          # Set multiple baggage values
           context = otel_baggage.set_value("key1", "value1")
           context = otel_baggage.set_value("key2", "value2", context: context)
 
@@ -1050,7 +1048,6 @@ RSpec.describe Datadog::OpenTelemetry do
         end
 
         it "removes baggage values" do
-          # Set and then remove a baggage value
           context = otel_baggage.set_value("key_to_remove", "value")
           context = otel_baggage.remove_value("key_to_remove", context: context)
 
@@ -1059,7 +1056,6 @@ RSpec.describe Datadog::OpenTelemetry do
         end
 
         it "clears all baggage values" do
-          # Set multiple baggage values
           context = otel_baggage.set_value("key1", "value1")
           context = otel_baggage.set_value("key2", "value2", context: context)
 
@@ -1072,7 +1068,6 @@ RSpec.describe Datadog::OpenTelemetry do
 
         # Set Datadog baggage and read from otel
         it "shares baggage between Datadog and OpenTelemetry" do
-          # Set baggage using Datadog API
           Datadog::Tracing.baggage["dd_key"] = "dd_value"
 
           # Verify it can be read by OpenTelemetry API

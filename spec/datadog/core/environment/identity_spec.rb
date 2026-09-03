@@ -19,7 +19,6 @@ RSpec.describe Datadog::Core::Environment::Identity do
       let(:after_fork_id) { described_class.id }
 
       it "generates a different id inside the fork and preserves the original id after" do
-        # Check before forking
         expect(before_fork_id).to be_a_kind_of(String)
 
         # Invoke in fork, make sure expectations run before continuing.
@@ -28,7 +27,6 @@ RSpec.describe Datadog::Core::Environment::Identity do
           expect(inside_fork_id).to_not eq(before_fork_id)
         end
 
-        # Check after forking
         expect(after_fork_id).to eq(before_fork_id)
       end
     end

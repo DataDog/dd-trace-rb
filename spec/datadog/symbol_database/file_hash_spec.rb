@@ -56,7 +56,6 @@ RSpec.describe Datadog::SymbolDatabase::FileHash do
     end
 
     it "handles different file sizes" do
-      # Small file
       Tempfile.create(["small", ".rb"]) do |f|
         f.write("x")
         f.close

@@ -69,7 +69,6 @@ RSpec.shared_context "Rails log configuration" do
   end
 end
 
-# Utility functions for lograge subscription
 module LogrageSubscription
   module_function
 
@@ -87,7 +86,6 @@ module LogrageSubscription
   end
 end
 
-# Utility functions for rails_semantic_logger subscription
 module RailsSemanticLoggerSubscription
   module_function
 
@@ -142,7 +140,6 @@ module Datadog
 
             attr_reader :example_group
 
-            # Configure lograge in test
             module LogrageConfiguration
               module_function
 

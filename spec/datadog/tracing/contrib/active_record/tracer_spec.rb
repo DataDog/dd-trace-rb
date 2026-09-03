@@ -92,11 +92,9 @@ RSpec.describe "ActiveRecord instrumentation" do
               ::ActiveRecord::Base.connection_config
             end
 
-            # Set up makara
             require "makara"
             require "active_record/connection_adapters/makara_mysql2_adapter"
 
-            # Set up ActiveRecord
             ::ActiveRecord::Base.establish_connection(config)
             ::ActiveRecord::Base.logger = Logger.new(nil)
 

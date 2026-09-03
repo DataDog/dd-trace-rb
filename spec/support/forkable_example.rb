@@ -66,7 +66,6 @@ module ForkableExample
     # Unmarshal the test results from the forked process.
     # These come in as method calls, which we replicate here in the parent process.
     while (read_size = reader.gets) # Reads a header line, containing the size of the next object
-      # Read the next object
       call = Marshal.load(reader.read(Integer(read_size)))
 
       args = call[:args]

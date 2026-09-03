@@ -64,7 +64,6 @@ RSpec.describe "Kafka Data Streams instrumentation" do
       expect(encoded_ctx).to be_a(String)
       expect(encoded_ctx).not_to be_empty
 
-      # Decode and verify it's a valid pathway context
       decoded_ctx = Datadog::DataStreams::PathwayContext.decode_b64(encoded_ctx)
       expect(decoded_ctx).to be_a(Datadog::DataStreams::PathwayContext)
       expect(decoded_ctx.hash).to be > 0 # Should have a deterministic hash
@@ -103,7 +102,6 @@ RSpec.describe "Kafka Data Streams instrumentation" do
         attr_accessor :test_message
 
         def each_message(**kwargs)
-          # Yield the test message set by the test
           yield(@test_message) if @test_message && block_given?
         end
 
@@ -123,7 +121,6 @@ RSpec.describe "Kafka Data Streams instrumentation" do
       test_producer.pending_message_queue << producer_message
       test_producer.deliver_messages
 
-      # Capture the producer pathway context
       producer_ctx_b64 = producer_message.headers["dd-pathway-ctx-base64"]
       producer_ctx = Datadog::DataStreams::PathwayContext.decode_b64(producer_ctx_b64)
 
@@ -135,7 +132,6 @@ RSpec.describe "Kafka Data Streams instrumentation" do
         headers: {"dd-pathway-ctx-base64" => producer_ctx_b64}
       )
 
-      # Set the message for the consumer to yield
       consumer.test_message = consumer_message
 
       # Process the message - instrumentation should automatically call set_consume_checkpoint

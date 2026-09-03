@@ -11,7 +11,6 @@ require "spec/datadog/tracing/contrib/rails/support/application"
 logger = Logger.new($stdout)
 logger.level = Logger::INFO
 
-# Rails settings
 adapter = Datadog::Tracing::Contrib::Rails::Test::Database.load_adapter!
 ENV["RAILS_ENV"] = "test"
 ENV["DATABASE_URL"] = adapter

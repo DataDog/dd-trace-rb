@@ -39,7 +39,6 @@ RSpec.describe "Resque instrumentation" do
   let(:configuration_options) { {} }
 
   before do
-    # Setup Resque to use Redis
     ::Resque.redis = url
     ::Resque::Failure.clear
 

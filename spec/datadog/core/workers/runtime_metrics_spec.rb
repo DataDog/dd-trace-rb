@@ -328,7 +328,6 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
             worker.perform
 
             expect_in_fork do
-              # Capture the flush
               @flushed = false
               allow(metrics).to receive(:flush) do
                 @flushed = true
@@ -346,11 +345,9 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
           let(:fork_policy) { Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART }
 
           it "continues producing metrics" do
-            # Start worker
             worker.perform
 
             expect_in_fork do
-              # Capture the flush
               @flushed = false
               allow(metrics).to receive(:flush) do
                 @flushed = true

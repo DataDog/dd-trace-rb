@@ -425,7 +425,6 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
             before { worker.fork_policy = described_class::FORK_POLICY_RESTART }
 
             it "restarts the worker" do
-              # Start worker
               worker.perform
 
               expect_in_fork do

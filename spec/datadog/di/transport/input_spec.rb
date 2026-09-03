@@ -272,7 +272,6 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
       transport.send_input([good_snapshot, bad_snapshot, good_snapshot], tags, on_serialization_error: on_error)
 
-      # Only the bad probe should be reported
       expect(errors).to eq(["bad-probe"])
     end
 

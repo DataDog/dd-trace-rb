@@ -186,7 +186,6 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
     let(:prepare_key) { proc { |key| key } }
 
     before do
-      # Mock the baggage_tag_keys configuration
       allow(propagation).to receive(:instance_variable_get).with(:@baggage_tag_keys).and_return(baggage_tag_keys)
       propagation.instance_variable_set(:@baggage_tag_keys, baggage_tag_keys)
     end
@@ -230,7 +229,6 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
       let(:baggage_tag_keys) { [] } # Empty array means disabled
 
       it "does not add any baggage tags when disabled" do
-        # No baggage tags should be added when disabled
         expect(trace_digest.trace_distributed_tags["baggage.user.id"]).to be_nil
         expect(trace_digest.trace_distributed_tags["baggage.session.id"]).to be_nil
       end
@@ -243,7 +241,6 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
       let(:baggage_tag_keys) { ["user.id", "session.id", "account.id"] }
 
       it "does not add trace distributed tags for empty baggage values" do
-        # Empty values should not be added as trace distributed tags
         expect(trace_digest.trace_distributed_tags["baggage.user.id"]).to be_nil
       end
     end

@@ -108,7 +108,6 @@ RSpec.describe "Symbol Database Remote Config Integration" do
       expect(payload["scopes"]).to be_an(Array)
       expect(payload["scopes"]).not_to be_empty
 
-      # Find our test class in the scopes (nested under FILE → MODULE → CLASS)
       file_scope = payload["scopes"].find do |s|
         s["scope_type"] == "FILE" && (s["scopes"] || []).any? { |c| c["name"] == "RCIntegrationTestModule" }
       end
@@ -240,7 +239,6 @@ RSpec.describe "Symbol Database Remote Config Integration" do
         initial_form_count = captured_forms.size
         expect(initial_form_count).to be >= 1
 
-        # Step 2: hot-load class is not in any initial upload.
         expect(uploaded_class_names_across(captured_forms)).not_to include("HotLoadE2ETestClass")
 
         # Step 3: define the class via a real file so its source_location
@@ -259,7 +257,6 @@ RSpec.describe "Symbol Database Remote Config Integration" do
             # value captured at entry. No sleep.
             expect(component.wait_for_idle(timeout: 30)).to be true
 
-            # Step 5: a new upload landed, and it contains the new class.
             expect(captured_forms.size).to be > initial_form_count
             expect(uploaded_class_names_across(captured_forms)).to include("HotLoadE2ETestClass")
           ensure

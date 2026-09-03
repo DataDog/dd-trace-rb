@@ -437,7 +437,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         let(:heap_size_enabled) { false }
 
         it "are ommitted from the profile" do
-          # We sample from 2 distinct locations
           expect(samples.size).to eq(2)
           expect(samples.select { |s| s.values.key?("heap-live-samples") }).to be_empty
           expect(samples.select { |s| s.values.key?("heap-live-size") }).to be_empty
@@ -573,7 +572,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             # we disabled GC immediate before and will only enable it at test's end.
             (test_num_age_bigger_0..test_num_allocated_objects).each(&allocator_proc)
 
-            # Grab all exported heap samples and sum their values
             sum_exported_heap_samples = heap_samples
               .select { |s| s.has_location?(path: __FILE__, line: sample_line) }
               .map { |s| s.values[:"heap-live-samples"] }

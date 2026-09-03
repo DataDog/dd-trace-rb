@@ -81,9 +81,7 @@ RSpec.describe Datadog::DI::Utils do
       ["suffix - multiple path components", "foo/bar.rb", "/foo/bar.rb", true],
       ["suffix - at basename", "bar.rb", "/foo/bar.rb", true],
       ["suffix - not at path component boundary", "ar.rb", "/foo/bar.rb", false],
-      # Extra leading slashes are removed
       ["extra leading slash in file", "//foo/bar.rb", "/foo/bar.rb", true],
-      # Extra slashes in the middle are also removed
       ["extra slash in the middle of file", "foo//bar.rb", "/foo/bar.rb", true],
       ["nothing in common", "blah.rb", "/foo/bar.rb", false],
       ["path is a suffix of file", "/a/foo/bar.rb", "/foo/bar.rb", true],

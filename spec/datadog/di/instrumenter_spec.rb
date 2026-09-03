@@ -1934,7 +1934,6 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       let(:responder) do
         double("responder").tap do |r|
-          # Allow the callback to be called, but have it raise an error
           allow(r).to receive(:probe_condition_evaluation_failed_callback).and_raise(StandardError, "callback error")
         end
       end
@@ -2053,7 +2052,6 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       let(:responder) do
         double("responder").tap do |r|
-          # Allow the callback to be called, but have it raise an error
           allow(r).to receive(:probe_condition_evaluation_failed_callback).and_raise(StandardError, "callback error")
         end
       end

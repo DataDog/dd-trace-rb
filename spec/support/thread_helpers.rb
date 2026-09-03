@@ -15,7 +15,6 @@ module ThreadHelpers
     # Execute code that creates "leaky" threads
     yield
   ensure
-    # Restore current thread to the default group
     ThreadGroup::Default.add(Thread.current)
   end
 end

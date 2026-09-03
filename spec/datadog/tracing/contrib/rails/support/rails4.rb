@@ -33,7 +33,6 @@ RSpec.shared_context "Rails 4 test application" do
       config.active_job.queue_adapter = :inline
       if ENV["USE_SIDEKIQ"]
         config.active_job.queue_adapter = :sidekiq
-        # add Sidekiq middleware
         Sidekiq::Testing.server_middleware do |chain|
           chain.add(
             Datadog::Tracing::Contrib::Sidekiq::ServerTracer
@@ -121,7 +120,6 @@ RSpec.shared_context "Rails 4 test application" do
     # otherwise routes won't draw properly.
     delegate = method(:draw_test_routes!)
 
-    # Then set the routes
     rails_test_application.instance.routes.append do
       delegate.call(self)
     end

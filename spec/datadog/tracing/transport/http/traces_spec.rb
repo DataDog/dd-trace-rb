@@ -139,7 +139,6 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Traces::API::Endpoint do
     context "when service_rates? is true" do
       let(:options) { {service_rates: true} }
 
-      # Build and return a JSON payload
       let(:json_payload) { sampling_response.to_json }
       let(:sampling_response) { {described_class::SERVICE_RATE_KEY => service_rates} }
       let(:service_rates) { {"service:a,env:test" => 0.1, "service:b,env:test" => 0.5} }

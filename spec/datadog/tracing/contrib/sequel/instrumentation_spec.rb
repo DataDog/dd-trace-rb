@@ -67,7 +67,6 @@ RSpec.describe "Sequel instrumentation" do
 
         it "traces the command" do
           expect(span.name).to eq("sequel.query")
-          # Expect it to be the normalized adapter name.
           expect(span.service).to eq(normalized_adapter)
           expect(span.type).to eq("sql")
           expect(span.get_tag("sequel.db.vendor")).to eq(normalized_adapter)
@@ -159,14 +158,12 @@ RSpec.describe "Sequel instrumentation" do
       it do
         expect(spans).to have_at_least(5).items
 
-        # Check publish span
         expect(publish_span.name).to eq("publish")
         expect(publish_span.service).to eq("webapp")
         expect(publish_span.resource).to eq("/index")
         expect(publish_span.id).to_not eq(publish_span.trace_id)
         expect(publish_span.parent_id).to eq(0)
 
-        # Check process span
         expect(process_span.name).to eq("process")
         expect(process_span.service).to eq("datalayer")
         expect(process_span.resource).to eq("home")
@@ -184,7 +181,6 @@ RSpec.describe "Sequel instrumentation" do
           *sequel_internal_spans.map { |span| [span, nil] },
         ].each do |span, query|
           expect(span.name).to eq("sequel.query")
-          # Expect it to be the normalized adapter name.
           expect(span.service).to eq(normalized_adapter)
           expect(span.type).to eq("sql")
           expect(span.get_tag("sequel.db.vendor")).to eq(normalized_adapter)
@@ -228,7 +224,6 @@ RSpec.describe "Sequel instrumentation" do
         run_prepared_statement
 
         expect(span.name).to eq("sequel.query")
-        # Expect it to be the normalized adapter name.
         expect(span.service).to eq(normalized_adapter)
         expect(span.type).to eq("sql")
         expect(span.get_tag("sequel.db.vendor")).to eq(normalized_adapter)

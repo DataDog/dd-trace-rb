@@ -76,7 +76,6 @@ RSpec.describe "Rails Railtie", execute_in_fork: true do
         # Then load the app, which run load hooks
         app
 
-        # Then manually re-run load hooks
         ActiveSupport.run_load_hooks(:before_initialize, app)
         ActiveSupport.run_load_hooks(:after_initialize, app)
       end

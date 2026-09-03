@@ -482,10 +482,8 @@ RSpec.describe Datadog::DI::Component do
       it "reports exception to telemetry" do
         allow(logger).to receive(:debug)
 
-        # Make ProbeBuilder raise an error
         expect(Datadog::DI::ProbeBuilder).to receive(:build_from_remote_config).and_raise(StandardError, "probe build error")
 
-        # Make the error notification building also fail
         expect(component.probe_notification_builder).to receive(:build_errored).and_raise(RuntimeError, "notification build error")
 
         expect(telemetry).to receive(:report) do |exc, description:|

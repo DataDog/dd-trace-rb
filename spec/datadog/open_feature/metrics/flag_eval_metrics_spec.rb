@@ -12,7 +12,6 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:logger) { logger_allowing_debug }
 
-  # Mock configuration for OTel metrics enabled setting
   let(:otel_metrics_settings) { instance_double("OtelMetricsSettings", enabled: true) }
   let(:otel_settings) { instance_double("OtelSettings", metrics: otel_metrics_settings) }
   let(:configuration) { instance_double("Configuration", opentelemetry: otel_settings) }

@@ -114,7 +114,6 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
         # Instrument the method
         instrumenter.hook_method(probe, responder)
 
-        # Execute the instrumented method 5 times
         5.times do
           result = HookTestClass.new.hook_test_method
           expect(result).to eq 42
@@ -157,7 +156,6 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
         # Instrument the method
         instrumenter.hook_method(snapshot_probe, responder)
 
-        # Execute the instrumented method with the deep data
         result = HookTestClass.new.hook_test_method_with_arg(deep_data)
 
         # Verify method still works correctly
@@ -218,7 +216,6 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
       end
 
       it "disables probe after first execution" do
-        # Instrument the line
         instrumenter.hook_line(line_probe, responder)
 
         # Execute the instrumented method
@@ -249,10 +246,8 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
       end
 
       it "keeps probe enabled after multiple executions" do
-        # Instrument the line
         instrumenter.hook_line(line_probe, responder)
 
-        # Execute the instrumented method 5 times
         5.times do
           result = HookLineBasicTestClass.new.test_method
           expect(result).to eq 42
@@ -287,13 +282,10 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
       end
 
       it "disables probe after first execution due to snapshot overhead" do
-        # Generate a deeply nested hash (10 keys per level, 5 levels deep)
         deep_hash = generate_deep_hash(10, 5)
 
-        # Instrument the line
         instrumenter.hook_line(snapshot_line_probe, responder)
 
-        # Execute the instrumented method with the deep hash
         result = HookLineBasicTestClass.new.test_method_with_arg(deep_hash)
 
         # Verify method still works correctly
@@ -410,7 +402,6 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
         # Verify probe was disabled
         expect(probe.enabled?).to be false
 
-        # Find the ERROR status payload
         error_payload = status_payloads.find do |payload|
           payload.dig(:debugger, :diagnostics, :status) == "ERROR"
         end

@@ -40,7 +40,6 @@ RSpec.shared_context "Rails 5 test application" do
         config.active_job.queue_adapter = :inline
         if ENV["USE_SIDEKIQ"]
           config.active_job.queue_adapter = :sidekiq
-          # add Sidekiq middleware
           Sidekiq::Testing.server_middleware do |chain|
             chain.add(
               Datadog::Tracing::Contrib::Sidekiq::ServerTracer
@@ -149,7 +148,6 @@ RSpec.shared_context "Rails 5 test application" do
   # Rails 5 leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables
   # We need to reset these so they don't carry over between example runs
   def reset_rails_configuration!
-    # Reset autoloaded constants
     ActiveSupport::Dependencies.clear if Rails.application
 
     # TODO: Remove this side-effect on missing log entries

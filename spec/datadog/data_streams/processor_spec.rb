@@ -28,7 +28,6 @@ RSpec.describe Datadog::DataStreams::Processor do
   end
 
   before do
-    # Stub HTTP requests to the agent
     stub_request(:post, %r{http://localhost:9999/v0.1/pipeline_stats})
       .to_return(status: 200, body: "", headers: {})
   end
@@ -119,7 +118,6 @@ RSpec.describe Datadog::DataStreams::Processor do
 
         expect(carrier[Datadog::DataStreams::Processor::PROPAGATION_KEY]).to eq(returned_value)
 
-        # Decode and verify the pathway context contains the expected hash
         decoded = Datadog::DataStreams::PathwayContext.decode_b64(returned_value)
         expect(decoded).to have_attributes(hash: KAFKA_ORDERS_PRODUCE_HASH)
       end

@@ -77,7 +77,6 @@ RSpec.describe "Symbol Database Integration" do
         method_names = class_scope.scopes.select { |s| s.scope_type == "METHOD" }.map(&:name)
         expect(method_names).to include("test_method")
 
-        # Class variable symbol
         symbol_names = class_scope.symbols.map(&:name)
         expect(symbol_names).to include("@@class_var")
 
@@ -168,7 +167,6 @@ RSpec.describe "Symbol Database Integration" do
       expect(captured_form["event"]).to be_a(Datadog::Core::Vendor::Multipart::Post::UploadIO)
       expect(captured_form["file"]).to be_a(Datadog::Core::Vendor::Multipart::Post::UploadIO)
 
-      # Verify event.json content
       event_json = JSON.parse(captured_form["event"].io.string)
       expect(event_json["ddsource"]).to eq("ruby")
       expect(event_json["service"]).to eq("test-service")

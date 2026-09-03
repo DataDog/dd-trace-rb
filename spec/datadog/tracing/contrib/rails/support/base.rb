@@ -39,7 +39,6 @@ RSpec.shared_context "Rails base application" do
   let(:app) do
     # Reinitializing Rails applications generates a lot of warnings.
     without_warnings do
-      # Initialize the application and stub Rails with the test app
       rails_test_application.test_initialize!
     end
 

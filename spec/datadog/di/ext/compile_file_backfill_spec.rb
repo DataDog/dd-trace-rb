@@ -38,7 +38,6 @@ RSpec.describe "backfill_registry with compile_file iseqs" do
     # Load the file (defines the class, produces a :top iseq)
     load tempfile.path
 
-    # Also compile_file it (produces a separate :top iseq object)
     compiled_iseq = RubyVM::InstructionSequence.compile_file(tempfile.path)
 
     # GC the require-produced :top iseq (it has no references after loading)

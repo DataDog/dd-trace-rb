@@ -48,14 +48,12 @@ RSpec.describe "net/http miniapp tests" do
       it "generates a complete trace" do
         expect(spans).to have(3).items
 
-        # Parent span
         expect(parent_span.name).to eq("page")
         expect(parent_span.service).to eq("webapp")
         expect(parent_span.resource).to eq("/index")
         expect(parent_span.id).to_not eq(parent_span.trace_id)
         expect(parent_span.parent_id).to eq(0)
 
-        # HTTP Spans
         http_spans.each do |span|
           expect(span.name).to eq("http.request")
           expect(span.service).to eq("net/http")
