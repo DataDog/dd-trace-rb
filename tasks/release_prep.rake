@@ -5,14 +5,15 @@
 require_relative "release_prep" # rubocop:disable Lint/RequireRelativeSelfPath
 
 # Release-prep tasks for `.github/workflows/release-prep.yml`, which runs
-# each as a separate step, in order:
+# each as a separate step, in order, with the external side effects last:
 #
-#   release_prep:validate[v] -> release_prep:release_body[v] -> `gh release create --draft`
-#     -> release_prep:changelog[v] -> version:bump[v]
+#   release_prep:validate[v] -> release_prep:release_body[v]
+#     -> release_prep:changelog[v] -> version:bump[v] -> `gh release create --draft`
 #
-# `release_prep:changelog` consumes (deletes) exactly the unreleased/ files it
-# rendered, so it runs only after the draft release exists; a failed earlier
-# step stops the workflow and leaves the source fragments intact.
+# `release_prep:changelog` consumes (deletes) exactly the unreleased/ files
+# it rendered, last within the task, so a failure mid-task leaves the source
+# fragments intact for direct (non-workflow) invocation; in the workflow,
+# nothing persists unless the final PR step commits it.
 
 namespace :release_prep do
   desc "Check that the given version is an official release version (e.g. release_prep:validate[2.36.0])"
