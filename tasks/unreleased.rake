@@ -16,6 +16,8 @@ namespace :unreleased do
   task :render do
     rendered = ReleasePrep::Fragments.read_all.render
     puts rendered.empty? ? "(no pending changelog fragments)" : rendered
+  rescue ReleasePrep::ValidationError => e
+    ReleasePrep.fail!(e.message)
   end
 
   desc "Lint unreleased/ changelog fragment messages for hygiene with vale"
@@ -39,5 +41,7 @@ namespace :unreleased do
 
       sh "vale --config=#{File.expand_path(".vale.ini")} #{dir}"
     end
+  rescue ReleasePrep::ValidationError => e
+    ReleasePrep.fail!(e.message)
   end
 end
