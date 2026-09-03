@@ -70,7 +70,7 @@ RSpec.describe ReleasePrep::ReleaseNotes do
   end
 
   describe "#write" do
-    it "writes the body to the output file and returns its path" do
+    it "writes the body to the output file with plain PR references" do
       write_fragment("1.json", "Fix a bug.")
       output = File.join(@unreleased_dir, "release_body.md")
 
@@ -78,6 +78,8 @@ RSpec.describe ReleasePrep::ReleaseNotes do
 
       expect(result).to eq(output)
       expect(File.read(output)).to include("### Fixed")
+      expect(File.read(output)).to include("* Tracing: Fix a bug. (#1)")
+      expect(File.read(output)).not_to include("[]")
     end
 
     it "creates the output directory when it does not exist" do
@@ -93,18 +95,6 @@ RSpec.describe ReleasePrep::ReleaseNotes do
       output = File.join(@unreleased_dir, "release_body.md")
 
       expect { release_notes.write(path: output) }.to raise_error(SystemExit)
-    end
-  end
-
-  describe "#linkify!" do
-    it "linkifies #NNNN references in the written file" do
-      write_fragment("1.json", "Fix a bug.")
-      output = release_notes.write(path: File.join(@unreleased_dir, "release_body.md"))
-
-      release_notes.linkify!(path: output)
-
-      expect(File.read(output)).to include("([#1][])")
-      expect(File.read(output)).to include("[#1]: https://github.com/DataDog/dd-trace-rb/issues/1")
     end
   end
 end

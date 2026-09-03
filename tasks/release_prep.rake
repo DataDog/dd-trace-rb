@@ -34,7 +34,6 @@ namespace :release_prep do
     )
 
     release_notes.write
-    release_notes.linkify!
   end
 
   desc "Insert the pending unreleased/ fragments into CHANGELOG.md and rewrite the compare-link footer (e.g. release_prep:changelog[2.36.0])"
