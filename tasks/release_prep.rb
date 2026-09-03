@@ -14,6 +14,15 @@ module ReleasePrep
   def fail!(message)
     abort "::error::#{message}"
   end
+
+  # A release must have something to announce: changelog fragments, release
+  # highlights, or both. Guarding here keeps the same rule and message in one
+  # place for every release-prep entry point.
+  def fail_if_nothing_to_release!(fragments, highlights)
+    return unless fragments.empty? && highlights.empty?
+
+    fail!("No changelog fragments and no highlights found in unreleased/; nothing to release")
+  end
 end
 
 require_relative "release_prep/changelog"

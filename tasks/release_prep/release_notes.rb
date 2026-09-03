@@ -33,7 +33,7 @@ module ReleasePrep
     end
 
     def write(path: OUTPUT_FILE)
-      ReleasePrep.fail!("No changelog fragments and no highlights found in unreleased/; nothing to release") if empty?
+      ReleasePrep.fail_if_nothing_to_release!(@fragments, @highlights)
 
       FileUtils.mkdir_p(File.dirname(path))
       File.write(path, body)
