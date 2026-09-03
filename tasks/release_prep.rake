@@ -1,12 +1,13 @@
 # frozen_string_literal: true
 
-require_relative "release_notes"
-require_relative "release_body"
+# Not a self-require: this loads tasks/release_prep.rb (the namespace and
+# its objects), not this rake file.
+require_relative "release_prep" # rubocop:disable Lint/RequireRelativeSelfPath
 
 # Release-prep tasks for `.github/workflows/release-prep.yml`, which runs
 # each as a separate step, in order:
 #
-#   release_prep:validate[v] -> release_prep:release_body -> `gh release create --draft`
+#   release_prep:validate[v] -> release_prep:release_body[v] -> `gh release create --draft`
 #     -> release_prep:changelog[v] -> version:bump[v]
 #
 # `release_prep:changelog` consumes (deletes) exactly the unreleased/ files it
@@ -20,27 +21,37 @@ namespace :release_prep do
     puts "Version #{args[:version]} is a valid official release version."
   end
 
-  desc "Render the pending unreleased/ fragments into the GitHub release body (#{ReleaseNotes::ReleaseBody::OUTPUT_FILE})"
-  task :release_body do
-    ReleaseNotes::ReleaseBody.write
-    ReleaseNotes::ReleaseBody.pimp!
+  desc "Render the pending unreleased/ fragments into the GitHub release body (#{ReleasePrep::ReleaseNotes::OUTPUT_FILE})"
+  task :release_body, [:version] do |_t, args|
+    version = validate_official_version!(args[:version])
+    highlights_path = "unreleased/highlights.md"
+    highlights = File.exist?(highlights_path) ? File.read(highlights_path) : nil
+
+    release_notes = ReleasePrep::ReleaseNotes.new(
+      version: version,
+      fragments: ReleasePrep::Fragments.read_all,
+      highlights: highlights,
+    )
+
+    release_notes.write
+    release_notes.linkify!
   end
 
   desc "Insert the pending unreleased/ fragments into CHANGELOG.md and rewrite the compare-link footer (e.g. release_prep:changelog[2.36.0])"
   task :changelog, [:version] do |_t, args|
     version = validate_official_version!(args[:version])
 
-    previous = ReleaseNotes.previous_version
-    entries = ReleaseNotes::Fragments.read_all
-    highlights_path = "unreleased/highlights.md"
+    changelog = ReleasePrep::Changelog.new
+    previous = changelog.previous_version
+    fragments = ReleasePrep::Fragments.read_all
 
-    ReleaseNotes.insert_changelog(version, ReleaseNotes::Fragments.render(entries))
+    changelog.insert_version(version, fragments.render)
     Rake::Task["changelog:format"].invoke
-    ReleaseNotes.rewrite_footer(version, previous)
+    changelog.rewrite_footer(version, previous)
 
     # Runs last: only delete the source fragments once the draft release and
     # CHANGELOG.md have both been written successfully.
-    ReleaseNotes::Fragments.consume!(entries, highlights_path: highlights_path)
+    fragments.consume!(highlights_path: "unreleased/highlights.md")
   end
 
   # Only official releases are prepared: a well-formed MAJOR.MINOR.PATCH
@@ -49,7 +60,7 @@ namespace :release_prep do
   def validate_official_version!(version)
     version = version.to_s
     invalid_version = "Invalid version '#{version}' (expected an official release, e.g. 2.36.0)"
-    ReleaseNotes.fail!(invalid_version) unless Gem::Version.correct?(version)
-    Gem::Version.new(version).tap { |v| ReleaseNotes.fail!(invalid_version) if v.prerelease? || v.segments.length != 3 }
+    ReleasePrep.fail!(invalid_version) unless Gem::Version.correct?(version)
+    Gem::Version.new(version).tap { |v| ReleasePrep.fail!(invalid_version) if v.prerelease? || v.segments.length != 3 }
   end
 end

@@ -65,7 +65,9 @@ jobs:
         run: bundle exec rake "release_prep:validate[${VERSION}]"
 
       - name: Render release body
-        run: bundle exec rake release_prep:release_body
+        env:
+          VERSION: ${{ inputs.version }}
+        run: bundle exec rake "release_prep:release_body[${VERSION}]"
 
       - name: Create draft release
         env:
