@@ -193,7 +193,9 @@ RSpec.describe "Correlation integration" do
 
     before do
       stub_trace(trace_id, span_id)
+      # rubocop:disable Style/RescueModifier
       Object.send(:remove_const, :CorrelationIntegrationTestClass) rescue nil
+      # rubocop:enable Style/RescueModifier
       load File.join(File.dirname(__FILE__), "correlation_integration_test_class.rb")
     end
 
