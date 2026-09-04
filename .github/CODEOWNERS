@@ -1,5 +1,4 @@
 # Repository metadata, configuration, and CI
-# .github/CODEOWNERS is covered by the .github/ rule below.
 .github/ @DataDog/ruby-guild
 .gitlab/ @DataDog/ruby-guild
 .gitlab-ci.yml @DataDog/ruby-guild
