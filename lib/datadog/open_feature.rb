@@ -9,7 +9,7 @@ module Datadog
     Core::Configuration::Settings.extend(Configuration::Settings)
 
     def self.enabled?
-      Datadog.configuration.open_feature.enabled
+      Configuration::Settings.enabled?(Datadog.configuration.open_feature)
     end
 
     def self.engine

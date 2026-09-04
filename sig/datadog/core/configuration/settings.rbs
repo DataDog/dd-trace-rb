@@ -185,6 +185,32 @@ module Datadog
         interface _OpenFeature
           def enabled: () -> bool
 
+          def enabled=: (bool) -> void
+
+          def feature_flags_enabled: () -> bool
+
+          def feature_flags_enabled=: (bool) -> void
+
+          def configuration_source: () -> String
+
+          def configuration_source=: (String) -> void
+
+          def agentless_base_url: () -> String?
+
+          def agentless_base_url=: (String?) -> void
+
+          def agentless_poll_interval_seconds: () -> Integer
+
+          def agentless_poll_interval_seconds=: (Integer) -> void
+
+          def agentless_request_timeout_seconds: () -> Integer
+
+          def agentless_request_timeout_seconds=: (Integer) -> void
+
+          def initialization_timeout_ms: () -> Integer
+
+          def initialization_timeout_ms=: (Integer) -> void
+
           def span_enrichment_enabled: () -> bool
 
           def span_enrichment_enabled=: (bool) -> void

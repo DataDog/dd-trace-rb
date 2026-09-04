@@ -2875,6 +2875,23 @@ In addition, all metrics include the following tags:
 | `language` | Programming language traced. (e.g. `ruby`)         |
 | `service`  | List of services this associated with this metric. |
 
+### Feature Flags
+
+The OpenFeature provider supports agentless configuration delivery by default. Configuration delivery does not start until the application adopts the provider.
+
+Configure Feature Flags with environment variables or inside a `Datadog.configure` block:
+
+| Setting | Environment variable | Type | Description | Default |
+|---|---|---|---|---|
+| `c.open_feature.feature_flags_enabled` | `DD_FEATURE_FLAGS_ENABLED` | `Boolean` | Enables or disables Feature Flags. Setting this to `false` takes precedence over the configured source. | `true` |
+| `c.open_feature.configuration_source` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE` | `String` | Selects `agentless`, `remote_config`, or `offline` configuration delivery. Values are case-insensitive and surrounding whitespace is ignored. Invalid values fail closed. | `agentless` |
+| `c.open_feature.agentless_base_url` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL` | `String` | Overrides the agentless configuration endpoint. The value can contain credentials and is excluded from configuration reporting. | `nil` |
+| `c.open_feature.agentless_poll_interval_seconds` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS` | `Integer` | Sets the agentless polling interval in seconds. Valid values are greater than `0` and at most `3600`. | `30` |
+| `c.open_feature.agentless_request_timeout_seconds` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS` | `Integer` | Sets the timeout for an agentless configuration request in seconds. Valid values are greater than `0` and at most `300`. | `5` |
+| `c.open_feature.initialization_timeout_ms` | `DD_EXPERIMENTAL_FLAGGING_PROVIDER_INITIALIZATION_TIMEOUT_MS` | `Integer` | Sets how long provider initialization waits for the first configuration, in milliseconds. | `30000` |
+
+`DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED` and `c.open_feature.enabled` are deprecated. When neither stable setting is explicitly configured, the legacy value `true` selects `remote_config` and `false` disables delivery, preserving existing behavior.
+
 ### Profiling
 
 `datadog` can produce profiles that measure method-level application resource usage within production environments. These profiles can give insight into resources spent in Ruby code outside of existing trace instrumentation.
