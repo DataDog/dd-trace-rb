@@ -104,6 +104,18 @@ RSpec.describe ReleasePrep::Fragment do
 
       expect(described_class.read(path).errors).to contain_exactly(%r{pull_request .*other/rb})
     end
+
+    it "reports a message over the length cap, naming the actual length" do
+      path = write_fragment("1.json", valid_entry("message" => "Fix a bug." + "a" * 237))
+
+      expect(described_class.read(path).errors).to contain_exactly(/message is 247 characters, cap is 240/)
+    end
+
+    it "accepts a message at the cap" do
+      path = write_fragment("1.json", valid_entry("message" => "F" + "a" * 239))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
   end
 
   describe "#to_s" do

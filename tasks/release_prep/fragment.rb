@@ -8,6 +8,7 @@ require_relative "../release_prep"
 module ReleasePrep
   class Fragment
     TYPES = %w[Added Changed Fixed].freeze
+    MESSAGE_LENGTH_CAP = 240
     PREFIXES = [
       "Core",
       "Tracing",
@@ -66,6 +67,9 @@ module ReleasePrep
       unless pull_request.to_s.match?(%r{\Ahttps://github\.com/DataDog/dd-trace-rb/pull/\d+\z})
         errors << "#{path}: pull_request must be a https://github.com/DataDog/dd-trace-rb/pull/NNNN URL " \
           "(got #{@pull_request.inspect})"
+      end
+      if message.to_s.length > MESSAGE_LENGTH_CAP
+        errors << "#{path}: message is #{message.length} characters, cap is #{MESSAGE_LENGTH_CAP}"
       end
       errors
     end
