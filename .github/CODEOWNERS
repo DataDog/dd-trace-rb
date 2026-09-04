@@ -70,28 +70,28 @@ lib/datadog/kit.rb @DataDog/ruby-guild
 lib/datadog/error_tracking.rb @DataDog/error-tracking @DataDog/ruby-guild
 lib/datadog/ @DataDog/ruby-guild
 lib/datadog/kit/appsec/ @DataDog/asm-ruby
-lib/datadog/kit/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
+lib/datadog/kit/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby
 lib/datadog/error_tracking/ @DataDog/error-tracking @DataDog/ruby-guild
 
 # RBS signatures (top-level and shared)
 sig/ @DataDog/ruby-guild
 sig/datadog/error_tracking.rbs @DataDog/error-tracking @DataDog/ruby-guild
 sig/datadog/kit/appsec/ @DataDog/asm-ruby
-sig/datadog/kit/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
+sig/datadog/kit/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby
 sig/datadog/error_tracking/ @DataDog/error-tracking @DataDog/ruby-guild
 
 # Specs (top-level, shared, and core)
 spec/ @DataDog/ruby-guild
 spec/datadog/kit/appsec/ @DataDog/asm-ruby
-spec/datadog/kit/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
+spec/datadog/kit/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby
 spec/datadog/error_tracking/ @DataDog/error-tracking @DataDog/ruby-guild
 
 # Additional documentation (Ruby-specific tracer detail)
 docs/ @DataDog/ruby-guild
 docs/DynamicInstrumentation.md @DataDog/debugger-ruby @DataDog/ruby-guild
 docs/DynamicInstrumentationDevelopment.md @DataDog/debugger-ruby @DataDog/ruby-guild
-docs/ProfilingDevelopment.md @DataDog/profiling-rb @DataDog/ruby-guild
-docs/OpenTelemetry.md @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
+docs/ProfilingDevelopment.md @DataDog/profiling-rb
+docs/OpenTelemetry.md @DataDog/apm-sdk-capabilities-ruby
 
 # Public Documentation
 docs/Compatibility.md @DataDog/documentation
