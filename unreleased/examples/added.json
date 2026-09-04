@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "prefix": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6142",
+  "message": "Add support for `redis-rb` 6.0/RESP3."
+}

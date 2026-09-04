@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "prefix": "AppSec",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6132",
+  "message": "Update native trace export to encode supported structured span metadata values directly, without Ruby `MessagePack` encoding."
+}

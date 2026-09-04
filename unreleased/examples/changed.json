@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "prefix": "Core",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6010",
+  "message": "Deprecate the `time_now_provider` setting for removal; it no longer has an effect. Remove it from your `Datadog.configure` block. The gem always uses real time, even when the `timecop` gem monkey-patches `Time`."
+}

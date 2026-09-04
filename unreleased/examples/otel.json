@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "prefix": "OpenTelemetry",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/5446",
+  "message": "Add OpenTelemetry logs support with OTLP export. Enable it using `DD_LOGS_OTEL_ENABLED=true`, alongside standard `OTEL_EXPORTER_OTLP_*` settings."
+}
