@@ -16,11 +16,12 @@ typedef enum { RAISE_ON_FAILURE, DO_NOT_RAISE_ON_FAILURE } raise_on_failure_sett
 #define INVALID_TIME -1
 
 typedef struct {
+  // INVALID_TIME until the first conversion, and the only field used to decide if the state needs to be (re)computed
   long system_epoch_ns_reference;
   long delta_to_epoch_ns;
 } monotonic_to_system_epoch_state;
 
-#define MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER {.system_epoch_ns_reference = INVALID_TIME, .delta_to_epoch_ns = INVALID_TIME}
+#define MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER {.system_epoch_ns_reference = INVALID_TIME}
 
 static inline long retrieve_clock_as_ns(clockid_t clock_id, raise_on_failure_setting raise_on_failure) {
   struct timespec clock_value;

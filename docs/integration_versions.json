@@ -4,56 +4,56 @@
     "package": "actioncable",
     "source": "rubygems.org",
     "min_tested": "5.2.8.1",
-    "max_tested": "8.1.3"
+    "max_tested": "8.1.3.1"
   },
   {
     "integration": "action_mailer",
     "package": "actionmailer",
     "source": "rubygems.org",
     "min_tested": "4.2.11.3",
-    "max_tested": "8.1.3"
+    "max_tested": "8.1.3.1"
   },
   {
     "integration": "action_pack",
     "package": "actionpack",
     "source": "rubygems.org",
     "min_tested": "4.2.11.3",
-    "max_tested": "8.1.3"
+    "max_tested": "8.1.3.1"
   },
   {
     "integration": "action_view",
     "package": "actionview",
     "source": "rubygems.org",
     "min_tested": "4.2.11.3",
-    "max_tested": "8.1.3"
+    "max_tested": "8.1.3.1"
   },
   {
     "integration": "active_job",
     "package": "activejob",
     "source": "rubygems.org",
     "min_tested": "4.2.11.3",
-    "max_tested": "8.1.3"
+    "max_tested": "8.1.3.1"
   },
   {
     "integration": "active_model_serializers",
     "package": "active_model_serializers",
     "source": "rubygems.org",
     "min_tested": "0.10.13",
-    "max_tested": "0.10.15"
+    "max_tested": "0.10.16"
   },
   {
     "integration": "active_record",
     "package": "activerecord",
     "source": "rubygems.org",
     "min_tested": "4.2.11.3",
-    "max_tested": "8.1.3"
+    "max_tested": "8.1.3.1"
   },
   {
     "integration": "active_support",
     "package": "activesupport",
     "source": "rubygems.org",
     "min_tested": "4.2.11.3",
-    "max_tested": "8.1.3"
+    "max_tested": "8.1.3.1"
   },
   {
     "integration": "aws",
@@ -74,7 +74,7 @@
     "package": "dalli",
     "source": "rubygems.org",
     "min_tested": "2.7.11",
-    "max_tested": "5.0.6"
+    "max_tested": "5.1.0"
   },
   {
     "integration": "delayed_job",
@@ -116,21 +116,21 @@
     "package": "grape",
     "source": "rubygems.org",
     "min_tested": "1.7.0",
-    "max_tested": "3.1.1"
+    "max_tested": "3.3.5"
   },
   {
     "integration": "graphql",
     "package": "graphql",
     "source": "rubygems.org",
     "min_tested": "1.13.21",
-    "max_tested": "2.3.22"
+    "max_tested": "2.3.23"
   },
   {
     "integration": "grpc",
     "package": "grpc",
     "source": "rubygems.org",
     "min_tested": "1.48.0",
-    "max_tested": "1.67.0"
+    "max_tested": "1.82.0"
   },
   {
     "integration": "hanami",
@@ -257,14 +257,14 @@
     "package": "rack",
     "source": "rubygems.org",
     "min_tested": "1.6.13",
-    "max_tested": "3.2.6"
+    "max_tested": "3.2.7"
   },
   {
     "integration": "rails",
     "package": "rails",
     "source": "rubygems.org",
     "min_tested": "4.2.11.3",
-    "max_tested": "8.1.3"
+    "max_tested": "8.1.3.1"
   },
   {
     "integration": "rake",
@@ -334,7 +334,7 @@
     "package": "sinatra",
     "source": "rubygems.org",
     "min_tested": "2.2.4",
-    "max_tested": "4.1.1"
+    "max_tested": "4.2.1"
   },
   {
     "integration": "sneakers",
@@ -348,7 +348,7 @@
     "package": "stripe",
     "source": "rubygems.org",
     "min_tested": "5.15.0",
-    "max_tested": "19.4.0"
+    "max_tested": "19.5.0"
   },
   {
     "integration": "sucker_punch",
