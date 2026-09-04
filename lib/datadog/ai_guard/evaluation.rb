@@ -57,7 +57,7 @@ module Datadog
               }
             )
 
-            if allow_raise && (result.deny? || result.abort?) && outcome.blocking_enabled?
+            if allow_raise && outcome.block?
               span.set_tag(Ext::BLOCKED_TAG, true)
               raise AIGuardAbortError.new(action: result.action, reason: result.reason, tags: result.tags)
             end
