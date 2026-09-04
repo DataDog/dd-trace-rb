@@ -26,7 +26,6 @@ module ReleasePrep
 
     def self.read(path)
       entry = JSON.parse(File.read(path))
-      validate!(entry, path)
       new(path, entry)
     rescue JSON::ParserError => e
       raise ValidationError, "#{path}: invalid JSON (#{e.message})"
@@ -34,6 +33,7 @@ module ReleasePrep
 
     def initialize(path, entry)
       @path = path
+      @entry = entry
       @type = entry["type"]
       @prefix = entry["prefix"]
       @pull_request = entry["pull_request"]
@@ -54,21 +54,16 @@ module ReleasePrep
       File.delete(path)
     end
 
-    def self.validate!(entry, path)
+    # Every violation this fragment carries, not just the first: callers
+    # report the full list in one pass (see ReleasePrep.validate_fragments!).
+    def errors
+      errors = []
       REQUIRED_FIELDS.each do |field|
-        next if entry[field].to_s != ""
-
-        raise ValidationError, "#{path}: missing required field #{field.inspect}"
+        errors << "#{path}: missing required field #{field.inspect}" if @entry[field].to_s == ""
       end
-
-      unless TYPES.include?(entry["type"])
-        raise ValidationError, "#{path}: type #{entry["type"].inspect} must be one of #{TYPES.inspect}"
-      end
-
-      unless PREFIXES.include?(entry["prefix"])
-        raise ValidationError, "#{path}: prefix #{entry["prefix"].inspect} must be one of #{PREFIXES.inspect}"
-      end
+      errors << "#{path}: type #{@type.inspect} must be one of #{TYPES.inspect}" unless TYPES.include?(@type)
+      errors << "#{path}: prefix #{@prefix.inspect} must be one of #{PREFIXES.inspect}" unless PREFIXES.include?(@prefix)
+      errors
     end
-    private_class_method :validate!
   end
 end

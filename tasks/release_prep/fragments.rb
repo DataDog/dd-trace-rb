@@ -14,7 +14,11 @@ module ReleasePrep
     end
 
     def self.read_examples(dir: "unreleased")
-      new(Dir.glob(File.join(dir, "examples", "*.json")).sort.map { |path| Fragment.read(path) })
+      examples = new(Dir.glob(File.join(dir, "examples", "*.json")).sort.map { |path| Fragment.read(path) })
+      errors = examples.validate
+      raise ValidationError, errors.join("\n") unless errors.empty?
+
+      examples
     end
 
     def initialize(fragments)
@@ -48,6 +52,11 @@ module ReleasePrep
       end.compact
 
       sections.join("\n\n").sub(/\n*\z/, "")
+    end
+
+    # Every violation across every fragment, not just the first file's.
+    def validate
+      flat_map(&:errors)
     end
 
     # Deletes exactly the files backing these fragments, never anything

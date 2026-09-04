@@ -28,9 +28,11 @@ namespace :release_prep do
   task :release_body, [:version] do |_t, args|
     version = validate_official_version!(args[:version])
 
+    fragments = ReleasePrep::Fragments.read_all
+    ReleasePrep.validate_fragments!(fragments)
     release_notes = ReleasePrep::ReleaseNotes.new(
       version: version,
-      fragments: ReleasePrep::Fragments.read_all,
+      fragments: fragments,
       highlights: ReleasePrep::Highlights.read,
     )
 
@@ -48,6 +50,7 @@ namespace :release_prep do
     fragments = ReleasePrep::Fragments.read_all
     highlights = ReleasePrep::Highlights.read
 
+    ReleasePrep.validate_fragments!(fragments)
     ReleasePrep.fail_if_no_fragments!(fragments)
 
     changelog.insert_version(version, fragments.render)

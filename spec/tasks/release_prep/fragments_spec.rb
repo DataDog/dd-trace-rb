@@ -45,11 +45,17 @@ RSpec.describe ReleasePrep::Fragments do
       expect(described_class.read_all(dir: @unreleased_dir)).to be_empty
     end
 
-    it "raises on the first invalid fragment" do
-      write_fragment("1.json", valid_entry("type" => "Removed"))
+    it "raises on invalid JSON, naming the file" do
+      File.write(File.join(@unreleased_dir, "bad.json"), "{not json")
 
       expect { described_class.read_all(dir: @unreleased_dir) }
-        .to raise_error(ReleasePrep::ValidationError, /1\.json/)
+        .to raise_error(ReleasePrep::ValidationError, /bad\.json/)
+    end
+
+    it "does not raise on content violations; they flow to #validate" do
+      write_fragment("1.json", valid_entry("type" => "Removed"))
+
+      expect { described_class.read_all(dir: @unreleased_dir) }.not_to raise_error
     end
   end
 
@@ -137,6 +143,32 @@ RSpec.describe ReleasePrep::Fragments do
 
     it "returns an empty string when there are no fragments" do
       expect(described_class.new([]).render).to eq("")
+    end
+  end
+
+  describe "#validate" do
+    it "is empty when every fragment is valid" do
+      write_fragment("1.json", valid_entry)
+      write_fragment("2.json", valid_entry("message" => "Fix another bug."))
+
+      expect(described_class.read_all(dir: @unreleased_dir).validate).to eq([])
+    end
+
+    it "is empty when there are no fragments" do
+      expect(described_class.new([]).validate).to eq([])
+    end
+
+    it "collects every error from every fragment, each naming its file" do
+      write_fragment("1.json", valid_entry("type" => "Removed", "prefix" => "Redis"))
+      write_fragment("2.json", valid_entry.reject { |k, _| k == "message" })
+
+      errors = described_class.read_all(dir: @unreleased_dir).validate
+
+      expect(errors).to contain_exactly(
+        /1\.json: type/,
+        /1\.json: prefix/,
+        /2\.json: missing required field/,
+      )
     end
   end
 

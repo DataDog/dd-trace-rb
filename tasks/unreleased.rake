@@ -5,7 +5,7 @@ require_relative "release_prep"
 namespace :unreleased do
   desc "Validate unreleased/*.json changelog fragments (schema only; message hygiene is checked by unreleased:lint_messages)"
   task :lint do
-    ReleasePrep::Fragments.read_all
+    ReleasePrep.validate_fragments!(ReleasePrep::Fragments.read_all)
     ReleasePrep::Fragments.read_examples
     puts "All unreleased/ changelog fragments are valid."
   rescue ReleasePrep::ValidationError => e
@@ -14,7 +14,9 @@ namespace :unreleased do
 
   desc "Render the pending unreleased/ changelog fragments as they would appear in CHANGELOG.md"
   task :render do
-    rendered = ReleasePrep::Fragments.read_all.render
+    fragments = ReleasePrep::Fragments.read_all
+    ReleasePrep.validate_fragments!(fragments)
+    rendered = fragments.render
     puts rendered.empty? ? "(no pending changelog fragments)" : rendered
   rescue ReleasePrep::ValidationError => e
     ReleasePrep.fail!(e.message)
@@ -25,6 +27,7 @@ namespace :unreleased do
     require "tmpdir"
 
     fragments = ReleasePrep::Fragments.read_all
+    ReleasePrep.validate_fragments!(fragments)
     next puts("No unreleased/ changelog fragments to lint.") if fragments.empty?
 
     # Vale's markdown parsing does not preserve trailing whitespace, so no vale rule

@@ -15,6 +15,19 @@ module ReleasePrep
     abort "::error::#{message}"
   end
 
+  # Reports every violation as its own annotation, then exits once.
+  def fail_all!(errors)
+    errors.each { |error| warn "::error::#{error}" }
+    abort
+  end
+
+  # Linting reports everything wrong with unreleased/ in one run, not one
+  # violation per CI round-trip.
+  def validate_fragments!(fragments)
+    errors = fragments.validate
+    fail_all!(errors) unless errors.empty?
+  end
+
   # A release must have changelog fragments; highlights are optional and
   # cannot constitute a release on their own. Guarding here keeps the rule
   # and message in one place for every release-prep entry point.
