@@ -13,8 +13,8 @@ lib/datadog/opentelemetry/ @DataDog/apm-sdk-capabilities-ruby
 lib/datadog/opentelemetry.rb @DataDog/apm-sdk-capabilities-ruby
 lib-injection/ @DataDog/lang-platform-ruby
 lib/datadog/single_step_instrument.rb @DataDog/lang-platform-ruby
-lib/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
-lib/datadog/profiling.rb @DataDog/profiling-rb @DataDog/ruby-guild
+lib/datadog/profiling/ @DataDog/profiling-rb
+lib/datadog/profiling.rb @DataDog/profiling-rb
 lib/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
 lib/datadog/data_streams.rb @DataDog/data-streams-monitoring @DataDog/ruby-guild
 lib/datadog/core/ @DataDog/ruby-guild
@@ -25,7 +25,8 @@ lib/datadog/di/ @DataDog/debugger-ruby @DataDog/ruby-guild
 lib/datadog/di.rb @DataDog/debugger-ruby @DataDog/ruby-guild
 lib/datadog/symbol_database/ @DataDog/debugger-ruby @DataDog/ruby-guild
 lib/datadog/symbol_database.rb @DataDog/debugger-ruby @DataDog/ruby-guild
-ext/ @DataDog/profiling-rb @DataDog/ruby-guild
+ext/datadog_profiling_native_extension/ @DataDog/profiling-rb
+ext/libdatadog_api/ @DataDog/ruby-guild
 ext/libdatadog_api/feature_flags.c @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 ext/libdatadog_api/feature_flags.h @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 benchmarks/open_feature_flagevaluation.rb @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
@@ -34,17 +35,17 @@ tools/agent-evals/open_feature_guidance/ @DataDog/feature-flagging-and-experimen
 vendor/rbs/openfeature-sdk/ @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 
 # RBS signatures
-sig/datadog/ai_guard/ @DataDog/asm-ruby @DataDog/ruby-guild
-sig/datadog/ai_guard.rbs @DataDog/asm-ruby @DataDog/ruby-guild
-sig/datadog/appsec/ @DataDog/asm-ruby @DataDog/ruby-guild
-sig/datadog/appsec.rbs @DataDog/asm-ruby @DataDog/ruby-guild
-sig/datadog/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
-sig/datadog/tracing.rbs @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
-sig/datadog/opentelemetry/ @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
-sig/datadog/opentelemetry.rbs @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
-sig/datadog/single_step_instrument.rbs @DataDog/lang-platform-ruby @DataDog/ruby-guild
-sig/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
-sig/datadog/profiling.rbs @DataDog/profiling-rb @DataDog/ruby-guild
+sig/datadog/ai_guard/ @DataDog/asm-ruby
+sig/datadog/ai_guard.rbs @DataDog/asm-ruby
+sig/datadog/appsec/ @DataDog/asm-ruby
+sig/datadog/appsec.rbs @DataDog/asm-ruby
+sig/datadog/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby
+sig/datadog/tracing.rbs @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby
+sig/datadog/opentelemetry/ @DataDog/apm-sdk-capabilities-ruby
+sig/datadog/opentelemetry.rbs @DataDog/apm-sdk-capabilities-ruby
+sig/datadog/single_step_instrument.rbs @DataDog/lang-platform-ruby
+sig/datadog/profiling/ @DataDog/profiling-rb
+sig/datadog/profiling.rbs @DataDog/profiling-rb
 sig/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
 sig/datadog/data_streams.rbs @DataDog/data-streams-monitoring @DataDog/ruby-guild
 sig/datadog/core/feature_flags.rbs @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
@@ -64,8 +65,8 @@ spec/datadog/tracing_spec.rb @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities
 spec/datadog/opentelemetry/ @DataDog/apm-sdk-capabilities-ruby
 spec/datadog/opentelemetry_spec.rb @DataDog/apm-sdk-capabilities-ruby
 spec/datadog/single_step_instrument_spec.rb @DataDog/lang-platform-ruby
-spec/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
-spec/datadog/profiling_spec.rb @DataDog/profiling-rb @DataDog/ruby-guild
+spec/datadog/profiling/ @DataDog/profiling-rb
+spec/datadog/profiling_spec.rb @DataDog/profiling-rb
 spec/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
 spec/datadog/core/feature_flags_spec.rb @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 spec/datadog/open_feature/ @DataDog/feature-flagging-and-experimentation-sdk
