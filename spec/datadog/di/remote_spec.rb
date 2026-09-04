@@ -348,7 +348,8 @@ RSpec.describe Datadog::DI::Remote do
           capture_expression_evaluator: Datadog::DI::CaptureExpressionEvaluator.new(
             settings: settings, serializer: serializer, logger: logger,
             guardrails_telemetry: guardrails_telemetry, telemetry: nil,
-          ),)
+          ),
+          correlation_sampler: nil,)
       end
 
       let(:probe_notification_builder) do
