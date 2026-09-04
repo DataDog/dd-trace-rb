@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "prefix": "AI Guard",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/5579",
+  "message": "Expose Sensitive Data Scanner findings in AI Guard results via `AIGuard::Evaluation::Result#sds_findings`."
+}
