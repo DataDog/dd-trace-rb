@@ -105,11 +105,79 @@ namespace :github do
 
     rng = Random.new(ENV["CI_TEST_SEED"].to_i)
 
-    tasks.each do |task|
+    durations = tasks.map do |task|
       env = {"BUNDLE_GEMFILE" => task["gemfile"]}
       cmd = "bundle exec rake spec:#{task["task"]}'[--seed #{rng.rand(0xFFFF)}]'"
 
-      Bundler.with_unbundled_env { sh(env, cmd) }
+      junit_files_before = Dir["tmp/rspec/*.xml"]
+
+      begin
+        Bundler.with_unbundled_env { sh(env, cmd) }
+      rescue RuntimeError
+        raise annotate_test_failures(env, cmd)
+      end
+
+      junit_files_after = Dir["tmp/rspec/*.xml"] - junit_files_before
+
+      [task["task"], junit_files_after.sum { |file| junit_suite_time(file) }]
+    end
+
+    report_task_durations(durations)
+  end
+
+  def annotate_test_failures(env, cmd)
+    env_prefix = env.map { |k, v| "#{k}=#{v}" }.join(" ")
+    repro_command = "#{env_prefix} #{cmd}"
+
+    file = ENV.fetch("RSPEC_FAILURES_FILE", "tmp/rspec/failures.txt")
+    return "RSpec failure" unless File.exist?(file)
+
+    content = File.read(file)
+    return "RSpec failure" if content.strip.empty?
+
+    # GitHub Actions truncates large annotations in the UI; above this size,
+    # fall back to failed example titles only.
+    annotation_size_threshold = 4096
+
+    title = escape_annotation("RSpec failure: #{repro_command}")
+
+    summary = if content.bytesize <= annotation_size_threshold
+      content
+    else
+      content[/^Failed examples:.*/m] || content
+    end
+
+    body = "#{title}\n\n#{summary}"
+    puts "::error title=#{title}::#{escape_annotation(body)}"
+    body
+  end
+
+  def escape_annotation(text)
+    text.gsub("%", "%25").gsub("\r", "%0D").gsub("\n", "%0A")
+  end
+
+  def junit_suite_time(file)
+    File.read(file)[/<testsuite\b[^>]*\btime="([\d.]+)"/, 1].to_f
+  rescue Errno::ENOENT
+    0.0
+  end
+
+  def report_task_durations(durations)
+    summary = ENV["GITHUB_STEP_SUMMARY"]
+    return if summary.to_s.empty?
+
+    rows = durations.map { |(task, time)| "| #{task} | #{time.round(1)}s |" }
+
+    File.open(summary, "a") do |f|
+      f.puts <<~SUMMARY
+        <details>
+        <summary>Task durations</summary>
+
+        | Task | Duration |
+        | --- | --- |
+        #{rows.join("\n")}
+        </details>
+      SUMMARY
     end
   end
 

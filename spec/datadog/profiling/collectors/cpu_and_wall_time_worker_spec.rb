@@ -25,6 +25,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:sighandler_sampling_enabled) { false }
   let(:cpu_sampling_interval_ms) { 10 }
   let(:one_second_in_ns) { 1_000_000_000 }
+  let(:waiting_for_gvl_threshold_ns) { 10_000_000 }
   let(:thread_context_collector) { build_thread_context_collector(recorder) }
   let(:worker_settings) do
     {
@@ -37,6 +38,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       gvl_profiling_enabled: gvl_profiling_enabled,
       sighandler_sampling_enabled: sighandler_sampling_enabled,
       cpu_sampling_interval_ms: cpu_sampling_interval_ms,
+      waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
       **options,
     }
   end
@@ -587,10 +589,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
 
         context "when 'Waiting for GVL' periods are below waiting_for_gvl_threshold_ns" do
-          let(:options) do
-            collector = build_thread_context_collector(recorder, waiting_for_gvl_threshold_ns: one_second_in_ns)
-            {thread_context_collector: collector}
-          end
+          let(:waiting_for_gvl_threshold_ns) { one_second_in_ns }
 
           it "does not trigger extra samples due to GVL wait duration" do
             background_thread_affected_by_gvl_contention
@@ -982,7 +981,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           eval("proc { def self.foo; rand; end; foo }.call", binding, __FILE__, __LINE__)
         end
 
-        # Internal objects are skipped by the heap profiler (see `start_heap_allocation_recording()`) because tracking
+        # Internal objects are skipped by the heap profiler (see
+        # `heap_recorder_record_allocation()`) because tracking
         # them would mean adding them to a `ObjectSpace::WeakMap`, which is not safe. They are still allocation
         # sampled, as that is safe and useful.
         it "records them as allocation samples but never as heap samples" do
@@ -1256,6 +1256,58 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(cpu_time_ns).to be <= elapsed_ns
       end
     end
+
+    # This is a simplified end-to-end test; the ThreadContext has all the variants for otel gems, but
+    # here we're only testing if `thread_context_collector_resolve_otel_span_key_may_lose_gvl` is getting called
+    # correctly
+    context "when a thread has an active otel span" do
+      before do
+        require "opentelemetry/sdk"
+        require "opentelemetry-exporter-otlp"
+      rescue LoadError
+        skip "Test requires the opentelemetry-sdk and opentelemetry-exporter-otlp gems"
+      end
+
+      let(:thread_context_collector) { build_thread_context_collector(recorder, otel_context_enabled: :only) }
+      let(:otel_tracer) do
+        OpenTelemetry::SDK.configure
+        OpenTelemetry.tracer_provider.tracer("datadog-profiling-test")
+      end
+      let(:ready_queue) { Queue.new }
+      let(:background_thread) do
+        Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
+          otel_tracer.in_span("profiler.test") do |span|
+            @otel_span_id = span.context.span_id.unpack1("Q>").to_i
+            ready_queue << true
+            sleep
+          end
+        end
+      end
+
+      after do
+        unless RSpec.current_example.skipped?
+          background_thread.kill
+          background_thread.join
+          OpenTelemetry.tracer_provider.shutdown
+        end
+      end
+
+      it "includes the otel span ids in the samples for that thread" do
+        allow(OpenTelemetry.logger).to receive(:error) # Silence "unable to export spans", we have no otlp endpoint
+
+        background_thread
+        ready_queue.pop
+
+        start
+
+        sample = try_wait_until do
+          samples_for_thread(samples_from_pprof(recorder.serialize!), background_thread)
+            .find { |it| it.labels.key?(:"span id") }
+        end
+
+        expect(sample.labels).to include("span id": @otel_span_id, "local root span id": @otel_span_id)
+      end
+    end
   end
 
   describe "Ractor safety" do
@@ -1486,6 +1538,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           sample_count: 0,
           gc_samples: 0,
           gc_samples_missed_due_to_missing_context: 0,
+          gc_samples_skipped_nothing_to_flush: 0,
           inactive_thread_samples_skipped: 0,
           profiler_thread_samples_skipped: 0,
         }

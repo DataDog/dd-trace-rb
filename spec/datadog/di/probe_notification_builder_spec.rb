@@ -255,6 +255,11 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       )
     end
 
+    it "includes the per-process runtime id in the envelope as snake_case" do
+      expect(payload[:runtime_id]).to be_a(String)
+      expect(payload[:runtime_id]).to eq(Datadog::Core::Environment::Identity.id)
+    end
+
     context "with template" do
       let(:probe) do
         Datadog::DI::Probe.new(id: "123", type: :log, file: "X", line_no: 1,
@@ -297,6 +302,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           },
           duration: 0,
           host: nil,
+          runtime_id: String,
         }
       end
 
@@ -337,6 +343,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             },
           },
           message: nil,
+          runtime_id: String,
           service: "test service",
           timestamp: Integer,
           logger: {
@@ -413,6 +420,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             },
           },
           message: nil,
+          runtime_id: String,
           service: "test service",
           timestamp: Integer,
           logger: {

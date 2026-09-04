@@ -108,7 +108,8 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       let(:details) do
         Datadog::OpenFeature::ResolutionDetails.new(
-          value: "{}", reason: "MATCH", variant: "blue", flag_metadata: {},
+          value: "{}", reason: "MATCH", variant: "blue",
+          flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true},
           allocation_key: "joe", extra_logging: {}, log?: true, error?: false
         )
       end
@@ -118,6 +119,9 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
         expect(result.value).to eq("default" => true)
         expect(result.reason).to eq("ERROR")
+        expect(result.flag_metadata).to include(
+          Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true
+        )
       end
     end
   end
@@ -183,7 +187,6 @@ RSpec.describe Datadog::OpenFeature::Provider do
       allow(components).to receive(:open_feature).and_return(open_feature_component)
       allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(flag_eval_metrics_hook)
       allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(flag_eval_evp_hook)
-      # `evaluate` queries the span-enrichment hook via `enrich_span`; nil is a no-op.
       allow(open_feature_component).to receive(:span_enrichment_hook).and_return(nil)
     end
 
@@ -283,7 +286,6 @@ RSpec.describe Datadog::OpenFeature::Provider do
       let(:real_flag_eval_evp_hook) { Datadog::OpenFeature::Hooks::FlagEvalEVPHook.new(writer) }
 
       before do
-        # No bare sleep in shutdown synchronization: stub the background thread, drive flush manually.
         allow_any_instance_of(Datadog::OpenFeature::FlagEvaluation::Writer)
           .to receive(:start_background_thread).and_return(nil)
         allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(nil)
@@ -294,7 +296,8 @@ RSpec.describe Datadog::OpenFeature::Provider do
       it "enqueues an event into the Writer when the SDK client evaluates successfully" do
         result = Datadog::OpenFeature::ResolutionDetails.new(
           value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
-          flag_metadata: {}, allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false
+          flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true},
+          allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false
         )
         allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -302,8 +305,6 @@ RSpec.describe Datadog::OpenFeature::Provider do
           flag_key: "real-flag", default_value: "default", evaluation_context: evaluation_context
         )
 
-        # Drive the writer's drain manually (background thread stubbed) and assert the transport
-        # received the real flagevaluation built from the enqueued event.
         writer.send(:drain_and_flush)
         expect(evp_transport).to have_received(:send_flag_evaluations) do |payload|
           row = payload["flagEvaluations"].first
@@ -317,10 +318,39 @@ RSpec.describe Datadog::OpenFeature::Provider do
         writer.stop
       end
 
-      it "marks SDK-final type mismatches as runtime defaults in the emitted row" do
+      [false, true].each do |do_log|
+        it "protects targeting data through the SDK hook and Writer when DoLog is #{do_log}" do
+          result = Datadog::OpenFeature::ResolutionDetails.new(
+            value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
+            flag_metadata: {},
+            allocation_key: "alloc-9", extra_logging: {}, log?: do_log, error?: false
+          )
+          allow(engine).to receive(:fetch_value).and_return(result)
+
+          client.fetch_string_value(
+            flag_key: "protected-flag", default_value: "default", evaluation_context: evaluation_context
+          )
+
+          writer.send(:drain_and_flush)
+          expect(evp_transport).to have_received(:send_flag_evaluations).once do |payload|
+            expect(payload["flagEvaluations"].size).to eq(1)
+            row = payload["flagEvaluations"].first
+            expect(row["targeting_key"]).to eq(
+              "sha256_c6c289e49e9c05b2145860387b73bcb18df43fb09a1e4a4a9713c76c88bb541b"
+            )
+            expect(row).not_to have_key("context")
+            expect(Datadog::Core::Encoding::JSONEncoder.encode(payload)).not_to include("user-1")
+          end
+        ensure
+          writer.stop
+        end
+      end
+
+      it "normalizes SDK-final type mismatches in the emitted row" do
         result = Datadog::OpenFeature::ResolutionDetails.new(
           value: 123, reason: "TARGETING_MATCH", variant: "variant-a",
-          flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
+          flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true},
+          allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false
         )
         allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -333,6 +363,33 @@ RSpec.describe Datadog::OpenFeature::Provider do
           row = payload["flagEvaluations"].first
           expect(row["flag"]["key"]).to eq("typed-default-flag")
           expect(row["runtime_default_used"]).to be(true)
+          expect(row["error"]).to eq("message" => "TYPE_MISMATCH")
+          expect(row).not_to have_key("variant")
+          expect(row).not_to have_key("allocation")
+        end
+      ensure
+        writer.stop
+      end
+
+      it "emits the stable code instead of a raw provider error message" do
+        result = Datadog::OpenFeature::ResolutionDetails.new(
+          value: "default", reason: "ERROR", variant: nil, error_code: "FLAG_NOT_FOUND",
+          error_message: "flag user-1 was not found", flag_metadata: {
+            Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
+          }, allocation_key: nil, extra_logging: {}, log?: false, error?: true
+        )
+        allow(engine).to receive(:fetch_value).and_return(result)
+
+        client.fetch_string_value(
+          flag_key: "missing-flag", default_value: "default", evaluation_context: evaluation_context
+        )
+
+        writer.send(:drain_and_flush)
+        expect(evp_transport).to have_received(:send_flag_evaluations) do |payload|
+          row = payload["flagEvaluations"].first
+          expect(row["runtime_default_used"]).to be(true)
+          expect(row["error"]).to eq("message" => "FLAG_NOT_FOUND")
+          expect(Datadog::Core::Encoding::JSONEncoder.encode(payload)).not_to include("flag user-1 was not found")
         end
       ensure
         writer.stop
@@ -359,6 +416,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       expect(res.flag_metadata["dd.eval.timestamp_ms"]).to eq(1_700_000_000_000)
       expect(res.flag_metadata["existing"]).to eq("kept")
+      expect(res.flag_metadata["__dd_observe_full_evaluation_data"]).to be(false)
     end
 
     it "does not mutate the engine result metadata when stamping evaluation metadata" do

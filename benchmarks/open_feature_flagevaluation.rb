@@ -56,6 +56,7 @@ class OpenFeatureFlagevaluationBenchmark
     @writer.instance_variable_set(:@aggregator, Datadog::OpenFeature::FlagEvaluation::Aggregator.new)
     @writer.instance_variable_set(:@queue, SizedQueue.new(Datadog::OpenFeature::FlagEvaluation::Writer::QUEUE_SIZE))
     @writer.instance_variable_set(:@stop_mutex, Mutex.new)
+    @writer.instance_variable_set(:@stop_cond, ConditionVariable.new)
     @writer.instance_variable_set(:@dropped_queue_overflow, 0)
     @writer.define_singleton_method(:start_background_thread) {}
 
@@ -64,6 +65,7 @@ class OpenFeatureFlagevaluationBenchmark
     @details = HookDetails.new("variant-on", "TARGETING_MATCH", nil, {
       "__dd_allocation_key" => "allocation-7",
       "dd.eval.timestamp_ms" => 1_760_000_000_000,
+      Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
     })
 
     @attrs_by_profile = BENCHMARK_PROFILES.each_with_object({}) do |profile, attrs_by_profile|
@@ -144,6 +146,7 @@ class OpenFeatureFlagevaluationBenchmark
             targeting_key: targeting_keys[counter % targeting_keys.length],
             eval_time_ms: 1_760_000_000_000 + counter,
             attrs: attrs,
+            observe_full_evaluation_data: true,
           )
           counter += 1
         end
@@ -184,6 +187,7 @@ class OpenFeatureFlagevaluationBenchmark
               targeting_key: targeting_keys[counter % targeting_keys.length],
               eval_time_ms: 1_760_000_000_000 + counter,
               attrs: attrs,
+              observe_full_evaluation_data: true,
             )
             counter += worker_count
           end
