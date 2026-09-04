@@ -69,7 +69,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       end
 
       it "resolves the capture deadline through the serializer so the clamp is shared" do
-        expect(serializer).to receive(:serialization_deadline_ns).and_call_original
+        expect(serializer).to receive(:serialization_deadline_s).and_call_original
         evaluator.evaluate(probe, context)
       end
     end
@@ -220,9 +220,9 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         # Reads in order: deadline computation, first-expression check,
         # serialize_value of the first result (shares the deadline),
         # second-expression check (past the deadline).
-        clock_returns = [0, 0, 0, 200_000_000]
+        clock_returns = [0.0, 0.0, 0.0, 0.2]
         allow(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
-          if args == [::Process::CLOCK_MONOTONIC, :nanosecond]
+          if args == [::Process::CLOCK_MONOTONIC, :float_second]
             clock_returns[clock_calls].tap { clock_calls += 1 }
           else
             original.call(*args)

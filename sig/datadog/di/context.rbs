@@ -47,7 +47,7 @@ module Datadog
       attr_reader duration: Float?
       attr_reader exception: Exception?
 
-      def serialized_locals: (?deadline_ns: Integer?) -> Hash[Symbol, untyped]?
+      def serialized_locals: (?deadline_s: Float?) -> Hash[Symbol, untyped]?
 
       def fetch: ((Symbol | String) var_name) -> untyped
 
