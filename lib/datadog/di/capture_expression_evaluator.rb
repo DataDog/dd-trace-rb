@@ -25,8 +25,9 @@ module Datadog
       attr_reader :telemetry
 
       def evaluate(probe, context)
-        budget_ns = settings.dynamic_instrumentation.max_time_to_serialize_ms * 1_000_000
-        deadline_ns = ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) + budget_ns
+        # Shares the clamped capture budget with the main serializer so both
+        # capture-budget consumers honor the same hard ceiling.
+        deadline = serializer.serialization_deadline
 
         output = {}
         evaluation_errors = []
@@ -34,7 +35,7 @@ module Datadog
         probe.capture_expressions.each do |capture_expression|
           name = capture_expression.name
 
-          if ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) >= deadline_ns
+          if ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) >= deadline
             output[name] = {notCapturedReason: "timeout"}
             telemetry&.inc(TELEMETRY_NAMESPACE, "capture_expressions_skipped_by_timeout", 1)
             next
@@ -53,6 +54,7 @@ module Datadog
               attribute_count: limits[:attribute_count],
               length: limits[:length],
               collection_size: limits[:collection_size],
+              deadline: deadline,
             )
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)

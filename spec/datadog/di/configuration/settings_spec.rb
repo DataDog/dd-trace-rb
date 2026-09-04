@@ -25,6 +25,7 @@ RSpec.describe Datadog::DI::Configuration::Settings do
         [nil, "max_capture_collection_size", 10],
         [nil, "max_capture_string_length", 20],
         [nil, "max_capture_attribute_count", 4],
+        [nil, "max_time_to_serialize_ms", 300],
       ].each do |(scope_name_, name_, value_)|
         name = name_
         scope_name = scope_name_
@@ -49,6 +50,12 @@ RSpec.describe Datadog::DI::Configuration::Settings do
             expect(scope.public_send(name)).to eq(value)
           end
         end
+      end
+    end
+
+    context "default values" do
+      it "defaults max_time_to_serialize_ms to the 150 ms hard ceiling" do
+        expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq(150)
       end
     end
 
