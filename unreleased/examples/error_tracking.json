@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "prefix": "Error Tracking",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/4665",
+  "message": "Remove error tracking support for Ruby 2.6."
+}

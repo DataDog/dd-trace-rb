@@ -6,9 +6,10 @@ changelog fragment per notable change to this directory.
 ## Adding an entry
 
 1. Copy a file from `examples/` (e.g. `examples/basic.json`; there are
-   also real-life-flavored templates per type and product area —
-   `added.json`, `changed.json`, `fixed.json`, `di.json`, `appsec.json`,
-   `otel.json`).
+   also real-life-flavored templates per type and for every product
+   area — `added.json`, `changed.json`, `fixed.json`, `ai_guard.json`,
+   `appsec.json`, `data_streams.json`, `di.json`, `error_tracking.json`,
+   `otel.json`, `open_feature.json`).
 2. Rename it to a timestamp, e.g. `$(date +%Y%m%d%H%M%S).json`.
 3. Fill in the fields:
    - `type`: `Added`, `Changed`, or `Fixed`.
