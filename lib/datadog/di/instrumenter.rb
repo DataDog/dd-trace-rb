@@ -82,13 +82,13 @@ module Datadog
       # @param settings [Datadog::Core::Configuration::Settings] active DI/core settings.
       # @param serializer [Datadog::DI::Serializer] serializes captured values into snapshots.
       # @param logger [Datadog::DI::Logger] DI logger used for diagnostic output.
-      # @param code_tracker [Datadog::DI::CodeTracker, nil] global code tracker, or nil when
-      #   tracking is not active.
       # @param correlation_sampler [Datadog::DI::CorrelationSampler, nil] coordinated
       #   sampling gate for capturing probes; nil disables coordination.
+      # @param code_tracker [Datadog::DI::CodeTracker, nil] global code tracker, or nil when
+      #   tracking is not active.
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] telemetry sink, or nil
       #   when telemetry is disabled.
-      def initialize(settings, serializer, logger, code_tracker: nil, correlation_sampler:, telemetry: nil)
+      def initialize(settings, serializer, logger, correlation_sampler:, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
