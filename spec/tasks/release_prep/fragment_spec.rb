@@ -57,25 +57,46 @@ RSpec.describe ReleasePrep::Fragment do
         .to raise_error(ReleasePrep::ValidationError, /bad\.json/)
     end
 
-    it "raises when a required field is missing" do
-      path = write_fragment("1.json", valid_entry.reject { |k, _| k == "message" })
-
-      expect { described_class.read(path) }
-        .to raise_error(ReleasePrep::ValidationError, /message/)
-    end
-
-    it "raises when type is not in the closed enum" do
+    it "reads a fragment with content violations without raising" do
       path = write_fragment("1.json", valid_entry("type" => "Removed"))
 
-      expect { described_class.read(path) }
-        .to raise_error(ReleasePrep::ValidationError, /type/)
+      expect { described_class.read(path) }.not_to raise_error
+    end
+  end
+
+  describe "#errors" do
+    it "is empty for a valid fragment" do
+      fragment = described_class.read(write_fragment("1.json", valid_entry))
+
+      expect(fragment.errors).to eq([])
     end
 
-    it "raises when prefix is not in the closed enum" do
+    it "reports a missing required field, naming the field and file" do
+      path = write_fragment("1.json", valid_entry.reject { |k, _| k == "message" })
+
+      expect(described_class.read(path).errors)
+        .to contain_exactly(/1\.json: missing required field "message"/)
+    end
+
+    it "reports a type outside the closed enum" do
+      path = write_fragment("1.json", valid_entry("type" => "Removed"))
+
+      expect(described_class.read(path).errors).to contain_exactly(/type "Removed" must be one of/)
+    end
+
+    it "reports a prefix outside the closed enum" do
       path = write_fragment("1.json", valid_entry("prefix" => "Redis"))
 
-      expect { described_class.read(path) }
-        .to raise_error(ReleasePrep::ValidationError, /prefix/)
+      expect(described_class.read(path).errors).to contain_exactly(/prefix "Redis" must be one of/)
+    end
+
+    it "collects every violation at once" do
+      path = write_fragment("1.json", valid_entry("type" => "Removed", "prefix" => "Redis"))
+
+      expect(described_class.read(path).errors).to contain_exactly(
+        /type "Removed" must be one of/,
+        /prefix "Redis" must be one of/,
+      )
     end
   end
 
