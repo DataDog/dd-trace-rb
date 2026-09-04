@@ -73,8 +73,9 @@ module Datadog
           # and exception, allowing the caller to disable the affected probe.
           # Successfully serialized snapshots are still sent.
           #
-          # Large snapshots (> 1MB) are dropped. Batches are split into chunks
-          # of ~2MB each to avoid large network requests.
+          # Large snapshots (> 1MB) are pruned to fit, or dropped when pruning
+          # cannot bring them under the cap. Batches are split into chunks of
+          # ~2MB each to avoid large network requests.
           #
           # @param payload [Array<SnapshotEvent>] the snapshot events to send, each paired with its probe's guardrails event type
           # @param tags [Hash] Tags to send with the snapshots
@@ -94,7 +95,7 @@ module Datadog
                 # per-event cap before dropping it, so a portion of the
                 # captured data is still sent. Drop only when pruning
                 # cannot bring the snapshot under the cap.
-                pruned = SnapshotPruner.prune(event.payload, MAX_SERIALIZED_SNAPSHOT_SIZE)
+                pruned = SnapshotPruner.prune(event.payload, MAX_SERIALIZED_SNAPSHOT_SIZE, encoded: encoded)
                 if pruned.nil?
                   logger.debug do
                     "di: dropping too big snapshot (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
