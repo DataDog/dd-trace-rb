@@ -5,9 +5,11 @@ module Datadog
 
       PRUNED_BYTES: Integer
 
-      def self.prune: (Hash snapshot, Integer max_size) -> (::String | nil)
+      def self.prune: (Hash[Symbol, untyped] snapshot, Integer max_size, encoded: String) -> (::String | nil)
 
-      def self.collect_captured_entries: (Hash captures) -> Array[[Hash, Symbol]]
+      def self.collect_captured_entries: (Hash[Symbol, untyped] captures) -> Array[[Hash[Symbol, untyped], Symbol]]
+
+      def self.collect_captured_entries_into: (untyped node, Array[[Hash[Symbol, untyped], Symbol]] entries) -> void
     end
   end
 end
