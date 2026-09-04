@@ -1,3 +1,99 @@
+# Repository metadata, configuration, and CI
+# .github/CODEOWNERS is covered by the .github/ rule below.
+.github/ @DataDog/ruby-guild
+.gitlab/ @DataDog/ruby-guild
+.gitlab-ci.yml @DataDog/ruby-guild
+.claude/ @DataDog/ruby-guild
+.cursor/ @DataDog/ruby-guild
+.vscode/ @DataDog/ruby-guild
+.bundler-audit.yml @DataDog/ruby-guild
+.customcops.yml @DataDog/ruby-guild
+.dockerignore @DataDog/ruby-guild
+.editorconfig @DataDog/ruby-guild
+.env @DataDog/ruby-guild
+.git-blame-ignore-revs @DataDog/ruby-guild
+.gitattributes @DataDog/ruby-guild
+.gitignore @DataDog/ruby-guild
+.projections.json @DataDog/ruby-guild
+.pryrc @DataDog/ruby-guild
+.rspec @DataDog/ruby-guild
+.rspec-local.example @DataDog/ruby-guild
+.rubocop.yml @DataDog/ruby-guild
+.semgrepignore @DataDog/ruby-guild
+.simplecov @DataDog/ruby-guild
+.standard.yml @DataDog/ruby-guild
+.standard_todo.yml @DataDog/ruby-guild
+.yamllint.yml @DataDog/ruby-guild
+.yardopts @DataDog/ruby-guild
+AGENTS.md @DataDog/ruby-guild
+AGENTS_TODO.md @DataDog/ruby-guild
+CLAUDE.md @DataDog/ruby-guild
+CONTRIBUTING.md @DataDog/ruby-guild
+README.md @DataDog/ruby-guild
+SECURITY.md @DataDog/ruby-guild
+LICENSE @DataDog/ruby-guild
+LICENSE-3rdparty.csv @DataDog/ruby-guild
+LICENSE.Apache @DataDog/ruby-guild
+LICENSE.BSD3 @DataDog/ruby-guild
+NOTICE @DataDog/ruby-guild
+CHANGELOG.md @DataDog/ruby-guild
+
+# Build, release, and developer tooling
+Gemfile @DataDog/ruby-guild
+Gemfile.lock @DataDog/ruby-guild
+Rakefile @DataDog/ruby-guild
+datadog.gemspec @DataDog/ruby-guild
+Matrixfile @DataDog/ruby-guild
+Steepfile @DataDog/ruby-guild
+mise.toml @DataDog/ruby-guild
+docker-compose.yml @DataDog/ruby-guild
+appraisal/ @DataDog/ruby-guild
+tasks/ @DataDog/ruby-guild
+bin/ @DataDog/ruby-guild
+yard/ @DataDog/ruby-guild
+rubocop/ @DataDog/ruby-guild
+suppressions/ @DataDog/ruby-guild
+tools/ @DataDog/ruby-guild
+gemfiles/ @DataDog/ruby-guild
+integration/ @DataDog/ruby-guild
+benchmarks/ @DataDog/ruby-guild
+supported-configurations.json @DataDog/ruby-guild
+vendor/rbs/ @DataDog/ruby-guild
+
+# Core library (top-level entrypoints and shared modules)
+lib/datadog.rb @DataDog/ruby-guild
+lib/datadog/auto_instrument.rb @DataDog/ruby-guild
+lib/datadog/auto_instrument_base.rb @DataDog/ruby-guild
+lib/datadog/core.rb @DataDog/ruby-guild
+lib/datadog/ruby_version.rb @DataDog/ruby-guild
+lib/datadog/version.rb @DataDog/ruby-guild
+lib/datadog/kit.rb @DataDog/ruby-guild
+lib/datadog/error_tracking.rb @DataDog/error-tracking @DataDog/ruby-guild
+lib/datadog/ @DataDog/ruby-guild
+lib/datadog/kit/appsec/ @DataDog/asm-ruby @DataDog/ruby-guild
+lib/datadog/kit/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
+lib/datadog/error_tracking/ @DataDog/error-tracking @DataDog/ruby-guild
+
+# RBS signatures (top-level and shared)
+sig/ @DataDog/ruby-guild
+sig/datadog/error_tracking.rbs @DataDog/error-tracking @DataDog/ruby-guild
+sig/datadog/kit/appsec/ @DataDog/asm-ruby @DataDog/ruby-guild
+sig/datadog/kit/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
+sig/datadog/error_tracking/ @DataDog/error-tracking @DataDog/ruby-guild
+
+# Specs (top-level, shared, and core)
+spec/ @DataDog/ruby-guild
+spec/datadog/kit/appsec/ @DataDog/asm-ruby @DataDog/ruby-guild
+spec/datadog/kit/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
+spec/datadog/error_tracking/ @DataDog/error-tracking @DataDog/ruby-guild
+
+# Additional documentation (Ruby-specific tracer detail)
+docs/ @DataDog/ruby-guild
+docs/DynamicInstrumentation.md @DataDog/debugger-ruby @DataDog/ruby-guild
+docs/DynamicInstrumentationDevelopment.md @DataDog/debugger-ruby @DataDog/ruby-guild
+docs/ProfilingDevelopment.md @DataDog/profiling-rb @DataDog/ruby-guild
+docs/OpenTelemetry.md @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
+
 # Public Documentation
 docs/Compatibility.md @DataDog/documentation
 docs/GettingStarted.md @DataDog/documentation
@@ -29,6 +125,8 @@ ext/datadog_profiling_native_extension/ @DataDog/profiling-rb
 ext/libdatadog_api/ @DataDog/ruby-guild
 ext/libdatadog_api/feature_flags.c @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 ext/libdatadog_api/feature_flags.h @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
+ext/LIBDATADOG_DEVELOPMENT.md @DataDog/profiling-rb @DataDog/ruby-guild
+ext/libdatadog_extconf_helpers.rb @DataDog/profiling-rb @DataDog/ruby-guild
 benchmarks/open_feature_flagevaluation.rb @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 gemfiles/*openfeature* @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 tools/agent-evals/open_feature_guidance/ @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
