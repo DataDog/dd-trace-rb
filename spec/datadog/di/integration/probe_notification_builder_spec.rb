@@ -28,6 +28,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         capture_expression_evaluator: capture_expression_evaluator)
     end
 
+    let(:instrumenter) do
+      Datadog::DI::Instrumenter.new(settings, serializer, logger, correlation_sampler: nil)
+    end
+
     let(:settings) do
       double("settings").tap do |settings|
         allow(settings).to receive(:dynamic_instrumentation).and_return(di_settings)
