@@ -379,6 +379,8 @@ module Datadog
             thread_id: nil,
             version: 2,
           },
+          # Per-process identity, distinguishing snapshots before and after a
+          # restart inside the same container.
           runtime_id: Core::Environment::Identity.id,
           # TODO add tests that the trace/span id is correctly propagated
           "dd.trace_id": active_trace&.id&.to_s,

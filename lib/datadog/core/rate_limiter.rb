@@ -178,6 +178,69 @@ module Datadog
       end
     end
 
+    # Token bucket that permits consumption below zero. The deficit refills over
+    # time at +rate+.
+    class BorrowingTokenBucket
+      # Refill rate in tokens per second.
+      attr_reader :rate
+      # Ceiling the balance refills toward.
+      attr_reader :max_tokens
+
+      # @param rate [Numeric] refill rate, in tokens per second. Unlike
+      #   {TokenBucket}, this bucket has no special-case handling for a zero
+      #   or negative rate: a zero rate never becomes available (matching
+      #   TokenBucket's "never allow"), and a negative rate is unsupported --
+      #   it drives the balance ever more negative rather than always allowing.
+      #   Callers must pass a non-negative rate.
+      # @param max_tokens [Numeric] ceiling the balance refills toward
+      def initialize(rate, max_tokens: rate)
+        raise ArgumentError, "rate must be a number: #{rate}" unless rate.is_a?(Numeric)
+        raise ArgumentError, "rate must not be negative: #{rate}" if rate < 0
+        raise ArgumentError, "max_tokens must be a number: #{max_tokens}" unless max_tokens.is_a?(Numeric)
+
+        @rate = rate
+        @max_tokens = max_tokens
+        @tokens = max_tokens
+        @last_refill = Core::Utils::Time.get_time
+      end
+
+      # @return [Boolean] whether the balance is currently positive
+      def available?
+        refill
+        @tokens > 0
+      end
+
+      # Removes +size+ tokens, driving the balance negative when the bucket is
+      # short.
+      #
+      # @param size [Numeric] tokens to remove
+      # @return [void]
+      def consume(size: 1)
+        refill
+        @tokens -= size
+        nil
+      end
+
+      # @return [Numeric] the balance as of the last refill. Unlike
+      #   available? and consume, this method does not refill first, so reading
+      #   it without a recent available? or consume returns a stale balance.
+      def available_tokens
+        @tokens
+      end
+
+      private
+
+      # Adds rate * elapsed-seconds to the balance since the last refill,
+      # capping at max_tokens; the balance may still be negative afterward.
+      def refill
+        now = Core::Utils::Time.get_time
+        @tokens += @rate * (now - @last_refill)
+        @tokens = @max_tokens if @tokens > @max_tokens
+        @last_refill = now
+        nil
+      end
+    end
+
     # {Datadog::Core::RateLimiter} that accepts all resources,
     # with no limits.
     class UnlimitedLimiter < RateLimiter
