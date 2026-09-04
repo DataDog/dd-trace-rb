@@ -60,8 +60,9 @@ module Datadog
           # and exception, allowing the caller to disable the affected probe.
           # Successfully serialized snapshots are still sent.
           #
-          # Large snapshots (> 1MB) are dropped. Batches are split into chunks
-          # of ~2MB each to avoid large network requests.
+          # Large snapshots (> 1MB) are pruned to fit, or dropped when pruning
+          # cannot bring them under the cap. Batches are split into chunks of
+          # ~2MB each to avoid large network requests.
           #
           # @param payload [Array<Hash>] Array of snapshot payloads
           # @param tags [Hash] Tags to send with the snapshots
@@ -79,7 +80,7 @@ module Datadog
                 # per-event cap before dropping it, so a portion of the
                 # captured data is still sent. Drop only when pruning
                 # cannot bring the snapshot under the cap.
-                pruned = SnapshotPruner.prune(snapshot, MAX_SERIALIZED_SNAPSHOT_SIZE)
+                pruned = SnapshotPruner.prune(snapshot, MAX_SERIALIZED_SNAPSHOT_SIZE, encoded: encoded)
                 if pruned.nil?
                   logger.debug { "di: dropping too big snapshot (pruning did not fit)" }
                   next

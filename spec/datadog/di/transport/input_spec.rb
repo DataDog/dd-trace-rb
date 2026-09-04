@@ -186,13 +186,13 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
         {
           debugger: {
             snapshot: {
-              probe: { id: "big-probe" },
+              probe: {id: "big-probe"},
               captures: {
-                lines: { 42 => {
-                  locals: { big: { type: "String", value: "x" * 10_000 },
-                    small: { type: "Integer", value: "1" } },
-                  arguments: { self: { type: "String", value: "self" } },
-                } },
+                lines: {42 => {
+                  locals: {big: {type: "String", value: "x" * 10_000},
+                           small: {type: "Integer", value: "1"}},
+                  arguments: {self: {type: "String", value: "self"}},
+                }},
               },
             },
           },
