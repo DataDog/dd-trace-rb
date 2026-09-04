@@ -51,7 +51,7 @@ module Datadog
       def evaluate(probe, context)
         # Shares the clamped capture budget with the main serializer so both
         # capture-budget consumers honor the same hard ceiling.
-        deadline_ns = serializer.serialization_deadline_ns
+        deadline_s = serializer.serialization_deadline_s
 
         output = {}
         evaluation_errors = []
@@ -59,7 +59,7 @@ module Datadog
         probe.capture_expressions.each do |capture_expression|
           name = capture_expression.name
 
-          if ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) >= deadline_ns
+          if ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) >= deadline_s
             output[name] = {notCapturedReason: "timeout"}
             telemetry&.inc(DI::TELEMETRY_NAMESPACE, "capture_expressions_skipped_by_timeout", 1)
             guardrails_telemetry.skipped(
@@ -82,7 +82,7 @@ module Datadog
               attribute_count: limits[:attribute_count],
               length: limits[:length],
               collection_size: limits[:collection_size],
-              deadline_ns: deadline_ns,
+              deadline_s: deadline_s,
             )
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
