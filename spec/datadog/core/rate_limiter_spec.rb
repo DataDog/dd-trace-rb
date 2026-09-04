@@ -244,6 +244,14 @@ RSpec.describe Datadog::Core::BorrowingTokenBucket do
         expect { bucket }.to raise_error(ArgumentError, /bad/)
       end
     end
+
+    context "with negative rate" do
+      let(:rate) { -1 }
+
+      it "raises argument error" do
+        expect { bucket }.to raise_error(ArgumentError, /must not be negative/)
+      end
+    end
   end
 
   describe "#consume" do
