@@ -59,6 +59,7 @@ RSpec.describe Datadog::Tracing::Component do
           {
             default_service: settings.service,
             enabled: settings.tracing.enabled,
+            otel_thread_context_enabled: settings.tracing.otel_thread_context_enabled,
             trace_flush: trace_flush,
             tags: settings.tags,
             sampler: sampler,
@@ -155,6 +156,14 @@ RSpec.describe Datadog::Tracing::Component do
           let(:options) { {enabled: enabled} }
           it_behaves_like "event publishing writer and priority sampler"
         end
+      end
+
+      context "with :otel_thread_context_enabled" do
+        before do
+          settings.tracing.otel_thread_context_enabled = true
+        end
+
+        it_behaves_like "new tracer"
       end
 
       context "with :env" do
