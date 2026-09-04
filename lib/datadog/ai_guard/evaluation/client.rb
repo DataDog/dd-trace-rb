@@ -34,7 +34,11 @@ module Datadog
             tag_probabilities: response.tag_probabilities
           )
 
-          Outcome.new(result, redaction, blocking_enabled: response.blocking_enabled?)
+          Outcome.new(
+            result: result,
+            redaction: redaction,
+            blocking_enabled: response.blocking_enabled?
+          )
         end
       end
     end
