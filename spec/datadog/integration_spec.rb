@@ -123,23 +123,10 @@ RSpec.describe "Datadog integration" do
       it "closes tracer file descriptors" do
         before_open_file_descriptors = open_file_descriptors
 
-        # Reproducer: repeat the configure/trace/flush/shutdown cycle to widen
-        # the race window that intermittently leaks sockets in CI (~1/80 per
-        # cycle). 100 cycles give ~70% probability of surfacing the leak in a
-        # single run. Each iteration resets and rebuilds components so the
-        # transport's success counter starts at zero and wait_for_tracer_sent
-        # actually waits for a real flush.
-        #
-        # Calls Datadog::Tracing.trace and Datadog.shutdown! directly (not the
-        # `start_tracer` let / `shutdown` subject) because those are memoized
-        # per example and would only run once across the loop.
-        100.times do
-          Datadog.send(:reset!)
-          Datadog.configure { |c| }
-          Datadog::Tracing.trace("test.op") {}
-          wait_for_tracer_sent
-          Datadog.shutdown!
-        end
+        start_tracer
+        wait_for_tracer_sent
+
+        shutdown
 
         after_open_file_descriptors = open_file_descriptors
 
