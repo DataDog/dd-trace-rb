@@ -108,15 +108,17 @@ RSpec.describe ReleasePrep::Fragments do
       expect(result).not_to include("### Changed")
     end
 
-    it "sorts fragments within a section by prefix" do
+    it "sorts fragments within a section by the declared prefix order, not alphabetically" do
       fragments = fragments_for(
         valid_entry("prefix" => "Tracing", "message" => "Tracing fix."),
         valid_entry("prefix" => "AppSec", "message" => "AppSec fix."),
+        valid_entry("prefix" => "Core", "message" => "Core fix."),
       )
 
       result = fragments.render
 
-      expect(result.index("AppSec fix.")).to be < result.index("Tracing fix.")
+      expect(result.index("Core fix.")).to be < result.index("Tracing fix.")
+      expect(result.index("Tracing fix.")).to be < result.index("AppSec fix.")
     end
 
     it "renders each fragment's line without linkification" do

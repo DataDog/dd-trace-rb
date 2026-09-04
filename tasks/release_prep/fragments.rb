@@ -34,8 +34,8 @@ module ReleasePrep
     end
 
     # Renders the pending fragments as Markdown: one section per fragment
-    # type, fragments sorted by prefix. Plain Markdown only; linkification is
-    # changelog:format's job.
+    # type, fragments in the order Fragment::PREFIXES declares. Plain Markdown
+    # only; linkification is changelog:format's job.
     def render
       return "" if @fragments.empty?
 
@@ -43,7 +43,7 @@ module ReleasePrep
         type_fragments = @fragments.select { |fragment| fragment.type == type }
         next if type_fragments.empty?
 
-        lines = type_fragments.sort_by(&:prefix).map(&:to_s)
+        lines = type_fragments.sort_by { |fragment| Fragment::PREFIXES.index(fragment.prefix) }.map(&:to_s)
         "### #{type}\n\n#{lines.join("\n")}"
       end.compact
 
