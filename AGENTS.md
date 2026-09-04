@@ -113,8 +113,6 @@ no external grant needed. No local trigger otherwise.
 - Follow the `write-comment` skill's rules for when a comment earns its place; default to no comment otherwise.
 - Use `Core::Utils::EnumerableCompat.filter_map` instead of `filter_map` for compatibility with Ruby 2.5 and 2.6 (native `filter_map` requires Ruby 2.7+).
 - Use `Datadog::Core::Utils::Time.now` instead of `Time.now` everywhere. The time provider is configurable (for example, for Timecop support), and tests can override it via `Core::Utils::Time.now_provider=`.
-  - Constants initialized at load time, before user configuration, may use `::Time.now` directly; add a comment explaining why (see `lib/datadog/profiling/collectors/info.rb` for an example).
-  - Dynamic Instrumentation probe instrumentation that runs inside customer application methods must use `::Time.now` directly. DI must never invoke customer-provided code during instrumentation.
 
 ## Documentation
 
