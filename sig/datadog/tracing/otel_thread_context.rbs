@@ -1,6 +1,8 @@
 module Datadog
   module Tracing
     module OTelThreadContext
+      UNKNOWN_LOCAL_ROOT_SPAN_ID: Integer
+
       def self.supported?: () -> bool
 
       def self.enable!: () -> bool

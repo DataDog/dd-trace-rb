@@ -10,6 +10,8 @@ module Datadog
     #
     # Native functions are implemented in ext/libdatadog_api/otel_thread_context.c
     module OTelThreadContext
+      UNKNOWN_LOCAL_ROOT_SPAN_ID = 0
+
       class << self
         def supported?
           Datadog::Core::LIBDATADOG_API_FAILURE.nil? && _native_supported?

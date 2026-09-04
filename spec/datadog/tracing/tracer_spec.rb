@@ -26,7 +26,45 @@ RSpec.describe Datadog::Tracing::Tracer do
 
   after { tracer.shutdown! }
 
+  shared_context "OTel thread context enabled" do
+    let(:tracer_options) { super().merge(otel_thread_context_enabled: true) }
+
+    before do
+      allow(Datadog::Tracing::OTelThreadContext).to receive(:enable!).and_return(true)
+      allow(Datadog::Tracing::OTelThreadContext).to receive(:set)
+      allow(Datadog::Tracing::OTelThreadContext).to receive(:clear)
+    end
+  end
+
   describe "::new" do
+    context "with OTel thread context disabled" do
+      it "does not enable OTel thread context" do
+        expect(Datadog::Tracing::OTelThreadContext).to_not receive(:enable!)
+
+        tracer
+      end
+    end
+
+    context "with OTel thread context enabled" do
+      let(:tracer_options) { super().merge(otel_thread_context_enabled: true) }
+
+      it "enables OTel thread context" do
+        expect(Datadog::Tracing::OTelThreadContext).to receive(:enable!).and_return(true)
+
+        tracer
+      end
+
+      context "when OTel thread context is unsupported" do
+        before do
+          allow(Datadog::Tracing::OTelThreadContext).to receive(:enable!).and_return(false)
+        end
+
+        it "still initializes the tracer" do
+          expect { tracer }.to_not raise_error
+        end
+      end
+    end
+
     context "given :trace_flush" do
       let(:tracer_options) { super().merge(trace_flush: trace_flush) }
       let(:trace_flush) { instance_double(Datadog::Tracing::Flush::Finished) }
@@ -213,6 +251,31 @@ RSpec.describe Datadog::Tracing::Tracer do
       end
 
       context "when starting a span" do
+        context "with OTel thread context enabled" do
+          include_context "OTel thread context enabled"
+
+          it "sets the OTel thread context and clears it when the trace finishes" do
+            tracer.trace(name) do |span, trace_op|
+              expect(Datadog::Tracing::OTelThreadContext).to have_received(:set).with(
+                trace_id: trace_op.id,
+                span_id: span.id,
+                local_root_span_id: span.id
+              )
+            end
+
+            expect(Datadog::Tracing::OTelThreadContext).to have_received(:clear).once
+          end
+        end
+
+        context "with OTel thread context disabled" do
+          it "does not update the OTel thread context" do
+            expect(Datadog::Tracing::OTelThreadContext).to_not receive(:set)
+            expect(Datadog::Tracing::OTelThreadContext).to_not receive(:clear)
+
+            tracer.trace(name) {}
+          end
+        end
+
         it "yields span provided block" do
           expect { |b| tracer.trace(name, &b) }.to yield_with_args(
             a_kind_of(Datadog::Tracing::SpanOperation),
@@ -312,6 +375,30 @@ RSpec.describe Datadog::Tracing::Tracer do
       end
 
       context "when nesting spans" do
+        context "with OTel thread context enabled" do
+          include_context "OTel thread context enabled"
+
+          it "updates the OTel thread context as spans are activated and deactivated" do
+            tracer.trace("parent") do |parent, trace_op|
+              child = tracer.trace("child")
+
+              expect(Datadog::Tracing::OTelThreadContext).to have_received(:set).with(
+                trace_id: trace_op.id,
+                span_id: child.id,
+                local_root_span_id: parent.id
+              ).once
+
+              expect(Datadog::Tracing::OTelThreadContext).to receive(:set).with(
+                trace_id: trace_op.id,
+                span_id: parent.id,
+                local_root_span_id: parent.id
+              ).once
+
+              child.finish
+            end
+          end
+        end
+
         it "propagates parent span and uses default service name" do
           tracer.trace("parent", service: "service-parent") do
             tracer.trace("child1") { |s| s.set_tag("tag", "tag_1") }
@@ -823,6 +910,42 @@ RSpec.describe Datadog::Tracing::Tracer do
 
   describe "#continue_trace!" do
     subject(:continue_trace!) { tracer.continue_trace!(digest) }
+
+    context "with OTel thread context enabled" do
+      include_context "OTel thread context enabled"
+
+      context "with a propagated parent" do
+        let(:digest) { Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2) }
+
+        it "restores the propagated parent and clears it when the trace finishes" do
+          tracer.continue_trace!(digest) do
+            tracer.trace("span") {}
+
+            expect(Datadog::Tracing::OTelThreadContext).to have_received(:set).with(
+              trace_id: digest.trace_id,
+              span_id: digest.span_id,
+              local_root_span_id: Datadog::Tracing::OTelThreadContext::UNKNOWN_LOCAL_ROOT_SPAN_ID
+            ).once
+            expect(Datadog::Tracing::OTelThreadContext).to_not have_received(:clear)
+          end
+
+          expect(Datadog::Tracing::OTelThreadContext).to have_received(:clear).once
+        end
+      end
+
+      context "without a propagated parent" do
+        let(:digest) { nil }
+
+        it "clears the context when the local span and trace finish" do
+          tracer.continue_trace!(digest) do
+            tracer.trace("span") {}
+
+            expect(Datadog::Tracing::OTelThreadContext).to have_received(:clear).once
+            expect(Datadog::Tracing::OTelThreadContext).to receive(:clear).once
+          end
+        end
+      end
+    end
 
     context "given nil" do
       let(:digest) { nil }
