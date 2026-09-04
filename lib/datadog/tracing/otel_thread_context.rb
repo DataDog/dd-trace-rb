@@ -24,6 +24,10 @@ module Datadog
         def set(trace_id:, span_id:, local_root_span_id:)
           _native_set(trace_id, span_id, local_root_span_id)
         end
+
+        def clear
+          _native_clear
+        end
       end
     end
   end
