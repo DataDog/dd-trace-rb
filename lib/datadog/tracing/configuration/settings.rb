@@ -255,6 +255,12 @@ module Datadog
                 o.type :bool
               end
 
+              option :otel_thread_context_enabled do |o|
+                o.env Tracing::Configuration::Ext::ENV_OTEL_CTX_ENABLED
+                o.default false
+                o.type :bool
+              end
+
               # Configures an alternative trace transport behavior, where
               # traces can be sent to the agent and backend before all spans
               # have finished.
