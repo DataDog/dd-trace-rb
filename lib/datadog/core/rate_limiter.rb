@@ -221,7 +221,9 @@ module Datadog
         nil
       end
 
-      # @return [Numeric] the current balance, negative when borrowed
+      # @return [Numeric] the balance as of the last refill. Unlike
+      #   available? and consume, this method does not refill first, so reading
+      #   it without a recent available? or consume returns a stale balance.
       def available_tokens
         @tokens
       end
