@@ -129,20 +129,47 @@ jobs:
             echo "::error::See $DOC_URL for how to reproduce this locally and how to fix or document a CVE finding."
           fi
 
-  changelog-release-only:
-    name: changelog/release-only
+  changelog:
+    name: changelog/check
     runs-on: ubuntu-24.04
+    needs: ['build']
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
+      - name: Restore bundle cache
+        uses: ./.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.build.outputs.lockfile }}
+          cache-key: ${{ needs.build.outputs.cache-key }}
+
       - name: Check CHANGELOG.md is only changed by release PRs
         if: github.event_name == 'pull_request'
         env:
           HEAD_REF: ${{ github.head_ref }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: .github/scripts/check_changelog_release_only.sh
+
+      - name: Validate changelog fragment schema
+        run: bundle exec rake unreleased:lint
+
+      - name: Install vale
+        env:
+          VALE_VERSION: "3.12.0"
+          VALE_SHA256: 3f4ea05cd1f2291b660ecf11a77cbb6b544b0f3b780604ad183f63285611321b
+        run: .github/scripts/install_vale.sh
+
+      - name: Lint changelog fragment messages
+        run: bundle exec rake unreleased:vale
+
+      - name: Render changelog fragments
+        run: bundle exec rake unreleased:render
 
   checksum-coverage:
     name: checksum-coverage
@@ -244,7 +271,7 @@ jobs:
       - 'yaml-lint'
       - 'checksum-coverage'
       - 'bundler-audit'
-      - 'changelog-release-only'
+      - 'changelog'
     runs-on: ubuntu-24.04
     steps:
       - run: echo "Done"
