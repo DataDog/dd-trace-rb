@@ -35,7 +35,7 @@ module Datadog
 
       @capture_expression_evaluator: CaptureExpressionEvaluator?
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, ?code_tracker: CodeTracker?, ?correlation_sampler: CorrelationSampler?, ?telemetry: Core::Telemetry::Component?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, ?code_tracker: CodeTracker?, correlation_sampler: CorrelationSampler?, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 

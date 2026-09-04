@@ -88,7 +88,7 @@ module Datadog
       #   sampling gate for capturing probes; nil disables coordination.
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] telemetry sink, or nil
       #   when telemetry is disabled.
-      def initialize(settings, serializer, logger, code_tracker: nil, correlation_sampler: nil, telemetry: nil)
+      def initialize(settings, serializer, logger, code_tracker: nil, correlation_sampler:, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
@@ -485,10 +485,14 @@ module Datadog
 
       # Coordinated sampling gate. Returns true when the probe hit should emit a
       # snapshot. Delegates the decision to the correlation sampler so probes
-      # in one sampling unit share it. Only capturing probes are coordinated;
-      # non-capturing probes keep their own per-probe rate limit. Fails open: if
-      # the correlation sampler is absent (the nil, coordination-disabled mode)
-      # or the gate raises, fall back to the probe's own rate limiter.
+      # in one sampling unit share it. Coordination applies to capturing probes
+      # (the scope of the cross-tracer RFC's snapshot correlation);
+      # non-capturing probes keep their own per-probe rate limit. Fails open:
+      # if the correlation sampler is absent (the nil, coordination-disabled
+      # mode) or the gate raises, fall back to the probe's own rate limiter.
+      #
+      # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
+      # @return [Boolean] true when the probe hit should emit a snapshot
       def emit?(probe)
         correlation_sampler = self.correlation_sampler
         if correlation_sampler && probe.capturing?

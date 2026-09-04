@@ -42,7 +42,8 @@ RSpec.describe Datadog::DI::Instrumenter do
   di_logger_double
 
   let(:instrumenter) do
-    described_class.new(settings, serializer, logger, code_tracker: code_tracker)
+    described_class.new(settings, serializer, logger, code_tracker: code_tracker,
+      correlation_sampler: nil)
   end
 
   # We want to explicitly control when we pass code tracker to instrumenter
@@ -1909,7 +1910,8 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:propagate_all_exceptions) { false }
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
     let(:instrumenter) do
-      described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
+      described_class.new(settings, serializer, logger, code_tracker: code_tracker,
+        correlation_sampler: nil, telemetry: telemetry)
     end
 
     describe "method probe condition evaluation failed callback exceptions" do
