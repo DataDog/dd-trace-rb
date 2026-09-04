@@ -113,3 +113,22 @@ ignore_gem_versions:
   - gem: rack-contrib
     version: 1.8.0
     reason: "rack-contrib >= 2.0.0 (fixed for CVE-2024-35231) requires Rack::MediaType, unavailable before Rack 2.0; rack_1 appraisal intentionally tests Rack 1.x"
+
+  - gem: graphql
+    version: 1.13.25
+    reason: "Ceiling of graphql ~> 1.13.0 constraint in graphql-1.13 appraisal; intentionally tests old graphql major version, no fixed 1.13.x release exists for GHSA-rmxg-5p3r-j6hh"
+  - gem: graphql
+    version: 2.0.32
+    reason: "Ceiling of graphql ~> 2.0.0 constraint in graphql-2.0 appraisal; intentionally tests old graphql minor version, no fixed 2.0.x release exists for GHSA-rmxg-5p3r-j6hh"
+  - gem: graphql
+    version: 2.1.15
+    reason: "Ceiling of graphql ~> 2.1.0 constraint in graphql-2.1 appraisal; intentionally tests old graphql minor version, no fixed 2.1.x release exists for GHSA-rmxg-5p3r-j6hh"
+  - gem: graphql
+    version: 2.2.17
+    reason: "Ceiling of graphql ~> 2.2.0 constraint in graphql-2.2 appraisal; intentionally tests old graphql minor version, no fixed 2.2.x release exists for GHSA-rmxg-5p3r-j6hh"
+  - gem: graphql
+    version: 2.3.22
+    reason: "Ceiling of graphql ~> 2.3.0 constraint in graphql-2.3 appraisal; intentionally tests old graphql minor version, no fixed 2.3.x release exists for GHSA-rmxg-5p3r-j6hh"
+  - gem: graphql
+    version: 2.3.23
+    reason: "Ceiling of graphql ~> 2.3.0 constraint in graphql-2.3 appraisal; intentionally tests old graphql minor version, no fixed 2.3.x release exists for GHSA-rmxg-5p3r-j6hh"
