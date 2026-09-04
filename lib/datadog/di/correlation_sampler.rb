@@ -27,6 +27,15 @@ module Datadog
       # Snapshots all probes together may emit within one trace.
       ALL_BUDGET = 20
 
+      # The coordinated-sampling model (process-wide TOP/GLOBAL token buckets,
+      # per-trace per-probe and all counters, and the borrowing global bucket)
+      # follows the cross-tracer RFC "Improvements to Casual Correlation for
+      # Live Debugger Snapshots". Tracers predating the RFC, such as
+      # dd-trace-java, budget only per-probe-per-trace with no process-wide
+      # gates; the Ruby implementation follows the RFC, so the divergence is
+      # intentional. PER_PROBE_BUDGET is 1, below the RFC's higher target, to
+      # satisfy the system-tests correlation gate (DataDog/system-tests#7425).
+
       # @param max_entries [Integer] bound for the per-trace budget ledger
       # @param top_rate [Numeric] TOP rate limit, snapshots/second
       # @param global_rate [Numeric] GLOBAL rate limit, snapshots/second
@@ -82,10 +91,10 @@ module Datadog
       # Upper bound on retained per-trace budgets before LRU eviction.
       attr_reader :max_entries
 
-      # Snapshots one probe may emit within one trace.
+      # Per-probe per-trace emission counter this sampler was constructed with.
       attr_reader :per_probe_budget
 
-      # Snapshots all probes together may emit within one trace.
+      # All-probe per-trace emission counter this sampler was constructed with.
       attr_reader :all_budget
 
       # Consults the probe's own rate limiter for a hit with no active trace,
@@ -119,12 +128,16 @@ module Datadog
       # @return [Boolean]
       def emit_top?(key, probe)
         unless global_limiter.available? && top_limiter.allow?
-          store(key, TraceBudget.new(all_budget: 0, per_probe_budget: per_probe_budget))
+          # Store a starved budget so correlated probes in this trace drop
+          # without re-querying the process-wide gates. The slot is reclaimed
+          # by LRU eviction; at DEFAULT_MAX_ENTRIES the ledger bounds how many
+          # starved traces occupy live slots.
+          store(key, TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: 0))
           return false
         end
 
         global_limiter.consume
-        budget = TraceBudget.new(all_budget: all_budget, per_probe_budget: per_probe_budget)
+        budget = TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: all_budget)
         budget.admit(probe.id)
         store(key, budget)
         true
@@ -151,8 +164,6 @@ module Datadog
       # @return [void]
       def store(key, budget)
         trace_budgets[key] = budget
-        # Hash#shift removes and returns the oldest entry (insertion order),
-        # evicting the LRU trace when the ledger exceeds its bound.
         trace_budgets.shift if trace_budgets.size > max_entries
         nil
       end
@@ -163,9 +174,9 @@ module Datadog
       #
       # @api private
       class TraceBudget
-        # @param all_budget [Integer] all-probe counter start value
         # @param per_probe_budget [Integer] per-probe counter start value
-        def initialize(all_budget:, per_probe_budget:)
+        # @param all_budget [Integer] all-probe counter start value
+        def initialize(per_probe_budget:, all_budget:)
           @all_remaining = all_budget
           @per_probe_budget = per_probe_budget
           @per_probe = {}
@@ -181,7 +192,7 @@ module Datadog
         #   consumed, false when either was exhausted
         def admit(probe_id)
           remaining = @per_probe.fetch(probe_id, @per_probe_budget)
-          return false if remaining <= 0 || @all_remaining <= 0
+          return false if remaining <= 0 || all_remaining <= 0
 
           @per_probe[probe_id] = remaining - 1
           @all_remaining -= 1
