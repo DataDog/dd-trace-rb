@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "prefix": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6232",
+  "message": "Add a per-process runtime id for snapshots to distinguish process restarts within a container."
+}
