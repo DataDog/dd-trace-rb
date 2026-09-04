@@ -63,6 +63,10 @@ module ReleasePrep
       end
       errors << "#{path}: type #{@type.inspect} must be one of #{TYPES.inspect}" unless TYPES.include?(@type)
       errors << "#{path}: prefix #{@prefix.inspect} must be one of #{PREFIXES.inspect}" unless PREFIXES.include?(@prefix)
+      unless pull_request.to_s.match?(%r{\Ahttps://github\.com/DataDog/dd-trace-rb/pull/\d+\z})
+        errors << "#{path}: pull_request must be a https://github.com/DataDog/dd-trace-rb/pull/NNNN URL " \
+          "(got #{@pull_request.inspect})"
+      end
       errors
     end
   end

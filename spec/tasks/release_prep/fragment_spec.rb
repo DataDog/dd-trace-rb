@@ -98,6 +98,12 @@ RSpec.describe ReleasePrep::Fragment do
         /prefix "Redis" must be one of/,
       )
     end
+
+    it "reports a pull_request that is not a well-formed dd-trace-rb PR URL" do
+      path = write_fragment("1.json", valid_entry("pull_request" => "https://github.com/other/rb/pull/1"))
+
+      expect(described_class.read(path).errors).to contain_exactly(%r{pull_request .*other/rb})
+    end
   end
 
   describe "#to_s" do
