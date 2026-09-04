@@ -67,7 +67,7 @@ RSpec.describe "Datadog integration" do
         begin
           File.readlines("/proc/net/unix").each do |line|
             cols = line.split
-            return "AF_UNIX path=#{cols[7..].join(' ')}" if cols[6] == inode
+            return "AF_UNIX path=#{cols[7..-1].join(' ')}" if cols[6] == inode
           end
         rescue SystemCallError
           nil
