@@ -93,6 +93,15 @@ def baggage
 
 **Prefer over commenting:** a clearer name, an extracted well-named function, a named constant instead of a literal, or a test that demonstrates the behavior.
 
+## Removing existing comments
+
+Applies only to reviewing/deleting existing comments, not writing new ones:
+
+- **Fix the named defect, don't just delete.** Rename the identifier (repetition), relocate to `sig/` (type restatement), add a shared reference (copy-paste) — apply it, or verify the destination already carries the information (e.g. the `.rbs` actually declares the type), before removing.
+- **A deletable comment can contain a keeper.** Judge multi-line comments per line: delete the narration, keep an embedded hazard/why/citation line.
+- **A tag and its wrapped continuation are one unit.** Remove both together, then re-read the docstring for a complete, consistent signature.
+- **Bulk sweeps hide repeated defects.** One file or module per commit, so a systematic mistake surfaces on file one.
+
 ## Style
 
 Always be terse. One line beats a paragraph; a fragment beats a full sentence. E.g.:
