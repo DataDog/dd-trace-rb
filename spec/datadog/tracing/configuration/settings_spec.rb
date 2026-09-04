@@ -487,6 +487,14 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe "#otel_thread_context_enabled" do
+      subject(:otel_thread_context_enabled) { settings.tracing.otel_thread_context_enabled }
+
+      it_behaves_like "a binary setting with",
+        env_variable: "DD_TRACE_OTEL_CTX_ENABLED",
+        default: false
+    end
+
     describe "#partial_flush" do
       describe "#enabled" do
         subject(:enabled) { settings.tracing.partial_flush.enabled }
