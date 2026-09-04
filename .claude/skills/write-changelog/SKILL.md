@@ -47,16 +47,18 @@ file names. Use inline code spans for identifiers, matching existing
 
 > Fix missing peer tags for database queries traced through `ActiveRecord`.
 
-End with terminal punctuation (`.`, `!`, or `?`) — CI lints this with vale and checks for trailing whitespace.
+End with terminal punctuation (`.`, `!`, or `?`) and keep it at most 240
+characters — CI lints this with vale plus Ruby checks and reports every
+violation in one run.
 
 ## 5. Fill `pull_request` and `author`
 
 - `pull_request`: the full PR URL, e.g.
   `https://github.com/DataDog/dd-trace-rb/pull/6300`. If the PR doesn't
-  exist yet (you're working before opening one), use a placeholder like
-  `https://github.com/DataDog/dd-trace-rb/pull/TBD` and tell the user to
-  fill in the real number before merging — CI's `unreleased:lint` only
-  checks the field is present, not that the URL resolves.
+  exist yet, open it first — even as a draft — so the number is known;
+  `unreleased:lint` rejects any other form (issue links, fork URLs,
+  placeholders like `pull/TBD`). Lint checks the URL's form, not that it
+  resolves.
 - `author`: only set this for an external (non-Datadog) contributor,
   to their GitHub handle. Omit it otherwise.
 
