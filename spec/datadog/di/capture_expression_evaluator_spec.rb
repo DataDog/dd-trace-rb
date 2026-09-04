@@ -69,7 +69,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       end
 
       it "resolves the capture deadline through the serializer so the clamp is shared" do
-        expect(serializer).to receive(:serialization_deadline_s).and_call_original
+        expect(serializer).to receive(:serialization_deadline).and_call_original
         evaluator.evaluate(probe, context)
       end
     end
