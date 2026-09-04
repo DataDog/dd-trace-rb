@@ -14,8 +14,8 @@ module Datadog
       # @return [SamplingUnit]
       def self.current
         # Checked per call, not hoisted to load time: DI may be required before
-        # Datadog::Tracing, so this constant can transition undefined->defined
-        # after boot. Called on every capturing probe firing; the single
+        # Datadog::Tracing, so this constant can transition from undefined
+        # to defined after boot. Called on every capturing probe firing; the single
         # SamplingUnit allocation per fire is accepted to keep the correlation
         # unit an explicit object.
         if defined?(Datadog::Tracing)
@@ -36,6 +36,8 @@ module Datadog
       # Trace id shared by hits in this unit; nil when no trace is active.
       attr_reader :key
 
+      # Sentinel unit for a hit with no active trace; shared by all
+      # uncorrelated hits.
       NONE = new(nil)
     end
   end
