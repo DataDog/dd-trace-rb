@@ -197,8 +197,6 @@ RSpec.describe "Correlation integration" do
       load File.join(File.dirname(__FILE__), "correlation_integration_test_class.rb")
     end
 
-    # A capturing line probe routes through the same emit? gate as a method
-    # probe, so coordinated sampling bounds it within the trace.
     it "bounds a capturing line probe to the per-probe counter within a trace" do
       probe = Datadog::DI::Probe.new(id: "p-line", type: :log,
         file: "correlation_integration_test_class.rb", line_no: 9,
