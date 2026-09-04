@@ -44,13 +44,18 @@ module Datadog
 
       attr_reader :settings
 
+      # Resolve the real class so a customer-overridden #class can't bypass
+      # type-based redaction, and BasicObject values redact by their real class.
+      KERNEL_CLASS = ::Kernel.instance_method(:class)
+      private_constant :KERNEL_CLASS
+
       def redact_identifier?(name)
         redacted_identifiers.include?(normalize(name))
       end
 
       def redact_type?(value)
         # Classses can be nameless, do not attempt to redact in that case.
-        if (cls_name = value.class.name)
+        if (cls_name = KERNEL_CLASS.bind(value).call.name)
           redacted_type_names_regexp.match?(cls_name)
         else
           false
