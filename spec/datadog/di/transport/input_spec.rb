@@ -172,7 +172,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           expect(chunked_payload.length).to be < 1_000
           expect(chunked_payload.length).to be > 100
         end
-        expect_lazy_log(logger, :debug, "di: dropping too big snapshot (pruning did not fit)")
+        expect_lazy_log(logger, :debug, "di: dropping too big snapshot (envelope exceeds size limit)")
         transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
       end
     end
@@ -213,7 +213,6 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
         transport.send_input([oversized_snapshot], tags,
           on_serialization_error: noop_serialization_error_handler)
 
-        # The pruned snapshot is sent (not dropped) and fits under the cap.
         expect(chunks.length).to eq(1)
         expect(chunks.first.bytesize).to be <= 2_000
         expect(chunks.first).to include("\"pruned\":true")

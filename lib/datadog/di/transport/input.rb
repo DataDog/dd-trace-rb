@@ -34,13 +34,15 @@ module Datadog
           end
 
           # The limit on an individual snapshot payload, aka "log line",
-          # is 1 MB.
-          #
-          # TODO There is an RFC for snapshot pruning that should be
-          # implemented to reduce the size of snapshots to be below this
-          # limit, so that we can send a portion of the captured data
-          # rather than dropping the snapshot entirely.
+          # is 1 MB. Snapshots exceeding this limit are pruned by
+          # SnapshotPruner: their largest captured values are replaced
+          # with a {"pruned":true} marker so a portion of the captured
+          # data is still sent, and are dropped only when pruning cannot
+          # bring them under this limit.
           MAX_SERIALIZED_SNAPSHOT_SIZE = 1024 * 1024
+
+          # Telemetry namespace shared by all DI metric emissions.
+          TELEMETRY_NAMESPACE = "dynamic_instrumentation"
 
           # The maximum chunk (batch) size that intake permits is 5 MB.
           #
@@ -60,9 +62,10 @@ module Datadog
           # and exception, allowing the caller to disable the affected probe.
           # Successfully serialized snapshots are still sent.
           #
-          # Large snapshots (> 1MB) are pruned to fit, or dropped when pruning
-          # cannot bring them under the cap. Batches are split into chunks of
-          # ~2MB each to avoid large network requests.
+          # Large snapshots (> 1MB) are pruned to fit under the per-event
+          # cap, and dropped only when pruning cannot reduce them. Batches
+          # are split into chunks of ~2MB each to avoid large network
+          # requests.
           #
           # @param payload [Array<Hash>] Array of snapshot payloads
           # @param tags [Hash] Tags to send with the snapshots
@@ -76,16 +79,12 @@ module Datadog
             payload.each do |snapshot|
               encoded = encoder.encode(snapshot)
               if encoded.bytesize > MAX_SERIALIZED_SNAPSHOT_SIZE
-                # Prune the snapshot's captured values to fit under the
-                # per-event cap before dropping it, so a portion of the
-                # captured data is still sent. Drop only when pruning
-                # cannot bring the snapshot under the cap.
                 pruned = SnapshotPruner.prune(snapshot, MAX_SERIALIZED_SNAPSHOT_SIZE, encoded: encoded)
                 if pruned.nil?
-                  logger.debug { "di: dropping too big snapshot (pruning did not fit)" }
+                  logger.debug("di: dropping too big snapshot (envelope exceeds size limit)")
                   next
                 end
-                telemetry&.inc("dynamic_instrumentation", "snapshots_pruned_by_payload_size", 1)
+                telemetry&.inc(TELEMETRY_NAMESPACE, "snapshots_pruned_by_payload_size", 1)
                 encoded = pruned
               end
               encoded_snapshots << encoded
@@ -113,10 +112,9 @@ module Datadog
             Datadog::Core::Chunker.chunk_by_size(
               encoded_snapshots, DEFAULT_CHUNK_SIZE,
             ).each do |chunk|
-              # We drop snapshots that are too big earlier.
-              # The limit on chunked payload length here is greater
-              # than the limit on snapshot size, therefore no chunks
-              # can exceed limits here.
+              # Oversized snapshots were pruned or dropped earlier, so
+              # every encoded snapshot here is already within the per-event
+              # cap; the chunk cap is larger, so no chunk exceeds limits.
               chunked_payload = encoder.join(chunk)
 
               # We need to rescue exceptions for each chunk so that
