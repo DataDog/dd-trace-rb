@@ -81,7 +81,7 @@ bundle exec rake unreleased:render
 
 `unreleased:lint` checks the schema (required fields, closed enums).
 `unreleased:render` previews how the entry will look once rendered into
-`CHANGELOG.md`. Message hygiene is checked by `unreleased:lint_messages`,
+`CHANGELOG.md`. Message hygiene is checked by `unreleased:vale`,
 which runs both a Ruby-based trailing-whitespace check and vale for
 punctuation and style validation. CI runs this as a required step after
 installing a pinned vale binary.

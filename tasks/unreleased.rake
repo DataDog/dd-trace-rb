@@ -3,7 +3,7 @@
 require_relative "release_prep"
 
 namespace :unreleased do
-  desc "Validate unreleased/*.json changelog fragments (schema only; message hygiene is checked by unreleased:lint_messages)"
+  desc "Validate unreleased/*.json changelog fragments (schema only; message hygiene is checked by unreleased:vale)"
   task :lint do
     ReleasePrep.validate_fragments!(ReleasePrep::Fragments.read_all)
     ReleasePrep::Fragments.read_examples
@@ -23,7 +23,7 @@ namespace :unreleased do
   end
 
   desc "Lint unreleased/ changelog fragment messages for hygiene with vale"
-  task :lint_messages do
+  task :vale do
     require "tmpdir"
 
     fragments = ReleasePrep::Fragments.read_all
