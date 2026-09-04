@@ -1,27 +1,14 @@
 require "datadog/di/spec_helper"
 require "datadog/di"
 
+require_relative "correlation_integration_test_class"
+
 # Integration tests for coordinated sampling (Datadog::DI::CorrelationSampler) wired
 # through the real Component, Instrumenter, ProbeManager and notification
 # builder. The correlation gate is exercised with real instrumentation; the
 # active APM trace is stubbed at the Datadog::Tracing seam the gate reads from.
 # The Component builds CorrelationSampler with production limits, ample for
 # these examples.
-
-class CorrelationIntegrationTestClass
-  def alpha
-    inner
-  end
-
-  def inner
-    42
-  end
-
-  def loop_n(n)
-    n.times { inner }
-    n
-  end
-end
 
 RSpec.describe "Correlation integration" do
   di_test
@@ -198,6 +185,30 @@ RSpec.describe "Correlation integration" do
       allow(component.correlation_sampler).to receive(:emit?).and_raise("gate boom")
 
       expect { CorrelationIntegrationTestClass.new.inner }.to raise_error(RuntimeError, /gate boom/)
+    end
+  end
+
+  context "line probe" do
+    with_code_tracking
+
+    before do
+      stub_trace(trace_id, span_id)
+      Object.send(:remove_const, :CorrelationIntegrationTestClass) rescue nil
+      load File.join(File.dirname(__FILE__), "correlation_integration_test_class.rb")
+    end
+
+    # A capturing line probe routes through the same emit? gate as a method
+    # probe, so coordinated sampling bounds it within the trace.
+    it "bounds a capturing line probe to the per-probe counter within a trace" do
+      probe = Datadog::DI::Probe.new(id: "p-line", type: :log,
+        file: "correlation_integration_test_class.rb", line_no: 9,
+        capture_snapshot: true)
+      probe_manager.add_probe(probe)
+
+      CorrelationIntegrationTestClass.new.loop_n(25)
+      flush
+
+      expect(snapshots.size).to eq(Datadog::DI::CorrelationSampler::PER_PROBE_BUDGET)
     end
   end
 end
