@@ -55,6 +55,38 @@ RSpec.describe "Datadog integration" do
         nil
       end
 
+      # Classify a leaked socket fd by inode into AF_UNIX/TCP/UDP with peer
+      # info, by reading /proc/net/{unix,tcp,tcp6,udp,udp6}. Returns a
+      # short string for the failure message so CI identifies the source.
+      def classify_socket(fd_path)
+        target = File.readlink(fd_path)
+        unless target =~ /socket:\[(\d+)\]/
+          return "#{fd_path} -> #{target} (not a socket)"
+        end
+        inode = $1
+        begin
+          File.readlines("/proc/net/unix").each do |line|
+            cols = line.split
+            return "AF_UNIX path=#{cols[7..].join(' ')}" if cols[6] == inode
+          end
+        rescue SystemCallError
+          nil
+        end
+        for proto in %w[tcp tcp6 udp udp6]
+          begin
+            File.readlines("/proc/net/#{proto}").each do |line|
+              cols = line.split
+              return "#{proto.upcase} local=#{cols[1]} remote=#{cols[2]} st=#{cols[3]}" if cols.last == inode
+            end
+          rescue SystemCallError
+            nil
+          end
+        end
+        "socket inode=#{inode} (unclassified)"
+      rescue SystemCallError
+        "#{fd_path} (unreadable)"
+      end
+
       # On JRuby, there are file descriptors opened that resolve to these
       # paths via File.readlink:
       #
@@ -88,13 +120,26 @@ RSpec.describe "Datadog integration" do
       }x.freeze
       # standard:enable Lint/ConstantDefinitionInBlock:
 
-      it "closes tracer file descriptors", skip: "Flaky: intermittently fails in CI with leaked file descriptors, cause not yet identified" do
+      it "closes tracer file descriptors" do
         before_open_file_descriptors = open_file_descriptors
 
-        start_tracer
-        wait_for_tracer_sent
-
-        shutdown
+        # Reproducer: repeat the configure/trace/flush/shutdown cycle to widen
+        # the race window that intermittently leaks sockets in CI (~1/80 per
+        # cycle). 100 cycles give ~70% probability of surfacing the leak in a
+        # single run. Each iteration resets and rebuilds components so the
+        # transport's success counter starts at zero and wait_for_tracer_sent
+        # actually waits for a real flush.
+        #
+        # Calls Datadog::Tracing.trace and Datadog.shutdown! directly (not the
+        # `start_tracer` let / `shutdown` subject) because those are memoized
+        # per example and would only run once across the loop.
+        100.times do
+          Datadog.send(:reset!)
+          Datadog.configure { |c| }
+          Datadog::Tracing.trace("test.op") {}
+          wait_for_tracer_sent
+          Datadog.shutdown!
+        end
 
         after_open_file_descriptors = open_file_descriptors
 
@@ -141,9 +186,11 @@ RSpec.describe "Datadog integration" do
             # from time to time.
             be_empty,
             lambda {
+              classification = new_file_descriptors.keys.map { |k| "  #{k}: #{classify_socket(k)}" }.join("\n")
               "Open fds before (#{before_open_file_descriptors.size}): #{before_open_file_descriptors}\n" \
               "Open fds after (#{after_open_file_descriptors.size}):  #{after_open_file_descriptors}\n" \
-              "New fds (#{new_file_descriptors.size}): #{new_file_descriptors}"
+              "New fds (#{new_file_descriptors.size}): #{new_file_descriptors}\n" \
+              "Classification:\n#{classification}"
             }
           )
       end
