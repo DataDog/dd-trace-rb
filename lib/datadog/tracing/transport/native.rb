@@ -3,6 +3,7 @@
 require "json"
 require_relative "trace_formatter"
 require_relative "statistics"
+require_relative "span_events"
 
 module Datadog
   module Tracing
@@ -44,6 +45,7 @@ module Datadog
         # Drop-in transport that delegates to the native trace exporter.
         class Transport
           include Statistics
+          include SpanEvents
 
           attr_reader :logger
 
@@ -272,8 +274,10 @@ module Datadog
             # Each trace segment becomes one inner array (one trace chunk).
             chunks = traces.map(&:spans)
 
-            # Span events and span links are not yet converted and would be
-            # dropped. Warn (once) so the loss is visible.
+            native_events_supported = prepare_span_events!(chunks)
+
+            # Span links are not yet converted and would be dropped. Warn once
+            # so the loss is visible.
             warn_unsupported_fields!(chunks)
 
             # Serialize the native send and hold the mutex across it so a
@@ -287,7 +291,7 @@ module Datadog
               exporter = @exporter
               raise "Native transport has been closed" if exporter.nil?
 
-              exporter._native_send_traces(chunks)
+              exporter._native_send_traces(chunks, native_events_supported)
             end
 
             # Update statistics from the response
@@ -302,18 +306,31 @@ module Datadog
 
           private
 
+          def prepare_span_events!(chunks)
+            native_events_supported = native_events_supported?
+
+            chunks.each do |spans|
+              spans.each do |span|
+                next if span.events.empty?
+
+                unless native_events_supported
+                  span.set_tag("events", span.events.map(&:to_hash).to_json)
+                end
+              end
+            end
+
+            native_events_supported
+          end
+
           # Warn, at most once per transport, when a batch contains span fields
-          # the native exporter does not yet convert (span events and span
-          # links). These are silently dropped by the native path; full support
-          # is tracked separately. The check is cheap: the fields are already-
-          # materialized collections on each Span.
+          # the native exporter does not yet convert. The check is cheap: the
+          # fields are already-materialized collections on each Span.
           def warn_unsupported_fields!(chunks)
             return if @unsupported_fields_warned
 
             unsupported = []
             chunks.each do |spans|
               spans.each do |span|
-                unsupported << "span events" if span.events.any?
                 unsupported << "span links" if span.links.any?
               end
             end
