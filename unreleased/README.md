@@ -12,9 +12,11 @@ changelog fragment per notable change to this directory.
    - `prefix`: the product area this change belongs to. One of `Core`,
      `Tracing`, `Profiling`, `AppSec`, `AI Guard`, `Dynamic Instrumentation`,
      `Data Streams`, `Error Tracking`, `Open Feature`, `OpenTelemetry`.
-   - `pull_request`: the full URL of this pull request.
-   - `message`: a customer-facing description, written as Markdown, ending
-     in terminal punctuation.
+   - `pull_request`: the full URL of this pull request, in the canonical
+     `https://github.com/DataDog/dd-trace-rb/pull/NNNN` form; lint rejects
+     issue links, fork URLs, and placeholders.
+   - `message`: a customer-facing description, written as Markdown, at most
+     240 characters, ending in terminal punctuation.
    - `author` (optional): your GitHub handle, if you're an external
      contributor and want credit in `CHANGELOG.md`.
 4. Commit the file alongside your change.
@@ -31,7 +33,8 @@ GitHub release, not inside `CHANGELOG.md` itself), create or edit
 
 ## Validating your entry
 
-Run `bundle exec rake unreleased:lint` to check the schema, and
+Run `bundle exec rake unreleased:lint` to check the schema — it reports
+every violation across every pending fragment in one run — and
 `bundle exec rake unreleased:render` to preview how your entry (and every
 other pending entry) will render in the next `CHANGELOG.md`. Message hygiene
 is checked separately by `bundle exec rake unreleased:vale`, which
