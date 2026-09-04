@@ -522,7 +522,7 @@ module Datadog
                 locals: serializer.combine_args(args, kwargs, target_self),
                 target_self: target_self,
                 probe: probe, settings: settings, serializer: serializer,
-                deadline_ns: evaluation_deadline_ns,
+                deadline: evaluation_deadline,
               )
               continue = condition.satisfied?(context)
             rescue Exception => exc # standard:disable Lint/RescueException
@@ -793,7 +793,7 @@ module Datadog
 
         if condition = probe.condition
           begin
-            context = build_trace_point_context(probe, tp, deadline_ns: evaluation_deadline_ns)
+            context = build_trace_point_context(probe, tp, deadline: evaluation_deadline)
             return unless condition.satisfied?(context)
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
@@ -862,7 +862,7 @@ module Datadog
         # TODO test this path
       end
 
-      def build_trace_point_context(probe, tp, deadline_ns: nil)
+      def build_trace_point_context(probe, tp, deadline: nil)
         stack = caller_locations
         # We have two helper methods being invoked from the trace point
         # handler block, remove them from the stack.
@@ -877,7 +877,7 @@ module Datadog
           serializer: serializer,
           path: tp.path,
           caller_locations: stack,
-          deadline_ns: deadline_ns,
+          deadline: deadline,
         )
       end
 
@@ -885,10 +885,10 @@ module Datadog
       # probe condition, from the configured evaluation timeout setting.
       # Returns nil when no evaluation timeout is configured, leaving
       # condition evaluation unbounded.
-      def evaluation_deadline_ns
+      def evaluation_deadline
         budget_ms = settings.dynamic_instrumentation.max_time_to_evaluate_ms
         return nil unless budget_ms
-        ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) + budget_ms * 1_000_000
+        ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) + budget_ms / 1000.0
       end
 
       # Circuit breaker: disables the probe if total CPU time consumed by

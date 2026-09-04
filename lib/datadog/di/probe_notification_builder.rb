@@ -406,7 +406,7 @@ module Datadog
         # inside a segment read this from the context and abort the
         # segment when the budget is exhausted; the per-segment rescue
         # below surfaces it as an evaluationErrors entry.
-        context.deadline_ns = evaluation_deadline_ns
+        context.deadline = evaluation_deadline
         evaluation_errors = []
         message = template_segments.map do |segment|
           case segment
@@ -445,10 +445,10 @@ module Datadog
       # template segments, from the configured evaluation timeout
       # setting. Returns nil when no evaluation timeout is
       # configured, leaving template evaluation unbounded.
-      def evaluation_deadline_ns
+      def evaluation_deadline
         budget_ms = settings.dynamic_instrumentation.max_time_to_evaluate_ms
         return nil unless budget_ms
-        ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) + budget_ms * 1_000_000
+        ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) + budget_ms / 1000.0
       end
 
       def active_trace

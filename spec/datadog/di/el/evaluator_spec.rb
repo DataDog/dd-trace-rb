@@ -176,29 +176,29 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       Datadog::DI::EL::Expression.new("collection.any(@it >= 0)", src, regexps: regexps)
     end
 
-    def context_with(collection, deadline_ns:)
+    def context_with(collection, deadline:)
       Datadog::DI::Context.new(
         probe: nil, settings: settings, serializer: serializer,
-        locals: {collection: collection}, deadline_ns: deadline_ns
+        locals: {collection: collection}, deadline: deadline
       )
     end
 
     context "with the deadline already in the past" do
       let(:collection) { Array.new(1000) { |i| i } }
-      let(:deadline_ns) { Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond) - 1 }
+      let(:deadline) { Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second) - 1 }
 
       it "#filter raises EvaluationTimeout without consuming the whole collection" do
-        expect { filter_expr.satisfied?(context_with(collection, deadline_ns: deadline_ns)) }
+        expect { filter_expr.satisfied?(context_with(collection, deadline: deadline)) }
           .to raise_error(Datadog::DI::Error::EvaluationTimeout)
       end
 
       it "#all raises EvaluationTimeout" do
-        expect { all_expr.satisfied?(context_with(collection, deadline_ns: deadline_ns)) }
+        expect { all_expr.satisfied?(context_with(collection, deadline: deadline)) }
           .to raise_error(Datadog::DI::Error::EvaluationTimeout)
       end
 
       it "#any raises EvaluationTimeout" do
-        expect { any_expr.satisfied?(context_with(collection, deadline_ns: deadline_ns)) }
+        expect { any_expr.satisfied?(context_with(collection, deadline: deadline)) }
           .to raise_error(Datadog::DI::Error::EvaluationTimeout)
       end
     end
@@ -209,16 +209,16 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       it "#filter returns the selected items (behavior unchanged)" do
         # @it >= 0 is true for every element, so the filtered result is
         # the whole collection and no timeout is raised.
-        expect(filter_expr.satisfied?(context_with(collection, deadline_ns: nil))).to be(true)
+        expect(filter_expr.satisfied?(context_with(collection, deadline: nil))).to be(true)
       end
     end
 
     context "with the deadline far in the future" do
       let(:collection) { Array.new(1000) { |i| i } }
-      let(:deadline_ns) { Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond) + 60_000_000_000 }
+      let(:deadline) { Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second) + 60 }
 
       it "#filter completes without timing out" do
-        expect(filter_expr.satisfied?(context_with(collection, deadline_ns: deadline_ns))).to be(true)
+        expect(filter_expr.satisfied?(context_with(collection, deadline: deadline))).to be(true)
       end
     end
 
@@ -230,18 +230,18 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       # deadline and the second check (i=64) is after it, proving the bound
       # engages mid-iteration rather than at the first item.
       it "#filter raises after the first interval's worth of items" do
-        deadline_ns = 1_000_000_000
+        deadline = 1.0
         checks = 0
-        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC, :nanosecond) do
+        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC, :float_second) do
           checks += 1
-          checks <= 1 ? deadline_ns - 1 : deadline_ns + 1
+          (checks <= 1) ? deadline - 0.001 : deadline + 0.001
         end
         # Going through #satisfied? sets @context on the evaluator (the
         # compiled evaluate method does this), so #filter can read the
         # per-invocation deadline. The two-phase stub makes the first
         # check pass and the second fail, so the raise is not immediate.
         expect do
-          filter_expr.satisfied?(context_with(collection, deadline_ns: deadline_ns))
+          filter_expr.satisfied?(context_with(collection, deadline: deadline))
         end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
         expect(checks).to be >= 2
       end
