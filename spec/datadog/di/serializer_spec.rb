@@ -488,14 +488,14 @@ RSpec.describe Datadog::DI::Serializer do
     context "hard ceiling clamp" do
       it "clamps a configured budget above the ceiling to 150 ms" do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(500)
-        allow(serializer).to receive(:now_ns).and_return(1_000_000_000)
-        expect(serializer.serialization_deadline_ns).to eq(1_000_000_000 + 150 * 1_000_000)
+        allow(serializer).to receive(:now_s).and_return(1.0)
+        expect(serializer.serialization_deadline_s).to eq(1.0 + 150 / 1000.0)
       end
 
       it "uses a configured budget at or below the ceiling unchanged" do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
-        allow(serializer).to receive(:now_ns).and_return(1_000_000_000)
-        expect(serializer.serialization_deadline_ns).to eq(1_000_000_000 + 100 * 1_000_000)
+        allow(serializer).to receive(:now_s).and_return(1.0)
+        expect(serializer.serialization_deadline_s).to eq(1.0 + 100 / 1000.0)
       end
     end
 
@@ -524,9 +524,9 @@ RSpec.describe Datadog::DI::Serializer do
         clock_calls = 0
         # Reads: deadline computation, then a read for each serialize_value
         # call. The deadline (100ms) is crossed on the third element.
-        clock_returns = [0, 0, 0, 0, 200_000_000, 200_000_000]
+        clock_returns = [0.0, 0.0, 0.0, 0.0, 0.2, 0.2]
         allow(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
-          if args == [::Process::CLOCK_MONOTONIC, :nanosecond]
+          if args == [::Process::CLOCK_MONOTONIC, :float_second]
             clock_returns[clock_calls].tap { clock_calls += 1 }
           else
             original.call(*args)
@@ -551,9 +551,9 @@ RSpec.describe Datadog::DI::Serializer do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
         clock_calls = 0
         # Reads: deadline computation, first var, second var (past deadline).
-        clock_returns = [0, 0, 200_000_000]
+        clock_returns = [0.0, 0.0, 0.2]
         allow(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
-          if args == [::Process::CLOCK_MONOTONIC, :nanosecond]
+          if args == [::Process::CLOCK_MONOTONIC, :float_second]
             clock_returns[clock_calls].tap { clock_calls += 1 }
           else
             original.call(*args)

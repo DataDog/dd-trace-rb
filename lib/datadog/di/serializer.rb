@@ -149,10 +149,10 @@ module Datadog
         attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
         length: nil,
         collection_size: nil,
-        deadline_ns: nil)
+        deadline_s: nil)
         combined = combine_args(args, kwargs, target_self)
         serialize_vars(combined, depth: depth, attribute_count: attribute_count,
-          length: length, collection_size: collection_size, deadline_ns: deadline_ns)
+          length: length, collection_size: collection_size, deadline_s: deadline_s)
       end
 
       # Serializes variables captured by a line probe.
@@ -164,13 +164,13 @@ module Datadog
         attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
         length: nil,
         collection_size: nil,
-        deadline_ns: nil)
+        deadline_s: nil)
         # Resolve the capture time budget once so that all top-level variables
         # in this capture point share a single deadline.
-        deadline_ns ||= serialization_deadline_ns
+        deadline_s ||= serialization_deadline_s
         vars.each_with_object({}) do |(k, v), agg|
           agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count,
-            length: length, collection_size: collection_size, deadline_ns: deadline_ns)
+            length: length, collection_size: collection_size, deadline_s: deadline_s)
         end
       end
 
@@ -192,12 +192,12 @@ module Datadog
         length: nil,
         collection_size: nil,
         type: nil,
-        deadline_ns: nil)
+        deadline_s: nil)
         attribute_count ||= settings.dynamic_instrumentation.max_capture_attribute_count
-        deadline_ns ||= serialization_deadline_ns
+        deadline_s ||= serialization_deadline_s
         cls = type || value.class
         begin
-          if deadline_exceeded?(deadline_ns)
+          if deadline_exceeded?(deadline_s)
             telemetry&.inc(TELEMETRY_NAMESPACE, "serialized_values_skipped_by_timeout", 1)
             return {type: class_name(cls), notCapturedReason: "timeout"}
           end
@@ -308,7 +308,7 @@ module Datadog
                 value = value[0...max] || []
               end
               entries = value.map do |elt|
-                serialize_value(elt, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline_ns: deadline_ns)
+                serialize_value(elt, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline_s: deadline_s)
               end
               serialized.update(elements: entries)
             end
@@ -326,8 +326,8 @@ module Datadog
                   break
                 end
                 cur += 1
-                entries << [serialize_value(k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline_ns: deadline_ns),
-                  serialize_value(v, name: k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline_ns: deadline_ns)]
+                entries << [serialize_value(k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline_s: deadline_s),
+                  serialize_value(v, name: k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline_s: deadline_s)]
               end
               serialized.update(entries: entries)
             end
@@ -366,7 +366,7 @@ module Datadog
                   break
                 end
                 cur += 1
-                fields[ivar] = serialize_value(value.instance_variable_get(ivar), name: ivar, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline_ns: deadline_ns)
+                fields[ivar] = serialize_value(value.instance_variable_get(ivar), name: ivar, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline_s: deadline_s)
               end
               serialized.update(fields: fields)
             end
@@ -500,25 +500,25 @@ module Datadog
         "#<#{class_name(value.class)}: serialization error>"
       end
 
-      # Absolute monotonic deadline (in nanoseconds) after which the main
+      # Absolute monotonic deadline (in seconds) after which the main
       # snapshot serializer aborts and emits notCapturedReason: "timeout".
       # Shares the max_time_to_serialize_ms budget with the capture-expression
       # evaluator; here it bounds serialization of arguments, locals and self.
       # A caller that serializes several values for one capture point resolves
-      # this once and passes it as deadline_ns so the budget is shared.
-      def serialization_deadline_ns
+      # this once and passes it as deadline_s so the budget is shared.
+      def serialization_deadline_s
         budget_ms = [settings.dynamic_instrumentation.max_time_to_serialize_ms, CAPTURE_TIMEOUT_MS_CEILING].min
-        now_ns + budget_ms * 1_000_000
+        now_s + budget_ms / 1000.0
       end
 
       private
 
-      def deadline_exceeded?(deadline_ns)
-        now_ns >= deadline_ns
+      def deadline_exceeded?(deadline_s)
+        now_s >= deadline_s
       end
 
-      def now_ns
-        ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond)
+      def now_s
+        ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second)
       end
 
       MAX_MESSAGE_COLLECTION_SIZE = 3
