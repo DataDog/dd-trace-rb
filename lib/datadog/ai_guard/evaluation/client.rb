@@ -25,7 +25,14 @@ module Datadog
               Redaction.skipped(messages)
             end
 
-          result = Result.new(response, messages: redaction.messages)
+          result = Result.new(
+            redaction.messages,
+            action: response.action,
+            reason: response.reason,
+            tags: response.tags,
+            sds_findings: response.sds_findings,
+            tag_probabilities: response.tag_probabilities
+          )
 
           Outcome.new(result, redaction, blocking_enabled: response.blocking_enabled?)
         end

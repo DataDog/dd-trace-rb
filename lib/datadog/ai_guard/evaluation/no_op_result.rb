@@ -8,7 +8,7 @@ module Datadog
         attr_reader :action, :reason, :tags, :sds_findings, :tag_probabilities, :messages
 
         def initialize(messages)
-          @action = Response::ALLOW_ACTION
+          @action = Result::ALLOW_ACTION
           @reason = "AI Guard is disabled"
 
           @tags = []

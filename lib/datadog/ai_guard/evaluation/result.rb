@@ -1,21 +1,35 @@
 # frozen_string_literal: true
 
-require "forwardable"
-
 module Datadog
   module AIGuard
     module Evaluation
       class Result
-        extend Forwardable
+        ALLOW_ACTION = "ALLOW"
+        DENY_ACTION = "DENY"
+        ABORT_ACTION = "ABORT"
 
-        def_delegators :@response, :action, :reason, :tags, :tag_probabilities,
-                                   :sds_findings, :allow?, :deny?, :abort?
+        attr_reader :messages, :action, :reason, :tags, :sds_findings,
+                    :tag_probabilities
 
-        attr_reader :messages
-
-        def initialize(response, messages:)
-          @response = response
+        def initialize(messages, action:, reason:, tags:, sds_findings:, tag_probabilities:)
           @messages = messages
+          @action = action
+          @reason = reason
+          @tags = tags
+          @sds_findings = sds_findings
+          @tag_probabilities = tag_probabilities
+        end
+
+        def allow?
+          action == ALLOW_ACTION
+        end
+
+        def deny?
+          action == DENY_ACTION
+        end
+
+        def abort?
+          action == ABORT_ACTION
         end
       end
     end
