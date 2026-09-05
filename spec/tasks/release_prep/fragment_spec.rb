@@ -116,6 +116,108 @@ RSpec.describe ReleasePrep::Fragment do
 
       expect(described_class.read(path).errors).to eq([])
     end
+
+    it "reports a lowercase product term, naming the canonical casing" do
+      path = write_fragment("1.json", valid_entry("message" => "Fix the appsec rules."))
+
+      expect(described_class.read(path).errors)
+        .to contain_exactly(/message uses "appsec"; write it as "AppSec"/)
+    end
+
+    it "reports every lowercase term in one pass" do
+      path = write_fragment("1.json", valid_entry("message" => "Fix the appsec and opentelemetry integrations."))
+
+      expect(described_class.read(path).errors).to contain_exactly(
+        /message uses "appsec"; write it as "AppSec"/,
+        /message uses "opentelemetry"; write it as "OpenTelemetry"/,
+      )
+    end
+
+    it "accepts the canonical casing" do
+      path = write_fragment("1.json", valid_entry("message" => "Fix the AppSec and OpenTelemetry integrations."))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
+
+    it "does not match a lowercase term inside a longer word or casing variant" do
+      path = write_fragment("1.json", valid_entry("message" => "Fix OTel-instrumented services and appsecrets."))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
+
+    it "does not match a lowercase term inside a code span, where the code fixes the casing" do
+      path = write_fragment("1.json",
+        valid_entry("message" => "Deprecate the `appsec.track_user_events` setting.",))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
+
+    it "reports a message with more than three sentences" do
+      path = write_fragment("1.json",
+        valid_entry("message" => "Add X. It also does Y. Users now get Z. And it is faster."))
+
+      expect(described_class.read(path).errors)
+        .to contain_exactly(/message has 4 sentences, cap is 3/)
+    end
+
+    it "accepts a message at three sentences" do
+      path = write_fragment("1.json", valid_entry("message" => "Add X. It also does Y. Users now get Z."))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
+
+    it "does not count code spans or e.g. as sentence breaks" do
+      path = write_fragment("1.json",
+        valid_entry("message" => "Add support for `foo` 1.2.3 and `bar` 2.6.5, e.g. `foo-rails`."))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
+
+    it "accepts a message without terminal punctuation for sentence counting" do
+      path = write_fragment("1.json", valid_entry("message" => "Fix the crash"))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
+
+    it "reports an odd number of backticks as unbalanced code spans" do
+      path = write_fragment("1.json", valid_entry("message" => "Fix the `wait_timeout setting."))
+
+      expect(described_class.read(path).errors)
+        .to contain_exactly(/message has 1 backticks; code spans need an even number/)
+    end
+
+    it "reports an empty code span" do
+      path = write_fragment("1.json", valid_entry("message" => "Fix the `` setting."))
+
+      expect(described_class.read(path).errors)
+        .to contain_exactly(/message has an empty code span/)
+    end
+
+    it "accepts balanced, non-empty code spans" do
+      path = write_fragment("1.json", valid_entry("message" => "Fix the `appsec.track_user_events` setting."))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
+
+    it "reports a PR reference inside the message" do
+      path = write_fragment("1.json", valid_entry("message" => "Fix the crash reported in #123."))
+
+      expect(described_class.read(path).errors)
+        .to contain_exactly(/message references "#123"; the PR number is rendered automatically/)
+    end
+
+    it "reports a bare PR mention inside the message" do
+      path = write_fragment("1.json", valid_entry("message" => "Fix the crash mentioned in the PR description."))
+
+      expect(described_class.read(path).errors)
+        .to contain_exactly(/message references "PR"/)
+    end
+
+    it "does not flag PR-sounding words that are not PR references" do
+      path = write_fragment("1.json", valid_entry("message" => "Fix `profiler` and `Process.waitall` handling."))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
   end
 
   describe "#to_s" do
