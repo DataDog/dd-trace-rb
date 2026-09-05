@@ -37,14 +37,38 @@ GitHub release, not inside `CHANGELOG.md` itself), create or edit
 
 ## Validating your entry
 
-Run `bundle exec rake unreleased:lint` to check the schema — it reports
-every violation across every pending fragment in one run — and
+Run `bundle exec rake unreleased:lint` to check the fields, enums,
+canonical casing, and message shape (sentence cap, balanced non-empty
+code spans, no PR references) — it
+reports every violation across every pending fragment in one run — and
 `bundle exec rake unreleased:render` to preview how your entry (and every
-other pending entry) will render in the next `CHANGELOG.md`. Message hygiene
-is checked separately by `bundle exec rake unreleased:vale`, which
-runs both a Ruby-based trailing-whitespace check and vale for punctuation
-and style validation. CI runs this as a required step, so a message that
-fails it will fail your PR.
+other pending entry) will render in the next `CHANGELOG.md`.
+
+Message hygiene (weasel words, corporate speak, non-verb openers,
+catchall tails, naked identifiers outside code spans, grammar,
+punctuation, trailing whitespace) is enforced by CI with vale, not run
+locally: a
+message that fails it fails your PR, with one annotation per finding.
+Revise per the annotations and push again — CI reports every violation in
+one run, so a single revision clears all findings. Write messages that
+pass it by following the rules above and reviewing your message before
+committing.
+
+## Keeping the rules honest
+
+The hygiene rules were calibrated against the 13 GitHub releases the
+primary release manager has cut, v2.0.0 and later (see `.vale.ini`), and
+they hold a standing feedback policy:
+
+- A rule that has not fired across several releases is ceremony —
+  demote or remove it.
+- A message problem that reaches `CHANGELOG.md` is a gap: convert it
+  into a new deterministic check (when machine-checkable, e.g. the
+canonical-casing check in `unreleased:lint`) or a new instruction in
+the write-changelog skill (when it is a judgment call).
+- Style package bumps are deliberate: bump the pinned version and
+  SHA256 together, then re-run the calibration corpus and update the
+  `.vale.ini` overrides if anything newly fires.
 
 ## What happens at release time
 
