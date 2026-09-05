@@ -75,8 +75,9 @@ def baggage
 - Repetition of what a good name already says. Delete the comment, or rename if the identifier is the weak link.
 - Type restatements in prose (non-public surfaces). Type it in `sig/` instead (`write-rbs` skill). E.g.:
   ```ruby
-  # @param [PG::Result] result
-  def annotate_span_with_result!(span, result)
+  # @param [TraceOperation] trace
+  # @return [Boolean]
+  def match?(trace)
   ```
 - Duplicates of a nearby docstring or README. State it once, in the most discoverable place.
 - The same comment copy-pasted across multiple sites in one diff. Consolidate into one place and reference it.
