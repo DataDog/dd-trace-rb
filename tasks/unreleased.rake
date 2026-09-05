@@ -24,7 +24,7 @@ namespace :unreleased do
 
   desc "Lint unreleased/ changelog fragment messages for hygiene with vale"
   task :vale do
-    require "tmpdir"
+    require "open3"
 
     fragments = ReleasePrep::Fragments.read_all
     ReleasePrep.validate_fragments!(fragments)
@@ -37,13 +37,26 @@ namespace :unreleased do
       ReleasePrep.fail!("Changelog message has trailing whitespace: #{offenders.map(&:path).join(", ")}")
     end
 
-    Dir.mktmpdir do |dir|
-      fragments.each_with_index do |fragment, index|
-        File.write(File.join(dir, "#{index}.md"), fragment.message)
-      end
+    # One vale invocation per fragment, message on stdin: no temp files, and
+    # --ext makes vale parse stdin as markdown while --output=line keeps
+    # each finding on one line so every finding becomes its own error
+    # annotation. Exit status: 0 = clean, 1 = findings, anything else means
+    # vale itself failed.
+    config = File.expand_path(".vale.ini")
+    findings = fragments.flat_map do |fragment|
+      out, status = Open3.capture2("vale", "--config=#{config}", "--ext=.md", "--output=line", stdin_data: fragment.message)
 
-      sh "vale --config=#{File.expand_path(".vale.ini")} #{dir}"
+      case status.exitstatus
+      when 0
+        []
+      when 1
+        out.split("\n").map { |finding| finding.sub("stdin.md:", "#{fragment.path}:") }
+      else
+        ReleasePrep.fail!("vale exited with #{status.exitstatus} for #{fragment.path}: #{out}")
+      end
     end
+
+    ReleasePrep.fail_all!(findings) unless findings.empty?
   rescue ReleasePrep::ValidationError => e
     ReleasePrep.fail!(e.message)
   end
