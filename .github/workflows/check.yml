@@ -183,7 +183,7 @@ jobs:
         run: bundle exec rake unreleased:vale
 
       - name: Render changelog fragments
-        run: bundle exec rake unreleased:render
+        run: bundle exec rake unreleased:render >> "$GITHUB_STEP_SUMMARY"
 
   checksum-coverage:
     name: checksum-coverage
