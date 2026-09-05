@@ -19,6 +19,11 @@ refactors, tests, and CI/tooling changes usually don't.
 
 If you are not a Datadog employee, you can skip this and a reviewer will
 add or edit the fragment for you.
+
+Reviewer: if a fragment is present, judge it —
+- Do its claims (components, versions, behavior) match this diff?
+- Read the rendered entry in the CI "Render changelog fragments" step
+  as a customer would: is it informative and at the right level?
 -->
 
 **Additional Notes:**
