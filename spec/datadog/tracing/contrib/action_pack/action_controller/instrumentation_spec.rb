@@ -6,6 +6,41 @@ require "datadog"
 # TODO: We plan on rewriting much of this instrumentation to bring it up to
 #       present day patterns/conventions. For now, just test a few known cases.
 RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionController::Instrumentation do
+  let(:action_dispatch_exception) { nil }
+  let(:action_name) { "index" }
+  let(:controller_class) { stub_const("TestController", Class.new(ActionController::Base)) }
+  let(:env) { {"rack.url_scheme" => "http"} }
+  let(:payload) do
+    {
+      controller: controller_class,
+      action: action_name,
+      env: env,
+      headers: {
+        # The exception this controller was given in the request,
+        # which is typical if the controller is configured to handle exceptions.
+        request_exception: action_dispatch_exception,
+      },
+      tracing_context: {},
+    }
+  end
+
+  describe "::start_processing" do
+    subject(:start_processing) { described_class.start_processing(payload) }
+
+    context "when the trace resource has already been overridden" do
+      it "preserves the trace resource" do
+        Datadog::Tracing.trace("rack.request") do |_span, trace|
+          trace.resource = "GraphQL/V2/TestOperation"
+
+          start_processing
+          described_class.finish_processing(payload)
+
+          expect(trace.resource).to eq("GraphQL/V2/TestOperation")
+        end
+      end
+    end
+  end
+
   describe "::finish_processing" do
     subject(:finish_processing) { described_class.finish_processing(payload) }
 
@@ -13,25 +48,30 @@ RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionController::Instrume
       before { described_class.start_processing(payload) }
       after { span.finish }
 
-      let(:action_dispatch_exception) { nil }
-      let(:action_name) { "index" }
-      let(:controller_class) { stub_const("TestController", Class.new(ActionController::Base)) }
-      let(:env) { {"rack.url_scheme" => "http"} }
-      let(:payload) do
-        {
-          controller: controller_class,
-          action: action_name,
-          env: env,
-          headers: {
-            # The exception this controller was given in the request,
-            # which is typical if the controller is configured to handle exceptions.
-            request_exception: action_dispatch_exception,
-          },
-          tracing_context: {},
-        }
+      let(:span) { payload[:tracing_context][:dd_request_span] }
+      let(:request_trace) { payload[:tracing_context][:dd_request_trace] }
+
+      context "when the trace resource is overridden during the request" do
+        before do
+          request_trace.resource = "GraphQL/V2/TestOperation"
+          finish_processing
+        end
+
+        it "preserves the trace resource" do
+          expect(request_trace.resource).to eq("GraphQL/V2/TestOperation")
+        end
       end
 
-      let(:span) { payload[:tracing_context][:dd_request_span] }
+      context "when the controller span resource is changed during the request" do
+        before do
+          span.resource = "GraphQL/V2/TestOperation"
+          finish_processing
+        end
+
+        it "propagates the controller span resource to the trace" do
+          expect(request_trace.resource).to eq("GraphQL/V2/TestOperation")
+        end
+      end
 
       context "with a 200 OK response" do
         before do
