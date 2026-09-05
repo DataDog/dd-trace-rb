@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "prefix": "Profiling",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6173",
+  "message": "Fix a rare crash (`SIGSEGV`) in the profiler that could occur when sampling a thread during `Thread.new`."
+}

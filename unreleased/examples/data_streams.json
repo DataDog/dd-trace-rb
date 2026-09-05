@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "prefix": "Data Streams",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/5427",
+  "message": "Fix Data Streams Monitoring to correctly report the configured environment instead of showing `env:none`."
+}

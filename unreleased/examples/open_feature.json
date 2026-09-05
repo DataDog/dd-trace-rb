@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "prefix": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/5599",
+  "message": "Add flag evaluation metrics (`feature_flag.evaluations`) for the OpenFeature provider, collected via OpenTelemetry."
+}

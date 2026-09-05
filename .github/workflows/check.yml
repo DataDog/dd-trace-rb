@@ -129,20 +129,61 @@ jobs:
             echo "::error::See $DOC_URL for how to reproduce this locally and how to fix or document a CVE finding."
           fi
 
-  changelog-release-only:
-    name: changelog/release-only
+  changelog:
+    name: changelog/check
     runs-on: ubuntu-24.04
+    needs: ['build']
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
+      - name: Restore bundle cache
+        uses: ./.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.build.outputs.lockfile }}
+          cache-key: ${{ needs.build.outputs.cache-key }}
+
+      - name: Configure Git
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        shell: bash
+
       - name: Check CHANGELOG.md is only changed by release PRs
         if: github.event_name == 'pull_request'
         env:
           HEAD_REF: ${{ github.head_ref }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: .github/scripts/check_changelog_release_only.sh
+
+      - name: Validate changelog fragment schema
+        run: bundle exec rake unreleased:lint
+
+      - name: Install vale
+        env:
+          VALE_VERSION: "3.20.0"
+          VALE_SHA256: f59e7030c5d4ace6cf915497d0d076a1699d61e876142765963237e6867c9712
+        run: .github/scripts/install_vale.sh
+
+      - name: Install vale style packages
+        env:
+          WRITE_GOOD_VERSION: "0.4.1"
+          WRITE_GOOD_SHA256: 2960ef10861ddc7dc76292a4967eb3789bf05ca24f862042f6d15f53332887f0
+          PROSELINT_VERSION: "0.3.4"
+          PROSELINT_SHA256: 48b1fb481ba44f6505d44346b283f6cdc74efd234f913bbdb09bf34420fab81c
+          HARPER_VERSION: "0.1.0"
+          HARPER_SHA256: bfab282e7abd8906f8656c240ccd4d873679878ed8e0c42d683ad7e2798c436c
+        run: .github/scripts/install_vale_styles.sh
+
+      - name: Lint changelog fragment messages
+        run: bundle exec rake unreleased:vale
+
+      - name: Render changelog fragments
+        run: bundle exec rake unreleased:render >> "$GITHUB_STEP_SUMMARY"
 
   checksum-coverage:
     name: checksum-coverage
@@ -244,7 +285,7 @@ jobs:
       - 'yaml-lint'
       - 'checksum-coverage'
       - 'bundler-audit'
-      - 'changelog-release-only'
+      - 'changelog'
     runs-on: ubuntu-24.04
     steps:
       - run: echo "Done"
