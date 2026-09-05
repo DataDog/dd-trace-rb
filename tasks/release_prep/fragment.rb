@@ -23,6 +23,21 @@ module ReleasePrep
     ].freeze
     REQUIRED_FIELDS = %w[type prefix pull_request message].freeze
 
+    # Customer-facing product names whose casing a changelog message must get
+    # right; a lowercase form is a misspelling, not a style preference.
+    CANONICAL_CASING = {
+      "appsec" => "AppSec",
+      "opentelemetry" => "OpenTelemetry",
+      "otel" => "OTel",
+    }.freeze
+
+    # The renderer appends "(#NNNN)" from the pull_request field, so a PR
+    # reference inside the message is either a duplicate of that tail or an
+    # internal pointer customers have no use for.
+    PR_REFERENCES = /#\d+|\b(?:PR|pull request)\b/i.freeze
+
+    MESSAGE_SENTENCE_CAP = 3
+
     attr_reader :path, :type, :prefix, :pull_request, :message, :author
 
     def self.read(path)
@@ -71,7 +86,42 @@ module ReleasePrep
       if message.to_s.length > MESSAGE_LENGTH_CAP
         errors << "#{path}: message is #{message.length} characters, cap is #{MESSAGE_LENGTH_CAP}"
       end
+      prose = without_code_spans(message.to_s)
+      CANONICAL_CASING.each do |term, canonical|
+        if prose.match?(%r{\b#{Regexp.escape(term)}\b})
+          errors << "#{path}: message uses #{term.inspect}; write it as #{canonical.inspect}"
+        end
+      end
+      backticks = message.to_s.count("`")
+      if backticks.odd?
+        errors << "#{path}: message has #{backticks} backticks; code spans need an even number"
+      end
+      errors << "#{path}: message has an empty code span" if message.to_s.include?("``")
+      count = sentence_count(message.to_s)
+      if count > MESSAGE_SENTENCE_CAP
+        errors << "#{path}: message has #{count} sentences, cap is #{MESSAGE_SENTENCE_CAP}"
+      end
+      if (reference = message.to_s[PR_REFERENCES])
+        errors << "#{path}: message references #{reference.inspect}; the PR number is rendered " \
+          "automatically from the pull_request field"
+      end
       errors
+    end
+
+    private
+
+    # Code spans name identifiers whose casing and punctuation the code itself
+    # fixes (e.g. `appsec.track_user_events`), so checks about prose never see
+    # inside them.
+    def without_code_spans(text)
+      text.gsub(/`[^`]*`/, "")
+    end
+
+    # ., !, or ? followed by whitespace or end of text delimits sentences;
+    # code spans are stripped and e.g./i.e. neutralized first, so paths and
+    # version numbers inside `code` never split a message that is one sentence.
+    def sentence_count(text)
+      without_code_spans(text).gsub(/\b(?:e\.g|i\.e)\./i, "").scan(/[.!?]+(?=\s|\z)/).size
     end
   end
 end
