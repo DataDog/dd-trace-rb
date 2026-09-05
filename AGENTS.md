@@ -110,6 +110,7 @@ no external grant needed. No local trigger otherwise.
 
 ## Code changes
 
+- Follow the `write-comment` skill's rules for when a comment earns its place; default to no comment otherwise.
 - Use `Core::Utils::EnumerableCompat.filter_map` instead of `filter_map` for compatibility with Ruby 2.5 and 2.6 (native `filter_map` requires Ruby 2.7+).
 - Use `Datadog::Core::Utils::Time.now` instead of `Time.now` everywhere. The time provider is configurable (for example, for Timecop support), and tests can override it via `Core::Utils::Time.now_provider=`.
 

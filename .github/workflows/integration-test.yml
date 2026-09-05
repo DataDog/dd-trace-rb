@@ -21,8 +21,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - app: rails-five
-            ruby: "2.7"
+          # TODO: re-enable once the Ruby 2.7 base image can build again; Debian 11
+          # (bullseye) reached EOL and the bullseye-security pool returns 404s.
+          # https://github.com/DataDog/ruby-guild/issues/324
+          # - app: rails-five
+          #   ruby: "2.7"
           - app: rails-six
             ruby: "3.3"
           - app: rails-seven
@@ -68,8 +71,11 @@ jobs:
             ruby: "3.4"
           - app: sinatra2-modular
             ruby: "3.4"
-          - app: hanami
-            ruby: "2.7"
+          # TODO: re-enable once the Ruby 2.7 base image can build again; Debian 11
+          # (bullseye) reached EOL and the bullseye-security pool returns 404s.
+          # https://github.com/DataDog/ruby-guild/issues/324
+          # - app: hanami
+          #   ruby: "2.7"
           - app: opentelemetry
             ruby: "3.4"
     steps:
