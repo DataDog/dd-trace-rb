@@ -18,7 +18,8 @@ mkdir -p "${styles_dir}"
 
 # The write-good and proselint zips contain a single top-level directory
 # named after the package, so extracting into styles_dir lands them at
-# vale/styles/<package>/.
+# vale/styles/<package>/. The CI job containers ship without unzip, so the
+# extraction uses the repo's ruby-based extractor instead.
 install_package() {
     local package="$1" version="$2" sha256="$3"
     local archive="/tmp/${package}.zip"
@@ -27,7 +28,7 @@ install_package() {
         "https://github.com/errata-ai/${package}/releases/download/v${version}/${package}.zip"
     echo "${sha256}  ${archive}" | sha256sum -c -
     rm -rf "${styles_dir:?}/${package}"
-    unzip -q -o "${archive}" -d "${styles_dir}"
+    ruby .github/scripts/extract_zip.rb "${archive}" "${styles_dir}"
 }
 
 install_package write-good "${WRITE_GOOD_VERSION}" "${WRITE_GOOD_SHA256}"
@@ -41,7 +42,7 @@ harper_dir="$(mktemp -d)"
 curl -sSL -o /tmp/Harper.zip \
     "https://github.com/vale-cli/Harper/releases/download/v${HARPER_VERSION}/Harper.zip"
 echo "${HARPER_SHA256}  /tmp/Harper.zip" | sha256sum -c -
-unzip -q -o /tmp/Harper.zip -d "${harper_dir}"
+ruby .github/scripts/extract_zip.rb /tmp/Harper.zip "${harper_dir}"
 rm -rf "${styles_dir:?}/Harper" "${styles_dir:?}/config"
 cp -R "${harper_dir}/Harper/styles/Harper" "${styles_dir}/Harper"
 cp -R "${harper_dir}/Harper/styles/config" "${styles_dir}/config"
