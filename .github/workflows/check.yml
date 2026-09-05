@@ -161,9 +161,19 @@ jobs:
 
       - name: Install vale
         env:
-          VALE_VERSION: "3.12.0"
-          VALE_SHA256: 3f4ea05cd1f2291b660ecf11a77cbb6b544b0f3b780604ad183f63285611321b
+          VALE_VERSION: "3.20.0"
+          VALE_SHA256: f59e7030c5d4ace6cf915497d0d076a1699d61e876142765963237e6867c9712
         run: .github/scripts/install_vale.sh
+
+      - name: Install vale style packages
+        env:
+          WRITE_GOOD_VERSION: "0.4.1"
+          WRITE_GOOD_SHA256: 2960ef10861ddc7dc76292a4967eb3789bf05ca24f862042f6d15f53332887f0
+          PROSELINT_VERSION: "0.3.4"
+          PROSELINT_SHA256: 48b1fb481ba44f6505d44346b283f6cdc74efd234f913bbdb09bf34420fab81c
+          HARPER_VERSION: "0.1.0"
+          HARPER_SHA256: bfab282e7abd8906f8656c240ccd4d873679878ed8e0c42d683ad7e2798c436c
+        run: .github/scripts/install_vale_styles.sh
 
       - name: Lint changelog fragment messages
         run: bundle exec rake unreleased:vale
