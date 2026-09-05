@@ -1382,11 +1382,14 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       around do |example|
         ClimateControl.modify(
           "OTEL_RESOURCE_ATTRIBUTES" => otel_tags,
-          Datadog::Core::Environment::Ext::ENV_TAGS => dd_tags
+          Datadog::Core::Environment::Ext::ENV_TAGS => dd_tags,
+          Datadog::Core::Environment::Ext::ENV_ENVIRONMENT => dd_env
         ) do
           example.run
         end
       end
+
+      let(:dd_env) { nil }
 
       context "is defined and DD_TAGS is set" do
         let(:otel_tags) { "deployment.environment=prod,service.name=bleh,service.version=1.0,mkey=val1" }
@@ -1395,9 +1398,54 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
 
       context "is defined and DD_TAGS is not set" do
-        let(:otel_tags) { "deployment.environment=prod,service.name=bleh,service.version=1.0,mkey=val1" }
         let(:dd_tags) { nil }
-        it { is_expected.to include("env" => "prod", "service" => "bleh", "version" => "1.0", "mkey" => "val1") }
+
+        context "with only deployment.environment.name" do
+          let(:otel_tags) { "deployment.environment.name=stable" }
+
+          it { is_expected.to eq("env" => "stable") }
+        end
+
+        context "with only deployment.environment" do
+          let(:otel_tags) { "deployment.environment=legacy" }
+
+          it { is_expected.to eq("env" => "legacy") }
+        end
+
+        context "with deployment.environment.name before deployment.environment" do
+          let(:otel_tags) { "deployment.environment.name=stable,deployment.environment=legacy" }
+
+          it { is_expected.to eq("env" => "stable") }
+        end
+
+        context "with deployment.environment before deployment.environment.name" do
+          let(:otel_tags) { "deployment.environment=legacy,deployment.environment.name=stable" }
+
+          it { is_expected.to eq("env" => "stable") }
+        end
+
+        context "with both deployment environment attributes and an unrelated attribute" do
+          let(:otel_tags) do
+            "deployment.environment.name=stable,deployment.environment=legacy,custom.attribute=value"
+          end
+
+          it "consumes the deployment environment attributes and preserves the unrelated attribute" do
+            is_expected.to eq("env" => "stable", "custom.attribute" => "value")
+          end
+        end
+
+        context "with service, version, and an unrelated attribute" do
+          let(:otel_tags) { "deployment.environment=prod,service.name=bleh,service.version=1.0,mkey=val1" }
+
+          it { is_expected.to include("env" => "prod", "service" => "bleh", "version" => "1.0", "mkey" => "val1") }
+        end
+
+        context "and DD_ENV is set" do
+          let(:otel_tags) { "deployment.environment.name=stable,deployment.environment=legacy" }
+          let(:dd_env) { "datadog" }
+
+          it { is_expected.to eq("env" => "datadog") }
+        end
       end
 
       context "is not defined and DD_TAGS is not set" do
