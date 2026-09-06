@@ -39,7 +39,7 @@ module ReleasePrep
 
     # Renders the pending fragments as Markdown: one section per fragment
     # type, fragments in the order Fragment::PREFIXES declares. Plain Markdown
-    # only; linkification is changelog:format's job.
+    # only; linkification is Changelog#release's job.
     def render
       return "" if @fragments.empty?
 

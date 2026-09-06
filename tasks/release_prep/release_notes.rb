@@ -8,7 +8,7 @@ require_relative "highlights"
 # The GitHub release being prepared: its tag name and the release notes body
 # written for `gh release create --draft --notes-file`. The body is plain
 # Markdown (GitHub auto-links #NNNN and @handle); CHANGELOG.md's own
-# linkified house style comes from the repo's changelog:format pass.
+# linkified house style comes from Changelog#release's linkification.
 # Representation only; the workflow owns the actual release creation.
 module ReleasePrep
   class ReleaseNotes

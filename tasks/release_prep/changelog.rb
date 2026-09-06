@@ -1,10 +1,14 @@
 # frozen_string_literal: true
 
 require "date"
+require "pimpmychangelog"
 require_relative "../release_prep"
 
-# The CHANGELOG.md file: reads the previous version from its footer, inserts a
-# new version section under [Unreleased], and rewrites the compare links.
+# The CHANGELOG.md file: #release is the entry point — it renders the given
+# Fragments collection into a new version section under [Unreleased],
+# linkifies (#NNNN)/(@handle) tokens, rewrites the compare-link footer, and
+# writes the file once. PimpMyChangelog is required, not guarded: preparing a
+# release without linkification must fail loudly, never degrade silently.
 module ReleasePrep
   class Changelog
     PREVIOUS_VERSION_PATTERN = %r{\[Unreleased\]: #{Regexp.escape(REPO_URL)}/compare/v(.+?)\.\.\.master}
@@ -14,32 +18,43 @@ module ReleasePrep
       @path = path
     end
 
-    def previous_version
-      match = File.read(@path).match(PREVIOUS_VERSION_PATTERN)
+    def release(version, fragments)
+      source = File.read(@path)
+      previous = previous_version_in(source)
+      user, project = REPO.split("/", 2)
+      inserted = insert_version_in(source, version, fragments.render)
+      linkified = PimpMyChangelog::Pimper.new(user, project, inserted).better_changelog
+
+      File.write(@path, rewrite_footer_in(linkified, version, previous))
+    end
+
+    private
+
+    def previous_version_in(source)
+      match = source.match(PREVIOUS_VERSION_PATTERN)
       ReleasePrep.fail!("Could not find the [Unreleased] compare link in #{@path}") unless match
 
       match[1]
     end
 
-    def insert_version(version, content)
-      match = File.read(@path).match(/\n## \[Unreleased\]/)
+    def insert_version_in(source, version, content)
+      match = source.match(/\n## \[Unreleased\]/)
       ReleasePrep.fail!("Could not find [Unreleased] marker in #{@path}") unless match
 
       section = "\n## [#{version}] - #{Date.today}\n\n#{content}".rstrip
-      File.write(@path, File.read(@path).insert(match.end(0), "\n#{section}"))
+      source.insert(match.end(0), "\n#{section}")
     end
 
-    def rewrite_footer(version, previous)
+    def rewrite_footer_in(source, version, previous)
       replacement =
         "[Unreleased]: #{REPO_URL}/compare/v#{version}...master\n" \
         "[#{version}]: #{REPO_URL}/compare/v#{previous}...v#{version}"
 
-      content = File.read(@path)
-      unless content.match?(UNRELEASED_FOOTER_PATTERN)
+      unless source.match?(UNRELEASED_FOOTER_PATTERN)
         ReleasePrep.fail!("Could not find [Unreleased] compare link in #{@path}")
       end
 
-      File.write(@path, content.sub(UNRELEASED_FOOTER_PATTERN, replacement))
+      source.sub(UNRELEASED_FOOTER_PATTERN, replacement)
     end
   end
 end

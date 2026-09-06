@@ -46,8 +46,6 @@ namespace :release_prep do
   task :changelog, [:version] do |_t, args|
     version = validate_official_version!(args[:version])
 
-    changelog = ReleasePrep::Changelog.new
-    previous = changelog.previous_version
     fragments = ReleasePrep::Fragments.read_all
     highlights = ReleasePrep::Highlights.read
 
@@ -55,9 +53,7 @@ namespace :release_prep do
     ReleasePrep.fail_if_no_fragments!(fragments)
     ReleasePrep.validate_pr_numbers!(fragments)
 
-    changelog.insert_version(version, fragments.render)
-    Rake::Task["changelog:format"].invoke
-    changelog.rewrite_footer(version, previous)
+    ReleasePrep::Changelog.new.release(version, fragments)
 
     # Runs last: only delete the source files once the draft release and
     # CHANGELOG.md have both been written successfully.
