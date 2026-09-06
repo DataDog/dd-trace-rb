@@ -1,8 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-# Downloads and installs the pinned vale binary used by the changelog checks.
-
 if [[ -z "${VALE_VERSION:-}" ]]; then
     echo "Error: VALE_VERSION environment variable is not set"
     exit 1

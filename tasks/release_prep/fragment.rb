@@ -117,9 +117,8 @@ module ReleasePrep
       text.gsub(/`[^`]*`/, "")
     end
 
-    # ., !, or ? followed by whitespace or end of text delimits sentences;
-    # code spans are stripped and e.g./i.e. neutralized first, so paths and
-    # version numbers inside `code` never split a message that is one sentence.
+    # Code spans and e.g./i.e. are neutralized first, so paths and version
+    # numbers inside `code` never split a message that is one sentence.
     def sentence_count(text)
       without_code_spans(text).gsub(/\b(?:e\.g|i\.e)\./i, "").scan(/[.!?]+(?=\s|\z)/).size
     end

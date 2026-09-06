@@ -3,11 +3,6 @@
 require "date"
 require_relative "../release_prep"
 
-# The CHANGELOG.md file: #release is the entry point — it renders the given
-# Fragments collection into a new version section under [Unreleased],
-# linkifies (#NNNN)/(@handle) tokens, rewrites the compare-link footer, and
-# writes the file once. #format relinkifies the whole file in place for
-# `rake changelog:format`.
 module ReleasePrep
   class Changelog
     PREVIOUS_VERSION_PATTERN = %r{\[Unreleased\]: #{Regexp.escape(REPO_URL)}/compare/v(.+?)\.\.\.master}
@@ -25,8 +20,6 @@ module ReleasePrep
       File.write(@path, rewrite_footer_in(linkify_in(inserted), version, previous))
     end
 
-    # Relinkifies the whole file in place, regenerating the link-definition
-    # block — the dev-side `rake changelog:format`.
     def format
       File.write(@path, linkify_in(File.read(@path)))
     end

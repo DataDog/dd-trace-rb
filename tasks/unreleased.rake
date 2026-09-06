@@ -37,10 +37,9 @@ namespace :unreleased do
       ReleasePrep.fail!("Changelog message has trailing whitespace: #{offenders.map(&:path).join(", ")}")
     end
 
-    # One vale invocation per fragment, message on stdin: no temp files, and
-    # --ext makes vale parse stdin as markdown while --output=line keeps
-    # each finding on one line so every finding becomes its own error
-    # annotation. Exit status: 0 = clean, 1 = findings, anything else means
+    # One vale invocation per fragment, message on stdin (no temp files):
+    # --ext parses stdin as markdown, --output=line yields one error
+    # annotation per finding. Exit 1 means findings; anything else means
     # vale itself failed.
     config = File.expand_path(".vale.ini")
     findings = fragments.flat_map do |fragment|

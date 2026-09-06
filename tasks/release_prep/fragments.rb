@@ -37,9 +37,7 @@ module ReleasePrep
       @fragments.empty?
     end
 
-    # Renders the pending fragments as Markdown: one section per fragment
-    # type, fragments in the order Fragment::PREFIXES declares. Plain Markdown
-    # only; linkification is Changelog#release's job.
+    # Plain Markdown only; linkification is Changelog#release's job.
     def render
       return "" if @fragments.empty?
 
@@ -54,7 +52,6 @@ module ReleasePrep
       sections.join("\n\n").sub(/\n*\z/, "")
     end
 
-    # Every violation across every fragment, not just the first file's.
     def validate
       flat_map(&:errors)
     end

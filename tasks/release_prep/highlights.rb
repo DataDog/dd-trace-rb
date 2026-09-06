@@ -33,7 +33,6 @@ module ReleasePrep
       nil
     end
 
-    # Null object for the absent case: same API, inert behavior.
     class Missing
       def to_s
         ""

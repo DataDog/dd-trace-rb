@@ -1,8 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Downloads the pinned vale style packages used by the changelog checks
-# into vale/styles/, mirroring the layout the .vale.ini StylePath expects.
+# Installs into vale/styles/, the layout .vale.ini's StylePath expects.
 
 if [[ -z "${WRITE_GOOD_VERSION:-}" || -z "${WRITE_GOOD_SHA256:-}" \
     || -z "${PROSELINT_VERSION:-}" || -z "${PROSELINT_SHA256:-}" \
@@ -18,8 +17,7 @@ mkdir -p "${styles_dir}"
 
 # The write-good and proselint zips contain a single top-level directory
 # named after the package, so extracting into styles_dir lands them at
-# vale/styles/<package>/. The CI job containers ship without unzip, so the
-# extraction uses the repo's ruby-based extractor instead.
+# vale/styles/<package>/.
 install_package() {
     local package="$1" version="$2" sha256="$3"
     local archive="/tmp/${package}.zip"
