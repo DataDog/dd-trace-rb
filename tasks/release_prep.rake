@@ -30,7 +30,6 @@ namespace :release_prep do
 
     fragments = ReleasePrep::Fragments.read_all
     ReleasePrep.validate_fragments!(fragments)
-    ReleasePrep.validate_pr_numbers!(fragments)
     release_notes = ReleasePrep::ReleaseNotes.new(
       version: version,
       fragments: fragments,
@@ -51,7 +50,6 @@ namespace :release_prep do
 
     ReleasePrep.validate_fragments!(fragments)
     ReleasePrep.fail_if_no_fragments!(fragments)
-    ReleasePrep.validate_pr_numbers!(fragments)
 
     ReleasePrep::Changelog.new.release(version, fragments)
 

@@ -84,8 +84,8 @@ alongside the change. A release renders every pending fragment into
 - MUST fill `pull_request` with the full PR URL,
   `https://github.com/DataDog/dd-trace-rb/pull/NNNN` — open the PR first,
   even as a draft, so the number is known. Lint rejects any other form
-  (issue links, fork URLs, placeholders like `pull/TBD`), and release-prep
-  later checks the number against merged history
+  (issue links, fork URLs, placeholders like `pull/TBD`); nothing checks
+  the number mechanically, so the author and reviewer own it
 - MUST set `author` ONLY for external (non-Datadog) contributors, to their
   GitHub handle; omit it otherwise
 
@@ -130,8 +130,8 @@ bundle exec rake unreleased:render
 `unreleased:lint` checks the schema (required fields, closed enums, canonical
 casing) and reports every violation across every pending fragment in one run.
 `unreleased:render` previews how the entry will look once rendered into
-`CHANGELOG.md`. Release-prep additionally verifies each `pull_request`
-number against the repository's merged history.
+`CHANGELOG.md`. Nothing checks the `pull_request` number mechanically —
+the author and reviewer own it.
 
 Message hygiene (weasel words, corporate speak, grammar, punctuation,
 trailing whitespace) is enforced by CI with vale — it is NOT part of local
