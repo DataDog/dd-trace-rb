@@ -249,8 +249,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         start
 
         current_thread_samples = loop_until do
-          samples = samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
-          samples if samples.any?
+          samples_from_signal_handler = cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample)
+          if samples_from_signal_handler > 0
+            samples = samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
+            samples if samples.any?
+          end
         end
 
         cpu_and_wall_time_worker.stop
