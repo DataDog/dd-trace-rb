@@ -9,6 +9,7 @@ module ReleasePrep
   class Fragment
     TYPES = %w[Added Changed Fixed].freeze
     MESSAGE_LENGTH_CAP = 240
+    # The product areas, one per top-level lib/datadog/* directory.
     PREFIXES = [
       "Core",
       "Tracing",

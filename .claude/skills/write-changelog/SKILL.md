@@ -1,141 +1,206 @@
 ---
 name: write-changelog
-description: 'Use when a change in this repo needs a customer-facing changelog entry — e.g. "add a changelog entry", "this needs a changelog fragment", or when finishing a PR that changes user-visible behavior in lib/, ext/, or docs/GettingStarted.md. Enforces dd-trace-rb changelog fragment conventions.'
+description: 'Use when a change in this repo needs a customer-facing changelog entry — e.g. "add a changelog entry", "this needs a changelog fragment", or when an approved PR that changes user-visible behavior in lib/, ext/, or docs/GettingStarted.md is about to merge. Enforces dd-trace-rb changelog fragment conventions.'
 ---
 
 # Writing changelog fragments
 
-Fragments live in `unreleased/`, one JSON file per notable change, committed
-alongside the change. A release renders every pending fragment into
-`CHANGELOG.md` and the GitHub draft release, then consumes the files. See
-`unreleased/README.md` for the human-facing version of this workflow
+READ `unreleased/README.md` FIRST — it documents the fragment system. This
+skill covers how to do the work.
 
-## Core rules
+Invoke when the PR is complete and approved, right before merging: the
+diff is final, so grounding and triage see the complete change. A fragment
+written earlier must be re-grounded against the final diff.
 
-- MUST add an entry for new features, behavior changes to existing features,
-  and bug fixes that affect customers
-- NEVER add an entry for internal refactors, test-only changes, CI/tooling
-  changes, or documentation-only changes outside `docs/GettingStarted.md`
-- SHOULD add one when unsure — a reviewer can delete an unnecessary entry,
-  but a missing one leaves customers unaware of the change
-- MUST set `type` to one of `Added` (a capability that didn't exist before),
-  `Changed` (a behavior change to something that existed), `Fixed` (a bug fix)
-- MUST set `prefix` to the product area owning the change, matching the
-  top-level `lib/datadog/*` directory: `Core`, `Tracing`, `Profiling`,
-  `AppSec`, `AI Guard`, `Dynamic Instrumentation`, `Data Streams`,
-  `Error Tracking`, `Open Feature`, `OpenTelemetry`. The specific integration
-  name (Redis) belongs in the `message`, not the `prefix`
-- MUST write the message for a customer: what changed and why it matters to
-  someone using the gem — NEVER as an internal description of the diff
-- MUST start the message with a verb in the imperative (Add, Fix, Support,
-  Improve, ...) — CI rejects process-speak and subject-first openers ("This
-  PR fixes...", "The gem now supports...", "Also fixes...")
-- NEVER use code-review jargon ("refactored", "cleaned up") or internal file
-  names in the message; ALWAYS use inline code spans for identifiers,
-  matching existing `CHANGELOG.md` entries:
+## Grounding
+
+The core principle: a fragment states what the diff makes true; every
+claim traces to the diff, NEVER to memory — lint and vale check form only,
+so grounding falls to the author and reviewer alone.
+
+Read the diff and triage first; the answers drive every later step:
+
+- Effect: what does this PR make true when it lands? If the effect arrives
+  only in a later change (groundwork, flag plumbed but off), there is
+  nothing to write yet
+- Count: one change or several distinct effects? Several → ASK the user
+  before writing several fragments — exceptional, and the count is the
+  user's call
+- Product: which product each effect belongs to — by effect, not code
+  location (a core fix to a profiler crash is Profiling); diffuse
+  core-wide → `Core`. Closed list: `ReleasePrep::Fragment::PREFIXES`
+  (`tasks/release_prep/fragment.rb`); the integration name (Redis) goes
+  in the `message`, not the `prefix`
+- Type: `Added` (new capability), `Changed` (behavior change), `Fixed`
+  (bug fix)
+
+Then keep every written claim grounded:
+
+- Verify identifiers (settings, classes, methods, env vars, gems) against
+  the hunks, not recalled conventions
+- Verify versions against the diff (gemspec, Matrixfile, CI), not
+  ecosystem memory
+- Verify behavior against the diff's tests — no test, no behavioral claim
+- A claim that traces to nothing is dropped or weakened, never hedged
+
+## Deciding
+
+- Add: new features, behavior changes, customer-affecting bug fixes — one
+  fragment per customer-visible change, never a catch-all tail ("and more",
+  "etc.")
 
   ```markdown
-  <!-- Good – customer framing, grounded, canonical casing, code spans -->
-  Fix missing peer tags for database queries traced through `ActiveRecord`.
-  Fix a rare crash (`SIGSEGV`) in the profiler that could occur when sampling a
-  thread during `Thread.new`.
+  <!-- Bad: two effects bundled behind "and more" -->
+  Add support for Bundler deployment mode, report UI-oriented injection results, and more.
 
-  <!-- Bad – internal description: jargon, file names, no user-visible claim -->
+  <!-- Good: one effect stated whole; the PR's other effects each get their own fragment -->
+  Add support for Bundler deployment mode.
+  ```
+- Never add: internal refactors, test-only, CI/tooling, docs outside
+  `docs/GettingStarted.md`
+- When unsure, add — a reviewer can delete an entry; a missing one leaves
+  customers unaware
+
+## Creating the fragment
+
+1. No PR yet → open a draft first; `pull_request` needs a real number, and
+   nothing checks it mechanically
+2. PR already has a fragment for this change → update it, don't add
+   another; fragments for other changes stay untouched
+3. Copy the closest template from `unreleased/examples/` — never a blank
+   file:
+
+   ```bash
+   cp unreleased/examples/basic.json "unreleased/$(date -u +%Y%m%d%H%M%S).json"
+   ```
+
+4. Omit `author` unless writing for an external contributor, to their
+   GitHub handle
+
+## Writing the message
+
+Run `unreleased:lint` while drafting; the judgment below is what it and
+vale cannot check, in drafting order. Each rule carries a minimal pair in
+a fenced block: the bad entry is the good one with exactly the violation.
+
+- Structure by type — the reader's question differs:
+  - `Fixed`: the symptom they recognize → the trigger
+
+    ```markdown
+    <!-- Bad: symptom without the trigger -->
+    Fix `ArgumentError` in `pg` instrumentation.
+
+    <!-- Good: symptom + trigger -->
+    Fix `pg` instrumentation which raised `ArgumentError` when calling `exec_params`, `exec_prepared` without a `params` argument, or their `async_`/`sync_` variants.
+    ```
+
+  - `Added`: the capability → the access point, the setting/API that gets it for them
+
+    ```markdown
+    <!-- Bad: capability without the access point -->
+    Add flag evaluation metrics.
+
+    <!-- Good: capability + access point -->
+    Add flag evaluation metrics, collected via OpenTelemetry.
+    ```
+
+  - `Changed`: the new behavior → the action or escape hatch
+
+    ```markdown
+    <!-- Bad: new behavior without the action -->
+    Deprecate `time_now_provider`.
+
+    <!-- Good: new behavior + action + why it is safe -->
+    Deprecate the `time_now_provider` setting for removal; it no longer has an effect. Remove it from your `Datadog.configure` block. The gem always uses real time, even when the `timecop` gem monkey-patches `Time`.
+    ```
+
+- For a customer, not the diff: what changed and why it matters to a gem
+  user; no code-review jargon ("refactored", "cleaned up") or internal
+  file names; match existing `CHANGELOG.md` entries
+
+  ```markdown
+  <!-- Bad: internal description — jargon, file name, no user-visible claim -->
   Refactored peer_tags.rb in the tracer to fix the nil case in Tags#populate.
 
-  <!-- Bad – vague quantifiers hedging claims the diff may not make -->
-  Improve performance of the appsec rules and fix various issues significantly.
+  <!-- Good: customer framing, grounded, code spans -->
+  Fix missing peer tags for database queries traced through `ActiveRecord`.
   ```
 
-- MUST wrap identifiers — settings, classes, methods, gems, env vars — in
-  code spans; CI flags a naked `DD_...` env var, snake_case, CONSTANT_CASE, or
-  `Foo.bar` method in prose, and lint rejects unbalanced or empty spans
-- NEVER put plain English words in code spans: they name identifiers, they
-  are not emphasis
-- NEVER repeat the prefix verbatim in the message — the rendered entry
-  already opens with it, so "AppSec: Add AppSec detection..." says it twice;
-  lowercase technical phrasing ("GC profiling", "when tracing is disabled")
-  is fine, only the verbatim prefix is redundant
-- MUST ground every claim in the diff being described: component and gem
-  names, versions, and behavior come from the change itself, NEVER from
-  memory. If you cannot point at where in the diff a claim comes from, the
-  message does not get to make it
-- MUST use the canonical casing: `AppSec`, `OpenTelemetry`, `OTel`,
-  `Dynamic Instrumentation`, `Data Streams`, `Open Feature` — lint rejects
-  `appsec`, `opentelemetry`, and `otel`
-- MUST end the message with terminal punctuation (`.`, `!`, or `?`) and keep
-  it at most 240 characters
-- MUST keep one fragment to one change: at most three sentences, NEVER a
-  bundle tail ("and more", "etc.") — lint rejects both, and a second
-  user-visible change is a second fragment
-- NEVER reference the PR in the message; the PR number is rendered
-  automatically from the pull_request field, and lint rejects `#123`-style
-  references
-- For `Fixed` entries, MUST name the user-visible symptom a customer
-  recognizes (`Fix `Process.waitall` hanging`), NEVER only the fix's
-  internals (`Refactor the tags population code path`)
-- For `Changed` entries that alter defaults, MUST include the action or
-  escape hatch — name the setting that restores the previous behavior
-- MUST name exact versions and platforms (`Ruby 2.6 to 3.1`), NEVER
-  "recent" or "newer" hedges
-- MUST back performance claims with numbers from the diff (`Reduce overhead
-  by up to 50%`); an unmeasured claim stays directional and modest (`Reduce
-  overhead`), NEVER "significantly improve performance"
-- MUST fill `pull_request` with the full PR URL,
-  `https://github.com/DataDog/dd-trace-rb/pull/NNNN` — open the PR first,
-  even as a draft, so the number is known. Lint rejects any other form
-  (issue links, fork URLs, placeholders like `pull/TBD`); nothing checks
-  the number mechanically, so the author and reviewer own it
-- MUST set `author` ONLY for external (non-Datadog) contributors, to their
-  GitHub handle; omit it otherwise
+- Start with an imperative verb (Add, Fix, Support, Improve, ...) — CI
+  rejects "This PR fixes...", "The gem now supports...", "Also fixes..."
+
+  ```markdown
+  <!-- Bad: the PR is the subject -->
+  This PR adds support for `Resque`.
+
+  <!-- Good: imperative verb, the change is the subject -->
+  Add support for `Resque`.
+  ```
+
+- Wrap identifiers (`DD_...` env vars, snake_case, CONSTANT_CASE,
+  `Foo.bar`) in code spans; never plain English — code spans name
+  identifiers, they are not emphasis
+
+  ```markdown
+  <!-- Bad: identifier in plain text -->
+  Set DD_TRACE_ENABLED to 1.
+
+  <!-- Good: identifier in a code span -->
+  Set `DD_TRACE_ENABLED=1`.
+  ```
+
+- Never repeat the prefix verbatim — with prefix `AppSec`, "Add AppSec
+  detection..." says it twice; lowercase technical phrasing ("GC
+  profiling") is fine
+
+  ```markdown
+  <!-- Bad: the prefix said twice -->
+  Add AppSec detection of response splitting.
+
+  <!-- Good: the prefix already renders beside the entry -->
+  Add detection of response splitting.
+  ```
+
+- No PR references in the message — the number renders from
+  `pull_request` automatically
+
+  ```markdown
+  <!-- Bad: PR reference in the message -->
+  Fixes #4821 by hardening the transport against dropped payloads.
+
+  <!-- Good: no reference; the number renders from `pull_request` -->
+  Harden the transport against dropped payloads.
+  ```
+
+- Exact versions and platforms, never "recent" or "newer"
+
+  ```markdown
+  <!-- Bad: vague version -->
+  Fix GC profiling being incorrectly disabled on recent Ruby versions.
+
+  <!-- Good: patch-level versions -->
+  Fix GC profiling being incorrectly disabled on Ruby 3.2.10 and 3.2.11.
+  ```
+
+- Performance claims need numbers from the diff; unmeasured stays
+  directional, never "significantly improve"
+
+  ```markdown
+  <!-- Bad: unmeasured vague quantifier -->
+  Improve profiler performance significantly.
+
+  <!-- Good: measured number plus mechanism -->
+  Reduce profiler overhead by up to 50% by skipping redundant samples for threads without the GVL.
+  ```
 
 ## Before finishing
 
-Re-read the message and revise until every item holds:
+Re-read and revise until every item holds:
 
-- Every claim (names, versions, behavior) is visible in the diff
-- It reads as written for a customer — no internal jargon or file names
-- One change per fragment — no bundle tails, no second change hiding in a
-  second sentence
-- `Fixed` names the symptom a customer recognizes; `Changed` names the
+- Every claim visible in the diff
+- Reads as written for a customer
+- `Fixed` names the symptom; `Added` the access point; `Changed` the
   escape hatch
-- Canonical casing throughout, ≤240 characters, ≤3 sentences, terminal
-  punctuation, and no vague quantifiers ("various", "several",
-  "significantly")
-- Identifiers sit in code spans; plain English words don't
-- The prefix is not repeated verbatim in the message
-
-## Creating the file
-
-Copy the closest template, then rename it to the current UTC timestamp and
-edit its fields:
-
-```bash
-cp unreleased/examples/basic.json "unreleased/$(date -u +%Y%m%d%H%M%S).json"
-```
-
-`unreleased/examples/` holds real-life-flavored templates per type and per
-product area (`added.json`, `changed.json`, `fixed.json`, `appsec.json`,
-`di.json`, ...) — ALWAYS start from the closest one rather than a blank
-file. `with_author.json` is the starting point when crediting an external
-contributor
-
-## Validation
-
-```bash
-bundle exec rake unreleased:lint
-bundle exec rake unreleased:render
-```
-
-`unreleased:lint` checks the schema (required fields, closed enums, canonical
-casing) and reports every violation across every pending fragment in one run.
-`unreleased:render` previews how the entry will look once rendered into
-`CHANGELOG.md`. Nothing checks the `pull_request` number mechanically —
-the author and reviewer own it.
-
-Message hygiene (weasel words, corporate speak, grammar, punctuation,
-trailing whitespace) is enforced by CI with vale — it is NOT part of local
-validation. If CI reports a hygiene finding, revise the message per the
-annotation and push again; CI reports every violation in one run, so one
-revision round-trip clears all findings. The self-review above is what keeps
-those round-trips rare
+- No vague quantifiers or catch-all tails
+- Identifiers in code spans; no verbatim prefix; no PR references
+- `bundle exec rake unreleased:lint` and `unreleased:render` pass

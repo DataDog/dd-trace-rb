@@ -1,6 +1,6 @@
 {
   "type": "Fixed",
-  "prefix": "Profiling",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6173",
-  "message": "Fix a rare crash (`SIGSEGV`) in the profiler that could occur when sampling a thread during `Thread.new`."
+  "prefix": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6020",
+  "message": "Fix `pg` instrumentation which raised `ArgumentError` when calling `exec_params`, `exec_prepared` without a `params` argument, or their `async_`/`sync_` variants."
 }
