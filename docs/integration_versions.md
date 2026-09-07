@@ -9,25 +9,25 @@ For a list of available integrations, and their supported version ranges, refer 
 -->
 | Integration              | Ruby Min            | Ruby Max            |
 |--------------------------|---------------------|---------------------|
-| action_cable             | 5.2.8.1             | 8.1.3               |
-| action_mailer            | 4.2.11.3            | 8.1.3               |
-| action_pack              | 4.2.11.3            | 8.1.3               |
-| action_view              | 4.2.11.3            | 8.1.3               |
-| active_job               | 4.2.11.3            | 8.1.3               |
-| active_model_serializers | 0.10.13             | 0.10.15             |
-| active_record            | 4.2.11.3            | 8.1.3               |
-| active_support           | 4.2.11.3            | 8.1.3               |
+| action_cable             | 5.2.8.1             | 8.1.3.1             |
+| action_mailer            | 4.2.11.3            | 8.1.3.1             |
+| action_pack              | 4.2.11.3            | 8.1.3.1             |
+| action_view              | 4.2.11.3            | 8.1.3.1             |
+| active_job               | 4.2.11.3            | 8.1.3.1             |
+| active_model_serializers | 0.10.13             | 0.10.16             |
+| active_record            | 4.2.11.3            | 8.1.3.1             |
+| active_support           | 4.2.11.3            | 8.1.3.1             |
 | aws                      | 3.1.0               | 3.3.0               |
 | concurrent_ruby          | 1.3.8               | 1.3.8               |
-| dalli                    | 2.7.11              | 5.0.6               |
+| dalli                    | 2.7.11              | 5.1.0               |
 | delayed_job              | 4.1.11              | 4.1.13              |
 | elasticsearch            | 7.17.11             | 9.5.0               |
 | ethon                    | 0.15.0              | 0.18.0              |
 | excon                    | 0.109.0             | 1.7.0               |
 | faraday                  | 0.14.0              | 2.14.3              |
-| grape                    | 1.7.0               | 3.1.1               |
-| graphql                  | 1.13.21             | 2.3.22              |
-| grpc                     | 1.48.0              | 1.67.0              |
+| grape                    | 1.7.0               | 3.3.5               |
+| graphql                  | 1.13.21             | 2.3.23              |
+| grpc                     | 1.48.0              | 1.82.0              |
 | hanami                   | 1.3.5               | 1.3.5               |
 | http                     | 5.0.1               | 6.0.2               |
 | httpclient               | 2.8.3               | 2.9.0               |
@@ -45,8 +45,8 @@ For a list of available integrations, and their supported version ranges, refer 
 | presto                   | 0.6.6               | 0.6.6               |
 | que                      | 1.4.1               | 2.4.1               |
 | racecar                  | 2.6.0               | 2.12.0              |
-| rack                     | 1.6.13              | 3.2.6               |
-| rails                    | 4.2.11.3            | 8.1.3               |
+| rack                     | 1.6.13              | 3.2.7               |
+| rails                    | 4.2.11.3            | 8.1.3.1             |
 | rake                     | 12.3.3              | 13.4.2              |
 | redis                    | 3.3.5               | 6.0.0               |
 | resque                   | 2.4.0               | 2.7.0               |
@@ -56,9 +56,9 @@ For a list of available integrations, and their supported version ranges, refer 
 | sequel                   | 5.83.1              | 5.100.0             |
 | shoryuken                | 6.0.0               | 6.2.1               |
 | sidekiq                  | 5.2.8               | 8.0.7               |
-| sinatra                  | 2.2.4               | 4.1.1               |
+| sinatra                  | 2.2.4               | 4.2.1               |
 | sneakers                 | 2.12.0              | 2.12.0              |
-| stripe                   | 5.15.0              | 19.4.0              |
+| stripe                   | 5.15.0              | 19.5.0              |
 | sucker_punch             | 3.1.0               | 3.2.0               |
 | trilogy                  | 2.6.0               | 2.9.0               |
 | waterdrop                | 2.6.14              | 2.10.3              |

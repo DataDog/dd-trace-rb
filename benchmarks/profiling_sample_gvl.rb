@@ -18,6 +18,9 @@ end
 # This benchmark measures the performance of the main stack sampling loop of the profiler
 
 class ProfilerSampleGvlBenchmark
+  # A threshold of 0 means every "Waiting for GVL" period gets sampled, which is what we want to benchmark
+  WAITING_FOR_GVL_THRESHOLD_NS = 0
+
   def initialize
     create_profiler
     @target_thread = thread_with_very_deep_stack
@@ -28,10 +31,7 @@ class ProfilerSampleGvlBenchmark
 
   def create_profiler
     @recorder = Datadog::Profiling::StackRecorder.for_testing
-    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(
-      recorder: @recorder,
-      waiting_for_gvl_threshold_ns: 0
-    )
+    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder)
   end
 
   def thread_with_very_deep_stack(depth: 200)
@@ -55,8 +55,8 @@ class ProfilerSampleGvlBenchmark
 
       x.report("gvl benchmark samples") do
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gvl_waiting(@target_thread)
-        Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gvl_running(@collector, @target_thread)
-        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gvl_running(@collector, @target_thread, false)
+        Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gvl_running(@target_thread, WAITING_FOR_GVL_THRESHOLD_NS)
+        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gvl_running(@collector, @target_thread)
       end
 
       x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE

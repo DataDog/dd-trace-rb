@@ -161,6 +161,34 @@ Under `gemfiles/` there are two layers of lockfiles:
 
 The two layers are independent Bundler resolutions of overlapping gem sets and will drift on shared gems without active sync.
 
+**Cooldown**
+
+Gemfiles for Ruby 3.2 and later declare a 2-day cooldown window, so Bundler will
+not resolve to a gem version published within the last two days. This is applied
+automatically and needs no setup. Ruby 2.5 through 3.1 ship a Bundler that
+predates the feature and are unaffected.
+
+Bumping a Datadog-owned gem (`libdatadog`, `libddwaf`,
+`datadog-ruby_core_source`) needs nothing extra, even for a release published
+inside the window. The lock tasks exempt these gems on their own.
+
+To take any other release that is still inside the window, set
+`BUNDLE_COOLDOWN` for that run:
+
+```bash
+# Bypass the window for every appraisal gemfile
+BUNDLE_COOLDOWN=0 bundle exec rake dependency:lock
+# or for one group
+BUNDLE_COOLDOWN=0 bundle exec rake dependency:lock['/app/gemfiles/ruby_3.4_stripe_latest.gemfile']
+```
+
+The `dependency:*` tasks only reach the appraisal locks. To bypass the window in
+a parent lock, run `bundle` against that gemfile directly:
+
+```bash
+BUNDLE_GEMFILE=gemfiles/ruby-3.4.gemfile BUNDLE_COOLDOWN=0 bundle lock
+```
+
 **Task surfaces**
 
 Two rake namespaces, with different intents:
