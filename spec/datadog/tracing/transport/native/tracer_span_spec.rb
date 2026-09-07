@@ -138,7 +138,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         GC.start
       end
 
-      it "cleans up partial snapshots when a hash default proc raises" do
+      it "cleans up partial snapshots when a hash default proc raises, then converts a valid span" do
         calls = []
         canonical = {
           trace_id: 1,
@@ -161,8 +161,6 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         end
         expect(calls).to eq([:tracestate] * 20)
 
-        # A successful conversion after repeated failures proves the aborted
-        # snapshots left no corrupt native state behind.
         span.links.replace([Datadog::Tracing::SpanLink.new(
           Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2)
         )])
@@ -170,7 +168,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         GC.start
       end
 
-      it "releases prepared meta_struct storage when links is not an array" do
+      it "releases prepared meta_struct storage when links is not an array, then converts a valid span" do
         span = make_ruby_span
         span.set_metastruct_tag("_dd.stack", {frames: [{file: "app.rb", line: 42}]})
         # The public #links setter has no type enforcement, so a non-Array value
@@ -183,8 +181,6 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
             .to raise_error(TypeError, /rb_links/)
         end
 
-        # A valid conversion after repeated type-check failures proves the
-        # aborted paths freed their meta_struct storage without corruption.
         span.links = []
         expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
         GC.start

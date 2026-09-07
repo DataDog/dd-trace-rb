@@ -480,7 +480,7 @@ RSpec.describe "Native transport wire-level conformance" do
       )
     end
 
-    it "snapshots empty attribute values without copying bytes" do
+    it "preserves empty attribute values on the wire" do
       link = Datadog::Tracing::SpanLink.new(
         Datadog::Tracing::TraceDigest.new(
           trace_id: 5,
