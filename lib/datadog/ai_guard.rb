@@ -44,8 +44,8 @@ module Datadog
         Datadog.configuration.ai_guard.enabled
       end
 
-      def transport
-        Datadog.send(:components).ai_guard&.transport
+      def http_client
+        Datadog.send(:components).ai_guard&.http_client
       end
 
       def logger

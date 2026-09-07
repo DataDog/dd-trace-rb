@@ -28,17 +28,17 @@ RSpec.describe Datadog::AIGuard do
     end
   end
 
-  describe ".transport" do
+  describe ".http_client" do
     context "when AI Guard is enabled" do
       include_context :ai_guard_enabled
 
-      it { expect(described_class.transport).to be_a(Datadog::AIGuard::Transport) }
+      it { expect(described_class.http_client).to be_a(Datadog::AIGuard::HTTPClient) }
     end
 
     context "when AI Guard is disabled" do
       include_context :ai_guard_disabled
 
-      it { expect(described_class.transport).to be_nil }
+      it { expect(described_class.http_client).to be_nil }
     end
   end
 

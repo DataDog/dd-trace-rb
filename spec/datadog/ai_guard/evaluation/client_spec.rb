@@ -7,11 +7,11 @@ RSpec.describe Datadog::AIGuard::Evaluation::Client do
     subject(:outcome) { described_class.evaluate(messages) }
 
     before do
-      allow(Datadog::AIGuard).to receive(:transport).and_return(transport)
+      allow(Datadog::AIGuard).to receive(:http_client).and_return(http_client)
       allow(Datadog.configuration.ai_guard).to receive(:redaction_enabled).and_return(true)
     end
 
-    let(:transport) { instance_double(Datadog::AIGuard::Transport) }
+    let(:http_client) { instance_double(Datadog::AIGuard::HTTPClient) }
     let(:messages) do
       [
         Datadog::AIGuard::Evaluation::Message.new(role: :user, content: "Hello there"),
@@ -31,8 +31,8 @@ RSpec.describe Datadog::AIGuard::Evaluation::Client do
       }
     end
 
-    it "sends the evaluation request through the transport" do
-      expect(transport).to receive(:post).with(
+    it "sends the evaluation request through the HTTP client" do
+      expect(http_client).to receive(:post).with(
         "/evaluate",
         body: {
           data: {
@@ -52,11 +52,11 @@ RSpec.describe Datadog::AIGuard::Evaluation::Client do
       expect(outcome.result).to be_a(Datadog::AIGuard::Evaluation::Result)
     end
 
-    context "when the transport is not initialized" do
-      before { allow(Datadog::AIGuard).to receive(:transport).and_return(nil) }
+    context "when the HTTP client is not initialized" do
+      before { allow(Datadog::AIGuard).to receive(:http_client).and_return(nil) }
 
       it "raises an error" do
-        expect { outcome }.to raise_error(RuntimeError, "AI Guard transport not initialized")
+        expect { outcome }.to raise_error(RuntimeError, "AI Guard HTTP client not initialized")
       end
     end
   end
