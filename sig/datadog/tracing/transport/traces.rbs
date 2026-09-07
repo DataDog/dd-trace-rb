@@ -44,7 +44,7 @@ module Datadog
         class Transport < Core::Transport::Transport
           include SpanEventsNegotiation
 
-          def send_traces: (Array[Tracing::TraceOperation] traces) -> untyped
+          def send_traces: (::Array[Tracing::TraceOperation] traces) -> untyped
 
           def stats: () -> untyped
 	  
