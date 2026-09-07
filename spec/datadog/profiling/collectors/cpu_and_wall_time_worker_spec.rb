@@ -229,23 +229,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
     context "sampling of active threads" do
       # This option makes sure our samples are taken via thread interruptions (and not via idle sampling).
-      # See native bits for more details.
       let(:options) { {**super(), skip_idle_samples_for_testing: true} }
 
-      it "triggers sampling and records the results", :memcheck_valgrind_skip do
-        start
-
-        loop_until do
-          samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-          samples_for_thread(samples, Thread.current).any?
-        end
-      end
-
-      it(
-        "keeps statistics on how many samples were triggered by the background thread, " \
-        "as well as how many samples were requested from the VM",
-        :memcheck_valgrind_skip,
-      ) do
+      it "is able to sample to sample from the signal handler", :memcheck_valgrind_skip do
         start
 
         current_thread_samples = loop_until do
