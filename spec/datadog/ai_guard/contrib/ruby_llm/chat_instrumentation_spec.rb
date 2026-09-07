@@ -268,7 +268,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
           )
         end
 
-        Datadog::AIGuard::Evaluation::NoOpResult.new
+        Datadog::AIGuard::Evaluation::NoOpResult.new(messages)
       end
 
       allow_any_instance_of(RubyLLM::Provider).to receive(:complete).and_return(

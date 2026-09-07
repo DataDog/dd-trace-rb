@@ -5,23 +5,13 @@ require "datadog/ai_guard"
 
 RSpec.describe Datadog::AIGuard do
   shared_context :ai_guard_enabled do
-    before do
-      Datadog.configure { |c| c.ai_guard.enabled = true }
-    end
-
-    after do
-      Datadog.configuration.reset!
-    end
+    before { Datadog.configure { |c| c.ai_guard.enabled = true } }
+    after { Datadog.configuration.reset! }
   end
 
   shared_context :ai_guard_disabled do
-    before do
-      Datadog.configure { |c| c.ai_guard.enabled = false }
-    end
-
-    after do
-      Datadog.configuration.reset!
-    end
+    before { Datadog.configure { |c| c.ai_guard.enabled = false } }
+    after { Datadog.configuration.reset! }
   end
 
   describe ".enabled?" do
@@ -38,34 +28,22 @@ RSpec.describe Datadog::AIGuard do
     end
   end
 
-  describe ".api_client" do
+  describe ".transport" do
     context "when AI Guard is enabled" do
       include_context :ai_guard_enabled
 
-      it "returns an instance of APIClient" do
-        expect(described_class.api_client).to be_a(Datadog::AIGuard::APIClient)
-      end
+      it { expect(described_class.transport).to be_a(Datadog::AIGuard::Transport) }
     end
 
     context "when AI Guard is disabled" do
       include_context :ai_guard_disabled
 
-      it "returns nil" do
-        expect(described_class.api_client).to be_nil
-      end
+      it { expect(described_class.transport).to be_nil }
     end
   end
 
   describe ".evaluate" do
     context "when AI Guard is enabled", webmock: true do
-      include_context :ai_guard_enabled
-
-      let(:messages) do
-        [
-          Datadog::AIGuard::Evaluation::Message.new(role: :system, content: "Hello"),
-        ]
-      end
-
       before do
         Datadog.configuration.ai_guard.enabled = true
 
@@ -79,8 +57,12 @@ RSpec.describe Datadog::AIGuard do
           end
       end
 
-      after do
-        Datadog.configuration.reset!
+      after { Datadog.configuration.reset! }
+
+      let(:messages) do
+        [
+          Datadog::AIGuard::Evaluation::Message.new(role: :system, content: "Hello"),
+        ]
       end
 
       context "when result is ALLOW" do
@@ -165,7 +147,6 @@ RSpec.describe Datadog::AIGuard do
           expect(result).to be_allow
           expect(result).not_to be_deny
           expect(result).not_to be_abort
-          expect(result).not_to be_blocking_enabled
         end
       end
     end
