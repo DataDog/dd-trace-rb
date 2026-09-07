@@ -127,7 +127,7 @@ GEM
       tilt (~> 2.0)
     tilt (2.1.0)
     warning (1.6.0)
-    webmock (3.26.3)
+    webmock (3.26.4)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
