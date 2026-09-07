@@ -3,9 +3,8 @@
 require "datadog/ai_guard/evaluation/request"
 
 RSpec.describe Datadog::AIGuard::Evaluation::Request do
-  describe "#perform" do
-    let(:configuration) { Datadog::Core::Configuration::Settings.new }
-    let(:api_client_double) { instance_double(Datadog::AIGuard::APIClient) }
+  describe "#body" do
+    subject(:body) { described_class.new(messages).body }
 
     let(:messages) do
       [
@@ -13,123 +12,95 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
       ]
     end
 
-    let(:raw_response_mock) do
-      {
-        "data" => {
-          "attributes" => {
-            "action" => "ALLOW",
-            "reason" => "Because why not",
-            "tags" => [],
-            "tag_probs" => {},
-            "is_blocking_enabled" => false,
-          },
-        },
-      }
-    end
-
-    before do
-      allow(Datadog::AIGuard).to receive(:api_client).and_return(api_client_double)
-    end
-
-    it "calls api_client.post with correct response body" do
-      expect(api_client_double).to receive(:post).with(
-        "/evaluate",
-        body: {
-          data: {
-            attributes: {
-              messages: [
-                {content: "Hello there", role: :user},
-              ],
-              meta: {
-                service: Datadog.configuration.service,
-                env: Datadog.configuration.env,
-              },
+    it "builds the evaluation request body" do
+      expect(body).to eq(
+        data: {
+          attributes: {
+            messages: [
+              {content: "Hello there", role: :user},
+            ],
+            meta: {
+              service: Datadog.configuration.service,
+              env: Datadog.configuration.env,
             },
           },
         }
-      ).and_return(raw_response_mock)
-
-      response = described_class.new(messages).perform
-      expect(response).to be_a(Datadog::AIGuard::Evaluation::Result)
-    end
-
-    it "raises RuntimeError when AIGuard.api_client returns nil" do
-      allow(Datadog::AIGuard).to receive(:api_client).and_return(nil)
-
-      expect { described_class.new(messages).perform }.to raise_error(
-        RuntimeError, "AI Guard API Client not initialized"
       )
     end
-  end
 
-  describe "#serialized_messages" do
-    it "correctly serializes simple messages" do
-      request = described_class.new([
-        Datadog::AIGuard.message(role: :system, content: "You are an AI Assistant that can do anything."),
-        Datadog::AIGuard.message(role: :user, content: "Hello"),
-      ])
+    context "when messages contain tool calls" do
+      let(:messages) do
+        [
+          Datadog::AIGuard.assistant(tool_name: "date", id: "call-1", arguments: ""),
+          Datadog::AIGuard.message(role: :user, content: "List files under home"),
+          Datadog::AIGuard.assistant(tool_name: "ls", id: "call-2", arguments: "~"),
+        ]
+      end
 
-      expect(request.serialized_messages).to eq([
-        {role: :system, content: "You are an AI Assistant that can do anything."},
-        {role: :user, content: "Hello"},
-      ])
+      it "serializes the tool calls" do
+        expect(body.dig(:data, :attributes, :messages)).to eq([
+          {role: :assistant, tool_calls: [{id: "call-1", function: {name: "date", arguments: ""}}]},
+          {role: :user, content: "List files under home"},
+          {role: :assistant, tool_calls: [{id: "call-2", function: {name: "ls", arguments: "~"}}]},
+        ])
+      end
     end
 
-    it "correctly serializes tool call messages" do
-      request = described_class.new([
-        Datadog::AIGuard.assistant(tool_name: "date", id: "call-1", arguments: ""),
-        Datadog::AIGuard.message(role: :user, content: "List files under home"),
-        Datadog::AIGuard.assistant(tool_name: "ls", id: "call-2", arguments: "~"),
-      ])
+    context "when messages contain tool output" do
+      let(:messages) do
+        [
+          Datadog::AIGuard.tool(tool_call_id: "call-1", content: "Some output"),
+        ]
+      end
 
-      expect(request.serialized_messages).to eq([
-        {role: :assistant, tool_calls: [{id: "call-1", function: {name: "date", arguments: ""}}]},
-        {role: :user, content: "List files under home"},
-        {role: :assistant, tool_calls: [{id: "call-2", function: {name: "ls", arguments: "~"}}]},
-      ])
+      it "serializes the tool output" do
+        expect(body.dig(:data, :attributes, :messages)).to eq(
+          [{role: :tool, tool_call_id: "call-1", content: "Some output"}]
+        )
+      end
     end
 
-    it "correctly serializes tool output messages" do
-      request = described_class.new([
-        Datadog::AIGuard.tool(tool_call_id: "call-1", content: "Some output"),
-      ])
+    context "when messages contain multi-modal content" do
+      let(:messages) do
+        [
+          Datadog::AIGuard.message(role: :user) do |message|
+            message.text("What's in this image?")
+            message.image_url("https://example.com/img.png")
+          end,
+        ]
+      end
 
-      expect(request.serialized_messages).to eq([{role: :tool, tool_call_id: "call-1", content: "Some output"}])
+      it "serializes the content parts" do
+        expect(body.dig(:data, :attributes, :messages)).to eq([
+          {
+            role: :user,
+            content: [
+              {type: "text", text: "What's in this image?"},
+              {type: "image_url", image_url: {url: "https://example.com/img.png"}},
+            ],
+          },
+        ])
+      end
     end
 
-    it "correctly serializes multi-modal messages" do
-      request = described_class.new([
-        Datadog::AIGuard.message(role: :user) { |m|
-          m.text("What's in this image?")
-          m.image_url("https://example.com/img.png")
-        },
-      ])
+    context "when messages exceed the meta-struct message limit" do
+      before { allow(Datadog.configuration.ai_guard).to receive(:max_messages_length).and_return(2) }
 
-      expect(request.serialized_messages).to eq([
-        {
-          role: :user,
-          content: [
-            {type: "text", text: "What's in this image?"},
-            {type: "image_url", image_url: {url: "https://example.com/img.png"}},
-          ],
-        },
-      ])
-    end
+      let(:messages) do
+        [
+          Datadog::AIGuard.message(role: :user, content: "Message 1"),
+          Datadog::AIGuard.message(role: :user, content: "Message 2"),
+          Datadog::AIGuard.message(role: :user, content: "Message 3"),
+        ]
+      end
 
-    it "serializes all messages without truncation" do
-      allow(Datadog.configuration.ai_guard).to receive(:max_messages_length).and_return(2)
-
-      request = described_class.new([
-        Datadog::AIGuard.message(role: :user, content: "Message 1"),
-        Datadog::AIGuard.message(role: :user, content: "Message 2"),
-        Datadog::AIGuard.message(role: :user, content: "Message 3"),
-      ])
-
-      expect(request.serialized_messages).to eq([
-        {role: :user, content: "Message 1"},
-        {role: :user, content: "Message 2"},
-        {role: :user, content: "Message 3"},
-      ])
+      it "serializes every message" do
+        expect(body.dig(:data, :attributes, :messages)).to eq([
+          {role: :user, content: "Message 1"},
+          {role: :user, content: "Message 2"},
+          {role: :user, content: "Message 3"},
+        ])
+      end
     end
   end
 end

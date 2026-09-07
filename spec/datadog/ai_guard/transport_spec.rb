@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require "datadog/ai_guard/api_client"
+require "datadog/ai_guard/transport"
 
-RSpec.describe Datadog::AIGuard::APIClient do
+RSpec.describe Datadog::AIGuard::Transport do
   describe "#initialize" do
-    subject(:api_client) do
+    subject(:transport) do
       described_class.new(
         endpoint: endpoint,
         api_key: "api-key",
@@ -21,7 +21,7 @@ RSpec.describe Datadog::AIGuard::APIClient do
       let(:endpoint) { "https://api.example.com/api-guard" }
 
       it "sets the @endpoint to a parsed uri" do
-        expect(api_client.instance_variable_get(:@endpoint_uri)).to eq(URI(endpoint))
+        expect(transport.instance_variable_get(:@endpoint_uri)).to eq(URI(endpoint))
       end
     end
 
@@ -33,7 +33,7 @@ RSpec.describe Datadog::AIGuard::APIClient do
       end
 
       it "sets the @endpoint to a parsed uri" do
-        expect(api_client.instance_variable_get(:@endpoint_uri)).to eq(URI("https://app.datadoghq.com/api/v2/ai-guard"))
+        expect(transport.instance_variable_get(:@endpoint_uri)).to eq(URI("https://app.datadoghq.com/api/v2/ai-guard"))
       end
     end
 
@@ -45,7 +45,7 @@ RSpec.describe Datadog::AIGuard::APIClient do
       end
 
       it "adds app subdomain to the host and adds a correct path" do
-        expect(api_client.instance_variable_get(:@endpoint_uri)).to eq(URI("https://app.example.com/api/v2/ai-guard"))
+        expect(transport.instance_variable_get(:@endpoint_uri)).to eq(URI("https://app.example.com/api/v2/ai-guard"))
       end
     end
 
@@ -57,13 +57,13 @@ RSpec.describe Datadog::AIGuard::APIClient do
       end
 
       it "does not change subdomain and adds a correct path" do
-        expect(api_client.instance_variable_get(:@endpoint_uri)).to eq(URI("https://us5.datadoghq.com/api/v2/ai-guard"))
+        expect(transport.instance_variable_get(:@endpoint_uri)).to eq(URI("https://us5.datadoghq.com/api/v2/ai-guard"))
       end
     end
   end
 
   describe "#post" do
-    let(:api_client) do
+    let(:transport) do
       described_class.new(
         endpoint: "https://app.datadoghq.com/api/v2/ai-guard",
         api_key: "api-key",
@@ -78,7 +78,7 @@ RSpec.describe Datadog::AIGuard::APIClient do
       }
     end
 
-    subject(:post) { api_client.post("/evaluate", body: {}) }
+    subject(:post) { transport.post("/evaluate", body: {}) }
 
     before do
       WebMock.enable!

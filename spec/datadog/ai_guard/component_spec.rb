@@ -13,10 +13,10 @@ RSpec.describe Datadog::AIGuard::Component do
         settings.ai_guard.enabled = true
       end
 
-      it "returns component instance with initialized API client" do
+      it "returns component instance with initialized transport" do
         component = described_class.build(settings, logger: logger, telemetry: telemetry)
 
-        expect(component.api_client).not_to be_nil
+        expect(component.transport).not_to be_nil
       end
     end
 
