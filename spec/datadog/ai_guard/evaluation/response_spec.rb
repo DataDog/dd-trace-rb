@@ -27,6 +27,12 @@ RSpec.describe Datadog::AIGuard::Evaluation::Response do
           ],
           "tag_probs" => {"some" => 0.95, "tags" => 0.1},
           "is_blocking_enabled" => false,
+          "redaction_replacements" => [
+            {
+              "path" => "messages[0].content",
+              "replacement" => "Card: <REDACTED>",
+            },
+          ],
         },
       },
     }
@@ -97,5 +103,22 @@ RSpec.describe Datadog::AIGuard::Evaluation::Response do
 
   describe "#blocking_enabled?" do
     it { expect(response).not_to be_blocking_enabled }
+  end
+
+  describe "#redaction_replacements" do
+    it "returns replacements from the response" do
+      expect(response.redaction_replacements).to eq([
+        {
+          "path" => "messages[0].content",
+          "replacement" => "Card: <REDACTED>",
+        },
+      ])
+    end
+
+    context "when replacements are absent" do
+      before { raw_response.fetch("data").fetch("attributes").delete("redaction_replacements") }
+
+      it { expect(response.redaction_replacements).to eq([]) }
+    end
   end
 end
