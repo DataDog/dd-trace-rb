@@ -97,7 +97,7 @@ module Datadog
         @evaluate_at = evaluate_at
         @condition = condition
 
-        @rate_limit = rate_limit || ((@capture_snapshot || !@capture_expressions.empty?) ? 1 : 5000)
+        @rate_limit = rate_limit || (capturing? ? 1 : 5000)
         @rate_limiter = Datadog::Core::TokenBucket.new(@rate_limit)
 
         # At most one report per second.
@@ -164,6 +164,14 @@ module Datadog
 
       def capture_expressions?
         !@capture_expressions.empty?
+      end
+
+      # Whether this probe captures user data, either as a full snapshot
+      # or via capture expressions.
+      #
+      # @return [Boolean]
+      def capturing?
+        capture_snapshot? || capture_expressions?
       end
 
       def evaluate_at_entry?

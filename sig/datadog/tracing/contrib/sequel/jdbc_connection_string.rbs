@@ -1,0 +1,28 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sequel
+        module JDBCConnectionString
+          type metadata = { host: String?, port: String?, database: String? }
+
+          MAX_BYTES: Integer
+          CONNECTION_STRING_PATTERN: Regexp
+          DATABASE_PROPERTY_PATTERN: Regexp
+          LIBRARIES_PROPERTY_PATTERN: Regexp
+          DATABASE_PATH_DELIMITER_PATTERN: Regexp
+          HOST_AND_PORT_PATTERN: Regexp
+
+          def self.parse: (String? connection_string) -> metadata
+
+          private
+
+          def self.host_and_port_from_authority: (String authority) -> [String, String?]?
+
+          def self.database_from_path: (String? path) -> String?
+
+          def self.database_from_properties: (String? properties) -> String?
+        end
+      end
+    end
+  end
+end

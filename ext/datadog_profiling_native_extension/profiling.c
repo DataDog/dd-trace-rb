@@ -21,6 +21,7 @@ void collectors_dynamic_sampling_rate_init(VALUE profiling_module);
 void collectors_idle_sampling_helper_init(VALUE profiling_module);
 void collectors_stack_init(VALUE profiling_module);
 void collectors_thread_context_init(VALUE profiling_module);
+void collectors_heap_recorder_init(void);
 void encoded_profile_init(VALUE profiling_module);
 void http_transport_init(VALUE profiling_module);
 void stack_recorder_init(VALUE profiling_module);
@@ -73,6 +74,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   collectors_idle_sampling_helper_init(profiling_module);
   collectors_stack_init(profiling_module);
   collectors_thread_context_init(profiling_module);
+  collectors_heap_recorder_init();
   encoded_profile_init(profiling_module);
   http_transport_init(profiling_module);
   stack_recorder_init(profiling_module);

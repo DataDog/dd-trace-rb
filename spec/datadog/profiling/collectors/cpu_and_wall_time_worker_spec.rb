@@ -9,13 +9,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:gc_profiling_enabled) { true }
   let(:allocation_profiling_enabled) { false }
   let(:heap_profiling_enabled) { false }
-  let(:heap_size_profiling_available) { RubyVersion.is?("< 4") } # Currently incompatible with Ruby 4
-  let(:heap_size_profiling_enabled) { heap_profiling_enabled && heap_size_profiling_available }
   let(:recorder) do
     Datadog::Profiling::StackRecorder.for_testing(
       alloc_samples_enabled: true,
       heap_samples_enabled: heap_profiling_enabled,
-      heap_size_enabled: heap_size_profiling_enabled,
+      heap_size_enabled: heap_profiling_enabled,
       **stack_recorder_options,
     )
   end
@@ -27,6 +25,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:sighandler_sampling_enabled) { false }
   let(:cpu_sampling_interval_ms) { 10 }
   let(:one_second_in_ns) { 1_000_000_000 }
+  let(:waiting_for_gvl_threshold_ns) { 10_000_000 }
   let(:thread_context_collector) { build_thread_context_collector(recorder) }
   let(:worker_settings) do
     {
@@ -39,6 +38,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       gvl_profiling_enabled: gvl_profiling_enabled,
       sighandler_sampling_enabled: sighandler_sampling_enabled,
       cpu_sampling_interval_ms: cpu_sampling_interval_ms,
+      waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
       **options,
     }
   end
@@ -589,10 +589,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
 
         context "when 'Waiting for GVL' periods are below waiting_for_gvl_threshold_ns" do
-          let(:options) do
-            collector = build_thread_context_collector(recorder, waiting_for_gvl_threshold_ns: one_second_in_ns)
-            {thread_context_collector: collector}
-          end
+          let(:waiting_for_gvl_threshold_ns) { one_second_in_ns }
 
           it "does not trigger extra samples due to GVL wait duration" do
             background_thread_affected_by_gvl_contention
@@ -922,8 +919,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         allow(Datadog.logger).to receive(:warn)
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
 
-        skip "Heap profiling is only supported on Ruby >= 2.7" unless RubyVersion.is?(">= 2.7")
-        skip "Heap profiling relies on ObjectSpace._id2ref, removed in Ruby 4.1" if RubyVersion.is?(">= 4.1")
+        skip "Heap profiling is only supported on Ruby >= 3.1" unless RubyVersion.is?(">= 3.1")
       end
 
       after do |example|
@@ -977,15 +973,45 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         expected_size_of_object = 40 # 40 is the size of a basic object and we have test_num_allocated_object of them
 
-        if heap_size_profiling_available
-          expect(total_size).to eq test_num_allocated_object * expected_size_of_object
+        expect(total_size).to eq test_num_allocated_object * expected_size_of_object
+      end
+
+      context "internal VM objects" do
+        let(:something_that_triggers_creation_of_imemo_objects) do
+          eval("proc { def self.foo; rand; end; foo }.call", binding, __FILE__, __LINE__)
+        end
+
+        # Internal objects are skipped by the heap profiler (see
+        # `heap_recorder_record_allocation()`) because tracking
+        # them would mean adding them to a `ObjectSpace::WeakMap`, which is not safe. They are still allocation
+        # sampled, as that is safe and useful.
+        it "records them as allocation samples but never as heap samples" do
+          start
+
+          something_that_triggers_creation_of_imemo_objects
+
+          # Force a GC so that any tracked object would be old enough to show up in the heap profile
+          GC.start
+
+          cpu_and_wall_time_worker.stop
+
+          internal_samples = samples_from_pprof(recorder.serialize!).select do |sample|
+            sample.labels.fetch(:"allocation class", "").start_with?("(VM Internal")
+          end
+
+          # Guard against this passing just because no internal object was sampled at all
+          expect(internal_samples).to_not be_empty
+          expect(internal_samples.map { |sample| sample.values[:"alloc-samples"] || 0 }.sum).to be > 0
+
+          expect(internal_samples.map { |sample| sample.values[:"heap-live-samples"] || 0 }.sum).to eq 0
+          expect(internal_samples.map { |sample| sample.values[:"heap-live-size"] || 0 }.sum).to eq 0
         end
       end
 
       describe "heap cleanup after GC" do
         let(:options) { {dynamic_sampling_rate_enabled: false} }
 
-        let(:cleared_object_id) do
+        let(:cleared_record_id) do
           stub_const("CpuAndWallTimeWorkerSpec::TestStruct", Struct.new(:foo))
 
           start
@@ -994,11 +1020,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           GC.start
 
           test_object = CpuAndWallTimeWorkerSpec::TestStruct.new
-          test_object_id = test_object.object_id
+          # The allocation went through the real tracepoint, so we need to ask the recorder which id it handed out
+          test_record_id = Datadog::Profiling::StackRecorder::Testing._native_record_id_for(recorder, test_object)
 
-          expect(
-            Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, test_object_id)
-          ).to be true
+          expect(test_record_id).to_not be_nil
 
           # Let's replace the test_object reference with another object, so that the original one can be GC'd
           test_object = Object.new # rubocop:disable Lint/UselessAssignment
@@ -1008,7 +1033,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
           GC.start
 
-          test_object_id
+          test_record_id
         end
 
         context "when gc_profiling_enabled is enabled" do
@@ -1019,7 +1044,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
             it "removes live heap objects after GCs" do
               expect(
-                Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+                Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_record_id)
               ).to be false
             end
           end
@@ -1029,7 +1054,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
             it "does not remove live heap objects after GCs" do
               expect(
-                Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+                Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_record_id)
               ).to be true
             end
           end
@@ -1041,14 +1066,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           it "does not remove live heap objects after minor GCs" do
             # The object is still being tracked!
             expect(
-              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_record_id)
             ).to be true
 
             # Sanity checking: It stops being tracked after a serialization, proving it was indeed dead, we just hadn't
             # updated our state yet
             recorder.serialize!
             expect(
-              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_record_id)
             ).to be false
           end
         end
@@ -1229,6 +1254,58 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_time_ns = new_samples.sum { |it| it.values.fetch(:"cpu-time") }
         expect(cpu_time_ns).to be <= elapsed_ns
+      end
+    end
+
+    # This is a simplified end-to-end test; the ThreadContext has all the variants for otel gems, but
+    # here we're only testing if `thread_context_collector_resolve_otel_span_key_may_lose_gvl` is getting called
+    # correctly
+    context "when a thread has an active otel span" do
+      before do
+        require "opentelemetry/sdk"
+        require "opentelemetry-exporter-otlp"
+      rescue LoadError
+        skip "Test requires the opentelemetry-sdk and opentelemetry-exporter-otlp gems"
+      end
+
+      let(:thread_context_collector) { build_thread_context_collector(recorder, otel_context_enabled: :only) }
+      let(:otel_tracer) do
+        OpenTelemetry::SDK.configure
+        OpenTelemetry.tracer_provider.tracer("datadog-profiling-test")
+      end
+      let(:ready_queue) { Queue.new }
+      let(:background_thread) do
+        Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
+          otel_tracer.in_span("profiler.test") do |span|
+            @otel_span_id = span.context.span_id.unpack1("Q>").to_i
+            ready_queue << true
+            sleep
+          end
+        end
+      end
+
+      after do
+        unless RSpec.current_example.skipped?
+          background_thread.kill
+          background_thread.join
+          OpenTelemetry.tracer_provider.shutdown
+        end
+      end
+
+      it "includes the otel span ids in the samples for that thread" do
+        allow(OpenTelemetry.logger).to receive(:error) # Silence "unable to export spans", we have no otlp endpoint
+
+        background_thread
+        ready_queue.pop
+
+        start
+
+        sample = try_wait_until do
+          samples_for_thread(samples_from_pprof(recorder.serialize!), background_thread)
+            .find { |it| it.labels.key?(:"span id") }
+        end
+
+        expect(sample.labels).to include("span id": @otel_span_id, "local root span id": @otel_span_id)
       end
     end
   end
@@ -1461,6 +1538,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           sample_count: 0,
           gc_samples: 0,
           gc_samples_missed_due_to_missing_context: 0,
+          gc_samples_skipped_nothing_to_flush: 0,
           inactive_thread_samples_skipped: 0,
           profiler_thread_samples_skipped: 0,
         }
