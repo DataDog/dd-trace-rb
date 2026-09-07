@@ -260,6 +260,8 @@ static inline VALUE event_hash_value(VALUE hash, ID key) {
   return rb_hash_fetch(hash, ID2SYM(key));
 }
 
+/* Validate one scalar native attribute in place, proving integer values fit
+ * the libdatadog wire type before any Rust allocation. */
 static void validate_event_scalar(VALUE key, VALUE attribute, int type) {
   ENFORCE_TYPE(attribute, T_HASH);
 
