@@ -39,7 +39,14 @@ module Datadog
               end
             end
 
-            outcome = Client.evaluate(messages)
+            outcome =
+              begin
+                Client.evaluate(messages)
+              rescue
+                Metrics::Telemetry.report_error
+                raise
+              end
+
             result = outcome.result
             redaction = outcome.redaction
 
@@ -57,7 +64,10 @@ module Datadog
               }
             )
 
-            if allow_raise && outcome.block?
+            blocked = allow_raise && outcome.block?
+            Metrics::Telemetry.report_evaluation(outcome, blocked: blocked)
+
+            if blocked
               span.set_tag(Ext::BLOCKED_TAG, true)
               raise AIGuardAbortError.new(action: result.action, reason: result.reason, tags: result.tags)
             end
