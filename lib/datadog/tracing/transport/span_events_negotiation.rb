@@ -15,8 +15,7 @@ module Datadog
         # any lock the including transport holds for its own sends (the native
         # transport's +@send_mutex+, for example). Two concurrent sends can both
         # observe it unset and each issue an +agent_info.fetch+; the duplicate
-        # fetch is self-correcting (the last writer wins) and cheaper than
-        # serializing every send behind the capability lookup.
+        # fetch is self-correcting because the last writer wins.
         #
         # @return [Boolean] true if typed span events are supported
         def native_events_supported?
