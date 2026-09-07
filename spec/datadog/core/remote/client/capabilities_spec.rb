@@ -404,6 +404,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   describe "runtime capability registration" do
     let(:settings) { Datadog::Core::Configuration::Settings.new }
     let(:receiver) { Datadog::OpenFeature::Remote.receivers(telemetry).first }
+    let!(:base64_capabilities_before_registration) { capabilities.base64_capabilities }
 
     before do
       capabilities.register_runtime(
@@ -417,7 +418,12 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       expect(capabilities.capabilities).to include(70368744177664)
       expect(capabilities.products).to include("FFE_FLAGS")
       expect(capabilities.receivers).to include(receiver)
-      expect(capabilities.base64_capabilities).to eq("QEAgAHAA")
+
+      capabilities_before_registration = Datadog::Core::Utils::Base64Codec
+        .strict_decode64(base64_capabilities_before_registration).unpack1("H*").to_i(16)
+      registered_capabilities = Datadog::Core::Utils::Base64Codec
+        .strict_decode64(capabilities.base64_capabilities).unpack1("H*").to_i(16)
+      expect(registered_capabilities).to eq(capabilities_before_registration | 70368744177664)
     end
 
     it "is idempotent" do
