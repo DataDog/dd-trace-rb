@@ -25,7 +25,7 @@ RSpec.describe "contrib integration testing", :integration do
   describe "dynamic configuration" do
     subject(:update_config) do
       @reconfigured = false
-      allow(Datadog::Tracing::Remote).to receive(:process_config).and_wrap_original do |m, *args|
+      allow(Datadog::Tracing::Remote).to receive(:merge_and_apply_configs).and_wrap_original do |m, *args|
         m.call(*args).tap { @reconfigured = true }
       end
 

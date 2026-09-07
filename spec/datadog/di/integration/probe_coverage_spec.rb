@@ -65,7 +65,7 @@ RSpec.describe "DI probe coverage across enablement timing" do
   let(:probe_manager) { component.probe_manager }
 
   def simulate_rc_enablement
-    # Mirror what Tracing::Remote.process_config does on
+    # Mirror what Tracing::Remote.apply_lib_config does on
     # `dynamic_instrumentation_enabled: true`. Bypassing the full Remote
     # plumbing here — the integration spec covers that path. This test
     # focuses on the post-enablement probe-install matrix.
