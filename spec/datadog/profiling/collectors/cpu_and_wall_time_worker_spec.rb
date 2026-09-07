@@ -273,6 +273,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(stats.fetch(:trigger_sample_attempts)).to be >= stats.fetch(:signal_handler_enqueued_sample)
         # Validate that we actually tried to sample via thread interruption, and not other means
         expect(stats.fetch(:interrupt_thread_attempts)).to be > 0
+
+        # Make sure we didn't accidentally use the `grab_gvl_and_sample` codepaths
+        expect(stats.fetch(:trigger_simulated_signal_delivery_attempts)).to be 0
+        expect(stats.fetch(:simulated_signal_delivery)).to be 0
       end
     end
 
