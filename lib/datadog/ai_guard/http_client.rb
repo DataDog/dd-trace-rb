@@ -6,9 +6,9 @@ require "json"
 
 module Datadog
   module AIGuard
-    # HTTP transport for the AI Guard API.
+    # HTTP client for the AI Guard API.
     # Uses net/http to perform request. Raises on client and server errors.
-    class Transport
+    class HTTPClient
       DEFAULT_SITE = "app.datadoghq.com"
       DEFAULT_PATH = "/api/v2/ai-guard"
 

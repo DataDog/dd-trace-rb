@@ -6,16 +6,16 @@ module Datadog
       module Client
         def self.evaluate(messages)
           request = Request.new(messages)
-          transport = AIGuard.transport
+          http_client = AIGuard.http_client
 
           # This should never happen, as we are only calling this method when AI Guard is enabled,
-          # and this means the transport was not initialized properly.
+          # and this means the HTTP client was not initialized properly.
           #
           # Please report this at https://github.com/datadog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug
-          raise "AI Guard transport not initialized" unless transport
+          raise "AI Guard HTTP client not initialized" unless http_client
 
           response = Response.new(
-            transport.post(Request::REQUEST_PATH, body: request.body)
+            http_client.post(Request::REQUEST_PATH, body: request.body)
           )
 
           redaction =

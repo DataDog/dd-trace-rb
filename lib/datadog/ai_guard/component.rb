@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "transport"
+require_relative "http_client"
 require_relative "evaluation"
 require_relative "evaluation/request"
 require_relative "evaluation/response"
@@ -21,23 +21,23 @@ module Datadog
   module AIGuard
     # Component for API Guard product
     class Component
-      attr_reader :transport, :logger, :telemetry
+      attr_reader :http_client, :logger, :telemetry
 
       def self.build(settings, logger:, telemetry:)
         return unless settings.respond_to?(:ai_guard) && settings.ai_guard.enabled
 
-        transport = Transport.new(
+        http_client = HTTPClient.new(
           endpoint: settings.ai_guard.endpoint,
           api_key: settings.api_key,
           application_key: settings.ai_guard.app_key,
           timeout: settings.ai_guard.timeout_ms / 1_000
         )
 
-        new(transport, logger: logger, telemetry: telemetry)
+        new(http_client, logger: logger, telemetry: telemetry)
       end
 
-      def initialize(transport, logger:, telemetry:)
-        @transport = transport
+      def initialize(http_client, logger:, telemetry:)
+        @http_client = http_client
         @logger = logger
         @telemetry = telemetry
       end
