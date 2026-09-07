@@ -135,7 +135,7 @@ RSpec.shared_examples_for "with sql comment base hash injection" do |span_op_nam
   let(:profiler) { nil }
 
   before do
-    components = double(agent_info: agent_info, tracer: tracer, profiler: profiler)
+    components = instance_double(Datadog::Core::Configuration::Components, agent_info: agent_info, tracer: tracer, profiler: profiler)
     allow(Datadog).to receive(:send).with(:components).and_return(components)
     allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
   end
