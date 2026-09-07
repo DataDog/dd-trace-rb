@@ -740,6 +740,8 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   // a) we get triggered using SIGPROF, and the docs state a second SIGPROF will not interrupt an existing one (see sigaction docs on sa_mask)
   // b) we validate we are in the thread that has the global VM lock; if a different thread gets a signal, it will return early
   //    because it will not have the global VM lock
+  // c) `simulate_sampling_signal_delivery` calls us directly instead of via a real SIGPROF, and blocks SIGPROF delivery on its
+  //    thread for the duration of that call, so it can't be nested into by a real SIGPROF either
 
   state->stats.signal_handler_enqueued_sample++;
 
@@ -1279,10 +1281,16 @@ void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused) {
   // This can potentially happen if the CpuAndWallTimeWorker was stopped while the IdleSamplingHelper was trying to execute this action
   if (state == NULL) return NULL;
 
+  // Since this is not a real signal firing, we need to block SIGPROF delivery on this thread to avoid an actual SIGPROF
+  // signal coming in nested and interrupting us on this thread. Thus we respect the invariant of "no nesting" for `handle_sampling_signal`.
+  block_sigprof_signal_handler_from_running_in_current_thread();
+
   state->stats.simulated_signal_delivery++;
 
   // `handle_sampling_signal` does a few things extra on top of `sample_from_postponed_job` so that's why we don't shortcut here
   handle_sampling_signal(0, NULL, NULL);
+
+  unblock_sigprof_signal_handler_from_running_in_current_thread();
 
   return NULL; // Unused
 }
