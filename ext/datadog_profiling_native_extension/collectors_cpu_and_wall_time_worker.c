@@ -1283,14 +1283,16 @@ void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused) {
 
   // Since this is not a real signal firing, we need to block SIGPROF delivery on this thread to avoid an actual SIGPROF
   // signal coming in nested and interrupting us on this thread. Thus we respect the invariant of "no nesting" for `handle_sampling_signal`.
-  block_sigprof_signal_handler_from_running_in_current_thread();
+  //
+  // Not needed when `no_signals_workaround_enabled` is set: no SIGPROFs are ever sent in that mode, so there's nothing to mask.
+  if (!state->no_signals_workaround_enabled) block_sigprof_signal_handler_from_running_in_current_thread();
 
   state->stats.simulated_signal_delivery++;
 
   // `handle_sampling_signal` does a few things extra on top of `sample_from_postponed_job` so that's why we don't shortcut here
   handle_sampling_signal(0, NULL, NULL);
 
-  unblock_sigprof_signal_handler_from_running_in_current_thread();
+  if (!state->no_signals_workaround_enabled) unblock_sigprof_signal_handler_from_running_in_current_thread();
 
   return NULL; // Unused
 }
