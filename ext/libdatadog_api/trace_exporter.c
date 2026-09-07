@@ -370,9 +370,9 @@ typedef struct {
   size_t                 capacity;
 } snapshot_attribute_ctx;
 
-/* Link keys, values, and tracestate are pre-stringified by SpanLink#to_hash,
- * so a non-String here is a programming error, not user data. Enforce strictly
- * rather than skip-and-warn like the meta setter (meta values are raw user tags). */
+/* SpanLink#to_hash stringifies attribute values and yields tracestate as a
+ * String; enforce T_STRING here so a non-String surfaces as a type error at
+ * the boundary. */
 static void snapshot_link_string(VALUE string, owned_link_string *snapshot) {
   ENFORCE_TYPE(string, T_STRING);
   snapshot->len = (size_t)RSTRING_LEN(string);
@@ -842,7 +842,7 @@ static void set_prepared_metastruct(
  * ======================================================================== */
 
 static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
-  /* 1. Read Ruby ivars */
+  /* Read Ruby ivars */
   VALUE rb_name      = rb_ivar_get(span, at_name_id);
   VALUE rb_service   = rb_ivar_get(span, at_service_id);
   VALUE rb_resource  = rb_ivar_get(span, at_resource_id);
@@ -860,7 +860,7 @@ static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
   if (rb_resource != Qnil) ENFORCE_TYPE(rb_resource, T_STRING);
   if (rb_type != Qnil) ENFORCE_TYPE(rb_type, T_STRING);
 
-  /* 2. Convert scalars that may call Ruby. */
+  /* Convert scalars that may call Ruby. */
   uint64_t span_id   = NUM2ULL(rb_span_id);
   uint64_t parent_id = NUM2ULL(rb_parent_id);
   int32_t  error_val = NUM2INT(rb_status);
@@ -920,7 +920,7 @@ static void convert_ruby_span_to_rust(VALUE span, raw_span_owner *owner) {
   ddog_CharSlice resource_s = nullable_char_slice(rb_resource);
   ddog_CharSlice type_s     = nullable_char_slice(rb_type);
 
-  /* 3. Create Rust span and immediately consume the stable prepared values. */
+  /* Create Rust span and immediately consume the stable prepared values. */
   ddog_TracerSpanFields fields = {
     .service        = service_s,
     .name           = name_s,
