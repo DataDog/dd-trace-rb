@@ -26,7 +26,7 @@ install_package() {
         "https://github.com/errata-ai/${package}/releases/download/v${version}/${package}.zip"
     echo "${sha256}  ${archive}" | sha256sum -c -
     rm -rf "${styles_dir:?}/${package}"
-    ruby .github/scripts/extract_zip.rb "${archive}" "${styles_dir}"
+    unzip -q -o "${archive}" -d "${styles_dir}"
 }
 
 install_package write-good "${WRITE_GOOD_VERSION}" "${WRITE_GOOD_SHA256}"
@@ -40,7 +40,7 @@ harper_dir="$(mktemp -d)"
 curl -sSL -o /tmp/Harper.zip \
     "https://github.com/vale-cli/Harper/releases/download/v${HARPER_VERSION}/Harper.zip"
 echo "${HARPER_SHA256}  /tmp/Harper.zip" | sha256sum -c -
-ruby .github/scripts/extract_zip.rb /tmp/Harper.zip "${harper_dir}"
+unzip -q /tmp/Harper.zip -d "${harper_dir}"
 rm -rf "${styles_dir:?}/Harper" "${styles_dir:?}/config"
 cp -R "${harper_dir}/Harper/styles/Harper" "${styles_dir}/Harper"
 cp -R "${harper_dir}/Harper/styles/config" "${styles_dir}/config"
