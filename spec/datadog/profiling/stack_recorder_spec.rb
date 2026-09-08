@@ -48,6 +48,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     described_class::Testing._native_recorder_heap_update(stack_recorder)
   end
 
+  def set_object_alloc_gen(record_id, alloc_gen)
+    described_class::Testing._native_heap_recorder_set_object_alloc_gen(stack_recorder, record_id, alloc_gen)
+  end
+
   describe "#initialize" do
     describe "locking behavior" do
       it "sets slot one as the active slot" do
@@ -774,6 +778,12 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             @sampled_objects = ObjectSpace::WeakMap.new
 
             @record_ids = Array.new(4) { sample_and_clear }
+
+            # `sample_and_clear` triggers an unknown number of GCs, so instead of relying on it to space the objects
+            # out by exactly one GC generation, pin the ages explicitly: 4, 3, 2 and 1 generations old, as seen by the
+            # next heap recorder update. (`GC.count` can't change until then, since GC is disabled.)
+            gc_count = GC.count
+            @record_ids.reverse_each { |record_id| set_object_alloc_gen(record_id, gc_count -= 1) }
           end
 
           after { GC.enable }
