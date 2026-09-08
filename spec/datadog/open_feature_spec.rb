@@ -40,7 +40,7 @@ RSpec.describe Datadog::OpenFeature do
       it { expect(described_class.engine).to be_nil }
     end
 
-    context "when component and remote configuration are available" do
+    context "when OpenFeature and remote configuration are enabled" do
       before do
         # NOTE: To avoid the use of doubles or partial doubles outside of the per-test lifecycle
         #       we have to split around hook into before/after.
@@ -54,7 +54,9 @@ RSpec.describe Datadog::OpenFeature do
 
       after { Datadog.configuration.reset! }
 
-      it { expect(described_class.engine).to be_a(Datadog::OpenFeature::EvaluationEngine) }
+      it "does not build the engine before provider adoption" do
+        expect(described_class.engine).to be_nil
+      end
     end
 
     context "when component is available and remote configuration is not available" do

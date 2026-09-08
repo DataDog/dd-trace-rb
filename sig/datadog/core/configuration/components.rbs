@@ -54,13 +54,17 @@ module Datadog
 
         attr_reader data_streams: Datadog::DataStreams::Processor?
 
-        attr_reader open_feature: Datadog::OpenFeature::Component?
-
         def initialize: (untyped settings) -> untyped
 
-        def startup!: (untyped settings) -> untyped
+        def startup!: (untyped settings, ?old_state: ComponentsState?) -> untyped
 
         def shutdown!: (?untyped? replacement) -> untyped
+
+        def open_feature: () -> Datadog::OpenFeature::Component?
+
+        def activate_open_feature!: (Datadog::OpenFeature::Provider provider) -> Datadog::OpenFeature::Component?
+
+        def open_feature_activation_failure: () -> String?
       end
     end
   end
