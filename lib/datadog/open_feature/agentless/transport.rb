@@ -44,14 +44,18 @@ module Datadog
             "DD-Client-Library-Version" => Core::Environment::Identity.gem_datadog_version_semver2,
             Core::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST => "1",
           }
-          headers["DD-API-KEY"] = @api_key if @api_key
+          api_key = @api_key
+          headers["DD-API-KEY"] = api_key if api_key
           headers["If-None-Match"] = etag if etag
           headers
         end
 
         def request(request)
           uri = @endpoint.uri
-          http = Net::HTTP.new(uri.host, uri.port, nil)
+          host = uri.host
+          raise ArgumentError, "Feature Flags agentless endpoint must have a host" unless host
+
+          http = Net::HTTP.new(host, uri.port, nil)
           http.use_ssl = uri.scheme == "https"
           http.open_timeout = @timeout_seconds
           http.read_timeout = @timeout_seconds
@@ -63,10 +67,10 @@ module Datadog
         end
 
         def response_body(response)
-          body = response.body
+          body = response.body.to_s
           return body unless response["Content-Encoding"].to_s.strip.casecmp("gzip") == 0
 
-          Zlib::GzipReader.new(StringIO.new(body)).read
+          Zlib::GzipReader.new(StringIO.new(body)).read.to_s
         end
       end
     end
