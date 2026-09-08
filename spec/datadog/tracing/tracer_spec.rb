@@ -917,15 +917,26 @@ RSpec.describe Datadog::Tracing::Tracer do
       context "with a propagated parent" do
         let(:digest) { Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2) }
 
-        it "restores the propagated parent and clears it when the trace finishes" do
+        it "sets the propagated parent when the trace is activated" do
           tracer.continue_trace!(digest) do
-            tracer.trace("span") {}
-
             expect(Datadog::Tracing::OTelThreadContext).to have_received(:set).with(
               trace_id: digest.trace_id,
               span_id: digest.span_id,
               local_root_span_id: Datadog::Tracing::OTelThreadContext::UNKNOWN_LOCAL_ROOT_SPAN_ID
             ).once
+          end
+        end
+
+        it "restores the propagated parent after a local span finishes and clears it when the trace finishes" do
+          tracer.continue_trace!(digest) do
+            expect(Datadog::Tracing::OTelThreadContext).to receive(:set).with(
+              trace_id: digest.trace_id,
+              span_id: digest.span_id,
+              local_root_span_id: Datadog::Tracing::OTelThreadContext::UNKNOWN_LOCAL_ROOT_SPAN_ID
+            ).once
+
+            tracer.trace("span") {}
+
             expect(Datadog::Tracing::OTelThreadContext).to_not have_received(:clear)
           end
 
@@ -942,6 +953,14 @@ RSpec.describe Datadog::Tracing::Tracer do
 
             expect(Datadog::Tracing::OTelThreadContext).to have_received(:clear).once
             expect(Datadog::Tracing::OTelThreadContext).to receive(:clear).once
+          end
+        end
+      end
+
+      it "clears the OTel thread context when the active trace is replaced" do
+        tracer.trace("outer") do
+          tracer.continue_trace!(nil) do
+            expect(Datadog::Tracing::OTelThreadContext).to have_received(:clear).once
           end
         end
       end

@@ -491,6 +491,28 @@ module Datadog
           end
         end
 
+        events.trace_activated.subscribe do |event_trace_op|
+          active_span = event_trace_op.active_span
+
+          if active_span
+            OTelThreadContext.set(
+              trace_id: event_trace_op.id,
+              span_id: active_span.id,
+              local_root_span_id: event_trace_op.send(:root_span).id
+            )
+          elsif event_trace_op.parent_span_id && event_trace_op.parent_span_id != 0
+            OTelThreadContext.set(
+              trace_id: event_trace_op.id,
+              span_id: event_trace_op.parent_span_id,
+              local_root_span_id: OTelThreadContext::UNKNOWN_LOCAL_ROOT_SPAN_ID
+            )
+          end
+        end
+
+        events.trace_deactivated.subscribe do |event_trace_op|
+          OTelThreadContext.clear unless event_trace_op.finished?
+        end
+
         events.trace_finished.subscribe do
           OTelThreadContext.clear
         end
