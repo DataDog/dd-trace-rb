@@ -1,6 +1,14 @@
 module Datadog
   module OpenFeature
     class Component
+      type configuration_wait_result = :ready | :timeout | :shutdown
+
+      CONFIGURATION_READY: :ready
+
+      CONFIGURATION_TIMEOUT: :timeout
+
+      CONFIGURATION_SHUTDOWN: :shutdown
+
       @settings: Core::Configuration::Settings
 
       @agent_settings: Core::Configuration::AgentSettings
@@ -20,6 +28,14 @@ module Datadog
       @flag_eval_evp_writer: FlagEvaluation::Writer?
 
       @span_enrichment_hook: Hooks::SpanEnrichmentHook?
+
+      @configuration_mutex: ::Thread::Mutex
+
+      @configuration_condition: ::Thread::ConditionVariable
+
+      @configuration_received: bool
+
+      @configuration_shutdown: bool
 
       attr_reader engine: EvaluationEngine
 
@@ -44,6 +60,12 @@ module Datadog
       ) -> void
 
       def shutdown!: () -> void
+
+      def reconfigure!: (::String? configuration) -> void
+
+      def wait_for_configuration: () -> configuration_wait_result
+
+      def configuration_received?: () -> bool
 
       private
 

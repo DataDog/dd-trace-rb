@@ -2,6 +2,7 @@
 
 require_relative "transport"
 require_relative "evaluation_engine"
+require_relative "../core/utils/time"
 require_relative "exposures/buffer"
 require_relative "exposures/worker"
 require_relative "exposures/deduplicator"
@@ -16,6 +17,10 @@ module Datadog
   module OpenFeature
     # This class is the entry point for the OpenFeature component
     class Component
+      CONFIGURATION_READY = :ready
+      CONFIGURATION_TIMEOUT = :timeout
+      CONFIGURATION_SHUTDOWN = :shutdown
+
       attr_reader :engine, :flag_eval_metrics_hook, :flag_eval_evp_hook, :span_enrichment_hook
 
       def self.build(settings, agent_settings, logger:, telemetry:)
@@ -63,9 +68,50 @@ module Datadog
         @flag_eval_metrics_hook = create_flag_eval_metrics_hook
         @flag_eval_evp_hook = create_flag_eval_evp_hook
         @span_enrichment_hook = create_span_enrichment_hook
+
+        @configuration_mutex = Mutex.new
+        @configuration_condition = ConditionVariable.new
+        @configuration_received = false
+        @configuration_shutdown = false
+      end
+
+      def reconfigure!(configuration)
+        @configuration_mutex.synchronize do
+          return if @configuration_shutdown
+
+          @engine.reconfigure!(configuration)
+          @configuration_received = !configuration.nil?
+          @configuration_condition.broadcast
+        end
+      end
+
+      def wait_for_configuration
+        timeout_seconds = @settings.open_feature.initialization_timeout_ms / 1000.0
+        deadline = Core::Utils::Time.get_time + timeout_seconds
+
+        @configuration_mutex.synchronize do
+          loop do
+            return CONFIGURATION_READY if @configuration_received
+            return CONFIGURATION_SHUTDOWN if @configuration_shutdown
+
+            remaining = deadline - Core::Utils::Time.get_time
+            return CONFIGURATION_TIMEOUT unless remaining.positive?
+
+            @configuration_condition.wait(@configuration_mutex, remaining)
+          end
+        end
+      end
+
+      def configuration_received?
+        @configuration_mutex.synchronize { @configuration_received }
       end
 
       def shutdown!
+        @configuration_mutex.synchronize do
+          @configuration_shutdown = true
+          @configuration_condition.broadcast
+        end
+
         @worker.graceful_shutdown
         @flag_eval_evp_writer&.stop
         # Symmetric teardown: drop any accumulated span-enrichment state and
