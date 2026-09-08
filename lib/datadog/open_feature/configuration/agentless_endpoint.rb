@@ -43,7 +43,7 @@ module Datadog
             return
           end
 
-          uri.path = CONFIGURATION_PATH if uri.path.empty? || uri.path == "/"
+          uri.path = CONFIGURATION_PATH if uri.path.to_s.empty? || uri.path == "/"
           new(uri, managed: false)
         rescue URI::InvalidURIError
           logger.warn("Feature Flags agentless base URL is invalid; agentless delivery is disabled")
