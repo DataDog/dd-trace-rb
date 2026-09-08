@@ -1,0 +1,29 @@
+module Datadog
+  module OpenFeature
+    module Agentless
+      class Transport
+        @endpoint: Configuration::AgentlessEndpoint
+
+        @api_key: String?
+
+        @timeout_seconds: Integer
+
+        def initialize: (
+          endpoint: Configuration::AgentlessEndpoint,
+          api_key: String?,
+          timeout_seconds: Integer
+        ) -> void
+
+        def get: (String? etag) -> Response
+
+        private
+
+        def headers: (String? etag) -> Hash[String, String]
+
+        def request: (Net::HTTP::Get request) -> Net::HTTPResponse
+
+        def response_body: (Net::HTTPResponse response) -> String
+      end
+    end
+  end
+end
