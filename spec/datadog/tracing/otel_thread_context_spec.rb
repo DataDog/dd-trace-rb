@@ -137,39 +137,35 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? d
         described_class.enable!
       end
 
-      context "when a context record was attached" do
-        before(:each) do
-          described_class.set(trace_id: 1, span_id: 1, local_root_span_id: 1)
-        end
-
-        it "returns true" do
-          expect(described_class.clear).to eq(true)
-        end
-
-        it "detaches the context record" do
-          described_class.clear
-          expect(described_class::Testing._native_read).to be_nil
-        end
-
-        it "remains detached after a fiber switch" do
-          fiber = Fiber.new do
-            described_class.set(trace_id: 1, span_id: 1, local_root_span_id: 1)
-            described_class.clear
-
-            Fiber.yield
-
-            described_class::Testing._native_read
-          end
-
-          fiber.resume
-          expect(fiber.resume).to be_nil
-        end
+      it "returns false when no context record was attached" do
+        expect(described_class.clear).to eq(false)
       end
 
-      context "when no record was attached" do
-        it "returns false" do
-          expect(described_class.clear).to eq(false)
+      it "returns true when a context record was attached" do
+        described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+
+        expect(described_class.clear).to eq(true)
+      end
+
+      it "detaches attached context record" do
+        described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+        described_class.clear
+
+        expect(described_class::Testing._native_read).to be_nil
+      end
+
+      it "does not re-attach the cleared context record when switching out of fiber" do
+        fiber = Fiber.new do
+          described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+          described_class.clear
+
+          Fiber.yield
+
+          described_class::Testing._native_read
         end
+
+        fiber.resume
+        expect(fiber.resume).to be_nil
       end
     end
   end
