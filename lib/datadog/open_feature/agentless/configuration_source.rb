@@ -57,8 +57,8 @@ module Datadog
           @apply = apply
           @logger = logger
           @poll_interval_seconds = poll_interval_seconds
-          @random = random
-          @retry_wait = retry_wait || method(:wait_for_retry)
+          @random = random || -> { Kernel.rand }
+          @retry_wait = retry_wait || ->(delay) { wait_for_retry(delay) }
           @etag = nil
           @warned = {}
           @lifecycle_mutex = Mutex.new
@@ -140,7 +140,7 @@ module Datadog
           else
             clamp(@poll_interval_seconds / 3.0, SECOND_RETRY_MIN_SECONDS, SECOND_RETRY_MAX_SECONDS)
           end
-          random = @random ? @random.call : Kernel.rand
+          random = @random.call
           jitter = 1 - RETRY_JITTER + (random * RETRY_JITTER * 2)
           [1.0, base * jitter].max
         end
@@ -150,7 +150,7 @@ module Datadog
         end
 
         def wait_before_retry(delay)
-          @retry_wait ? @retry_wait.call(delay) : wait_for_retry(delay)
+          @retry_wait.call(delay)
         end
 
         def wait_for_retry(delay)
@@ -190,8 +190,8 @@ module Datadog
           end
 
           @apply.call(configuration)
-          @etag = response.etag.to_s.strip
-          @etag = nil if @etag.empty?
+          etag = response.etag.to_s.strip
+          @etag = etag.empty? ? nil : etag
         rescue EvaluationEngine::ReconfigurationError => error
           warn_once(:application) do
             @logger.warn("Feature Flags agentless UFC payload could not be applied: #{error.class}: #{error.message}")

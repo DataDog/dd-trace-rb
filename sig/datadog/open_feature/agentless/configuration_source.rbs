@@ -15,6 +15,9 @@ module Datadog
         RETRY_JITTER: Float
 
         include Core::Workers::Polling
+        # NOTE: Steep does not infer modules included dynamically by Polling.
+        include Core::Workers::Async::Thread
+        include Core::Workers::IntervalLoop
 
         @transport: Transport
 
@@ -24,9 +27,9 @@ module Datadog
 
         @poll_interval_seconds: Integer
 
-        @random: (^() -> Float)?
+        @random: ^() -> Float
 
-        @retry_wait: (^(Float) -> bool)?
+        @retry_wait: ^(Float) -> bool
 
         @etag: String?
 
