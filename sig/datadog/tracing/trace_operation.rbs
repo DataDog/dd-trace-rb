@@ -90,6 +90,8 @@ module Datadog
         attr_reader span_before_finish: untyped
         attr_reader span_before_start: untyped
         attr_reader span_finished: untyped
+        attr_reader trace_activated: TraceActivated
+        attr_reader trace_deactivated: TraceDeactivated
         attr_reader trace_finished: untyped
         attr_reader trace_propagated: untyped
         attr_reader trace_resource_change: untyped
@@ -105,6 +107,14 @@ module Datadog
         end
 
         class SpanFinished < Tracing::Event
+          def initialize: () -> void
+        end
+
+        class TraceActivated < Tracing::Event
+          def initialize: () -> void
+        end
+
+        class TraceDeactivated < Tracing::Event
           def initialize: () -> void
         end
 
