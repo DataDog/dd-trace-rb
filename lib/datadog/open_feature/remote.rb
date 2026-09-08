@@ -22,8 +22,8 @@ module Datadog
         def receivers(telemetry)
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(FFE_PRODUCTS)
           receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
-            engine = OpenFeature.engine
-            next unless engine
+            component = Datadog.send(:components).open_feature
+            next unless component
 
             changes.each do |change|
               content = repository[change.path]
@@ -38,7 +38,7 @@ module Datadog
               when :insert, :update
                 begin
                   # @type var content: Core::Remote::Configuration::Content
-                  engine.reconfigure!(read_content(content))
+                  component.reconfigure!(read_content(content))
                   content.applied
                 rescue EvaluationEngine::ReconfigurationError => e
                   content.errored("Error applying OpenFeature configuration: #{e.class}: #{e.message}")
@@ -46,7 +46,7 @@ module Datadog
               when :delete
                 # NOTE: For now, we treat deletion as clearing the configuration
                 #       In a multi-config scenario, we might track configs per path
-                engine.reconfigure!(nil)
+                component.reconfigure!(nil)
               end
             end
           end

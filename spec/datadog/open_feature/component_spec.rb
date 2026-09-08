@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "timeout"
 require "open_feature/sdk"
 require "datadog/open_feature/component"
 require "datadog/open_feature/flag_evaluation/writer"
@@ -189,6 +190,113 @@ RSpec.describe Datadog::OpenFeature::Component do
       allow(worker).to receive(:graceful_shutdown)
 
       component.shutdown!
+    end
+  end
+
+  describe "configuration readiness" do
+    before do
+      settings.open_feature.enabled = true
+      settings.open_feature.evaluation_counts_enabled = false
+      settings.open_feature.initialization_timeout_ms = 1
+      settings.remote.enabled = true
+      stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", nil)
+      allow(worker).to receive(:graceful_shutdown)
+    end
+
+    subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
+
+    describe "#reconfigure!" do
+      it "marks an accepted configuration as received" do
+        allow(component.engine).to receive(:reconfigure!).with("configuration")
+
+        expect { component.reconfigure!("configuration") }
+          .to change(component, :configuration_received?).from(false).to(true)
+      end
+
+      it "does not mark a rejected configuration as received" do
+        allow(component.engine).to receive(:reconfigure!)
+          .and_raise(Datadog::OpenFeature::EvaluationEngine::ReconfigurationError)
+
+        expect { component.reconfigure!("invalid") }
+          .to raise_error(Datadog::OpenFeature::EvaluationEngine::ReconfigurationError)
+        expect(component.configuration_received?).to be(false)
+      end
+
+      it "clears readiness when configuration is deleted" do
+        allow(component.engine).to receive(:reconfigure!)
+        component.reconfigure!("configuration")
+
+        expect { component.reconfigure!(nil) }
+          .to change(component, :configuration_received?).from(true).to(false)
+      end
+    end
+
+    describe "#wait_for_configuration" do
+      it "returns ready when configuration was already received" do
+        allow(component.engine).to receive(:reconfigure!)
+        component.reconfigure!("configuration")
+
+        expect(component.wait_for_configuration).to eq(:ready)
+      end
+
+      it "returns timeout when no configuration arrives" do
+        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0.0, 1.0)
+
+        expect(component.wait_for_configuration).to eq(:timeout)
+      end
+
+      it "wakes when configuration arrives" do
+        wait_started = SizedQueue.new(1)
+        result = SizedQueue.new(1)
+        allow_any_instance_of(ConditionVariable).to receive(:wait).and_wrap_original do |method, *arguments|
+          begin
+            wait_started.push(true, true)
+          rescue ThreadError
+            # The waiter has already signaled.
+          end
+          method.call(*arguments)
+        end
+        settings.open_feature.initialization_timeout_ms = 30_000
+        waiting_thread = Thread.new { result << component.wait_for_configuration }
+        begin
+          Timeout.timeout(1) { wait_started.pop }
+          allow(component.engine).to receive(:reconfigure!).with("configuration")
+
+          component.reconfigure!("configuration")
+
+          expect(Timeout.timeout(1) { result.pop }).to eq(:ready)
+          expect(waiting_thread.join(1)).to eq(waiting_thread)
+        ensure
+          waiting_thread.kill
+          waiting_thread.join(1)
+        end
+      end
+
+      it "wakes when the component shuts down" do
+        wait_started = SizedQueue.new(1)
+        result = SizedQueue.new(1)
+        allow_any_instance_of(ConditionVariable).to receive(:wait).and_wrap_original do |method, *arguments|
+          begin
+            wait_started.push(true, true)
+          rescue ThreadError
+            # The waiter has already signaled.
+          end
+          method.call(*arguments)
+        end
+        settings.open_feature.initialization_timeout_ms = 30_000
+        waiting_thread = Thread.new { result << component.wait_for_configuration }
+        begin
+          Timeout.timeout(1) { wait_started.pop }
+
+          component.shutdown!
+
+          expect(Timeout.timeout(1) { result.pop }).to eq(:shutdown)
+          expect(waiting_thread.join(1)).to eq(waiting_thread)
+        ensure
+          waiting_thread.kill
+          waiting_thread.join(1)
+        end
+      end
     end
   end
 end
