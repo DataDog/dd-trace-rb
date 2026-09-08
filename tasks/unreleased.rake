@@ -22,6 +22,15 @@ namespace :unreleased do
     ReleasePrep.fail!(e.message)
   end
 
+  desc "Generate a new unreleased/ changelog fragment filled with guidance"
+  task :new do
+    path = ReleasePrep::FragmentTemplate.write(dir: "unreleased")
+
+    puts "Created #{path}. Fill in every field: `rake unreleased:lint` stays red until the placeholders are gone," \
+      " and its errors name what each field needs."
+    puts "Conventions: unreleased/README.md; filled-in examples: unreleased/examples/."
+  end
+
   desc "Lint unreleased/ changelog fragment messages for hygiene with vale"
   task :vale do
     require "open3"
