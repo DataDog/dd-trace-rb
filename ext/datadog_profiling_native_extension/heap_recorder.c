@@ -1193,6 +1193,19 @@ VALUE heap_recorder_testonly_record_id_for(heap_recorder *heap_recorder, VALUE o
   return context.result;
 }
 
+void heap_recorder_testonly_set_object_alloc_gen(heap_recorder *heap_recorder, long record_id, size_t alloc_gen) {
+  if (heap_recorder == NULL) {
+    raise_error(rb_eArgError, "heap_recorder is NULL");
+  }
+
+  object_record *record = NULL;
+  if (!st_lookup(heap_recorder->object_records, (st_data_t) record_id, (st_data_t *) &record)) {
+    raise_error(rb_eArgError, "record_id %ld is not being tracked", record_id);
+  }
+
+  record->object_data.alloc_gen = alloc_gen;
+}
+
 void heap_recorder_testonly_exhaust_record_ids(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
     raise_error(rb_eArgError, "heap_recorder is NULL");
