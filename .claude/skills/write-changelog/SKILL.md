@@ -67,12 +67,14 @@ Then keep every written claim grounded:
    nothing checks it mechanically
 2. PR already has a fragment for this change → update it, don't add
    another; fragments for other changes stay untouched
-3. Copy the closest template from `unreleased/examples/` — never a blank
-   file:
+3. Generate the scaffold — never a blank file:
 
    ```bash
-   cp unreleased/examples/basic.json "unreleased/$(date -u +%Y%m%d%H%M%S).json"
+   bundle exec rake unreleased:new
    ```
+
+   The placeholders name what each field needs; filled-in references live
+   in `unreleased/examples/`.
 
 4. Omit `author` unless writing for an external contributor, to their
    GitHub handle

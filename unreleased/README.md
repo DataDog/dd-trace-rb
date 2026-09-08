@@ -28,9 +28,10 @@ change. Its fields:
   in `CHANGELOG.md`.
 
 [`examples/`](examples/) holds real-life-flavored fragments per type and product area —
-check them out. Tip: start by copy-pasting the closest one and editing
-its fields; the filename is irrelevant, only the fields are read. Commit
-the file alongside your change.
+check them out. Tip: `rake unreleased:new` generates one pre-filled with
+guidance; its placeholder values teach each field, and `rake unreleased:lint`
+stays red until they are replaced. The filename is irrelevant, only the
+fields are read. Commit the file alongside your change.
 
 Internal refactors, test-only, and CI/tooling changes don't need one.
 When unsure, add one — a reviewer can delete an unnecessary entry, but a
