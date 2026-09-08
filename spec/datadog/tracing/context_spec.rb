@@ -20,7 +20,13 @@ RSpec.describe Datadog::Tracing::Context do
     context "given" do
       context ":trace" do
         let(:options) { {trace: trace} }
-        let(:trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: finished?) }
+        let(:trace) do
+          instance_double(
+            Datadog::Tracing::TraceOperation,
+            events: Datadog::Tracing::TraceOperation::Events.new,
+            finished?: finished?
+          )
+        end
 
         context "that is finished" do
           let(:finished?) { true }
@@ -49,7 +55,13 @@ RSpec.describe Datadog::Tracing::Context do
     subject(:activate!) { context.activate!(trace) }
 
     context "given a TraceOperation" do
-      let(:trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: finished?) }
+      let(:trace) do
+        instance_double(
+          Datadog::Tracing::TraceOperation,
+          events: Datadog::Tracing::TraceOperation::Events.new,
+          finished?: finished?
+        )
+      end
 
       context "that is finished" do
         let(:finished?) { true }
@@ -76,7 +88,13 @@ RSpec.describe Datadog::Tracing::Context do
           end
 
           context "outside which another trace is active" do
-            let(:original_trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: false) }
+            let(:original_trace) do
+              instance_double(
+                Datadog::Tracing::TraceOperation,
+                events: Datadog::Tracing::TraceOperation::Events.new,
+                finished?: false
+              )
+            end
 
             it do
               context.activate!(original_trace)
@@ -154,7 +172,13 @@ RSpec.describe Datadog::Tracing::Context do
           end
 
           context "outside which another trace is active" do
-            let(:original_trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: false) }
+            let(:original_trace) do
+              instance_double(
+                Datadog::Tracing::TraceOperation,
+                events: Datadog::Tracing::TraceOperation::Events.new,
+                finished?: false
+              )
+            end
 
             it do
               context.activate!(original_trace)
@@ -182,6 +206,23 @@ RSpec.describe Datadog::Tracing::Context do
                 expect(context.active_trace).to be nil
               end
             end
+
+            it "deactivates the original trace before activating its replacement" do
+              context.activate!(original_trace)
+              published_events = []
+
+              original_trace.send(:events).trace_deactivated.subscribe do |trace_op|
+                published_events << [:trace_deactivated, trace_op]
+              end
+
+              trace.send(:events).trace_activated.subscribe do |trace_op|
+                published_events << [:trace_activated, trace_op]
+              end
+
+              context.activate!(trace)
+
+              expect(published_events).to eq([[:trace_deactivated, original_trace], [:trace_activated, trace]])
+            end
           end
 
           context "that raises an Exception" do
@@ -204,6 +245,24 @@ RSpec.describe Datadog::Tracing::Context do
             end
           end
         end
+
+        it "publishes trace activation and deactivation events" do
+          published_events = []
+
+          trace.send(:events).trace_activated.subscribe do |trace_op|
+            published_events << [:trace_activated, trace_op]
+          end
+
+          trace.send(:events).trace_deactivated.subscribe do |trace_op|
+            published_events << [:trace_deactivated, trace_op]
+          end
+
+          context.activate!(trace)
+          context.activate!(trace)
+          context.activate!(nil)
+
+          expect(published_events).to eq([[:trace_activated, trace], [:trace_deactivated, trace]])
+        end
       end
     end
   end
@@ -212,8 +271,21 @@ RSpec.describe Datadog::Tracing::Context do
     subject(:fork_clone) { context.fork_clone }
 
     context "when a trace is active" do
-      let(:trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: false) }
-      let(:cloned_trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: false) }
+      let(:trace) do
+        instance_double(
+          Datadog::Tracing::TraceOperation,
+          events: Datadog::Tracing::TraceOperation::Events.new,
+          finished?: false
+        )
+      end
+
+      let(:cloned_trace) do
+        instance_double(
+          Datadog::Tracing::TraceOperation,
+          events: Datadog::Tracing::TraceOperation::Events.new,
+          finished?: false
+        )
+      end
 
       before do
         allow(trace).to receive(:fork_clone).and_return(cloned_trace)

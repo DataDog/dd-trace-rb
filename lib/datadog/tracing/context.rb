@@ -23,6 +23,7 @@ module Datadog
       def initialize(
         trace: nil
       )
+        @active_trace = nil
         activate!(trace)
       end
 
@@ -60,8 +61,22 @@ module Datadog
       private
 
       def set_active_trace!(trace)
+        previous_trace = @active_trace
+
         # Don't retain finished traces
         @active_trace = (trace && !trace.finished?) ? trace : nil
+
+        return @active_trace if previous_trace.equal?(@active_trace)
+
+        if previous_trace
+          previous_trace.send(:events).trace_deactivated.publish(previous_trace)
+        end
+
+        if @active_trace
+          @active_trace.send(:events).trace_activated.publish(@active_trace)
+        end
+
+        @active_trace
       end
     end
   end
