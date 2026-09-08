@@ -7,6 +7,8 @@ module Datadog
         INVALID_SITE_CHARACTERS: Regexp
         INTERNAL_WHITESPACE: Regexp
 
+        @managed: bool
+
         attr_reader uri: URI::HTTP
 
         def self.build: (site: String?, environment: String?, ?base_url: String?, ?logger: Datadog::Core::Logger) -> AgentlessEndpoint?

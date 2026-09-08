@@ -3,6 +3,8 @@ module Datadog
     module Configuration
       module Source
         class Resolution
+          @enabled: bool
+
           attr_reader source: String
 
           def initialize: (enabled: bool, source: String) -> void
