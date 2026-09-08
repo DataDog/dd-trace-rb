@@ -149,9 +149,8 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? d
 
       it "detaches attached context record" do
         described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
-        described_class.clear
 
-        expect(described_class::Testing._native_read).to be_nil
+        expect { described_class.clear }.to change { described_class::Testing._native_read }.to(nil)
       end
 
       it "does not re-attach the cleared context record when switching out of fiber" do
