@@ -1,0 +1,94 @@
+module Datadog
+  module OpenFeature
+    module Agentless
+      class ConfigurationSource
+        MAX_ATTEMPTS: 3
+
+        FIRST_RETRY_MIN_SECONDS: Float
+
+        FIRST_RETRY_MAX_SECONDS: Float
+
+        SECOND_RETRY_MIN_SECONDS: Float
+
+        SECOND_RETRY_MAX_SECONDS: Float
+
+        RETRY_JITTER: Float
+
+        include Core::Workers::Polling
+
+        @transport: Transport
+
+        @apply: ^(String) -> void
+
+        @logger: Core::Logger
+
+        @poll_interval_seconds: Integer
+
+        @random: (^() -> Float)?
+
+        @retry_wait: (^(Float) -> bool)?
+
+        @etag: String?
+
+        @warned: Hash[Symbol, bool]
+
+        @lifecycle_mutex: Thread::Mutex
+
+        @started: bool
+
+        @stopped: bool
+
+        attr_reader etag: String?
+
+        def self.build: (
+          Core::Configuration::Settings settings,
+          endpoint: Configuration::AgentlessEndpoint,
+          apply: ^(String) -> void,
+          ?logger: Core::Logger
+        ) -> ConfigurationSource?
+
+        def initialize: (
+          endpoint: Configuration::AgentlessEndpoint,
+          api_key: String?,
+          poll_interval_seconds: Integer,
+          request_timeout_seconds: Integer,
+          apply: ^(String) -> void,
+          logger: Core::Logger,
+          ?transport: Transport?,
+          ?random: (^() -> Float)?,
+          ?retry_wait: (^(Float) -> bool)?
+        ) -> void
+
+        def start: () -> bool
+
+        def stop: () -> bool
+
+        def perform: () -> void
+
+        def poll: () -> void
+
+        private
+
+        def stopped?: () -> bool
+
+        def retryable?: (Response response) -> bool
+
+        def retry_delay: (Integer attempt) -> Float
+
+        def clamp: (Float value, Float minimum, Float maximum) -> Float
+
+        def wait_before_retry: (Float delay) -> bool
+
+        def wait_for_retry: (Float delay) -> bool
+
+        def apply_response: (Response response) -> void
+
+        def apply_configuration: (Response response) -> void
+
+        def warn_failure: (Response response, Integer attempts) -> void
+
+        def warn_once: (Symbol category) { () -> void } -> void
+      end
+    end
+  end
+end
