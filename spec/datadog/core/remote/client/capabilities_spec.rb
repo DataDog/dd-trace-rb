@@ -383,17 +383,8 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   end
 
   describe "#capabilities_to_base64" do
-    before do
-      allow(capabilities).to receive(:capabilities).and_return(
-        [
-          1 << 1,
-          1 << 2,
-        ]
-      )
-    end
-
     it "returns base64 string" do
-      expect(capabilities.send(:capabilities_to_base64)).to eq("Bg==")
+      expect(capabilities.send(:capabilities_to_base64, [1 << 1, 1 << 2])).to eq("Bg==")
     end
   end
 
@@ -428,6 +419,40 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     it "#remove_products leaves other products intact" do
       capabilities.remove_products("LIVE_DEBUGGING")
       expect(capabilities.products).to include("APM_TRACING")
+    end
+  end
+
+  describe "#register_runtime" do
+    let(:receiver) { instance_double(Datadog::Core::Remote::Dispatcher::Receiver) }
+    let(:runtime_capability) { 1 << 46 }
+
+    it "adds capabilities, products, and receivers atomically for future clients" do
+      previous_base64 = capabilities.base64_capabilities
+
+      capabilities.register_runtime(
+        capabilities: [runtime_capability],
+        products: ["FFE_FLAGS"],
+        receivers: [receiver],
+      )
+
+      expect(capabilities.capabilities).to include(runtime_capability)
+      expect(capabilities.products).to include("FFE_FLAGS")
+      expect(capabilities.receivers).to include(receiver)
+      expect(capabilities.base64_capabilities).not_to eq(previous_base64)
+    end
+
+    it "is idempotent" do
+      2.times do
+        capabilities.register_runtime(
+          capabilities: [runtime_capability],
+          products: ["FFE_FLAGS"],
+          receivers: [receiver],
+        )
+      end
+
+      expect(capabilities.capabilities.count(runtime_capability)).to eq(1)
+      expect(capabilities.products.count("FFE_FLAGS")).to eq(1)
+      expect(capabilities.receivers.count(receiver)).to eq(1)
     end
   end
 end

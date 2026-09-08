@@ -19,9 +19,118 @@ RSpec.describe Datadog::OpenFeature::Provider do
   let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger) }
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:logger) { instance_double(Datadog::Core::Logger) }
+  let(:logger) { instance_double(Datadog::Core::Logger, error: nil) }
 
   subject(:provider) { described_class.new }
+
+  describe "initialization" do
+    let(:component) do
+      instance_double(Datadog::OpenFeature::Component, wait_for_configuration: wait_result, configuration_received?: false)
+    end
+    let(:components) do
+      instance_double(
+        Datadog::Core::Configuration::Components,
+        activate_open_feature!: component,
+        open_feature_activation_failure: nil,
+      )
+    end
+    let(:wait_result) { Datadog::OpenFeature::Component::CONFIGURATION_READY }
+
+    before do
+      allow(Datadog).to receive(:logger).and_return(logger)
+      allow(Datadog).to receive(:send).and_call_original
+      allow(Datadog).to receive(:send).with(:components).and_return(components)
+      allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
+      allow(Datadog).to receive(:send).with(:safely_synchronize).and_yield
+    end
+
+    it "activates delivery and waits for configuration" do
+      expect { provider.init }.not_to raise_error
+
+      expect(components).to have_received(:activate_open_feature!).with(provider)
+      expect(component).to have_received(:wait_for_configuration)
+    end
+
+    context "when no delivery source can start" do
+      let(:component) { nil }
+      let(:components) do
+        instance_double(
+          Datadog::Core::Configuration::Components,
+          activate_open_feature!: nil,
+          open_feature_activation_failure: "Feature Flags Remote Configuration is unavailable",
+        )
+      end
+
+      it "fails without waiting for the initialization timeout" do
+        expect { provider.init }
+          .to raise_error(RuntimeError, "Feature Flags Remote Configuration is unavailable")
+      end
+    end
+
+    context "when initialization times out" do
+      let(:wait_result) { Datadog::OpenFeature::Component::CONFIGURATION_TIMEOUT }
+
+      it "raises and logs an error" do
+        expect { provider.init }.to raise_error(RuntimeError, /initialization timed out/)
+
+        expect(logger).to have_received(:error).with(/initialization timed out/)
+      end
+
+      describe "OpenFeature SDK events" do
+        let(:configuration) { ::OpenFeature::SDK::Configuration.new }
+        let(:events) { [] }
+
+        before do
+          configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, ->(_) { events << :error })
+          configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, ->(_) { events << :ready })
+        end
+
+        after do
+          provider.shutdown
+          configuration.send(:reset)
+        end
+
+        it "reports ERROR on timeout and READY when configuration arrives later" do
+          expect { configuration.set_provider_and_wait(provider) }
+            .to raise_error(::OpenFeature::SDK::ProviderInitializationError)
+          expect(events).to eq([:error])
+
+          provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+
+          expect(events).to eq([:error, :ready])
+        end
+
+        it "preserves ERROR then READY ordering when configuration races the SDK error" do
+          allow(provider).to receive(:install_error_handler).and_wrap_original do |method|
+            method.call
+            provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+          end
+
+          expect { configuration.set_provider_and_wait(provider) }
+            .to raise_error(::OpenFeature::SDK::ProviderInitializationError)
+
+          expect(events).to eq([:error, :ready])
+        end
+      end
+    end
+
+    it "emits configuration-changed after successful initialization" do
+      configuration = ::OpenFeature::SDK::Configuration.new
+      events = []
+      configuration.add_handler(
+        ::OpenFeature::SDK::ProviderEvent::PROVIDER_CONFIGURATION_CHANGED,
+        ->(_) { events << :changed },
+      )
+      configuration.set_provider_and_wait(provider)
+
+      provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_CHANGED)
+
+      expect(events).to eq([:changed])
+    ensure
+      provider.shutdown
+      configuration&.send(:reset)
+    end
+  end
 
   describe "#fetch_boolean_value" do
     context "when engine is not configured" do

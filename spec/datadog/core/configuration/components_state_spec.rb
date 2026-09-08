@@ -2,6 +2,19 @@ require "spec_helper"
 require "datadog/core/configuration/components_state"
 
 RSpec.describe Datadog::Core::Configuration::ComponentsState do
+  describe "#open_feature_provider" do
+    it "retains the adopted provider across component-tree replacement" do
+      provider = instance_double("Datadog::OpenFeature::Provider")
+      state = described_class.new(
+        telemetry_enabled: true,
+        remote_started: false,
+        open_feature_provider: provider,
+      )
+
+      expect(state.open_feature_provider).to be(provider)
+    end
+  end
+
   describe "#di_implicitly_enabled?" do
     # The implicit-enablement carry-over: when Datadog.configure rebuilds
     # the components tree, the new Components inspects the old state to

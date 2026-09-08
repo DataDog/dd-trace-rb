@@ -6,7 +6,6 @@ require_relative "../../../tracing/remote"
 require_relative "../../../di/remote"
 require_relative "../../../symbol_database"
 require_relative "../../../symbol_database/remote"
-require_relative "../../../open_feature/remote"
 
 module Datadog
   module Core
@@ -14,33 +13,51 @@ module Datadog
       class Client
         # Capabilities
         class Capabilities
-          attr_reader :capabilities, :receivers, :base64_capabilities
-
           def initialize(settings, telemetry)
             @capabilities = []
             @products = []
-            @products_mutex = Mutex.new
             @receivers = []
             @telemetry = telemetry
+            @mutex = Mutex.new
 
             register(settings)
 
-            @base64_capabilities = capabilities_to_base64
+            @base64_capabilities = capabilities_to_base64(@capabilities)
+          end
+
+          def capabilities
+            @mutex.synchronize { @capabilities.dup }
           end
 
           def products
-            @products_mutex.synchronize { @products.dup }
+            @mutex.synchronize { @products.dup }
           end
 
-          def add_products(*products)
-            @products_mutex.synchronize do
-              products.each { |product| @products << product unless @products.include?(product) }
+          def receivers
+            @mutex.synchronize { @receivers.dup }
+          end
+
+          def base64_capabilities
+            @mutex.synchronize { @base64_capabilities }
+          end
+
+          def register_runtime(capabilities:, products:, receivers:)
+            @mutex.synchronize do
+              register_capabilities(capabilities)
+              register_products(products)
+              register_receivers(receivers)
+              @base64_capabilities = capabilities_to_base64(@capabilities)
             end
             nil
           end
 
+          def add_products(*products)
+            @mutex.synchronize { register_products(products) }
+            nil
+          end
+
           def remove_products(*products)
-            @products_mutex.synchronize { products.each { |product| @products.delete(product) } }
+            @mutex.synchronize { products.each { |product| @products.delete(product) } }
             nil
           end
 
@@ -94,27 +111,21 @@ module Datadog
                 end
               end
             end
-
-            if settings.respond_to?(:open_feature) && settings.open_feature.enabled
-              register_capabilities(Datadog::OpenFeature::Remote.capabilities)
-              register_products(Datadog::OpenFeature::Remote.products)
-              register_receivers(Datadog::OpenFeature::Remote.receivers(@telemetry))
-            end
           end
 
           def register_capabilities(capabilities)
-            @capabilities.concat(capabilities)
+            capabilities.each { |capability| @capabilities << capability unless @capabilities.include?(capability) }
           end
 
           def register_receivers(receivers)
-            @receivers.concat(receivers)
+            receivers.each { |receiver| @receivers << receiver unless @receivers.include?(receiver) }
           end
 
           def register_products(products)
-            @products.concat(products)
+            products.each { |product| @products << product unless @products.include?(product) }
           end
 
-          def capabilities_to_base64
+          def capabilities_to_base64(capabilities)
             return "" if capabilities.empty?
 
             cap_to_hexs = capabilities.reduce(:|).to_s(16).tap { |s| s.size.odd? && s.prepend("0") }.scan(/\h\h/)
