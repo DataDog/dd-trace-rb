@@ -3,17 +3,24 @@ module Datadog
     module Configuration
       module Source
         AGENTLESS: String
+
         REMOTE_CONFIG: String
+
         OFFLINE: String
 
         interface _Settings
           def enabled: () -> bool
+
           def feature_flags_enabled: () -> bool
+
           def configuration_source: () -> String
+
           def using_default?: (Symbol name) -> bool
         end
 
         def self.resolve: (_Settings settings, ?logger: Datadog::Core::Logger) -> Resolution
+
+        private
 
         def self.resolve_explicit_source: (String source, Datadog::Core::Logger logger) -> String
       end

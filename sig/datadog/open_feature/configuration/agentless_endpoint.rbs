@@ -3,8 +3,11 @@ module Datadog
     module Configuration
       class AgentlessEndpoint
         DEFAULT_SITE: String
+
         CONFIGURATION_PATH: String
+
         INVALID_SITE_CHARACTERS: Regexp
+
         INTERNAL_WHITESPACE: Regexp
 
         @managed: bool
@@ -17,7 +20,10 @@ module Datadog
 
         def managed?: () -> bool
 
+        private
+
         def self.build_custom: (String base_url, Datadog::Core::Logger logger) -> AgentlessEndpoint?
+
         def self.build_managed: (String? site, String? environment, Datadog::Core::Logger logger) -> AgentlessEndpoint?
       end
     end
