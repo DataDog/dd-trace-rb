@@ -8,6 +8,7 @@ module Datadog
           attr_reader source: String
 
           def initialize: (enabled: bool, source: String) -> void
+
           def enabled?: () -> bool
         end
       end
