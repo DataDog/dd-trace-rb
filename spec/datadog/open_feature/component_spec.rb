@@ -26,10 +26,21 @@ RSpec.describe Datadog::OpenFeature::Component do
   let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
   let(:worker) { instance_double(Datadog::OpenFeature::Exposures::Worker) }
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
+  let(:resolution) do
+    Datadog::OpenFeature::Configuration::Source::Resolution.new(enabled: true, source: "agentless")
+  end
+  let(:on_configuration_change) { instance_double(Proc, call: nil) }
 
   describe ".build" do
     subject(:component) do
-      described_class.build(settings, agent_settings, logger: logger, telemetry: telemetry)
+      described_class.build(
+        settings,
+        agent_settings,
+        resolution: resolution,
+        on_configuration_change: on_configuration_change,
+        logger: logger,
+        telemetry: telemetry,
+      )
     end
 
     context "when open_feature is enabled" do
@@ -93,20 +104,12 @@ RSpec.describe Datadog::OpenFeature::Component do
           end
         end
       end
-
-      context "when remote configuration is disabled" do
-        before { settings.remote.enabled = false }
-
-        it "logs warning and returns nil" do
-          expect(logger).to receive(:warn).with(/Remote Configuration is currently disabled/)
-
-          expect(component).to be_nil
-        end
-      end
     end
 
     context "when open_feature is not enabled" do
-      before { settings.open_feature.enabled = false }
+      let(:resolution) do
+        Datadog::OpenFeature::Configuration::Source::Resolution.new(enabled: false, source: "offline")
+      end
 
       it { expect(component).to be_nil }
     end
@@ -203,7 +206,15 @@ RSpec.describe Datadog::OpenFeature::Component do
       allow(worker).to receive(:graceful_shutdown)
     end
 
-    subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
+    subject(:component) do
+      described_class.new(
+        settings,
+        agent_settings,
+        on_configuration_change: on_configuration_change,
+        logger: logger,
+        telemetry: telemetry,
+      )
+    end
 
     describe "#reconfigure!" do
       it "marks an accepted configuration as received" do
@@ -211,6 +222,7 @@ RSpec.describe Datadog::OpenFeature::Component do
 
         expect { component.reconfigure!("configuration") }
           .to change(component, :configuration_received?).from(false).to(true)
+        expect(on_configuration_change).to have_received(:call).with(:ready)
       end
 
       it "does not mark a rejected configuration as received" do
@@ -220,6 +232,16 @@ RSpec.describe Datadog::OpenFeature::Component do
         expect { component.reconfigure!("invalid") }
           .to raise_error(Datadog::OpenFeature::EvaluationEngine::ReconfigurationError)
         expect(component.configuration_received?).to be(false)
+        expect(on_configuration_change).not_to have_received(:call)
+      end
+
+      it "reports subsequent accepted configurations as changed" do
+        allow(component.engine).to receive(:reconfigure!)
+        component.reconfigure!("first")
+
+        component.reconfigure!("second")
+
+        expect(on_configuration_change).to have_received(:call).with(:changed).once
       end
 
       it "clears readiness when configuration is deleted" do
@@ -228,6 +250,7 @@ RSpec.describe Datadog::OpenFeature::Component do
 
         expect { component.reconfigure!(nil) }
           .to change(component, :configuration_received?).from(true).to(false)
+        expect(on_configuration_change).to have_received(:call).with(:ready).once
       end
     end
 
