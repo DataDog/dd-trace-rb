@@ -86,34 +86,37 @@ vale cannot check, in drafting order. Each rule carries a minimal pair in
 a fenced block: the bad entry is the good one with exactly the violation.
 
 - Structure by type — the reader's question differs:
-  - `Fixed`: the symptom they recognize → the trigger
+  - `Fixed`: the symptom they recognize → the trigger — but the trigger
+    only when the customer can perform or observe it (a call they make, a
+    setting they use); an unobservable race bottoms out at "a rare race",
+    never internal sequencing
 
     ```markdown
-    <!-- Bad: symptom without the trigger -->
-    Fix `ArgumentError` in `pg` instrumentation.
+    <!-- Bad: the implementation — no symptom, no trigger -->
+    Ignore `SignalException` from crashtracker as unhandled exception errors.
 
-    <!-- Good: symptom + trigger -->
-    Fix `pg` instrumentation which raised `ArgumentError` when calling `exec_params`, `exec_prepared` without a `params` argument, or their `async_`/`sync_` variants.
+    <!-- Good: the symptom they recognize + the trigger they perform -->
+    Fix false unhandled-exception crash reports in Error Tracking: `SIGTERM` and other `SignalException`s raised while the process stops — every rolling deploy, scale-in, or pod eviction — are no longer reported as crashes.
     ```
 
   - `Added`: the capability → the access point, the setting/API that gets it for them
 
     ```markdown
-    <!-- Bad: capability without the access point -->
-    Add flag evaluation metrics.
+    <!-- Bad: the setting named vaguely — no access point the customer can find -->
+    Add experimental profiling setting to show class/module names in stack frames.
 
-    <!-- Good: capability + access point -->
-    Add flag evaluation metrics, collected via OpenTelemetry.
+    <!-- Good: capability + example of what you get + the exact access point -->
+    Show class and module names in profiler stack frames (`Foo::Bar#baz` instead of `baz`), making hot methods easier to identify; enable it with `DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED=true`.
     ```
 
-  - `Changed`: the new behavior → the action or escape hatch
+  - `Changed`: the new behavior → why it matters, or the action/escape hatch
 
     ```markdown
-    <!-- Bad: new behavior without the action -->
-    Deprecate `time_now_provider`.
+    <!-- Bad: the flip stated, but not why it matters, and no way back -->
+    Change default logger output from stdout to stderr.
 
-    <!-- Good: new behavior + action + why it is safe -->
-    Deprecate the `time_now_provider` setting for removal; it no longer has an effect. Remove it from your `Datadog.configure` block. The gem always uses real time, even when the `timecop` gem monkey-patches `Time`.
+    <!-- Good: new behavior + why it matters + escape hatch -->
+    Move the gem's diagnostic logs from stdout to stderr, so stdout stays clean for application output; restore the old default with `c.logger.instance = Logger.new($stdout)` in `Datadog.configure`.
     ```
 
 - For a customer, not the diff: what changed and why it matters to a gem
@@ -131,12 +134,15 @@ a fenced block: the bad entry is the good one with exactly the violation.
 - Start with an imperative verb (Add, Fix, Support, Improve, ...) — CI
   rejects "This PR fixes...", "The gem now supports...", "Also fixes..."
 
-  ```markdown
-  <!-- Bad: the PR is the subject -->
-  This PR adds support for `Resque`.
+- The first sentence carries the customer effect — what they observe,
+  do, or get — never the gem's mechanics; those follow, never lead
 
-  <!-- Good: imperative verb, the change is the subject -->
-  Add support for `Resque`.
+  ```markdown
+  <!-- Bad: the mechanism enforced; the customer's delta never appears -->
+  Enforce process-wide rate limit across all probes.
+
+  <!-- Good: the customer's observable delta leads, the numbers follow -->
+  Cap probe output process-wide: with multiple probes set, they can emit less than their individual limits allow — 20 snapshots/s, 5000 log events/s.
   ```
 
 - Wrap identifiers (`DD_...` env vars, snake_case, CONSTANT_CASE,
@@ -197,12 +203,13 @@ a fenced block: the bad entry is the good one with exactly the violation.
 
 ## Before finishing
 
-Re-read and revise until every item holds:
+Re-read the message; revise until every item holds:
 
 - Every claim visible in the diff
-- Reads as written for a customer
-- `Fixed` names the symptom; `Added` the access point; `Changed` the
-  escape hatch
+- Written for a customer
+- Lead states the customer effect, not the gem's mechanics
+- Terse — every word earns its place
+- `Fixed` symptom; `Added` access point; `Changed` consequence or escape hatch
 - No vague quantifiers or catch-all tails
 - Identifiers in code spans; no verbatim prefix; no PR references
-- `bundle exec rake unreleased:lint` and `unreleased:render` pass
+- `unreleased:lint` and `unreleased:render` pass

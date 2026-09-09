@@ -1,6 +1,6 @@
 {
   "type": "Added",
-  "prefix": "Tracing",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6142",
-  "message": "Add support for `redis-rb` 6.0/RESP3."
+  "prefix": "Profiling",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6024",
+  "message": "Show class and module names in profiler stack frames (`Foo::Bar#baz` instead of `baz`), making hot methods easier to identify; enable it with `DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED=true`."
 }
