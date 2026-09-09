@@ -56,6 +56,10 @@ RSpec.describe ReleasePrep::Changelog do
   subject(:changelog) { described_class.new(path: write_changelog) }
 
   describe "#release" do
+    before do
+      allow(Date).to receive(:today).and_return(Date.new(2026, 9, 9))
+    end
+
     it "publishes the rendered fragments as a new version and regenerates the link-definition block" do
       fragments = ReleasePrep::Fragments.new([
         fragment("6142", type: "Added", message: "Add a feature."),
@@ -69,7 +73,7 @@ RSpec.describe ReleasePrep::Changelog do
 
         ## [Unreleased]
 
-        ## [2.43.0] - #{Date.today}
+        ## [2.43.0] - 2026-09-09
 
         ### Added
 
