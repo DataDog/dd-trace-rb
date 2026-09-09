@@ -190,6 +190,10 @@ VALUE heap_recorder_testonly_is_object_recorded(heap_recorder *heap_recorder, lo
 // NOTE: This is a linear scan over the tracked objects; fine for the small numbers tests track.
 VALUE heap_recorder_testonly_record_id_for(heap_recorder *heap_recorder, VALUE obj);
 
+// Overrides the GC gen a tracked object is considered to have been allocated in. This lets tests give an object an
+// exact age, instead of relying on an exact number of GCs having run.
+void heap_recorder_testonly_set_object_alloc_gen(heap_recorder *heap_recorder, long record_id, size_t alloc_gen);
+
 // Used to ensure that a GC actually triggers an update of the objects
 void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder);
 
