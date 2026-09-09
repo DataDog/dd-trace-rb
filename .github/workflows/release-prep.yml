@@ -98,6 +98,11 @@ jobs:
             echo "::error::A release for v${VERSION} already exists; delete it before retrying"
             exit 1
           fi
+          # No --target: the release commit does not exist yet (the PR below
+          # creates it), so there is nothing correct to pin the tag to here.
+          # The publish workflow's `rake release` (rubygems/release-gem)
+          # creates the tag at the published commit before un-drafting this
+          # release, so the draft's own target never resolves.
           gh release create "v${VERSION}" --draft --title "v${VERSION}" --notes-file tmp/release_body.md
 
       - name: Create release Pull Request
