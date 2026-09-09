@@ -50,7 +50,7 @@ Read the diff and triage first; the answers drive every later step:
 - Product: which product each effect belongs to — by effect, not code
   location (a core fix to a profiler crash is Profiling); diffuse
   core-wide → `Core`. Closed list: `ReleasePrep::Fragment::PRODUCTS`
-  (`tasks/release_prep/fragment.rb`); the integration name (Redis) goes
+  (`tasks/lib/release_prep/fragment.rb`); the integration name (Redis) goes
   in the `message`, not the `product`
 - Type: `Added` (new capability), `Changed` (behavior change), `Fixed`
   (bug fix)

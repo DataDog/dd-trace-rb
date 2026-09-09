@@ -2,7 +2,7 @@
 
 require "spec_helper"
 require "tmpdir"
-require_relative "../../../tasks/release_prep/fragment_template"
+require_relative "../../../tasks/lib/release_prep/fragment_template"
 
 RSpec.describe ReleasePrep::FragmentTemplate do
   describe ".write" do

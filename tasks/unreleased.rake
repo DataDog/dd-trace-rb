@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "release_prep"
+require_relative "lib/release_prep"
 
 namespace :unreleased do
   desc "Validate unreleased/*.json changelog fragments (schema only; message hygiene is checked by unreleased:vale)"

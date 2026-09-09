@@ -3,7 +3,7 @@
 require "spec_helper"
 require "tmpdir"
 require "date"
-require_relative "../../../tasks/release_prep/changelog"
+require_relative "../../../tasks/lib/release_prep/changelog"
 
 RSpec.describe ReleasePrep::Changelog do
   let(:changelog_fixture) do

@@ -20,7 +20,7 @@ change. Its fields:
 - `type`: the kind of change — `Added`, `Changed`, or `Fixed`.
 - `product`: the product area owning the change. The list is
   `ReleasePrep::Fragment::PRODUCTS`
-  ([`tasks/release_prep/fragment.rb`](../tasks/release_prep/fragment.rb)).
+  ([`tasks/lib/release_prep/fragment.rb`](../tasks/lib/release_prep/fragment.rb)).
 - `pull_request`: this PR's URL,
   `https://github.com/DataDog/dd-trace-rb/pull/NNNN`.
 - `message`: customer-facing message in Markdown.

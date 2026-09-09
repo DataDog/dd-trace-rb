@@ -4,7 +4,7 @@ require "spec_helper"
 require "stringio"
 require "tmpdir"
 require "fileutils"
-require_relative "../../tasks/release_prep"
+require_relative "../../tasks/lib/release_prep"
 
 RSpec.describe ReleasePrep do
   describe ".fail!" do

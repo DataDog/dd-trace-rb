@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-# Not a self-require: this loads tasks/release_prep.rb (the namespace and
+# Not a self-require: this loads tasks/lib/release_prep.rb (the namespace and
 # its objects), not this rake file.
-require_relative "release_prep" # rubocop:disable Lint/RequireRelativeSelfPath
+require_relative "lib/release_prep" # rubocop:disable Lint/RequireRelativeSelfPath
 
 # Each task is one step of `.github/workflows/release-prep.yml`, which runs
 # them in order and owns the pipeline's failure semantics.
