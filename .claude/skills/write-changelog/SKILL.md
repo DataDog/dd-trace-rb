@@ -12,11 +12,32 @@ Invoke when the PR is complete and approved, right before merging: the
 diff is final, so grounding and triage see the complete change. A fragment
 written earlier must be re-grounded against the final diff.
 
-## Grounding
+## The customer
 
-The core principle: a fragment states what the diff makes true; every
-claim traces to the diff, NEVER to memory — lint and vale check form only,
-so grounding falls to the author and reviewer alone.
+Every message targets one reader: a Ruby developer using this gem in
+their application, scanning `CHANGELOG.md` to decide whether an upgrade
+affects them. They read for what changes in their application — what
+they observe, do, or get — never for the gem's internals. The exact
+version they run is their context; their time is short.
+
+## Core principles
+
+- ALWAYS ground every claim in the diff — NEVER in memory
+- ALWAYS write for the customer, not the diff
+- ALWAYS lead with the customer effect; the gem's mechanics follow,
+  NEVER lead
+- ALWAYS stay terse — every word earns its place
+- `Fixed` names the symptom; `Added` names the access point; `Changed`
+  names the consequence or escape hatch
+- ALWAYS name exact versions and measured numbers; NEVER vague
+  quantifiers ("significantly", "recent") or catch-all tails ("and more")
+- ALWAYS wrap identifiers in code spans; NEVER repeat the product
+  verbatim or reference the PR in the message
+
+Lint and vale check form only; these principles fall to the author and
+reviewer alone.
+
+## Grounding
 
 Read the diff and triage first; the answers drive every later step:
 
@@ -41,13 +62,12 @@ Then keep every written claim grounded:
 - Verify versions against the diff (gemspec, Matrixfile, CI), not
   ecosystem memory
 - Verify behavior against the diff's tests — no test, no behavioral claim
-- A claim that traces to nothing is dropped or weakened, never hedged
+- ALWAYS drop or weaken a claim that traces to nothing; NEVER hedge it
 
 ## Deciding
 
-- Add: new features, behavior changes, customer-affecting bug fixes — one
-  fragment per customer-visible change, never a catch-all tail ("and more",
-  "etc.")
+- ALWAYS add a fragment for new features, behavior changes, and
+  customer-affecting bug fixes — one fragment per customer-visible change
 
   ```markdown
   <!-- Bad: two effects bundled behind "and more" -->
@@ -56,28 +76,25 @@ Then keep every written claim grounded:
   <!-- Good: one effect stated whole; the PR's other effects each get their own fragment -->
   Add support for Bundler deployment mode.
   ```
-- Never add: internal refactors, test-only, CI/tooling, docs outside
-  `docs/GettingStarted.md`
-- When unsure, add — a reviewer can delete an entry; a missing one leaves
-  customers unaware
+- NEVER add a fragment for internal refactors, test-only, CI/tooling, or
+  docs outside `docs/GettingStarted.md`
+- SHOULD add when unsure — a reviewer can delete an entry; a missing one
+  leaves customers unaware
 
 ## Creating the fragment
 
-1. No PR yet → open a draft first; `pull_request` needs a real number, and
-   nothing checks it mechanically
-2. PR already has a fragment for this change → update it, don't add
-   another; fragments for other changes stay untouched
-3. Generate the scaffold — never a blank file:
+- ALWAYS write against a real PR number; with no PR yet, open a draft
+  first — nothing checks the number mechanically
+- ALWAYS update the existing fragment for this change; NEVER add a second
+  one. Fragments for other changes stay untouched
+- ALWAYS generate the scaffold with `bundle exec rake unreleased:new`;
+  NEVER create a blank file by hand
 
-   ```bash
-   bundle exec rake unreleased:new
-   ```
+  The placeholders name what each field needs; filled-in references live
+  in `unreleased/examples/`.
 
-   The placeholders name what each field needs; filled-in references live
-   in `unreleased/examples/`.
-
-4. Omit `author` unless writing for an external contributor, to their
-   `@`-prefixed GitHub handle
+- ALWAYS set `author` to the external contributor's `@`-prefixed GitHub
+  handle; NEVER set `author` for a Datadog contributor
 
 ## Writing the message
 
@@ -86,10 +103,10 @@ vale cannot check, in drafting order. Each rule carries a minimal pair in
 a fenced block: the bad entry is the good one with exactly the violation.
 
 - Structure by type — the reader's question differs:
-  - `Fixed`: the symptom they recognize → the trigger — but the trigger
-    only when the customer can perform or observe it (a call they make, a
-    setting they use); an unobservable race bottoms out at "a rare race",
-    never internal sequencing
+  - `Fixed`: ALWAYS name the symptom they recognize, then the trigger
+    they can perform or observe (a call they make, a setting they use);
+    when nothing is observable, bottom out at "a rare race" — NEVER
+    internal sequencing
 
     ```markdown
     <!-- Bad: the implementation — no symptom, no trigger -->
@@ -99,7 +116,8 @@ a fenced block: the bad entry is the good one with exactly the violation.
     Fix false unhandled-exception crash reports in Error Tracking: `SIGTERM` and other `SignalException`s raised while the process stops — every rolling deploy, scale-in, or pod eviction — are no longer reported as crashes.
     ```
 
-  - `Added`: the capability → the access point, the setting/API that gets it for them
+  - `Added`: ALWAYS name the capability, then the access point — the
+    setting/API that gets it for them
 
     ```markdown
     <!-- Bad: the setting named vaguely — no access point the customer can find -->
@@ -109,7 +127,8 @@ a fenced block: the bad entry is the good one with exactly the violation.
     Show class and module names in profiler stack frames (`Foo::Bar#baz` instead of `baz`), making hot methods easier to identify; enable it with `DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED=true`.
     ```
 
-  - `Changed`: the new behavior → why it matters, or the action/escape hatch
+  - `Changed`: ALWAYS name the new behavior, then why it matters, or the
+    action/escape hatch
 
     ```markdown
     <!-- Bad: the flip stated, but not why it matters, and no way back -->
@@ -119,9 +138,9 @@ a fenced block: the bad entry is the good one with exactly the violation.
     Move the gem's diagnostic logs from stdout to stderr, so stdout stays clean for application output; restore the old default with `c.logger.instance = Logger.new($stdout)` in `Datadog.configure`.
     ```
 
-- For a customer, not the diff: what changed and why it matters to a gem
-  user; no code-review jargon ("refactored", "cleaned up") or internal
-  file names; match existing `CHANGELOG.md` entries
+- ALWAYS state what changed and why it matters to the customer; NEVER
+  code-review jargon ("refactored", "cleaned up") or internal file names.
+  Match existing `CHANGELOG.md` entries
 
   ```markdown
   <!-- Bad: internal description — jargon, file name, no user-visible claim -->
@@ -131,11 +150,11 @@ a fenced block: the bad entry is the good one with exactly the violation.
   Fix missing peer tags for database queries traced through `ActiveRecord`.
   ```
 
-- Start with an imperative verb (Add, Fix, Support, Improve, ...) — CI
-  rejects "This PR fixes...", "The gem now supports...", "Also fixes..."
+- ALWAYS start with an imperative verb (Add, Fix, Support, Improve, ...) —
+  CI rejects "This PR fixes...", "The gem now supports...", "Also fixes..."
 
-- The first sentence carries the customer effect — what they observe,
-  do, or get — never the gem's mechanics; those follow, never lead
+- ALWAYS open the first sentence with the customer effect — what they
+  observe, do, or get; the gem's mechanics follow, NEVER lead
 
   ```markdown
   <!-- Bad: the mechanism enforced; the customer's delta never appears -->
@@ -145,9 +164,9 @@ a fenced block: the bad entry is the good one with exactly the violation.
   Cap probe output process-wide: with multiple probes set, they can emit less than their individual limits allow — 20 snapshots/s, 5000 log events/s.
   ```
 
-- Wrap identifiers (`DD_...` env vars, snake_case, CONSTANT_CASE,
-  `Foo.bar`) in code spans; never plain English — code spans name
-  identifiers, they are not emphasis
+- ALWAYS wrap identifiers (`DD_...` env vars, snake_case, CONSTANT_CASE,
+  `Foo.bar`) in code spans — code spans name identifiers, they are not
+  emphasis
 
   ```markdown
   <!-- Bad: identifier in plain text -->
@@ -157,7 +176,7 @@ a fenced block: the bad entry is the good one with exactly the violation.
   Set `DD_TRACE_ENABLED=1`.
   ```
 
-- Never repeat the product verbatim — with product `AppSec`, "Add AppSec
+- NEVER repeat the product verbatim — with product `AppSec`, "Add AppSec
   detection..." says it twice; lowercase technical phrasing ("GC
   profiling") is fine
 
@@ -169,7 +188,7 @@ a fenced block: the bad entry is the good one with exactly the violation.
   Add detection of response splitting.
   ```
 
-- No PR references in the message — the number renders from
+- NEVER reference the PR in the message — the number renders from
   `pull_request` automatically
 
   ```markdown
@@ -180,7 +199,7 @@ a fenced block: the bad entry is the good one with exactly the violation.
   Harden the transport against dropped payloads.
   ```
 
-- Exact versions and platforms, never "recent" or "newer"
+- ALWAYS name exact versions and platforms — NEVER "recent" or "newer"
 
   ```markdown
   <!-- Bad: vague version -->
@@ -190,8 +209,8 @@ a fenced block: the bad entry is the good one with exactly the violation.
   Fix GC profiling being incorrectly disabled on Ruby 3.2.10 and 3.2.11.
   ```
 
-- Performance claims need numbers from the diff; unmeasured stays
-  directional, never "significantly improve"
+- ALWAYS back performance claims with numbers from the diff; unmeasured
+  claims stay directional — NEVER "significantly improve"
 
   ```markdown
   <!-- Bad: unmeasured vague quantifier -->
@@ -201,15 +220,13 @@ a fenced block: the bad entry is the good one with exactly the violation.
   Reduce profiler overhead by up to 50% by skipping redundant samples for threads without the GVL.
   ```
 
-## Before finishing
+## Finishing loop
 
-Re-read the message; revise until every item holds:
+Run the three steps in order; ANY revision restarts the loop from step 1.
+Done when a pass makes no revision:
 
-- Every claim visible in the diff
-- Written for a customer
-- Lead states the customer effect, not the gem's mechanics
-- Terse — every word earns its place
-- `Fixed` symptom; `Added` access point; `Changed` consequence or escape hatch
-- No vague quantifiers or catch-all tails
-- Identifiers in code spans; no verbatim product; no PR references
-- `unreleased:lint` and `unreleased:render` pass
+1. `bundle exec rake unreleased:lint` — fix every reported violation
+2. `bundle exec rake unreleased:render` — re-read the rendered entry
+   against the Core principles and revise
+3. Re-read the message against the diff — drop or weaken every claim not
+   visible there
