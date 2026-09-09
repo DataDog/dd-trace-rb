@@ -629,6 +629,15 @@ RSpec.describe Datadog::Core::Configuration::Components do
   describe "#startup!" do
     subject(:startup!) { components.startup!(settings) }
 
+    it "starts eager OpenFeature delivery" do
+      activation = instance_double(Datadog::OpenFeature::Activation, start!: nil)
+      allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
+
+      expect(activation).to receive(:start!)
+
+      startup!
+    end
+
     context "when profiling" do
       context "is unsupported" do
         before do

@@ -268,6 +268,7 @@ module Datadog
         def startup!(settings, old_state: nil)
           telemetry.start(old_state&.telemetry_enabled?, components: self)
 
+          @open_feature_activation.start!
           activate_open_feature!(old_state.open_feature_provider) if old_state&.open_feature_provider
 
           if settings.profiling.enabled

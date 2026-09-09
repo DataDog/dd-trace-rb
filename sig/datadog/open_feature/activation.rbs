@@ -43,11 +43,15 @@ module Datadog
 
       def activate: (Provider provider) -> Component?
 
+      def start!: () -> Component?
+
       def activated?: () -> bool
 
       def shutdown!: () -> void
 
       private
+
+      def activate_delivery: (Configuration::Source::Resolution resolution) -> Component?
 
       def start_delivery: (String source) -> bool
 

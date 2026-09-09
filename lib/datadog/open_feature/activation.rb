@@ -8,7 +8,7 @@ require_relative "remote"
 
 module Datadog
   module OpenFeature
-    # Owns configuration delivery after an application adopts the provider.
+    # Owns eager Remote Configuration and lazy agentless delivery activation.
     class Activation
       attr_reader :component, :failure, :provider
 
@@ -36,28 +36,19 @@ module Datadog
           return @component if @activated && @delivery_started
           return if @activated
 
-          @activated = true
           resolution = Configuration::Source.resolve(@settings.open_feature, logger: @logger)
-          unless resolution.enabled?
-            @failure = "Feature Flags are disabled"
-            return
-          end
+          activate_delivery(resolution)
+        end
+      end
 
-          @component = Component.build(
-            @settings,
-            @agent_settings,
-            resolution: resolution,
-            on_configuration_change: ->(event) { configuration_changed(event) },
-            logger: @logger,
-            telemetry: @telemetry,
-          )
-          unless @component
-            @failure = "Feature Flags are unavailable on this runtime"
-            return
-          end
+      def start!
+        @mutex.synchronize do
+          return if @shutdown || @activated
 
-          @delivery_started = start_delivery(resolution.source)
-          @component if @delivery_started
+          resolution = Configuration::Source.resolve(@settings.open_feature, logger: @logger)
+          return unless resolution.enabled? && resolution.source == Configuration::Source::REMOTE_CONFIG
+
+          activate_delivery(resolution)
         end
       end
 
@@ -78,6 +69,30 @@ module Datadog
       end
 
       private
+
+      def activate_delivery(resolution)
+        @activated = true
+        unless resolution.enabled?
+          @failure = "Feature Flags are disabled"
+          return
+        end
+
+        @component = Component.build(
+          @settings,
+          @agent_settings,
+          resolution: resolution,
+          on_configuration_change: ->(event) { configuration_changed(event) },
+          logger: @logger,
+          telemetry: @telemetry,
+        )
+        unless @component
+          @failure = "Feature Flags are unavailable on this runtime"
+          return
+        end
+
+        @delivery_started = start_delivery(resolution.source)
+        @component if @delivery_started
+      end
 
       def start_delivery(source)
         case source
