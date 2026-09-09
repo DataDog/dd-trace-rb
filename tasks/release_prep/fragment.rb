@@ -40,7 +40,6 @@ module ReleasePrep
     # A GitHub handle, stored with the leading @ (e.g. "@octocat") so the credit
     # line in `to_s` is the value verbatim: one to thirty-nine characters of
     # alphanumerics or single hyphens, never starting or ending with a hyphen.
-    # https://docs.github.com/en/enterprise-server@latest/admin/managing-iam/iam-configuration-reference/username-considerations-for-external-authentication
     AUTHOR_HANDLE = /\A@[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}\z/.freeze
 
     MESSAGE_SENTENCE_CAP = 3
