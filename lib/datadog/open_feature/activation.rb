@@ -31,6 +31,7 @@ module Datadog
       def activate(provider)
         @mutex.synchronize do
           return if @shutdown
+          return unless open_feature_available?
 
           @provider = provider
           return @component if @activated && @delivery_started
@@ -44,6 +45,7 @@ module Datadog
       def start!
         @mutex.synchronize do
           return if @shutdown || @activated
+          return unless open_feature_available?
 
           resolution = Configuration::Source.resolve(@settings.open_feature, logger: @logger)
           return unless resolution.enabled? && resolution.source == Configuration::Source::REMOTE_CONFIG
@@ -69,6 +71,10 @@ module Datadog
       end
 
       private
+
+      def open_feature_available?
+        @settings.respond_to?(:open_feature)
+      end
 
       def activate_delivery(resolution)
         @activated = true
