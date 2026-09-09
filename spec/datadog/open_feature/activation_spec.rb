@@ -36,7 +36,7 @@ RSpec.describe Datadog::OpenFeature::Activation do
   end
 
   describe "#activate" do
-    it "does not build or start delivery before provider adoption" do
+    it "does not build or start agentless delivery before provider adoption" do
       activation
 
       expect(Datadog::OpenFeature::Component).not_to have_received(:build)
@@ -88,8 +88,8 @@ RSpec.describe Datadog::OpenFeature::Activation do
     context "with Remote Configuration selected" do
       before { settings.open_feature.configuration_source = "remote_config" }
 
-      it "registers and starts Remote Configuration only on adoption" do
-        activation.activate(provider)
+      it "registers and starts Remote Configuration eagerly" do
+        expect(activation.start!).to be(component)
 
         expect(remote).to have_received(:register).with(
           capabilities: [1 << 46],
@@ -100,11 +100,20 @@ RSpec.describe Datadog::OpenFeature::Activation do
         expect(configuration_source).not_to have_received(:start)
       end
 
+      it "reuses eager delivery when the provider is adopted" do
+        activation.start!
+
+        expect(activation.activate(provider)).to be(component)
+        expect(Datadog::OpenFeature::Component).to have_received(:build).once
+        expect(remote).to have_received(:register).once
+        expect(remote).to have_received(:start).once
+      end
+
       context "when Remote Configuration is unavailable" do
         let(:remote) { nil }
 
         it "fails immediately and remembers why" do
-          expect(activation.activate(provider)).to be_nil
+          expect(activation.start!).to be_nil
           expect(activation.failure).to eq("Feature Flags Remote Configuration is unavailable")
         end
       end
