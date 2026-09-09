@@ -20,7 +20,7 @@ RSpec.describe ReleasePrep::Fragments do
   def valid_entry(overrides = {})
     {
       "type" => "Fixed",
-      "prefix" => "Tracing",
+      "product" => "Tracing",
       "pull_request" => "https://github.com/DataDog/dd-trace-rb/pull/1",
       "message" => "Fix a bug.",
     }.merge(overrides)
@@ -114,11 +114,11 @@ RSpec.describe ReleasePrep::Fragments do
       expect(result).not_to include("### Changed")
     end
 
-    it "sorts fragments within a section by the declared prefix order, not alphabetically" do
+    it "sorts fragments within a section by the declared product order, not alphabetically" do
       fragments = fragments_for(
-        valid_entry("prefix" => "Tracing", "message" => "Tracing fix."),
-        valid_entry("prefix" => "AppSec", "message" => "AppSec fix."),
-        valid_entry("prefix" => "Core", "message" => "Core fix."),
+        valid_entry("product" => "Tracing", "message" => "Tracing fix."),
+        valid_entry("product" => "AppSec", "message" => "AppSec fix."),
+        valid_entry("product" => "Core", "message" => "Core fix."),
       )
 
       result = fragments.render
@@ -159,14 +159,14 @@ RSpec.describe ReleasePrep::Fragments do
     end
 
     it "collects every error from every fragment, each naming its file" do
-      write_fragment("1.json", valid_entry("type" => "Removed", "prefix" => "Redis"))
+      write_fragment("1.json", valid_entry("type" => "Removed", "product" => "Redis"))
       write_fragment("2.json", valid_entry.reject { |k, _| k == "message" })
 
       errors = described_class.read_all(dir: @unreleased_dir).validate
 
       expect(errors).to contain_exactly(
         /1\.json: type/,
-        /1\.json: prefix/,
+        /1\.json: product/,
         /2\.json: missing required field/,
       )
     end

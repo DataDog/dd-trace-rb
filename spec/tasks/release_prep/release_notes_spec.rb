@@ -16,7 +16,7 @@ RSpec.describe ReleasePrep::ReleaseNotes do
   def write_fragment(name, message)
     File.write(File.join(@unreleased_dir, name), {
       "type" => "Fixed",
-      "prefix" => "Tracing",
+      "product" => "Tracing",
       "pull_request" => "https://github.com/DataDog/dd-trace-rb/pull/1",
       "message" => message,
     }.to_json)

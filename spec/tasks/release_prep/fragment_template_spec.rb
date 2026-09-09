@@ -20,9 +20,9 @@ RSpec.describe ReleasePrep::FragmentTemplate do
       expect(described_class.content.keys).to include(*ReleasePrep::Fragment::REQUIRED_FIELDS)
     end
 
-    it "lists the valid types and prefixes, so the guidance cannot go stale" do
+    it "lists the valid types and products, so the guidance cannot go stale" do
       expect(described_class.content["type"]).to eq(ReleasePrep::Fragment::TYPES.join(" | "))
-      expect(described_class.content["prefix"]).to eq(ReleasePrep::Fragment::PREFIXES.join(" | "))
+      expect(described_class.content["product"]).to eq(ReleasePrep::Fragment::PRODUCTS.join(" | "))
     end
   end
 
@@ -40,7 +40,7 @@ RSpec.describe ReleasePrep::FragmentTemplate do
         path = described_class.write(dir: dir)
         entry = JSON.parse(File.read(path))
         entry["type"] = entry["type"].split(" | ").first
-        entry["prefix"] = entry["prefix"].split(" | ").first
+        entry["product"] = entry["product"].split(" | ").first
         entry["pull_request"] = entry["pull_request"].sub("NNNN", "1234")
         entry["message"] = "Fix a bug."
         File.write(path, JSON.pretty_generate(entry))

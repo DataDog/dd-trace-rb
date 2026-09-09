@@ -39,7 +39,7 @@ RSpec.describe ReleasePrep do
     def valid_entry(overrides = {})
       {
         "type" => "Fixed",
-        "prefix" => "Tracing",
+        "product" => "Tracing",
         "pull_request" => "https://github.com/DataDog/dd-trace-rb/pull/1",
         "message" => "Fix a bug.",
       }.merge(overrides)
@@ -56,14 +56,14 @@ RSpec.describe ReleasePrep do
       original_stderr, $stderr = $stderr, stderr
       fragments = ReleasePrep::Fragments.new([
         fragment(valid_entry("type" => "Removed")),
-        fragment(valid_entry("prefix" => "Redis")),
+        fragment(valid_entry("product" => "Redis")),
       ])
 
       expect { described_class.validate_fragments!(fragments) }.to raise_error(SystemExit)
 
       $stderr = original_stderr
       expect(stderr.string).to include("::error::unreleased/1.json: type")
-      expect(stderr.string).to include("::error::unreleased/1.json: prefix")
+      expect(stderr.string).to include("::error::unreleased/1.json: product")
     end
   end
 

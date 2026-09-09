@@ -23,13 +23,13 @@ module ReleasePrep
       end
 
       # The placeholder entry, built from the validator's own constants so
-      # the type and prefix lists cannot go stale. The message carries the
+      # the type and product lists cannot go stale. The message carries the
       # drafting rules plus a `#1234` reference that keeps lint red until
       # it is rewritten.
       def content
         {
           "type" => Fragment::TYPES.join(" | "),
-          "prefix" => Fragment::PREFIXES.join(" | "),
+          "product" => Fragment::PRODUCTS.join(" | "),
           "pull_request" => "#{REPO_URL}/pull/NNNN",
           "message" => "Fix <symptom> when <trigger>, or add <capability> via <access point>. " \
             "Identifiers in `code spans`; no #1234 references — the PR number renders automatically. " \

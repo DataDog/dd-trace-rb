@@ -10,7 +10,7 @@ module ReleasePrep
     TYPES = %w[Added Changed Fixed].freeze
     MESSAGE_LENGTH_CAP = 240
     # The product areas, one per top-level lib/datadog/* directory.
-    PREFIXES = [
+    PRODUCTS = [
       "Core",
       "Tracing",
       "Profiling",
@@ -22,7 +22,7 @@ module ReleasePrep
       "Open Feature",
       "OpenTelemetry",
     ].freeze
-    REQUIRED_FIELDS = %w[type prefix pull_request message].freeze
+    REQUIRED_FIELDS = %w[type product pull_request message].freeze
 
     # Customer-facing product names whose casing a changelog message must get
     # right; a lowercase form is a misspelling, not a style preference.
@@ -44,7 +44,7 @@ module ReleasePrep
 
     MESSAGE_SENTENCE_CAP = 3
 
-    attr_reader :path, :type, :prefix, :pull_request, :message, :author
+    attr_reader :path, :type, :product, :pull_request, :message, :author
 
     def self.read(path)
       entry = JSON.parse(File.read(path))
@@ -57,7 +57,7 @@ module ReleasePrep
       @path = path
       @entry = entry
       @type = entry["type"]
-      @prefix = entry["prefix"]
+      @product = entry["product"]
       @pull_request = entry["pull_request"]
       @message = entry["message"]
       @author = entry["author"]
@@ -69,7 +69,7 @@ module ReleasePrep
 
     def to_s
       credit = (author.to_s == "") ? "" : " (#{author})"
-      "* #{prefix}: #{message} (##{pr_number})#{credit}"
+      "* #{product}: #{message} (##{pr_number})#{credit}"
     end
 
     def delete!
@@ -84,7 +84,7 @@ module ReleasePrep
         errors << "#{path}: missing required field #{field.inspect}" if @entry[field].to_s == ""
       end
       errors << "#{path}: type #{@type.inspect} must be one of #{TYPES.inspect}" unless TYPES.include?(@type)
-      errors << "#{path}: prefix #{@prefix.inspect} must be one of #{PREFIXES.inspect}" unless PREFIXES.include?(@prefix)
+      errors << "#{path}: product #{@product.inspect} must be one of #{PRODUCTS.inspect}" unless PRODUCTS.include?(@product)
       unless pull_request.to_s.match?(%r{\Ahttps://github\.com/DataDog/dd-trace-rb/pull/\d+\z})
         errors << "#{path}: pull_request must be a https://github.com/DataDog/dd-trace-rb/pull/NNNN URL " \
           "(got #{@pull_request.inspect})"

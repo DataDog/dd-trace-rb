@@ -28,9 +28,9 @@ Read the diff and triage first; the answers drive every later step:
   user's call
 - Product: which product each effect belongs to — by effect, not code
   location (a core fix to a profiler crash is Profiling); diffuse
-  core-wide → `Core`. Closed list: `ReleasePrep::Fragment::PREFIXES`
+  core-wide → `Core`. Closed list: `ReleasePrep::Fragment::PRODUCTS`
   (`tasks/release_prep/fragment.rb`); the integration name (Redis) goes
-  in the `message`, not the `prefix`
+  in the `message`, not the `product`
 - Type: `Added` (new capability), `Changed` (behavior change), `Fixed`
   (bug fix)
 
@@ -157,15 +157,15 @@ a fenced block: the bad entry is the good one with exactly the violation.
   Set `DD_TRACE_ENABLED=1`.
   ```
 
-- Never repeat the prefix verbatim — with prefix `AppSec`, "Add AppSec
+- Never repeat the product verbatim — with product `AppSec`, "Add AppSec
   detection..." says it twice; lowercase technical phrasing ("GC
   profiling") is fine
 
   ```markdown
-  <!-- Bad: the prefix said twice -->
+  <!-- Bad: the product said twice -->
   Add AppSec detection of response splitting.
 
-  <!-- Good: the prefix already renders beside the entry -->
+  <!-- Good: the product already renders beside the entry -->
   Add detection of response splitting.
   ```
 
@@ -211,5 +211,5 @@ Re-read the message; revise until every item holds:
 - Terse — every word earns its place
 - `Fixed` symptom; `Added` access point; `Changed` consequence or escape hatch
 - No vague quantifiers or catch-all tails
-- Identifiers in code spans; no verbatim prefix; no PR references
+- Identifiers in code spans; no verbatim product; no PR references
 - `unreleased:lint` and `unreleased:render` pass

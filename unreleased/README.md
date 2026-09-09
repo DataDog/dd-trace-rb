@@ -18,8 +18,8 @@ A fragment is a small JSON file in this directory, one per notable
 change. Its fields:
 
 - `type`: the kind of change — `Added`, `Changed`, or `Fixed`.
-- `prefix`: the product area owning the change. The list is
-  `ReleasePrep::Fragment::PREFIXES`
+- `product`: the product area owning the change. The list is
+  `ReleasePrep::Fragment::PRODUCTS`
   ([`tasks/release_prep/fragment.rb`](../tasks/release_prep/fragment.rb)).
 - `pull_request`: this PR's URL,
   `https://github.com/DataDog/dd-trace-rb/pull/NNNN`.

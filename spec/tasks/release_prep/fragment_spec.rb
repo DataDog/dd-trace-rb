@@ -22,7 +22,7 @@ RSpec.describe ReleasePrep::Fragment do
   def valid_entry(overrides = {})
     {
       "type" => "Fixed",
-      "prefix" => "Tracing",
+      "product" => "Tracing",
       "pull_request" => "https://github.com/DataDog/dd-trace-rb/pull/6300",
       "message" => "Fix a bug.",
     }.merge(overrides)
@@ -36,7 +36,7 @@ RSpec.describe ReleasePrep::Fragment do
 
       expect(fragment.path).to eq(path)
       expect(fragment.type).to eq("Fixed")
-      expect(fragment.prefix).to eq("Tracing")
+      expect(fragment.product).to eq("Tracing")
       expect(fragment.pull_request).to eq("https://github.com/DataDog/dd-trace-rb/pull/6300")
       expect(fragment.pr_number).to eq("6300")
       expect(fragment.message).to eq("Fix a bug.")
@@ -84,18 +84,18 @@ RSpec.describe ReleasePrep::Fragment do
       expect(described_class.read(path).errors).to contain_exactly(/type "Removed" must be one of/)
     end
 
-    it "reports a prefix outside the closed enum" do
-      path = write_fragment("1.json", valid_entry("prefix" => "Redis"))
+    it "reports a product outside the closed enum" do
+      path = write_fragment("1.json", valid_entry("product" => "Redis"))
 
-      expect(described_class.read(path).errors).to contain_exactly(/prefix "Redis" must be one of/)
+      expect(described_class.read(path).errors).to contain_exactly(/product "Redis" must be one of/)
     end
 
     it "collects every violation at once" do
-      path = write_fragment("1.json", valid_entry("type" => "Removed", "prefix" => "Redis"))
+      path = write_fragment("1.json", valid_entry("type" => "Removed", "product" => "Redis"))
 
       expect(described_class.read(path).errors).to contain_exactly(
         /type "Removed" must be one of/,
-        /prefix "Redis" must be one of/,
+        /product "Redis" must be one of/,
       )
     end
 
@@ -268,7 +268,7 @@ RSpec.describe ReleasePrep::Fragment do
   end
 
   describe "#to_s" do
-    it "renders the prefix, message, and PR number" do
+    it "renders the product, message, and PR number" do
       fragment = described_class.read(write_fragment("1.json", valid_entry))
 
       expect(fragment.to_s).to eq("* Tracing: Fix a bug. (#6300)")

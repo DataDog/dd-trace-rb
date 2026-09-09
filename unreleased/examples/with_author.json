@@ -1,6 +1,6 @@
 {
   "type": "Fixed",
-  "prefix": "Profiling",
+  "product": "Profiling",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/5938",
   "message": "Fix a `SIGSEGV` crash that could happen with experimental heap profiling enabled on Ruby 4.0.",
   "author": "@navidemad"

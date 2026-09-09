@@ -45,7 +45,7 @@ module ReleasePrep
         type_fragments = @fragments.select { |fragment| fragment.type == type }
         next if type_fragments.empty?
 
-        lines = type_fragments.sort_by { |fragment| Fragment::PREFIXES.index(fragment.prefix) }.map(&:to_s)
+        lines = type_fragments.sort_by { |fragment| Fragment::PRODUCTS.index(fragment.product) }.map(&:to_s)
         "### #{type}\n\n#{lines.join("\n")}"
       end.compact
 

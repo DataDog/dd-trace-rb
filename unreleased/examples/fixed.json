@@ -1,6 +1,6 @@
 {
   "type": "Fixed",
-  "prefix": "Core",
+  "product": "Core",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6219",
   "message": "Fix false unhandled-exception crash reports in Error Tracking: `SIGTERM` and other `SignalException`s raised while the process stops — every rolling deploy, scale-in, or pod eviction — are no longer reported as crashes."
 }
