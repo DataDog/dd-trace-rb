@@ -29,7 +29,7 @@ RSpec.describe Datadog::OpenFeature::Activation do
   end
 
   before do
-    settings.api_key = "secret"
+    settings.api_key = "secret" if settings.respond_to?(:open_feature)
     allow(Datadog::OpenFeature::Component).to receive(:build).and_return(component)
     allow(Datadog::OpenFeature::Configuration::AgentlessEndpoint).to receive(:build).and_return(endpoint)
     allow(Datadog::OpenFeature::Agentless::ConfigurationSource).to receive(:build).and_return(configuration_source)
@@ -125,6 +125,20 @@ RSpec.describe Datadog::OpenFeature::Activation do
       it "does not build or start a delivery source" do
         expect(activation.activate(provider)).to be_nil
         expect(activation.failure).to eq("Feature Flags are disabled")
+        expect(Datadog::OpenFeature::Component).not_to have_received(:build)
+      end
+    end
+
+    context "when OpenFeature settings are unavailable" do
+      let(:settings) { instance_double(Datadog::Core::Configuration::Settings, respond_to?: false) }
+
+      it "does not start delivery eagerly" do
+        expect(activation.start!).to be_nil
+        expect(Datadog::OpenFeature::Component).not_to have_received(:build)
+      end
+
+      it "does not activate delivery for a provider" do
+        expect(activation.activate(provider)).to be_nil
         expect(Datadog::OpenFeature::Component).not_to have_received(:build)
       end
     end
