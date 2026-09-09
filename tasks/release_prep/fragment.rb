@@ -37,6 +37,12 @@ module ReleasePrep
     # internal pointer customers have no use for.
     PR_REFERENCES = /#\d+|\b(?:PR|pull request)\b/i.freeze
 
+    # A GitHub handle, stored with the leading @ (e.g. "@octocat") so the credit
+    # line in `to_s` is the value verbatim: one to thirty-nine characters of
+    # alphanumerics or single hyphens, never starting or ending with a hyphen.
+    # https://docs.github.com/en/enterprise-server@latest/admin/managing-iam/iam-configuration-reference/username-considerations-for-external-authentication
+    AUTHOR_HANDLE = /\A@[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}\z/.freeze
+
     MESSAGE_SENTENCE_CAP = 3
 
     attr_reader :path, :type, :prefix, :pull_request, :message, :author
@@ -63,7 +69,7 @@ module ReleasePrep
     end
 
     def to_s
-      credit = author ? " (@#{author})" : ""
+      credit = (author.to_s == "") ? "" : " (#{author})"
       "* #{prefix}: #{message} (##{pr_number})#{credit}"
     end
 
@@ -83,6 +89,9 @@ module ReleasePrep
       unless pull_request.to_s.match?(%r{\Ahttps://github\.com/DataDog/dd-trace-rb/pull/\d+\z})
         errors << "#{path}: pull_request must be a https://github.com/DataDog/dd-trace-rb/pull/NNNN URL " \
           "(got #{@pull_request.inspect})"
+      end
+      if author.to_s != "" && !author.to_s.match?(AUTHOR_HANDLE)
+        errors << "#{path}: author #{@author.inspect} must be a GitHub handle like \"@octocat\""
       end
       if message.to_s.length > MESSAGE_LENGTH_CAP
         errors << "#{path}: message is #{message.length} characters, cap is #{MESSAGE_LENGTH_CAP}"

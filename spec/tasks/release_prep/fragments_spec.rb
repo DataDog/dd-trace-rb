@@ -132,7 +132,7 @@ RSpec.describe ReleasePrep::Fragments do
         valid_entry(
           "pull_request" => "https://github.com/DataDog/dd-trace-rb/pull/6300",
           "message" => "Fix a bug.",
-        ).merge("author" => "octocat"),
+        ).merge("author" => "@octocat"),
       )
 
       result = fragments.render

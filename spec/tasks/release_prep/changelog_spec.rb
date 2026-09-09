@@ -59,7 +59,7 @@ RSpec.describe ReleasePrep::Changelog do
     it "publishes the rendered fragments as a new version and regenerates the link-definition block" do
       fragments = ReleasePrep::Fragments.new([
         fragment("6142", type: "Added", message: "Add a feature."),
-        fragment("6143", type: "Fixed", prefix: "AppSec", message: "Fix a bug.", author: "tester"),
+        fragment("6143", type: "Fixed", prefix: "AppSec", message: "Fix a bug.", author: "@tester"),
       ])
 
       changelog.release("2.43.0", fragments)

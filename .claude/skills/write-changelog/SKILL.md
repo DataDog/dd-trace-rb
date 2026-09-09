@@ -77,7 +77,7 @@ Then keep every written claim grounded:
    in `unreleased/examples/`.
 
 4. Omit `author` unless writing for an external contributor, to their
-   GitHub handle
+   `@`-prefixed GitHub handle
 
 ## Writing the message
 

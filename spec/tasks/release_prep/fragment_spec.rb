@@ -30,7 +30,7 @@ RSpec.describe ReleasePrep::Fragment do
 
   describe ".read" do
     it "exposes the fragment's fields" do
-      path = write_fragment("1.json", valid_entry.merge("author" => "octocat"))
+      path = write_fragment("1.json", valid_entry.merge("author" => "@octocat"))
 
       fragment = described_class.read(path)
 
@@ -40,7 +40,7 @@ RSpec.describe ReleasePrep::Fragment do
       expect(fragment.pull_request).to eq("https://github.com/DataDog/dd-trace-rb/pull/6300")
       expect(fragment.pr_number).to eq("6300")
       expect(fragment.message).to eq("Fix a bug.")
-      expect(fragment.author).to eq("octocat")
+      expect(fragment.author).to eq("@octocat")
     end
 
     it "leaves author nil when absent" do
@@ -199,6 +199,53 @@ RSpec.describe ReleasePrep::Fragment do
       expect(described_class.read(path).errors).to eq([])
     end
 
+    it "reports an author without the leading @" do
+      path = write_fragment("1.json", valid_entry.merge("author" => "octocat"))
+
+      expect(described_class.read(path).errors)
+        .to contain_exactly(/author "octocat" must be a GitHub handle like "@octocat"/)
+    end
+
+    it "reports an author containing characters a handle cannot carry" do
+      path = write_fragment("1.json", valid_entry.merge("author" => "@octo cat"))
+
+      expect(described_class.read(path).errors)
+        .to contain_exactly(/author "@octo cat" must be a GitHub handle/)
+    end
+
+    it "reports an author ending in a hyphen" do
+      path = write_fragment("1.json", valid_entry.merge("author" => "@octocat-"))
+
+      expect(described_class.read(path).errors)
+        .to contain_exactly(/author "@octocat-" must be a GitHub handle/)
+    end
+
+    it "reports an author with consecutive hyphens" do
+      path = write_fragment("1.json", valid_entry.merge("author" => "@oc--cat"))
+
+      expect(described_class.read(path).errors)
+        .to contain_exactly(/author "@oc--cat" must be a GitHub handle/)
+    end
+
+    it "reports an author longer than a handle can be" do
+      path = write_fragment("1.json", valid_entry.merge("author" => "@#{"a" * 40}"))
+
+      expect(described_class.read(path).errors)
+        .to contain_exactly(/must be a GitHub handle/)
+    end
+
+    it "accepts an author in @handle form" do
+      path = write_fragment("1.json", valid_entry.merge("author" => "@octocat"))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
+
+    it "accepts the longest handle GitHub allows" do
+      path = write_fragment("1.json", valid_entry.merge("author" => "@#{"a" * 39}"))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
+
     it "reports a PR reference inside the message" do
       path = write_fragment("1.json", valid_entry("message" => "Fix the crash reported in #123."))
 
@@ -228,7 +275,7 @@ RSpec.describe ReleasePrep::Fragment do
     end
 
     it "renders the author credit when present" do
-      fragment = described_class.read(write_fragment("1.json", valid_entry.merge("author" => "octocat")))
+      fragment = described_class.read(write_fragment("1.json", valid_entry.merge("author" => "@octocat")))
 
       expect(fragment.to_s).to eq("* Tracing: Fix a bug. (#6300) (@octocat)")
     end

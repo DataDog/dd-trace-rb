@@ -24,8 +24,8 @@ change. Its fields:
 - `pull_request`: this PR's URL,
   `https://github.com/DataDog/dd-trace-rb/pull/NNNN`.
 - `message`: customer-facing message in Markdown.
-- `author` (external contributors only): GitHub handle, for credit
-  in `CHANGELOG.md`.
+- `author` (external contributors only): GitHub handle with the leading `@`
+  (e.g. `"@octocat"`), for credit in `CHANGELOG.md`.
 
 [`examples/`](examples/) holds real-life-flavored fragments per type and product area —
 check them out. Tip: `rake unreleased:new` generates one pre-filled with
