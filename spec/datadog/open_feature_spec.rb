@@ -54,8 +54,8 @@ RSpec.describe Datadog::OpenFeature do
 
       after { Datadog.configuration.reset! }
 
-      it "does not build the engine before provider adoption" do
-        expect(described_class.engine).to be_nil
+      it "builds the engine before provider adoption" do
+        expect(described_class.engine).to be_a(Datadog::OpenFeature::EvaluationEngine)
       end
     end
 
