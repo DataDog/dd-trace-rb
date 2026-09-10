@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "base"
+require_relative "../configuration_value"
 
 module Datadog
   module Core
@@ -214,23 +215,9 @@ module Datadog
           end
 
           def to_telemetry_value(value)
-            # TODO: Add float if telemetry starts accepting it
-            case value
-            when Integer, String, true, false, nil
-              value
-            when Hash
-              value.map { |key, entry_value| "#{key}:#{entry_value}" }.join(",")
-            when Array
-              value.join(",")
-            when Module
-              value.name.to_s
-            else
-              if implements_to_s?(value)
-                value.to_s
-              else
-                value.class.to_s
-              end
-            end
+            return value.to_s if value.is_a?(Float)
+
+            Telemetry::ConfigurationValue.convert(value)
           end
 
           def install_signature(settings)
@@ -279,12 +266,6 @@ module Datadog
 
             parent_setting = settings.dig(*split_option)
             parent_setting.send(:resolve_option, option_name.to_sym)
-          end
-
-          def implements_to_s?(value)
-            value.method(:to_s).owner != Kernel
-          rescue NameError
-            false
           end
         end
       end

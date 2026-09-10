@@ -18,7 +18,7 @@ jobs:
     name: build
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g27019b38640025d7722ca3969437962037b5877f
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g27019b38640025d7722ca3969437962037b5877f
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g27019b38640025d7722ca3969437962037b5877f
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -79,7 +79,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g27019b38640025d7722ca3969437962037b5877f
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -103,14 +103,10 @@ jobs:
 
   bundler-audit:
     name: bundler-audit
-    # TODO: re-enable once the pre-existing high/critical CVE backlog across
-    # the 368 eligible lockfiles is triaged (either fixed or reviewed into
-    # .bundler-audit.yml). Until then this job would fail on every PR.
-    if: false
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g27019b38640025d7722ca3969437962037b5877f
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -124,13 +120,36 @@ jobs:
           lockfile: ${{ needs.build.outputs.lockfile }}
           cache-key: ${{ needs.build.outputs.cache-key }}
       - run: bundle exec rake dependency:audit
+      - name: Link to fix instructions
+        if: failure()
+        env:
+          DOC_URL: ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/docs/DevelopmentGuide.md#dependency-audit-bundler-audit
+        run: |
+          if [ -f tmp/dependency_audit_findings.json ]; then
+            echo "::error::See $DOC_URL for how to reproduce this locally and how to fix or document a CVE finding."
+          fi
+
+  changelog-release-only:
+    name: changelog/release-only
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Check CHANGELOG.md is only changed by release PRs
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: .github/scripts/check_changelog_release_only.sh
 
   checksum-coverage:
     name: checksum-coverage
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g27019b38640025d7722ca3969437962037b5877f
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -173,12 +192,12 @@ jobs:
           persist-credentials: false
       - name: Get GitHub Token via dd-octo-sts
         id: generate-token
-        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        uses: DataDog/dd-octo-sts-action@c85802a58e202b7e764b5441e4378c76043c8108 # v1.0.5
         with:
           scope: DataDog/dd-trace-rb
           policy: self.check
       - name: Run zizmor
-        uses: zizmorcore/zizmor-action@6fc4b006235f201fdab3722e17240ab420d580e5 # v0.6.1
+        uses: zizmorcore/zizmor-action@70fb788f84895a7701f5643d103d587e460b5c99 # v0.6.3
         with:
           version: 1.26.1
           min-severity: low
@@ -224,9 +243,8 @@ jobs:
       - 'actionlint'
       - 'yaml-lint'
       - 'checksum-coverage'
-      # TODO: add 'bundler-audit' back to this list
-      # once those jobs are no longer disabled (see their `if: false` above)
-      # — a skipped dependency would otherwise make this aggregate job skip too.
+      - 'bundler-audit'
+      - 'changelog-release-only'
     runs-on: ubuntu-24.04
     steps:
       - run: echo "Done"

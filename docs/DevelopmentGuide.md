@@ -161,6 +161,34 @@ Under `gemfiles/` there are two layers of lockfiles:
 
 The two layers are independent Bundler resolutions of overlapping gem sets and will drift on shared gems without active sync.
 
+**Cooldown**
+
+Gemfiles for Ruby 3.2 and later declare a 2-day cooldown window, so Bundler will
+not resolve to a gem version published within the last two days. This is applied
+automatically and needs no setup. Ruby 2.5 through 3.1 ship a Bundler that
+predates the feature and are unaffected.
+
+Bumping a Datadog-owned gem (`libdatadog`, `libddwaf`,
+`datadog-ruby_core_source`) needs nothing extra, even for a release published
+inside the window. The lock tasks exempt these gems on their own.
+
+To take any other release that is still inside the window, set
+`BUNDLE_COOLDOWN` for that run:
+
+```bash
+# Bypass the window for every appraisal gemfile
+BUNDLE_COOLDOWN=0 bundle exec rake dependency:lock
+# or for one group
+BUNDLE_COOLDOWN=0 bundle exec rake dependency:lock['/app/gemfiles/ruby_3.4_stripe_latest.gemfile']
+```
+
+The `dependency:*` tasks only reach the appraisal locks. To bypass the window in
+a parent lock, run `bundle` against that gemfile directly:
+
+```bash
+BUNDLE_GEMFILE=gemfiles/ruby-3.4.gemfile BUNDLE_COOLDOWN=0 bundle lock
+```
+
 **Task surfaces**
 
 Two rake namespaces, with different intents:
@@ -369,6 +397,27 @@ docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb rhysd/actionlint -color
 ```bash
 docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth token) ghcr.io/woodruffw/zizmor --min-severity low .
 ```
+
+#### Dependency audit (bundler-audit)
+
+The `bundler-audit` CI job scans appraisal lockfiles eligible for audit
+(Ruby 3.1+) for gems with
+high/critical CVE advisories, plus any advisory the pinned scanner can't
+score (e.g. CVSS-v4-only advisories come back with a `nil` criticality and
+are treated as failing too). To reproduce locally, run:
+
+```bash
+BUNDLE_GEMFILE=gemfiles/ruby-4.0.gemfile bundle exec rake dependency:audit
+```
+
+If it fails:
+
+1. Preferred fix: `BUNDLE_GEMFILE=<affected gemfile> bundle update GEM_NAME` (or `bundle lock --update GEM_NAME`) to upgrade the flagged gem to a patched version. Plain `bundle exec rake dependency:lock` will not move the version on its own.
+2. If no patched version exists for the Ruby/framework constraint in that appraisal, document the exception in `.bundler-audit.yml`:
+   - Prefer `ignore_gem_versions` (scoped to the exact pinned gem+version, so bumping the gem later makes the finding reappear instead of staying silently hidden).
+   - Use the top-level `ignore` list (by advisory id) only as a last resort, since it suppresses the advisory for any gem/version.
+   - Every entry must include a reason explaining what pins the gem and why it can't be upgraded.
+3. The job log only prints the finding count; run the command above locally to see the actual advisory id(s), gem(s), and affected lockfile(s), or inspect `tmp/dependency_audit_findings.json` after a local run.
 
 ## Accessing Environment Variables
 

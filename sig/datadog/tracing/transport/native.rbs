@@ -34,7 +34,6 @@ module Datadog
           @send_mutex: ::Thread::Mutex
           @fork_mutex: ::Thread::Mutex
           @fork_hooks: ::Hash[::Symbol, ::Proc]?
-          @unsupported_fields_warned: bool
 
           attr_reader logger: Datadog::Core::Logger
 
@@ -46,7 +45,6 @@ module Datadog
           private
 
           def apply_legacy_span_events!: (::Array[::Array[Datadog::Tracing::Span]] chunks, bool native_events_supported) -> void
-          def warn_unsupported_fields!: (::Array[::Array[Datadog::Tracing::Span]] chunks) -> void
           def tracer_version_string: () -> ::String
         end
 

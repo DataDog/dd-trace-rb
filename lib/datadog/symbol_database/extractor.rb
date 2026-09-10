@@ -647,7 +647,7 @@ module Datadog
       # @param start_line [Integer] Fallback end_line if iseq unavailable
       # @return [Array(Array<Hash>, Integer), Array(nil, Integer)]
       def extract_targetable_lines(method, start_line)
-        iseq = RubyVM::InstructionSequence.of(method) # steep:ignore
+        iseq = RubyVM::InstructionSequence.of(method)
         unless iseq
           @logger.debug { "symdb: no iseq for #{method.name} (C extension or native), skipping targetable lines" }
           return [nil, start_line]
@@ -801,7 +801,7 @@ module Datadog
       # objects allocated to read `source_location` are not retained between
       # passes, so they can be GC'd as soon as the inner loop ends.
       def collect_method_names_by_file(mod)
-        result = Hash.new { |h, k| h[k] = [] } # steep:ignore
+        result = Hash.new { |h, k| h[k] = [] }
 
         # Module#instance_methods(false) already returns both public and protected
         # methods, so iterating it plus private_instance_methods covers all three

@@ -19,7 +19,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
   def expected_context_key(*fields)
     fields.map do |key, tag, value|
       [key.bytesize].pack("Q>") + key + tag + [value.bytesize].pack("Q>") + value
-    end.join
+    end.join.force_encoding(Encoding::BINARY)
   end
 
   # canonical_context_key
@@ -66,30 +66,44 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       expect(aggregator.canonical_context_key("a" => "b=c"))
         .to eq(expected_context_key(["a", "s", "b=c"]))
     end
+
+    it "uses UTF-8 bytes for non-ASCII context values" do
+      tokyo = aggregator.canonical_context_key("city" => "東京")
+      osaka = aggregator.canonical_context_key("city" => "大阪")
+
+      expect(tokyo).to eq(expected_context_key(["city", "s", "東京"]))
+      expect(tokyo).not_to eq(osaka)
+    end
+
+    it "normalizes equivalent context values from different source encodings" do
+      utf8 = "café"
+      latin1 = utf8.encode(Encoding::ISO_8859_1)
+
+      expect(aggregator.canonical_context_key("name" => latin1))
+        .to eq(aggregator.canonical_context_key("name" => utf8))
+    end
   end
 
-  # context pruning
-
-  describe "#prune_context" do
+  describe ".bounded_context_snapshot" do
     it "skips string values exceeding 256 chars" do
       long_value = "x" * 257
       attrs = {"key" => long_value, "other" => "fine"}
-      pruned = aggregator.prune_context(attrs)
-      expect(pruned.keys).not_to include("key")
-      expect(pruned.keys).to include("other")
+      snapshot, = described_class.bounded_context_snapshot(attrs)
+      expect(snapshot.keys).not_to include("key")
+      expect(snapshot.keys).to include("other")
     end
 
     it "flattens nested hashes and arrays with dot-notation keys" do
       attrs = {"profile" => {"plan" => "pro"}, "groups" => ["beta", "staff"]}
-      pruned = aggregator.prune_context(attrs)
-      expect(pruned).to include("profile.plan" => "pro", "groups.0" => "beta", "groups.1" => "staff")
+      snapshot, = described_class.bounded_context_snapshot(attrs)
+      expect(snapshot).to include("profile.plan" => "pro", "groups.0" => "beta", "groups.1" => "staff")
     end
 
     it "omits nil values and keeps empty string values" do
       attrs = {"profile" => {"plan" => "pro", "" => 1, "what" => ""}, "groups" => ["beta", "staff", nil, ""]}
-      pruned = aggregator.prune_context(attrs)
+      snapshot, = described_class.bounded_context_snapshot(attrs)
 
-      expect(pruned).to include(
+      expect(snapshot).to include(
         "groups.0" => "beta",
         "groups.1" => "staff",
         "groups.3" => "",
@@ -97,33 +111,127 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         "profile.plan" => "pro",
         "profile.what" => "",
       )
-      expect(pruned).not_to have_key("groups.2")
+      expect(snapshot).not_to have_key("groups.2")
     end
 
     it "keeps string values of exactly 256 chars" do
       exact_value = "x" * 256
       attrs = {"key" => exact_value}
-      pruned = aggregator.prune_context(attrs)
-      expect(pruned.keys).to include("key")
+      snapshot, = described_class.bounded_context_snapshot(attrs)
+      expect(snapshot.keys).to include("key")
+    end
+
+    it "keeps exactly 256 fields without reporting truncation" do
+      attrs = 256.times.each_with_object({}) { |i, h| h["k#{i}"] = "v" }
+      snapshot, reasons = described_class.bounded_context_snapshot(attrs)
+
+      expect(snapshot.size).to eq(256)
+      expect(reasons).not_to include("max_context_fields")
     end
 
     it "caps at 256 fields" do
       attrs = 257.times.each_with_object({}) { |i, h| h["k#{i}"] = "v" }
-      pruned = aggregator.prune_context(attrs)
-      expect(pruned.size).to eq(256)
+      snapshot, reasons = described_class.bounded_context_snapshot(attrs)
+
+      expect(snapshot.size).to eq(256)
+      expect(reasons).to include("max_context_fields")
     end
 
-    it "drops keys after the sorted 256-field cap" do
+    it "bounds inspected root properties even when values are discarded" do
+      attrs = 256.times.each_with_object({}) { |i, h| h["k#{i}"] = nil }
+      attrs["unvisited"] = "value"
+      snapshot, reasons = described_class.bounded_context_snapshot(attrs)
+
+      expect(snapshot).to eq({})
+      expect(reasons).to include("max_structure_properties")
+    end
+
+    it "omits an excluded root key during bounded traversal" do
+      attrs = {"targeting_key" => "user-1", "env" => "prod"}
+      snapshot, = described_class.bounded_context_snapshot(attrs, excluded_key: "targeting_key")
+
+      expect(snapshot).to eq("env" => "prod")
+    end
+
+    it "keeps keys of exactly 256 chars without reporting truncation" do
+      key = "k" * 256
+      snapshot, reasons = described_class.bounded_context_snapshot({key => "value"})
+
+      expect(snapshot).to eq(key => "value")
+      expect(reasons).to be_empty
+    end
+
+    it "reports keys exceeding 256 chars" do
+      attrs = {"k" * 257 => "value"}
+      snapshot, reasons = described_class.bounded_context_snapshot(attrs)
+
+      expect(snapshot).to eq({})
+      expect(reasons).to include("max_key_length")
+    end
+
+    it "rejects oversized nested keys before constructing a flattened key" do
+      prefixes = []
+      original = described_class.method(:bounded_flatten)
+      allow(described_class).to receive(:bounded_flatten) do |prefix, *args|
+        prefixes << prefix
+        original.call(prefix, *args)
+      end
+
+      snapshot, reasons = described_class.bounded_context_snapshot(
+        {"root" => {"k" * 10_000 => "value"}}
+      )
+
+      expect(snapshot).to eq({})
+      expect(reasons).to include("max_key_length")
+      expect(prefixes).to contain_exactly("root")
+    end
+
+    it "keeps exactly 256 nested properties without reporting truncation" do
+      nested = 256.times.each_with_object({}) { |i, properties| properties["k#{i}"] = "v" }
+      snapshot, reasons = described_class.bounded_context_snapshot({"root" => nested})
+
+      expect(snapshot.size).to eq(256)
+      expect(reasons).to be_empty
+    end
+
+    it "bounds inspected nested properties even when values are discarded" do
+      nested = 256.times.each_with_object({}) { |i, properties| properties["k#{i}"] = nil }
+      nested["unvisited"] = "value"
+      snapshot, reasons = described_class.bounded_context_snapshot({"root" => nested})
+
+      expect(snapshot).to eq({})
+      expect(reasons).to include("max_structure_properties")
+    end
+
+    it "keeps exactly 256 list elements without reporting truncation" do
+      values = 256.times.map { |i| "v#{i}" }
+      snapshot, reasons = described_class.bounded_context_snapshot({"values" => values})
+
+      expect(snapshot.size).to eq(256)
+      expect(reasons).to be_empty
+    end
+
+    it "bounds inspected list elements even when values are discarded" do
+      values = Array.new(256)
+      values << "unvisited"
+      snapshot, reasons = described_class.bounded_context_snapshot({"values" => values})
+
+      expect(snapshot).to eq({})
+      expect(reasons).to include("max_list_elements")
+    end
+
+    it "keeps the first 256 fields in insertion order and drops the rest" do
       attrs = 257.times.each_with_object({}) { |i, h| h["k#{format("%03d", i)}"] = "v" }
-      pruned = aggregator.prune_context(attrs)
+      snapshot, = described_class.bounded_context_snapshot(attrs)
       expected_keys = 256.times.map { |i| "k#{format("%03d", i)}" }
 
-      expect(pruned.keys).to eq(expected_keys)
-      expect(pruned).not_to have_key("k256")
+      expect(snapshot.keys).to eq(expected_keys)
+      expect(snapshot).not_to have_key("k256")
     end
 
     it "returns empty hash for nil input" do
-      expect(aggregator.prune_context(nil)).to eq({})
+      snapshot, = described_class.bounded_context_snapshot(nil)
+      expect(snapshot).to eq({})
     end
 
     it "does not recurse forever on cyclic hashes and arrays" do
@@ -132,22 +240,108 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       attrs["array"] = []
       attrs["array"] << attrs["array"]
 
-      pruned = aggregator.prune_context(attrs)
+      snapshot, reasons = described_class.bounded_context_snapshot(attrs)
 
-      expect(pruned).to include("keep" => "ok")
-      expect(pruned.keys.grep(/self|array/)).to be_empty
+      expect(snapshot).to include("keep" => "ok")
+      expect(snapshot.keys.grep(/self|array/)).to be_empty
+      expect(reasons).to include("cycle")
+    end
+
+    it "copies String subclasses before calling String operations" do
+      custom_string = Class.new(String) do
+        def length
+          raise "unexpected custom length"
+        end
+
+        def encode(*)
+          raise "unexpected custom encoding"
+        end
+      end
+
+      snapshot, = described_class.bounded_context_snapshot(
+        {custom_string.new("key") => custom_string.new("value")}
+      )
+      expect(snapshot).to eq("key" => "value")
+    end
+
+    it "skips unsupported caller objects without converting them to strings" do
+      invalid = Class.new do
+        def to_s
+          raise "cannot convert"
+        end
+      end.new
+
+      expect(described_class.bounded_context_snapshot({invalid => "key", "value" => invalid}).first)
+        .to eq({})
+    end
+
+    it "lets the writer boundary handle errors from caller-controlled container subclasses" do
+      invalid_hash = Class.new(Hash) do
+        def each
+          raise "cannot iterate"
+        end
+      end.new
+      invalid_hash["key"] = "value"
+
+      invalid_array = Class.new(Array) do
+        def empty?
+          raise "cannot inspect"
+        end
+      end.new
+      invalid_array << "value"
+
+      expect { described_class.bounded_context_snapshot(invalid_hash) }
+        .to raise_error(RuntimeError, "cannot iterate")
+      expect { described_class.bounded_context_snapshot({"array" => invalid_array}) }
+        .to raise_error(RuntimeError, "cannot inspect")
+    end
+
+    it "does not hide errors in the snapshot implementation" do
+      allow(described_class).to receive(:bounded_flatten).and_raise("snapshot bug")
+
+      expect { described_class.bounded_context_snapshot({"key" => "value"}) }
+        .to raise_error(RuntimeError, "snapshot bug")
     end
 
     it "drops context branches beyond the maximum nesting depth" do
       attrs = {"root" => {}}
       cursor = attrs["root"]
-      (described_class::MAX_CONTEXT_DEPTH + 2).times do |i|
+      (described_class::MAX_SNAPSHOT_DEPTH + 2).times do |i|
         cursor["level#{i}"] = {}
         cursor = cursor["level#{i}"]
       end
       cursor["leaf"] = "too-deep"
 
-      expect(aggregator.prune_context(attrs)).to eq({})
+      snapshot, = described_class.bounded_context_snapshot(attrs)
+      expect(snapshot).to eq({})
+    end
+
+    # Exercises MAX_VISITED_NODES: this context yields no leaves, so the output-size
+    # caps never fire and only the visit budget stops the walk.
+    context "with a leaf-free tree of shared subtrees" do
+      let(:attrs) do
+        level = 256.times.map { |i| ["k#{i}", nil] }.to_h
+        3.times { level = 256.times.map { |i| ["k#{i}", level] }.to_h }
+        level
+      end
+
+      it "stops the walk within the derived visited-node budget" do
+        visited = 0
+        original = described_class.method(:bounded_flatten)
+        allow(described_class).to receive(:bounded_flatten) do |*args|
+          visited += 1
+          original.call(*args)
+        end
+
+        snapshot, reasons = described_class.bounded_context_snapshot(attrs)
+
+        expect(described_class::MAX_VISITED_NODES).to eq(
+          described_class::MAX_CONTEXT_FIELDS * (described_class::MAX_SNAPSHOT_DEPTH + 1)
+        )
+        expect(visited).to be <= described_class::MAX_VISITED_NODES
+        expect(snapshot).to eq({})
+        expect(reasons).to include("max_visited_nodes")
+      end
     end
   end
 
@@ -181,11 +375,21 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
 
     context 'two evaluations differing only by context value type (int 1 vs string "1")' do
       it "creates two distinct full-tier buckets (type-tagged canonical key)" do
-        aggregator.record(**base_event.merge(attrs: {"x" => 1}))
-        aggregator.record(**base_event.merge(attrs: {"x" => "1"}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 1}, observe_full_evaluation_data: true))
+        aggregator.record(**base_event.merge(attrs: {"x" => "1"}, observe_full_evaluation_data: true))
 
         snapshot = aggregator.flush_and_reset
         expect(snapshot[:full].size).to eq(2)
+      end
+    end
+
+    context "targeting key presence" do
+      it "keeps nil and empty targeting keys in separate buckets" do
+        aggregator.record(**base_event.merge(targeting_key: nil))
+        aggregator.record(**base_event.merge(targeting_key: ""))
+
+        targeting_keys = aggregator.flush_and_reset[:full].keys.map { |key| key[5] }
+        expect(targeting_keys).to contain_exactly(nil, "")
       end
     end
 
@@ -206,11 +410,20 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         expect(entry[:runtime_default]).to be(false)
       end
 
-      it "uses an explicit runtime_default signal when the SDK returns a typed default" do
-        aggregator.record(**base_event.merge(runtime_default: true))
+      it "coalesces runtime defaults with different variants and allocations" do
+        aggregator.record(
+          **base_event.merge(variant: "a", allocation_key: "alloc-a", runtime_default: true)
+        )
+        aggregator.record(
+          **base_event.merge(
+            variant: "b", allocation_key: "alloc-b", runtime_default: true, eval_time_ms: 2000
+          )
+        )
 
         snapshot = aggregator.flush_and_reset
         entry = snapshot[:full].values.first
+        expect(snapshot[:full].size).to eq(1)
+        expect(entry[:count]).to eq(2)
         expect(entry[:runtime_default]).to be(true)
       end
     end
@@ -221,10 +434,10 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
 
       it "routes to degraded when global_cap is reached with a new bucket" do
         # First two fill the full tier
-        aggregator.record(**base_event.merge(attrs: {"x" => 1}))
-        aggregator.record(**base_event.merge(attrs: {"x" => 2}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 1}, observe_full_evaluation_data: true))
+        aggregator.record(**base_event.merge(attrs: {"x" => 2}, observe_full_evaluation_data: true))
         # Third has different context — full tier full — routes to degraded
-        aggregator.record(**base_event.merge(attrs: {"x" => 3}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 3}, observe_full_evaluation_data: true))
 
         snapshot = aggregator.flush_and_reset
         expect(snapshot[:full].size).to eq(2)
@@ -232,9 +445,9 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
 
       it "counts full-tier attempts before global cap routing" do
-        aggregator.record(**base_event.merge(attrs: {"x" => 1}))
-        aggregator.record(**base_event.merge(attrs: {"x" => 2}))
-        aggregator.record(**base_event.merge(attrs: {"x" => 3}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 1}, observe_full_evaluation_data: true))
+        aggregator.record(**base_event.merge(attrs: {"x" => 2}, observe_full_evaluation_data: true))
+        aggregator.record(**base_event.merge(attrs: {"x" => 3}, observe_full_evaluation_data: true))
 
         per_flag_full = aggregator.instance_variable_get(:@per_flag_full)
         expect(per_flag_full["my-flag"]).to eq(3)
@@ -246,10 +459,10 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       let(:per_flag_cap) { 2 }
 
       it "routes to degraded when per_flag_cap is reached for a flag" do
-        aggregator.record(**base_event.merge(attrs: {"x" => 1}))
-        aggregator.record(**base_event.merge(attrs: {"x" => 2}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 1}, observe_full_evaluation_data: true))
+        aggregator.record(**base_event.merge(attrs: {"x" => 2}, observe_full_evaluation_data: true))
         # Third bucket for same flag: per_flag_cap exceeded
-        aggregator.record(**base_event.merge(attrs: {"x" => 3}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 3}, observe_full_evaluation_data: true))
 
         snapshot = aggregator.flush_and_reset
         expect(snapshot[:full].size).to eq(2)
@@ -264,12 +477,12 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
 
       it "increments dropped counter beyond degraded_cap" do
         # First event: goes to full tier (cap=1, one slot)
-        aggregator.record(**base_event.merge(attrs: {"x" => 1}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 1}, observe_full_evaluation_data: true))
         # Second event: different context, full tier full → goes to degraded.
         # creates the one allowed degraded bucket
-        aggregator.record(**base_event.merge(attrs: {"x" => 2}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 2}, observe_full_evaluation_data: true))
         # Third event: different schema-visible error.message → degraded full → DROPPED
-        aggregator.record(**base_event.merge(attrs: {"x" => 3}, error_message: "boom"))
+        aggregator.record(**base_event.merge(attrs: {"x" => 3}, error_message: "boom", observe_full_evaluation_data: true))
 
         expect(aggregator.dropped_degraded_overflow).to eq(1)
       end
@@ -280,14 +493,68 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       let(:per_flag_cap) { 1 }
 
       it "degraded entry has no targeting_key or context_attrs" do
-        aggregator.record(**base_event.merge(attrs: {"x" => 1}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 1}, observe_full_evaluation_data: true))
         # Force overflow to degraded
-        aggregator.record(**base_event.merge(attrs: {"x" => 2}))
+        aggregator.record(**base_event.merge(attrs: {"x" => 2}, observe_full_evaluation_data: true))
 
         snapshot = aggregator.flush_and_reset
         degraded_entry = snapshot[:degraded].values.first
         expect(degraded_entry[:targeting_key]).to be_nil
         expect(degraded_entry[:context_attrs]).to be_nil
+      end
+    end
+
+    context "observe_full_evaluation_data in the bucket key" do
+      it "separates policy states and retains context only when enabled" do
+        aggregator.record(**base_event.merge(attrs: {"env" => "prod"}, observe_full_evaluation_data: false))
+        aggregator.record(**base_event.merge(attrs: {"env" => "prod"}, observe_full_evaluation_data: true))
+
+        entries = aggregator.flush_and_reset[:full]
+        disabled_entry = entries.find { |key, _entry| key.last == false }.last
+        enabled_entry = entries.find { |key, _entry| key.last == true }.last
+
+        expect(entries.size).to eq(2)
+        expect(disabled_entry[:context_attrs]).to be_nil
+        expect(disabled_entry[:observe_full_evaluation_data]).to be(false)
+        expect(enabled_entry[:context_attrs]).to eq("env" => "prod")
+        expect(enabled_entry[:observe_full_evaluation_data]).to be(true)
+      end
+
+      it "AND-folds mixed consent in a degraded bucket" do
+        degraded_aggregator = described_class.new(global_cap: 0, per_flag_cap: 10, degraded_cap: 10)
+        degraded_aggregator.record(
+          **base_event.merge(observe_full_evaluation_data: true)
+        )
+        degraded_aggregator.record(
+          **base_event.merge(
+            targeting_key: "user-456", eval_time_ms: 1_700_000_000_001,
+            observe_full_evaluation_data: false
+          )
+        )
+
+        entries = degraded_aggregator.flush_and_reset[:degraded]
+        entry = entries.values.first
+        expect(entries.size).to eq(1)
+        expect(entry[:count]).to eq(2)
+        expect(entry[:observe_full_evaluation_data]).to be(false)
+      end
+
+      it "does not key on context when observe_full_evaluation_data is false (high-cardinality context does not split buckets)" do
+        # Prevents the per-flag bucket cap from burning on privacy-protected traffic.
+        aggregator.record(**base_event.merge(attrs: {"request_id" => "a"}, observe_full_evaluation_data: false))
+        aggregator.record(**base_event.merge(attrs: {"request_id" => "b"}, observe_full_evaluation_data: false))
+
+        snapshot = aggregator.flush_and_reset
+        expect(snapshot[:full].size).to eq(1)
+        expect(snapshot[:full].values.first[:count]).to eq(2)
+      end
+
+      it "keys buckets on the normalized error code" do
+        aggregator.record(**base_event.merge(error_message: "FLAG_NOT_FOUND", observe_full_evaluation_data: true))
+        aggregator.record(**base_event.merge(error_message: "TYPE_MISMATCH", observe_full_evaluation_data: true))
+
+        snapshot = aggregator.flush_and_reset
+        expect(snapshot[:full].size).to eq(2)
       end
     end
   end
@@ -308,22 +575,21 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
 
     it "resets dropped_degraded_overflow counter after flush" do
       aggregator_small = described_class.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 1)
-      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 1, attrs: {"x" => 1})
-      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 2, attrs: {"x" => 2})
-      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 3, attrs: {"x" => 3})
+      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 1, attrs: {"x" => 1}, observe_full_evaluation_data: true)
+      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 2, attrs: {"x" => 2}, observe_full_evaluation_data: true)
+      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 3, attrs: {"x" => 3}, observe_full_evaluation_data: true)
       aggregator_small.flush_and_reset
       expect(aggregator_small.dropped_degraded_overflow).to eq(0)
     end
 
-    # The snapshot must CARRY the degraded-overflow count so the writer can emit it before
-    # reset (not reset-without-emit). The count must equal what dropped at flush time.
+    # The snapshot must carry the degraded-overflow count so the writer can emit it before reset.
     it "returns the degraded-overflow count in the snapshot so it can be emitted before reset" do
       aggregator_small = described_class.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 1)
-      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 1, attrs: {"x" => 1})
-      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 2, attrs: {"x" => 2})
+      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 1, attrs: {"x" => 1}, observe_full_evaluation_data: true)
+      aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 2, attrs: {"x" => 2}, observe_full_evaluation_data: true)
       aggregator_small.record(
         flag_key: "f", variant: "v", allocation_key: "", error_message: "boom",
-        targeting_key: "", eval_time_ms: 3, attrs: {"x" => 3}
+        targeting_key: "", eval_time_ms: 3, attrs: {"x" => 3}, observe_full_evaluation_data: true
       )
 
       snapshot = aggregator_small.flush_and_reset

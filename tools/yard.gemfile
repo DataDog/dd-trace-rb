@@ -4,7 +4,7 @@ source "https://rubygems.org"
 # Regenerate manually after changing dependencies:
 #
 #   docker run --rm -v "$(pwd):/app" -w /app -e BUNDLE_GEMFILE=tools/yard.gemfile \
-#     ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g27019b38640025d7722ca3969437962037b5877f \
+#     ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080 \
 #     bundle lock --add-platform x86_64-linux aarch64-linux
 
 gemspec path: ".."

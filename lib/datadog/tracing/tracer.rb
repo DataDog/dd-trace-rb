@@ -375,9 +375,9 @@ module Datadog
         hostname = Core::Environment::Socket.resolved_hostname(Datadog.configuration)
 
         if digest
-          sampling_priority = if propagate_sampling_priority?(upstream_tags: digest.trace_distributed_tags)
-            digest.trace_sampling_priority
-          end
+          propagate_sampling = propagate_sampling_priority?(upstream_tags: digest.trace_distributed_tags)
+          sampling_priority = digest.trace_sampling_priority if propagate_sampling
+          trace_state = Distributed::TraceState.from_digest(digest, propagate_sampling: propagate_sampling)
           TraceOperation.new(
             logger: logger,
             hostname: hostname,
@@ -390,9 +390,9 @@ module Datadog
             span_links: digest.span_links,
             # Distributed tags are just regular trace tags with special meaning to Datadog
             tags: digest.trace_distributed_tags,
-            trace_state: digest.trace_state,
-            trace_state_unknown_fields: digest.trace_state_unknown_fields,
+            trace_state: trace_state,
             remote_parent: digest.span_remote,
+            distributed_sampling_priority: !!sampling_priority,
             tracer: self,
             baggage: digest.baggage,
             auto_finish: auto_finish
