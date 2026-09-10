@@ -86,16 +86,16 @@ module Datadog
         _native_clear
       end
 
+      def supported?
+        Datadog::Core::LIBDATADOG_API_FAILURE.nil? && _native_supported?
+      end
+
       private
 
       def enable!
         return false unless supported?
 
         _native_enable
-      end
-
-      def supported?
-        Datadog::Core::LIBDATADOG_API_FAILURE.nil? && _native_supported?
       end
     end
   end
