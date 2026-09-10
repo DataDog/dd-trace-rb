@@ -25,8 +25,9 @@ version they run is their context; their time is short.
 - ALWAYS ground every claim in the diff — NEVER in memory
 - ALWAYS write for the customer, not the diff
 - ALWAYS lead with the customer effect; supporting detail follows,
-  NEVER leads, and only to scope who is affected (versions, platforms,
-  triggers, workloads) — NEVER implementation narrative
+  NEVER leads — SHOULD scope who is affected (versions, platforms,
+  triggers, workloads); NEVER implementation narrative. The test: scope
+  names what the customer runs; narrative names what the code does
 - ALWAYS stay terse — every word earns its place
 - `Fixed` names the symptom; `Added` names the access point; `Changed`
   names the consequence or escape hatch
@@ -63,13 +64,17 @@ Then keep every written claim grounded:
   the hunks, not recalled conventions
 - Verify versions against the diff (gemspec, Matrixfile, CI), not
   ecosystem memory
-- Verify behavior against the diff's tests — no test, no behavioral claim
+- Verify behavior against the diff's tests — no test, no behavioral
+  claim; a rare-race fix is the exception: the defensive guard the diff
+  adds is the evidence, and the message claims no more than it
 - ALWAYS drop or weaken a claim that traces to nothing; NEVER hedge it
 
 ## Deciding
 
 - ALWAYS add a fragment for new features, behavior changes, and
-  customer-affecting bug fixes — one fragment per customer-visible change
+  customer-affecting bug fixes — one fragment per customer-visible
+  effect; when one PR carries several, the Grounding count triage asks
+  the user before any are written
 
   ```markdown
   <!-- Bad: several effects bundled behind "and more" -->
@@ -87,8 +92,8 @@ Then keep every written claim grounded:
 
 - ALWAYS write against a real PR number; with no PR yet, open a draft
   first — nothing checks the number mechanically
-- ALWAYS update the existing fragment for this change; NEVER add a second
-  one. Fragments for other changes stay untouched
+- ALWAYS update the existing fragment for this effect; NEVER add a second
+  one for the same effect. Fragments for other effects stay untouched
 - ALWAYS generate the scaffold with `bundle exec rake unreleased:new`;
   NEVER create a blank file by hand
 
@@ -159,8 +164,8 @@ good one with exactly the violation.
   CI rejects "This PR fixes...", "The gem now supports...", "Also fixes..."
 
 - ALWAYS open the first sentence with the customer effect — what they
-  observe, do, or get; supporting detail follows, NEVER leads, and only
-  to scope who is affected — NEVER implementation narrative
+  observe, do, or get; supporting detail follows, NEVER leads — it
+  SHOULD scope who is affected, NEVER narrate the implementation
 
   ```markdown
   <!-- Bad: the mechanism enforced; the customer's delta never appears -->
@@ -215,15 +220,17 @@ good one with exactly the violation.
   Fix a `SIGSEGV` crash that could happen with experimental heap profiling enabled on Ruby 4.0.
   ```
 
-- ALWAYS back performance claims with numbers from the diff; unmeasured
-  claims stay directional — NEVER "significantly improve"
+- SHOULD back performance claims with measured numbers from the PR's own
+  evidence — the diff, its benchmark output, or the author's reported
+  result; what is genuinely hard to measure stays directional — NEVER
+  "significantly improve"
 
   ```markdown
   <!-- Bad: unmeasured vague quantifier -->
   Improve profiler performance significantly.
 
   <!-- Good: measured number plus the scope that decides who benefits -->
-  Reduce profiler overhead by up to 50% for applications with many idle or blocked threads by skipping samples of threads that stay suspended between ticks; skipped threads are still reported each period.
+  Reduce profiler overhead by up to 50% for applications with many idle or blocked threads by skipping samples that would carry no new information; skipped threads are still reported each period.
   ```
 
 ## Finishing loop
