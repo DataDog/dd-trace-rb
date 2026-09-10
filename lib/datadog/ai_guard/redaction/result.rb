@@ -6,7 +6,7 @@ module Datadog
       class Result
         attr_reader :messages, :applied, :failures
 
-        def initialize(messages, applied:, failures:, performed:)
+        def initialize(messages, applied:, failures:, performed: true)
           @messages = messages
           @applied = applied
           @failures = failures

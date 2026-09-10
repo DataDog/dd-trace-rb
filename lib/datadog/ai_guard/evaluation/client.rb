@@ -20,9 +20,9 @@ module Datadog
 
           redaction =
             if Datadog.configuration.ai_guard.redaction_enabled
-              Redaction.apply(messages, replacements: response.redaction_replacements)
+              Redaction.perform(messages, replacements: response.redaction_replacements)
             else
-              Redaction.skipped(messages)
+              Redaction.skip(messages)
             end
 
           result = Result.new(

@@ -14,6 +14,7 @@ require_relative "evaluation/content_part"
 require_relative "evaluation/content_builder"
 require_relative "redaction"
 require_relative "redaction/result"
+require_relative "redaction/replacements"
 require_relative "metrics/telemetry"
 require_relative "ext"
 
