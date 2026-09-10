@@ -47,6 +47,23 @@ RSpec.describe "net/http requests" do
     include_examples "with error status code configuration", env: "DD_TRACE_HTTP_ERROR_STATUS_CODES"
   end
 
+  context "with resource name quantization enabled" do
+    subject(:response) { client.get(path) }
+
+    let(:path) { "/users/12345/view" }
+
+    before do
+      Datadog.configure { |c| c.tracing.http_client_resource_name_quantize = true }
+      stub_request(:get, "#{uri}#{path}").to_return(status: 200)
+      response
+    end
+
+    it "appends the quantized path to the resource name" do
+      expect(span.resource).to eq("GET /users/?/view")
+      expect(span.get_tag("http.url")).to eq(path)
+    end
+  end
+
   it_behaves_like "tags _dd.svc_src", "net/http" do
     before do
       stub_request(:any, "#{uri}#{path}").to_return(status: 200)
