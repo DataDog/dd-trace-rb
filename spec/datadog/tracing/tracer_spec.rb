@@ -20,51 +20,35 @@ require "datadog/tracing/writer"
 
 RSpec.describe Datadog::Tracing::Tracer do
   let(:writer) { FauxWriter.new }
+  let(:otel_thread_context) { Datadog::Tracing::OTelThreadContext.new(otel_thread_context_settings) }
+  let(:otel_thread_context_settings) do
+    settings = Datadog::Core::Configuration::Settings.new
+    settings.tracing.otel_thread_context_enabled = false
+    settings.tracing
+  end
   let(:tracer_options) { {} }
 
-  subject(:tracer) { described_class.new(writer: writer, **tracer_options) }
+  subject(:tracer) do
+    described_class.new(writer: writer, otel_thread_context: otel_thread_context, **tracer_options)
+  end
 
   after { tracer.shutdown! }
 
   shared_context "OTel thread context enabled" do
-    let(:tracer_options) { super().merge(otel_thread_context_enabled: true) }
+    let(:otel_thread_context_settings) do
+      settings = Datadog::Core::Configuration::Settings.new
+      settings.tracing.otel_thread_context_enabled = true
+      settings.tracing
+    end
 
     before do
-      allow(Datadog::Tracing::OTelThreadContext).to receive(:enable!).and_return(true)
-      allow(Datadog::Tracing::OTelThreadContext).to receive(:set)
-      allow(Datadog::Tracing::OTelThreadContext).to receive(:clear)
+      allow_any_instance_of(Datadog::Tracing::OTelThreadContext).to receive(:enable!).and_return(true)
+      allow(otel_thread_context).to receive(:set)
+      allow(otel_thread_context).to receive(:clear)
     end
   end
 
   describe "::new" do
-    context "with OTel thread context disabled" do
-      let(:tracer_options) { super().merge(otel_thread_context_enabled: false) }
-
-      it "does not enable OTel thread context" do
-        expect(Datadog::Tracing::OTelThreadContext).to_not receive(:enable!)
-
-        tracer
-      end
-    end
-
-    context "with OTel thread context enabled by default" do
-      it "enables OTel thread context" do
-        expect(Datadog::Tracing::OTelThreadContext).to receive(:enable!).and_return(true)
-
-        tracer
-      end
-
-      context "when OTel thread context is unsupported" do
-        before do
-          allow(Datadog::Tracing::OTelThreadContext).to receive(:enable!).and_return(false)
-        end
-
-        it "still initializes the tracer" do
-          expect { tracer }.to_not raise_error
-        end
-      end
-    end
-
     context "given :trace_flush" do
       let(:tracer_options) { super().merge(trace_flush: trace_flush) }
       let(:trace_flush) { instance_double(Datadog::Tracing::Flush::Finished) }
@@ -256,23 +240,21 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           it "sets the OTel thread context and clears it when the trace finishes" do
             tracer.trace(name) do |span, trace_op|
-              expect(Datadog::Tracing::OTelThreadContext).to have_received(:set).with(
+              expect(otel_thread_context).to have_received(:set).with(
                 trace_id: trace_op.id,
                 span_id: span.id,
                 local_root_span_id: span.id
               )
             end
 
-            expect(Datadog::Tracing::OTelThreadContext).to have_received(:clear).once
+            expect(otel_thread_context).to have_received(:clear).once
           end
         end
 
         context "with OTel thread context disabled" do
-          let(:tracer_options) { super().merge(otel_thread_context_enabled: false) }
-
           it "does not update the OTel thread context" do
-            expect(Datadog::Tracing::OTelThreadContext).to_not receive(:set)
-            expect(Datadog::Tracing::OTelThreadContext).to_not receive(:clear)
+            expect(otel_thread_context).to_not receive(:set)
+            expect(otel_thread_context).to_not receive(:clear)
 
             tracer.trace(name) {}
           end
@@ -384,13 +366,13 @@ RSpec.describe Datadog::Tracing::Tracer do
             tracer.trace("parent") do |parent, trace_op|
               child = tracer.trace("child")
 
-              expect(Datadog::Tracing::OTelThreadContext).to have_received(:set).with(
+              expect(otel_thread_context).to have_received(:set).with(
                 trace_id: trace_op.id,
                 span_id: child.id,
                 local_root_span_id: parent.id
               ).once
 
-              expect(Datadog::Tracing::OTelThreadContext).to receive(:set).with(
+              expect(otel_thread_context).to receive(:set).with(
                 trace_id: trace_op.id,
                 span_id: parent.id,
                 local_root_span_id: parent.id
@@ -921,7 +903,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
         it "sets the propagated parent when the trace is activated" do
           tracer.continue_trace!(digest) do
-            expect(Datadog::Tracing::OTelThreadContext).to have_received(:set).with(
+            expect(otel_thread_context).to have_received(:set).with(
               trace_id: digest.trace_id,
               span_id: digest.span_id,
               local_root_span_id: Datadog::Tracing::OTelThreadContext::UNKNOWN_LOCAL_ROOT_SPAN_ID
@@ -931,7 +913,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
         it "restores the propagated parent after a local span finishes and clears it when the trace finishes" do
           tracer.continue_trace!(digest) do
-            expect(Datadog::Tracing::OTelThreadContext).to receive(:set).with(
+            expect(otel_thread_context).to receive(:set).with(
               trace_id: digest.trace_id,
               span_id: digest.span_id,
               local_root_span_id: Datadog::Tracing::OTelThreadContext::UNKNOWN_LOCAL_ROOT_SPAN_ID
@@ -939,10 +921,10 @@ RSpec.describe Datadog::Tracing::Tracer do
 
             tracer.trace("span") {}
 
-            expect(Datadog::Tracing::OTelThreadContext).to_not have_received(:clear)
+            expect(otel_thread_context).to_not have_received(:clear)
           end
 
-          expect(Datadog::Tracing::OTelThreadContext).to have_received(:clear).once
+          expect(otel_thread_context).to have_received(:clear).once
         end
       end
 
@@ -953,8 +935,8 @@ RSpec.describe Datadog::Tracing::Tracer do
           tracer.continue_trace!(digest) do
             tracer.trace("span") {}
 
-            expect(Datadog::Tracing::OTelThreadContext).to have_received(:clear).once
-            expect(Datadog::Tracing::OTelThreadContext).to receive(:clear).once
+            expect(otel_thread_context).to have_received(:clear).once
+            expect(otel_thread_context).to receive(:clear).once
           end
         end
       end
@@ -962,7 +944,7 @@ RSpec.describe Datadog::Tracing::Tracer do
       it "clears the OTel thread context when the active trace is replaced" do
         tracer.trace("outer") do
           tracer.continue_trace!(nil) do
-            expect(Datadog::Tracing::OTelThreadContext).to have_received(:clear).once
+            expect(otel_thread_context).to have_received(:clear).once
           end
         end
       end
