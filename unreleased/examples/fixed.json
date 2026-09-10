@@ -1,6 +1,6 @@
 {
   "type": "Fixed",
   "product": "Core",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6219",
-  "message": "Fix false unhandled-exception crash reports: `SIGTERM` and other `SignalException`s raised while the process stops are no longer reported as crashes."
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/5773",
+  "message": "Fix `TypeError` from `Process.spawn` when passing an environment Hash."
 }

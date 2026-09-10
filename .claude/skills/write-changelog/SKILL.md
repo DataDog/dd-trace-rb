@@ -110,11 +110,11 @@ a fenced block: the bad entry is the good one with exactly the violation.
     internal sequencing
 
     ```markdown
-    <!-- Bad: the implementation — no symptom, no trigger -->
-    Ignore `SignalException` from crashtracker as unhandled exception errors.
+    <!-- Bad: the trigger named, but no symptom to recognize -->
+    Fix `Process.spawn` when passing an environment Hash.
 
     <!-- Good: the symptom they recognize + the trigger they perform -->
-    Fix false unhandled-exception crash reports: `SIGTERM` and other `SignalException`s raised while the process stops are no longer reported as crashes.
+    Fix `TypeError` from `Process.spawn` when passing an environment Hash.
     ```
 
   - `Added`: ALWAYS name the capability, then the access point — the
