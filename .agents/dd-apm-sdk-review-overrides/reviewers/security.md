@@ -21,9 +21,3 @@ Never write any of the following into a span tag, a metric, or a log line:
 Safe alternatives: tag the host / port / scheme only. Do not log the raw value "at debug, it's fine" — debug logs ship.
 
 Look for this around contrib connect / authenticate / client-init paths (`lib/datadog/tracing/contrib/**`, `lib/datadog/appsec/contrib/**`) and anything that reads configuration.
-
-## How to add the next rule
-
-1. Write the pattern here in the same shape: what it looks like, why it matters, the concrete fix.
-2. Add a case in `.llm-validation/suites/dd-apm-sdk-review.yaml` that would fail if this paragraph disappeared.
-3. That is the whole contribution.
