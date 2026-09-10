@@ -257,7 +257,7 @@ module Datadog
 
               option :otel_thread_context_enabled do |o|
                 o.env Tracing::Configuration::Ext::ENV_OTEL_CONTEXT_ENABLED
-                o.default false
+                o.default true
                 o.type :bool
               end
 

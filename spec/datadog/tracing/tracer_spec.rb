@@ -38,6 +38,8 @@ RSpec.describe Datadog::Tracing::Tracer do
 
   describe "::new" do
     context "with OTel thread context disabled" do
+      let(:tracer_options) { super().merge(otel_thread_context_enabled: false) }
+
       it "does not enable OTel thread context" do
         expect(Datadog::Tracing::OTelThreadContext).to_not receive(:enable!)
 
@@ -45,9 +47,7 @@ RSpec.describe Datadog::Tracing::Tracer do
       end
     end
 
-    context "with OTel thread context enabled" do
-      let(:tracer_options) { super().merge(otel_thread_context_enabled: true) }
-
+    context "with OTel thread context enabled by default" do
       it "enables OTel thread context" do
         expect(Datadog::Tracing::OTelThreadContext).to receive(:enable!).and_return(true)
 
@@ -268,6 +268,8 @@ RSpec.describe Datadog::Tracing::Tracer do
         end
 
         context "with OTel thread context disabled" do
+          let(:tracer_options) { super().merge(otel_thread_context_enabled: false) }
+
           it "does not update the OTel thread context" do
             expect(Datadog::Tracing::OTelThreadContext).to_not receive(:set)
             expect(Datadog::Tracing::OTelThreadContext).to_not receive(:clear)

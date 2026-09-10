@@ -13,7 +13,7 @@
       {
         "version": "A",
         "type": "boolean",
-        "default": "false"
+        "default": "true"
       }
     ],
     "DD_AI_GUARD_ENDPOINT": [
@@ -1821,7 +1821,7 @@
       {
         "version": "A",
         "type": "boolean",
-        "default": "false"
+        "default": "true"
       }
     ],
     "DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED": [
