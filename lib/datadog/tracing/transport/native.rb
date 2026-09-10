@@ -3,7 +3,7 @@
 require "json"
 require_relative "trace_formatter"
 require_relative "statistics"
-require_relative "span_events"
+require_relative "span_events_negotiation"
 
 module Datadog
   module Tracing
@@ -45,7 +45,7 @@ module Datadog
         # Drop-in transport that delegates to the native trace exporter.
         class Transport
           include Statistics
-          include SpanEvents
+          include SpanEventsNegotiation
 
           attr_reader :logger
 
@@ -270,7 +270,8 @@ module Datadog
             # Each trace segment becomes one inner array (one trace chunk).
             chunks = traces.map(&:spans)
 
-            native_events_supported = prepare_span_events!(chunks)
+            native_events_supported = native_events_supported?
+            apply_legacy_span_events!(chunks, native_events_supported)
 
             # Serialize the native send and hold the mutex across it so a
             # concurrent fork's :before hook blocks until this send drains
@@ -298,20 +299,24 @@ module Datadog
 
           private
 
-          def prepare_span_events!(chunks)
-            native_events_supported = native_events_supported?
+          # Writes each span's events into the legacy JSON +events+ meta tag
+          # when the agent lacks typed-event support, mutating spans in place.
+          #
+          # @param chunks [Array<Array<Datadog::Tracing::Span>>] trace chunks to serialize
+          # @param native_events_supported [Boolean] whether the agent accepts typed events
+          # @return [void]
+          def apply_legacy_span_events!(chunks, native_events_supported)
+            return if native_events_supported
 
             chunks.each do |spans|
               spans.each do |span|
                 next if span.events.empty?
 
-                unless native_events_supported
-                  span.set_tag("events", span.events.map(&:to_hash).to_json)
-                end
+                span.set_tag("events", span.events.map(&:to_hash).to_json)
               end
             end
 
-            native_events_supported
+            nil
           end
 
           def tracer_version_string

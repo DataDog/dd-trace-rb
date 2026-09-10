@@ -1,7 +1,7 @@
 module Datadog
   module Tracing
     module Transport
-      module SpanEvents
+      module SpanEventsNegotiation
         @native_events_supported: bool
 
         private
