@@ -70,7 +70,7 @@ jobs:
   test:
     needs:
       - build
-    uses: DataDog/system-tests/.github/workflows/system-tests.yml@0c799cfe05576ad90d1b267a8de91d5f0fc1c153  # Automated: Updated by .github/workflows/update-system-tests.yml.
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@pavlo.khrebto/FFLSDK-10/ruby-agentless-adjustments
     permissions:
       contents: read
       id-token: write
@@ -80,7 +80,7 @@ jobs:
       binaries_artifact: dd-trace-rb
       desired_execution_time: 300 # 5 minutes
       scenarios_groups: tracer_release
-      ref: 0c799cfe05576ad90d1b267a8de91d5f0fc1c153 # Automated: Updated by .github/workflows/update-system-tests.yml.
+      ref: pavlo.khrebto/FFLSDK-10/ruby-agentless-adjustments
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
       push_to_test_optimization: true
