@@ -57,7 +57,7 @@ module Datadog
         default_service: Core::Environment::Ext::FALLBACK_SERVICE_NAME,
         enabled: true,
         logger: Datadog.logger,
-        otel_thread_context_enabled: false,
+        otel_thread_context_enabled: true,
         sampler: Sampling::PrioritySampler.new(
           base_sampler: Sampling::AllSampler.new,
           post_sampler: Sampling::RuleSampler.new

@@ -160,7 +160,7 @@ RSpec.describe Datadog::Tracing::Component do
 
       context "with :otel_thread_context_enabled" do
         before do
-          settings.tracing.otel_thread_context_enabled = true
+          settings.tracing.otel_thread_context_enabled = false
         end
 
         it_behaves_like "new tracer"
