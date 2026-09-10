@@ -7,7 +7,6 @@ require_relative "correlation"
 require_relative "event"
 require_relative "flush"
 require_relative "context_provider"
-require_relative "otel_thread_context"
 require_relative "sampling/all_sampler"
 require_relative "sampling/rule_sampler"
 require_relative "sampling/priority_sampler"
@@ -57,7 +56,7 @@ module Datadog
         default_service: Core::Environment::Ext::FALLBACK_SERVICE_NAME,
         enabled: true,
         logger: Datadog.logger,
-        otel_thread_context_enabled: true,
+        otel_thread_context:,
         sampler: Sampling::PrioritySampler.new(
           base_sampler: Sampling::AllSampler.new,
           post_sampler: Sampling::RuleSampler.new
@@ -79,11 +78,7 @@ module Datadog
         @tags = tags
         @writer = writer
 
-        @otel_thread_context_enabled = if otel_thread_context_enabled
-          OTelThreadContext.enable!
-        else
-          false
-        end
+        @otel_thread_context = otel_thread_context
       end
 
       # Return a {Datadog::Tracing::SpanOperation span_op} and {Datadog::Tracing::TraceOperation trace_op}
@@ -454,68 +449,7 @@ module Datadog
           end
         end
 
-        bind_trace_events_for_otel_thread_context(events)
-      end
-
-      def bind_trace_events_for_otel_thread_context(events)
-        return unless @otel_thread_context_enabled
-
-        events.span_before_start.subscribe do |event_span_op, event_trace_op|
-          OTelThreadContext.set(
-            trace_id: event_trace_op.id,
-            span_id: event_span_op.id,
-            local_root_span_id: event_trace_op.send(:root_span).id
-          )
-        end
-
-        events.span_finished.subscribe do |_event_span_op, event_trace_op|
-          # we already clear the context in `trace_finished` subscriber
-          next if event_trace_op.finished?
-
-          active_span = event_trace_op.active_span
-
-          if active_span
-            OTelThreadContext.set(
-              trace_id: event_trace_op.id,
-              span_id: active_span.id,
-              local_root_span_id: event_trace_op.send(:root_span).id
-            )
-          elsif event_trace_op.parent_span_id && event_trace_op.parent_span_id != 0
-            OTelThreadContext.set(
-              trace_id: event_trace_op.id,
-              span_id: event_trace_op.parent_span_id,
-              local_root_span_id: OTelThreadContext::UNKNOWN_LOCAL_ROOT_SPAN_ID
-            )
-          else
-            OTelThreadContext.clear
-          end
-        end
-
-        events.trace_activated.subscribe do |event_trace_op|
-          active_span = event_trace_op.active_span
-
-          if active_span
-            OTelThreadContext.set(
-              trace_id: event_trace_op.id,
-              span_id: active_span.id,
-              local_root_span_id: event_trace_op.send(:root_span).id
-            )
-          elsif event_trace_op.parent_span_id && event_trace_op.parent_span_id != 0
-            OTelThreadContext.set(
-              trace_id: event_trace_op.id,
-              span_id: event_trace_op.parent_span_id,
-              local_root_span_id: OTelThreadContext::UNKNOWN_LOCAL_ROOT_SPAN_ID
-            )
-          end
-        end
-
-        events.trace_deactivated.subscribe do |event_trace_op|
-          OTelThreadContext.clear unless event_trace_op.finished?
-        end
-
-        events.trace_finished.subscribe do
-          OTelThreadContext.clear
-        end
+        @otel_thread_context.subscribe_to_tracer_events!(events)
       end
 
       # Creates a new TraceOperation, with events bounds to this Tracer instance.
