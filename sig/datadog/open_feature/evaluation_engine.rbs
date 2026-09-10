@@ -22,9 +22,16 @@ module Datadog
         default_value: untyped,
         expected_type: ::Symbol,
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
-      ) -> (ResolutionDetails | Core::FeatureFlags::ResolutionDetails)
+      ) -> ResolutionDetails
 
       def reconfigure!: (::String? configuration) -> void
+
+      private
+
+      def with_observe_full_evaluation_data: (
+        ResolutionDetails result,
+        bool observe_full_evaluation_data
+      ) -> ResolutionDetails
     end
   end
 end

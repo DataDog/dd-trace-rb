@@ -101,6 +101,50 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
     end
   end
 
+  describe ".report_unhandled_exception" do
+    let(:crashtracker) { instance_double(described_class) }
+
+    before do
+      allow(Datadog).to receive(:components).and_return(double(crashtracker: crashtracker))
+    end
+
+    it "reports a StandardError exception" do
+      exception = StandardError.new("test")
+      expect(crashtracker).to receive(:report_unhandled_exception).with(exception)
+      described_class.report_unhandled_exception(exception)
+    end
+
+    it "does not report SystemExit" do
+      expect(crashtracker).to_not receive(:report_unhandled_exception)
+      described_class.report_unhandled_exception(SystemExit.new)
+    end
+
+    it "does not report NoMemoryError" do
+      expect(crashtracker).to_not receive(:report_unhandled_exception)
+      described_class.report_unhandled_exception(NoMemoryError.new)
+    end
+
+    it "does not report SystemStackError" do
+      expect(crashtracker).to_not receive(:report_unhandled_exception)
+      described_class.report_unhandled_exception(SystemStackError.new)
+    end
+
+    it "does not report SignalException" do
+      expect(crashtracker).to_not receive(:report_unhandled_exception)
+      described_class.report_unhandled_exception(SignalException.new("TERM"))
+    end
+
+    it "does not report Interrupt (subclass of SignalException)" do
+      expect(crashtracker).to_not receive(:report_unhandled_exception)
+      described_class.report_unhandled_exception(Interrupt.new)
+    end
+
+    it "does not report when exception is nil" do
+      expect(crashtracker).to_not receive(:report_unhandled_exception)
+      described_class.report_unhandled_exception(nil)
+    end
+  end
+
   context "instance methods" do
     shared_context "HTTP server" do
       http_server do |http_server|

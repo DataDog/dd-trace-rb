@@ -248,6 +248,7 @@ module Datadog
           crashtracker&.update_on_fork
           ProcessDiscovery.after_fork
           symbol_database&.after_fork!
+          data_streams&.restart_flush_thread
         end
 
         # Hot-swaps with a new sampler.

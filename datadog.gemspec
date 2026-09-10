@@ -70,7 +70,7 @@ Gem::Specification.new do |spec|
 
   # When updating the version here, please also update the version in `libdatadog_extconf_helpers.rb`
   # (and yes we have a test for it)
-  spec.add_dependency "libdatadog", "~> 40.0.0.1.0"
+  spec.add_dependency "libdatadog", "~> 40.0.0.2.0"
 
   # No longer a default gem on Ruby 4.0.
   # We support all versions of this gem and don't particularly require any version restriction.

@@ -7,16 +7,10 @@
 
 // The following global variables are initialized at startup to save expensive lookups later.
 // They are not expected to be mutated outside of init.
-static VALUE module_object_space = Qnil;
-static ID _id2ref_id = Qnil;
 static ID inspect_id = Qnil;
 static ID to_s_id = Qnil;
 
 void ruby_helpers_init(void) {
-  rb_global_variable(&module_object_space);
-
-  module_object_space = rb_const_get(rb_cObject, rb_intern("ObjectSpace"));
-  _id2ref_id = rb_intern("_id2ref");
   inspect_id = rb_intern("inspect");
   to_s_id = rb_intern("to_s");
 }
@@ -113,40 +107,6 @@ void private_raise_enforce_syserr(
   }
 }
 
-static VALUE _id2ref(VALUE obj_id) {
-  // Call ::ObjectSpace._id2ref natively. It will raise if the id is no longer valid
-  return rb_funcall(module_object_space, _id2ref_id, 1, obj_id);
-}
-
-static VALUE _id2ref_failure(DDTRACE_UNUSED VALUE _unused1, DDTRACE_UNUSED VALUE _unused2) {
-  return Qfalse;
-}
-
-// See notes on header for important details
-bool ruby_ref_from_id(VALUE obj_id, VALUE *value) {
-  // Call ::ObjectSpace._id2ref natively. It will raise if the id is no longer valid
-  // so we need to call it via rb_rescue2
-  // TODO: Benchmark rb_rescue2 vs rb_protect here
-  VALUE result = rb_rescue2(
-    _id2ref,
-    obj_id,
-    _id2ref_failure,
-    Qnil,
-    rb_eRangeError, // rb_eRangeError is the error used to flag invalid ids
-    0 // Required by API to be the last argument
-  );
-
-  if (result == Qfalse) {
-    return false;
-  }
-
-  if (value != NULL) {
-    (*value) = result;
-  }
-
-  return true;
-}
-
 // Not part of public headers but is externed from Ruby
 size_t rb_obj_memsize_of(VALUE obj);
 
@@ -162,16 +122,9 @@ size_t rb_obj_memsize_of(VALUE obj);
 size_t ruby_obj_memsize_of(VALUE obj) {
   switch (rb_type(obj)) {
     case T_OBJECT:
-    // On Ruby 4.0, computing the size of a class/module/iclass seems to not be safe: `rb_obj_memsize_of` walks the
-    // per-namespace class extensions (`rb_class_classext_foreach` -> `classext_memsize` -> `rb_id_table_memsize`)
-    // and can crash the VM when called on objects tracked by heap profiling.
-    // See https://github.com/DataDog/dd-trace-rb/issues/5936. Class objects contribute negligibly to heap size,
-    // so we skip them (fall through to the `default` branch, returning 0) rather than risk a SIGSEGV.
-    #ifndef NO_SAFE_CLASS_MEMSIZE
     case T_MODULE:
     case T_CLASS:
     case T_ICLASS:
-    #endif
     case T_STRING:
     case T_ARRAY:
     case T_HASH:
