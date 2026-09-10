@@ -24,8 +24,9 @@ version they run is their context; their time is short.
 
 - ALWAYS ground every claim in the diff — NEVER in memory
 - ALWAYS write for the customer, not the diff
-- ALWAYS lead with the customer effect; the gem's mechanics follow,
-  NEVER lead
+- ALWAYS lead with the customer effect; supporting detail follows,
+  NEVER leads, and only to scope who is affected (versions, platforms,
+  triggers, workloads) — NEVER implementation narrative
 - ALWAYS stay terse — every word earns its place
 - `Fixed` names the symptom; `Added` names the access point; `Changed`
   names the consequence or escape hatch
@@ -140,7 +141,6 @@ a fenced block: the bad entry is the good one with exactly the violation.
 
 - ALWAYS state what changed and why it matters to the customer; NEVER
   code-review jargon ("refactored", "cleaned up") or internal file names.
-  Match existing `CHANGELOG.md` entries
 
   ```markdown
   <!-- Bad: internal description — jargon, file name, no user-visible claim -->
@@ -154,7 +154,8 @@ a fenced block: the bad entry is the good one with exactly the violation.
   CI rejects "This PR fixes...", "The gem now supports...", "Also fixes..."
 
 - ALWAYS open the first sentence with the customer effect — what they
-  observe, do, or get; the gem's mechanics follow, NEVER lead
+  observe, do, or get; supporting detail follows, NEVER leads, and only
+  to scope who is affected — NEVER implementation narrative
 
   ```markdown
   <!-- Bad: the mechanism enforced; the customer's delta never appears -->
