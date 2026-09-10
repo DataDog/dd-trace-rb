@@ -22,7 +22,8 @@ version they run is their context; their time is short.
 
 ## Core principles
 
-- ALWAYS ground every claim in the diff — NEVER in memory
+- ALWAYS ground every claim in the PR's own evidence — the diff above
+  all — NEVER in memory
 - ALWAYS write for the customer, not the diff
 - ALWAYS lead with the customer effect; supporting detail follows,
   NEVER leads — SHOULD scope who is affected (versions, platforms,
@@ -30,7 +31,7 @@ version they run is their context; their time is short.
   names what the customer runs; narrative names what the code does
 - ALWAYS stay terse — every word earns its place
 - `Fixed` names the symptom; `Added` names the access point; `Changed`
-  names the consequence or escape hatch
+  names the consequence, and the escape hatch when one exists
 - ALWAYS name exact versions and platforms when they decide who is
   affected; NEVER vague quantifiers ("significantly", "recent") or
   catch-all tails ("and more")
@@ -38,7 +39,9 @@ version they run is their context; their time is short.
   verbatim or reference the PR in the message
 
 Lint and vale enforce the mechanical floor; the rest of these
-principles fall to the author and reviewer alone.
+principles fall to the author and reviewer alone. Where a Writing-section
+bullet restates a principle or the Grounding section, that section's
+wording governs.
 
 ## Grounding
 
@@ -64,6 +67,9 @@ Then keep every written claim grounded:
   the hunks, not recalled conventions
 - Verify versions against the diff (gemspec, Matrixfile, CI), not
   ecosystem memory
+- Measured numbers: the diff, its benchmark output, or the author's
+  reported result — a benchmark's output often lives only in the PR; no
+  source there, and the claim stays directional
 - Verify behavior against the diff's tests — no test, no behavioral
   claim; a rare-race fix is the exception: the defensive guard the diff
   adds is the evidence, and the message claims no more than it
@@ -106,12 +112,13 @@ Then keep every written claim grounded:
 ## Writing the message
 
 Run `unreleased:lint` and `unreleased:vale` while drafting — they enforce
-the mechanical floor: code spans, casing, verb start, PR references, the
-240-character and 3-sentence caps. The rules below add the judgment they
-cannot check, in drafting order; when the structure will not fit the
-caps, keep the customer effect and its scope, and compress the rest.
-Each rule carries a minimal pair in a fenced block: the bad entry is the
-good one with exactly the violation.
+the mechanical floor: code spans, casing, banned openers, PR references,
+the 240-character and 3-sentence caps. The rules below add the judgment
+they cannot check, in drafting order; when the structure will not fit
+the caps, keep the customer effect and its scope, and compress the rest.
+Each rule carries a fenced Bad/Good pair: either the bad entry is the
+good one with exactly the violation, or it is the real shipped entry,
+showing the violation as it actually shipped.
 
 - Structure by type — the reader's question differs:
   - `Fixed`: ALWAYS name the symptom they recognize, then the trigger
@@ -161,7 +168,10 @@ good one with exactly the violation.
   ```
 
 - ALWAYS start with an imperative verb (Add, Fix, Support, Improve, ...) —
-  CI rejects "This PR fixes...", "The gem now supports...", "Also fixes..."
+  vale rejects the process-speak and subject-first openers ("This PR
+  fixes...", "The gem now supports...", "Also fixes..."); a wrong verb
+  form ("Fixed a crash...") still passes, so the verb choice falls to the
+  author and reviewer
 
 - ALWAYS open the first sentence with the customer effect — what they
   observe, do, or get; supporting detail follows, NEVER leads — it
@@ -210,7 +220,8 @@ good one with exactly the violation.
   Harden the transport against dropped payloads.
   ```
 
-- ALWAYS name exact versions and platforms — NEVER "recent" or "newer"
+- ALWAYS name exact versions and platforms when they decide who is
+  affected — NEVER "recent" or "newer"
 
   ```markdown
   <!-- Bad: vague version -->
@@ -221,16 +232,15 @@ good one with exactly the violation.
   ```
 
 - SHOULD back performance claims with measured numbers from the PR's own
-  evidence — the diff, its benchmark output, or the author's reported
-  result; what is genuinely hard to measure stays directional — NEVER
-  "significantly improve"
+  evidence (Grounding); a claim with no measured number there stays
+  directional — NEVER "significantly improve"
 
   ```markdown
   <!-- Bad: unmeasured vague quantifier -->
   Improve profiler performance significantly.
 
-  <!-- Good: measured number plus the scope that decides who benefits -->
-  Reduce profiler overhead by up to 50% for applications with many idle or blocked threads by skipping samples that would carry no new information; skipped threads are still reported each period.
+  <!-- Good: directional with scope — the PR's evidence carries no measured number -->
+  Reduce profiler overhead for applications with many idle or blocked threads by skipping samples that would carry no new information; skipped threads are still reported each period.
   ```
 
 ## Finishing loop
@@ -238,8 +248,9 @@ good one with exactly the violation.
 Run the three steps in order; ANY revision restarts the loop from step 1.
 Done when a pass makes no revision:
 
-1. `bundle exec rake unreleased:lint` — fix every reported violation
+1. `bundle exec rake unreleased:lint` and `bundle exec rake unreleased:vale` —
+   fix every reported violation
 2. `bundle exec rake unreleased:render` — re-read the rendered entry
    against the Core principles and revise
-3. Re-read the message against the diff — drop or weaken every claim not
-   visible there
+3. Re-read the message against the PR's evidence (Grounding) — drop or
+   weaken every claim not visible there
