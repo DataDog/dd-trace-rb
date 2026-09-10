@@ -13,7 +13,7 @@
       {
         "version": "A",
         "type": "boolean",
-        "default": "true"
+        "default": "false"
       }
     ],
     "DD_AI_GUARD_ENDPOINT": [
@@ -1819,7 +1819,7 @@
     ],
     "DD_TRACE_OTEL_CTX_ENABLED": [
       {
-        "version": "A",
+        "version": "B",
         "type": "boolean",
         "default": "true"
       }
