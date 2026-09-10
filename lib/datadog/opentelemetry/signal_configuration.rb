@@ -11,11 +11,22 @@ module Datadog
 
       def create_resource
         resource_attributes = {}
+        tagged_environment = nil
+        named_environment = nil
+        legacy_environment = nil
 
         @settings.tags&.each do |key, value| # steep:ignore
           otel_key = case key
           when "service" then "service.name"
-          when "env" then "deployment.environment"
+          when "env"
+            tagged_environment = value
+            next
+          when "deployment.environment.name"
+            named_environment = value
+            next
+          when "deployment.environment"
+            legacy_environment = value
+            next
           when "version" then "service.version"
           else key
           end
@@ -23,7 +34,8 @@ module Datadog
         end
 
         resource_attributes["service.name"] = @settings.service_without_fallback || resource_attributes["service.name"] || Datadog::Core::Environment::Ext::FALLBACK_SERVICE_NAME # steep:ignore
-        resource_attributes["deployment.environment"] = @settings.env if @settings.env # steep:ignore
+        environment = @settings.env || tagged_environment || named_environment || legacy_environment # steep:ignore
+        resource_attributes["deployment.environment.name"] = environment if environment
         resource_attributes["service.version"] = @settings.version if @settings.version # steep:ignore
 
         hostname = Datadog::Core::Environment::Socket.resolved_hostname(@settings) # steep:ignore

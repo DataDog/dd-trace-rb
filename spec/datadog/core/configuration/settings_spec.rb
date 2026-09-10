@@ -1383,7 +1383,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         ClimateControl.modify(
           "OTEL_RESOURCE_ATTRIBUTES" => otel_tags,
           Datadog::Core::Environment::Ext::ENV_TAGS => dd_tags,
-          Datadog::Core::Environment::Ext::ENV_ENVIRONMENT => dd_env
+          Datadog::Core::Environment::Ext::ENV_ENVIRONMENT => dd_env,
         ) do
           example.run
         end
