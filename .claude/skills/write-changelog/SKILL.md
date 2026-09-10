@@ -30,13 +30,14 @@ version they run is their context; their time is short.
 - ALWAYS stay terse — every word earns its place
 - `Fixed` names the symptom; `Added` names the access point; `Changed`
   names the consequence or escape hatch
-- ALWAYS name exact versions and measured numbers; NEVER vague
-  quantifiers ("significantly", "recent") or catch-all tails ("and more")
+- ALWAYS name exact versions and platforms when they decide who is
+  affected; NEVER vague quantifiers ("significantly", "recent") or
+  catch-all tails ("and more")
 - ALWAYS wrap identifiers in code spans; NEVER repeat the product
   verbatim or reference the PR in the message
 
-Lint and vale check form only; these principles fall to the author and
-reviewer alone.
+Lint and vale enforce the mechanical floor; the rest of these
+principles fall to the author and reviewer alone.
 
 ## Grounding
 
@@ -99,9 +100,13 @@ Then keep every written claim grounded:
 
 ## Writing the message
 
-Run `unreleased:lint` while drafting; the judgment below is what it and
-vale cannot check, in drafting order. Each rule carries a minimal pair in
-a fenced block: the bad entry is the good one with exactly the violation.
+Run `unreleased:lint` and `unreleased:vale` while drafting — they enforce
+the mechanical floor: code spans, casing, verb start, PR references, the
+240-character and 3-sentence caps. The rules below add the judgment they
+cannot check, in drafting order; when the structure will not fit the
+caps, keep the customer effect and its scope, and compress the rest.
+Each rule carries a minimal pair in a fenced block: the bad entry is the
+good one with exactly the violation.
 
 - Structure by type — the reader's question differs:
   - `Fixed`: ALWAYS name the symptom they recognize, then the trigger
@@ -124,12 +129,12 @@ a fenced block: the bad entry is the good one with exactly the violation.
     <!-- Bad: the setting named vaguely — no access point the customer can find -->
     Add experimental profiling setting to show class/module names in stack frames.
 
-    <!-- Good: capability + example of what you get + the exact access point -->
+    <!-- Good: capability + example of what you get + why it helps + the exact access point -->
     Show class and module names in profiler stack frames (`Foo::Bar#baz` instead of `baz`), making hot methods easier to identify; enable it with `DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED=true`.
     ```
 
-  - `Changed`: ALWAYS name the new behavior, then why it matters, or the
-    action/escape hatch
+  - `Changed`: ALWAYS name the new behavior, then why it matters, and
+    the escape hatch when one exists
 
     ```markdown
     <!-- Bad: the flip stated, but not why it matters, and no way back -->
