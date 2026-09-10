@@ -492,7 +492,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
 
       it_behaves_like "a binary setting with",
         env_variable: "DD_TRACE_OTEL_CTX_ENABLED",
-        default: false
+        default: true
     end
 
     describe "#partial_flush" do
