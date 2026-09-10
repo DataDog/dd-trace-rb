@@ -1,47 +1,34 @@
 ---
 name: write-changelog
-description: 'Use when a change in this repo needs a customer-facing changelog entry — e.g. "add a changelog entry", "this needs a changelog fragment", or when an approved PR that changes user-visible behavior in lib/, ext/, or docs/GettingStarted.md is about to merge. Enforces dd-trace-rb changelog fragment conventions.'
+description: 'Use when a change in this repo needs a customer-facing changelog entry — e.g. "add a changelog entry" — or when an approved PR that changes user-visible behavior in lib/, ext/, or docs/GettingStarted.md is about to merge.'
 ---
 
 # Writing changelog fragments
 
-READ `unreleased/README.md` FIRST — it documents the fragment system. This
-skill covers how to do the work.
+READ `unreleased/README.md` FIRST — it is the human-facing description of
+the fragment system and its fields. This skill is the agent-facing
+checklist.
 
-Invoke when the PR is complete and approved, right before merging: the
-diff is final, so grounding and triage see the complete change. A fragment
-written earlier must be re-grounded against the final diff.
+A fragment may be written as soon as the PR exists, but its grounding is
+only final when the diff is: re-ground the message against the final
+diff when the PR is complete and approved, right before merging —
+grounding and triage see the complete change only there.
 
 ## The customer
 
 Every message targets one reader: a Ruby developer using this gem in
 their application, scanning `CHANGELOG.md` to decide whether an upgrade
 affects them. They read for what changes in their application — what
-they observe, do, or get — never for the gem's internals. The exact
-version they run is their context; their time is short.
+they observe, do, or get. The exact version they run is their context.
 
 ## Core principles
 
-- ALWAYS ground every claim in the PR's own evidence — the diff above
-  all — NEVER in memory
 - ALWAYS write for the customer, not the diff
-- ALWAYS lead with the customer effect; supporting detail follows,
-  NEVER leads — SHOULD scope who is affected (versions, platforms,
-  triggers, workloads); NEVER implementation narrative. The test: scope
-  names what the customer runs; narrative names what the code does
-- ALWAYS stay terse — every word earns its place
-- `Fixed` names the symptom; `Added` names the access point; `Changed`
-  names the consequence, and the escape hatch when one exists
-- ALWAYS name exact versions and platforms when they decide who is
-  affected; NEVER vague quantifiers ("significantly", "recent") or
-  catch-all tails ("and more")
-- ALWAYS wrap identifiers in code spans; NEVER repeat the product
-  verbatim or reference the PR in the message
-
-Lint and vale enforce the mechanical floor; the rest of these
-principles fall to the author and reviewer alone. Where a Writing-section
-bullet restates a principle or the Grounding section, that section's
-wording governs.
+- ALWAYS lead with the customer effect; supporting detail follows
+- ALWAYS scope who is affected — versions, platforms, triggers, workloads
+  — whenever the scope decides it
+- NEVER narrate the implementation
+  Scope names what the customer runs; narrative names what the code does
 
 ## Grounding
 
@@ -51,15 +38,25 @@ Read the diff and triage first; the answers drive every later step:
   only in a later change (groundwork, flag plumbed but off), there is
   nothing to write yet
 - Count: one change or several distinct effects? Several → ASK the user
-  before writing several fragments — exceptional, and the count is the
-  user's call
+  to confirm the split before writing several fragments; NEVER bundle
+  several effects into one
+
+  ```markdown
+  <!-- Bad: two effects bundled into one fragment -->
+  Add support for Bundler deployment mode (`bundle install --deployment`) and report UI-oriented injection results.
+
+  <!-- Good: one effect stated whole; the PR's other effects each get their own fragment -->
+  Add support for Bundler deployment mode (`bundle install --deployment`).
+  ```
+
 - Product: which product each effect belongs to — by effect, not code
   location (a core fix to a profiler crash is Profiling); diffuse
   core-wide → `Core`. Closed list: `ReleasePrep::Fragment::PRODUCTS`
   (`tasks/lib/release_prep/fragment.rb`); the integration name (Redis) goes
   in the `message`, not the `product`
 - Type: `Added` (new capability), `Changed` (behavior change), `Fixed`
-  (bug fix)
+  (bug fix); performance changes are `Changed`, or `Fixed` when they
+  restore performance an earlier version had
 
 Then keep every written claim grounded:
 
@@ -70,25 +67,22 @@ Then keep every written claim grounded:
 - Measured numbers: the diff, its benchmark output, or the author's
   reported result — a benchmark's output often lives only in the PR; no
   source there, and the claim stays directional
-- Verify behavior against the diff's tests — no test, no behavioral
-  claim; a rare-race fix is the exception: the defensive guard the diff
-  adds is the evidence, and the message claims no more than it
+- Verify behavior against the diff's tests — no test, no behavioral claim
+- A reproducible defect with no test: ASK the PR to add the test; the
+  behavioral claim waits for it
+- A PR that merges without the test grounds its entry in what inspection
+  establishes — the claim caps there, and the review thread notes the
+  missing test
+- When a deterministic test cannot reproduce the defect — it depends on
+  timing or uncontrolled external state — verification falls back to
+  inspection: the change the diff adds is the evidence, and the message
+  claims no more than it establishes
 - ALWAYS drop or weaken a claim that traces to nothing; NEVER hedge it
 
 ## Deciding
 
 - ALWAYS add a fragment for new features, behavior changes, and
-  customer-affecting bug fixes — one fragment per customer-visible
-  effect; when one PR carries several, the Grounding count triage asks
-  the user before any are written
-
-  ```markdown
-  <!-- Bad: several effects bundled behind "and more" -->
-  Add support for Bundler deployment mode, report UI-oriented injection results, and more.
-
-  <!-- Good: one effect stated whole; the PR's other effects each get their own fragment -->
-  Add support for Bundler deployment mode.
-  ```
+  customer-affecting bug fixes
 - NEVER add a fragment for internal refactors, test-only, CI/tooling, or
   docs outside `docs/GettingStarted.md`
 - SHOULD add when unsure — a reviewer can delete an entry; a missing one
@@ -114,17 +108,16 @@ Then keep every written claim grounded:
 Run `unreleased:lint` and `unreleased:vale` while drafting — they enforce
 the mechanical floor: code spans, casing, banned openers, PR references,
 the 240-character and 3-sentence caps. The rules below add the judgment
-they cannot check, in drafting order; when the structure will not fit
-the caps, keep the customer effect and its scope, and compress the rest.
-Each rule carries a fenced Bad/Good pair: either the bad entry is the
-good one with exactly the violation, or it is the real shipped entry,
-showing the violation as it actually shipped.
+they cannot check, in drafting order. When the structure will not fit the
+caps, keep the customer effect, its scope, and any access point or escape
+hatch — the compressible rest is the explanatory detail, never the
+actionable.
 
 - Structure by type — the reader's question differs:
   - `Fixed`: ALWAYS name the symptom they recognize, then the trigger
     they can perform or observe (a call they make, a setting they use);
-    when nothing is observable, bottom out at "a rare race" — NEVER
-    internal sequencing
+    when nothing is observable, bottom out at what the evidence
+    establishes, and NEVER below it, into internal sequencing
 
     ```markdown
     <!-- Bad: the trigger named, but no symptom to recognize -->
@@ -138,30 +131,30 @@ showing the violation as it actually shipped.
     setting/API that gets it for them
 
     ```markdown
-    <!-- Bad: the setting named vaguely — no access point the customer can find -->
-    Add experimental profiling setting to show class/module names in stack frames.
+    <!-- Bad: the capability stated, but no access point to enable it -->
+    Show class and module names in profiler stack frames (`Foo::Bar#baz` instead of `baz`), making hot methods easier to identify.
 
-    <!-- Good: capability + example of what you get + why it helps + the exact access point -->
+    <!-- Good: capability + example + why it helps + the exact access point -->
     Show class and module names in profiler stack frames (`Foo::Bar#baz` instead of `baz`), making hot methods easier to identify; enable it with `DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED=true`.
     ```
 
-  - `Changed`: ALWAYS name the new behavior, then why it matters, and
-    the escape hatch when one exists
+  - `Changed`: ALWAYS name the new behavior and the escape hatch when
+    one exists; SHOULD follow with why it matters
 
     ```markdown
-    <!-- Bad: the flip stated, but not why it matters, and no way back -->
-    Change default logger output from stdout to stderr.
+    <!-- Bad: the new behavior and why, but no way back -->
+    Move the gem's diagnostic logs from stdout to stderr, so stdout stays clean for application output.
 
     <!-- Good: new behavior + why it matters + escape hatch -->
     Move the gem's diagnostic logs from stdout to stderr, so stdout stays clean for application output; restore the old default with `c.logger.instance = Datadog::Core::Logger.new($stdout)` in `Datadog.configure`.
     ```
 
-- ALWAYS state what changed and why it matters to the customer; NEVER
-  code-review jargon ("refactored", "cleaned up") or internal file names.
+- ALWAYS state what changed, in customer terms; NEVER code-review
+  jargon ("refactored", "cleaned up") or internal file names.
 
   ```markdown
-  <!-- Bad: internal description — jargon, file name, no user-visible claim -->
-  Set `Tracing::Metadata::Ext::TAG_KIND` on spans in the ActiveRecord `sql` event handler (`events/sql.rb`).
+  <!-- Bad: code-review terms lead — jargon, file name, the customer claim buried at the end -->
+  Set `Tracing::Metadata::Ext::TAG_KIND` on spans in the `ActiveRecord` `sql` event handler (`events/sql.rb`) to fix missing peer tags for database queries.
 
   <!-- Good: customer framing, grounded, code spans -->
   Fix missing peer tags for database queries traced through `ActiveRecord`.
@@ -173,29 +166,28 @@ showing the violation as it actually shipped.
   form ("Fixed a crash...") still passes, so the verb choice falls to the
   author and reviewer
 
-- ALWAYS open the first sentence with the customer effect — what they
-  observe, do, or get; supporting detail follows, NEVER leads — it
-  SHOULD scope who is affected, NEVER narrate the implementation
+  ```markdown
+  <!-- Bad: the verb form passes vale, but the message reads as a report, not an entry -->
+  Fixed missing peer tags for database queries traced through `ActiveRecord`.
+
+  <!-- Good: the imperative verb opens the entry -->
+  Fix missing peer tags for database queries traced through `ActiveRecord`.
+  ```
+
+- ALWAYS open on the customer's observable delta; the mechanism, scope,
+  and numbers follow it
 
   ```markdown
-  <!-- Bad: the mechanism enforced; the customer's delta never appears -->
-  Enforce process-wide rate limit across all probes.
+  <!-- Bad: the mechanism opens; the customer's delta never leads -->
+  Enforce a process-wide rate limit across all probes: with multiple probes set, they can emit less than their individual limits allow — combined output is capped at 20 snapshots/s and 5000 log events/s per process.
 
   <!-- Good: the customer's observable delta leads, the numbers follow -->
   Cap probe output process-wide: with multiple probes set, they can emit less than their individual limits allow — combined output is capped at 20 snapshots/s and 5000 log events/s per process.
   ```
 
-- ALWAYS wrap identifiers (`DD_...` env vars, snake_case, CONSTANT_CASE,
-  `Foo.bar`) in code spans — code spans name identifiers, they are not
-  emphasis
-
-  ```markdown
-  <!-- Bad: identifier in plain text -->
-  Set DD_TRACE_ENABLED to 1.
-
-  <!-- Good: identifier in a code span -->
-  Set `DD_TRACE_ENABLED=1`.
-  ```
+- CamelCase is the code-span judgment call lint cannot make: span what
+  names the code you run (`ActiveRecord`), leave product names bare in
+  prose (Bundler)
 
 - NEVER repeat the product verbatim — with product `AppSec`, "Add AppSec
   detection..." says it twice; lowercase technical phrasing ("GC
@@ -209,35 +201,25 @@ showing the violation as it actually shipped.
   Add detection of response splitting.
   ```
 
-- NEVER reference the PR in the message — the number renders from
-  `pull_request` automatically
-
-  ```markdown
-  <!-- Bad: PR reference in the message -->
-  Fixes #4821 by hardening the transport against dropped payloads.
-
-  <!-- Good: no reference; the number renders from `pull_request` -->
-  Harden the transport against dropped payloads.
-  ```
 
 - ALWAYS name exact versions and platforms when they decide who is
-  affected — NEVER "recent" or "newer"
+  affected — NEVER vague quantifiers ("recent", "newer")
 
   ```markdown
   <!-- Bad: vague version -->
-  Fix a `SIGSEGV` crash that could happen with experimental heap profiling enabled on recent Ruby versions.
+  Disable live heap size profiling on recent Ruby versions due to incompatibility.
 
   <!-- Good: exact version -->
-  Fix a `SIGSEGV` crash that could happen with experimental heap profiling enabled on Ruby 4.0.
+  Disable live heap size profiling on Ruby 4.0 due to incompatibility.
   ```
 
 - SHOULD back performance claims with measured numbers from the PR's own
   evidence (Grounding); a claim with no measured number there stays
-  directional — NEVER "significantly improve"
+  directional
 
   ```markdown
-  <!-- Bad: unmeasured vague quantifier -->
-  Improve profiler performance significantly.
+  <!-- Bad: the vague quantifier stands in for the directional claim -->
+  Reduce profiler overhead significantly for applications with many idle or blocked threads by skipping samples that would carry no new information; skipped threads are still reported each period.
 
   <!-- Good: directional with scope — the PR's evidence carries no measured number -->
   Reduce profiler overhead for applications with many idle or blocked threads by skipping samples that would carry no new information; skipped threads are still reported each period.
@@ -250,7 +232,12 @@ Done when a pass makes no revision:
 
 1. `bundle exec rake unreleased:lint` and `bundle exec rake unreleased:vale` —
    fix every reported violation
-2. `bundle exec rake unreleased:render` — re-read the rendered entry
-   against the Core principles and revise
-3. Re-read the message against the PR's evidence (Grounding) — drop or
-   weaken every claim not visible there
+2. `bundle exec rake unreleased:render` — check the rendered entry
+   against every Core principle and every Writing rule in turn, and
+   revise; done when each one is accounted for
+3. Re-run the Grounding triage against the final diff — effect, count,
+   product, and type, then every identifier, version, number, and
+   behavioral claim traced to a specific hunk, benchmark output, or
+   test; drop or weaken each one that traces to nothing. A count that
+   grew means a new effect: the ASK re-fires and it gets its own
+   fragment

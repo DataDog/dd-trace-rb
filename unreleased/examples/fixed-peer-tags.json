@@ -1,6 +1,6 @@
 {
   "type": "Fixed",
   "product": "Tracing",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6213",
-  "message": "Fix missing peer tags for database queries traced through `ActiveRecord`."
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6104",
+  "message": "Fix missing or zero Kafka producer and connection span tags like `kafka.message_count` and `kafka.request_size` in the `ruby-kafka` integration."
 }

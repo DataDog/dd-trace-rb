@@ -1,6 +1,6 @@
 {
   "type": "Added",
-  "product": "Profiling",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6024",
-  "message": "Show class and module names in profiler stack frames (`Foo::Bar#baz` instead of `baz`), making hot methods easier to identify; enable it with `DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED=true`."
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/5971",
+  "message": "Add an experimental native (`libdatadog`-backed) trace transport, selectable via `tracing.native_transport`."
 }

@@ -1,6 +1,6 @@
 {
   "type": "Changed",
   "product": "Profiling",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/5777",
-  "message": "Reduce profiler overhead for applications with many idle or blocked threads by skipping samples that would carry no new information; skipped threads are still reported each period."
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/5955",
+  "message": "Reduce profiler overhead by sampling profiler-internal threads only once per minute."
 }
