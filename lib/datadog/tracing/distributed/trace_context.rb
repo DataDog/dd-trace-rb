@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative "../../core/utils"
 require_relative "helpers"
+require_relative "trace_state"
 
 module Datadog
   module Tracing
@@ -30,7 +30,7 @@ module Datadog
           if (traceparent = build_traceparent(digest))
             data[@traceparent_key] = traceparent
 
-            if (tracestate = build_tracestate(digest))
+            if (tracestate = TraceState.serialize_digest(digest))
               data[@tracestate_key] = tracestate
             end
           end
@@ -45,11 +45,12 @@ module Datadog
 
           return unless trace_id # Could not parse traceparent
 
-          tracestate, sampling_priority, origin, ts_parent_id, tags, unknown_fields = extract_tracestate(
-            fetcher[@tracestate_key]
-          )
+          trace_state = TraceState.extract(fetcher[@tracestate_key])
+          dd = trace_state.datadog
+          ot = trace_state.open_telemetry
 
-          sampling_priority = parse_priority_sampling(sampled, sampling_priority) do |decision|
+          tags = dd.tags
+          sampling_priority = parse_priority_sampling(sampled, dd.sampling_priority) do |decision|
             case decision
             when String
               tags ||= {}
@@ -61,17 +62,20 @@ module Datadog
 
           tags ||= {}
           tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] =
-            ts_parent_id || Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
+            dd.ts_parent_id || Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
 
           TraceDigest.new(
             span_id: parent_id,
             trace_id: trace_id,
-            trace_origin: origin,
+            trace_origin: dd.origin,
             trace_sampling_priority: sampling_priority,
             trace_distributed_tags: tags,
             trace_flags: trace_flags,
-            trace_state: tracestate,
-            trace_state_unknown_fields: unknown_fields,
+            trace_state: trace_state.unknown_vendors,
+            trace_state_unknown_fields: dd.unknown_fields,
+            trace_otel_random_value: ot.random_value,
+            trace_otel_threshold: ot.threshold,
+            trace_otel_unknown_fields: ot.unknown_fields,
             span_remote: true,
           )
         end
@@ -121,133 +125,6 @@ module Datadog
           trace_flags
         end
 
-        # @see https://www.w3.org/TR/trace-context/#tracestate-header
-        def build_tracestate(digest)
-          tracestate = +"dd="
-          append_dd(tracestate, last_dd_parent_id(digest))
-          append_dd(tracestate, "s:#{digest.trace_sampling_priority};") if digest.trace_sampling_priority
-          append_dd(tracestate, "o:#{serialize_origin(digest.trace_origin)};") if digest.trace_origin
-
-          # Replacing this by safe navigation seems to have a different behaviour on Rubies <= 3.0.
-          # It cause a LocalJumpError in the CI.
-          if digest.trace_distributed_tags # rubocop:disable Style/SafeNavigation
-            digest.trace_distributed_tags.each do |name, value|
-              tag = "t.#{serialize_tag_key(name)}:#{serialize_tag_value(value)};"
-
-              # If tracestate size limit is exceeded, drop the remaining data.
-              break unless append_dd(tracestate, tag)
-            end
-          end
-
-          append_dd(tracestate, digest.trace_state_unknown_fields) if digest.trace_state_unknown_fields
-          vendors = split_tracestate(digest.trace_state)
-
-          # Is there any Datadog-specific information to propagate.
-          # Check for > 3 size because the empty prefix `dd=` has 3 characters.
-          if tracestate.bytesize > 3
-            # Propagate upstream tracestate with `dd=...` appended to the list
-            tracestate.chop! # Removes trailing `;` from Datadog trace state string.
-
-            if vendors && !vendors.empty?
-              # Delete existing `dd=` tracestate fields, if present.
-              vendors.reject! { |v| v.start_with?("dd=") }
-
-              # Ensure the list has at most 31 elements, as we need to prepend Datadog's
-              # entry and the limit is 32 elements total.
-              vendors.first(TRACESTATE_MAX_LIST_MEMBERS - 1).each do |vendor|
-                break if tracestate.bytesize + vendor.bytesize + 1 > TRACESTATE_MAX_SIZE_LIMIT
-
-                tracestate << "," << vendor
-              end
-            end
-
-            tracestate.to_s
-          elsif vendors && !vendors.empty?
-            vendors.join(",")
-          end
-        end
-
-        # Appends a Datadog tracestate field when it fits.
-        def append_dd(tracestate, field)
-          return true if field.empty?
-
-          # We add 1 to the limit because of the trailing semicolon, which will be removed before returning.
-          return false if tracestate.bytesize + field.bytesize > (TRACESTATE_VALUE_SIZE_LIMIT + 1)
-
-          tracestate << field
-          true
-        end
-
-        def last_dd_parent_id(digest)
-          if !digest.span_remote
-            span_id = digest.span_id || 0 # Fall back to zero (invalid) if not present
-            "p:#{format("%016x", span_id)};"
-          elsif digest.trace_distributed_tags&.key?(Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID)
-            "p:#{digest.trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID]};"
-          else
-            ""
-          end
-        end
-
-        # If any characters in <origin_value> are invalid, replace each invalid character with 0x5F (underscore).
-        # Invalid characters are: characters outside the ASCII range 0x20 to 0x7E,
-        # 0x2C (comma), 0x3B (semi-colon), and 0x7E (tilde).
-        # Then, remap 0x3D (equals) to 0x7E (tilde)
-        def serialize_origin(value)
-          # DEV: It's unlikely that characters will be out of range, as they mostly
-          # DEV: come from Datadog-controlled sources.
-          # DEV: Trying to `match?` is measurably faster than a `gsub` that does not match.
-          value = if INVALID_ORIGIN_CHARS.match?(value)
-            value.gsub(INVALID_ORIGIN_CHARS, "_")
-          else
-            value
-          end
-
-          if REMAP_ORIGIN_CHARS.match?(value)
-            value.gsub(REMAP_ORIGIN_CHARS, "~")
-          else
-            value
-          end
-        end
-
-        # Serialize `_dd.p.{key}` by first removing the `_dd.p.` prefix.
-        # Then replacing invalid characters with `_`.
-        #
-        # The argument `name` is always frozen.
-        # Returns a new String object for the serialized key.
-        def serialize_tag_key(name)
-          key = name.delete_prefix(Tracing::Metadata::Ext::Distributed::TAGS_PREFIX)
-
-          # DEV: It's unlikely that characters will be out of range, as they mostly
-          # DEV: come from Datadog-controlled sources.
-          # DEV: Trying to `match?` is measurably faster than a `gsub!` that does not match.
-          key.gsub!(INVALID_TAG_KEY_CHARS, "_") if INVALID_TAG_KEY_CHARS.match?(key)
-
-          key
-        end
-
-        # Replaces invalid characters with `_`, then replaces `=` with `~`.
-        #
-        # The argument `value` belongs to {TraceDigest}, thus should not be directly modified.
-        # Returns a new String object for the serialized value.
-        def serialize_tag_value(value)
-          # DEV: It's unlikely that characters will be out of range, as they mostly
-          # DEV: come from Datadog-controlled sources.
-          # DEV: Trying to `match?` is measurably faster than a `gsub` that does not match.
-          ret = if INVALID_TAG_VALUE_CHARS.match?(value)
-            value.gsub(INVALID_TAG_VALUE_CHARS, "_")
-          else
-            value
-          end
-
-          # DEV: Checking for an unlikely '=' is faster than a no-op `tr`.
-          if ret.include?("=")
-            ret.tr("=", "~")
-          else
-            ret
-          end
-        end
-
         def extract_traceparent(traceparent)
           trace_id, parent_id, trace_flags = parse_traceparent_string(traceparent)
 
@@ -285,78 +162,6 @@ module Datadog
           trace_flags & TRACE_FLAGS_SAMPLED
         end
 
-        # @return [nil] when the tracestate is absent or has no vendor entries.
-        # @return [String] when no `dd=` entry is present, the joined vendor list.
-        # @return [Array(String, Integer, String, String, Hash, String)] when a `dd=`
-        #   entry is present: [tracestate without `dd=`, sampling_priority, origin,
-        #   ts_parent_id, tags, unknown_fields]. All elements past the first may be nil.
-        def extract_tracestate(tracestate)
-          vendors = split_tracestate(tracestate)
-          return unless vendors && !vendors.empty?
-
-          tracestate = vendors.join(",")
-
-          # Find Datadog's `dd=` tracestate field.
-          idx = vendors.index { |v| v.start_with?("dd=") }
-          return tracestate unless idx
-
-          # Delete `dd=` prefix
-          dd_tracestate = vendors.delete_at(idx)
-          dd_tracestate.slice!(0..2)
-
-          origin, sampling_priority, ts_parent_id, tags, unknown_fields = extract_datadog_fields(dd_tracestate)
-
-          [vendors.join(","), sampling_priority, origin, ts_parent_id, tags, unknown_fields]
-        end
-
-        def extract_datadog_fields(dd_tracestate)
-          sampling_priority = nil
-          origin = nil
-          ts_parent_id = nil
-          tags = nil
-          unknown_fields = nil
-
-          # DEV: Since Ruby 2.6 `split` can receive a block, so `each` can be removed then.
-          dd_tracestate.split(";").each do |pair|
-            key, value = pair.split(":", 2)
-            case key
-            when "s"
-              sampling_priority = begin
-                Integer(value)
-              rescue
-                nil
-              end
-            when "o"
-              origin = value
-            when "p"
-              ts_parent_id = value
-            when /^t\./
-              key.slice!(0..1) # Delete `t.` prefix
-
-              # Ignore the high order 64 bit trace id propagation tag to avoid confusion,
-              # the single source of truth is from traceparent
-              next if key == Tracing::Metadata::Ext::Distributed::TID
-
-              value = deserialize_tag_value(value)
-
-              tags ||= {}
-              tags["#{Tracing::Metadata::Ext::Distributed::TAGS_PREFIX}#{key}"] = value
-            else
-              unknown_fields ||= +""
-              unknown_fields << pair
-              unknown_fields << ";"
-            end
-          end
-
-          [origin, sampling_priority, ts_parent_id, tags, unknown_fields]
-        end
-
-        # Restore `~` back to `=`.
-        def deserialize_tag_value(value)
-          value.tr!("~", "=")
-          value
-        end
-
         # If `sampled` and `sampling_priority` disagree, `sampled` overrides the decision.
         # @return [Integer] one of the {Datadog::Tracing::Sampling::Ext::Priority} values
         # @yieldparam the new decision maker (either :drop or a new decision maker String value).
@@ -382,46 +187,8 @@ module Datadog
           end
         end
 
-        # We MUST NOT propagate partial members, but we SHOULD try
-        # to parse as much of the tracestate as possible.
-        def split_tracestate(tracestate)
-          return unless tracestate
-
-          remove_last_member = false
-          if tracestate.bytesize > TRACESTATE_MAX_SIZE_LIMIT
-            # We parse 1 byte over the limit to detect if the last member
-            # is a partial member (toss) or ends exactly at the limit (keep).
-            remove_last_member = tracestate.byteslice(TRACESTATE_MAX_SIZE_LIMIT, 1) != ","
-
-            # To ensure we don't have a trailing partial UTF-8 codepoint, we keep one extra byte
-            # and safely remove it with `#chop`.
-            # `#chop` walks back the string until it finds a valid character boundary and deletes
-            # from there.
-            tracestate = tracestate.byteslice(0, TRACESTATE_MAX_SIZE_LIMIT + 1) #: String
-            tracestate = tracestate.chop
-          end
-
-          tracestate = ::Datadog::Core::Utils.utf8_encode(tracestate, placeholder: nil)
-          return unless tracestate
-
-          vendors = tracestate.split(",", TRACESTATE_MAX_LIST_MEMBERS + 1)
-          if vendors.length > TRACESTATE_MAX_LIST_MEMBERS || remove_last_member
-            vendors.pop
-          end
-
-          vendors.each(&:strip!)
-          vendors.pop while vendors.last == ""
-          vendors
-        end
-
         TRACEPARENT_MAX_SIZE_LIMIT = 512
         private_constant :TRACEPARENT_MAX_SIZE_LIMIT
-
-        TRACESTATE_MAX_SIZE_LIMIT = 512
-        private_constant :TRACESTATE_MAX_SIZE_LIMIT
-
-        TRACESTATE_MAX_LIST_MEMBERS = 32
-        private_constant :TRACESTATE_MAX_LIST_MEMBERS
 
         # Version 0xFF is invalid as per spec
         # @see https://www.w3.org/TR/trace-context/#version
@@ -437,30 +204,6 @@ module Datadog
         # @see https://www.w3.org/TR/trace-context/#trace-flags
         TRACE_FLAGS_SAMPLED = 0b00000001
         private_constant :TRACE_FLAGS_SAMPLED
-
-        # The limit is inclusive: sizes *greater* than 256 are disallowed.
-        # @see https://www.w3.org/TR/trace-context/#value
-        TRACESTATE_VALUE_SIZE_LIMIT = 256
-        private_constant :TRACESTATE_VALUE_SIZE_LIMIT
-
-        # Replace all characters with `_`, except ASCII characters 0x20-0x7E.
-        # Additionally, `,`, ';', and `~` must also be replaced by `_`.
-        INVALID_ORIGIN_CHARS = /[\u0000-\u0019,;~\u007F-\u{10FFFF}]/.freeze
-        private_constant :INVALID_ORIGIN_CHARS
-
-        # Additionally, remap `=` to `~`
-        REMAP_ORIGIN_CHARS = /=/.freeze
-        private_constant :REMAP_ORIGIN_CHARS
-
-        # Replace all characters with `_`, except ASCII characters 0x21-0x7E.
-        # Additionally, `,` and `=` must also be replaced by `_`.
-        INVALID_TAG_KEY_CHARS = /[\u0000-\u0020,=\u007F-\u{10FFFF}]/.freeze
-        private_constant :INVALID_TAG_KEY_CHARS
-
-        # Replace all characters with `_`, except ASCII characters 0x20-0x7D.
-        # Additionally, `,` and `;` must also be replaced by `_`.
-        INVALID_TAG_VALUE_CHARS = /[\u0000-\u001F,;\u007E-\u{10FFFF}]/.freeze
-        private_constant :INVALID_TAG_VALUE_CHARS
       end
     end
   end

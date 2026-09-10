@@ -7,6 +7,7 @@ require_relative "../../core/transport/transport"
 require_relative "../../core/utils/enumerable_compat"
 require_relative "http/client"
 require_relative "serializable_trace"
+require_relative "span_events"
 require_relative "trace_formatter"
 
 module Datadog
@@ -118,6 +119,7 @@ module Datadog
         # batches of traces into smaller chunks and handles
         # API version downgrade handshake.
         class Transport < Core::Transport::Transport
+          include SpanEvents
           self.http_client_class = Tracing::Transport::HTTP::Client
 
           def send_traces(traces)
@@ -160,28 +162,6 @@ module Datadog
 
           def stats
             client.stats
-          end
-
-          private
-
-          # Queries the agent for native span events serialization support.
-          # This changes how the serialization of span events performed.
-          def native_events_supported?
-            return @native_events_supported if defined?(@native_events_supported)
-
-            # Check for an explicit override
-            option = Datadog.configuration.tracing.native_span_events
-            unless option.nil?
-              @native_events_supported = option
-              return option
-            end
-
-            # Otherwise, check for agent support, to ensure a configuration-less setup.
-            if (res = Datadog.send(:components).agent_info.fetch)
-              @native_events_supported = res.span_events == true
-            else
-              false
-            end
           end
         end
       end

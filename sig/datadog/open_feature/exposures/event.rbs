@@ -9,19 +9,19 @@ module Datadog
         TARGETING_KEY_FIELD: ::String
 
         def self.cache_key: (
-          ResolutionDetails | Core::FeatureFlags::ResolutionDetails result,
+          ResolutionDetails result,
           flag_key: ::String,
           context: ::OpenFeature::SDK::EvaluationContext
         ) -> ::String
 
         def self.cache_value: (
-          ResolutionDetails | Core::FeatureFlags::ResolutionDetails result,
+          ResolutionDetails result,
           flag_key: ::String,
           context: ::OpenFeature::SDK::EvaluationContext
         ) -> ::String
 
         def self.build: (
-          ResolutionDetails | Core::FeatureFlags::ResolutionDetails result,
+          ResolutionDetails result,
           flag_key: ::String,
           context: ::OpenFeature::SDK::EvaluationContext
         ) -> t

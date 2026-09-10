@@ -379,6 +379,7 @@ module Datadog
             thread_id: nil,
             version: 2,
           },
+          runtime_id: Core::Environment::Identity.id,
           # TODO add tests that the trace/span id is correctly propagated
           "dd.trace_id": active_trace&.id&.to_s,
           "dd.span_id": active_span&.id&.to_s,

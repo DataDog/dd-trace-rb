@@ -2,6 +2,9 @@
 
 require "datadog/core"
 require "datadog/tracing/span"
+require "datadog/tracing/span_event"
+require "datadog/tracing/span_link"
+require "datadog/tracing/trace_digest"
 
 RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
   before do
@@ -91,6 +94,100 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
       end
     end
 
+    context "with span links" do
+      let(:link) do
+        Datadog::Tracing::SpanLink.new(
+          Datadog::Tracing::TraceDigest.new(
+            trace_id: (0x1234 << 64) | 0x5678,
+            span_id: 0x9abc,
+            trace_sampling_priority: 1,
+            trace_state: "vendor=value"
+          ),
+          attributes: {"operation" => "receive", "batch" => [1, true]}
+        )
+      end
+
+      it "uses the canonical SpanLink hash before native conversion" do
+        expect(link).to receive(:to_hash).once.and_call_original
+        span = make_ruby_span
+        span.links << link
+
+        expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
+      end
+
+      it "normalizes every link before allocating the Rust span" do
+        bad_link = instance_double(Datadog::Tracing::SpanLink)
+        allow(bad_link).to receive(:to_hash).and_raise("normalization failed")
+        span = make_ruby_span
+        span.links.concat([link, bad_link])
+
+        expect { tracer_span_class._native_from_span(span) }
+          .to raise_error(RuntimeError, "normalization failed")
+        GC.start
+      end
+
+      it "rejects invalid UTF-8" do
+        invalid_link = Datadog::Tracing::SpanLink.new(
+          Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2),
+          attributes: {"valid" => "value", "invalid" => "\xff".b}
+        )
+        span = make_ruby_span
+        span.links.concat([link, invalid_link])
+
+        expect { tracer_span_class._native_from_span(span) }
+          .to raise_error(RuntimeError, /Failed to set span links/)
+        GC.start
+      end
+
+      it "cleans up partial snapshots when a hash default proc raises, then converts a valid span", :native_transport_memcheck do
+        calls = []
+        canonical = {
+          trace_id: 1,
+          trace_id_high: 0,
+          span_id: 2,
+          attributes: {"copied" => "value"},
+          flags: 0,
+        }
+        canonical.default_proc = proc do |_hash, key|
+          calls << key
+          raise "default proc failed"
+        end
+        stateful_link = instance_double(Datadog::Tracing::SpanLink, to_hash: canonical)
+        span = make_ruby_span
+        span.links << stateful_link
+
+        20.times do
+          expect { tracer_span_class._native_from_span(span) }
+            .to raise_error(RuntimeError, "default proc failed")
+        end
+        expect(calls).to eq([:tracestate] * 20)
+
+        span.links.replace([Datadog::Tracing::SpanLink.new(
+          Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2)
+        )])
+        expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
+        GC.start
+      end
+
+      it "releases prepared meta_struct storage when links is not an array, then converts a valid span", :native_transport_memcheck do
+        span = make_ruby_span
+        span.set_metastruct_tag("_dd.stack", {frames: [{file: "app.rb", line: 42}]})
+        # The public #links setter has no type enforcement, so a non-Array value
+        # reaches the C type check that runs after meta_struct storage has
+        # already been allocated.
+        span.links = "not an array"
+
+        20.times do
+          expect { tracer_span_class._native_from_span(span) }
+            .to raise_error(TypeError, /rb_links/)
+        end
+
+        span.links = []
+        expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
+        GC.start
+      end
+    end
+
     context "with non-string meta values (mixed hash)" do
       it "skips the non-string entries and warns with their count" do
         span = make_ruby_span(meta: {"good" => "value", "bad" => 123, nil => "also_bad"})
@@ -172,6 +269,52 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
       end
     end
 
+    context "when Ruby conversion raises after native events are allocated" do
+      it "cleans up detached events and propagates the exception" do
+        event = Datadog::Tracing::SpanEvent.new("event", time_unix_nano: 123)
+        span = make_ruby_span(duration: nil, events: [event])
+        allow(span).to receive(:duration).and_raise(RuntimeError, "duration boom")
+
+        expect { tracer_span_class._native_from_span(span) }
+          .to raise_error(RuntimeError, "duration boom")
+
+        GC.start
+        expect(tracer_span_class._native_from_span(make_ruby_span(events: [event])))
+          .to be_a(tracer_span_class)
+      end
+    end
+
+    context "when libdatadog rejects event input" do
+      it "cleans up the event allocation and raises" do
+        invalid = "\xFF".b.force_encoding(Encoding::UTF_8)
+        event = Datadog::Tracing::SpanEvent.new("event", attributes: {"invalid" => invalid})
+
+        expect { tracer_span_class._native_from_span(make_ruby_span(events: [event])) }
+          .to raise_error(RuntimeError, /Failed to set span event attribute/)
+
+        GC.start
+        valid = Datadog::Tracing::SpanEvent.new("event", attributes: {"valid" => "value"})
+        expect(tracer_span_class._native_from_span(make_ruby_span(events: [valid])))
+          .to be_a(tracer_span_class)
+      end
+    end
+
+    context "with malformed native event input" do
+      it "rejects it before allocating Rust resources" do
+        event = double(
+          "malformed event",
+          to_native_format: {
+            "name" => "event",
+            "time_unix_nano" => 123,
+            "attributes" => {"invalid" => {type: 99}},
+          }
+        )
+
+        expect { tracer_span_class._native_from_span(make_ruby_span(events: [event])) }
+          .to raise_error(ArgumentError, /unsupported span event attribute type/)
+      end
+    end
+
     context "with non-numeric metrics values (mixed hash)" do
       it "skips the non-numeric entries and warns with their count" do
         span = make_ruby_span(metrics: {"_dd.measured" => 1.0, "bad" => "string"})
@@ -179,6 +322,90 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         expect(Datadog.logger).to receive(:warn).with(/skipped 1 non-numeric metrics entries/)
 
         expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
+      end
+    end
+
+    context "with meta_struct" do
+      it "accepts string and symbol keys" do
+        span = make_ruby_span
+        span.set_metastruct_tag("_dd.stack", {frames: [{file: "app.rb", line: 42}]})
+        span.set_metastruct_tag(:ai_guard, {messages: ["hello"]})
+
+        expect { tracer_span_class._native_from_span(span) }.not_to raise_error
+      end
+
+      it "does not call MessagePack for supported values" do
+        value = {"supported" => [nil, true, 1, 1.5, "text", "\xff".b]}
+        def value.to_msgpack
+          raise "must not be called"
+        end
+        span = make_ruby_span
+        span.set_metastruct_tag("native", value)
+
+        expect { tracer_span_class._native_from_span(span) }.not_to raise_error
+      end
+
+      it "rejects custom MessagePack encoders without calling them" do
+        value = Object.new
+        def value.to_msgpack
+          raise "must not be called"
+        end
+        span = make_ruby_span
+        span.set_metastruct_tag("custom", value)
+
+        expect { tracer_span_class._native_from_span(span) }
+          .to raise_error(TypeError, "unsupported meta_struct value type: Object")
+      end
+
+      it "skips keys outside the agent string-key contract" do
+        span = make_ruby_span
+        span.set_metastruct_tag(123, {ignored: true})
+
+        expect(Datadog.logger).to receive(:warn)
+          .with(/skipped 1 meta_struct entries with non-string keys/)
+
+        expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
+      end
+
+      it "rejects cyclic arrays and hashes" do
+        array = []
+        array << array
+        hash = {}
+        hash["self"] = hash
+
+        [array, hash].each do |value|
+          span = make_ruby_span
+          span.set_metastruct_tag("cyclic", value)
+          expect { tracer_span_class._native_from_span(span) }
+            .to raise_error(ArgumentError, "meta_struct value contains a cycle")
+        end
+      end
+
+      it "rejects values deeper than 64 containers" do
+        value = nil
+        65.times { value = [value] }
+        span = make_ruby_span
+        span.set_metastruct_tag("deep", value)
+
+        expect { tracer_span_class._native_from_span(span) }
+          .to raise_error(ArgumentError, "meta_struct value exceeds maximum depth of 64")
+      end
+
+      it "rejects integers outside the native range" do
+        span = make_ruby_span
+        span.set_metastruct_tag("large", 1 << 64)
+
+        expect { tracer_span_class._native_from_span(span) }.to raise_error(RangeError)
+      end
+
+      it "rejects invalid UTF-8 strings" do
+        span = make_ruby_span
+        span.set_metastruct_tag("invalid", (+"\xff").force_encoding(Encoding::UTF_8))
+
+        expect { tracer_span_class._native_from_span(span) }
+          .to raise_error(EncodingError, "meta_struct string is not valid UTF-8")
+
+        GC.start
       end
     end
 

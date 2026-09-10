@@ -4,6 +4,9 @@ require "datadog/core"
 require "datadog/tracing/span"
 require "socket"
 require "json"
+require "msgpack"
+require "datadog/tracing/span_event"
+require "datadog/tracing/span_operation"
 
 RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_traces" do
   before do
@@ -125,7 +128,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
 
   describe "with an empty array" do
     it "returns an empty array without contacting the server" do
-      responses = exporter._native_send_traces([])
+      responses = exporter._native_send_traces([], false)
       expect(responses).to eq([])
     end
   end
@@ -133,7 +136,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
   describe "with a single trace containing one span" do
     it "returns a success response" do
       spans = [make_span]
-      responses = exporter._native_send_traces([spans])
+      responses = exporter._native_send_traces([spans], false)
 
       expect(responses).to be_an(Array)
       expect(responses.length).to eq(1)
@@ -148,7 +151,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
 
     it "returns a payload with the agent response body" do
       spans = [make_span]
-      responses = exporter._native_send_traces([spans])
+      responses = exporter._native_send_traces([spans], false)
       resp = responses.first
 
       # The payload should contain the mock agent's JSON body
@@ -162,7 +165,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
     it "sends all chunks and returns a success response" do
       chunk1 = [make_span("op1"), make_span("op2")]
       chunk2 = [make_span("op3")]
-      responses = exporter._native_send_traces([chunk1, chunk2])
+      responses = exporter._native_send_traces([chunk1, chunk2], false)
 
       expect(responses.length).to eq(1)
       expect(responses.first.ok?).to be true
@@ -177,8 +180,78 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       span.set_tag("http.url", "/test")
       span.set_metric("_dd.measured", 1.0)
 
-      responses = exporter._native_send_traces([[span]])
+      responses = exporter._native_send_traces([[span]], false)
       expect(responses.first.ok?).to be true
+    end
+  end
+
+  describe "with native span events" do
+    it "preserves event order, timestamps, scalar types, and homogeneous arrays on the wire" do
+      span = make_span
+      span.events = [
+        Datadog::Tracing::SpanEvent.new(
+          "first",
+          time_unix_nano: 123,
+          attributes: {
+            "string" => "value",
+            "bool" => true,
+            "int" => -42,
+            "double" => 1.5,
+            "strings" => ["one", "two"],
+            "bools" => [true, false],
+            "ints" => [-1, 2],
+            "doubles" => [1.25, 2.5],
+          }
+        ),
+        Datadog::Tracing::SpanEvent.new("second", time_unix_nano: 456),
+      ]
+
+      responses = exporter._native_send_traces([[span]], true)
+
+      expect(responses.first.ok?).to be true
+      payload = MessagePack.unpack(mock_agent.requests.last.fetch(:body))
+      events = payload.dig(0, 0, "span_events")
+      expected = MessagePack.unpack(MessagePack.pack(span.events.map(&:to_native_format)))
+      expect(events).to eq(expected)
+      expect(payload.dig(0, 0).fetch("meta", {})).to_not have_key("events")
+    end
+
+    it "exports events produced by record_exception" do
+      span_op = Datadog::Tracing::SpanOperation.new("record.exception")
+      error = StandardError.new("test error")
+      error.set_backtrace(["test.rb:1"])
+      span_op.record_exception(error, attributes: {"attempt" => 2})
+      span = span_op.finish
+
+      responses = exporter._native_send_traces([[span]], true)
+
+      expect(responses.first.ok?).to be true
+      payload = MessagePack.unpack(mock_agent.requests.last.fetch(:body))
+      event = payload.dig(0, 0, "span_events", 0)
+      expect(event).to include("name" => "exception")
+      expect(event.dig("attributes", "attempt")).to eq("type" => 2, "int_value" => 2)
+      expect(event.dig("attributes", "exception.type")).to eq(
+        "type" => 0,
+        "string_value" => "StandardError"
+      )
+    end
+
+    it "exports empty arrays" do
+      span = make_span
+      span.events = [Datadog::Tracing::SpanEvent.new(
+        "empty",
+        time_unix_nano: 123,
+        attributes: {"values" => []}
+      )]
+
+      responses = exporter._native_send_traces([[span]], true)
+
+      expect(responses.first.ok?).to be true
+      payload = MessagePack.unpack(mock_agent.requests.last.fetch(:body))
+      expect(payload.dig(0, 0, "span_events", 0, "attributes", "values")).to eq(
+        "type" => 4,
+        "array_value" => {"values" => []}
+      )
     end
   end
 
@@ -186,7 +259,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
     let(:mock_agent) { MockAgent.new(status: 500, body: '{"error":"server overloaded"}') }
 
     it "returns an error response" do
-      responses = exporter._native_send_traces([[make_span]])
+      responses = exporter._native_send_traces([[make_span]], false)
 
       expect(responses.length).to eq(1)
       resp = responses.first
@@ -198,11 +271,15 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
 
   describe "argument validation" do
     it "raises TypeError for non-array argument" do
-      expect { exporter._native_send_traces("not an array") }.to raise_error(TypeError)
+      expect { exporter._native_send_traces("not an array", false) }.to raise_error(TypeError)
     end
 
     it "raises TypeError for non-array inner element" do
-      expect { exporter._native_send_traces(["not an array"]) }.to raise_error(TypeError)
+      expect { exporter._native_send_traces(["not an array"], false) }.to raise_error(TypeError)
+    end
+
+    it "raises TypeError for a non-boolean span event capability" do
+      expect { exporter._native_send_traces([], nil) }.to raise_error(TypeError)
     end
   end
 
@@ -213,12 +290,12 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       allow(Datadog.logger).to receive(:warn).and_raise(RuntimeError, "logger boom")
 
       20.times do
-        expect { exporter._native_send_traces([[first, second]]) }
+        expect { exporter._native_send_traces([[first, second]], false) }
           .to raise_error(RuntimeError, "logger boom")
       end
 
       GC.start
-      expect(exporter._native_send_traces([[make_span("valid")]]).first.ok?).to be true
+      expect(exporter._native_send_traces([[make_span("valid")]], false).first.ok?).to be true
     end
   end
 end

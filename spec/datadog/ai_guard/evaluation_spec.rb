@@ -228,6 +228,33 @@ RSpec.describe Datadog::AIGuard::Evaluation do
         )
       end
 
+      it "does not split multibyte characters when truncating content" do
+        allow(Datadog.configuration.ai_guard).to receive(:max_content_size_bytes).and_return(5)
+        messages = [
+          Datadog::AIGuard.message(role: :user, content: "abc😀def"),
+          Datadog::AIGuard.message(role: :user) do |content|
+            content.text("abc😀def")
+            content.image_url("https://example.com/image.png")
+          end,
+        ]
+
+        described_class.perform(messages)
+
+        serialized = ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)
+        expect(serialized).to eq([
+          {content: "abc", role: :user},
+          {
+            content: [
+              {type: "text", text: "abc"},
+              {type: "image_url", image_url: {url: "https://example.com/image.png"}},
+            ],
+            role: :user,
+          },
+        ])
+        expect(serialized.first.fetch(:content)).to be_valid_encoding
+        expect(serialized.last.fetch(:content).first.fetch(:text)).to be_valid_encoding
+      end
+
       it "sets ai_guard metastruct tag with empty attack categories" do
         perform
 

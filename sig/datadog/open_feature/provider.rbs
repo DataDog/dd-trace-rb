@@ -69,10 +69,10 @@ module Datadog
         ::OpenFeature::SDK::Provider::ResolutionDetails::value_t default_value,
         ::Symbol expected_type,
         ::OpenFeature::SDK::EvaluationContext? evaluation_context
-      ) -> (ResolutionDetails | Core::FeatureFlags::ResolutionDetails)
+      ) -> ResolutionDetails
 
       def sdk_success_details: (
-        (ResolutionDetails | Core::FeatureFlags::ResolutionDetails) result,
+        ResolutionDetails result,
         ::Hash[::String, untyped] flag_meta
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
@@ -85,13 +85,13 @@ module Datadog
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def build_flag_metadata: (
-        (ResolutionDetails | Core::FeatureFlags::ResolutionDetails) result,
+        ResolutionDetails result,
         ::Integer eval_time_ms
       ) -> ::Hash[::String, untyped]
 
       def enrich_span: (
         ::String flag_key,
-        (ResolutionDetails | Core::FeatureFlags::ResolutionDetails) result,
+        ResolutionDetails result,
         ::OpenFeature::SDK::EvaluationContext? evaluation_context
       ) -> void
 

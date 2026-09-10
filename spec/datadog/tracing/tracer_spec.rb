@@ -966,8 +966,10 @@ RSpec.describe Datadog::Tracing::Tracer do
           expect(trace).to have_attributes(
             origin: digest.trace_origin,
             sampling_priority: digest.trace_sampling_priority,
-            trace_state: "my-state",
-            trace_state_unknown_fields: "any;field",
+            trace_state: an_object_having_attributes(
+              unknown_vendors: "my-state",
+              datadog: an_object_having_attributes(unknown_fields: "any;field")
+            ),
           )
           expect(digest.span_remote).to be true
           expect(trace.to_digest.span_remote).to be false

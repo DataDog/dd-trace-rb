@@ -19,6 +19,12 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
       expect(result).to include("id" => "some-id", "language" => "ruby")
     end
 
+    it "exposes the same data as primitives" do
+      result = described_class.new(locations: [], stack_id: "some-id").to_h
+
+      expect(result).to eq("id" => "some-id", "language" => "ruby", "frames" => [])
+    end
+
     it "correctly serializes stack frames" do
       location = instance_double(
         Thread::Backtrace::Location,

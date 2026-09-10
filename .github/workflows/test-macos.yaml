@@ -5,8 +5,6 @@ on: # yamllint disable-line rule:truthy
     branches:
       - master
   pull_request:
-    branches:
-      - master
 
 # Default permissions for all jobs
 permissions: {}
@@ -39,7 +37,6 @@ jobs:
       DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
       DD_REMOTE_CONFIGURATION_ENABLED: false
       DATADOG_GEM_CI: true
-      DD_PROFILING_MACOS_TESTING: true
       BUNDLE_GEMFILE: gemfiles/ruby-${{ matrix.ruby.version }}.gemfile
       BUNDLE_FROZEN: "true"
     steps:

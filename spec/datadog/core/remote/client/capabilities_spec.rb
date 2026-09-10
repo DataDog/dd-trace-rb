@@ -22,16 +22,16 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
   shared_examples "tracing and DI capabilities" do
     it "includes tracing capabilities and the DI enablement bit" do
-      # Bits 12, 13, 14, 29 (tracing) + 38 (DI enablement, registered with the DI block)
-      expect(capabilities.base64_capabilities).to eq("QCAAcAA=")
+      # Bits 12, 13, 14, 29, 45 (tracing) + 38 (DI enablement, registered with the DI block)
+      expect(capabilities.base64_capabilities).to eq("IEAgAHAA")
     end
   end
 
   shared_examples "tracing capabilities only" do
     it "includes only tracing capabilities (DI not registered)" do
-      # Bits 12, 13, 14, 29 (tracing). Bit 38 lives in the DI block, which is
+      # Bits 12, 13, 14, 29, 45 (tracing). Bit 38 lives in the DI block, which is
       # not registered here (DI settings absent or explicitly disabled).
-      expect(capabilities.base64_capabilities).to eq("IABwAA==")
+      expect(capabilities.base64_capabilities).to eq("IAAgAHAA")
     end
   end
 
@@ -338,7 +338,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
   context "Tracing component" do
     it "register capabilities, products, and receivers" do
-      expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29)
+      expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29, 1 << 45)
       expect(capabilities.products).to include("APM_TRACING")
       expect(capabilities.receivers).to include(
         lambda { |r|
