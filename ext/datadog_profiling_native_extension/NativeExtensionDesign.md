@@ -65,38 +65,26 @@ Non-exhaustive list of APIs that cause exceptions to be raised:
 To implement some of the features below, we sometimes require access to private Ruby header files (that describe VM
 internal types, structures and functions).
 
-Because these private header files are not included in regular Ruby installations, we have two different workarounds:
-
-1. for Ruby versions 2.6 to 3.2 we make use use the Ruby private MJIT header
-2. for Ruby versions < 2.6 and > 3.2 we make use of the `datadog-ruby_core_source` gem
+Because these private header files are not included in regular Ruby installations, we make use of the
+[`datadog-ruby_core_source`](https://github.com/DataDog/datadog-ruby_core_source) gem, which contains almost no code
+of its own; instead, it just contains per-Ruby-version folders with the private VM headers (`.h`) files for that
+version. Thus, even though a regular Ruby installation does not include these files, we can access the copy inside
+this gem.
 
 Functions which make use of these headers are defined in the <private_vm_api_acccess.c> file.
-
-There is currently no way for disabling usage of the private MJIT header for Ruby 2.6 to 3.2.
 
 **Important Note**: Our medium/long-term plan is to stop relying on all private Ruby headers, and instead request and
 contribute upstream changes so that they become official public VM APIs.
 
-### Approach 1: Using the Ruby private MJIT header
+### Historical note: the Ruby private MJIT header
 
-Ruby versions 2.6 to 3.2 shipped a JIT compiler called MJIT. This compiler does not directly generate machine code;
-instead it generates C code and uses the system C compiler to turn it into machine code.
+Ruby versions 2.6 to 3.2 shipped a JIT compiler called MJIT. This compiler did not directly generate machine code;
+instead it generated C code and used the system C compiler to turn it into machine code.
 
-The generated C code `#include`s a private header -- which we call "the MJIT header".
-The MJIT header gets shipped with all MJIT-enabled Rubies and includes the layout of many internal VM structures;
-and of course the intention is that it is only used by the Ruby MJIT compiler.
-
-This header is placed inside the `include/` directory in a Ruby installation, and is named for that specific Ruby
-version. e.g. `rb_mjit_min_header-2.7.4.h`.
-
-This header was removed in Ruby 3.3.
-
-### Approach 2: Using the `datadog-ruby_core_source` gem
-
-The [`datadog-ruby_core_source`](https://github.com/DataDog/datadog-ruby_core_source) contains almost no code;
-instead, it just contains per-Ruby-version folders with the private VM headers (`.h`) files for that version.
-
-Thus, even though a regular Ruby installation does not include these files, we can access the copy inside this gem.
+The generated C code `#include`d a private header -- which we called "the MJIT header". In the past we used to
+rely on it for Ruby versions 2.6 to 3.2.
+This header was removed in Ruby 3.3, and we have since moved all supported Ruby versions over to using the
+`datadog-ruby_core_source` gem instead.
 
 ## Feature: Getting thread CPU-time clock_ids
 

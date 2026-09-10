@@ -79,13 +79,6 @@ NORETURN(void private_raise_enforce_syserr(
   const char *function_name
 ));
 
-// Native wrapper to get an object ref from an id. Returns true on success and
-// writes the ref to the value pointer parameter if !NULL. False if id doesn't
-// reference a valid object (in which case value is not changed).
-//
-// Note: GVL can be released and other threads may get to run before this method returns
-bool ruby_ref_from_id(VALUE obj_id, VALUE *value);
-
 // Native wrapper to get the approximate/estimated current size of the passed
 // object.
 size_t ruby_obj_memsize_of(VALUE obj);

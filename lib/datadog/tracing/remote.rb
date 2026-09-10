@@ -15,31 +15,207 @@ module Datadog
           1 << 13, # APM_TRACING_LOGS_INJECTION: Dynamic trace logs injection configuration
           1 << 14, # APM_TRACING_HTTP_HEADER_TAGS: Dynamic trace HTTP header tags configuration
           1 << 29, # APM_TRACING_SAMPLE_RULES: Dynamic trace sampling rules configuration
+          1 << 45, # APM_TRACING_MULTICONFIG: merge multiple org/env-level APM_TRACING configs
           # APM_TRACING_ENABLE_DYNAMIC_INSTRUMENTATION (bit 38) is declared in
           # DI::Remote.capabilities, not here, so it is registered only when DI
           # is not explicitly disabled and the runtime supports DI.
         ].freeze
 
+        # Diagnostic scope label per specificity priority.
+        SCOPE_LABELS = {
+          5 => "service+env",
+          4 => "service",
+          3 => "env",
+          2 => "cluster",
+          1 => "org",
+        }.freeze
+
+        # @return [Array[String]] the remote config products this module handles
         def products
           [PRODUCT]
         end
 
+        # @return [Array[Integer]] the remote config capability bits advertised
         def capabilities
           CAPABILITIES
         end
 
-        def process_config(config, content, repository = nil)
-          lib_config = config["lib_config"]
+        # Merges every active APM_TRACING config in the repository and applies the
+        # result once. Org/env-level (multi-config) remote enablement delivers
+        # several APM_TRACING configs in parallel (a (service, env)-specific one,
+        # an env-wide one, and/or an org-wide "*" one); for each lib_config field
+        # the value from the most-specific matching config wins. The RC repository
+        # prunes deleted configs, so this recomputes the merge from the repository's
+        # current contents on each dispatch.
+        #
+        # @param repository [Core::Remote::Configuration::Repository] the current RC repository
+        # @return [nil]
+        def merge_and_apply_configs(repository)
+          # Resolve the service identity the same way the RC client registers
+          # it with the backend (Core::Remote::Client#service_name =
+          # remote.service || service). When a customer sets remote.service,
+          # the backend delivers service_target.service values targeting that
+          # override; matching against the local service instead would drop
+          # every service-scoped config and let a less-specific org config win.
+          service = Datadog.configuration.remote.service || Datadog.configuration.service
+          env = Datadog.configuration.env
 
+          # @type var parsed: Array[[::Datadog::Core::Remote::Configuration::Content, ::Hash[::String, untyped]]]
+          parsed = []
+          repository.contents.each do |content|
+            next unless content.path.product == PRODUCT
+
+            begin
+              config = parse_content(content)
+              unless config.is_a?(Hash)
+                # A syntactically valid but non-object payload (null, [], 42)
+                # would later make config_matches? raise outside this per-content
+                # rescue and abort the whole merge, erroring valid configs too.
+                raise TypeError, "APM_TRACING remote config must be a JSON object, got #{config.class}"
+              end
+              # A present but non-object lib_config (e.g. {"lib_config": []}) is a
+              # schema violation the customer can fix. Acknowledging it as applied
+              # would tell the backend the config was successfully applied when it
+              # was not, and an empty merge would revert active tracing overrides
+              # to their non-RC values. Reject it per content so the malformed
+              # payload is reported errored instead. A null or absent lib_config
+              # carries no overrides and is left as a no-op.
+              lib_config = config["lib_config"]
+              if !lib_config.nil? && !lib_config.is_a?(Hash)
+                raise TypeError, "APM_TRACING lib_config must be a JSON object, got #{lib_config.class}"
+              end
+              parsed << [content, config]
+            rescue => e
+              Datadog.logger.debug { "APM_TRACING RC: skipping unparseable config: #{e.class}: #{e.message}" }
+              Datadog.send(:components, allow_initialization: false)&.telemetry&.report(
+                e,
+                description: "Failed to parse APM_TRACING remote config",
+              )
+              content.errored("#{e.class}: #{e.message}: #{Array(e.backtrace).join("\n")}")
+            end
+          end
+
+          Datadog.logger.debug { "APM_TRACING RC: received #{parsed.length} config(s)" }
+
+          applicable = parsed.select do |content, config|
+            if config_matches?(config, service, env)
+              Datadog.logger.debug do
+                "APM_TRACING RC: config #{content.path.config_id} " \
+                  "scope=#{SCOPE_LABELS[config_priority(config)]} priority=#{config_priority(config)}"
+              end
+              true
+            else
+              Datadog.logger.debug do
+                "APM_TRACING RC: dropped config #{content.path.config_id} " \
+                  "(service_target=#{config["service_target"].inspect}, self=#{service}/#{env})"
+              end
+              false
+            end
+          end
+
+          # Most-specific first; ties broken by config id (ascending) for a
+          # deterministic merge.
+          ordered = applicable.sort_by { |content, config| [-config_priority(config), content.path.config_id] }
+          merged = merge_lib_configs(ordered.map { |_content, config| config })
+
+          # Applied even when the set is empty: an emptied repository (last config
+          # removed) reverts the tracing overrides to their non-RC values.
+          apply_lib_config(merged, repository)
+
+          parsed.each { |content, _config| content.applied }
+          nil
+        rescue => e
+          Datadog.logger.debug { "APM_TRACING RC: failed to apply configs: #{e.class}: #{e.message}" }
+          Datadog.send(:components, allow_initialization: false)&.telemetry&.report(
+            e,
+            description: "Failed to apply APM_TRACING remote configs",
+          )
+          parsed&.each do |content, _config|
+            content.errored("#{e.class}: #{e.message}: #{Array(e.backtrace).join("\n")}")
+          end
+          nil
+        end
+
+        # Whether a config targets this tracer. A concrete (non-"*") service or
+        # env that differs from ours excludes the config; "*" and an absent
+        # service_target match anything.
+        #
+        # @param config [Hash[String, untyped]] a parsed config
+        # @param service [String, nil] this tracer's service
+        # @param env [String, nil] this tracer's env
+        # @return [bool] true when the config applies to this tracer
+        def config_matches?(config, service, env)
+          target = config["service_target"]
+          return true unless target.is_a?(Hash)
+
+          target_service = target["service"]
+          target_env = target["env"]
+          return false if target_service && target_service != "*" && target_service != service
+          return false if target_env && target_env != "*" && target_env != env
+
+          true
+        end
+
+        # Specificity of a config, higher meaning more specific: service+env (5),
+        # service (4), env (3), cluster (2), org (1). A target counts as concrete
+        # only when present and not "*".
+        #
+        # @param config [Hash[String, untyped]] a parsed config
+        # @return [Integer] the specificity rank, 1 through 5
+        def config_priority(config)
+          target = config["service_target"]
+          service = target.is_a?(Hash) ? target["service"] : nil
+          env = target.is_a?(Hash) ? target["env"] : nil
+          single_service = !service.nil? && service != "*"
+          single_env = !env.nil? && env != "*"
+
+          return 5 if single_service && single_env
+          return 4 if single_service
+          return 3 if single_env
+          return 2 unless config["k8s_target_v2"].nil?
+
+          1
+        end
+
+        # Merges lib_configs from configs ordered most-specific first: for each
+        # field, the first (most-specific) non-nil value wins. Fields are
+        # independent, so a lower-priority config can supply a field the
+        # higher-priority one omits.
+        #
+        # @param configs_most_specific_first [Array[Hash[String, untyped]]] configs, most-specific first
+        # @return [Hash[String, untyped]] the merged lib_config
+        def merge_lib_configs(configs_most_specific_first)
+          merged = {}
+          configs_most_specific_first.each do |config|
+            lib_config = config["lib_config"]
+            next unless lib_config.is_a?(Hash)
+
+            lib_config.each do |key, value|
+              next if value.nil?
+
+              merged[key] = value unless merged.key?(key)
+            end
+          end
+          merged
+        end
+
+        # Applies one lib_config: maps the dynamic OPTIONS to telemetry, drives DI
+        # enablement from "dynamic_instrumentation_enabled", and reports the
+        # configuration change to telemetry.
+        #
+        # @param lib_config [Hash[String, untyped]] the lib_config to apply
+        # @param repository [Core::Remote::Configuration::Repository, nil] forwarded to DI enablement
+        # @return [nil]
+        def apply_lib_config(lib_config, repository)
           env_vars = Datadog::Tracing::Configuration::Dynamic::OPTIONS.map do |name, env_var, option|
             value = lib_config[name]
 
             # Guard for RBS/Steep
             raise "option is a #{option.class}, expected Option" unless option.is_a?(Configuration::Dynamic::Option)
 
-            option.call(value)
+            telemetry_value = option.call(value)
 
-            [env_var, value]
+            [env_var, telemetry_value]
           end
 
           if (di_enabled = lib_config["dynamic_instrumentation_enabled"]) != nil # rubocop:disable Style/NonNilCheck
@@ -55,11 +231,11 @@ module Datadog
             if di_enabled
               components&.symbol_database&.resume_pending_upload
               # Advertise the DI products only if the component actually started.
-              # handle_rc_enablement above no-ops when DI cannot run — the
-              # component is nil on an unsupported runtime, or the enable signal
-              # is blocked by DD_DYNAMIC_INSTRUMENTATION_ENABLED=false. Advertising
-              # then would report DI as in use when it is not and invite probe
-              # configs the tracer must refuse; withdraw the products otherwise.
+              # handle_rc_enablement above no-ops when DI cannot run: the component
+              # is nil on an unsupported runtime, or the enable signal is blocked
+              # by DD_DYNAMIC_INSTRUMENTATION_ENABLED=false. Advertising then would
+              # report DI as in use when it is not and invite probe configs the
+              # tracer must refuse; withdraw the products otherwise.
               if components&.dynamic_instrumentation&.started?
                 components&.remote&.add_products(*di_products)
               else
@@ -69,33 +245,25 @@ module Datadog
               components&.symbol_database&.stop_for_di_disable
               components&.remote&.remove_products(*di_products)
             end
+
+            Datadog.logger.debug { "APM_TRACING RC: merged dynamic_instrumentation_enabled=#{di_enabled}" }
           end
 
-          content.applied
-
-          # allow_initialization: false because process_config runs on the
-          # remote-config worker thread. If components haven't been built yet
-          # (e.g. during a teardown/reset window), the default `true` would
-          # synchronously build the entire component tree from this thread.
-          # The &. chain matches the pattern used by DI::Remote.handle_rc_enablement
-          # in the same dispatch path.
+          # allow_initialization: false because this runs on the remote-config
+          # worker thread. If components haven't been built yet (e.g. during a
+          # teardown/reset window), the default value would synchronously build
+          # the entire component tree from this thread. The &. chain matches the
+          # pattern used by DI::Remote.handle_rc_enablement in the same dispatch
+          # path.
           Datadog.send(:components, allow_initialization: false)&.telemetry&.client_configuration_change!(env_vars)
-        rescue => e
-          content.errored("#{e.class}: #{e.message}: #{Array(e.backtrace).join("\n")}")
+          nil
         end
 
+        # @param _telemetry [Core::Telemetry::Component] unused; kept for the receiver contract
+        # @return [Array[Core::Remote::Dispatcher::Receiver]] the APM_TRACING receiver
         def receivers(_telemetry)
           receiver do |repository, _changes|
-            # DEV: Filter our by product. Given it will be very common
-            # DEV: we can filter this out before we receive the data in this method.
-            # DEV: Apply this refactor to AppSec as well if implemented.
-            repository.contents.map do |content|
-              case content.path.product
-              when PRODUCT
-                config = parse_content(content)
-                process_config(config, content, repository)
-              end
-            end
+            merge_and_apply_configs(repository)
           end
         end
 

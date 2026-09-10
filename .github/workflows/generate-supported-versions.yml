@@ -34,23 +34,23 @@ jobs:
 
       - name: Get GitHub Token via dd-octo-sts
         id: generate-token
-        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        uses: DataDog/dd-octo-sts-action@c85802a58e202b7e764b5441e4378c76043c8108 # v1.0.5
         with:
           scope: DataDog/dd-trace-rb
           policy: self.generate-supported-versions
 
       - name: Create Pull Request
-        id: cpr
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        uses: ./.github/actions/signed-commit-pr
         with:
           token: ${{ steps.generate-token.outputs.token }}
           branch: auto-generate/update-supported-versions
           title: '[🤖] Update Supported Versions'
           base: master
           labels: dev/internal, integrations
-          commit-message: "Test creating supported versions"
-          delete-branch: true
-          sign-commits: true
+          commit-message: "[🤖] Update Supported Versions: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          add-paths: |
+            docs/integration_versions.md
+            docs/integration_versions.json
           body: |
             This is a PR to update the table for supported integration versions.
             The supported versions markdown is generated from the minimum and maximum tested versions of each integration,

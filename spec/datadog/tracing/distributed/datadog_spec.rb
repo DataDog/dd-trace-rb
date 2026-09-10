@@ -170,7 +170,7 @@ RSpec.shared_examples "Datadog distributed format" do
             let(:encoded_tags) { "é" * 300 }
 
             before do
-              allow(Datadog::Tracing::Distributed::DatadogTagsCodec)
+              allow(Datadog::Tracing::Distributed::TraceState::Datadog)
                 .to receive(:encode)
                 .and_return(encoded_tags)
             end

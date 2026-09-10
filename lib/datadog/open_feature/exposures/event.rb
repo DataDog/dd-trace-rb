@@ -15,12 +15,14 @@ module Datadog
             "#{flag_key}:#{context.targeting_key}"
           end
 
+          # NOTE: The serial id is part of the value because it can appear or change on a
+          #       configuration refresh while the allocation and the variant stay the same.
           def cache_value(result, flag_key:, context:)
-            "#{result.allocation_key}:#{result.variant}"
+            "#{result.allocation_key}:#{result.variant}:#{result.serial_id}"
           end
 
           def build(result, flag_key:, context:)
-            {
+            event = {
               timestamp: current_timestamp_ms,
               allocation: {
                 key: result.allocation_key,
@@ -35,7 +37,12 @@ module Datadog
                 id: context.targeting_key,
                 attributes: extract_attributes(context),
               },
-            }.freeze
+            }
+
+            serial_id = result.serial_id
+            event[:serial_id] = serial_id unless serial_id.nil?
+
+            event.freeze
           end
 
           private

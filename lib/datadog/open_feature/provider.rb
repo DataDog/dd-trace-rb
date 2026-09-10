@@ -112,6 +112,7 @@ module Datadog
         # Stamp evaluation entry time once, here on the eval thread. The EVP path uses this for
         # accurate first/last_evaluation bounds instead of a later hook-fire clock read.
         eval_time_ms = (Core::Utils::Time.now.to_f * 1000).to_i
+        flag_meta = nil
 
         engine = OpenFeature.engine
         return component_not_configured_default(default_value, eval_time_ms) if engine.nil?
@@ -138,7 +139,10 @@ module Datadog
           error_code: Ext::GENERAL,
           error_message: error_message
         )
-        error_flag_meta = build_flag_metadata(error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i)
+        error_flag_meta = flag_meta
+        error_flag_meta ||= build_flag_metadata(
+          error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i
+        )
 
         sdk_error_details(default_value, Ext::GENERAL, error_message, Ext::ERROR, error_flag_meta)
       end
@@ -173,6 +177,8 @@ module Datadog
 
       def build_flag_metadata(result, eval_time_ms)
         metadata = result.flag_metadata&.dup || {}
+        metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] =
+          metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] == true
         allocation_key = result.allocation_key
         metadata[Ext::METADATA_ALLOCATION_KEY] = allocation_key if allocation_key && !allocation_key.empty?
 
@@ -218,7 +224,10 @@ module Datadog
           error_code: Ext::PROVIDER_FATAL,
           error_message: "Datadog's OpenFeature component must be configured",
           reason: Ext::ERROR,
-          flag_metadata: {"dd.eval.timestamp_ms" => eval_time_ms}
+          flag_metadata: {
+            "dd.eval.timestamp_ms" => eval_time_ms,
+            Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => false,
+          }
         )
       end
     end
