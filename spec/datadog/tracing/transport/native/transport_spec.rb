@@ -677,7 +677,6 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
 
         transport.send_traces([trace])
       end
-
     end
   end
 
