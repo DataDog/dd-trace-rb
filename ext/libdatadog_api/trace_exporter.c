@@ -284,8 +284,8 @@ static void validate_event_scalar(VALUE key, VALUE attribute, int type) {
       if (value != Qtrue && value != Qfalse) {
         private_raise_exception(
           rb_exc_new_str(rb_eTypeError, rb_sprintf(
-            "span event attribute '%"PRIsVALUE"' has boolean value %"PRIsVALUE" but must be true or false",
-            key, rb_inspect(value))),
+            "span event attribute '%"PRIsVALUE"' must be true or false, got %s",
+            key, rb_obj_classname(value))),
           "span event attribute has invalid boolean value");
       }
       break;

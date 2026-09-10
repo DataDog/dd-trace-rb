@@ -322,11 +322,11 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         )
       end
 
-      it "reports the attribute key and value when a boolean attribute is not true or false" do
+      it "reports the attribute key and type when a boolean attribute is not true or false" do
         expect_native_event_rejection(
           {"flag" => {type: 1, bool_value: "yes"}},
           TypeError,
-          /span event attribute 'flag' has boolean value "yes" but must be true or false/
+          /span event attribute 'flag' must be true or false, got String/
         )
       end
 
