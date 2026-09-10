@@ -9,7 +9,7 @@ This repository is the source code of a Ruby gem created by Datadog to provide D
 - Discover gemfiles: `bundle exec rake dependency:list`. Shows values for `BUNDLE_GEMFILE`.
 - Use an alternate gemfile for matrix-specific jobs: `BUNDLE_GEMFILE=$(pwd)/gemfiles/<name>.gemfile`.
 - Smoke verification: `bundle exec rake test:main`. Baseline general testing (no native or integration testing).
-- Lint and type check: `bundle exec rake standard typecheck`.
+- Lint and type check: `bundle exec rake rubocop typecheck`. Prefer RuboCop because it checks a strict superset of the Standard rules; CI requires both, which can be run with `bundle exec rake standard rubocop typecheck`.
 - Type check specific sources: `bundle exec steep check [sources]`.
 - Discover tasks: `bundle exec rake -T`.
 - Run targeted specs: `bundle exec rspec spec/path/to/file_spec.rb[:line]`. Only use this for specs covered by `test:main` or under `spec/datadog/profiling`; use the relevant rake task for other specs.

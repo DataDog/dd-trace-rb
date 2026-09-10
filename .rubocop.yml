@@ -1,4 +1,5 @@
 require:
+  - ./rubocop/custom_cops
   - standard
   - standard-custom
   - standard-performance
@@ -22,9 +23,38 @@ AllCops:
   NewCops: disable
   SuggestExtensions: false
 
-# The cops disabled below should stay in sync with .standard_todo.yml's
-# "**/**" ignore list (Layout/LeadingCommentSpace has an extra reason
-# there) so it stays clear which tool is, or is not, enforcing each cop.
+# Prevent direct ENV usage in library code.
+CustomCops/EnvUsageCop:
+  Enabled: true
+  Description: 'Prevents direct usage of ENV to access environment variables'
+  SafeAutoCorrect: false
+  Include:
+    - "lib/**/*"
+  Exclude:
+    - "lib/datadog/core/configuration/config_helper.rb"
+    - "lib/datadog/core/configuration/deprecations.rb"
+
+# Enforce consistent exception logging format.
+CustomCops/ExceptionMessageCop:
+  Enabled: true
+  Description: 'Enforces consistent exception logging format: use `e.message` instead of bare `#{e}` interpolation, `e.class` instead of `e.class.name`, and require `#{e.class}` alongside any exception interpolation'
+  SafeAutoCorrect: false
+  Include:
+    - "lib/**/*"
+
+# Validate environment variable strings against the supported configurations.
+CustomCops/EnvStringValidationCop:
+  Enabled: true
+  Description: 'Prevents usage of environment variables that are not in the allowed list'
+  Safe: false
+  Include:
+    - "lib/**/*"
+  Exclude:
+    - "lib/datadog/core/configuration/supported_configurations.rb"
+
+# The trailing-comma and leading-comment cops below should stay in sync with
+# .standard_todo.yml's "**/**" ignore list so it stays clear which tool is
+# enforcing each cop.
 
 # Keep method-call commas disabled while their style remains under discussion.
 Style/TrailingCommaInArguments:
@@ -39,5 +69,19 @@ Style/TrailingCommaInArrayLiteral:
 Style/TrailingCommaInHashLiteral:
   EnforcedStyleForMultiline: diff_comma
 
+# standard requires a space after '#', which breaks Steep inline annotations (`#:`, `#$`).
+# We can drop this override if https://github.com/standardrb/standard/pull/820 is merged
+# and released with AllowSteepAnnotation enabled in standard's base config.
 Layout/LeadingCommentSpace:
-  Enabled: false
+  Enabled: true
+  AllowSteepAnnotation: true
+
+# standard disables this cop entirely. We still want it enforced under lib/, since we
+# support Rubies below 3.4 for years to come.
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  # The default EnforcedStyle (always) also accepts `# frozen_string_literal: false`.
+  # We need the comment to be true, not merely present.
+  EnforcedStyle: always_true
+  Include:
+    - "lib/**/*.rb"

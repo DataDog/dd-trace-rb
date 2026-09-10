@@ -191,7 +191,7 @@ These apply across the whole repository, not just this directory.
 
 ## Style
 
-Run `bundle exec rake standard:fix` before pushing. StandardRB is fixed and non-configurable by team convention.
+Run `bundle exec rake rubocop:fix` before pushing. RuboCop applies the full repository ruleset; CI also checks the StandardRB subset.
 
 ---
 
