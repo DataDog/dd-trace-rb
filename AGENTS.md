@@ -9,7 +9,7 @@ This repository is the source code of a Ruby gem created by Datadog to provide D
 - Discover gemfiles: `bundle exec rake dependency:list`. Shows values for `BUNDLE_GEMFILE`.
 - Use an alternate gemfile for matrix-specific jobs: `BUNDLE_GEMFILE=$(pwd)/gemfiles/<name>.gemfile`.
 - Smoke verification: `bundle exec rake test:main`. Baseline general testing (no native or integration testing).
-- Lint and type check: `bundle exec rake standard typecheck`.
+- Lint and type check: `bundle exec rake rubocop typecheck`. Prefer RuboCop because it checks a strict superset of the Standard rules; CI requires both, which can be run with `bundle exec rake standard rubocop typecheck`.
 - Type check specific sources: `bundle exec steep check [sources]`.
 - Discover tasks: `bundle exec rake -T`.
 - Run targeted specs: `bundle exec rspec spec/path/to/file_spec.rb[:line]`. Only use this for specs covered by `test:main` or under `spec/datadog/profiling`; use the relevant rake task for other specs.
@@ -110,10 +110,9 @@ no external grant needed. No local trigger otherwise.
 
 ## Code changes
 
+- Follow the `write-comment` skill's rules for when a comment earns its place; default to no comment otherwise.
 - Use `Core::Utils::EnumerableCompat.filter_map` instead of `filter_map` for compatibility with Ruby 2.5 and 2.6 (native `filter_map` requires Ruby 2.7+).
 - Use `Datadog::Core::Utils::Time.now` instead of `Time.now` everywhere. The time provider is configurable (for example, for Timecop support), and tests can override it via `Core::Utils::Time.now_provider=`.
-  - Constants initialized at load time, before user configuration, may use `::Time.now` directly; add a comment explaining why (see `lib/datadog/profiling/collectors/info.rb` for an example).
-  - Dynamic Instrumentation probe instrumentation that runs inside customer application methods must use `::Time.now` directly. DI must never invoke customer-provided code during instrumentation.
 
 ## Documentation
 
@@ -227,7 +226,6 @@ Ruby idioms:
 # Gotchas
 
 - Pipe `rspec` and `rake test:*` output through `2>&1 | tee /tmp/full_rspec.log | grep -E 'Pending:|Failures:|Finished' -A 99` for concise but complete results.
-- Transport noise (`Internal error during Datadog::Tracing::Transport::HTTP::Client request`) is expected unless debugging transport logic.
 - Thread leaks: use `rspec --seed <N>` and inspect `docs/DevelopmentGuide.md#ensuring-tests-dont-leak-resources`.
 - `docker compose run` failures: run `docker compose pull` before retrying.
 - `ProbeNotifierWorker#flush` blocks until queues are empty; never add `sleep` after it.
