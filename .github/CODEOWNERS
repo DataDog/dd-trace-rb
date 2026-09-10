@@ -1,5 +1,10 @@
 * @DataDog/ruby-guild
 
+# Agent review skill and its eval suite
+/.agents/ @DataDog/ruby-guild
+/.agents/dd-apm-sdk-review-overrides/ @DataDog/ruby-guild
+/.llm-validation/ @DataDog/ruby-guild
+
 # Public Documentation
 docs/Compatibility.md @DataDog/documentation
 docs/GettingStarted.md @DataDog/documentation
