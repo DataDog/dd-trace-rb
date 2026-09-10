@@ -272,8 +272,9 @@ module Datadog
             # Each trace segment becomes one inner array (one trace chunk).
             chunks = traces.map(&:spans)
 
-            # Span events and span links are not yet converted and would be
-            # dropped. Warn (once) so the loss is visible.
+            # The native exporter only serializes scalar fields, meta, metrics,
+            # meta_struct, and span links; span events are not yet converted and
+            # would be dropped. Warn (once) so the loss is visible.
             warn_unsupported_fields!(chunks)
 
             # Serialize the native send and hold the mutex across it so a
@@ -303,10 +304,10 @@ module Datadog
           private
 
           # Warn, at most once per transport, when a batch contains span fields
-          # the native exporter does not yet convert (span events and span
-          # links). These are silently dropped by the native path; full support
-          # is tracked separately. The check is cheap: the fields are already-
-          # materialized collections on each Span.
+          # the native exporter does not yet convert (span events). These are
+          # silently dropped by the native path; full support is tracked
+          # separately. The check is cheap: the fields are already-materialized
+          # collections on each Span.
           def warn_unsupported_fields!(chunks)
             return if @unsupported_fields_warned
 
@@ -314,7 +315,6 @@ module Datadog
             chunks.each do |spans|
               spans.each do |span|
                 unsupported << "span events" if span.events.any?
-                unsupported << "span links" if span.links.any?
               end
             end
             return if unsupported.empty?

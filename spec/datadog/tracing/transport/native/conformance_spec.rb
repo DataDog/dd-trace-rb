@@ -2,6 +2,8 @@
 
 require "datadog/tracing/transport/native"
 require "datadog/tracing/span"
+require "datadog/tracing/span_link"
+require "datadog/tracing/trace_digest"
 require "datadog/tracing/trace_segment"
 require "datadog/tracing/transport/trace_formatter"
 require "datadog/appsec"
@@ -159,6 +161,7 @@ RSpec.describe "Native transport wire-level conformance" do
       ).tap do |span|
         (attrs[:meta] || {}).each { |k, v| span.set_tag(k, v) }
         (attrs[:metrics] || {}).each { |k, v| span.set_metric(k, v) }
+        span.links.concat(attrs[:links] || [])
         (attrs[:metastruct] || {}).each { |k, v| span.set_metastruct_tag(k, v) }
       end
     end
@@ -356,6 +359,125 @@ RSpec.describe "Native transport wire-level conformance" do
       # The wire format trace_id field is 64-bit (low half only);
       # high bits go into meta as _dd.p.tid
       expect(decoded.first.first["trace_id"]).to eq(low)
+    end
+  end
+
+  describe "span links" do
+    # dropped_attributes_count remains deferred until the Agent protocol
+    # allocates a span-link field for it.
+    it "preserves supported canonical values and link order on the wire" do
+      first = Datadog::Tracing::SpanLink.new(
+        Datadog::Tracing::TraceDigest.new(
+          trace_id: (0x1234 << 64) | 0x5678,
+          span_id: 0x9abc,
+          trace_sampling_priority: 1,
+          trace_state: "vendor=value"
+        ),
+        attributes: {"operation" => "receive", "batch" => [1, true]}
+      )
+      second = Datadog::Tracing::SpanLink.new(
+        Datadog::Tracing::TraceDigest.new(
+          trace_id: 22,
+          span_id: 33,
+          trace_sampling_priority: 0
+        )
+      )
+      trace = make_trace([{name: "consumer", links: [first, second]}])
+
+      links = send_and_decode([trace]).first.first["span_links"]
+
+      expect(links).to eq(
+        [
+          {
+            "trace_id" => 0x5678,
+            "trace_id_high" => 0x1234,
+            "span_id" => 0x9abc,
+            "attributes" => {
+              "operation" => "receive",
+              "batch.0" => "1",
+              "batch.1" => "true",
+            },
+            "tracestate" => "vendor=value",
+            "flags" => 0x8000_0001,
+          },
+          {
+            "trace_id" => 22,
+            "trace_id_high" => 0,
+            "span_id" => 33,
+            "flags" => 0x8000_0000,
+          },
+        ]
+      )
+    end
+
+    it "snapshots stateful canonical hashes exactly once" do
+      calls = []
+      attributes = {"operation" => +"receive"}
+      canonical = {
+        trace_id: 1,
+        span_id: 2,
+        flags: 0,
+      }
+      canonical.default_proc = proc do |hash, key|
+        calls << key
+        case key
+        when :trace_id_high
+          hash[:trace_id] = 10
+          3
+        when :attributes
+          hash[:span_id] = 20
+          attributes
+        when :tracestate
+          attributes["operation"].replace("mutated")
+          hash[:flags] = 0x8000_0001
+          "vendor=value"
+        else
+          raise "unexpected default key: #{key}"
+        end
+      end
+      stateful_link = double("span link", to_hash: canonical)
+      trace = make_trace([{name: "consumer", links: [stateful_link]}])
+
+      link = send_and_decode([trace]).first.first["span_links"].first
+
+      expect(calls).to eq([:trace_id_high, :attributes, :tracestate])
+      expect(link).to eq(
+        "trace_id" => 1,
+        "trace_id_high" => 3,
+        "span_id" => 2,
+        "attributes" => {"operation" => "receive"},
+        "tracestate" => "vendor=value",
+        "flags" => 0x8000_0001
+      )
+    end
+
+    it "normalizes links before borrowing scalar string pointers" do
+      trace = nil
+      stateful_link = double("span link")
+      allow(stateful_link).to receive(:to_hash) do
+        span = trace.spans.first
+        span.name.replace("n" * 512)
+        span.service.replace("s" * 512)
+        span.resource.replace("r" * 512)
+        span.type.replace("t" * 512)
+        {trace_id: 1, span_id: 2, flags: 0}
+      end
+      trace = make_trace([{
+        name: +"name",
+        service: +"service",
+        resource: +"resource",
+        type: +"type",
+        links: [stateful_link],
+      }])
+
+      span = send_and_decode([trace]).first.first
+
+      expect(span).to include(
+        "name" => "n" * 512,
+        "service" => "s" * 512,
+        "resource" => "r" * 512,
+        "type" => "t" * 512
+      )
     end
   end
 

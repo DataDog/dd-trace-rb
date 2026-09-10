@@ -3,6 +3,8 @@
 require "datadog/tracing/transport/native"
 require "datadog/tracing/writer"
 require "datadog/tracing/span"
+require "datadog/tracing/span_link"
+require "datadog/tracing/trace_digest"
 require "datadog/tracing/trace_segment"
 require "datadog/tracing/transport/trace_formatter"
 require "datadog/core/utils/at_fork_monkey_patch"
@@ -520,9 +522,24 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
           an_instance_of(native_module::InternalErrorResponse)
         )
       end
+
+      it "fails the whole batch when a span link contains invalid UTF-8" do
+        trace = make_trace_segment("web.request")
+        trace.spans.first.links << Datadog::Tracing::SpanLink.new(
+          Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2),
+          attributes: {"invalid" => "\xff".b}
+        )
+
+        responses = transport.send_traces([trace])
+
+        expect(responses).to contain_exactly(
+          an_instance_of(native_module::InternalErrorResponse)
+        )
+        expect(responses.first.trace_count).to eq(0)
+      end
     end
 
-    context "with span fields the native exporter does not yet support" do
+    context "with span fields handled specially by the native exporter" do
       def trace_with(&block)
         trace = make_trace_segment("web.request")
         block.call(trace.spans.first)
@@ -537,10 +554,13 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         expect(transport.send_traces([trace]).first.ok?).to be true
       end
 
-      it "warns when a span carries span links" do
-        trace = trace_with { |span| span.links << double("span link") }
+      it "does not warn when a span carries span links" do
+        link = Datadog::Tracing::SpanLink.new(
+          Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2)
+        )
+        trace = trace_with { |span| span.links << link }
 
-        expect(logger).to receive(:warn).once
+        expect(logger).to_not receive(:warn)
 
         expect(transport.send_traces([trace]).first.ok?).to be true
       end
