@@ -71,7 +71,7 @@ Then keep every written claim grounded:
   customer-affecting bug fixes — one fragment per customer-visible change
 
   ```markdown
-  <!-- Bad: two effects bundled behind "and more" -->
+  <!-- Bad: several effects bundled behind "and more" -->
   Add support for Bundler deployment mode, report UI-oriented injection results, and more.
 
   <!-- Good: one effect stated whole; the PR's other effects each get their own fragment -->
@@ -114,7 +114,7 @@ a fenced block: the bad entry is the good one with exactly the violation.
     Ignore `SignalException` from crashtracker as unhandled exception errors.
 
     <!-- Good: the symptom they recognize + the trigger they perform -->
-    Fix false unhandled-exception crash reports in Error Tracking: `SIGTERM` and other `SignalException`s raised while the process stops — every rolling deploy, scale-in, or pod eviction — are no longer reported as crashes.
+    Fix false unhandled-exception crash reports: `SIGTERM` and other `SignalException`s raised while the process stops are no longer reported as crashes.
     ```
 
   - `Added`: ALWAYS name the capability, then the access point — the
@@ -136,7 +136,7 @@ a fenced block: the bad entry is the good one with exactly the violation.
     Change default logger output from stdout to stderr.
 
     <!-- Good: new behavior + why it matters + escape hatch -->
-    Move the gem's diagnostic logs from stdout to stderr, so stdout stays clean for application output; restore the old default with `c.logger.instance = Logger.new($stdout)` in `Datadog.configure`.
+    Move the gem's diagnostic logs from stdout to stderr, so stdout stays clean for application output; restore the old default with `c.logger.instance = Datadog::Core::Logger.new($stdout)` in `Datadog.configure`.
     ```
 
 - ALWAYS state what changed and why it matters to the customer; NEVER
@@ -144,7 +144,7 @@ a fenced block: the bad entry is the good one with exactly the violation.
 
   ```markdown
   <!-- Bad: internal description — jargon, file name, no user-visible claim -->
-  Refactored peer_tags.rb in the tracer to fix the nil case in Tags#populate.
+  Set `Tracing::Metadata::Ext::TAG_KIND` on spans in the ActiveRecord `sql` event handler (`events/sql.rb`).
 
   <!-- Good: customer framing, grounded, code spans -->
   Fix missing peer tags for database queries traced through `ActiveRecord`.
@@ -162,7 +162,7 @@ a fenced block: the bad entry is the good one with exactly the violation.
   Enforce process-wide rate limit across all probes.
 
   <!-- Good: the customer's observable delta leads, the numbers follow -->
-  Cap probe output process-wide: with multiple probes set, they can emit less than their individual limits allow — 20 snapshots/s, 5000 log events/s.
+  Cap probe output process-wide: with multiple probes set, they can emit less than their individual limits allow — combined output is capped at 20 snapshots/s and 5000 log events/s per process.
   ```
 
 - ALWAYS wrap identifiers (`DD_...` env vars, snake_case, CONSTANT_CASE,
@@ -204,10 +204,10 @@ a fenced block: the bad entry is the good one with exactly the violation.
 
   ```markdown
   <!-- Bad: vague version -->
-  Fix GC profiling being incorrectly disabled on recent Ruby versions.
+  Fix a `SIGSEGV` crash that could happen with experimental heap profiling enabled on recent Ruby versions.
 
-  <!-- Good: patch-level versions -->
-  Fix GC profiling being incorrectly disabled on Ruby 3.2.10 and 3.2.11.
+  <!-- Good: exact version -->
+  Fix a `SIGSEGV` crash that could happen with experimental heap profiling enabled on Ruby 4.0.
   ```
 
 - ALWAYS back performance claims with numbers from the diff; unmeasured
@@ -217,8 +217,8 @@ a fenced block: the bad entry is the good one with exactly the violation.
   <!-- Bad: unmeasured vague quantifier -->
   Improve profiler performance significantly.
 
-  <!-- Good: measured number plus mechanism -->
-  Reduce profiler overhead by up to 50% by skipping redundant samples for threads without the GVL.
+  <!-- Good: measured number plus the scope that decides who benefits -->
+  Reduce profiler overhead by up to 50% for applications with many idle or blocked threads by skipping samples of threads that stay suspended between ticks; skipped threads are still reported each period.
   ```
 
 ## Finishing loop

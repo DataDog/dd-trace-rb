@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6213",
+  "message": "Fix missing peer tags for database queries traced through `ActiveRecord`."
+}

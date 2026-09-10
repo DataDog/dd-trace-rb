@@ -2,5 +2,5 @@
   "type": "Changed",
   "product": "Core",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/5342",
-  "message": "Move the gem's diagnostic logs from stdout to stderr, so stdout stays clean for application output; restore the old default with `c.logger.instance = Logger.new($stdout)` in `Datadog.configure`."
+  "message": "Move the gem's diagnostic logs from stdout to stderr, so stdout stays clean for application output; restore the old default with `c.logger.instance = Datadog::Core::Logger.new($stdout)` in `Datadog.configure`."
 }

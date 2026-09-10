@@ -27,8 +27,8 @@ change. Its fields:
 - `author` (external contributors only): GitHub handle with the leading `@`
   (e.g. `"@octocat"`), for credit in `CHANGELOG.md`.
 
-[`examples/`](examples/) holds real-life-flavored fragments per type —
-check them out. Tip: `rake unreleased:new` generates one pre-filled with
+[`examples/`](examples/) holds fragments for each type and shape,
+grounded in real merged PRs — check them out. Tip: `rake unreleased:new` generates one pre-filled with
 guidance; its placeholder values teach each field, and `rake unreleased:lint`
 stays red until they are replaced. The filename is irrelevant, only the
 fields are read. Commit the file alongside your change.
