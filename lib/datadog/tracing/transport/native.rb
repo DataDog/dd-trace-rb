@@ -3,6 +3,7 @@
 require "json"
 require_relative "trace_formatter"
 require_relative "statistics"
+require_relative "span_events"
 
 module Datadog
   module Tracing
@@ -44,6 +45,7 @@ module Datadog
         # Drop-in transport that delegates to the native trace exporter.
         class Transport
           include Statistics
+          include SpanEvents
 
           attr_reader :logger
 
@@ -56,10 +58,6 @@ module Datadog
             end
 
             @logger = logger
-
-            # Guards the one-shot warning about span fields the native exporter
-            # does not yet convert (see #warn_unsupported_fields!).
-            @unsupported_fields_warned = false
 
             # Serializes native sends and is held across a fork. See the
             # fork-safety note below.
@@ -272,7 +270,7 @@ module Datadog
             # Each trace segment becomes one inner array (one trace chunk).
             chunks = traces.map(&:spans)
 
-            warn_unsupported_fields!(chunks)
+            native_events_supported = prepare_span_events!(chunks)
 
             # Serialize the native send and hold the mutex across it so a
             # concurrent fork's :before hook blocks until this send drains
@@ -285,7 +283,7 @@ module Datadog
               exporter = @exporter
               raise "Native transport has been closed" if exporter.nil?
 
-              exporter._native_send_traces(chunks)
+              exporter._native_send_traces(chunks, native_events_supported)
             end
 
             # Update statistics from the response
@@ -300,28 +298,20 @@ module Datadog
 
           private
 
-          # Warn, at most once per transport, when a batch contains span fields
-          # the native exporter does not yet convert (span events). These are
-          # silently dropped by the native path; full support is tracked
-          # separately. The check is cheap: the fields are already-materialized
-          # collections on each Span.
-          def warn_unsupported_fields!(chunks)
-            return if @unsupported_fields_warned
+          def prepare_span_events!(chunks)
+            native_events_supported = native_events_supported?
 
-            unsupported = []
             chunks.each do |spans|
               spans.each do |span|
-                unsupported << "span events" if span.events.any?
+                next if span.events.empty?
+
+                unless native_events_supported
+                  span.set_tag("events", span.events.map(&:to_hash).to_json)
+                end
               end
             end
-            return if unsupported.empty?
 
-            @unsupported_fields_warned = true
-            fields = unsupported.uniq.join(", ")
-            logger.warn do
-              "Native transport does not yet support: #{fields}. This data will not be sent to Datadog. " \
-                "Unset DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED to use the default transport if you rely on these."
-            end
+            native_events_supported
           end
 
           def tracer_version_string

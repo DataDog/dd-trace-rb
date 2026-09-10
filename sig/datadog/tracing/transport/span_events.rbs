@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Transport
+      module SpanEvents
+        @native_events_supported: bool
+
+        private
+
+        def native_events_supported?: () -> bool
+      end
+    end
+  end
+end
