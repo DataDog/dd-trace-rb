@@ -139,7 +139,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         GC.start
       end
 
-      it "cleans up partial snapshots when a hash default proc raises, then converts a valid span" do
+      it "cleans up partial snapshots when a hash default proc raises, then converts a valid span", :native_transport_memcheck do
         calls = []
         canonical = {
           trace_id: 1,
@@ -169,7 +169,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         GC.start
       end
 
-      it "releases prepared meta_struct storage when links is not an array, then converts a valid span" do
+      it "releases prepared meta_struct storage when links is not an array, then converts a valid span", :native_transport_memcheck do
         span = make_ruby_span
         span.set_metastruct_tag("_dd.stack", {frames: [{file: "app.rb", line: 42}]})
         # The public #links setter has no type enforcement, so a non-Array value
