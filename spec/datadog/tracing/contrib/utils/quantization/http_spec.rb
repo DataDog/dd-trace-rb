@@ -177,6 +177,57 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
     end
   end
 
+  describe "#path" do
+    subject(:result) { described_class.path(path, options) }
+
+    let(:options) { {} }
+
+    {
+      "/" => "/",
+      "" => "/",
+      "/users" => "/users",
+      "/health_check" => "/health_check",
+      "/latest/meta-data" => "/latest/meta-data",
+      "/12345" => "/?",
+      "/users/12345" => "/users/?",
+      "/users/12345/view" => "/users/?/view",
+      "/abc/def123" => "/abc/?",
+      "/solr/c_qa04_average_charges/select" => "/solr/?/select",
+      "/abc/F05065B2-7934-4480-8500-A2C40D76F59F" => "/abc/?",
+      "/users/john.smith@example.com" => "/users/?",
+      "/search/hello%20world" => "/search/?",
+      "/abc#def" => "/?",
+      "/こんにちは/世界" => "/?/?",
+      "/v1/users" => "/v1/users",
+      "/v12/users" => "/v12/users",
+      "/trailing/slash/" => "/trailing/slash/",
+      "relative/12345" => "/relative/?",
+    }.each do |input, expected|
+      context "given #{input.inspect}" do
+        let(:path) { input }
+
+        it { is_expected.to eq(expected) }
+
+        it "is unchanged when quantized again" do
+          expect(described_class.path(result, options)).to eq(expected)
+        end
+      end
+    end
+
+    context "given nil" do
+      let(:path) { nil }
+
+      it { is_expected.to eq("/") }
+    end
+
+    context "given a custom placeholder" do
+      let(:path) { "/users/12345" }
+      let(:options) { {placeholder: "*"} }
+
+      it { is_expected.to eq("/users/*") }
+    end
+  end
+
   describe "#query" do
     subject(:result) { described_class.query(query, options) }
 

@@ -5,9 +5,13 @@ module Datadog
         module Quantization
           module HTTP
             PLACEHOLDER: "?"
+            PRESERVED_PATH_SEGMENT: ::Regexp
+            API_VERSION_PATH_SEGMENT: ::Regexp
             RFC3986_URL_BASE: ::Regexp
 
             def self?.url: (untyped url, ?::Hash[untyped, untyped] options) -> untyped
+
+            def self?.path: (untyped path, ?::Hash[untyped, untyped] options) -> ::String
 
             def self?.base_url: (untyped url, ?::Hash[untyped, untyped] options) -> (untyped | "")
 

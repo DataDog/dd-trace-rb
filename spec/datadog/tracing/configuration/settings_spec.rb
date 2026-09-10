@@ -626,6 +626,43 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe "#http_client_resource_name_quantize" do
+      context "when #{Datadog::Tracing::Configuration::Ext::ENV_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE}" do
+        around do |example|
+          ClimateControl.modify(
+            Datadog::Tracing::Configuration::Ext::ENV_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE => env_var_value
+          ) do
+            example.run
+          end
+        end
+
+        context "is not defined" do
+          let(:env_var_value) { nil }
+
+          it "returns false" do
+            expect(settings.tracing.http_client_resource_name_quantize).to eq(false)
+          end
+        end
+
+        context "is defined" do
+          let(:env_var_value) { "true" }
+
+          it "returns true" do
+            expect(settings.tracing.http_client_resource_name_quantize).to eq(true)
+          end
+        end
+      end
+    end
+
+    describe "#http_client_resource_name_quantize=" do
+      it "changes the setting" do
+        expect { settings.tracing.http_client_resource_name_quantize = true }
+          .to change { settings.tracing.http_client_resource_name_quantize }
+          .from(false)
+          .to(true)
+      end
+    end
+
     describe "#native_span_events" do
       subject(:native_span_events) { settings.tracing.native_span_events }
 
