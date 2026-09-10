@@ -115,6 +115,8 @@ RSpec.describe Datadog::OpenFeature::Activation do
         it "fails immediately and remembers why" do
           expect(activation.start!).to be_nil
           expect(activation.failure).to eq("Feature Flags Remote Configuration is unavailable")
+          expect(activation.component).to be_nil
+          expect(component).to have_received(:shutdown!).once
         end
       end
     end
@@ -152,7 +154,9 @@ RSpec.describe Datadog::OpenFeature::Activation do
         expect(activation.activate(provider)).to be_nil
         expect(activation.activate(provider)).to be_nil
         expect(activation.failure).to eq("Feature Flags agentless delivery could not start")
+        expect(activation.component).to be_nil
         expect(Datadog::OpenFeature::Agentless::ConfigurationSource).to have_received(:build).once
+        expect(component).to have_received(:shutdown!).once
       end
     end
   end
