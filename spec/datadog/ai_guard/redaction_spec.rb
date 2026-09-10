@@ -1,14 +1,10 @@
 # frozen_string_literal: true
 
 require "datadog/ai_guard/redaction"
-require "datadog/ai_guard/redaction/result"
-require "datadog/ai_guard/evaluation/content_part"
-require "datadog/ai_guard/evaluation/tool_call"
-require "datadog/ai_guard/evaluation/message"
 
 RSpec.describe Datadog::AIGuard::Redaction do
-  describe ".apply" do
-    subject(:result) { described_class.apply(messages, replacements: replacements) }
+  describe ".perform" do
+    subject(:result) { described_class.perform(messages, replacements: replacements) }
 
     context "when the target is string content" do
       let(:messages) do
@@ -543,10 +539,98 @@ RSpec.describe Datadog::AIGuard::Redaction do
         end
       end
     end
+
+    context "when applying the second replacement raises" do
+      before { allow(messages[1]).to receive(:with_content).and_raise(StandardError) }
+
+      let(:messages) do
+        [
+          Datadog::AIGuard::Evaluation::Message.new(
+            role: :user,
+            content: "Contact ops@example.com"
+          ),
+          Datadog::AIGuard::Evaluation::Message.new(
+            role: :user,
+            content: "My SSN is 123-45-6789"
+          ),
+          Datadog::AIGuard::Evaluation::Message.new(
+            role: :assistant,
+            content: "How can I help?"
+          ),
+        ]
+      end
+      let(:replacements) do
+        [
+          {
+            "path" => "messages[0].content",
+            "replacement" => "Contact <REDACTED>",
+          },
+          {
+            "path" => "messages[1].content",
+            "replacement" => "My SSN is <REDACTED>",
+          },
+        ]
+      end
+
+      it "preserves the successful redaction and leaves the remaining messages unchanged" do
+        aggregate_failures "partial redaction after an unexpected replacement failure" do
+          expect(result.messages.map(&:to_h)).to eq([
+            {role: :user, content: "Contact <REDACTED>"},
+            {role: :user, content: "My SSN is 123-45-6789"},
+            {role: :assistant, content: "How can I help?"},
+          ])
+          expect(result.messages[1]).to equal(messages[1])
+          expect(result.messages[2]).to equal(messages[2])
+          expect(result.applied).to eq(1)
+          expect(result.failures).to eq(1)
+        end
+      end
+    end
+
+    context "when applying the first replacement raises" do
+      before { allow(messages[0]).to receive(:with_content).and_raise(StandardError) }
+
+      let(:messages) do
+        [
+          Datadog::AIGuard::Evaluation::Message.new(
+            role: :user,
+            content: "Contact ops@example.com"
+          ),
+          Datadog::AIGuard::Evaluation::Message.new(
+            role: :user,
+            content: "My SSN is 123-45-6789"
+          ),
+        ]
+      end
+      let(:replacements) do
+        [
+          {
+            "path" => "messages[0].content",
+            "replacement" => "Contact <REDACTED>",
+          },
+          {
+            "path" => "messages[1].content",
+            "replacement" => "My SSN is <REDACTED>",
+          },
+        ]
+      end
+
+      it "leaves the failed message unchanged and applies the remaining replacement" do
+        aggregate_failures "partial redaction after the first replacement fails" do
+          expect(result.messages.map(&:to_h)).to eq([
+            {role: :user, content: "Contact ops@example.com"},
+            {role: :user, content: "My SSN is <REDACTED>"},
+          ])
+          expect(result.messages[0]).to equal(messages[0])
+          expect(result.applied).to eq(1)
+          expect(result.failures).to eq(1)
+        end
+      end
+    end
   end
 
-  describe ".skipped" do
-    subject(:result) { described_class.skipped(messages) }
+  describe ".skip" do
+    subject(:result) { described_class.skip(messages) }
 
     context "when messages are provided" do
       let(:messages) { [Object.new] }
