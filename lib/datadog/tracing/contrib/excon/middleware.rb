@@ -8,6 +8,7 @@ require_relative "../http"
 require_relative "../analytics"
 require_relative "ext"
 require_relative "../http_annotation_helper"
+require_relative "../utils/quantization/http"
 
 module Datadog
   module Tracing
@@ -117,7 +118,13 @@ module Datadog
           end
 
           def annotate!(span, datum)
-            span.resource = datum[:method].to_s.upcase
+            http_method = datum[:method].to_s.upcase
+            path = datum[:path]
+            span.resource = Contrib::Utils::Quantization::HTTP.client_resource(
+              http_method,
+              path,
+              enabled: Datadog.configuration.tracing.http_client_resource_name_quantize
+            )
             span.service = service_name(datum[:host], @options)
             span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
             span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
@@ -139,8 +146,8 @@ module Datadog
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
-            span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, datum[:path])
-            span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, datum[:method].to_s.upcase)
+            span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, path)
+            span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, http_method)
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, datum[:host])
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, datum[:port])
             span.set_tags(
