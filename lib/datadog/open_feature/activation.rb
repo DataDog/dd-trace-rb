@@ -83,7 +83,7 @@ module Datadog
           return
         end
 
-        @component = Component.build(
+        component = Component.build(
           @settings,
           @agent_settings,
           resolution: resolution,
@@ -91,13 +91,18 @@ module Datadog
           logger: @logger,
           telemetry: @telemetry,
         )
-        unless @component
+        unless component
           @failure = "Feature Flags are unavailable on this runtime"
           return
         end
 
+        @component = component
         @delivery_started = start_delivery(resolution.source)
-        @component if @delivery_started
+        return component if @delivery_started
+
+        component.shutdown!
+        @component = nil
+        nil
       end
 
       def start_delivery(source)
