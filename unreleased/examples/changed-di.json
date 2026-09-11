@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/5954",
+  "message": "Reject method probes that target `Kernel#lambda`, which cannot be safely instrumented."
+}

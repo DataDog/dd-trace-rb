@@ -126,7 +126,7 @@ GEM
       karafka-core (>= 2.4.3, < 3.0.0)
       karafka-rdkafka (>= 0.15.1)
       zeitwerk (~> 2.3)
-    webmock (3.26.3)
+    webmock (3.26.4)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)

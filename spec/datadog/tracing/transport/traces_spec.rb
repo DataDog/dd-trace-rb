@@ -379,6 +379,12 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
 
             expect(Datadog.send(:components).agent_info).to have_received(:fetch).twice
           end
+
+          it "preserves agent capability fetch errors" do
+            allow(Datadog.send(:components).agent_info).to receive(:fetch).and_raise("agent unavailable")
+
+            expect { send_traces }.to raise_error(RuntimeError, "agent unavailable")
+          end
         end
       end
     end

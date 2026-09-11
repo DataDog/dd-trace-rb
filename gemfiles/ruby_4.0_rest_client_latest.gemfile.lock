@@ -33,7 +33,7 @@ GEM
     diff-lcs (1.6.2)
     docile (1.4.1)
     dogstatsd-ruby (5.7.1)
-    domain_name (0.6.20240107)
+    domain_name (0.6.20260902)
     ffi (1.17.4)
     ffi (1.17.4-aarch64-linux-gnu)
     ffi (1.17.4-arm64-darwin)
@@ -117,7 +117,7 @@ GEM
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
     warning (1.6.0)
-    webmock (3.26.3)
+    webmock (3.26.4)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
@@ -182,7 +182,7 @@ CHECKSUMS
   diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962
   docile (1.4.1) sha256=96159be799bfa73cdb721b840e9802126e4e03dfc26863db73647204c727f21e
   dogstatsd-ruby (5.7.1) sha256=d2e211f9635d6bbe773e152e00fd4cb9f165d26e10356dbef8f917f7a9e5d58c
-  domain_name (0.6.20240107) sha256=5f693b2215708476517479bf2b3802e49068ad82167bcd2286f899536a17d933
+  domain_name (0.6.20260902) sha256=4fac7f8e0a77dc85ec02f6534fdeff38e143d434ab8a86528fe68ca5bc45a042
   ffi (1.17.4) sha256=bcd1642e06f0d16fc9e09ac6d49c3a7298b9789bcb58127302f934e437d60acf
   ffi (1.17.4-aarch64-linux-gnu) sha256=b208f06f91ffd8f5e1193da3cae3d2ccfc27fc36fba577baf698d26d91c080df
   ffi (1.17.4-arm64-darwin) sha256=19071aaf1419251b0a46852abf960e77330a3b334d13a4ab51d58b31a937001b
@@ -233,7 +233,7 @@ CHECKSUMS
   simplecov-html (0.13.2) sha256=bd0b8e54e7c2d7685927e8d6286466359b6f16b18cb0df47b508e8d73c777246
   simplecov_json_formatter (0.1.4) sha256=529418fbe8de1713ac2b2d612aa3daa56d316975d307244399fa4838c601b428
   warning (1.6.0) sha256=a49cdfae19fb77d19afff2efbe45f8ab759e9cd25b4e4ce2c79dbaf46bdb6c9e
-  webmock (3.26.3) sha256=77c612816bdcb2fc43db0e42fd98b19be7d4770fd708816fdde65a006664ddec
+  webmock (3.26.4) sha256=8d8da206d217ebe6968cfb09c77f4533c23074e1432bad865f3994eacbaad50d
   webrick (1.9.2) sha256=beb4a15fc474defed24a3bda4ffd88a490d517c9e4e6118c3edce59e45864131
   zstd-ruby (2.0.8) sha256=0215f522a185f10c57bc742f167d49b3618aed45ceab04cc2f9080d3e504b404
 

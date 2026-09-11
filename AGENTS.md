@@ -9,7 +9,7 @@ This repository is the source code of a Ruby gem created by Datadog to provide D
 - Discover gemfiles: `bundle exec rake dependency:list`. Shows values for `BUNDLE_GEMFILE`.
 - Use an alternate gemfile for matrix-specific jobs: `BUNDLE_GEMFILE=$(pwd)/gemfiles/<name>.gemfile`.
 - Smoke verification: `bundle exec rake test:main`. Baseline general testing (no native or integration testing).
-- Lint and type check: `bundle exec rake standard typecheck`.
+- Lint and type check: `bundle exec rake rubocop typecheck`. Prefer RuboCop because it checks a strict superset of the Standard rules; CI requires both, which can be run with `bundle exec rake standard rubocop typecheck`.
 - Type check specific sources: `bundle exec steep check [sources]`.
 - Discover tasks: `bundle exec rake -T`.
 - Run targeted specs: `bundle exec rspec spec/path/to/file_spec.rb[:line]`. Only use this for specs covered by `test:main` or under `spec/datadog/profiling`; use the relevant rake task for other specs.
@@ -166,9 +166,8 @@ docker compose run --rm tracer-4.0 bundle exec rake test:TASK_KEY
 - Use `--repo DataDog/dd-trace-rb` with `gh` commands; defaults are unreliable.
 - Use `.github/PULL_REQUEST_TEMPLATE.md` as the starting point for PR descriptions.
 - Write concisely for the developer performing code review, using one sentence per relevant summary or motivation point.
-- Write changelog entries for customers. Use `None.` for internal CI, tooling, and tracer telemetry consumed only by Datadog engineering.
-- Telemetry that powers customer-facing Datadog product features, such as DI autocomplete, profiling, or AppSec, needs a customer-facing changelog entry even though its data flows through the Datadog backend.
-- Start changelog entries with `Yes.` or `None.`: `Yes. Brief customer-facing summary.` or `None.`. Never provide a summary without the `Yes.` prefix.
+- Write changelog entries for customers. Customer-visible changes need a changelog fragment in `unreleased/`; write it with the write-changelog skill (`.claude/skills/write-changelog/`). Internal CI, tooling, and tracer telemetry consumed only by Datadog engineering need no fragment.
+- Telemetry that powers customer-facing Datadog product features, such as DI autocomplete, profiling, or AppSec, needs a customer-facing changelog fragment even though its data flows through the Datadog backend.
 - Add `--label "AI Generated"` when creating PRs; the label is sufficient, so do not mention AI in the description.
 
 # GitHub Actions

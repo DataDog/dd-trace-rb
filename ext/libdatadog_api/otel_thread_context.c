@@ -24,6 +24,7 @@ static ID fiber_context_slot;
 DDTRACE_UNUSED static bool otel_context_enabled = false;
 
 static VALUE native_set(VALUE _self, VALUE trace_id, VALUE span_id, VALUE local_root_span_id);
+static VALUE native_clear(VALUE _self);
 static VALUE native_supported_p(VALUE _self);
 static VALUE native_enable(VALUE _self);
 static VALUE native_read(VALUE _self);
@@ -35,6 +36,7 @@ void otel_thread_context_init(VALUE tracing_module) {
 
   rb_define_singleton_method(otel_thread_context_module, "_native_enable", native_enable, 0);
   rb_define_singleton_method(otel_thread_context_module, "_native_set", native_set, 3);
+  rb_define_singleton_method(otel_thread_context_module, "_native_clear", native_clear, 0);
   rb_define_singleton_method(otel_thread_context_module, "_native_supported?", native_supported_p, 0);
 
   VALUE testing_module = rb_define_module_under(otel_thread_context_module, "Testing");
@@ -199,6 +201,19 @@ static VALUE native_set(
     }
 
     return Qtrue;
+  #else
+    return Qfalse;
+  #endif
+}
+
+static VALUE native_clear(DDTRACE_UNUSED VALUE _self) {
+  #ifdef __linux__
+    if (!otel_context_enabled) return Qfalse;
+
+    ddog_ThreadContextHandle *detached = ddog_otel_thread_ctx_detach();
+    rb_thread_local_aset(rb_thread_current(), fiber_context_slot, Qnil);
+
+    return detached == NULL ? Qfalse : Qtrue;
   #else
     return Qfalse;
   #endif
