@@ -61,9 +61,9 @@ module Datadog
       # Exception raised by the method, if any, for a method probe
       attr_reader :exception
 
-      def serialized_locals
+      def serialized_locals(deadline: nil)
         # TODO cache?
-        locals && serializer.serialize_vars(locals, **probe.snapshot_serializer_limits(settings))
+        locals && serializer.serialize_vars(locals, deadline: deadline, **probe.snapshot_serializer_limits(settings))
       end
 
       def fetch(var_name)

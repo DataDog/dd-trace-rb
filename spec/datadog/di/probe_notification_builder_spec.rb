@@ -435,6 +435,19 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         expect(payload).to be_a(Hash)
         expect(payload).to match(expected)
       end
+
+      context "when the capture time budget is exhausted" do
+        before do
+          allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(0)
+        end
+
+        it "reports notCapturedReason timeout for the captured local" do
+          captured = payload[:debugger][:snapshot][:captures][:lines][1]
+          expect(captured[:locals][:foo]).to eq(
+            type: "Integer", notCapturedReason: "timeout",
+          )
+        end
+      end
     end
   end
 
