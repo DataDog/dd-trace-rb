@@ -35,9 +35,9 @@ module Datadog
         def remove_products: (*::String products) -> void
 
         def register: (
-          capabilities: ::Array[::Integer],
-          products: ::Array[::String],
-          receivers: ::Array[Core::Remote::Dispatcher::Receiver]
+          capabilities: Array[Integer],
+          products: Array[String],
+          receivers: Array[Core::Remote::Dispatcher::Receiver]
         ) -> void
 
         def self.build: (
