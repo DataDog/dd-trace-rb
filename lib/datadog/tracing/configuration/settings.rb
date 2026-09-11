@@ -559,6 +559,17 @@ module Datadog
                 o.default 512
               end
 
+              # Whether outbound HTTP client resource names include a quantized request path.
+              # URL tags and outgoing requests are unchanged.
+              #
+              # @default `DD_TRACE_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE` environment variable, otherwise `false`.
+              # @return [Boolean]
+              option :http_client_resource_name_quantize do |o|
+                o.env Tracing::Configuration::Ext::ENV_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE
+                o.default false
+                o.type :bool
+              end
+
               # HTTP error statuses configuration
               # @public_api
               settings :http_error_statuses do

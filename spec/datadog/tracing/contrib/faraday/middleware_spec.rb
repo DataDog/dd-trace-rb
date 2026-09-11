@@ -18,6 +18,7 @@ RSpec.describe "Faraday middleware" do
       builder.use(:datadog_tracing, middleware_options) if use_middleware
       builder.adapter(:test) do |stub|
         stub.get("/success") { |_| [200, response_headers, "OK"] }
+        stub.get("/users/123") { |_| [200, {}, "OK"] }
         stub.post("/failure") { |_| [500, {}, "Boom!"] }
         stub.get("/not_found") { |_| [404, {}, "Not Found."] }
         stub.get("/error") { |_| raise ::Faraday::ConnectionFailed, "Test error" }
@@ -170,6 +171,19 @@ RSpec.describe "Faraday middleware" do
           expect { response }.to_not output(/WARNING/).to_stderr
         end
       end
+    end
+  end
+
+  context "when HTTP client resource-name quantization is enabled" do
+    subject(:response) { client.get("/users/123") }
+
+    before do
+      Datadog.configuration.tracing.http_client_resource_name_quantize = true
+      response
+    end
+
+    it "includes the quantized path in the resource" do
+      expect(span.resource).to eq("GET /users/*")
     end
   end
 

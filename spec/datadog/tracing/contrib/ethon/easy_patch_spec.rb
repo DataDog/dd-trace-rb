@@ -45,10 +45,11 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
     subject { easy.perform }
 
     let(:span_op) { easy.instance_eval { @datadog_span } }
+    let(:url) { "http://example.com/test" }
 
     before do
       expect(::Ethon::Curl).to receive(:easy_perform).and_return(0)
-      expect(easy).to receive(:url).and_return("http://example.com/test").at_least(:once)
+      expect(easy).to receive(:url).and_return(url).at_least(:once)
       # NOTE: suppress call to #complete to isolate #perform functionality
       expect(easy).to receive(:complete)
     end
@@ -112,6 +113,20 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
     it_behaves_like "measured span for integration", false do
       let(:span) { span_op }
       before { subject }
+    end
+
+    context "when HTTP client resource-name quantization is enabled" do
+      let(:url) { "http://example.com/users/123" }
+
+      before do
+        Datadog.configuration.tracing.http_client_resource_name_quantize = true
+        easy.http_request(url, :get)
+        subject
+      end
+
+      it "includes the quantized path in the resource" do
+        expect(span_op.resource).to eq("GET /users/*")
+      end
     end
   end
 

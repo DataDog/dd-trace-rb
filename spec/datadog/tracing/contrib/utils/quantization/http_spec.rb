@@ -3,6 +3,42 @@ require "spec_helper"
 require "datadog/tracing/contrib/utils/quantization/http"
 
 RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
+  def quantize_path_oracle(path)
+    encoding = path.encoding
+    bytes = path.bytes
+    return (+"").force_encoding(encoding) if bytes.empty?
+
+    bytes.unshift(47) unless bytes.first == 47
+    output = []
+    replacements = 0
+    index = 1
+
+    while index < bytes.length
+      segment_end = index
+      segment_end += 1 while segment_end < bytes.length && bytes[segment_end] != 47
+      segment = bytes[index...segment_end]
+      allowed = segment.count do |byte|
+        byte.between?(65, 90) || byte.between?(97, 122) || byte == 45 || byte == 95
+      end
+      digits = segment.count { |byte| byte.between?(48, 57) }
+      specials = segment.length - allowed - digits
+
+      output << 47
+      if segment.first == 118 && allowed == 1 && digits > 0
+        output.concat(segment)
+      elsif specials > 0 || digits > 0
+        output << 42
+        replacements += 1
+      else
+        output.concat(segment)
+      end
+
+      index = segment_end + 1
+    end
+
+    (replacements.zero? ? bytes : output).pack("C*").force_encoding(encoding)
+  end
+
   describe "RFC3986_URL_BASE" do
     let(:regex) { described_class::RFC3986_URL_BASE }
 
@@ -476,6 +512,324 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
           it { is_expected.to eq("&key2=val2&key3=val3") }
         end
       end
+    end
+  end
+
+  describe "#quantize_path" do
+    subject(:quantized_path) { described_class.quantize_path(path) }
+
+    vectors = {
+      "" => "",
+      "/" => "/",
+      "users" => "/users",
+      "users/123" => "/users/*",
+      "/a" => "/a",
+      "/abc/DEF" => "/abc/DEF",
+      "/latest/meta-data" => "/latest/meta-data",
+      "/health_check" => "/health_check",
+      "/1" => "/*",
+      "/users/123" => "/users/*",
+      "/users/user123" => "/users/*",
+      "/orders/abc-123/items/7" => "/orders/*/items/*",
+      "/readme.md" => "/*",
+      "/abc#def" => "/*",
+      "/abc%20def" => "/*",
+      "/abc def" => "/*",
+      "/abc/*" => "/abc/*",
+      "/こんにちは/世界" => "/*/*",
+      "/abc/🌟" => "/abc/*",
+      "/v1/users/123" => "/v1/users/*",
+      "/v123/users/123" => "/v123/users/*",
+      "/V1/users/123" => "/*/users/*",
+      "/vv1" => "/*",
+      "/v1-beta" => "/*",
+      "/v1_" => "/*",
+      "/v1." => "/v1.",
+      "/v.1" => "/v.1",
+      "/v🌟1" => "/v🌟1",
+      "/trailing/slash/" => "/trailing/slash/",
+      "/users/123/" => "/users/*",
+      "/users/123//" => "/users/*/",
+      "/a//b" => "/a//b",
+      "/a//123/" => "/a//*",
+      "//a/123" => "//a/*",
+      "//" => "//",
+      "/a//" => "/a//",
+      "a/" => "/a/",
+      "a/1//" => "/a/*/",
+      "/v." => "/*",
+      "/x1." => "/*",
+      "/v_1." => "/*",
+      "/1." => "/*",
+    }
+
+    vectors.each do |input, expected|
+      context "with #{input.inspect}" do
+        let(:path) { input }
+
+        it "matches across repeated calls" do
+          expect(quantized_path).to eq(expected)
+          expect(described_class.quantize_path(quantized_path)).to eq(quantize_path_oracle(expected))
+        end
+      end
+    end
+
+    it "matches the oracle for every one-byte string under binary and UTF-8 labels" do
+      256.times do |byte|
+        [Encoding::BINARY, Encoding::UTF_8].each do |encoding|
+          input = [47, byte].pack("C*").force_encoding(encoding)
+          expect(described_class.quantize_path(input)).to eq(quantize_path_oracle(input)),
+            "byte=#{byte} encoding=#{encoding}"
+        end
+      end
+    end
+
+    it "matches the oracle for every binary two-byte string" do
+      256.times do |first|
+        256.times do |second|
+          input = [47, first, second].pack("C*")
+          expect(described_class.quantize_path(input)).to eq(quantize_path_oracle(input)),
+            "bytes=#{[first, second].inspect}"
+        end
+      end
+    end
+
+    it "matches the oracle for representative strings through length four" do
+      alphabet = [118, 86, 97, 90, 45, 95, 48, 57, 46, 0, 128, 255]
+
+      0.upto(4) do |length|
+        alphabet.repeated_permutation(length) do |segment|
+          input = ([47] + segment).pack("C*")
+          expect(described_class.quantize_path(input)).to eq(quantize_path_oracle(input)),
+            "bytes=#{segment.inspect}"
+        end
+      end
+    end
+
+    classifier_cases = [
+      ["v", "v", "v first, one allowed, no digit, no special"],
+      ["v.", "*", "v first, one allowed, no digit, special"],
+      ["v1", "v1", "v first, one allowed, digit, no special"],
+      ["v1.", "v1.", "v first, one allowed, digit, special"],
+      ["vv", "vv", "v first, multiple allowed, no digit, no special"],
+      ["vv.", "*", "v first, multiple allowed, no digit, special"],
+      ["vv1", "*", "v first, multiple allowed, digit, no special"],
+      ["vv1.", "*", "v first, multiple allowed, digit, special"],
+      ["a", "a", "not v first, one allowed, no digit, no special"],
+      ["a.", "*", "not v first, one allowed, no digit, special"],
+      ["a1", "*", "not v first, one allowed, digit, no special"],
+      ["a1.", "*", "not v first, one allowed, digit, special"],
+      ["", "", "not v first, zero allowed, no digit, no special"],
+      [".", "*", "not v first, zero allowed, no digit, special"],
+      ["1", "*", "not v first, zero allowed, digit, no special"],
+      ["1.", "*", "not v first, zero allowed, digit, special"],
+    ]
+
+    classifier_cases.each do |segment, expected, predicates|
+      it "classifies #{predicates}" do
+        expect(described_class.quantize_path("/#{segment}")).to eq("/#{expected}")
+      end
+    end
+
+    it "matches the oracle for path layouts" do
+      segment_layouts = [
+        ["a"],
+        ["a", "b"],
+        ["123"],
+        ["123", "456"],
+        ["v2", "123"],
+        ["123", "v2"],
+      ]
+      paths = []
+      0.upto(3) do |leading|
+        0.upto(3) do |trailing|
+          segment_layouts.each do |segments|
+            paths << ("/" * leading) + segments.join("/") + ("/" * trailing)
+            paths << ("/" * leading) + segments.join("//") + ("/" * trailing)
+          end
+        end
+      end
+
+      paths.each do |input|
+        result = described_class.quantize_path(input)
+        expect(result).to eq(quantize_path_oracle(input)), "path=#{input.inspect}"
+      end
+    end
+
+    it "matches the oracle for deterministic arbitrary binary paths" do
+      seed = 12_345
+      random = Random.new(seed)
+
+      1_000.times do
+        bytes = Array.new(random.rand(0..128)) { random.rand(0..255) }
+        [Encoding::BINARY, Encoding::UTF_8].each do |encoding|
+          input = bytes.pack("C*").force_encoding(encoding)
+          result = described_class.quantize_path(input)
+          expected = quantize_path_oracle(input)
+          message = "seed=#{seed} bytes=#{bytes.inspect} encoding=#{encoding}"
+          expect(result).to eq(expected), message
+          expect(described_class.quantize_path(result)).to eq(quantize_path_oracle(expected)), message
+        end
+      end
+    end
+
+    it "satisfies deterministic generated classification and layout properties" do
+      seed = 54_321
+      random = Random.new(seed)
+      allowed_bytes = (65..90).to_a + (97..122).to_a + [45, 95]
+      digit_bytes = (48..57).to_a
+      special_bytes = [0, 32, 42, 46, 128, 255]
+      classified_bytes = digit_bytes + special_bytes
+
+      100.times do |iteration|
+        allowed = Array.new(random.rand(1..32)) { allowed_bytes[random.rand(allowed_bytes.length)] }
+        normalized_allowed = ([47] + allowed).pack("C*")
+        message = "seed=#{seed} bytes=#{allowed.inspect}"
+        expect(described_class.quantize_path(allowed.pack("C*"))).to eq(normalized_allowed), message
+        expect(described_class.quantize_path(normalized_allowed + "/")).to eq(normalized_allowed + "/"), message
+
+        wildcard = [97] + Array.new(random.rand(0..16)) { allowed_bytes[random.rand(allowed_bytes.length)] }
+        replacement_bytes = iteration.even? ? digit_bytes : special_bytes
+        replacement_byte = replacement_bytes[random.rand(replacement_bytes.length)]
+        wildcard.insert(random.rand(0..wildcard.length), replacement_byte)
+        wildcard_path = ([47] + wildcard).pack("C*")
+        message = "seed=#{seed} bytes=#{wildcard.inspect}"
+        expect(described_class.quantize_path(wildcard_path)).to eq("/*"), message
+        expect(described_class.quantize_path(wildcard_path + "/")).to eq("/*"), message
+
+        api_version = [
+          118,
+          digit_bytes[random.rand(digit_bytes.length)],
+          special_bytes[random.rand(special_bytes.length)],
+        ]
+        api_version.concat(Array.new(random.rand(0..16)) do
+          classified_bytes[random.rand(classified_bytes.length)]
+        end)
+        api_version_path = ([47] + api_version).pack("C*")
+        message = "seed=#{seed} bytes=#{api_version.inspect}"
+        expect(described_class.quantize_path(api_version_path)).to eq(api_version_path), message
+      end
+    end
+
+    it "re-quantizes a result ending in a trailing slash" do
+      first_result = described_class.quantize_path("/users/123//")
+
+      expect(first_result).to eq("/users/*/")
+      expect(described_class.quantize_path(first_result)).to eq("/users/*")
+    end
+
+    it "preserves caller input and its encoding label" do
+      input = (+"/a/\xFF").force_encoding(Encoding::UTF_8)
+      original = input.dup
+
+      result = described_class.quantize_path(input)
+
+      expect(input).to eq(original)
+      expect(result).to eq("/a/*")
+      expect(result.encoding).to eq(Encoding::UTF_8)
+    end
+  end
+
+  describe "#decode_path" do
+    subject(:decoded_path) { described_class.decode_path(path) }
+
+    {
+      "/%30%39" => "/09",
+      "/%41%5a%61%7A" => "/AZaz",
+      "/%2D%5f" => "/-_",
+      "/readme%2Emd" => "/readme.md",
+      "/a%2Fb" => "/a/b",
+      "/%25" => "/%",
+      "/%00" => "/\x00",
+      "/%E3%81%93" => "/こ",
+      "/%252F" => "/%2F",
+      "/a+b" => "/a+b",
+      "/%" => "/%",
+      "/%2" => "/%2",
+      "/%GG" => "/%GG",
+    }.each do |input, expected|
+      context "with #{input.inspect}" do
+        let(:path) { input }
+
+        it { is_expected.to eq(expected) }
+      end
+    end
+
+    it "does not mutate input" do
+      input = +"/%30"
+      expect { described_class.decode_path(input) }.to_not change { input }
+    end
+
+    it "preserves encoding and invalid bytes" do
+      input = (+"/%FF\x80").force_encoding(Encoding::UTF_8)
+      result = described_class.decode_path(input)
+
+      expect(result.bytes).to eq([47, 255, 128])
+      expect(result.encoding).to eq(Encoding::UTF_8)
+    end
+  end
+
+  describe "#client_resource" do
+    subject(:client_resource) { described_class.client_resource(method, path, enabled: enabled) }
+
+    let(:method) { "GET" }
+    let(:path) { "/users/123" }
+    let(:enabled) { true }
+
+    it { is_expected.to eq("GET /users/*") }
+
+    context "with a lowercase method" do
+      let(:method) { "post" }
+
+      it { is_expected.to eq("post /users/*") }
+    end
+
+    context "with spaces in the method representation" do
+      let(:method) { "CUSTOM METHOD" }
+
+      it { is_expected.to eq("CUSTOM METHOD /users/*") }
+    end
+
+    context "with an escaped path" do
+      let(:path) { "/a%2Fb/readme%2Emd" }
+
+      it { is_expected.to eq("GET /a/b/*") }
+    end
+
+    context "with invalid binary path bytes" do
+      let(:path) { [47, 255].pack("C*") }
+
+      it "does not raise and replaces the segment" do
+        expect(client_resource).to eq("GET /*")
+      end
+    end
+
+    context "when disabled" do
+      let(:enabled) { false }
+
+      it { is_expected.to equal(method) }
+    end
+
+    context "with a nil path" do
+      let(:path) { nil }
+
+      it { is_expected.to equal(method) }
+    end
+
+    context "with an empty path" do
+      let(:path) { "" }
+
+      it { is_expected.to equal(method) }
+    end
+
+    it "does not mutate method or path" do
+      original_method = method.dup
+      original_path = path.dup
+
+      client_resource
+
+      expect(method).to eq(original_method)
+      expect(path).to eq(original_path)
     end
   end
 
