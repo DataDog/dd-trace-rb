@@ -112,10 +112,12 @@ module Datadog
 
         class TraceActivated < Tracing::Event
           def initialize: () -> void
+          def subscribe: () { (Datadog::Tracing::TraceOperation) -> void } -> void
         end
 
         class TraceDeactivated < Tracing::Event
           def initialize: () -> void
+          def subscribe: () { (Datadog::Tracing::TraceOperation) -> void } -> void
         end
 
         class TraceFinished < Tracing::Event
