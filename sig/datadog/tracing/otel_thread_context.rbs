@@ -3,6 +3,8 @@ module Datadog
     class OTelThreadContext
       UNKNOWN_LOCAL_ROOT_SPAN_ID: Integer
 
+      @enabled: bool?
+
       interface _TracingSettings
         def otel_thread_context_enabled: () -> bool
       end
