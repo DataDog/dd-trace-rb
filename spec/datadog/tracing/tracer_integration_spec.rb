@@ -4,23 +4,14 @@ require "support/rack_support"
 require "datadog/core/runtime/ext"
 
 require "datadog/tracing/contrib/http"
-require "datadog/tracing/otel_thread_context"
 require "datadog/tracing/sampling/ext"
 require "datadog/tracing/trace_digest"
 require "datadog/tracing/tracer"
 require "datadog/tracing/utils"
 
 RSpec.describe Datadog::Tracing::Tracer do
-  subject(:tracer) do
-    described_class.new(writer: FauxWriter.new, otel_thread_context: otel_thread_context)
-  end
+  subject(:tracer) { described_class.new(writer: FauxWriter.new) }
 
-  let(:otel_thread_context) { Datadog::Tracing::OTelThreadContext.new(otel_thread_context_settings) }
-  let(:otel_thread_context_settings) do
-    settings = Datadog::Core::Configuration::Settings.new
-    settings.tracing.otel_thread_context_enabled = false
-    settings.tracing
-  end
   let(:spans) { tracer.writer.spans(:keep) }
 
   after do

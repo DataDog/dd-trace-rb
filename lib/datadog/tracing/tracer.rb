@@ -56,7 +56,7 @@ module Datadog
         default_service: Core::Environment::Ext::FALLBACK_SERVICE_NAME,
         enabled: true,
         logger: Datadog.logger,
-        otel_thread_context:,
+        otel_thread_context: nil,
         sampler: Sampling::PrioritySampler.new(
           base_sampler: Sampling::AllSampler.new,
           post_sampler: Sampling::RuleSampler.new
@@ -449,7 +449,7 @@ module Datadog
           end
         end
 
-        @otel_thread_context.subscribe_to_tracer_events!(events)
+        @otel_thread_context&.subscribe_to_tracer_events!(events)
       end
 
       # Creates a new TraceOperation, with events bounds to this Tracer instance.

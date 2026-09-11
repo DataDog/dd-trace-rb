@@ -1,7 +1,5 @@
 require "spec_helper"
 
-require "datadog/tracing/otel_thread_context"
-
 require_relative "support/benchmark_helper"
 
 RSpec.describe "Microbenchmark" do
@@ -84,15 +82,7 @@ RSpec.describe "Microbenchmark" do
     describe "nested traces" do
       let(:name) { "span".freeze }
       let(:writer) { Datadog::Tracing::Writer.new(buffer_size: 1000, flush_interval: 0) }
-      let(:otel_thread_context) { Datadog::Tracing::OTelThreadContext.new(otel_thread_context_settings) }
-      let(:otel_thread_context_settings) do
-        settings = Datadog::Core::Configuration::Settings.new
-        settings.tracing.otel_thread_context_enabled = false
-        settings.tracing
-      end
-      let(:tracer) do
-        Datadog::Tracing::Tracer.new(writer: writer, otel_thread_context: otel_thread_context)
-      end
+      let(:tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
       let(:steps) { [1, 10, 100] }
       let(:memory_iterations) { 1000 }
       let(:timing_runtime) { 60 }
