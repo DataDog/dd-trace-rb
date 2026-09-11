@@ -17,6 +17,8 @@
 TODO
 ext/**/skipped_reason.txt
 .cursor/
+!.cursor/rules/
+!.cursor/skills/
 .cache/
 .claude/settings.local.json
 compile_commands.json

@@ -1,5 +1,8 @@
 * @DataDog/ruby-guild
 
+# Agent review skill
+/.agents/ @DataDog/ruby-guild
+
 # Public Documentation
 docs/Compatibility.md @DataDog/documentation
 docs/GettingStarted.md @DataDog/documentation
