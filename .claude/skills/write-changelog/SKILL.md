@@ -103,12 +103,17 @@ Then keep every written claim grounded:
 - ALWAYS set `author` to the external contributor's `@`-prefixed GitHub
   handle; NEVER set `author` for a Datadog contributor
 
+## The floor and the standard
+
+`bundle exec rake unreleased:lint` and `unreleased:vale` enforce a basic
+mechanical floor and it will keep expanding. The floor never
+proves an entry good: passing it proves the entry checkable. Every rule
+below is the standard, stated on its own terms; some overlap the floor,
+none lean on it.
+
 ## Writing the message
 
-Run `unreleased:lint` and `unreleased:vale` while drafting — they enforce
-the mechanical floor: code spans, casing, banned openers, PR references,
-the 240-character and 3-sentence caps. The rules below add the judgment
-they cannot check, in drafting order. When the structure will not fit the
+The rules follow in drafting order. When the structure will not fit the
 caps, keep the customer effect, its scope, and any access point or escape
 hatch — the compressible rest is the explanatory detail, never the
 actionable.
@@ -160,19 +165,19 @@ actionable.
   Fix missing peer tags for database queries traced through `ActiveRecord`.
   ```
 
-- ALWAYS start with an imperative verb (Add, Fix, Support, Improve, ...) —
-  vale rejects the process-speak and subject-first openers ("This PR
-  fixes...", "The gem now supports...", "Also fixes..."); a wrong verb
-  form ("Fixed a crash...") still passes, so the verb choice falls to the
-  author and reviewer
+- ALWAYS open with a present-tense imperative verb (Add, Fix, Support,
+  Improve, ...); NEVER the past tense ("Fixed a crash..."), process-speak ("This PR fixes..."), or subject-first prose ("The gem now supports...", "Also fixes...") — the entry states what the new version does for the customer, not a report of work done
 
   ```markdown
-  <!-- Bad: the verb form passes vale, but the message reads as a report, not an entry -->
-  Fixed missing peer tags for database queries traced through `ActiveRecord`.
+  <!-- Bad: the past tense reads as a report of work done, not what it does -->
+  This PR fixes missing peer tags for database queries traced through `ActiveRecord`.
 
-  <!-- Good: the imperative verb opens the entry -->
+  <!-- Good: the present-tense imperative opens the entry -->
   Fix missing peer tags for database queries traced through `ActiveRecord`.
   ```
+
+- ALWAYS end the message with terminal punctuation — the entry is a
+  sentence, not a fragment
 
 - ALWAYS open on the customer's observable delta; the mechanism, scope,
   and numbers follow it
@@ -185,9 +190,9 @@ actionable.
   Cap probe output process-wide: with multiple probes set, they can emit less than their individual limits allow — combined output is capped at 20 snapshots/s and 5000 log events/s per process.
   ```
 
-- CamelCase is the code-span judgment call lint cannot make: span what
-  names the code you run (`ActiveRecord`), leave product names bare in
-  prose (Bundler)
+- ALWAYS make the CamelCase code-span call: span what names the code the
+  customer runs (`ActiveRecord`), leave product names bare in prose
+  (Bundler)
 
 - NEVER repeat the product verbatim — with product `AppSec`, "Add AppSec
   detection..." says it twice; lowercase technical phrasing ("GC
