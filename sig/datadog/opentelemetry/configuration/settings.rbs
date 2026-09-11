@@ -23,6 +23,8 @@ module Datadog
           def metrics: () -> _Metrics
 
           def logs: () -> _Logs
+
+          def public_send: (:logs | :metrics signal) -> (_Logs | _Metrics)
         end
 
         interface _Exporter
