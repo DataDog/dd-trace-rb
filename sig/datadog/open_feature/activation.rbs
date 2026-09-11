@@ -1,0 +1,67 @@
+module Datadog
+  module OpenFeature
+    class Activation
+      @settings: Core::Configuration::Settings
+
+      @agent_settings: Core::Configuration::AgentSettings
+
+      @remote: Core::Remote::Component?
+
+      @logger: Core::Logger
+
+      @telemetry: Core::Telemetry::Component
+
+      @component: Component?
+
+      @configuration_source: Agentless::ConfigurationSource?
+
+      @failure: String?
+
+      @provider: Provider?
+
+      @activated: bool
+
+      @delivery_started: bool
+
+      @shutdown: bool
+
+      @mutex: Thread::Mutex
+
+      attr_reader component: Component?
+
+      attr_reader failure: String?
+
+      attr_reader provider: Provider?
+
+      def initialize: (
+        Core::Configuration::Settings settings,
+        Core::Configuration::AgentSettings agent_settings,
+        Core::Remote::Component? remote,
+        logger: Core::Logger,
+        telemetry: Core::Telemetry::Component
+      ) -> void
+
+      def activate: (Provider provider) -> Component?
+
+      def start!: () -> Component?
+
+      def activated?: () -> bool
+
+      def shutdown!: () -> void
+
+      private
+
+      def open_feature_available?: () -> bool
+
+      def activate_delivery: (Configuration::Source::Resolution resolution) -> Component?
+
+      def start_delivery: (String source) -> bool
+
+      def start_agentless: () -> bool
+
+      def start_remote_configuration: () -> bool
+
+      def configuration_changed: (Component::configuration_event event) -> void
+    end
+  end
+end

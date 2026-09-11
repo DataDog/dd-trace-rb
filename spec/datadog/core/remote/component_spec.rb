@@ -225,6 +225,25 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
     end
   end
 
+  describe "#register" do
+    let(:receiver) { instance_double(Datadog::Core::Remote::Dispatcher::Receiver) }
+
+    after { component.shutdown! }
+
+    it "updates both future client capabilities and the current client dispatcher" do
+      component.register(
+        capabilities: [1 << 46],
+        products: ["FFE_FLAGS"],
+        receivers: [receiver],
+      )
+
+      expect(capabilities.capabilities).to include(1 << 46)
+      expect(capabilities.products).to include("FFE_FLAGS")
+      expect(capabilities.receivers).to include(receiver)
+      expect(component.client.dispatcher.receivers).to include(receiver)
+    end
+  end
+
   describe "#after_fork" do
     subject(:after_fork) { component.after_fork }
 
