@@ -181,9 +181,8 @@ or `reviewers/report-template.md`.
 - Use `--repo DataDog/dd-trace-rb` with `gh` commands; defaults are unreliable.
 - Use `.github/PULL_REQUEST_TEMPLATE.md` as the starting point for PR descriptions.
 - Write concisely for the developer performing code review, using one sentence per relevant summary or motivation point.
-- Write changelog entries for customers. Use `None.` for internal CI, tooling, and tracer telemetry consumed only by Datadog engineering.
-- Telemetry that powers customer-facing Datadog product features, such as DI autocomplete, profiling, or AppSec, needs a customer-facing changelog entry even though its data flows through the Datadog backend.
-- Start changelog entries with `Yes.` or `None.`: `Yes. Brief customer-facing summary.` or `None.`. Never provide a summary without the `Yes.` prefix.
+- Write changelog entries for customers. Customer-visible changes need a changelog fragment in `unreleased/`; write it with the write-changelog skill (`.claude/skills/write-changelog/`). Internal CI, tooling, and tracer telemetry consumed only by Datadog engineering need no fragment.
+- Telemetry that powers customer-facing Datadog product features, such as DI autocomplete, profiling, or AppSec, needs a customer-facing changelog fragment even though its data flows through the Datadog backend.
 - Add `--label "AI Generated"` when creating PRs; the label is sufficient, so do not mention AI in the description.
 
 # GitHub Actions
