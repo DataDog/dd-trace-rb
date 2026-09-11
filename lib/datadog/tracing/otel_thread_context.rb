@@ -82,6 +82,10 @@ module Datadog
         _native_set(trace_id, span_id, local_root_span_id)
       end
 
+      def after_fork
+        clear
+      end
+
       def clear
         _native_clear
       end

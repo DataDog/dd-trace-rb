@@ -344,6 +344,10 @@ module Datadog
         # rubocop:enable Lint/UselessMethodDefinition
       end
 
+      def after_fork
+        @otel_thread_context&.after_fork
+      end
+
       # Shorthand that calls the `shutdown!` method of a registered worker.
       # It's useful to ensure that the Trace Buffer is properly flushed before
       # shutting down the application.
