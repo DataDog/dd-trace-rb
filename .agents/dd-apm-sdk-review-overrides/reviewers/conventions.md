@@ -13,7 +13,7 @@ Use `DATADOG_ENV` (see `docs/AccessEnvironmentVariables.md`). A new `ENV['DD_*']
 
 ## `Datadog::Core::Utils::Time.now`, never `Time.now`
 
-The time provider is configurable (`Core::Utils::Time.now_provider=`). `Time.now` in shipped code or in a spec that should be frozen is a conventions finding — tests cannot override it. **P1**.
+The time provider is configurable (`Core::Utils::Time.now_provider=`). `Time.now` in shipped code or in a spec is a conventions finding — tests cannot override it. **P1**.
 
 ## Mechanical checks — run these, don't eyeball them
 
