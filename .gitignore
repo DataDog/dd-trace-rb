@@ -16,7 +16,7 @@
 /log/
 TODO
 ext/**/skipped_reason.txt
-.cursor/
+.cursor/*
 !.cursor/rules/
 !.cursor/skills/
 .cache/
