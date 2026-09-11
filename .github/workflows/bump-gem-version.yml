@@ -67,6 +67,7 @@ jobs:
         run: cp .github/forced-tests-list.cfg.template .github/forced-tests-list.cfg
 
       - name: Create Pull Request
+        id: cpr
         uses: ./.github/actions/signed-commit-pr
         with:
           token: ${{ steps.generate-token.outputs.token }}
@@ -91,3 +92,9 @@ jobs:
             - Source commit: ${{ github.event.client_payload.source_commit || 'N/A' }}
 
             Please review the changes and merge when ready
+
+      - name: Enable auto-merge
+        uses: ./.github/actions/enable-auto-merge
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}

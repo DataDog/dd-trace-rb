@@ -226,5 +226,5 @@ runs:
         # between editing and creating above.
         pr_number="$(gh pr list --repo "$REPO" --head "$BRANCH" --base "$BASE" --state open \
           --json number,headRepositoryOwner \
-          --jq "[.[] | select(.headRepositoryOwner.login == \"${REPO%%/*}\"")] | .[0].number // empty")"
+          --jq "[.[] | select(.headRepositoryOwner.login == \"${REPO%%/*}\")] | .[0].number // empty")"
         echo "pull-request-number=$pr_number" >> "$GITHUB_OUTPUT"
