@@ -4,7 +4,6 @@ require "datadog/profiling/spec_helper"
 require "datadog/core/configuration"
 require "datadog/core/pin"
 require "datadog/statsd"
-require "datadog/tracing/otel_thread_context"
 require "datadog/tracing/tracer"
 
 RSpec.describe Datadog::Core::Configuration do
@@ -281,20 +280,9 @@ RSpec.describe Datadog::Core::Configuration do
       end
 
       context "when the tracer" do
-        let(:otel_thread_context) { Datadog::Tracing::OTelThreadContext.new(otel_thread_context_settings) }
-        let(:otel_thread_context_settings) do
-          settings = Datadog::Core::Configuration::Settings.new
-          settings.tracing.otel_thread_context_enabled = false
-          settings.tracing
-        end
-
         context "is replaced" do
-          let(:old_tracer) do
-            Datadog::Tracing::Tracer.new(writer: writer, otel_thread_context: otel_thread_context)
-          end
-          let(:new_tracer) do
-            Datadog::Tracing::Tracer.new(writer: writer, otel_thread_context: otel_thread_context)
-          end
+          let(:old_tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
+          let(:new_tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
 
           before do
             expect(old_tracer).to receive(:shutdown!)
@@ -309,9 +297,7 @@ RSpec.describe Datadog::Core::Configuration do
         end
 
         context "is reused" do
-          let(:tracer) do
-            Datadog::Tracing::Tracer.new(writer: writer, otel_thread_context: otel_thread_context)
-          end
+          let(:tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
 
           before do
             expect(tracer).to_not receive(:shutdown!)
@@ -326,9 +312,7 @@ RSpec.describe Datadog::Core::Configuration do
         end
 
         context "is not changed" do
-          let(:tracer) do
-            Datadog::Tracing::Tracer.new(writer: writer, otel_thread_context: otel_thread_context)
-          end
+          let(:tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
 
           before do
             expect(tracer).to_not receive(:shutdown!)

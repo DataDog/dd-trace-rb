@@ -20,26 +20,20 @@ require "datadog/tracing/writer"
 
 RSpec.describe Datadog::Tracing::Tracer do
   let(:writer) { FauxWriter.new }
-  let(:otel_thread_context) { Datadog::Tracing::OTelThreadContext.new(otel_thread_context_settings) }
-  let(:otel_thread_context_settings) do
-    settings = Datadog::Core::Configuration::Settings.new
-    settings.tracing.otel_thread_context_enabled = false
-    settings.tracing
-  end
   let(:tracer_options) { {} }
 
-  subject(:tracer) do
-    described_class.new(writer: writer, otel_thread_context: otel_thread_context, **tracer_options)
-  end
+  subject(:tracer) { described_class.new(writer: writer, **tracer_options) }
 
   after { tracer.shutdown! }
 
   shared_context "OTel thread context enabled" do
+    let(:otel_thread_context) { Datadog::Tracing::OTelThreadContext.new(otel_thread_context_settings) }
     let(:otel_thread_context_settings) do
       settings = Datadog::Core::Configuration::Settings.new
       settings.tracing.otel_thread_context_enabled = true
       settings.tracing
     end
+    let(:tracer_options) { super().merge(otel_thread_context: otel_thread_context) }
 
     before do
       allow_any_instance_of(Datadog::Tracing::OTelThreadContext).to receive(:enable!).and_return(true)
@@ -252,6 +246,14 @@ RSpec.describe Datadog::Tracing::Tracer do
         end
 
         context "with OTel thread context disabled" do
+          let(:otel_thread_context) { Datadog::Tracing::OTelThreadContext.new(otel_thread_context_settings) }
+          let(:otel_thread_context_settings) do
+            settings = Datadog::Core::Configuration::Settings.new
+            settings.tracing.otel_thread_context_enabled = false
+            settings.tracing
+          end
+          let(:tracer_options) { super().merge(otel_thread_context: otel_thread_context) }
+
           it "does not update the OTel thread context" do
             expect(otel_thread_context).to_not receive(:set)
             expect(otel_thread_context).to_not receive(:clear)

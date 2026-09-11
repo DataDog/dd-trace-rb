@@ -7,7 +7,6 @@ require "datadog/core"
 require "datadog/core/utils/time"
 require "datadog/core/environment/identity"
 
-require "datadog/tracing/otel_thread_context"
 require "datadog/tracing/sampling/ext"
 require "datadog/tracing/span_operation"
 require "datadog/tracing/trace_operation"
@@ -887,15 +886,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
   end
 
   describe "sampling after resource resolution" do
-    let(:otel_thread_context) { Datadog::Tracing::OTelThreadContext.new(otel_thread_context_settings) }
-    let(:otel_thread_context_settings) do
-      settings = Datadog::Core::Configuration::Settings.new
-      settings.tracing.otel_thread_context_enabled = false
-      settings.tracing
-    end
     let(:tracer) do
       Datadog::Tracing::Tracer.new(
-        otel_thread_context: otel_thread_context,
         sampler: Datadog::Tracing::Sampling::PrioritySampler.new(
           base_sampler: Datadog::Tracing::Sampling::AllSampler.new,
           post_sampler: Datadog::Tracing::Sampling::RuleSampler.new(

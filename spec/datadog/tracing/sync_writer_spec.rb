@@ -1,7 +1,6 @@
 require "spec_helper"
 
 require "datadog/core/configuration/agent_settings"
-require "datadog/tracing/otel_thread_context"
 require "datadog/tracing/pipeline"
 require "datadog/tracing/pipeline/span_filter"
 require "datadog/tracing/span"
@@ -108,16 +107,7 @@ RSpec.describe Datadog::Tracing::SyncWriter do
 
   describe "integration" do
     context "when initializing a tracer" do
-      subject(:tracer) do
-        Datadog::Tracing::Tracer.new(writer: sync_writer, otel_thread_context: otel_thread_context)
-      end
-
-      let(:otel_thread_context) { Datadog::Tracing::OTelThreadContext.new(otel_thread_context_settings) }
-      let(:otel_thread_context_settings) do
-        settings = Datadog::Core::Configuration::Settings.new
-        settings.tracing.otel_thread_context_enabled = false
-        settings.tracing
-      end
+      subject(:tracer) { Datadog::Tracing::Tracer.new(writer: sync_writer) }
 
       it { expect(tracer.writer).to be sync_writer }
 

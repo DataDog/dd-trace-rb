@@ -1,6 +1,5 @@
 require "datadog/tracing/tracer"
 require "datadog/tracing/correlation"
-require "datadog/tracing/otel_thread_context"
 require "datadog/tracing/trace_operation"
 require "support/faux_writer"
 require "datadog/tracing/utils"
@@ -24,11 +23,7 @@ module TracerHelpers
       end
     )
 
-    settings = Datadog::Core::Configuration::Settings.new
-    settings.tracing.otel_thread_context_enabled = false
-    otel_thread_context = Datadog::Tracing::OTelThreadContext.new(settings.tracing)
-
-    options = {writer: writer, otel_thread_context: otel_thread_context}.merge(options)
+    options = {writer: writer}.merge(options)
     Datadog::Tracing::Tracer.new(**options)
   end
 

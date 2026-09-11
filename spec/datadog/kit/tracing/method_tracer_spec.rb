@@ -1,20 +1,11 @@
 require "spec_helper"
 
 require "datadog/tracing"
-require "datadog/tracing/otel_thread_context"
 
 require "datadog/kit/tracing/method_tracer"
 
 RSpec.describe Datadog::Kit::Tracing::MethodTracer do
-  let(:otel_thread_context) { Datadog::Tracing::OTelThreadContext.new(otel_thread_context_settings) }
-  let(:otel_thread_context_settings) do
-    settings = Datadog::Core::Configuration::Settings.new
-    settings.tracing.otel_thread_context_enabled = false
-    settings.tracing
-  end
-  let(:tracer) do
-    Datadog::Tracing::Tracer.new(writer: FauxWriter.new, otel_thread_context: otel_thread_context)
-  end
+  let(:tracer) { Datadog::Tracing::Tracer.new(writer: FauxWriter.new) }
 
   before do
     allow(Datadog::Tracing).to receive(:tracer).and_return(tracer)
