@@ -79,7 +79,6 @@ jobs:
             .gitlab/
             docker-compose.yml
             integration/images/
-            tools/yard.gemfile
           body: |
             _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/update-images.yml)_
             The PR pins images-rb images to commit [${{ github.event.client_payload.commit }}](https://github.com/DataDog/images-rb/commit/${{ github.event.client_payload.commit }})

@@ -118,6 +118,7 @@ GEM
       logger
       prism (>= 1.6.0)
       tsort
+    redcarpet (3.6.1)
     regexp_parser (2.12.0)
     reline (0.7.0)
       io-console (~> 0.5)
@@ -216,6 +217,7 @@ GEM
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
     webrick (1.9.2)
+    yard (0.9.45)
     zstd-ruby (2.0.8)
 
 PLATFORMS
@@ -250,6 +252,7 @@ DEPENDENCIES
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   rbs (~> 4.0)
+  redcarpet (~> 3.6)
   rspec (~> 3.13)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
@@ -264,6 +267,7 @@ DEPENDENCIES
   warning (~> 1)
   webmock (>= 3.10.0)
   webrick (>= 1.8.2)
+  yard (~> 0.9)
   zstd-ruby
 
 CHECKSUMS
@@ -339,6 +343,7 @@ CHECKSUMS
   rb-fsevent (0.11.2) sha256=43900b972e7301d6570f64b850a5aa67833ee7d87b458ee92805d56b7318aefe
   rb-inotify (0.11.1) sha256=a0a700441239b0ff18eb65e3866236cd78613d6b9f78fea1f9ac47a85e47be6e
   rbs (4.2.0) sha256=51f7b886dcc05bc09e10b901daa6a81829f6adc03101d6ca9ea4aac6103e0674
+  redcarpet (3.6.1) sha256=d444910e6aa55480c6bcdc0cdb057626e8a32c054c29e793fa642ba2f155f445
   regexp_parser (2.12.0) sha256=35a916a1d63190ab5c9009457136ae5f3c0c7512d60291d0d1378ba18ce08ebb
   reline (0.7.0) sha256=5b012d8e55dbf9d450f12bde2cf7d15ff546ae80b3f8f3b30e570d431815583d
   rexml (3.4.4) sha256=19e0a2c3425dfbf2d4fc1189747bdb2f849b6c5e74180401b15734bc97b5d142
@@ -374,6 +379,7 @@ CHECKSUMS
   warning (1.6.0) sha256=a49cdfae19fb77d19afff2efbe45f8ab759e9cd25b4e4ce2c79dbaf46bdb6c9e
   webmock (3.26.4) sha256=8d8da206d217ebe6968cfb09c77f4533c23074e1432bad865f3994eacbaad50d
   webrick (1.9.2) sha256=beb4a15fc474defed24a3bda4ffd88a490d517c9e4e6118c3edce59e45864131
+  yard (0.9.45) sha256=52e211493f7cb8a3ebf7e104a25a1e73937a3103092545d34cb88fafebb3dc51
   zstd-ruby (2.0.8) sha256=0215f522a185f10c57bc742f167d49b3618aed45ceab04cc2f9080d3e504b404
 
 BUNDLED WITH
