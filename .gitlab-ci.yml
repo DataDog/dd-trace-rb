@@ -18,7 +18,7 @@ include:
     file: ".gitlab/ci-ruby-acme-parallel.yml"
     ref: "6e0c06b02f6e4642caec88abdb958ec32d69c6b8" # apm-sdks-benchmarks#215 merge commit
   - project: "ddoghq/llm-validation-platform"
-    ref: &llmval_platform_sha "d59e4af6d6666092f65740b9a4d1bf3651a64321"
+    ref: &llmval_platform_sha "c331696647a78672101002ba48ccebbd41b0fae8"
     file: "/ci/llm-validation.gitlab-ci.yml"
 
 "llm validation":
