@@ -1243,7 +1243,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           GC.stress = false
         end
 
-        expect(on_failure_proc_called).to be false
+        expect(on_failure_proc_called).to(
+          be(false),
+          -> {
+            failure_exception = cpu_and_wall_time_worker.send(:failure_exception)
+            "Profiler failed to run cleanly, failure_exception: #{failure_exception.inspect}\n" \
+              "#{failure_exception&.backtrace&.join("\n")}"
+          }
+        )
       end
     end
 
