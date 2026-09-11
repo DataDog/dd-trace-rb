@@ -3,11 +3,11 @@ module Datadog
     module Remote
       class Client
         class Capabilities
-          @capabilities: ::Array[::Integer]
+          @capabilities: Array[Integer]
 
-          @products: ::Array[::String]
+          @products: Array[String]
 
-          @receivers: ::Array[Core::Remote::Dispatcher::Receiver]
+          @receivers: Array[Core::Remote::Dispatcher::Receiver]
 
           @base64_capabilities: String
 
@@ -20,18 +20,18 @@ module Datadog
             Datadog::Core::Telemetry::Component telemetry
           ) -> void
 
-          def capabilities: () -> ::Array[::Integer]
+          def capabilities: () -> Array[Integer]
 
-          def products: () -> ::Array[::String]
+          def products: () -> Array[String]
 
-          def receivers: () -> ::Array[Core::Remote::Dispatcher::Receiver]
+          def receivers: () -> Array[Core::Remote::Dispatcher::Receiver]
 
           def base64_capabilities: () -> String
 
           def register_runtime: (
-            capabilities: ::Array[::Integer],
-            products: ::Array[::String],
-            receivers: ::Array[Core::Remote::Dispatcher::Receiver]
+            capabilities: Array[Integer],
+            products: Array[String],
+            receivers: Array[Core::Remote::Dispatcher::Receiver]
           ) -> void
 
           def add_products: (*::String products) -> void
