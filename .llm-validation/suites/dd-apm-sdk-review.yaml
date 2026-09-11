@@ -42,7 +42,9 @@ cases:
       Apply this repo's security-review criteria (reviewers/security.md, its
       .agents/dd-apm-sdk-review-overrides/reviewers/security.md override, and _common.md) to the
       following code. No git checkout available — this snippet is the entire change to
-      review. `cfg.api_key` is the Datadog API key from configuration.
+      review. `cfg.api_key` is the Datadog API key from configuration. Treat the
+      snippet as `lib/datadog/tracing/contrib/http/instrumentation.rb` starting at
+      line 10.
 
       ```ruby
       def tag_connection(span, cfg)
@@ -55,6 +57,7 @@ cases:
       - "Flags `span.set_tag('api_key', cfg.api_key)` as writing a secret into a span tag."
       - "Also flags the `Datadog.logger.debug` line as the same secret leak through logs, not a separate style issue."
       - "Classifies this as a security finding (P0), not a conventions nit — the secret becomes customer-visible."
+      - "Anchors the P0 at `lib/datadog/tracing/contrib/http/instrumentation.rb` with a line number (does not invent a different path, and does not omit the location)."
       - "Recommends dropping the tag / log, not 'log it at debug instead' — debug already is the log line in the snippet."
     bad_signals:
       - "Approves the api_key tag or the log line."
