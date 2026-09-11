@@ -472,6 +472,8 @@ module Datadog
           :span_before_finish,
           :span_before_start,
           :span_finished,
+          :trace_activated,
+          :trace_deactivated,
           :trace_finished,
           :trace_propagated,
           :trace_resource_change
@@ -480,6 +482,8 @@ module Datadog
           @span_before_finish = SpanBeforeFinish.new
           @span_before_start = SpanBeforeStart.new
           @span_finished = SpanFinished.new
+          @trace_activated = TraceActivated.new
+          @trace_deactivated = TraceDeactivated.new
           @trace_finished = TraceFinished.new
           @trace_propagated = TracePropagated.new
           @trace_resource_change = TraceResourceChange.new
@@ -504,6 +508,20 @@ module Datadog
         class SpanFinished < Tracing::Event
           def initialize
             super(:span_finished)
+          end
+        end
+
+        # Triggered when a trace becomes active in Tracing Context
+        class TraceActivated < Tracing::Event
+          def initialize
+            super(:trace_activated)
+          end
+        end
+
+        # Triggered when a trace becomes inactive in Tracing Context
+        class TraceDeactivated < Tracing::Event
+          def initialize
+            super(:trace_deactivated)
           end
         end
 

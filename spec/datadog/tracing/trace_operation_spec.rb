@@ -2660,6 +2660,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               :span_before_finish,
               :span_before_start,
               :span_finished,
+              :trace_activated,
+              :trace_deactivated,
               :trace_finished,
               :trace_propagated,
               :trace_resource_change,

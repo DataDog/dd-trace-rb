@@ -55,10 +55,12 @@ RSpec.describe Datadog::Tracing::Component do
           end
         end
         let(:span_sampler) { be_a(Datadog::Tracing::Sampling::Span::Sampler) }
+        let(:otel_thread_context) { instance_double(Datadog::Tracing::OTelThreadContext) }
         let(:default_options) do
           {
             default_service: settings.service,
             enabled: settings.tracing.enabled,
+            otel_thread_context: otel_thread_context,
             trace_flush: trace_flush,
             tags: settings.tags,
             sampler: sampler,
@@ -81,6 +83,10 @@ RSpec.describe Datadog::Tracing::Component do
         let(:writer_options) { defined?(super) ? super() : {} }
 
         before do
+          expect(Datadog::Tracing::OTelThreadContext).to receive(:new)
+            .with(settings.tracing)
+            .and_return(otel_thread_context)
+
           expect(Datadog::Tracing::Tracer).to receive(:new)
             .with(tracer_options)
             .and_return(tracer)
@@ -155,6 +161,14 @@ RSpec.describe Datadog::Tracing::Component do
           let(:options) { {enabled: enabled} }
           it_behaves_like "event publishing writer and priority sampler"
         end
+      end
+
+      context "with :otel_thread_context_enabled" do
+        before do
+          settings.tracing.otel_thread_context_enabled = false
+        end
+
+        it_behaves_like "new tracer"
       end
 
       context "with :env" do

@@ -56,6 +56,7 @@ module Datadog
         default_service: Core::Environment::Ext::FALLBACK_SERVICE_NAME,
         enabled: true,
         logger: Datadog.logger,
+        otel_thread_context: nil,
         sampler: Sampling::PrioritySampler.new(
           base_sampler: Sampling::AllSampler.new,
           post_sampler: Sampling::RuleSampler.new
@@ -76,6 +77,8 @@ module Datadog
         @span_sampler = span_sampler
         @tags = tags
         @writer = writer
+
+        @otel_thread_context = otel_thread_context
       end
 
       # Return a {Datadog::Tracing::SpanOperation span_op} and {Datadog::Tracing::TraceOperation trace_op}
@@ -341,6 +344,10 @@ module Datadog
         # rubocop:enable Lint/UselessMethodDefinition
       end
 
+      def after_fork
+        @otel_thread_context&.after_fork
+      end
+
       # Shorthand that calls the `shutdown!` method of a registered worker.
       # It's useful to ensure that the Trace Buffer is properly flushed before
       # shutting down the application.
@@ -445,6 +452,8 @@ module Datadog
             reconsider_trace_sampling_on_resource(event_trace_op)
           end
         end
+
+        @otel_thread_context&.subscribe_to_tracer_events!(events)
       end
 
       # Creates a new TraceOperation, with events bounds to this Tracer instance.
