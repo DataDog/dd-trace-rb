@@ -71,3 +71,8 @@ lib/*.so
 
 # Superpowers brainstorming/plan output (local, not tracked)
 /docs/superpowers/
+
+# LLM Validation local/CI artifacts
+.llm-validation/results.json
+.llm-validation/report.md
+.llm-validation/details.json

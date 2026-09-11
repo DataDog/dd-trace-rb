@@ -17,6 +17,15 @@ include:
   - project: "DataDog/apm-reliability/apm-sdks-benchmarks"
     file: ".gitlab/ci-ruby-acme-parallel.yml"
     ref: "6e0c06b02f6e4642caec88abdb958ec32d69c6b8" # apm-sdks-benchmarks#215 merge commit
+  - project: "ddoghq/llm-validation-platform"
+    ref: &llmval_platform_sha "c331696647a78672101002ba48ccebbd41b0fae8"
+    file: "/ci/llm-validation.gitlab-ci.yml"
+
+"llm validation":
+  variables:
+    LLMVAL_PLATFORM_PROJECT: "ddoghq/llm-validation-platform"
+    LLMVAL_PLATFORM_REF: *llmval_platform_sha
+    LLMVAL_BASE_REF: "master"
 
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby

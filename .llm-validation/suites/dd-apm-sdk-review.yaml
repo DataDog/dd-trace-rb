@@ -1,0 +1,68 @@
+name: dd-apm-sdk-review
+version: "0.1"
+
+# One file on purpose: the platform CLI errors if suites/ has more than one YAML.
+# Two starter cases — one per override. Copy either block to add the next one.
+cases:
+  - id: rb-conventions-env-and-time
+    files:
+      - AGENTS.md
+      - .agents/skills/dd-apm-sdk-review/reviewers/conventions.md
+      - .agents/skills/dd-apm-sdk-review/reviewers/_common.md
+      - .agents/dd-apm-sdk-review-overrides/reviewers/conventions.md
+    input: |
+      Apply this repo's conventions-review criteria (reviewers/conventions.md, its
+      .agents/dd-apm-sdk-review-overrides/reviewers/conventions.md override, _common.md, and
+      AGENTS.md) to the following code. No git checkout available — this snippet is the
+      entire change to review. Treat the snippet as
+      `lib/datadog/tracing/contrib/http/instrumentation.rb` starting at line 10 (shipped
+      code, not a spec).
+
+      ```ruby
+      def service_name
+        ENV['DD_SERVICE'] || 'unnamed'
+      end
+
+      def started_at
+        Time.now
+      end
+      ```
+    expected_criteria:
+      - "Flags `ENV['DD_SERVICE']` — shipped code must read environment variables through `DATADOG_ENV`, not `ENV` directly."
+      - "Flags `Time.now` — shipped code must use `Datadog::Core::Utils::Time.now` so tests can override the provider."
+      - "Names the concrete replacements, not just 'avoid ENV' / 'avoid Time.now'."
+    bad_signals:
+      - "Approves the `ENV` read or the `Time.now` call."
+      - "Treats both as style nits with no repo-specific reason."
+      - "Invents a different wrapper name that this gem does not use."
+
+  - id: rb-security-secret-into-tag
+    files:
+      - .agents/skills/dd-apm-sdk-review/reviewers/security.md
+      - .agents/skills/dd-apm-sdk-review/reviewers/_common.md
+      - .agents/dd-apm-sdk-review-overrides/reviewers/security.md
+    input: |
+      Apply this repo's security-review criteria (reviewers/security.md, its
+      .agents/dd-apm-sdk-review-overrides/reviewers/security.md override, and _common.md) to the
+      following code. No git checkout available — this snippet is the entire change to
+      review. `cfg.api_key` is the Datadog API key from configuration. Treat the
+      snippet as `lib/datadog/tracing/contrib/http/instrumentation.rb` starting at
+      line 10.
+
+      ```ruby
+      def tag_connection(span, cfg)
+        span.set_tag('peer.hostname', cfg.host)
+        span.set_tag('api_key', cfg.api_key)
+        Datadog.logger.debug("connecting with api_key=#{cfg.api_key}")
+      end
+      ```
+    expected_criteria:
+      - "Flags `span.set_tag('api_key', cfg.api_key)` as writing a secret into a span tag."
+      - "Also flags the `Datadog.logger.debug` line as the same secret leak through logs, not a separate style issue."
+      - "Classifies this as a security finding (P0), not a conventions nit — the secret becomes customer-visible."
+      - "Anchors the P0 at `lib/datadog/tracing/contrib/http/instrumentation.rb` with a line number (does not invent a different path, and does not omit the location)."
+      - "Recommends dropping the tag / log, not 'log it at debug instead' — debug already is the log line in the snippet."
+    bad_signals:
+      - "Approves the api_key tag or the log line."
+      - "Treats this as a style / naming nit."
+      - "Suggests only changing the log level."
