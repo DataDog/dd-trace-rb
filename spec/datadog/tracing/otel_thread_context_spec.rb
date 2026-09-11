@@ -164,4 +164,12 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? d
       end
     end
   end
+
+  describe "#after_fork" do
+    it "clears the thread context" do
+      expect(otel_thread_context).to receive(:clear).once
+
+      otel_thread_context.after_fork
+    end
+  end
 end

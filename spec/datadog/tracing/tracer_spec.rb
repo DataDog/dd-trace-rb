@@ -1379,6 +1379,24 @@ RSpec.describe Datadog::Tracing::Tracer do
     end
   end
 
+  describe "#after_fork" do
+    subject(:after_fork) { tracer.after_fork }
+
+    context "with OTel thread context" do
+      include_context "OTel thread context enabled"
+
+      it "dispatches after_fork to the OTel thread context" do
+        expect(otel_thread_context).to receive(:after_fork).once
+
+        after_fork
+      end
+    end
+
+    context "without OTel thread context" do
+      it { expect { after_fork }.to_not raise_error }
+    end
+  end
+
   describe "#baggage_tracing_interactions" do
     before { Datadog.configure {} }
 
