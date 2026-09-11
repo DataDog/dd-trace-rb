@@ -1,0 +1,35 @@
+name: 'Enable auto-merge'
+
+description: >-
+  Enables GitHub auto-merge on a pull request, using a merge commit by default.
+  Best-effort: auto-merge can be switched off at the repo or org level, so on
+  failure this warns instead of failing the run, leaving the pull request open
+  for a manual merge.
+
+inputs:
+  token:
+    description: 'Token with pull_requests:write.'
+    required: true
+  pull-request-number:
+    description: 'Pull request to enable auto-merge on. Empty is a no-op.'
+    required: false
+    default: ''
+  merge-method:
+    description: 'Merge method: merge, squash, or rebase.'
+    required: false
+    default: 'merge'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Enable auto-merge
+      if: ${{ inputs.pull-request-number != '' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        PR: ${{ inputs.pull-request-number }}
+        MERGE_METHOD: ${{ inputs.merge-method }}
+      run: |
+        if ! gh pr merge --auto "--$MERGE_METHOD" "$PR"; then
+          echo "::warning::Could not enable auto-merge for PR #$PR; leaving it for a manual merge"
+        fi
