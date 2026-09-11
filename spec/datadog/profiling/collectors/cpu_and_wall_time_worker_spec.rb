@@ -1207,6 +1207,52 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
+    context "GC stress enabled integration test", :memcheck_valgrind_skip do
+      before do
+        unless ENV["DATADOG_GEM_CI"] == "true"
+          skip "Test is slow so we only run it with DATADOG_GEM_CI=true"
+        end
+      end
+
+      let(:allocation_profiling_enabled) { true }
+      let(:allocation_counting_enabled) { true }
+      let(:heap_profiling_enabled) { RubyVersion.is?(">= 3.1") }
+      let(:gvl_profiling_enabled) { RubyVersion.is?(">= 3.2") }
+      let(:sighandler_sampling_enabled) do
+        !(RubyVersion.is?("< 3.2.5") || RubyVersion.is?(">= 3.3", "< 3.3.4"))
+      end
+
+      it "runs the profiler successfully" do
+        on_failure_proc_called = false
+        cpu_and_wall_time_worker # pre-create instances before enabling stress
+
+        GC.stress = true
+        begin
+
+          cpu_and_wall_time_worker.start(on_failure_proc: proc { on_failure_proc_called = true })
+          cpu_and_wall_time_worker.wait_until_running(timeout_seconds: 30)
+
+          10.times { |i| i.to_s }
+          recorder.serialize!
+          10.times { |i| i.to_s }
+
+          cpu_and_wall_time_worker.stop
+          recorder.serialize!
+        ensure
+          GC.stress = false
+        end
+
+        expect(on_failure_proc_called).to(
+          be(false),
+          -> {
+            failure_exception = cpu_and_wall_time_worker.send(:failure_exception)
+            "Profiler failed to run cleanly, failure_exception: #{failure_exception.inspect}\n" \
+              "#{failure_exception&.backtrace&.join("\n")}"
+          }
+        )
+      end
+    end
+
     context "when the _native_sampling_loop terminates with an exception" do
       it "calls the on_failure_proc" do
         expect(described_class).to receive(:_native_sampling_loop).and_raise(StandardError.new("Simulated error"))
