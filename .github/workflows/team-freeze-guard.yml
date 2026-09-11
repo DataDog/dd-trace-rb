@@ -12,7 +12,9 @@
 name: Team freeze guard
 
 on: # yamllint disable-line rule:truthy
-  pull_request_target:
+  # Never checks out or executes PR-controlled code; the action only reads
+  # PR metadata via the API and runs its own bundled code.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
     types:
       - opened
       - reopened
