@@ -28,7 +28,7 @@ jobs:
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
       env:
-        BUNDLE_GEMFILE: tools/yard.gemfile
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     steps:
       - name: Checkout
@@ -36,8 +36,9 @@ jobs:
         with:
           persist-credentials: false
       - run: ls -al
-      - name: Bundle
-        run: bundle install
+      - name: Prepare bundle cache
+        id: bundle-cache
+        uses: ./.github/actions/bundle-cache
       - name: Generate YARD documentation
         run: bundle exec rake docs --rakefile=tasks/yard.rake
       - name: Setup Pages
