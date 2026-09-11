@@ -1,0 +1,26 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module AwsLambda
+        module Instrumentation
+          def self.on_start: (untyped event, trace: Tracing::TraceOperation, span: Tracing::SpanOperation, ?cold_start: bool) -> Hash[String, untyped]?
+          def self.on_finish: (untyped handler_response) -> Hash[String, untyped]?
+          def self.catch_interrupt: () { () -> untyped } -> untyped
+
+          private
+
+          def self.finish_context: (Context context, untyped handler_response) -> Hash[String, untyped]?
+          def self.enabled?: () -> bool
+          def self.create_context: (Tracing::TraceOperation? trace, Tracing::SpanOperation? span) -> Context?
+          def self.inspect_response: (Context context, Hash[String, untyped] normalized, Response response) -> untyped
+          def self.extract_api_security_schema: (Context context, request: Request?, response: Response?) -> void
+          def self.api_security_sample?: (untyped request, untyped response) -> bool
+          def self.response_override: (untyped interrupt, headers: Hash[String, untyped]) -> Hash[String, untyped]
+          def self.finalize_context: (Context context) -> void
+          def self.deactivate_context: () -> void
+          def self.log_failure: (String stage, Exception error) -> void
+        end
+      end
+    end
+  end
+end

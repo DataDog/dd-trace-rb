@@ -358,6 +358,7 @@ namespace :spec do
     :active_record,
     :active_support,
     :aws,
+    :aws_lambda_ric,
     :concurrent_ruby,
     :dalli,
     :delayed_job,

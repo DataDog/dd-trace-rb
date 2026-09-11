@@ -1,0 +1,22 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module AwsLambdaRic
+        class Integration
+          include Contrib::Integration
+
+          MINIMUM_VERSION: Gem::Version
+
+          def self.version: () -> Gem::Version?
+          def self.loaded?: () -> bool
+          def self.available?: () -> bool
+          def self.compatible?: () -> bool
+          def self.lambda_environment?: () -> bool
+          def self.synchronous_writer?: (Core::Configuration::Settings settings) -> bool
+          def new_configuration: () -> Configuration::Settings
+          def patcher: () -> singleton(Patcher)
+        end
+      end
+    end
+  end
+end

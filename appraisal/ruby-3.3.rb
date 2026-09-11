@@ -138,6 +138,10 @@ appraise 'aws' do
   gem 'shoryuken'
 end
 
+appraise 'aws_lambda_ric' do
+  gem 'aws_lambda_ric'
+end
+
 appraise 'http' do
   gem 'ethon'
   gem 'http'

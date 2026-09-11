@@ -1,0 +1,31 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module AwsLambdaRic
+        module Ext
+          SPAN_NAME: String
+          SPAN_TYPE: String
+          SPAN_RESOURCE: String
+          TAG_COMPONENT: String
+          TAG_OPERATION_INVOKE: String
+          TAG_FUNCTION_ARN: String
+          TAG_FUNCTION_NAME: String
+          TAG_FUNCTION_VERSION: String
+          TAG_REQUEST_ID: String
+          TAG_DD_TRACE: String
+          EXTENSION_PATH: String
+          EXTENSION_HOST: String
+          EXTENSION_PORT: Integer
+          START_INVOCATION_PATH: String
+          END_INVOCATION_PATH: String
+          HEADER_REQUEST_ID: String
+          HEADER_SPAN_ID: String
+          HEADER_INVOCATION_ERROR: String
+          HEADER_INVOCATION_ERROR_MESSAGE: String
+          HEADER_INVOCATION_ERROR_TYPE: String
+          HEADER_INVOCATION_ERROR_STACK: String
+        end
+      end
+    end
+  end
+end
