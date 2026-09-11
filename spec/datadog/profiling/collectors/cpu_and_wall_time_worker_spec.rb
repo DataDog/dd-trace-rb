@@ -1210,8 +1210,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     context "GC stress enabled integration test", :memcheck_valgrind_skip do
       before do
         unless ENV["DATADOG_GEM_CI"] == "true"
-          skip "Test is slow so we only run it when " \
-            "DATADOG_GEM_CI env var is true"
+          skip "Test is slow so we only run it with DATADOG_GEM_CI=true"
         end
       end
 
@@ -1227,8 +1226,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         on_failure_proc_called = false
         cpu_and_wall_time_worker # pre-create instances before enabling stress
 
+        GC.stress = true
         begin
-          GC.stress = true
 
           cpu_and_wall_time_worker.start(on_failure_proc: proc { on_failure_proc_called = true })
           cpu_and_wall_time_worker.wait_until_running(timeout_seconds: 30)
