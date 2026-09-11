@@ -6,14 +6,17 @@ version: "0.1"
 cases:
   - id: rb-conventions-env-and-time
     files:
+      - AGENTS.md
       - .agents/skills/dd-apm-sdk-review/reviewers/conventions.md
       - .agents/skills/dd-apm-sdk-review/reviewers/_common.md
       - .agents/dd-apm-sdk-review-overrides/reviewers/conventions.md
     input: |
       Apply this repo's conventions-review criteria (reviewers/conventions.md, its
-      .agents/dd-apm-sdk-review-overrides/reviewers/conventions.md override, and _common.md) to the
-      following code. No git checkout available — this snippet is the entire change to
-      review.
+      .agents/dd-apm-sdk-review-overrides/reviewers/conventions.md override, _common.md, and
+      AGENTS.md) to the following code. No git checkout available — this snippet is the
+      entire change to review. Treat the snippet as
+      `lib/datadog/tracing/contrib/http/instrumentation.rb` starting at line 10 (shipped
+      code, not a spec).
 
       ```ruby
       def service_name
