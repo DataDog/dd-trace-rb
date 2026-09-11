@@ -243,6 +243,7 @@ module Datadog
 
         # Called when a fork is detected
         def after_fork
+          tracer.after_fork if tracer.respond_to?(:after_fork)
           telemetry.after_fork
           remote&.after_fork
           crashtracker&.update_on_fork
