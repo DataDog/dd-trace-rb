@@ -62,7 +62,9 @@ group :check do
 end
 group :dev do
   gem 'appraisal', '~> 2.4.0', require: false
-  gem 'redcarpet', '~> 3.6', require: false
   gem 'ruby-lsp', require: false
+
+  # For documentation generation with YARD
+  gem 'redcarpet', '~> 3.6', require: false
   gem 'yard', '~> 0.9', require: false
 end
