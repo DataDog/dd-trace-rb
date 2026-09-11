@@ -70,7 +70,12 @@ module Datadog
           body = response.body.to_s
           return body unless response["Content-Encoding"].to_s.strip.casecmp("gzip") == 0
 
-          Zlib::GzipReader.new(StringIO.new(body)).read.to_s
+          reader = Zlib::GzipReader.new(StringIO.new(body))
+          begin
+            reader.read.to_s
+          ensure
+            reader.close
+          end
         end
       end
     end

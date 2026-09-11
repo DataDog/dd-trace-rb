@@ -2,7 +2,6 @@
 
 require "spec_helper"
 require "timeout"
-require "zlib"
 require "datadog/open_feature/configuration/agentless_endpoint"
 require "datadog/open_feature/agentless/configuration_source"
 
