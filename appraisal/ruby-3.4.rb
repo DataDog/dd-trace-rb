@@ -139,16 +139,17 @@ end
 
 appraise 'http' do
   gem 'ethon'
-  gem 'http'
   gem 'httpclient'
+  # Typhoeus is the main consumer of ethon; its specs exercise the patch through it.
   gem 'typhoeus'
 end
 
-appraise 'http6' do
-  gem 'ethon'
-  gem 'http', '~> 6'
-  gem 'httpclient'
-  gem 'typhoeus'
+appraise 'httprb' do
+  gem 'http'
+end
+
+appraise 'httprb-5' do
+  gem 'http', '~> 5'
 end
 
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
