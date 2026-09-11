@@ -39,7 +39,8 @@ namespace :edge do
     # Naming convention:
     #
     # Key: integration name, the same as the name of spec task in Rakefile and MatrixFile
-    # Value: gem name
+    # Value: gem name, or a list of gem names when the group bundles several that
+    # the integration owns (e.g. ethon + typhoeus, or the aws-sdk family)
     allowlist = {
       "stripe" => "stripe",
       "elasticsearch" => "elasticsearch",
@@ -52,21 +53,30 @@ namespace :edge do
       "dalli" => "dalli",
       "redis" => "redis",
       "karafka" => "karafka",
-      # Add more integrations here, when they are extracted to its own isolated group
+      "httprb" => "http",
+      "httpclient" => "httpclient",
+      "ethon" => ["ethon", "typhoeus"],
+      "aws" => ["aws-sdk", "aws-sdk-core"],
+      "shoryuken" => ["shoryuken", "aws-sdk-sqs"],
+      # Add more integrations here, when their gems need to track the latest
+      # release; the gems may live in a shared group, as long as each entry
+      # lists only the gems that integration owns
     }
 
     allowlist = allowlist.slice(*args.extras) if args.extras.any?
 
-    allowlist.each do |integration, gem|
+    allowlist.each do |integration, gems|
       candidates = TEST_METADATA.fetch(integration).select do |_, rubies|
         RuntimeMatcher.match?(rubies)
       end
+
+      update_flags = Array(gems).map { |gem| "--update=#{gem}" }.join(" ")
 
       candidates.each do |group, _|
         gemfile = AppraisalConversion.to_bundle_gemfile(group)
 
         Bundler.with_unbundled_env do
-          output, = Open3.capture2e({"BUNDLE_GEMFILE" => gemfile.to_s}, "bundle lock --update=#{gem}")
+          output, = Open3.capture2e({"BUNDLE_GEMFILE" => gemfile.to_s}, "bundle lock #{update_flags}")
 
           puts output
         end
