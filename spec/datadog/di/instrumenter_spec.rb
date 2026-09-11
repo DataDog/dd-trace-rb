@@ -42,7 +42,8 @@ RSpec.describe Datadog::DI::Instrumenter do
   di_logger_double
 
   let(:instrumenter) do
-    described_class.new(settings, serializer, logger, code_tracker: code_tracker)
+    described_class.new(settings, serializer, logger, code_tracker: code_tracker,
+      correlation_sampler: nil)
   end
 
   # We want to explicitly control when we pass code tracker to instrumenter
@@ -1909,7 +1910,8 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:propagate_all_exceptions) { false }
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
     let(:instrumenter) do
-      described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
+      described_class.new(settings, serializer, logger, code_tracker: code_tracker,
+        correlation_sampler: nil, telemetry: telemetry)
     end
 
     describe "method probe condition evaluation failed callback exceptions" do
@@ -2118,6 +2120,22 @@ RSpec.describe Datadog::DI::Instrumenter do
       it "returns the log limiter for non-capturing probes" do
         expect(instrumenter.probe_global_rate_limiter(log_probe))
           .to be(instrumenter.global_log_rate_limiter)
+      end
+    end
+
+    describe "#emit? with nil correlation_sampler" do
+      let(:probe) do
+        Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
+          id: 1, type: :log, rate_limit: 1)
+      end
+
+      before do
+        expect(instrumenter.correlation_sampler).to be_nil
+      end
+
+      it "falls back to the probe's own rate limiter" do
+        expect(probe.rate_limiter).to receive(:allow?).and_return(true)
+        expect(instrumenter.send(:emit?, probe)).to be(true)
       end
     end
 

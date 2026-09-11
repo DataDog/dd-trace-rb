@@ -1,0 +1,15 @@
+module Datadog
+  module DI
+    class SamplingUnit
+      NONE: SamplingUnit
+
+      @key: ::Integer?
+
+      def self.current: () -> SamplingUnit
+
+      def initialize: (::Integer? key) -> void
+
+      attr_reader key: ::Integer?
+    end
+  end
+end

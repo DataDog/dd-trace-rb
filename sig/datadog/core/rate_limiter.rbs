@@ -59,5 +59,31 @@ module Datadog
 
       def effective_rate: () -> ::Float
     end
+
+    class BorrowingTokenBucket
+      @rate: ::Float | ::Integer
+
+      @max_tokens: ::Numeric
+
+      @tokens: ::Numeric
+
+      @last_refill: ::Numeric
+
+      attr_reader rate: ::Float | ::Integer
+
+      attr_reader max_tokens: ::Numeric
+
+      def initialize: (::Float | ::Integer rate, ?max_tokens: ::Numeric) -> void
+
+      def available?: () -> bool
+
+      def consume: (?size: ::Numeric) -> void
+
+      def available_tokens: () -> ::Numeric
+
+      private
+
+      def refill: () -> void
+    end
   end
 end
