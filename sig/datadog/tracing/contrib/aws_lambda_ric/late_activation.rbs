@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module AwsLambdaRic
+        module LateActivation
+          PATCH_ONCE: Core::Utils::OnlyOnce
+
+          def self?.patch!: () -> untyped
+        end
+      end
+    end
+  end
+end

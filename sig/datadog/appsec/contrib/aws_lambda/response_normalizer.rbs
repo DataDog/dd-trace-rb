@@ -1,0 +1,12 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module AwsLambda
+        module ResponseNormalizer
+          def self?.normalize: (untyped response) -> Hash[String, untyped]
+          def self?.merge_headers: (Hash[String, untyped] response) -> Hash[untyped, untyped]?
+        end
+      end
+    end
+  end
+end

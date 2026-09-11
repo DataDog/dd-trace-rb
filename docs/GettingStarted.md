@@ -144,6 +144,26 @@ If your application does not use the above mentioned gems (Rails or Hanami), you
    - [Add additional configuration settings](#additional-configuration)
    - [Activate or reconfigure instrumentation](#integration-instrumentation)
 
+#### AWS Lambda applications
+
+The `datadog` gem can instrument AWS Lambda functions running on the managed Ruby 3.2, 3.3, 3.4, and 4.0 runtimes without changes to the function handler.
+
+1. Add the Datadog Lambda extension layer to the function.
+2. Make `datadog` available through the function's `Gemfile` or a Lambda layer.
+3. Set `AWS_LAMBDA_EXEC_WRAPPER` to `/opt/datadog_wrapper`.
+
+The wrapper loads the AWS Lambda Runtime Interface Client before Datadog auto-instrumentation. This enables invocation tracing, distributed trace continuation, inferred spans and enhanced metrics from the extension, synchronous trace delivery, and automatic instrumentation of supported libraries loaded by the handler.
+
+To enable Application Security for supported API Gateway events, also set `DD_APPSEC_ENABLED=true` and `DD_SERVERLESS_APPSEC_ENABLED=true`.
+
+Custom distribution metrics remain available through the compatible `Datadog::Lambda` API:
+
+```ruby
+Datadog::Lambda.metric("checkout.completed", 1, environment: "production")
+```
+
+`Datadog::Lambda.trace_context` returns the active invocation's trace identifiers. No call to `Datadog::Lambda.wrap` or `Datadog::Lambda.configure_apm` is needed.
+
 #### Configuring OpenTelemetry
 
 You can send OpenTelemetry traces directly to the Datadog Agent (without `datadog`) by using OTLP. Check out our documentation on [OTLP ingest in the Datadog Agent](https://docs.datadoghq.com/tracing/setup_overview/open_standards/#otlp-ingest-in-datadog-agent) for details.

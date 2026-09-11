@@ -1,0 +1,12 @@
+module Datadog
+  module Lambda
+    self.@trace_context: Tracing::TraceDigest?
+
+    def self.metric: (String name, Numeric value, ?time: Time?, **untyped tags) -> bool
+    def self.trace_context: () -> Hash[Symbol, String | Integer?]
+
+    private
+
+    def self.record_trace_context: (Tracing::TraceDigest digest) -> Tracing::TraceDigest
+  end
+end

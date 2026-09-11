@@ -1,0 +1,20 @@
+module Datadog
+  module Lambda
+    module Metrics
+      HOST: String
+      PORT: Integer
+
+      self.@mutex: Thread::Mutex
+      self.@socket: UDPSocket?
+
+      def self.distribution: (String name, Numeric value, ?time: Time?, ?tags: Hash[Symbol, untyped]) -> bool
+      def self.close: () -> nil
+
+      private
+
+      def self.extension_running?: () -> bool
+      def self.send_to_extension: (String name, Numeric value, Array[String] tags) -> bool
+      def self.ruby_version_tag: () -> String
+    end
+  end
+end
