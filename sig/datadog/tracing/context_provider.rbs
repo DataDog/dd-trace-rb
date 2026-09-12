@@ -1,23 +1,50 @@
+interface _StorageLike
+  def []: (Symbol) -> Datadog::Tracing::Context?
+  def []=: (Symbol, Datadog::Tracing::Context?) -> Datadog::Tracing::Context?
+end
+
 module Datadog
   module Tracing
     class DefaultContextProvider
-      @context: FiberLocalContext
+      @context: ContextScope
 
-      def initialize: () -> void
-      def context=: (untyped ctx) -> untyped
-      def context: (?untyped? key) -> untyped
+      def initialize: (?scope: ContextScope) -> void
+      def context=: (Context? ctx) -> Context?
+      def context: (?::Object? key) -> Context
     end
-    class FiberLocalContext
+
+    class ContextScope
       @key: ::Symbol
+      self.@unique_instance_mutex: Mutex
+      self.@unique_instance_generator: Datadog::Core::Utils::Sequence
 
       def initialize: () -> void
-      def local=: (untyped ctx) -> untyped
-      def local: (?untyped storage) -> untyped
-      UNIQUE_INSTANCE_MUTEX: untyped
+      def current=: (Context? ctx) -> Context?
+      def current: (?::Object? storage) -> Context
 
-      UNIQUE_INSTANCE_GENERATOR: untyped
+      def self.unique_instance_mutex: () -> Mutex
+      def self.unique_instance_generator: () -> Datadog::Core::Utils::Sequence
+      def self.next_instance_id: () -> Integer
 
-      def self.next_instance_id: () -> untyped
+      private
+      def get_current: () -> Context
+      def get_current_for: (::Object storage) -> Context
+    end
+
+    class ThreadScope < ContextScope
+      def current=: (Context? ctx) -> Context?
+
+      private
+      def get_current: () -> Context
+      def get_current_for: (Thread thread) -> Context
+    end
+
+    class FiberIsolatedScope < ContextScope
+      def current=: (Context? ctx) -> Context?
+
+      private
+      def get_current: () -> Context
+      def get_current_for: (_StorageLike storage) -> Context
     end
   end
 end
