@@ -1,0 +1,31 @@
+module Datadog
+  module OpenFeature
+    module Configuration
+      class AgentlessEndpoint
+        DEFAULT_SITE: String
+
+        CONFIGURATION_PATH: String
+
+        INVALID_SITE_CHARACTERS: Regexp
+
+        INTERNAL_WHITESPACE: Regexp
+
+        @managed: bool
+
+        attr_reader uri: URI::HTTP
+
+        def self.build: (site: String?, environment: String?, ?base_url: String?, ?logger: Datadog::Core::Logger) -> AgentlessEndpoint?
+
+        def initialize: (URI::HTTP uri, managed: bool) -> void
+
+        def managed?: () -> bool
+
+        private
+
+        def self.build_custom: (String base_url, Datadog::Core::Logger logger) -> AgentlessEndpoint?
+
+        def self.build_managed: (String? site, String? environment, Datadog::Core::Logger logger) -> AgentlessEndpoint?
+      end
+    end
+  end
+end
