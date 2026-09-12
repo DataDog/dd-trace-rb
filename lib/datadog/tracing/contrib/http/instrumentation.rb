@@ -34,7 +34,7 @@ module Datadog
                 span.service = service_name(host, request_options, client_config)
                 span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
-                span.resource = req.method
+                span.resource = http_client_resource_name(req.method, req.path)
 
                 if Tracing::Distributed::PropagationPolicy.enabled?(
                   pin_config: client_config,
