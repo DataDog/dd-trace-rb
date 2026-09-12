@@ -1,0 +1,57 @@
+name: Dependency Gate
+
+# Single source of truth for "may dependent (expensive) workflows run on this
+# commit yet?". Adopted by workflows whose jobs would otherwise run, and fail, on
+# a dependency PR before the lock-dependency bot has regenerated the lockfiles.
+#
+# A dependency PR triggers CI twice: once on the contributor's commit (gemfiles
+# changed, lockfiles still stale) and again on the bot's lock commit. This gate
+# lets expensive jobs skip the first, stale run and only run once the lockfiles
+# are consistent. It cannot reduce the two runs to one — the bot commit always
+# re-triggers CI — but it keeps the first run cheap.
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    outputs:
+      proceed:
+        description: >-
+          'true' when dependent jobs may run: either no dependency files changed,
+          or every lockfile is consistent with its gemfile. 'false' when a
+          dependency changed but at least one lockfile is still stale (the
+          lock-dependency bot has not regenerated and committed it yet).
+        value: ${{ jobs.changes.outputs.dependencies != 'true' || jobs.gate.outputs.proceed == 'true' }}
+
+# Default permissions for all jobs
+permissions: {}
+
+jobs:
+  changes:
+    name: detect dependency changes
+    runs-on: ubuntu-24.04
+    outputs:
+      dependencies: ${{ steps.changes.outputs.dependencies }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        id: changes
+        with:
+          filters: .github/dependency_filters.yml
+
+  gate:
+    name: probe lockfile consistency
+    needs: changes
+    if: ${{ needs.changes.outputs.dependencies == 'true' }}
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+    outputs:
+      proceed: ${{ steps.decide.outputs.proceed }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Decide whether dependent jobs may proceed
+        id: decide
+        run: bash .github/scripts/deps_gate.sh
