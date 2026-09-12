@@ -16,6 +16,7 @@ module Datadog
           MAX_SERIALIZED_SNAPSHOT_SIZE: ::Integer
           MAX_CHUNK_SIZE: ::Integer
           DEFAULT_CHUNK_SIZE: ::Integer
+          TELEMETRY_NAMESPACE: ::String
 
           attr_reader telemetry: Datadog::Core::Telemetry::Component?
 
