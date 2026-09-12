@@ -538,7 +538,7 @@ module Datadog
                 # the context, we won't be able to report anything as
                 # the probe notifier builder requires a context.
                 begin
-                  responder.probe_condition_evaluation_failed_callback(context, exc)
+                  responder.probe_condition_evaluation_failed_callback(context, condition, exc)
                 rescue Exception => nested_exc # standard:disable Lint/RescueException
                   Datadog::DI.reraise_if_fatal(nested_exc)
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
