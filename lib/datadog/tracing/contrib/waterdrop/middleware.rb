@@ -13,7 +13,7 @@ module Datadog
               trace_op = Datadog::Tracing.active_trace
 
               if trace_op && Datadog::Tracing::Distributed::PropagationPolicy.enabled?(
-                global_config: configuration,
+                global_config: datadog_configuration(message[:topic]),
                 trace: trace_op
               )
                 WaterDrop.inject(trace_op.to_digest, message[:headers] ||= {})
@@ -35,8 +35,8 @@ module Datadog
 
             private
 
-            def configuration
-              Datadog.configuration.tracing[:waterdrop]
+            def datadog_configuration(topic)
+              Datadog.configuration.tracing[:waterdrop, topic]
             end
           end
         end
