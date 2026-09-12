@@ -557,6 +557,26 @@ When multiple `describes` configurations match a connection, the latest configur
 
 If ActiveRecord traces an event that uses a connection that matches a key defined by `describes`, it will use the trace settings assigned to that connection. If the connection does not match any of the described connections, it will use default settings defined by `c.tracing.instrument :active_record` instead.
 
+### Active Storage
+
+Most of the time, Active Storage is set up as part of Rails, but it can be activated separately:
+
+```ruby
+require 'active_storage'
+require 'datadog'
+
+Datadog.configure do |c|
+  c.tracing.instrument :active_storage, **options
+end
+```
+
+`options` are the following keyword arguments:
+
+| Key            | Env Var                           | Type     | Description                                            | Default |
+| -------------- | --------------------------------- | -------- | ------------------------------------------------------ | ------- |
+| `enabled`      | `DD_TRACE_ACTIVE_STORAGE_ENABLED` | `Bool`   | Whether the integration should create spans.           | `true`  |
+| `service_name` |                                   | `String` | Name of the service reported for Active Storage spans. | `nil`   |
+
 ### Active Support
 
 Most of the time, Active Support is set up as part of Rails, but it can be activated separately:
