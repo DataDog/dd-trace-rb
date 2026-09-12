@@ -438,6 +438,31 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     end
   end
 
+  describe "#build_executed with a BasicObject return value" do
+    let(:probe) do
+      Datadog::DI::Probe.new(id: "123", type: :log,
+        type_name: "TestClass", method_name: "test_method",
+        capture_snapshot: true,)
+    end
+
+    let(:context) do
+      Datadog::DI::Context.new(
+        probe: probe,
+        settings: settings, serializer: serializer,
+        target_self: Object.new,
+        serialized_entry_args: {},
+        return_value: ::BasicObject.new, duration: 0.1,
+      )
+    end
+
+    it "serializes a BasicObject return value" do
+      payload = builder.build_executed(context)
+      expect(payload[:debugger][:snapshot][:captures][:return][:arguments][:@return]).to eq(
+        type: "BasicObject", fields: {}
+      )
+    end
+  end
+
   describe "#build_executed for method probe with exception" do
     let(:probe) do
       Datadog::DI::Probe.new(id: "123", type: :log,
