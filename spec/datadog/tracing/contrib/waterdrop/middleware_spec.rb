@@ -55,6 +55,27 @@ RSpec.describe "WaterDrop middleware" do
           "x-datadog-parent-id" => span.id.to_s
         )
       end
+
+      it "copies frozen headers before propagating trace context" do
+        source_headers = {"existing" => "header"}.freeze
+        message = {topic: "topic_name", payload: "foo", headers: source_headers}
+
+        Datadog::Tracing.trace("test.span") do
+          middleware.call(message)
+        end
+
+        expect(message[:headers]).not_to equal(source_headers)
+      end
+
+      it "keeps the copied headers mutable for trace propagation" do
+        message = {topic: "topic_name", payload: "foo", headers: {"existing" => "header"}.freeze}
+
+        Datadog::Tracing.trace("test.span") do
+          middleware.call(message)
+        end
+
+        expect(message[:headers]).not_to be_frozen
+      end
     end
 
     context "when DataStreams is enabled" do
@@ -99,6 +120,25 @@ RSpec.describe "WaterDrop middleware" do
           "data_streams_key" => "data_streams_value",
           "existing" => "header"
         )
+      end
+
+      it "copies frozen headers before injecting the pathway context" do
+        source_headers = {"existing" => "header", "binary" => "\x00\xFF".b}.freeze
+        message = {topic: "some_topic", payload: "hello", headers: source_headers}
+
+        middleware.call(message)
+
+        aggregate_failures do
+          expect(source_headers).to eq("existing" => "header", "binary" => "\x00\xFF".b)
+          expect(source_headers).to be_frozen
+          expect(message[:headers]).not_to equal(source_headers)
+          expect(message[:headers]).not_to be_frozen
+          expect(message[:headers]).to eq(
+            "existing" => "header",
+            "binary" => "\x00\xFF".b,
+            "data_streams_key" => "data_streams_value"
+          )
+        end
       end
     end
 
