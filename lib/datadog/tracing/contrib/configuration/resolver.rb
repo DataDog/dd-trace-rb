@@ -21,6 +21,7 @@ module Datadog
 
           def initialize
             @configurations = {}
+            @ordered_config = []
           end
 
           # Adds a new `matcher`, associating with it a `value`.
@@ -40,6 +41,10 @@ module Datadog
           # @param [Object] value arbitrary value to be associated with `matcher`
           def add(matcher, value)
             @configurations[parse_matcher(matcher)] = value
+            # `to_a` makes an atomic copy of @configurations, as there may be concurrent readers of @ordered_config.
+            @ordered_config = @configurations.to_a.reverse
+
+            value
           end
 
           # Retrieves the stored value for a `matcher`
@@ -63,6 +68,10 @@ module Datadog
           end
 
           protected
+
+          # An atomic copy of @configurations to allow for safe concurrent reads.
+          # It's in reverse order as newer configurations take precedence.
+          attr_reader :ordered_config
 
           # Converts `matcher` into an appropriate key
           # for the internal Hash storage.
