@@ -168,7 +168,7 @@ services:
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # ADD NEW RUBIES HERE
   ddagent:
-    image: datadog/agent
+    image: ghcr.io/datadog/images-rb/services/datadog/agent:latest
     environment:
       - DD_APM_ENABLED=true
       - DD_BIND_HOST=0.0.0.0
@@ -208,7 +208,7 @@ services:
       - ENABLED_CHECKS=trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
 
   elasticsearch:
-    image: elasticsearch:8.19.11
+    image: ghcr.io/datadog/images-rb/services/elasticsearch:8.19.11
     expose:
       - "9200"
       - "9300"
@@ -222,13 +222,13 @@ services:
       - ES_JAVA_OPTS=-Xmx750m
   memcached:
     # Dalli 5.x uses the memcached meta protocol, which requires memcached 1.6+.
-    image: memcached:1.6-alpine
+    image: ghcr.io/datadog/images-rb/services/memcached:1.6-alpine
     expose:
       - "11211"
     ports:
       - "127.0.0.1:${TEST_MEMCACHED_PORT}:11211"
   mongodb:
-    image: mongo:4.2
+    image: ghcr.io/datadog/images-rb/services/mongo:4.2
     expose:
       - "27017"
     ports:
@@ -238,7 +238,7 @@ services:
         aliases:
           - mongodb_secondary
   mysql:
-    image: mysql:8.0
+    image: ghcr.io/datadog/images-rb/services/mysql:8.0
     environment:
       - MYSQL_DATABASE=$TEST_MYSQL_DB
       - MYSQL_ROOT_PASSWORD=$TEST_MYSQL_ROOT_PASSWORD
@@ -252,7 +252,7 @@ services:
     ports:
       - "127.0.0.1:${TEST_MYSQL_PORT}:3306"
   opensearch:
-    image: opensearchproject/opensearch:2.8.0
+    image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
     environment:
       - discovery.type=single-node
       - DISABLE_SECURITY_PLUGIN=true
@@ -266,7 +266,7 @@ services:
     ports:
       - 9201:9200
   postgres:
-    image: postgres:9.6
+    image: ghcr.io/datadog/images-rb/services/postgres:9.6
     environment:
       - POSTGRES_PASSWORD=$TEST_POSTGRES_PASSWORD
       - POSTGRES_USER=$TEST_POSTGRES_USER
@@ -277,13 +277,13 @@ services:
       - "127.0.0.1:${TEST_POSTGRES_PORT}:5432"
   presto:
     # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
-    image: starburstdata/presto:332-e.9
+    image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
     expose:
       - "8080"
     ports:
       - "127.0.0.1:${TEST_PRESTO_PORT}:8080"
   redis:
-    image: redis:6.2
+    image: ghcr.io/datadog/images-rb/services/redis:6.2
     expose:
       - "6379"
     ports:
