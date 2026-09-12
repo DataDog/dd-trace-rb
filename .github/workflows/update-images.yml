@@ -89,3 +89,9 @@ jobs:
             - Source run: ${{ github.event.client_payload.source_run_url }}
 
             Please review the changes and merge when ready.
+
+      - name: Enable auto-merge
+        uses: ./.github/actions/enable-auto-merge
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
