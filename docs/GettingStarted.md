@@ -2855,6 +2855,8 @@ end
 
 See the [Dogstatsd documentation](https://www.rubydoc.info/github/DataDog/dogstatsd-ruby/master/frames) for more details about configuring `Datadog::Statsd`.
 
+When runtime metrics must be sent over a Unix Domain Socket, or to a host and port that differ from the trace Agent, set `DD_DOGSTATSD_URL` (for example `unix:///var/run/datadog/dsd.socket` or `udp://127.0.0.1:8125`) or `DD_DOGSTATSD_SOCKET` (a UDS path). These are read by `dogstatsd-ruby` (>= 5.6) and apply only when neither `DD_AGENT_HOST` nor `DD_METRIC_AGENT_PORT` is set; setting either of those keeps host/port resolution. This is how workloads instrumented by the Datadog Admission Controller reach the local DogStatsD socket without an explicit `DD_AGENT_HOST`.
+
 The stats are VM specific and will include:
 
 | Name                                        | Type    | Description                                                                                           | Available on                                                                                    |
