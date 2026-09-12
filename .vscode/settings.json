@@ -3,5 +3,7 @@
     "*.gemfile": "ruby",
     "Matrixfile": "ruby",
     "Dockerfile*": "dockerfile"
-  }
+  },
+  "rubyLsp.formatter": "standard",
+  "rubyLsp.linters": ["standard"]
 }
