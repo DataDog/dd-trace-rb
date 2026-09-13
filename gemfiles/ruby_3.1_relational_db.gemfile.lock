@@ -101,7 +101,7 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.1.0)
     minitest (5.27.0)
-    msgpack (1.8.4)
+    msgpack (1.8.5)
     mysql2 (0.5.5)
     os (1.1.4)
     pg (1.5.4)
@@ -268,7 +268,7 @@ CHECKSUMS
   memory_profiler (0.9.14) sha256=de558cf6525d8d56d2c0ea465b1664517fbe45560f892dc7a898d3b8c2863b12
   method_source (1.1.0) sha256=181301c9c45b731b4769bc81e8860e72f9161ad7d66dd99103c9ab84f560f5c5
   minitest (5.27.0) sha256=2d3b17f8a36fe7801c1adcffdbc38233b938eb0b4966e97a6739055a45fa77d5
-  msgpack (1.8.4) sha256=4411c22d350dd1c20250f7eada3cca2695438c2f769cf0782f0cd065d90a3e7b
+  msgpack (1.8.5) sha256=97419eaa7b35dfe3e462c0e6c1a3dfdcbfc8756605c09e46e4c6daef127517ba
   mysql2 (0.5.5) sha256=76d11f8590a821060b8465e82eb0b2965767acee876991c4981c365c82905bbe
   os (1.1.4) sha256=57816d6a334e7bd6aed048f4b0308226c5fb027433b67d90a9ab435f35108d3f
   pg (1.5.4) sha256=04f7b247151c639a0b955d8e5a9a41541343f4640aa3c2bdf749a872c339d25d
