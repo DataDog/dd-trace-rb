@@ -15,7 +15,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
       apply: apply,
       logger: logger,
       transport: transport,
-      random: -> { 0.5 },
+      random: random,
       retry_wait: retry_wait,
     )
   end
@@ -29,6 +29,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
   let(:transport) { instance_double(Datadog::OpenFeature::Agentless::Transport) }
   let(:logger) { instance_double(Datadog::Core::Logger, warn: nil, error: nil) }
   let(:apply) { ->(_configuration) {} }
+  let(:random) { -> { 0.5 } }
   let(:retry_wait) { ->(_delay) { false } }
   let(:attributes) do
     {
@@ -129,6 +130,18 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
 
         expect(retry_delays).to eq([5.0, 10.0])
       end
+
+      context "at the bottom of the random range" do
+        let(:random) { -> { 0.0 } }
+
+        it "subtracts the full jitter from the backoff" do
+          allow(transport).to receive(:get).and_return(response(status: 500))
+
+          source.poll
+
+          expect(retry_delays).to eq([4.0, 8.0])
+        end
+      end
     end
 
     [408, 429, 500, 599].each do |status|
@@ -146,11 +159,28 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
       source.poll
     end
 
-    it "reports an authentication failure without retrying" do
-      expect(transport).to receive(:get).with(nil).once.and_return(response(status: 401))
-      expect(logger).to receive(:warn).once.with(a_string_including("verify endpoint authentication"))
+    [401, 403].each do |status|
+      it "reports HTTP #{status} as an authentication failure without retrying" do
+        expect(transport).to receive(:get).with(nil).once.and_return(response(status: status))
+        expect(logger).to receive(:warn).once.with(
+          "Feature Flags agentless endpoint returned HTTP #{status}; verify endpoint authentication"
+        )
 
+        source.poll
+      end
+    end
+
+    it "reports an unexpected status after a retryable status has warned" do
+      allow(transport).to receive(:get).and_return(response(status: 500))
       source.poll
+
+      allow(transport).to receive(:get).and_return(response(status: 404))
+      source.poll
+
+      expect(logger).to have_received(:warn)
+        .with("Feature Flags agentless endpoint returned HTTP 500 after 3 attempt(s)").once
+      expect(logger).to have_received(:warn)
+        .with("Feature Flags agentless endpoint returned HTTP 404 after 1 attempt(s)").once
     end
 
     it "keeps the ETag when the next payload is malformed" do
@@ -167,6 +197,31 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
       allow(apply).to receive(:call).and_raise(Datadog::OpenFeature::EvaluationEngine::ReconfigurationError)
 
       expect { source.poll }.not_to change(source, :etag).from(nil)
+    end
+  end
+
+  describe "#perform" do
+    it "continues polling after an unexpected error" do
+      request_count = 0
+      perform_iteration = source.method(:perform)
+      until perform_iteration.owner == described_class
+        wrapped_method = perform_iteration.super_method
+        raise "ConfigurationSource#perform is missing" unless wrapped_method
+
+        perform_iteration = wrapped_method
+      end
+      allow(transport).to receive(:get) do
+        request_count += 1
+        raise TypeError unless request_count == 2
+
+        response(status: 304)
+      end
+
+      expect { 3.times { perform_iteration.call } }.not_to raise_error
+      expect(request_count).to eq(3)
+      expect(logger).to have_received(:error).once.with(
+        "Feature Flags agentless poll failed with TypeError; polling continues"
+      )
     end
   end
 

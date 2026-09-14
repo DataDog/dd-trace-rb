@@ -96,6 +96,11 @@ module Datadog
 
         def perform
           poll
+        # An exception escaping here ends the unsupervised worker thread and freezes configuration.
+        rescue => error
+          warn_once(:unexpected) do
+            @logger.error("Feature Flags agentless poll failed with #{error.class}; polling continues")
+          end
         end
 
         def poll
@@ -131,6 +136,10 @@ module Datadog
           status = response.status
           return true unless status
 
+          retryable_status?(status)
+        end
+
+        def retryable_status?(status)
           status == 408 || status == 429 || status.between?(500, 599)
         end
 
@@ -200,7 +209,13 @@ module Datadog
 
         def warn_failure(response, attempts)
           status = response.status
-          category = status ? :http : :request
+          category = if status.nil?
+            :request
+          elsif retryable_status?(status)
+            :http_retryable
+          else
+            :http_unexpected
+          end
           warn_once(category) do
             if status
               @logger.warn("Feature Flags agentless endpoint returned HTTP #{status} after #{attempts} attempt(s)")
