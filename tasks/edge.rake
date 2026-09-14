@@ -55,6 +55,7 @@ namespace :edge do
       "karafka" => "karafka",
       "httprb" => "http",
       "httpclient" => "httpclient",
+      "graphql" => "graphql",
       "ethon" => ["ethon", "typhoeus"],
       "aws" => ["aws-sdk", "aws-sdk-core"],
       "shoryuken" => ["shoryuken", "aws-sdk-sqs"],
