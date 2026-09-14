@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "date"
-require_relative "../release_prep"
 
 module ReleasePrep
   class Changelog
