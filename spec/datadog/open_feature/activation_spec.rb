@@ -117,6 +117,10 @@ RSpec.describe Datadog::OpenFeature::Activation do
           expect(activation.failure).to eq("Feature Flags Remote Configuration is unavailable")
           expect(activation.component).to be_nil
           expect(component).to have_received(:shutdown!).once
+          expect(logger).to have_received(:warn).with(
+            "Feature Flags Remote Configuration is unavailable. To enable Remote Configuration, " \
+              "see https://docs.datadoghq.com/remote_configuration/."
+          ).once
         end
       end
     end
