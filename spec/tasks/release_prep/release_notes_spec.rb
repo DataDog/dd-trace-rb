@@ -84,7 +84,9 @@ RSpec.describe ReleasePrep::ReleaseNotes do
       File.write(File.join(@unreleased_dir, "highlights.md"), "## Highlights\n\nBig release!")
       output = File.join(@unreleased_dir, "release_body.md")
 
-      expect { release_notes.write(path: output) }.to raise_error(SystemExit)
+      stderr = capture_stderr { expect { release_notes.write(path: output) }.to raise_error(SystemExit) }
+
+      expect(stderr).to include("::error::No changelog fragments found in unreleased/")
       expect(File.exist?(output)).to be(false)
     end
   end
