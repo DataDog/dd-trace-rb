@@ -35,7 +35,6 @@ GEM
     diff-lcs (1.6.2)
     docile (1.4.1)
     dogstatsd-ruby (5.7.1)
-    domain_name (0.6.20240107)
     erb (6.0.7)
     ethon (0.16.0)
       ffi (>= 1.15.0)
@@ -43,20 +42,8 @@ GEM
     ffi (1.17.4-arm64-darwin)
     ffi (1.17.4-x86_64-darwin)
     ffi (1.17.4-x86_64-linux-gnu)
-    ffi-compiler (1.3.2)
-      ffi (>= 1.15.5)
-      rake
     google-protobuf (3.25.8)
     hashdiff (1.2.1)
-    http (5.2.0)
-      addressable (~> 2.8)
-      base64 (~> 0.1)
-      http-cookie (~> 1.0)
-      http-form_data (~> 2.2)
-      llhttp-ffi (~> 0.5.0)
-    http-cookie (1.0.6)
-      domain_name (~> 0.5)
-    http-form_data (2.3.0)
     httpclient (2.8.3)
     io-console (0.9.2)
     irb (1.18.0)
@@ -79,9 +66,6 @@ GEM
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-x86_64-linux)
       ffi (~> 1.0)
-    llhttp-ffi (0.5.0)
-      ffi-compiler (~> 1.0)
-      rake (~> 13.0)
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
@@ -168,7 +152,6 @@ DEPENDENCIES
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   ethon
   google-protobuf (~> 3.0, != 3.7.1, != 3.7.0)
-  http
   httpclient
   json-schema (~> 6.2)
   memory_profiler (~> 0.9)
@@ -208,19 +191,14 @@ CHECKSUMS
   diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962
   docile (1.4.1) sha256=96159be799bfa73cdb721b840e9802126e4e03dfc26863db73647204c727f21e
   dogstatsd-ruby (5.7.1) sha256=d2e211f9635d6bbe773e152e00fd4cb9f165d26e10356dbef8f917f7a9e5d58c
-  domain_name (0.6.20240107) sha256=5f693b2215708476517479bf2b3802e49068ad82167bcd2286f899536a17d933
   erb (6.0.7) sha256=c5ca6dc25b0ef974a44dc8f59fe847577122483b1968a38dec305c60bf91ee92
   ethon (0.16.0) sha256=bba0da1cea8ac3e1f5cdd7cb1cb5fc78d7ac562c33736f18f0c3eb2b63053d9e
   ffi (1.17.4-aarch64-linux-gnu) sha256=b208f06f91ffd8f5e1193da3cae3d2ccfc27fc36fba577baf698d26d91c080df
   ffi (1.17.4-arm64-darwin) sha256=19071aaf1419251b0a46852abf960e77330a3b334d13a4ab51d58b31a937001b
   ffi (1.17.4-x86_64-darwin) sha256=aa70390523cf3235096cf64962b709b4cfbd5c082a2cb2ae714eb0fe2ccda496
   ffi (1.17.4-x86_64-linux-gnu) sha256=9d3db14c2eae074b382fa9c083fe95aec6e0a1451da249eab096c34002bc752d
-  ffi-compiler (1.3.2) sha256=a94f3d81d12caf5c5d4ecf13980a70d0aeaa72268f3b9cc13358bcc6509184a0
   google-protobuf (3.25.8) sha256=102c8500502e224a5daa7447bdd2c458a25a6c7b0bf5d8496a559ada131952b7
   hashdiff (1.2.1) sha256=9c079dbc513dfc8833ab59c0c2d8f230fa28499cc5efb4b8dd276cf931457cd1
-  http (5.2.0) sha256=b99ed3c65376e0fd8107647fbaf5a8ab4f66c347d1271fb74cea757e209c6115
-  http-cookie (1.0.6) sha256=7713d3196f21ff5ab0944011d7d4e619b62ec082374a52de2193ccfe78924044
-  http-form_data (2.3.0) sha256=cc4eeb1361d9876821e31d7b1cf0b68f1cf874b201d27903480479d86448a5f3
   httpclient (2.8.3) sha256=2951e4991214464c3e92107e46438527d23048e634f3aee91c719e0bdfaebda6
   io-console (0.9.2) sha256=efa74f891dd03c0939a931dfc6e74c2813d904763d456ea9762b0525e748db08
   irb (1.18.0) sha256=de9454a0703a54704b9811a5ef31a60c86949fbf4013fcf244fabc7c775248e3
@@ -233,7 +211,6 @@ CHECKSUMS
   libddwaf (1.30.0.0.2-arm64-darwin) sha256=cbbec7eee8fe7dbdc6c11bf1429fcfc217fad84e822fc6f252cb1c45daf663cc
   libddwaf (1.30.0.0.2-x86_64-darwin) sha256=3fb97292a9e6eb4b50d48ed0805c48278a261744ce6944e0ded73144a0395060
   libddwaf (1.30.0.0.2-x86_64-linux) sha256=d6f628bfb91a7f89a4ef702c3fce3991ec0678c50031128b70799fde8362111d
-  llhttp-ffi (0.5.0) sha256=496f40ad44bcbf99de02da1f26b1ad64e6593cd487b931508a86228e2a3af0fa
   logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
   memory_profiler (0.9.14) sha256=de558cf6525d8d56d2c0ea465b1664517fbe45560f892dc7a898d3b8c2863b12
   method_source (1.1.0) sha256=181301c9c45b731b4769bc81e8860e72f9161ad7d66dd99103c9ab84f560f5c5
