@@ -23,11 +23,13 @@ module Datadog
         def get(etag)
           request = Net::HTTP::Get.new(@endpoint.uri.request_uri, headers(etag))
           response = request(request)
+          status = response.code.to_i
 
           Response.new(
-            status: response.code.to_i,
+            status: status,
             etag: response["ETag"],
-            body: response_body(response),
+            # Decoding another status can erase the status the poller needs to classify the response.
+            body: (status == 200) ? response_body(response) : nil,
           )
         # Net::HTTP uses several version-specific exception types. None may end
         # the delivery worker; the poller classifies every transport failure.
@@ -45,7 +47,7 @@ module Datadog
             Core::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST => "1",
           }
           api_key = @api_key
-          headers["DD-API-KEY"] = api_key if api_key
+          headers[Core::Transport::Ext::HTTP::HEADER_DD_API_KEY] = api_key if api_key
           headers["If-None-Match"] = etag if etag
           headers
         end
@@ -55,7 +57,8 @@ module Datadog
           host = uri.host
           raise ArgumentError, "Feature Flags agentless endpoint must have a host" unless host
 
-          http = Net::HTTP.new(host, uri.port, nil)
+          # Agentless delivery requires public egress, so use Ruby's standard proxy discovery.
+          http = Net::HTTP.new(host, uri.port)
           http.use_ssl = uri.scheme == "https"
           http.open_timeout = @timeout_seconds
           http.read_timeout = @timeout_seconds
