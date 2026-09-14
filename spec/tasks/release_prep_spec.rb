@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "stringio"
 require "tmpdir"
 require "fileutils"
 require_relative "../../tasks/lib/release_prep"
@@ -9,25 +8,17 @@ require_relative "../../tasks/lib/release_prep"
 RSpec.describe ReleasePrep do
   describe ".fail!" do
     it "exits with a GitHub Actions error annotation on stderr" do
-      stderr = StringIO.new
-      original_stderr, $stderr = $stderr, stderr
+      stderr = capture_stderr { expect { described_class.fail!("boom") }.to raise_error(SystemExit) }
 
-      expect { described_class.fail!("boom") }.to raise_error(SystemExit)
-
-      $stderr = original_stderr
-      expect(stderr.string).to eq("::error::boom\n")
+      expect(stderr).to eq("::error::boom\n")
     end
   end
 
   describe ".fail_all!" do
     it "exits after emitting one error annotation per violation" do
-      stderr = StringIO.new
-      original_stderr, $stderr = $stderr, stderr
+      stderr = capture_stderr { expect { described_class.fail_all!(["first", "second"]) }.to raise_error(SystemExit) }
 
-      expect { described_class.fail_all!(["first", "second"]) }.to raise_error(SystemExit)
-
-      $stderr = original_stderr
-      expect(stderr.string).to eq("::error::first\n::error::second\n")
+      expect(stderr).to eq("::error::first\n::error::second\n")
     end
   end
 
@@ -52,18 +43,15 @@ RSpec.describe ReleasePrep do
     end
 
     it "emits every violation and exits when a fragment is invalid" do
-      stderr = StringIO.new
-      original_stderr, $stderr = $stderr, stderr
       fragments = ReleasePrep::Fragments.new([
         fragment(valid_entry("type" => "Removed")),
         fragment(valid_entry("product" => "Redis")),
       ])
 
-      expect { described_class.validate_fragments!(fragments) }.to raise_error(SystemExit)
+      stderr = capture_stderr { expect { described_class.validate_fragments!(fragments) }.to raise_error(SystemExit) }
 
-      $stderr = original_stderr
-      expect(stderr.string).to include("::error::unreleased/1.json: type")
-      expect(stderr.string).to include("::error::unreleased/1.json: product")
+      expect(stderr).to include("::error::unreleased/1.json: type")
+      expect(stderr).to include("::error::unreleased/1.json: product")
     end
   end
 
@@ -75,8 +63,11 @@ RSpec.describe ReleasePrep do
 
   describe ".fail_if_no_fragments!" do
     it "fails when there are no changelog fragments" do
-      expect { described_class.fail_if_no_fragments!(ReleasePrep::Fragments.new([])) }
-        .to raise_error(SystemExit)
+      stderr = capture_stderr do
+        expect { described_class.fail_if_no_fragments!(ReleasePrep::Fragments.new([])) }.to raise_error(SystemExit)
+      end
+
+      expect(stderr).to include("::error::No changelog fragments found in unreleased/")
     end
 
     it "passes when there are fragments" do
