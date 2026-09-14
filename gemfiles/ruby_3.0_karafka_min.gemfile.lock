@@ -80,7 +80,7 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.1.0)
     mini_portile2 (2.8.9)
-    msgpack (1.8.4)
+    msgpack (1.8.5)
     os (1.1.4)
     pry (0.16.0)
       coderay (~> 1.1)
@@ -128,7 +128,7 @@ GEM
       hashdiff (>= 0.4.0, < 2.0.0)
     webrick (1.9.2)
     zeitwerk (2.6.18)
-    zstd-ruby (2.0.8)
+    zstd-ruby (2.0.9)
 
 PLATFORMS
   aarch64-linux
