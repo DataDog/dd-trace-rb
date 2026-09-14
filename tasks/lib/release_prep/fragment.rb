@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "json"
-require_relative "../release_prep"
 
 # One changelog fragment file (unreleased/*.json): the unit of changelog-worthy
 # change that a pull request commits alongside its code.
