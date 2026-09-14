@@ -74,6 +74,19 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
     end
   end
 
+  it "uses proxy discovery and applies the request timeout" do
+    expect(Net::HTTP).to receive(:new).with("example.test", 443).and_wrap_original do |original, *arguments|
+      http = original.call(*arguments)
+      expect(http).to receive(:open_timeout=).with(5).and_call_original
+      expect(http).to receive(:read_timeout=).with(5).and_call_original
+      expect(http).to receive(:write_timeout=).with(5).and_call_original
+      http
+    end
+    expect(Timeout).to receive(:timeout).with(5).and_call_original
+
+    response
+  end
+
   context "with a gzip response" do
     before do
       compressed = StringIO.new
@@ -84,6 +97,21 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
 
     it "decompresses the response body" do
       expect(response.body).to eq("configuration")
+    end
+  end
+
+  [304, 401].each do |status|
+    context "with a gzip header on an HTTP #{status} response" do
+      before do
+        stub_request(:get, "https://example.test/config?dd_env=test")
+          .to_return(status: status, body: "not gzip", headers: {"Content-Encoding" => "gzip"})
+      end
+
+      it "preserves the status without decoding the response body" do
+        expect(response.status).to eq(status)
+        expect(response.body).to be_nil
+        expect(response.error).to be_nil
+      end
     end
   end
 end
