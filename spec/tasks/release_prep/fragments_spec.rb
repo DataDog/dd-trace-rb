@@ -3,7 +3,7 @@
 require "spec_helper"
 require "tmpdir"
 require "fileutils"
-require_relative "../../../tasks/lib/release_prep/fragments"
+require_relative "../../../tasks/lib/release_prep"
 
 RSpec.describe ReleasePrep::Fragments do
   around do |example|
