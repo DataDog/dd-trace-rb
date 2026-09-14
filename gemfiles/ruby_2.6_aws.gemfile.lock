@@ -1478,7 +1478,7 @@ GEM
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    msgpack (1.8.4)
+    msgpack (1.8.5)
     os (1.1.4)
     pry (0.16.0)
       coderay (~> 1.1)
@@ -1527,7 +1527,7 @@ GEM
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
-    zstd-ruby (2.0.8)
+    zstd-ruby (2.0.9)
 
 PLATFORMS
   aarch64-linux
