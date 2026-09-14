@@ -510,30 +510,18 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               .group_by { |s| s.labels[:state] }
               .map { |state, state_samples| [state, state_samples.sum { |s| s.values.fetch(:"wall-time") }] }.to_h
 
-          # Because the background_thread_affected_by_gvl_contention starts BEFORE the profiler, the first few samples
-          # will have a sequence of unknown states because the profiler may have missed the beginning of the
-          # Waiting for GVL (and cannot categorize the state yet).
+          # The background_thread_affected_by_gvl_contention starts BEFORE the profiler, and real contention only
+          # begins once background_thread starts competing for the GVL. Until then the profiler cannot categorize the
+          # thread's state: GVL waits below waiting_for_gvl_threshold_ns are reported as "unknown", and a sliver of
+          # CPU in a sampling window is enough to label it "had cpu".
           #
-          # In these cases, the pattern will be "unknown (one or more times), had cpu, waiting for gvl".
-          #
-          # In rare cases, we observe the background_thread_affected_by_gvl_contention just as it's starting the
-          # Waiting for GVL. Because "starting the Waiting for GVL" still uses a bit of CPU, we'll see
-          # "unknown, had cpu, unknown (one or more times), had cpu, waiting for gvl".
-          #
-          # So that the below assertions make sense (and are not flaky), we drop these first few samples from our
-          # consideration
+          # So that the below assertions make sense (and are not flaky), we drop everything before the first
+          # "waiting for gvl" sample from our consideration
 
-          found_first_cpu = false
           missed_by_profiler_time =
             samples
-              .take_while do |s|
-                if s.labels[:state] == "unknown"
-                  true
-                elsif s.labels[:state] == "had cpu" && !found_first_cpu
-                  found_first_cpu = true
-                  true
-                end
-              end.sum { |sample| sample.values.fetch(:"wall-time") }
+              .take_while { |sample| sample.labels[:state] != "waiting for gvl" }
+              .sum { |sample| sample.values.fetch(:"wall-time") }
 
           total_time = samples.sum { |sample| sample.values.fetch(:"wall-time") } - missed_by_profiler_time
           waiting_for_gvl_samples = samples.select { |sample| sample.labels[:state] == "waiting for gvl" }
