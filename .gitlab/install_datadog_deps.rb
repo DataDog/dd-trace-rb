@@ -1,7 +1,5 @@
 require 'open3'
-require 'digest'
 require 'rubygems'
-require 'rubygems/package'
 require 'bundler'
 require 'fileutils'
 require 'pathname'
@@ -144,36 +142,6 @@ unless File.exist?("#{datadog_gem_path}/lib/#{libdatadog_so_file}")
 end
 
 cached_gems = Dir.glob(versioned_path.join("cache/*.gem"))
-
-lock_name = lambda do |spec|
-  version = spec.version.to_s
-  version = "#{version}-#{spec.platform}" unless spec.platform == Gem::Platform::RUBY
-  "#{spec.name} (#{version})"
-end
-
-locked = lock_file_parser.specs.each_with_object({}) { |spec, result| result[lock_name.call(spec)] = true }
-checksums = [ENV.fetch('DATADOG_GEM_LOCATION'), *cached_gems].each_with_object({}) do |gem_path, result|
-  spec = Gem::Package.new(gem_path).spec
-  name = lock_name.call(spec)
-  next unless locked.key?(name)
-
-  digest = Digest::SHA256.file(gem_path).hexdigest
-  if result.key?(name) && result[name] != digest
-    raise "Package contains conflicting archives for #{name}"
-  end
-  result[name] = digest
-end
-
-missing = locked.keys - checksums.keys
-raise "Package archives are missing for #{missing.join(', ')}" unless missing.empty?
-
-lockfile = File.read(lock_file_path)
-checksum_section = "\nCHECKSUMS\n#{checksums.sort.map { |name, digest| "  #{name} sha256=#{digest}" }.join("\n")}\n"
-unless lockfile.sub!(/\nCHECKSUMS\n.*?(?=\n[A-Z][A-Z ]+\n|\z)/m, checksum_section) ||
-    lockfile.sub!(/\nBUNDLED WITH\n/, "#{checksum_section}\nBUNDLED WITH\n")
-  raise "Could not add checksums to #{lock_file_path}"
-end
-File.write(lock_file_path, lockfile)
 
 FileUtils.rm_r(
   [
