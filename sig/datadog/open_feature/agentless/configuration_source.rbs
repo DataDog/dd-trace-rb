@@ -64,11 +64,15 @@ module Datadog
 
         def start: () -> bool
 
-        def stop: () -> bool
+        def stop: (?bool force_stop, ?::Integer | ::Float timeout) -> bool
 
         def perform: () -> void
 
         def poll: () -> void
+
+        protected
+
+        def after_fork: () -> nil
 
         private
 
