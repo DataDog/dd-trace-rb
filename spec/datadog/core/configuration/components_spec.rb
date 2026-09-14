@@ -838,10 +838,21 @@ RSpec.describe Datadog::Core::Configuration::Components do
   describe "#after_fork" do
     subject(:after_fork) { components.after_fork }
 
+    let(:open_feature_activation) do
+      instance_double(Datadog::OpenFeature::Activation, after_fork: nil)
+    end
+
     before do
       allow(telemetry).to receive(:after_fork)
       allow(remote).to receive(:after_fork)
       allow(Datadog::Core::ProcessDiscovery).to receive(:after_fork)
+      allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(open_feature_activation)
+    end
+
+    it "dispatches after_fork to OpenFeature activation" do
+      after_fork
+
+      expect(open_feature_activation).to have_received(:after_fork).once
     end
 
     it "dispatches after_fork! to the symbol_database when present" do

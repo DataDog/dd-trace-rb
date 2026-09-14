@@ -178,6 +178,31 @@ RSpec.describe Datadog::OpenFeature::Activation do
     end
   end
 
+  describe "#after_fork" do
+    it "re-enters agentless delivery start" do
+      activation.activate(provider)
+
+      activation.after_fork
+
+      expect(configuration_source).to have_received(:start).twice
+    end
+
+    it "does not start delivery before activation" do
+      activation.after_fork
+
+      expect(configuration_source).not_to have_received(:start)
+    end
+
+    it "does not restart delivery after shutdown" do
+      activation.activate(provider)
+      activation.shutdown!
+
+      activation.after_fork
+
+      expect(configuration_source).to have_received(:start).once
+    end
+  end
+
   describe "#shutdown!" do
     it "stops agentless delivery and the component" do
       activation.activate(provider)

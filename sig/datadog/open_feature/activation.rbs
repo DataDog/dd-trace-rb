@@ -47,6 +47,8 @@ module Datadog
 
       def activated?: () -> bool
 
+      def after_fork: () -> void
+
       def shutdown!: () -> void
 
       private
