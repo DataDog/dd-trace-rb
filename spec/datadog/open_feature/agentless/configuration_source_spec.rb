@@ -225,10 +225,33 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
     end
   end
 
+  describe "#after_fork" do
+    it "allows the child process to report a failure already reported by the parent" do
+      allow(transport).to receive(:get).and_return(response(status: 404))
+
+      2.times { source.poll }
+      expect(logger).to have_received(:warn)
+        .with("Feature Flags agentless endpoint returned HTTP 404 after 1 attempt(s)").once
+
+      source.send(:after_fork)
+      source.poll
+
+      expect(logger).to have_received(:warn)
+        .with("Feature Flags agentless endpoint returned HTTP 404 after 1 attempt(s)").twice
+    end
+  end
+
   describe "lifecycle" do
     let(:retry_wait) { nil }
 
-    it "performs no request before start and starts asynchronously once" do
+    it "performs no request before start" do
+      allow(transport).to receive(:get)
+
+      expect(source).to be_a(described_class)
+      expect(transport).not_to have_received(:get)
+    end
+
+    it "starts asynchronously once" do
       requested = SizedQueue.new(1)
       allow(transport).to receive(:get) do
         requested.push(true, true)
@@ -237,11 +260,10 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
         response(status: 304)
       end
 
-      expect(transport).not_to have_received(:get)
       expect(source.start).to be(true)
       expect(source.start).to be(true)
       Timeout.timeout(1) { requested.pop }
-      expect(source.stop).to be(true)
+      expect(source.stop(false, 1)).to be(true)
       expect(transport).to have_received(:get).once
     ensure
       source&.stop

@@ -82,7 +82,7 @@ module Datadog
           true
         end
 
-        def stop
+        def stop(force_stop = true, timeout = Core::Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT)
           @lifecycle_mutex.synchronize do
             return false if @stopped
 
@@ -90,7 +90,7 @@ module Datadog
             self.enabled = false
           end
 
-          super(true)
+          super
           true
         end
 
@@ -124,6 +124,13 @@ module Datadog
 
             attempt += 1
           end
+        end
+
+        protected
+
+        def after_fork
+          # The child must report its own failures, while the inherited ETag still matches its configuration.
+          @warned = {}
         end
 
         private
