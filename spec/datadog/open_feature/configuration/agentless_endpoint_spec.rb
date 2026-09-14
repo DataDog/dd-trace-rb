@@ -40,8 +40,10 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
       end
     end
 
+    invalid_utf8_site = (+"datadoghq.\xFFcom").force_encoding(Encoding::UTF_8)
     ["https://datadoghq.com", "datadoghq.com/path", "datadoghq.com?target=other", "datadoghq.com#fragment",
-      "datadoghq.com@other.example", "datadoghq.com:443", "data doghq.com"].each do |invalid_site|
+      "datadoghq.com@other.example", "datadoghq.com:443", "data doghq.com", "datadoghq.\u212Aom",
+      invalid_utf8_site].each do |invalid_site|
       context "with invalid site #{invalid_site.inspect}" do
         let(:site) { invalid_site }
 
@@ -82,17 +84,18 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
       end
     end
 
-    ["ftp://example.test/config", "relative/path", "https://example.test/bad path"].each do |invalid_url|
+    invalid_utf8_url = (+"https://example.test/\xFF").force_encoding(Encoding::UTF_8)
+    [
+      ["ftp://example.test/config", "Feature Flags agentless base URL must be an absolute HTTP or HTTPS URL; agentless delivery is disabled"],
+      ["relative/path", "Feature Flags agentless base URL must be an absolute HTTP or HTTPS URL; agentless delivery is disabled"],
+      ["https://example.test/bad path", "Feature Flags agentless base URL contains whitespace; agentless delivery is disabled"],
+      ["https://example.test/\u212A", "Feature Flags agentless base URL is invalid; agentless delivery is disabled"],
+      [invalid_utf8_url, "Feature Flags agentless base URL is invalid; agentless delivery is disabled"],
+    ].each do |invalid_url, expected_warning|
       context "with invalid URL #{invalid_url.inspect}" do
         let(:base_url) { invalid_url }
 
         it "rejects the URL without including it in the warning" do
-          expected_warning = if invalid_url.include?(" ")
-            "Feature Flags agentless base URL contains whitespace; agentless delivery is disabled"
-          else
-            "Feature Flags agentless base URL must be an absolute HTTP or HTTPS URL; agentless delivery is disabled"
-          end
-
           expect(endpoint).to be_nil
           expect(logger).to have_received(:warn).with(expected_warning)
         end
