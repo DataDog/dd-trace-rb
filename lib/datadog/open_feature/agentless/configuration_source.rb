@@ -131,6 +131,7 @@ module Datadog
         def after_fork
           # The child must report its own failures, while the inherited ETag still matches its configuration.
           @warned = {}
+          nil
         end
 
         private

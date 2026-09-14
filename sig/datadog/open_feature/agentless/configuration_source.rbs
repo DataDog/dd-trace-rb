@@ -70,8 +70,6 @@ module Datadog
 
         def poll: () -> void
 
-        protected
-
         def after_fork: () -> nil
 
         private
