@@ -76,6 +76,8 @@ module Datadog
 
         def retryable?: (Response response) -> bool
 
+        def retryable_status?: (Integer status) -> bool
+
         def retry_delay: (Integer attempt) -> Float
 
         def clamp: (Float value, Float minimum, Float maximum) -> Float
