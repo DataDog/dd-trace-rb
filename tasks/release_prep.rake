@@ -1,33 +1,59 @@
 # frozen_string_literal: true
 
-require_relative "release_notes"
+require_relative "lib/release_prep"
 
-# Release-prep logic for the `release_prep:prepare` task, invoked by
-# `.github/workflows/release-prep.yml`.
-#
-# The version is passed as a task argument, e.g.
-#   rake "release_prep:prepare[2.36.0]"
+# Each task is one step of `.github/workflows/release-prep.yml`, which runs
+# them in order and owns the pipeline's failure semantics.
 
-# Only official releases are prepared here: a well-formed MAJOR.MINOR.PATCH
-# version with no pre-release segment (e.g. 2.36.0, but not 2.36.0.beta1,
-# 2.36.0.rc1, or a partial version like 2.36).
 namespace :release_prep do
-  desc "Prepare a release: write the changelog and bump the gem version (e.g. release_prep:prepare[2.36.0])"
-  task :prepare, [:version] do |_t, args|
-    version = args[:version] || raise(ArgumentError, 'Please provide a version, e.g. rake "release_prep:prepare[2.36.0]"')
+  desc "Check that the given version is an official release version (e.g. release_prep:validate[2.36.0])"
+  task :validate, [:version] do |_t, args|
+    validate_official_version!(args[:version])
+    puts "Version #{args[:version]} is a valid official release version."
+  end
 
+  desc "Render the pending unreleased/ fragments into the GitHub release body (#{ReleasePrep::ReleaseNotes::OUTPUT_FILE})"
+  task :release_body, [:version] do |_t, args|
+    version = validate_official_version!(args[:version])
+
+    fragments = ReleasePrep::Fragments.read_all
+    ReleasePrep.validate_fragments!(fragments)
+    release_notes = ReleasePrep::ReleaseNotes.new(
+      version: version,
+      fragments: fragments,
+      highlights: ReleasePrep::Highlights.read,
+    )
+
+    release_notes.write
+  rescue ReleasePrep::ValidationError => e
+    ReleasePrep.fail!(e.message)
+  end
+
+  desc "Insert the pending unreleased/ fragments into CHANGELOG.md and rewrite the compare-link footer (e.g. release_prep:changelog[2.36.0])"
+  task :changelog, [:version] do |_t, args|
+    version = validate_official_version!(args[:version])
+
+    fragments = ReleasePrep::Fragments.read_all
+    highlights = ReleasePrep::Highlights.read
+
+    ReleasePrep.validate_fragments!(fragments)
+    ReleasePrep.fail_if_no_fragments!(fragments)
+
+    ReleasePrep::Changelog.new.release(version, fragments)
+
+    # Runs last: only delete the source files once the draft release and
+    # CHANGELOG.md have both been written successfully.
+    fragments.consume!
+    highlights.delete!
+  rescue ReleasePrep::ValidationError => e
+    ReleasePrep.fail!(e.message)
+  end
+
+  # Official releases only: not 2.36.0.beta1, 2.36.0.rc1, or a partial 2.36.
+  def validate_official_version!(version)
+    version = version.to_s
     invalid_version = "Invalid version '#{version}' (expected an official release, e.g. 2.36.0)"
-    ReleaseNotes.fail!(invalid_version) unless Gem::Version.correct?(version)
-    Gem::Version.new(version).tap { |v| ReleaseNotes.fail!(invalid_version) if v.prerelease? || v.segments.length != 3 }
-
-    previous = ReleaseNotes.previous_version
-    changelog = ReleaseNotes.draft_changelog(version)
-
-    ReleaseNotes.insert_changelog(version, changelog)
-    Rake::Task["changelog:format"].invoke
-    ReleaseNotes.rewrite_footer(version, previous)
-
-    # `version:bump` also asserts the resulting gemspec matches the version.
-    Rake::Task["version:bump"].invoke(version)
+    ReleasePrep.fail!(invalid_version) unless Gem::Version.correct?(version)
+    Gem::Version.new(version).tap { |v| ReleasePrep.fail!(invalid_version) if v.prerelease? || v.segments.length != 3 }
   end
 end
