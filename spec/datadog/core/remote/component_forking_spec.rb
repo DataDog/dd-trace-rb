@@ -93,6 +93,17 @@ RSpec.describe Datadog::Core::Remote::Component do
         end
       end
 
+      it "restarts the worker thread in the forked child" do
+        expect(component.worker.instance_variable_get(:@thr)).to be_alive
+
+        expect_in_fork do
+          child_component = components.remote
+
+          expect(child_component.started?).to be true
+          expect(child_component.worker.instance_variable_get(:@thr)).to be_alive
+        end
+      end
+
       it "resets healthy flag after fork" do
         # Make the component healthy in the parent
         component.instance_variable_set(:@healthy, true)
@@ -243,9 +254,8 @@ RSpec.describe Datadog::Core::Remote::Component do
         expect(child_runtime_id).not_to eq(parent_runtime_id)
         expect(child_runtime_id).to be_valid_uuid
 
-        # Start the worker in the child process (after_fork recreates the client but doesn't restart the worker).
-        # The barrier call starts the worker via `start`, though `wait_once` immediately returns :pass
-        # because the barrier state was inherited from the parent with @once = true.
+        # The worker is restarted by the after-fork callback. The barrier immediately returns :pass
+        # because its state was inherited from the parent with @once = true.
         result = child_component.barrier(:once)
 
         # In the child, barrier returns :pass because the barrier was already lifted in the parent before fork

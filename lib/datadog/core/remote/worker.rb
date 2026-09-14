@@ -70,6 +70,23 @@ module Datadog
           @started
         end
 
+        # A forked child inherits the worker state, but not its polling thread.
+        def after_fork
+          restart = @mutex.synchronize do
+            if @stopped || (!@starting && !@started)
+              false
+            else
+              @starting = false
+              @started = false
+              @thr = nil
+              true
+            end
+          end
+
+          start if restart
+          nil
+        end
+
         private
 
         def poll(interval)
