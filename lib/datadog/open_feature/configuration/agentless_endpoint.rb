@@ -32,6 +32,11 @@ module Datadog
         end
 
         def self.build_custom(base_url, logger)
+          unless base_url.ascii_only?
+            logger.warn("Feature Flags agentless base URL is invalid; agentless delivery is disabled")
+            return
+          end
+
           if base_url.match?(INTERNAL_WHITESPACE)
             logger.warn("Feature Flags agentless base URL contains whitespace; agentless delivery is disabled")
             return
@@ -52,7 +57,13 @@ module Datadog
         private_class_method :build_custom
 
         def self.build_managed(site, environment, logger)
-          normalized_site = site.to_s.strip.downcase
+          string_site = site.to_s
+          unless string_site.ascii_only?
+            logger.warn("Feature Flags site is invalid; agentless delivery is disabled")
+            return
+          end
+
+          normalized_site = string_site.strip.downcase
           normalized_site = DEFAULT_SITE if normalized_site.empty?
           if normalized_site.match?(INVALID_SITE_CHARACTERS)
             logger.warn("Feature Flags site is invalid; agentless delivery is disabled")
