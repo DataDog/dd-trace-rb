@@ -2054,6 +2054,60 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
   end
 
+  describe "#data_streams" do
+    describe "#enabled" do
+      subject(:enabled) { settings.data_streams.enabled }
+
+      it_behaves_like "a binary setting with", env_variable: "DD_DATA_STREAMS_ENABLED", default: false
+    end
+
+    describe "#enabled=" do
+      it "updates the #enabled setting" do
+        expect { settings.data_streams.enabled = true }
+          .to change { settings.data_streams.enabled }
+          .from(false).to(true)
+      end
+    end
+
+    describe "#interval" do
+      subject(:interval) { settings.data_streams.interval }
+
+      context "when _DD_TRACE_STATS_WRITER_INTERVAL" do
+        around do |example|
+          ClimateControl.modify("_DD_TRACE_STATS_WRITER_INTERVAL" => data_streams_interval) do
+            example.run
+          end
+        end
+
+        context "is not defined" do
+          let(:data_streams_interval) { nil }
+
+          it { is_expected.to eq 10.0 }
+        end
+
+        context "is defined" do
+          let(:data_streams_interval) { "5.0" }
+
+          it { is_expected.to eq 5.0 }
+        end
+
+        context "is defined as an integer" do
+          let(:data_streams_interval) { "20" }
+
+          it { is_expected.to eq 20.0 }
+        end
+      end
+    end
+
+    describe "#interval=" do
+      it "updates the #interval setting" do
+        expect { settings.data_streams.interval = 15.5 }
+          .to change { settings.data_streams.interval }
+          .from(10.0).to(15.5)
+      end
+    end
+  end
+
   describe "#apm" do
     describe "#tracing" do
       describe "#enabled" do
