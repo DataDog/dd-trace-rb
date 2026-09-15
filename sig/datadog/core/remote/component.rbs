@@ -45,8 +45,7 @@ module Datadog
           untyped settings,
           Datadog::Core::Configuration::AgentSettings agent_settings,
           logger: Core::Logger,
-          telemetry: Datadog::Core::Telemetry::Component,
-          ?open_feature_component_provider: (^() -> Datadog::OpenFeature::Component?)?
+          telemetry: Datadog::Core::Telemetry::Component
         ) -> Datadog::Core::Remote::Component?
 
         class Barrier
