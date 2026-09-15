@@ -19,10 +19,10 @@ module Datadog
           FFE_PRODUCTS
         end
 
-        def receivers(telemetry)
+        def receivers(telemetry, component_provider:)
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(FFE_PRODUCTS)
           receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
-            component = Datadog.send(:components).open_feature
+            component = component_provider.call
             next unless component
 
             changes.each do |change|

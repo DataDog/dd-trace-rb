@@ -70,18 +70,24 @@ module Datadog
         @span_enrichment_hook = create_span_enrichment_hook
 
         @configuration_mutex = Mutex.new
+        @reconfiguration_mutex = Mutex.new
         @configuration_condition = ConditionVariable.new
         @configuration_received = false
         @configuration_shutdown = false
       end
 
       def reconfigure!(configuration)
-        @configuration_mutex.synchronize do
-          return if @configuration_shutdown
+        @reconfiguration_mutex.synchronize do
+          return if configuration_shutdown?
 
           @engine.reconfigure!(configuration)
-          @configuration_received = !configuration.nil?
-          @configuration_condition.broadcast
+
+          @configuration_mutex.synchronize do
+            return if @configuration_shutdown
+
+            @configuration_received = !configuration.nil?
+            @configuration_condition.broadcast
+          end
         end
       end
 
@@ -91,8 +97,8 @@ module Datadog
 
         @configuration_mutex.synchronize do
           loop do
-            return CONFIGURATION_READY if @configuration_received
             return CONFIGURATION_SHUTDOWN if @configuration_shutdown
+            return CONFIGURATION_READY if @configuration_received
 
             remaining = deadline - Core::Utils::Time.get_time
             return CONFIGURATION_TIMEOUT unless remaining.positive?
@@ -120,6 +126,10 @@ module Datadog
       end
 
       private
+
+      def configuration_shutdown?
+        @configuration_mutex.synchronize { @configuration_shutdown }
+      end
 
       def create_flag_eval_metrics_hook
         return unless Hooks::FlagEvalMetricsHook.available?
