@@ -392,6 +392,7 @@ jobs:
           fetch-depth: 0
       - env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+        id: pr
         run: |
           JOB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           TEMP_BRANCH="update-document-v${GEM_VERSION}"
@@ -406,3 +407,16 @@ jobs:
             --title "Update document v${GEM_VERSION}" \
           --body "This is an auto-generated PR to update documentation from [here](${JOB_URL}). Please merge (with a merge commit) when ready.\n\nTo resolve conflicts:\n\`\`\`bash\ngit merge release\ngit checkout --ours .\`\`\`." \
             --label "docs"
+
+          # `gh pr create` has no --json flag, so resolve the number via a
+          # structured lookup rather than parsing its free-text output.
+          echo "pull-request-number=$(gh pr list \
+            --head "${TEMP_BRANCH}" --base release --state open \
+            --json number,headRepositoryOwner \
+            --jq "[.[] | select(.headRepositoryOwner.login == \"${GITHUB_REPOSITORY%%/*}\")] | .[0].number // empty")" >> "$GITHUB_OUTPUT"
+
+      - name: Enable auto-merge
+        uses: ./.github/actions/enable-auto-merge
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          pull-request-number: ${{ steps.pr.outputs.pull-request-number }}

@@ -106,6 +106,7 @@ jobs:
           gh release create "v${VERSION}" --draft --title "v${VERSION}" --notes-file tmp/release_body.md
 
       - name: Create release Pull Request
+        id: cpr
         uses: ./.github/actions/signed-commit-pr
         with:
           token: ${{ steps.generate-token.outputs.token }}
@@ -129,3 +130,9 @@ jobs:
             version, and lockfiles. Review and merge to proceed with publishing.
 
             Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Enable auto-merge
+        uses: ./.github/actions/enable-auto-merge
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}

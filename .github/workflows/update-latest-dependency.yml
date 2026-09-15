@@ -96,6 +96,7 @@ jobs:
           policy: self.update-latest-dependency
 
       - name: Create Pull Request
+        id: cpr
         uses: ./.github/actions/signed-commit-pr
         with:
           token: ${{ steps.generate-token.outputs.token }}
@@ -109,3 +110,9 @@ jobs:
             _This is an auto-generated PR from [here](https://github.com/DataDog/dd-trace-rb/blob/master/.github/workflows/update-latest-dependency.yml), which creates a pull request that will be continually updated with new changes until it is merged or closed)_
 
             The PR updates latest versions of defined dependencies. Please review the changes and merge when ready.
+
+      - name: Enable auto-merge
+        uses: ./.github/actions/enable-auto-merge
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
