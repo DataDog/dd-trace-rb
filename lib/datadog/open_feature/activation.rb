@@ -163,7 +163,10 @@ module Datadog
         remote.register(
           capabilities: Remote.capabilities,
           products: Remote.products,
-          receivers: Remote.receivers(@telemetry),
+          receivers: Remote.receivers(
+            @telemetry,
+            component_provider: -> { @mutex.synchronize { @component } },
+          ),
         )
         remote.start
         true

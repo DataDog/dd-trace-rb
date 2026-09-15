@@ -13,8 +13,6 @@ module Datadog
       class Client
         # Capabilities
         class Capabilities
-          attr_reader :capabilities, :receivers, :base64_capabilities
-
           def initialize(settings, telemetry, open_feature_component_provider: nil)
             open_feature_component_provider ||= -> {}
             @capabilities = []
