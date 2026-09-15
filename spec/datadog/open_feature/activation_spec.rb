@@ -79,10 +79,23 @@ RSpec.describe Datadog::OpenFeature::Activation do
         callback = options.fetch(:on_configuration_change)
         component
       end
-      expect(provider).to receive(:send).with(:configuration_changed, :ready)
+      expect(provider).to receive(:configuration_changed).with(:ready)
       activation.activate(provider)
 
       callback.call(:ready)
+    end
+
+    it "applies agentless configuration to the component" do
+      apply = nil
+      allow(Datadog::OpenFeature::Agentless::ConfigurationSource).to receive(:build) do |_settings, **options|
+        apply = options.fetch(:apply)
+        configuration_source
+      end
+      activation.activate(provider)
+
+      apply.call("ufc-payload")
+
+      expect(component).to have_received(:reconfigure!).with("ufc-payload")
     end
 
     context "with Remote Configuration selected" do
