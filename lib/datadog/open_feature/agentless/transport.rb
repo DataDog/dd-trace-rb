@@ -3,6 +3,7 @@
 require "net/http"
 require "stringio"
 require "timeout"
+require "uri"
 require "zlib"
 
 require_relative "../../core/environment/identity"
@@ -22,6 +23,7 @@ module Datadog
 
         def get(etag)
           request = Net::HTTP::Get.new(@endpoint.uri.request_uri, headers(etag))
+          apply_custom_authentication(request)
           response = request(request)
           status = response.code.to_i
 
@@ -39,6 +41,19 @@ module Datadog
 
         private
 
+        def apply_custom_authentication(request)
+          return if @endpoint.managed?
+
+          uri = @endpoint.uri
+          username = uri.user
+          return unless username
+
+          request.basic_auth(
+            URI::RFC2396_PARSER.unescape(username),
+            URI::RFC2396_PARSER.unescape(uri.password.to_s),
+          )
+        end
+
         def headers(etag)
           headers = {
             "Accept-Encoding" => "gzip",
@@ -54,11 +69,11 @@ module Datadog
 
         def request(request)
           uri = @endpoint.uri
-          host = uri.host
-          raise ArgumentError, "Feature Flags agentless endpoint must have a host" unless host
+          hostname = uri.hostname
+          raise ArgumentError, "Feature Flags agentless endpoint must have a host" unless hostname
 
           # Agentless delivery requires public egress, so use Ruby's standard proxy discovery.
-          http = Net::HTTP.new(host, uri.port)
+          http = Net::HTTP.new(hostname, uri.port)
           http.use_ssl = uri.scheme == "https"
           http.open_timeout = @timeout_seconds
           http.read_timeout = @timeout_seconds

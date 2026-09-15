@@ -61,6 +61,49 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
         end
       ).to have_been_made.once
     end
+
+    context "with URL credentials" do
+      let(:endpoint) do
+        Datadog::OpenFeature::Configuration::AgentlessEndpoint.new(
+          URI("https://user:password@example.test/custom/path"),
+          managed: false,
+        )
+      end
+
+      before do
+        stub_request(:get, "https://example.test/custom/path")
+          .with(basic_auth: ["user", "password"])
+          .to_return(status: 200, body: "configuration")
+      end
+
+      it "uses Basic authentication" do
+        expect(response.status).to eq(200)
+        expect(
+          a_request(:get, "https://example.test/custom/path")
+            .with(basic_auth: ["user", "password"])
+        ).to have_been_made.once
+      end
+    end
+
+    context "with an IPv6 literal" do
+      let(:endpoint) do
+        Datadog::OpenFeature::Configuration::AgentlessEndpoint.new(
+          URI("http://[::1]:8126/config"),
+          managed: false,
+        )
+      end
+
+      before do
+        stub_request(:get, "http://[::1]:8126/config")
+          .to_return(status: 200, body: "configuration")
+      end
+
+      it "connects using the hostname without brackets" do
+        expect(Net::HTTP).to receive(:new).with("::1", 8126).and_call_original
+
+        expect(response.status).to eq(200)
+      end
+    end
   end
 
   context "when the request fails" do

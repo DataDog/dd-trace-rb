@@ -18,6 +18,8 @@ module Datadog
 
         private
 
+        def apply_custom_authentication: (Net::HTTP::Get request) -> void
+
         def headers: (String? etag) -> Hash[String, String]
 
         def request: (Net::HTTP::Get request) -> Net::HTTPResponse
