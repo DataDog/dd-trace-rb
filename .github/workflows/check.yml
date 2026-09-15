@@ -110,6 +110,19 @@ jobs:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     steps:
+      - name: Get Datadog credentials via dd-sts
+        if: github.event_name != 'pull_request'  # Save one external call on PR, Green CI does not look at PR
+        id: dd-sts
+        uses: DataDog/dd-sts-action@639d841c72f15e4e77747bd726ef8105ce971da2
+        with:
+          policy: public-datadog-dd-trace-rb
+      - name: Exclude from Green CI process
+        if: github.event_name != 'pull_request'  # Save one external call on PR, Green CI does not look at PR
+        run: |
+          npm install -g @datadog/datadog-ci && sleep 5 && npm install -g @datadog/datadog-ci
+          datadog-ci tag --level pipeline --tags green_ci.excluded:true
+        env:
+          DD_API_KEY: ${{ steps.dd-sts.outputs.api_key }}
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
