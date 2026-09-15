@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "otel_thread_context"
 require_relative "tracer"
 require_relative "flush"
 require_relative "sync_writer"
@@ -42,6 +43,7 @@ module Datadog
           default_service: settings.service,
           enabled: settings.tracing.enabled,
           logger: logger,
+          otel_thread_context: OTelThreadContext.new(settings.tracing),
           trace_flush: trace_flush,
           sampler: sampler_delegator,
           span_sampler: build_span_sampler(settings),
