@@ -5,6 +5,8 @@ module Datadog
         class Integration
           include Contrib::Integration
 
+          @resolver: Contrib::Configuration::Resolvers::PatternResolver
+
           MINIMUM_VERSION: ::Gem::Version
 
           def self.register_as: (untyped name, ?registry: untyped, ?auto_patch: bool, **untyped options) -> untyped
@@ -18,6 +20,8 @@ module Datadog
           def new_configuration: () -> Configuration::Settings
 
           def patcher: () -> untyped
+
+          def resolver: () -> Contrib::Configuration::Resolvers::PatternResolver
         end
       end
     end
