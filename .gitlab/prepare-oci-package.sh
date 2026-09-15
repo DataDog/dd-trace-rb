@@ -14,7 +14,7 @@ fi
 ## Obtain injector source
 
 injector_repo="https://github.com/DataDog/datadog-injector-rb.git"
-injector_ref="v1.4.0"
+injector_ref="lloeki/apms-20303-unmaterialized-specs" # TEMPORARY: validate datadog-injector-rb#69
 injector_path="${HOME}/datadog-injector-rb"
 
 git clone "${injector_repo}" --branch "${injector_ref}" "${injector_path}"
