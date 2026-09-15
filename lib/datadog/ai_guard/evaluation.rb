@@ -94,7 +94,7 @@ module Datadog
         def truncate_content(serialized_messages)
           max_bytes = Datadog.configuration.ai_guard.max_content_size_bytes
 
-          serialized_messages.map do |message| # steep:ignore
+          serialized_messages.map do |message|
             next message unless message[:content]
 
             if message[:content].is_a?(::Array)

@@ -3,6 +3,9 @@
 module Datadog
   module AIGuard
     module Redaction
+      # A result of applying redaction replacements
+      #
+      # @api private
       class Result
         attr_reader :messages, :applied, :failures
 

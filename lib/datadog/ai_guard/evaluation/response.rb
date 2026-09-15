@@ -4,9 +4,11 @@ module Datadog
   module AIGuard
     module Evaluation
       # Wrapper class for evaluation API response
+      #
+      # @api private
       class Response
         attr_reader :action, :reason, :tags, :sds_findings, :tag_probabilities,
-                    :redaction_replacements
+          :redaction_replacements
 
         def initialize(raw_response)
           attributes = raw_response.fetch("data").fetch("attributes")

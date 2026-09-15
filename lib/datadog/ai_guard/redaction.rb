@@ -2,6 +2,9 @@
 
 module Datadog
   module AIGuard
+    # Sensitive data redaction for evaluation messages
+    #
+    # @api private
     module Redaction
       class << self
         def skip(messages)
@@ -11,6 +14,7 @@ module Datadog
         def perform(messages, replacements:)
           applied = 0
           failures = 0
+          # @type var redacted_messages: Array[Evaluation::Message]?
           redacted_messages = nil
 
           redaction_replacements = Replacements.new(replacements)
@@ -23,8 +27,8 @@ module Datadog
 
             next failures += 1 unless redacted_message
 
-            redacted_messages ||= ::Array.new(messages)
-            redacted_messages[index] = redacted_message
+            redacted_messages ||= ::Array.new(messages) # Steep unable to assert non-nil after `||=`
+            redacted_messages[index] = redacted_message # steep:ignore NoMethod
 
             applied += 1
           rescue
@@ -49,6 +53,7 @@ module Datadog
 
             message.with_content(replacement)
           when :text
+            # @type var index: Integer
             content = message.content
             return if message.tool_call || !content.is_a?(::Array)
 

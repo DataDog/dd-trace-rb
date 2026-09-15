@@ -73,6 +73,10 @@ module Datadog
 
           def enabled=: (bool) -> void
 
+          def redaction_enabled: () -> bool
+
+          def redaction_enabled=: (bool) -> void
+
           def instrument: (::Symbol) -> void
 
           def endpoint: () -> ::String

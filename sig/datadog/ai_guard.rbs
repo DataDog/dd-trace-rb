@@ -15,7 +15,7 @@ module Datadog
 
     def self.enabled?: () -> bool
 
-    def self.api_client: () -> APIClient?
+    def self.http_client: () -> HTTPClient?
 
     def self.logger: () -> Core::Logger?
 

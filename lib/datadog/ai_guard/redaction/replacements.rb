@@ -68,6 +68,7 @@ module Datadog
               next @failures += 1
             end
 
+            # @type var path: Replacements::path?
             path =
               if (match = CONTENT_PATH_PATTERN.match(raw_path))
                 [match[1].to_i, :content]
