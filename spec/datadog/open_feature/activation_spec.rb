@@ -220,4 +220,44 @@ RSpec.describe Datadog::OpenFeature::Activation do
       expect(configuration_source).not_to have_received(:start)
     end
   end
+
+  describe "#deactivate" do
+    let(:replacement_provider) { instance_double(Datadog::OpenFeature::Provider) }
+
+    it "stops delivery and clears the adopted provider and component" do
+      activation.activate(provider)
+
+      activation.deactivate(provider)
+
+      expect(configuration_source).to have_received(:stop).once
+      expect(component).to have_received(:shutdown!).once
+      expect(activation.provider).to be_nil
+      expect(activation.component).to be_nil
+    end
+
+    it "does not stop delivery adopted by another provider" do
+      activation.activate(provider)
+
+      activation.deactivate(replacement_provider)
+
+      expect(configuration_source).not_to have_received(:stop)
+      expect(component).not_to have_received(:shutdown!)
+      expect(activation.provider).to be(provider)
+      expect(activation.component).to be(component)
+    end
+
+    it "allows a later provider to activate fresh delivery" do
+      replacement_component = instance_double(Datadog::OpenFeature::Component, shutdown!: nil)
+      replacement_source = instance_double(Datadog::OpenFeature::Agentless::ConfigurationSource, start: true)
+      allow(Datadog::OpenFeature::Component).to receive(:build).and_return(component, replacement_component)
+      allow(Datadog::OpenFeature::Agentless::ConfigurationSource)
+        .to receive(:build).and_return(configuration_source, replacement_source)
+      activation.activate(provider)
+      activation.deactivate(provider)
+
+      expect(activation.activate(replacement_provider)).to be(replacement_component)
+      expect(replacement_source).to have_received(:start).once
+      expect(activation.provider).to be(replacement_provider)
+    end
+  end
 end

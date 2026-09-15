@@ -107,6 +107,8 @@ module Datadog
           handler
         end
         configuration&.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, error_handler) if error_handler
+        # The SDK invokes provider shutdown on replacement; stop delivery with its only consumer.
+        Datadog.send(:components, allow_initialization: false)&.deactivate_open_feature!(self)
       end
 
       def hooks

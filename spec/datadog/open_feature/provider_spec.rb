@@ -31,6 +31,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       instance_double(
         Datadog::Core::Configuration::Components,
         activate_open_feature!: component,
+        deactivate_open_feature!: nil,
         open_feature_activation_failure: nil,
       )
     end
@@ -51,12 +52,21 @@ RSpec.describe Datadog::OpenFeature::Provider do
       expect(component).to have_received(:wait_for_configuration)
     end
 
+    it "deactivates delivery on shutdown" do
+      provider.init
+
+      provider.shutdown
+
+      expect(components).to have_received(:deactivate_open_feature!).with(provider).once
+    end
+
     context "when no delivery source can start" do
       let(:component) { nil }
       let(:components) do
         instance_double(
           Datadog::Core::Configuration::Components,
           activate_open_feature!: nil,
+          deactivate_open_feature!: nil,
           open_feature_activation_failure: "Feature Flags Remote Configuration is unavailable",
         )
       end

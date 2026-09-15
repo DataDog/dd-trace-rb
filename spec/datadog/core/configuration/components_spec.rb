@@ -884,6 +884,25 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
+  describe "#deactivate_open_feature!" do
+    subject(:deactivate_open_feature) { components.deactivate_open_feature!(provider) }
+
+    let(:provider) { instance_double(Object) }
+    let(:open_feature_activation) do
+      instance_double(Datadog::OpenFeature::Activation, deactivate: nil)
+    end
+
+    before do
+      allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(open_feature_activation)
+    end
+
+    it "delegates deactivation to OpenFeature" do
+      deactivate_open_feature
+
+      expect(open_feature_activation).to have_received(:deactivate).with(provider).once
+    end
+  end
+
   describe "#state" do
     # The implicit-enablement carry-over rides on ComponentsState. When
     # Datadog.configure rebuilds the tree, the old tree's #state is read

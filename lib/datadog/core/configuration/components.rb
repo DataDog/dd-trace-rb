@@ -432,6 +432,10 @@ module Datadog
           @open_feature_activation.activate(provider)
         end
 
+        def deactivate_open_feature!(provider)
+          @open_feature_activation.deactivate(provider)
+        end
+
         def open_feature_activation_failure
           @open_feature_activation.failure
         end

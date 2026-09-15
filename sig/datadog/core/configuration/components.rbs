@@ -66,6 +66,8 @@ module Datadog
 
         def activate_open_feature!: (Datadog::OpenFeature::Provider provider) -> Datadog::OpenFeature::Component?
 
+        def deactivate_open_feature!: (Datadog::OpenFeature::Provider provider) -> void
+
         def open_feature_activation_failure: () -> String?
       end
     end

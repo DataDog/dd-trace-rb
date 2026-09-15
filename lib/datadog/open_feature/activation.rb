@@ -72,6 +72,27 @@ module Datadog
         nil
       end
 
+      # Provider replacement is reversible; a later provider may activate fresh delivery.
+      def deactivate(provider)
+        configuration_source, component = @mutex.synchronize do
+          return if @shutdown
+          return unless @provider.equal?(provider)
+
+          previous_source = @configuration_source
+          previous_component = @component
+          @provider = nil
+          @component = nil
+          @configuration_source = nil
+          @activated = false
+          @delivery_started = false
+          @failure = nil
+          [previous_source, previous_component]
+        end
+
+        configuration_source&.stop
+        component&.shutdown!
+      end
+
       def shutdown!
         configuration_source, component = @mutex.synchronize do
           return if @shutdown
