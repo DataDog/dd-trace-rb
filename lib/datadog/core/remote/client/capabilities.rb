@@ -6,6 +6,7 @@ require_relative "../../../tracing/remote"
 require_relative "../../../di/remote"
 require_relative "../../../symbol_database"
 require_relative "../../../symbol_database/remote"
+require_relative "../../../open_feature/remote"
 
 module Datadog
   module Core
@@ -112,7 +113,6 @@ module Datadog
                 end
               end
             end
-
             if settings.respond_to?(:open_feature) && settings.open_feature.enabled
               register_capabilities(Datadog::OpenFeature::Remote.capabilities)
               register_products(Datadog::OpenFeature::Remote.products)
