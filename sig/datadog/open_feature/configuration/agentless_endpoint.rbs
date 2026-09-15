@@ -4,6 +4,8 @@ module Datadog
       class AgentlessEndpoint
         DEFAULT_SITE: String
 
+        AGENTLESS_SUBDOMAIN: String
+
         CONFIGURATION_PATH: String
 
         INVALID_SITE_CHARACTERS: Regexp

@@ -5,7 +5,6 @@ require_relative "source/resolution"
 module Datadog
   module OpenFeature
     module Configuration
-      # Resolves the effective Feature Flags configuration source.
       module Source
         AGENTLESS = "agentless"
         REMOTE_CONFIG = "remote_config"

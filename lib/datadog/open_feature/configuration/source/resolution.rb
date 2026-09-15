@@ -4,7 +4,6 @@ module Datadog
   module OpenFeature
     module Configuration
       module Source
-        # Resolved Feature Flags enablement and delivery source.
         class Resolution
           attr_reader :source
 
