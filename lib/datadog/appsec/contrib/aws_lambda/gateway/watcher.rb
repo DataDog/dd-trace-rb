@@ -14,13 +14,13 @@ module Datadog
           module Watcher
             class << self
               def watch
-                gateway = Instrumentation.gateway
+                gateway = AppSec::Instrumentation.gateway
 
                 watch_request(gateway)
                 watch_response(gateway)
               end
 
-              def watch_request(gateway = Instrumentation.gateway)
+              def watch_request(gateway = AppSec::Instrumentation.gateway)
                 gateway.watch("aws_lambda.request.start") do |stack, payload|
                   context = payload.context
                   next stack.call(payload) unless context
@@ -44,7 +44,7 @@ module Datadog
                 end
               end
 
-              def watch_response(gateway = Instrumentation.gateway)
+              def watch_response(gateway = AppSec::Instrumentation.gateway)
                 gateway.watch("aws_lambda.response.start") do |stack, payload|
                   context = payload.context
                   next stack.call(payload) unless context

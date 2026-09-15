@@ -108,7 +108,20 @@ module Datadog
           options = options.merge(transport: transport)
         end
 
+        if lambda_sync_writer?(settings)
+          sync_options = {}
+          [:logger, :transport, :transport_options].each do |key|
+            sync_options[key] = options[key] if options.key?(key)
+          end
+          return Tracing::SyncWriter.new(agent_settings: agent_settings, **sync_options)
+        end
+
         Tracing::Writer.new(agent_settings: agent_settings, **options)
+      end
+
+      def lambda_sync_writer?(settings)
+        defined?(Contrib::AwsLambdaRic::Integration) &&
+          Contrib::AwsLambdaRic::Integration.synchronous_writer?(settings)
       end
 
       def build_native_transport(agent_settings)

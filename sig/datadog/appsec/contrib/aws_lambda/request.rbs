@@ -1,0 +1,19 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module AwsLambda
+        class Request
+          attr_reader host: untyped
+          attr_reader user_agent: untyped
+          attr_reader remote_addr: untyped
+          attr_reader headers: Hash[String, untyped]
+          attr_reader request_method: untyped
+          attr_reader path: untyped
+
+          def self.from_normalized: (Hash[String, untyped] event) -> Request
+          def initialize: (remote_addr: untyped, headers: Hash[String, untyped], request_method: untyped, path: untyped) -> void
+        end
+      end
+    end
+  end
+end

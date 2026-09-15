@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module AwsLambdaRic
+        module Instrumentation
+          def call_handler: (request: untyped, context: untyped) -> untyped
+        end
+      end
+    end
+  end
+end

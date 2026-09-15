@@ -1,0 +1,16 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module AwsLambda
+        class Response
+          attr_reader status: Integer
+          attr_reader headers: Hash[untyped, untyped]
+          attr_reader body: untyped
+
+          def self.from_normalized: (Hash[String, untyped] response) -> Response
+          def initialize: (status: Integer, headers: Hash[untyped, untyped], body: untyped) -> void
+        end
+      end
+    end
+  end
+end
