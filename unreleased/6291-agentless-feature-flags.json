@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6291",
+  "message": "Add agentless Feature Flags configuration delivery and settings for selecting agentless, Remote Configuration, or offline delivery."
+}
