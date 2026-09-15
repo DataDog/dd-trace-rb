@@ -13,13 +13,13 @@ It answers: *did an edit to a review rule make the agent better or worse?*
 Overrides are owned by this repo. The shared core is not — never edit `.agents/skills/dd-apm-sdk-review/`.
 
 1. Create or extend a file under [`.agents/dd-apm-sdk-review-overrides/reviewers/`](../.agents/dd-apm-sdk-review-overrides/reviewers/).
-   Copy the shape of `conventions.md` or `security.md`: one pattern, why it matters, the fix.
-2. Add a case in [`suites/dd-apm-sdk-review.yaml`](./suites/dd-apm-sdk-review.yaml). Copy either starter case.
+   Copy the shape of `conventions.md`: one pattern, why it matters, the fix.
+2. Add a case in [`suites/dd-apm-sdk-review.yaml`](./suites/dd-apm-sdk-review.yaml). Copy the starter case.
    A good case is a 10-line snippet plus 2–3 `expected_criteria` that would fail if the rule disappeared.
 3. List the new case id under `presets.gate.cases` in [`config.yaml`](./config.yaml) if you want CI to run it.
 4. Open a PR. That is it.
 
-The two starter cases in this folder are the examples. Keep new ones that short.
+The starter case in this folder is the example. Keep new ones that short.
 
 ## Layout
 
@@ -45,16 +45,16 @@ export LLMVAL_AUTH_HEADER="$(ddtool auth token rapid-ai-platform --datacenter us
 docker run --rm -e LLMVAL_AUTH_HEADER -v "$PWD:/repo" "$LLMVAL_IMAGE" \
   --repo /repo --base-sha master --level minimum --runs 1
 
-# Both starter cases
+# Gate set
 docker run --rm -e LLMVAL_AUTH_HEADER -v "$PWD:/repo" "$LLMVAL_IMAGE" \
   --repo /repo --base-sha master --level gate --runs 1
 
 # One named case
 docker run --rm -e LLMVAL_AUTH_HEADER -v "$PWD:/repo" "$LLMVAL_IMAGE" \
-  --repo /repo --base-sha master --case rb-security-secret-into-tag --runs 1
+  --repo /repo --base-sha master --case rb-conventions-env-and-time --runs 1
 ```
 
-`--level` picks **which cases** run (`minimum` = 1, `gate` = both, `full` = every case).
+`--level` picks **which cases** run (`minimum` = 1, `gate` = the starter case, `full` = every case).
 `--runs` only repeats those cases. Needs `ddtool` on the host for a real (non-`--fake`) run.
 
 CI includes the reusable `"llm validation"` job from the platform repo (see `.gitlab-ci.yml`).
