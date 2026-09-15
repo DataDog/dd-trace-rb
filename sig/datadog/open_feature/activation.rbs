@@ -15,6 +15,8 @@ module Datadog
 
       @configuration_source: Agentless::ConfigurationSource?
 
+      @delivery_source: String?
+
       @failure: String?
 
       @provider: Provider?
