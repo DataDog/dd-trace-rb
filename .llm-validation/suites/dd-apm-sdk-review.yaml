@@ -4,7 +4,7 @@ version: "0.1"
 # One file on purpose: the platform CLI errors if suites/ has more than one YAML.
 # One starter case. Copy the block to add the next one.
 cases:
-  - id: rb-conventions-env-and-time
+  - id: rb-conventions-time-now
     files:
       - AGENTS.md
       - .agents/skills/dd-apm-sdk-review/reviewers/conventions.md
@@ -16,22 +16,19 @@ cases:
       AGENTS.md) to the following code. No git checkout available — this snippet is the
       entire change to review. Treat the snippet as
       `lib/datadog/tracing/contrib/http/instrumentation.rb` starting at line 10 (shipped
-      code, not a spec).
+      code, not a spec). Direct `ENV` reads are out of scope for this lens:
+      CustomCops/EnvUsageCop already covers them.
 
       ```ruby
-      def service_name
-        ENV['DD_SERVICE'] || 'unnamed'
-      end
-
       def started_at
         Time.now
       end
       ```
     expected_criteria:
-      - "Flags `ENV['DD_SERVICE']` — shipped code must read environment variables through `DATADOG_ENV`, not `ENV` directly."
-      - "Flags `Time.now` — shipped code must use `Datadog::Core::Utils::Time.now` so tests can override the provider."
-      - "Names the concrete replacements, not just 'avoid ENV' / 'avoid Time.now'."
+      - "Flags `Time.now` — shipped code under lib/ must use `Datadog::Core::Utils::Time.now` so tests can override the provider."
+      - "Names `Datadog::Core::Utils::Time.now` as the replacement, not a generic 'avoid Time.now'."
     bad_signals:
-      - "Approves the `ENV` read or the `Time.now` call."
-      - "Treats both as style nits with no repo-specific reason."
-      - "Invents a different wrapper name that this gem does not use."
+      - "Approves the `Time.now` call."
+      - "Treats it as a style nit with no repo-specific reason."
+      - "Invents a different time-wrapper name that this gem does not use."
+      - "Flags a direct ENV read even though this snippet has none and ENV is out of scope for this lens."

@@ -169,7 +169,8 @@ findings can be dismissed by the human.
 
 **Reviewer without a skill harness** (for example, GitHub Codex): read and follow
 `.agents/skills/dd-apm-sdk-review/review-without-harness.md`. Do not load `SKILL.md`
-or `reviewers/report-template.md`.
+or `reviewers/report-template.md`. If the diff touches `sig/` or `vendor/rbs/`,
+also follow [`.claude/skills/write-rbs/SKILL.md`](./.claude/skills/write-rbs/SKILL.md).
 
 # Pull Requests
 

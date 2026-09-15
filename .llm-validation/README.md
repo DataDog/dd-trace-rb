@@ -3,9 +3,6 @@
 This folder is how we test the review skill. It is **not** an RSpec file.
 The cases live here; the runner lives in [`ddoghq/llm-validation-platform`](https://github.com/ddoghq/llm-validation-platform).
 
-Same gate as [`dd-trace-js#10137`](https://github.com/DataDog/dd-trace-js/pull/10137) and
-[`dd-trace-java#12409`](https://github.com/DataDog/dd-trace-java/pull/12409).
-
 It answers: *did an edit to a review rule make the agent better or worse?*
 
 ## Add a rule (this is the whole contribution)
@@ -51,7 +48,7 @@ docker run --rm -e LLMVAL_AUTH_HEADER -v "$PWD:/repo" "$LLMVAL_IMAGE" \
 
 # One named case
 docker run --rm -e LLMVAL_AUTH_HEADER -v "$PWD:/repo" "$LLMVAL_IMAGE" \
-  --repo /repo --base-sha master --case rb-conventions-env-and-time --runs 1
+  --repo /repo --base-sha master --case rb-conventions-time-now --runs 1
 ```
 
 `--level` picks **which cases** run (`minimum` = 1, `gate` = the starter case, `full` = every case).

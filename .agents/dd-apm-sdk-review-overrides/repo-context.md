@@ -4,7 +4,7 @@ Read only by the orchestrator (Step 0 of `SKILL.md`), not by individual reviewer
 
 ## Related skills in this repo
 
-The other skills in this repo author specific things; this one is the general multi-perspective push gate. Cite them as authoritative for their own area, do not invoke them, and note they must not invoke this skill either:
+The other skills in this repo author specific things; this one is the general multi-perspective review. Cite them as authoritative for their own area, do not invoke them, and note they must not invoke this skill either:
 
 - `write-comment` — when a comment earns its place. Defer for comment-only questions.
 - `write-rbs` — RBS / Steep signatures. Defer for type-signature work.

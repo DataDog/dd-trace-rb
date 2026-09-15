@@ -2,18 +2,24 @@ Override for `reviewers/conventions.md` (in the core skill folder) — read that
 
 # Codebase conventions — dd-trace-rb specifics
 
-This file starts with two confirmed patterns and should grow — add the next
+These addenda apply to `lib/**/*.rb` only. Do not flag `ENV` or `Time.now` in
+specs, `tasks/`, gemfiles, CI, or other non-library paths.
+
+This file starts with one confirmed pattern and should grow — add the next
 one you learn from review. Do not treat it as exhaustive.
 
-The source of truth is [`AGENTS.md`](../../../AGENTS.md). Open that file for the topic under review; do not restate it here. Only the two mechanically-missed rules below are spelled out.
+The source of truth is [`AGENTS.md`](../../../AGENTS.md). Open that file for the topic under review; do not restate it here.
 
-## `DATADOG_ENV`, never `ENV`
-
-Use `DATADOG_ENV` (see `docs/AccessEnvironmentVariables.md`). A new `ENV['DD_*']` / `ENV.fetch(...)` read in shipped code is a conventions finding — the wrapper is what lets tests and config inversion see the value. Treat a new production `ENV` read as **P1** (it will surprise the next person who mocks env); treat it as **P0** only when it also bypasses a required registration step (`rake local_config_map:generate`).
+`DATADOG_ENV` vs `ENV` is already enforced by `CustomCops/EnvUsageCop` on
+`lib/**/*` (see `.rubocop.yml`). Do not re-flag a direct `ENV` read that
+RuboCop already covers. If RuboCop did not run, report `NOT VERIFIED` for
+that check rather than inventing an ENV finding.
 
 ## `Datadog::Core::Utils::Time.now`, never `Time.now`
 
-The time provider is configurable (`Core::Utils::Time.now_provider=`). `Time.now` in shipped code or in a spec is a conventions finding — tests cannot override it. **P1**.
+The time provider is configurable (`Core::Utils::Time.now_provider=`).
+`Time.now` in `lib/**/*.rb` is a conventions finding — tests cannot override
+it. **P1**. Do not flag `Time.now` outside `lib/`.
 
 ## Mechanical checks — run these, don't eyeball them
 
