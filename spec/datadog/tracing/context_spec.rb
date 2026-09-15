@@ -207,7 +207,7 @@ RSpec.describe Datadog::Tracing::Context do
               end
             end
 
-            it "deactivates the original trace before activating its replacement" do
+            it "publishes only the trace activation event for the new trace" do
               context.activate!(original_trace)
               published_events = []
 
@@ -221,7 +221,7 @@ RSpec.describe Datadog::Tracing::Context do
 
               context.activate!(trace)
 
-              expect(published_events).to eq([[:trace_deactivated, original_trace], [:trace_activated, trace]])
+              expect(published_events).to eq([[:trace_activated, trace]])
             end
           end
 

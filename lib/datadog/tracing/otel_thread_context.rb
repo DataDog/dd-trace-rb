@@ -31,41 +31,11 @@ module Datadog
           # we already clear the context in `trace_finished` subscriber
           next if event_trace_op.finished?
 
-          active_span = event_trace_op.active_span
-
-          if active_span
-            set(
-              trace_id: event_trace_op.id,
-              span_id: active_span.id,
-              local_root_span_id: event_trace_op.send(:root_span).id
-            )
-          elsif event_trace_op.parent_span_id && event_trace_op.parent_span_id != 0
-            set(
-              trace_id: event_trace_op.id,
-              span_id: event_trace_op.parent_span_id,
-              local_root_span_id: UNKNOWN_LOCAL_ROOT_SPAN_ID
-            )
-          else
-            clear
-          end
+          update_from_trace_op(event_trace_op)
         end
 
         events.trace_activated.subscribe do |event_trace_op|
-          active_span = event_trace_op.active_span
-
-          if active_span
-            set(
-              trace_id: event_trace_op.id,
-              span_id: active_span.id,
-              local_root_span_id: event_trace_op.send(:root_span).id
-            )
-          elsif event_trace_op.parent_span_id && event_trace_op.parent_span_id != 0
-            set(
-              trace_id: event_trace_op.id,
-              span_id: event_trace_op.parent_span_id,
-              local_root_span_id: UNKNOWN_LOCAL_ROOT_SPAN_ID
-            )
-          end
+          update_from_trace_op(event_trace_op)
         end
 
         events.trace_deactivated.subscribe do |event_trace_op|
@@ -102,6 +72,26 @@ module Datadog
         return false unless supported?
 
         _native_enable
+      end
+
+      def update_from_trace_op(trace_op)
+        active_span = trace_op.active_span
+
+        if active_span
+          set(
+            trace_id: trace_op.id,
+            span_id: active_span.id,
+            local_root_span_id: trace_op.send(:root_span).id
+          )
+        elsif trace_op.parent_span_id && trace_op.parent_span_id != 0
+          set(
+            trace_id: trace_op.id,
+            span_id: trace_op.parent_span_id,
+            local_root_span_id: UNKNOWN_LOCAL_ROOT_SPAN_ID
+          )
+        else
+          clear
+        end
       end
     end
   end

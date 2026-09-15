@@ -68,12 +68,10 @@ module Datadog
 
         return @active_trace if previous_trace.equal?(@active_trace)
 
-        if previous_trace
-          previous_trace.send(:events).trace_deactivated.publish(previous_trace)
-        end
-
         if @active_trace
           @active_trace.send(:events).trace_activated.publish(@active_trace)
+        elsif previous_trace
+          previous_trace.send(:events).trace_deactivated.publish(previous_trace)
         end
 
         @active_trace

@@ -32,6 +32,8 @@ module Datadog
       private
 
       def enable!: () -> bool
+
+      def update_from_trace_op: (TraceOperation trace_op) -> void
     end
   end
 end
