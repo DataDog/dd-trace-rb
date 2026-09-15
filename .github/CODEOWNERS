@@ -81,3 +81,6 @@ spec/datadog/symbol_database_spec.rb @DataDog/debugger-ruby @DataDog/ruby-guild
 # Nix
 *.nix @DataDog/nix-guild @DataDog/ruby-guild
 flake.* @DataDog/nix-guild @DataDog/ruby-guild
+
+# CI guard
+.github/workflows/team-freeze-guard.yml @DataDog/lang-platform-ruby
