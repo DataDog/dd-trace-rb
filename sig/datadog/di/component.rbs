@@ -13,6 +13,8 @@ module Datadog
 
       @serializer: Serializer
 
+      @correlation_sampler: CorrelationSampler
+
       @instrumenter: Instrumenter
 
       @code_tracker: CodeTracker?
@@ -44,6 +46,8 @@ module Datadog
       attr_reader telemetry: Core::Telemetry::Component?
 
       attr_reader code_tracker: CodeTracker?
+
+      attr_reader correlation_sampler: CorrelationSampler
 
       attr_reader instrumenter: Instrumenter
 
