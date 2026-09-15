@@ -6,9 +6,11 @@ require "datadog/core/remote/configuration/repository"
 
 RSpec.describe Datadog::OpenFeature::Remote do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:receivers) { described_class.receivers(telemetry) }
+  let(:component_provider) { -> { component } }
+  let(:receivers) { described_class.receivers(telemetry, component_provider: component_provider) }
   let(:receiver) { receivers[0] }
   let(:logger) { instance_double(Datadog::Core::Logger) }
+  let(:component) { instance_double(Datadog::OpenFeature::Component) }
 
   describe ".capabilities" do
     it { expect(described_class.capabilities).to eq([70368744177664]) }
@@ -34,12 +36,8 @@ RSpec.describe Datadog::OpenFeature::Remote do
   describe "receiver logic" do
     before do
       allow(telemetry).to receive(:error)
-      allow(Datadog).to receive(:send).with(:components).and_return(components)
-      allow(components).to receive(:open_feature).and_return(component)
     end
 
-    let(:components) { instance_double(Datadog::Core::Configuration::Components) }
-    let(:component) { instance_double(Datadog::OpenFeature::Component) }
     let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
     let(:target) do
       Datadog::Core::Remote::Configuration::Target.parse(
@@ -91,6 +89,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
       end
 
       it "reconfigures the component and acknowledges the applied change" do
+        expect(component_provider).to receive(:call).and_call_original
         expect(component).to receive(:reconfigure!).with(content_data)
 
         receiver.call(repository, transaction)

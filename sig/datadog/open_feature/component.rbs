@@ -31,6 +31,8 @@ module Datadog
 
       @configuration_mutex: ::Thread::Mutex
 
+      @reconfiguration_mutex: ::Thread::Mutex
+
       @configuration_condition: ::Thread::ConditionVariable
 
       @configuration_received: bool
@@ -68,6 +70,8 @@ module Datadog
       def configuration_received?: () -> bool
 
       private
+
+      def configuration_shutdown?: () -> bool
 
       def create_flag_eval_metrics_hook: () -> Hooks::FlagEvalMetricsHook?
 

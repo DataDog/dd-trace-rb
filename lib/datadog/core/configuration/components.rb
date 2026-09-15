@@ -188,7 +188,13 @@ module Datadog
 
           @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
 
-          @remote = Remote::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
+          @remote = Remote::Component.build(
+            settings,
+            agent_settings,
+            logger: @logger,
+            telemetry: telemetry,
+            open_feature_component_provider: -> { @open_feature },
+          )
           @tracer = Datadog::Tracing::Component.build_tracer(settings, agent_settings, logger: @logger)
           @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 

@@ -245,6 +245,37 @@ RSpec.describe Datadog::OpenFeature::Component do
         expect(component.wait_for_configuration).to eq(:timeout)
       end
 
+      it "times out while configuration is still being applied" do
+        reconfiguration_started = SizedQueue.new(1)
+        finish_reconfiguration = SizedQueue.new(1)
+        allow(component.engine).to receive(:reconfigure!) do
+          reconfiguration_started << true
+          finish_reconfiguration.pop
+        end
+        reconfiguration_thread = Thread.new { component.reconfigure!("configuration") }
+
+        begin
+          Timeout.timeout(1) { reconfiguration_started.pop }
+          allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0.0, 1.0)
+
+          expect(Timeout.timeout(1) { component.wait_for_configuration }).to eq(:timeout)
+        ensure
+          finish_reconfiguration << true
+          unless reconfiguration_thread.join(1)
+            reconfiguration_thread.kill
+            reconfiguration_thread.join(1)
+          end
+        end
+      end
+
+      it "reports shutdown instead of stale readiness" do
+        allow(component.engine).to receive(:reconfigure!)
+        component.reconfigure!("configuration")
+        component.shutdown!
+
+        expect(component.wait_for_configuration).to eq(:shutdown)
+      end
+
       it "wakes when configuration arrives" do
         wait_started = SizedQueue.new(1)
         result = SizedQueue.new(1)
