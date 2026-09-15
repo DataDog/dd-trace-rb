@@ -37,6 +37,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       allow(settings).to receive(:max_capture_depth).and_return(2)
       allow(settings).to receive(:max_capture_string_length).and_return(100)
       allow(settings).to receive(:max_time_to_serialize_ms).and_return(200)
+      # Default to no evaluation deadline so existing builder specs
+      # preserve their pre-timeout behavior; the template-timeout
+      # context overrides this with a real value.
+      allow(settings).to receive(:max_time_to_evaluate_ms).and_return(nil)
     end
   end
 
