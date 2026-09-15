@@ -275,8 +275,15 @@ module Datadog
         def startup!(settings, old_state: nil)
           telemetry.start(old_state&.telemetry_enabled?, components: self)
 
-          @open_feature_activation.start!
-          activate_open_feature!(old_state.open_feature_provider) if old_state&.open_feature_provider
+          begin
+            @open_feature_activation.start!
+            activate_open_feature!(old_state.open_feature_provider) if old_state&.open_feature_provider
+          rescue => e
+            # Feature Flags is optional and must never interrupt library startup.
+            description = "Feature Flags delivery failed to start"
+            logger.error("#{description}: #{e.class}: #{e.message}")
+            telemetry.report(e, description: description)
+          end
 
           if settings.profiling.enabled
             if profiler

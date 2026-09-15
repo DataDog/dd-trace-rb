@@ -638,6 +638,29 @@ RSpec.describe Datadog::Core::Configuration::Components do
       startup!
     end
 
+    context "when eager OpenFeature delivery raises" do
+      let(:error) { RuntimeError.new("test failure") }
+      let(:activation) do
+        instance_double(Datadog::OpenFeature::Activation, start!: nil)
+      end
+
+      before do
+        allow(activation).to receive(:start!).and_raise(error)
+        allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
+      end
+
+      it "reports the failure and continues library startup" do
+        expect(components.logger).to receive(:error)
+          .with("Feature Flags delivery failed to start: RuntimeError: test failure")
+        expect(telemetry).to receive(:report)
+          .with(error, description: "Feature Flags delivery failed to start")
+        expect(Datadog::Core::ProcessDiscovery).to receive(:publish).with(settings)
+        expect(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
+
+        expect { startup! }.not_to raise_error
+      end
+    end
+
     context "when profiling" do
       context "is unsupported" do
         before do
@@ -789,6 +812,25 @@ RSpec.describe Datadog::Core::Configuration::Components do
         expect(components).to receive(:activate_open_feature!).with(provider)
 
         components.startup!(settings, old_state: old_state)
+      end
+
+      context "when provider reactivation raises" do
+        let(:error) { RuntimeError.new("test failure") }
+
+        before do
+          allow(components).to receive(:activate_open_feature!).with(provider).and_raise(error)
+        end
+
+        it "reports the failure and continues library startup" do
+          expect(components.logger).to receive(:error)
+            .with("Feature Flags delivery failed to start: RuntimeError: test failure")
+          expect(telemetry).to receive(:report)
+            .with(error, description: "Feature Flags delivery failed to start")
+          expect(Datadog::Core::ProcessDiscovery).to receive(:publish).with(settings)
+          expect(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
+
+          expect { components.startup!(settings, old_state: old_state) }.not_to raise_error
+        end
       end
     end
   end
