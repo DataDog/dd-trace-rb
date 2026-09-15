@@ -31,6 +31,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       instance_double(
         Datadog::Core::Configuration::Components,
         activate_open_feature!: component,
+        deactivate_open_feature!: nil,
         open_feature_activation_failure: nil,
       )
     end
@@ -51,12 +52,21 @@ RSpec.describe Datadog::OpenFeature::Provider do
       expect(component).to have_received(:wait_for_configuration)
     end
 
+    it "deactivates delivery on shutdown" do
+      provider.init
+
+      provider.shutdown
+
+      expect(components).to have_received(:deactivate_open_feature!).with(provider).once
+    end
+
     context "when no delivery source can start" do
       let(:component) { nil }
       let(:components) do
         instance_double(
           Datadog::Core::Configuration::Components,
           activate_open_feature!: nil,
+          deactivate_open_feature!: nil,
           open_feature_activation_failure: "Feature Flags Remote Configuration is unavailable",
         )
       end
@@ -126,6 +136,22 @@ RSpec.describe Datadog::OpenFeature::Provider do
       provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_CHANGED)
 
       expect(events).to eq([:changed])
+    ensure
+      provider.shutdown
+      configuration&.send(:reset)
+    end
+
+    it "emits STALE when configuration is lost and READY when it returns" do
+      configuration = ::OpenFeature::SDK::Configuration.new
+      events = []
+      configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE, ->(_) { events << :stale })
+      configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, ->(_) { events << :ready })
+      configuration.set_provider_and_wait(provider)
+
+      provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_LOST)
+      provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+
+      expect(events).to eq([:ready, :stale, :ready])
     ensure
       provider.shutdown
       configuration&.send(:reset)

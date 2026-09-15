@@ -349,28 +349,21 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   end
 
   context "OpenFeature component" do
-    subject(:capabilities) do
-      described_class.new(
-        settings,
-        telemetry,
-        open_feature_component_provider: open_feature_component_provider,
-      )
-    end
-
     let(:settings) do
       Datadog::Core::Configuration::Settings.new.tap do |settings|
         settings.open_feature.enabled = true
+        settings.open_feature.configuration_source = "remote_config"
       end
     end
-    let(:open_feature_component_provider) { -> {} }
 
-    it "binds the receiver to the supplied component provider" do
-      expect(Datadog::OpenFeature::Remote).to receive(:receivers).with(
-        telemetry,
-        component_provider: open_feature_component_provider,
-      ).and_call_original
-
-      capabilities
+    it "defers registration until source-aware OpenFeature activation" do
+      expect(capabilities.capabilities).not_to include(1 << 46)
+      expect(capabilities.products).not_to include("FFE_FLAGS")
+      expect(capabilities.receivers).not_to include(
+        lambda { |receiver|
+          receiver.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/FFE_FLAGS/_/_")
+        }
+      )
     end
   end
 
@@ -452,9 +445,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     let(:receiver) { instance_double(Datadog::Core::Remote::Dispatcher::Receiver) }
     let(:runtime_capability) { 1 << 46 }
 
-    it "adds capabilities, products, and receivers atomically for future clients" do
-      previous_base64 = capabilities.base64_capabilities
-
+    it "adds capabilities, products, and receivers for future clients" do
       capabilities.register_runtime(
         capabilities: [runtime_capability],
         products: ["FFE_FLAGS"],
@@ -464,7 +455,20 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       expect(capabilities.capabilities).to include(runtime_capability)
       expect(capabilities.products).to include("FFE_FLAGS")
       expect(capabilities.receivers).to include(receiver)
-      expect(capabilities.base64_capabilities).not_to eq(previous_base64)
+    end
+
+    it "recomputes base64 over the union of boot and runtime capabilities" do
+      boot_capabilities = capabilities.capabilities
+      expect(boot_capabilities).not_to be_empty
+
+      capabilities.register_runtime(
+        capabilities: [runtime_capability],
+        products: ["FFE_FLAGS"],
+        receivers: [receiver],
+      )
+
+      expect(capabilities.base64_capabilities)
+        .to eq(capabilities.send(:capabilities_to_base64, boot_capabilities + [runtime_capability]))
     end
 
     it "is idempotent" do

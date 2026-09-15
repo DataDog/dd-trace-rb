@@ -87,4 +87,34 @@ RSpec.describe Datadog::Core::Remote::Worker do
       worker.stop
     end
   end
+
+  describe "#after_fork" do
+    %i[starting started].each do |state|
+      it "restarts a worker inherited while #{state}" do
+        worker.instance_variable_set(:"@#{state}", true)
+        worker.instance_variable_set(:@thr, Thread.current)
+        allow(worker).to receive(:start)
+
+        worker.after_fork
+
+        expect(worker).to have_received(:start).once
+        expect(worker.instance_variable_get(:@starting)).to be(false)
+        expect(worker.instance_variable_get(:@started)).to be(false)
+        expect(worker.instance_variable_get(:@thr)).to be_nil
+      end
+    end
+
+    it "does not start a worker that was not running before the fork" do
+      expect(worker).not_to receive(:start)
+
+      worker.after_fork
+    end
+
+    it "does not restart a stopped worker" do
+      worker.stop
+      expect(worker).not_to receive(:start)
+
+      worker.after_fork
+    end
+  end
 end
