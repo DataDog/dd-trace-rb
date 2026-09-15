@@ -188,6 +188,7 @@ module Datadog
 
           @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
 
+          # Bind Remote Configuration dispatch to this tree, which starts before it becomes the global Components instance.
           @remote = Remote::Component.build(
             settings,
             agent_settings,
