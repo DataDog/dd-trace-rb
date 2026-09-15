@@ -3,13 +3,17 @@ module Datadog
     module Evaluation
       def self.perform: (::Array[Message] messages, ?allow_raise: bool) -> Result
 
-      def self.perform_no_op: () -> NoOpResult
+      def self.perform_no_op: (Array[Message] messages) -> NoOpResult
 
       private
 
-      def self.truncate_messages: (::Array[Request::serialized_message]) -> ::Array[Request::serialized_message]
+      def self.truncate_messages: (
+        Array[Message::serialized] serialized_messages
+      ) -> Array[Message::serialized]
 
-      def self.truncate_content: (::Array[Request::serialized_message]) -> ::Array[Request::serialized_message]
+      def self.truncate_content: (
+        Array[Message::serialized] serialized_messages
+      ) -> Array[Message::serialized]
 
       def self.truncate_content_value: (::String content, ::Integer max_bytes) -> ::String
     end

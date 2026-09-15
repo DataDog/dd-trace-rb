@@ -2,8 +2,11 @@
 
 module Datadog
   module AIGuard
+    # Namespace for metrics
+    #
+    # @api private
     module Metrics
-      # A module responsible for reporting AI Guard evaluation telemetry metrics.
+      # A module for telemetry metrics reporting
       module Telemetry
         NAMESPACE = "ai_guard"
         CLIENT_ERROR = "client_error"

@@ -3,6 +3,9 @@
 module Datadog
   module AIGuard
     module Evaluation
+      # Client for evaluation API requests
+      #
+      # @api private
       module Client
         def self.evaluate(messages)
           request = Request.new(messages)

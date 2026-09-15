@@ -1,7 +1,7 @@
 module Datadog
   module AIGuard
     class Component
-      attr_reader api_client: AIGuard::APIClient
+      attr_reader http_client: HTTPClient
       attr_reader logger: Core::Logger
       attr_reader telemetry: Core::Telemetry::Component
 
@@ -11,7 +11,7 @@ module Datadog
         telemetry: Core::Telemetry::Component
       ) -> Component?
 
-      def initialize: (APIClient api_client, logger: Core::Logger, telemetry: Core::Telemetry::Component) -> void
+      def initialize: (HTTPClient http_client, logger: Core::Logger, telemetry: Core::Telemetry::Component) -> void
 
       def shutdown!: () -> void
     end

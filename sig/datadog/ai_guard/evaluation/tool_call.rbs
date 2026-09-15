@@ -7,6 +7,10 @@ module Datadog
         attr_reader arguments: ::String
 
         def initialize: (::String tool_name, id: ::String, arguments: ::String) -> void
+
+        def with_arguments: (String arguments) -> ToolCall
+
+        def to_h: () -> Hash[Symbol, any]
       end
     end
   end

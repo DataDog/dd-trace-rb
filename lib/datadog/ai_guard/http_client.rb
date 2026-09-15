@@ -1,13 +1,15 @@
 # frozen_string_literal: true
 
 require "uri"
-require "net/http"
 require "json"
+require "net/http"
 
 module Datadog
   module AIGuard
-    # HTTP client for the AI Guard API.
-    # Uses net/http to perform request. Raises on client and server errors.
+    # HTTP client for the AI Guard API
+    # Uses net/http to perform requests, raises on client and server errors
+    #
+    # @api private
     class HTTPClient
       DEFAULT_SITE = "app.datadoghq.com"
       DEFAULT_PATH = "/api/v2/ai-guard"

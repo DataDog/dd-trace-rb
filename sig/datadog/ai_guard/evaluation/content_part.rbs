@@ -8,6 +8,10 @@ module Datadog
           def initialize: (::String text) -> void
 
           def type: () -> ::Symbol
+
+          def with_text: (String text) -> Text
+
+          def to_h: () -> Hash[Symbol, any]
         end
 
         class ImageURL
@@ -16,6 +20,8 @@ module Datadog
           def initialize: (::String url) -> void
 
           def type: () -> ::Symbol
+
+          def to_h: () -> Hash[Symbol, any]
         end
       end
     end

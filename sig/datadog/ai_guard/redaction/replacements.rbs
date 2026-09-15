@@ -1,0 +1,33 @@
+module Datadog
+  module AIGuard
+    module Redaction
+      class Replacements
+        extend Forwardable
+
+        type path = [Integer, :content] | [Integer, :text, Integer] | [Integer, :arguments]
+        type replacements = Hash[path, String]
+
+        TEXT_PATH_PATTERN: Regexp
+
+        CONTENT_PATH_PATTERN: Regexp
+
+        ARGUMENTS_PATH_PATTERN: Regexp
+
+        @failures: Integer
+
+        @replacements: replacements
+
+        attr_reader failures: Integer
+
+        def initialize: (Evaluation::Response::redaction_replacements raw_replacements) -> void
+
+        def each: () { (path, String) -> void } -> replacements
+                | () -> Enumerator[[path, String], replacements]
+
+        private
+
+        def build: (Evaluation::Response::redaction_replacements raw_replacements) -> replacements
+      end
+    end
+  end
+end

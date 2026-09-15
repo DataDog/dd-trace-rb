@@ -1,0 +1,26 @@
+module Datadog
+  module AIGuard
+    module Redaction
+      class Result
+        @performed: bool
+
+        attr_reader messages: Array[Evaluation::Message]
+
+        attr_reader applied: Integer
+
+        attr_reader failures: Integer
+
+        def initialize: (
+          Array[Evaluation::Message] messages,
+          applied: Integer,
+          failures: Integer,
+          ?performed: bool
+        ) -> void
+
+        def performed?: () -> bool
+
+        def redacted?: () -> bool
+      end
+    end
+  end
+end

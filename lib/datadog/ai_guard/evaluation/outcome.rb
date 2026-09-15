@@ -3,6 +3,9 @@
 module Datadog
   module AIGuard
     module Evaluation
+      # Internal outcome of an evaluation request
+      #
+      # @api private
       class Outcome
         attr_reader :result, :redaction
 
