@@ -323,6 +323,24 @@ module Datadog
                 end
               end
 
+              # Whether the request path is included in the resource name of HTTP client spans.
+              #
+              # When enabled, resource names become `<HTTP method> <quantized path>`
+              # (eg. `GET /users/?`) instead of only the HTTP method (eg. `GET`). Path
+              # segments that look like identifiers are replaced with `?` to keep the
+              # number of distinct resource names bounded.
+              #
+              # This increases the number of distinct resource names reported for HTTP
+              # client spans, in exchange for being able to tell endpoints apart.
+              #
+              # @default `DD_TRACE_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE` environment variable, otherwise `false`.
+              # @return [Boolean]
+              option :http_client_resource_name_quantize do |o|
+                o.type :bool, nilable: false
+                o.env Configuration::Ext::ENV_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE
+                o.default false
+              end
+
               # Forces the tracer to always send span events with the native span events format
               # regardless of the agent support. This is useful in agent-less setups.
               #

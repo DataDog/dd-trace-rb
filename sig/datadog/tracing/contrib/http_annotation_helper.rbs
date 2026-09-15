@@ -3,6 +3,8 @@ module Datadog
     module Contrib
       module HttpAnnotationHelper
         def service_name: (untyped hostname, untyped configuration_options, ?untyped? pin) -> untyped
+
+        def http_client_resource_name: (untyped http_method, untyped path) -> ::String
       end
     end
   end
