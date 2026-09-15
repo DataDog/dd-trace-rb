@@ -42,5 +42,4 @@ jobs:
           bypass-labels: |
             dev/ci
             dev/testing
-            github_actions
           frozen-teams: ""
