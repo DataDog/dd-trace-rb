@@ -55,9 +55,18 @@ RSpec.describe "OpenFeature provider span enrichment (end-to-end)" do
     # Resolve the engine and (when the gate is on) the span-enrichment hook
     # through the real provider lookup path.
     allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
-    components = instance_double(Datadog::Core::Configuration::Components, open_feature: open_feature_component)
+    allow(open_feature_component).to receive(:wait_for_configuration)
+      .and_return(Datadog::OpenFeature::Component::CONFIGURATION_READY)
+    components = instance_double(
+      Datadog::Core::Configuration::Components,
+      open_feature: open_feature_component,
+      activate_open_feature!: open_feature_component,
+      open_feature_activation_failure: nil,
+    )
     allow(Datadog).to receive(:send).and_call_original
     allow(Datadog).to receive(:send).with(:components).and_return(components)
+    allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
+    allow(Datadog).to receive(:send).with(:safely_synchronize).and_yield
 
     install_provider(provider)
   end

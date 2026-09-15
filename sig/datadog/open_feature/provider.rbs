@@ -1,7 +1,23 @@
 module Datadog
   module OpenFeature
     class Provider
+      include ::OpenFeature::SDK::Provider::EventEmitter
+
       NAME: ::String
+
+      @initialization_mutex: Thread::Mutex
+
+      @initializing: bool
+
+      @initialization_failed: bool
+
+      @provider_error_observed: bool
+
+      @ready_pending: bool
+
+      @ready_emitted: bool
+
+      @error_handler: (^(Hash[Symbol, untyped]) -> void)?
 
       attr_reader metadata: ::OpenFeature::SDK::Provider::ProviderMetadata
 
@@ -50,6 +66,16 @@ module Datadog
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       private
+
+      def activate_component: () -> [Component?, String?]
+
+      def fail_initialization: (Component? component, String message) -> bot
+
+      def install_error_handler: () -> void
+
+      def provider_error: (Hash[Symbol, untyped] details) -> void
+
+      def configuration_changed: (Component::configuration_event event) -> void
 
       def evaluate: (
         ::String flag_key,

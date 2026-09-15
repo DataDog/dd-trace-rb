@@ -146,6 +146,25 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
     end
   end
 
+  describe "#add_receivers" do
+    let(:additional_receiver) do
+      described_class::Receiver.new(matcher, &receiver_block)
+    end
+
+    it "adds a receiver once" do
+      dispatcher.add_receivers(additional_receiver)
+      dispatcher.add_receivers(additional_receiver)
+
+      expect(dispatcher.receivers).to contain_exactly(receiver, additional_receiver)
+    end
+
+    it "does not expose its internal receiver collection" do
+      dispatcher.receivers.clear
+
+      expect(dispatcher.receivers).to contain_exactly(receiver)
+    end
+  end
+
   describe Datadog::Core::Remote::Dispatcher::Matcher::Product do
     subject(:matcher) { described_class.new([product]) }
 
