@@ -251,6 +251,19 @@ RSpec.describe Datadog::OpenFeature::Component do
         expect { component.reconfigure!(nil) }
           .to change(component, :configuration_received?).from(true).to(false)
         expect(on_configuration_change).to have_received(:call).with(:ready).once
+        expect(on_configuration_change).to have_received(:call).with(:lost).once
+      end
+
+      it "reports configuration recovery as ready" do
+        events = []
+        allow(on_configuration_change).to receive(:call) { |event| events << event }
+        allow(component.engine).to receive(:reconfigure!)
+        component.reconfigure!("first")
+        component.reconfigure!(nil)
+
+        component.reconfigure!("second")
+
+        expect(events).to eq([:ready, :lost, :ready])
       end
     end
 

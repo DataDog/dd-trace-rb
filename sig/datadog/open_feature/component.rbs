@@ -2,7 +2,7 @@ module Datadog
   module OpenFeature
     class Component
       type configuration_wait_result = :ready | :timeout | :shutdown
-      type configuration_event = :ready | :changed
+      type configuration_event = :ready | :changed | :lost
 
       CONFIGURATION_READY: :ready
 
@@ -11,6 +11,8 @@ module Datadog
       CONFIGURATION_SHUTDOWN: :shutdown
 
       CONFIGURATION_CHANGED: :changed
+
+      CONFIGURATION_LOST: :lost
 
       @settings: Core::Configuration::Settings
 
