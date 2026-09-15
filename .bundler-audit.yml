@@ -10,7 +10,13 @@
 #   - the gem and why it cannot be upgraded
 #
 # Reviewed on a regular cadence; remove entries once the gem can be upgraded.
-ignore: []
+ignore:
+  # mongo CVE-2026-88030 (GHSA-4ww7-gqv6-mffc, high; GridFS query-logic injection):
+  # fixed only in mongo 2.26.0+. The mongo-min Gemfiles intentionally pin the oldest
+  # tested driver version (2.11.0 / 2.20.0) and cannot be upgraded, and the mongo-latest
+  # lockfiles on master predate the 2.26.0 release and pick up the fix at the next lock
+  # refresh. Once no lockfile resolves a mongo < 2.26.0, this entry can be removed.
+  - CVE-2026-88030
 
 # Gem+version-scoped ignore list, checked in addition to `ignore` above.
 # Unlike `ignore`, each entry only suppresses findings for that exact

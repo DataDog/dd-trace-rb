@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "../release_prep"
-
 # The unreleased/highlights.md file: free-form release-page highlights for
 # the next release. .read returns a Highlights for a present file and the
 # inert Missing null object otherwise, so callers never branch on existence.

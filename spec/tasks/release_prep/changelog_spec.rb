@@ -3,7 +3,7 @@
 require "spec_helper"
 require "tmpdir"
 require "date"
-require_relative "../../../tasks/lib/release_prep/changelog"
+require_relative "../../../tasks/lib/release_prep"
 
 RSpec.describe ReleasePrep::Changelog do
   let(:changelog_fixture) do
@@ -107,13 +107,21 @@ RSpec.describe ReleasePrep::Changelog do
     it "fails loudly when the [Unreleased] compare link is missing" do
       changelog = described_class.new(path: write_changelog("## [Unreleased]\n"))
 
-      expect { changelog.release("2.43.0", ReleasePrep::Fragments.new([fragment("6142")])) }.to raise_error(SystemExit)
+      stderr = capture_stderr do
+        expect { changelog.release("2.43.0", ReleasePrep::Fragments.new([fragment("6142")])) }.to raise_error(SystemExit)
+      end
+
+      expect(stderr).to include("::error::Could not find the [Unreleased] compare link")
     end
 
     it "fails loudly when the [Unreleased] marker is missing" do
       changelog = described_class.new(path: write_changelog("# CHANGELOG\n"))
 
-      expect { changelog.release("2.43.0", ReleasePrep::Fragments.new([fragment("6142")])) }.to raise_error(SystemExit)
+      stderr = capture_stderr do
+        expect { changelog.release("2.43.0", ReleasePrep::Fragments.new([fragment("6142")])) }.to raise_error(SystemExit)
+      end
+
+      expect(stderr).to start_with("::error::")
     end
 
     it "fails loudly rather than splicing into the footer when only the compare link matches" do
@@ -126,7 +134,11 @@ RSpec.describe ReleasePrep::Changelog do
       MD
       changelog = described_class.new(path: write_changelog(footer_only))
 
-      expect { changelog.release("2.43.0", ReleasePrep::Fragments.new([fragment("6142")])) }.to raise_error(SystemExit)
+      stderr = capture_stderr do
+        expect { changelog.release("2.43.0", ReleasePrep::Fragments.new([fragment("6142")])) }.to raise_error(SystemExit)
+      end
+
+      expect(stderr).to include("::error::Could not find [Unreleased] marker")
     end
   end
 
