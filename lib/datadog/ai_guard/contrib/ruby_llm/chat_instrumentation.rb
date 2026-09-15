@@ -62,12 +62,6 @@ module Datadog
             end
           end
 
-          def complete(&block)
-            Datadog::AIGuard::Contrib::RubyLLM::ChatInstrumentation.evaluate!(messages)
-
-            super
-          end
-
           def handle_tool_calls(response, &block)
             Datadog::AIGuard::Contrib::RubyLLM::ChatInstrumentation.evaluate!(messages)
 
