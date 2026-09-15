@@ -87,6 +87,8 @@ module Datadog
       end
 
       def clear
+        return false unless supported?
+
         _native_clear
       end
 
