@@ -10,7 +10,11 @@ module Datadog
         class DigestList < Array
           class << self
             def parse(hash)
-              new.concat(hash.map { |type, hexdigest| Digest.new(type, hexdigest) })
+              new.concat(hash.map do |type, hexdigest|
+                raise TypeError, "hexdigest must be a String, got #{hexdigest.class}" unless hexdigest.is_a?(::String)
+
+                Digest.new(type, hexdigest)
+              end)
             end
           end
 
