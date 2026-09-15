@@ -8,6 +8,11 @@
 # frozen-teams: |
 #   @DataDog/team-a
 #   @DataDog/team-b
+#
+# Important note:
+# There are dozens of ways to bypass this guard. The goal is to put a red light on PRs that do not comply with
+# the code freeze, not to physically prevent people from ignoring that red light. If someone deliberately
+# bypasses the guard, it becomes a culture issue rather than a process issue.
 
 name: Team freeze guard
 
