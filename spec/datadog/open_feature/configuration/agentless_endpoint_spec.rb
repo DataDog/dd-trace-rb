@@ -87,6 +87,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
     invalid_utf8_url = (+"https://example.test/\xFF").force_encoding(Encoding::UTF_8)
     [
       ["ftp://example.test/config", "Feature Flags agentless base URL must be an absolute HTTP or HTTPS URL; agentless delivery is disabled"],
+      ["http:relative", "Feature Flags agentless base URL must be an absolute HTTP or HTTPS URL; agentless delivery is disabled"],
       ["relative/path", "Feature Flags agentless base URL must be an absolute HTTP or HTTPS URL; agentless delivery is disabled"],
       ["https://example.test/bad path", "Feature Flags agentless base URL contains whitespace; agentless delivery is disabled"],
       ["https://example.test/\u212A", "Feature Flags agentless base URL is invalid; agentless delivery is disabled"],
