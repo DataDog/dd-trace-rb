@@ -1,4 +1,8 @@
 module RubyLLM
+  class Provider
+    def complete: (::Array[Message] messages, **untyped options) ?{ (untyped chunk) -> untyped } -> Message
+  end
+
   class Chat
     def messages: () -> ::Array[Message]
 
@@ -21,6 +25,8 @@ module RubyLLM
     def role: () -> ::String
 
     def content: () -> (::String | Content)
+
+    def content=: (::String content) -> ::String
 
     def tool_calls: () -> ::Hash[::String, ToolCall]
 

@@ -11,7 +11,7 @@ module Datadog
         class Integration
           include Datadog::AIGuard::Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new("1.0.0")
+          MINIMUM_VERSION = Gem::Version.new("1.6.0")
 
           register_as :ruby_llm, auto_patch: false
 
