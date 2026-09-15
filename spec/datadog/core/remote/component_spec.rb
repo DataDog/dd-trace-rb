@@ -253,6 +253,52 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
       expect(capabilities.receivers).to include(receiver)
       expect(component.client.dispatcher.receivers).to include(receiver)
     end
+
+    it "does not lose a receiver when the client is replaced concurrently" do
+      original_client = component.client
+      replacement_client = Datadog::Core::Remote::Client.new(
+        original_client.transport,
+        capabilities,
+        settings: settings,
+        logger: logger,
+      )
+      replacement_started = SizedQueue.new(1)
+      release_replacement = SizedQueue.new(1)
+      registration_started = SizedQueue.new(1)
+
+      allow(Datadog::Core::Remote::Client).to receive(:new) do
+        replacement_started.push(true)
+        release_replacement.pop
+        replacement_client
+      end
+
+      replacement_thread = Thread.new { component.after_fork }
+      Timeout.timeout(1) { replacement_started.pop }
+
+      registration_thread = Thread.new do
+        registration_started.push(true)
+        component.register(
+          capabilities: [1 << 46],
+          products: ["FFE_FLAGS"],
+          receivers: [receiver],
+        )
+      end
+      Timeout.timeout(1) { registration_started.pop }
+      Timeout.timeout(1) { Thread.pass until registration_thread.status == "sleep" || !registration_thread.alive? }
+
+      release_replacement.push(true)
+      Timeout.timeout(1) do
+        replacement_thread.join
+        registration_thread.join
+      end
+
+      expect(component.client).to equal(replacement_client)
+      expect(component.client.dispatcher.receivers).to include(receiver)
+    ensure
+      release_replacement&.push(true, true)
+      replacement_thread&.join(1)
+      registration_thread&.join(1)
+    end
   end
 
   describe "#after_fork" do
