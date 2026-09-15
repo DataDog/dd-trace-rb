@@ -15,7 +15,17 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
   with_env "DD_REMOTE_CONFIGURATION_ENABLED" => nil
 
   describe ".build" do
-    subject(:build) { described_class.build(settings, agent_settings, logger: logger, telemetry: telemetry) }
+    subject(:build) do
+      described_class.build(
+        settings,
+        agent_settings,
+        logger: logger,
+        telemetry: telemetry,
+        open_feature_component_provider: open_feature_component_provider,
+      )
+    end
+
+    let(:open_feature_component_provider) { -> {} }
 
     after { build&.shutdown! }
 
@@ -40,7 +50,8 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
       it "initializes component" do
         expect(Datadog::Core::Remote::Client::Capabilities).to receive(:new).with(
           settings,
-          telemetry
+          telemetry,
+          open_feature_component_provider: open_feature_component_provider,
         ).and_return(capabilities)
         expect(described_class).to receive(:new).with(
           settings,

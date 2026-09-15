@@ -8,6 +8,7 @@ module Datadog
       # Validated endpoint for agentless Feature Flags configuration delivery.
       class AgentlessEndpoint
         DEFAULT_SITE = "datadoghq.com"
+        AGENTLESS_SUBDOMAIN = "ufc-server.ff-cdn"
         CONFIGURATION_PATH = "/api/v2/feature-flagging/config/rules-based/server"
         INVALID_SITE_CHARACTERS = /[\s\/?#@:]/
         INTERNAL_WHITESPACE = /\s/
@@ -43,7 +44,7 @@ module Datadog
           end
 
           uri = URI.parse(base_url)
-          unless uri.is_a?(URI::HTTP) && uri.host
+          unless uri.is_a?(URI::HTTP) && uri.absolute? && uri.host
             logger.warn("Feature Flags agentless base URL must be an absolute HTTP or HTTPS URL; agentless delivery is disabled")
             return
           end
@@ -71,7 +72,7 @@ module Datadog
           end
 
           uri = URI::HTTPS.build(
-            host: "ufc-server.ff-cdn.#{normalized_site}",
+            host: "#{AGENTLESS_SUBDOMAIN}.#{normalized_site}",
             path: CONFIGURATION_PATH,
             query: environment.nil? ? nil : URI.encode_www_form(dd_env: environment),
           )
