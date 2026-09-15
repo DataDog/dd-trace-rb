@@ -7,6 +7,7 @@ require_relative "../../metadata/ext"
 require_relative "../http"
 require_relative "ext"
 require_relative "../http_annotation_helper"
+require_relative "../utils/quantization/http"
 
 module Datadog
   module Tracing
@@ -111,7 +112,7 @@ module Datadog
               )
               datadog_trace = Tracing.active_trace
 
-              datadog_tag_request
+              datadog_tag_request(uri)
 
               if Tracing::Distributed::PropagationPolicy.enabled?(
                 global_config: datadog_configuration,
@@ -131,12 +132,17 @@ module Datadog
 
             attr_reader :datadog_configuration
 
-            def datadog_tag_request
+            def datadog_tag_request(uri)
               span = @datadog_span
               span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               method = Ext::NOT_APPLICABLE_METHOD
               method = @datadog_method.to_s if instance_variable_defined?(:@datadog_method) && !@datadog_method.nil?
-              span.resource = method
+              path = uri&.path
+              span.resource = Contrib::Utils::Quantization::HTTP.client_resource(
+                method,
+                path,
+                enabled: Datadog.configuration.tracing.http_client_resource_name_quantize
+              )
 
               if datadog_configuration[:peer_service]
                 span.set_tag(
@@ -153,10 +159,9 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
-              uri = try_parse_uri
               return unless uri
 
-              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, uri.path)
+              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, path)
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, method)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, uri.host)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, uri.port)

@@ -1122,6 +1122,43 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe "#http_client_resource_name_quantize" do
+      subject(:http_client_resource_name_quantize) { settings.tracing.http_client_resource_name_quantize }
+
+      let(:envs) do
+        {
+          Datadog::Tracing::Configuration::Ext::ENV_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE => environment,
+        }
+      end
+      let(:environment) { nil }
+
+      it { is_expected.to be false }
+
+      {
+        "true" => true,
+        "1" => true,
+        "false" => false,
+        "0" => false,
+        "invalid" => false,
+      }.each do |value, expected|
+        context "when environment value is #{value.inspect}" do
+          let(:environment) { value }
+
+          it { is_expected.to be(expected) }
+        end
+      end
+
+      it "accepts programmatic boolean values" do
+        expect do
+          settings.tracing.http_client_resource_name_quantize = true
+        end.to change { settings.tracing.http_client_resource_name_quantize }.from(false).to(true)
+
+        expect do
+          settings.tracing.http_client_resource_name_quantize = false
+        end.to change { settings.tracing.http_client_resource_name_quantize }.from(true).to(false)
+      end
+    end
+
     describe "#http_error_statuses" do
       # We cannot use described_class (as it is Tracing::Configuration::Settings, not Core::Configuration::Settings)
       # So we need to create a new `Settings` class to access the anonymous parent setting class of server and client options.
