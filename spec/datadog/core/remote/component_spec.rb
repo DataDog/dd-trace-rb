@@ -21,11 +21,8 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
         agent_settings,
         logger: logger,
         telemetry: telemetry,
-        open_feature_component_provider: open_feature_component_provider,
       )
     end
-
-    let(:open_feature_component_provider) { -> {} }
 
     after { build&.shutdown! }
 
@@ -51,7 +48,6 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
         expect(Datadog::Core::Remote::Client::Capabilities).to receive(:new).with(
           settings,
           telemetry,
-          open_feature_component_provider: open_feature_component_provider,
         ).and_return(capabilities)
         expect(described_class).to receive(:new).with(
           settings,

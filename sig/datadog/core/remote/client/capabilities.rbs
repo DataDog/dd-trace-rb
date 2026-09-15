@@ -17,8 +17,7 @@ module Datadog
 
           def initialize: (
             Datadog::Core::Configuration::Settings settings,
-            Datadog::Core::Telemetry::Component telemetry,
-            ?open_feature_component_provider: (^() -> Datadog::OpenFeature::Component?)?
+            Datadog::Core::Telemetry::Component telemetry
           ) -> void
 
           def capabilities: () -> Array[Integer]
@@ -41,10 +40,7 @@ module Datadog
 
           private
 
-          def register: (
-            Datadog::Core::Configuration::Settings settings,
-            ^() -> Datadog::OpenFeature::Component? open_feature_component_provider
-          ) -> void
+          def register: (Datadog::Core::Configuration::Settings settings) -> void
 
           def register_capabilities: (Array[Integer] capabilities) -> void
 
