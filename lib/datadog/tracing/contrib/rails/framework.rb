@@ -5,6 +5,7 @@ require_relative "../action_mailer/integration"
 require_relative "../action_pack/integration"
 require_relative "../action_view/integration"
 require_relative "../active_record/integration"
+require_relative "../active_storage/integration"
 require_relative "../active_support/integration"
 require_relative "../grape/endpoint"
 require_relative "../lograge/integration"
@@ -52,6 +53,7 @@ module Datadog
               activate_action_view!(datadog_config, rails_config)
               activate_active_job!(datadog_config, rails_config)
               activate_active_record!(datadog_config, rails_config)
+              activate_active_storage!(datadog_config, rails_config)
               activate_lograge!(datadog_config, rails_config)
               activate_semantic_logger!(datadog_config, rails_config)
             end
@@ -120,6 +122,12 @@ module Datadog
             return unless defined?(::ActiveRecord)
 
             datadog_config.tracing.instrument(:active_record)
+          end
+
+          def self.activate_active_storage!(datadog_config, rails_config)
+            return unless defined?(::ActiveStorage)
+
+            datadog_config.tracing.instrument(:active_storage)
           end
 
           def self.activate_lograge!(datadog_config, rails_config)

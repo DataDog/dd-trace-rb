@@ -1,0 +1,81 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveStorage
+        module Ext
+          APP: ::String
+
+          ENV_ENABLED: ::String
+
+          ENV_ANALYTICS_ENABLED: ::String
+
+          ENV_ANALYTICS_SAMPLE_RATE: ::String
+
+          SERVICE_NAME: ::String
+
+          SPAN_DELETE: ::String
+
+          SPAN_DELETE_PREFIXED: ::String
+
+          SPAN_DOWNLOAD: ::String
+
+          SPAN_DOWNLOAD_CHUNK: ::String
+
+          SPAN_EXIST: ::String
+
+          SPAN_PREVIEW: ::String
+
+          SPAN_STREAMING_DOWNLOAD: ::String
+
+          SPAN_TRANSFORM: ::String
+
+          SPAN_UPDATE_METADATA: ::String
+
+          SPAN_UPLOAD: ::String
+
+          SPAN_URL: ::String
+
+          TAG_SERVICE: ::String
+
+          TAG_KEY: ::String
+
+          TAG_PREFIX: ::String
+
+          TAG_RANGE: ::String
+
+          TAG_URL: ::String
+
+          TAG_EXIST: ::String
+
+          TAG_CONTENT_TYPE: ::String
+
+          TAG_DISPOSITION: ::String
+
+          TAG_COMPONENT: ::String
+
+          TAG_OPERATION_DELETE: ::String
+
+          TAG_OPERATION_DELETE_PREFIXED: ::String
+
+          TAG_OPERATION_DOWNLOAD: ::String
+
+          TAG_OPERATION_DOWNLOAD_CHUNK: ::String
+
+          TAG_OPERATION_EXIST: ::String
+
+          TAG_OPERATION_PREVIEW: ::String
+
+          TAG_OPERATION_STREAMING_DOWNLOAD: ::String
+
+          TAG_OPERATION_TRANSFORM: ::String
+
+          TAG_OPERATION_UPDATE_METADATA: ::String
+
+          TAG_OPERATION_UPLOAD: ::String
+
+          TAG_OPERATION_URL: ::String
+        end
+      end
+    end
+  end
+end
