@@ -65,7 +65,7 @@ GEM
       logger
       mime-types-data (~> 3.2025, >= 3.2025.0507)
     mime-types-data (3.2026.0701)
-    msgpack (1.8.4)
+    msgpack (1.8.5)
     netrc (0.11.0)
     os (1.1.4)
     pry (0.16.0)
@@ -112,11 +112,11 @@ GEM
     strscan (3.1.2)
     unf (0.2.0)
     warning (1.6.0)
-    webmock (3.26.3)
+    webmock (3.26.4)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
-    zstd-ruby (2.0.8)
+    zstd-ruby (2.0.9)
 
 PLATFORMS
   aarch64-linux

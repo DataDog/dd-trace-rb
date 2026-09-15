@@ -78,7 +78,7 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.1.0)
     minitest (5.20.0)
-    msgpack (1.8.4)
+    msgpack (1.8.5)
     mysql2 (0.5.5)
     os (1.1.4)
     pg (1.5.4)
@@ -128,12 +128,12 @@ GEM
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     warning (1.6.0)
-    webmock (3.26.3)
+    webmock (3.26.4)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
     webrick (1.9.2)
-    zstd-ruby (2.0.8)
+    zstd-ruby (2.0.9)
 
 PLATFORMS
   aarch64-linux

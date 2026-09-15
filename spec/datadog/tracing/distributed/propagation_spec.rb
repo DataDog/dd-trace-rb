@@ -591,6 +591,15 @@ RSpec.shared_examples "Distributed tracing propagator" do
               "reason" => "propagation_behavior_extract",
               "context_headers" => "datadog"
             )
+            expect(link.to_hash).to eq(
+              trace_id: datadog_trace_id,
+              span_id: datadog_span_id,
+              attributes: {
+                "reason" => "propagation_behavior_extract",
+                "context_headers" => "datadog",
+              },
+              flags: 0x8000_0001
+            )
           end
 
           it "propagates baggage" do
