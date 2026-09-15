@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "../release_prep"
 require_relative "fragment"
 
 # The collection of pending changelog fragments (unreleased/*.json), excluding

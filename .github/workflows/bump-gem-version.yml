@@ -77,7 +77,6 @@ jobs:
           commit-message: "[🤖] Update datadog gem version to ${{ inputs.version }}"
           add-paths: |
             gemfiles
-            tools/*.lock
             lib/datadog/version.rb
             .github/forced-tests-list.cfg
           body: |

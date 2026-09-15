@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "fileutils"
-require_relative "../release_prep"
 require_relative "fragments"
 require_relative "highlights"
 
