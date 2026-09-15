@@ -163,6 +163,13 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? d
         expect(fiber.resume).to be_nil
       end
     end
+
+    it "returns false without calling native code when not supported" do
+      allow(otel_thread_context).to receive(:supported?).and_return(false)
+      expect(otel_thread_context).to_not receive(:_native_clear)
+
+      expect(otel_thread_context.clear).to be(false)
+    end
   end
 
   describe "#after_fork" do
