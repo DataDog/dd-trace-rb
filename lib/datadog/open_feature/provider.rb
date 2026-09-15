@@ -72,6 +72,7 @@ module Datadog
         @provider_error_observed = false
         @ready_pending = false
         @ready_emitted = false
+        @stale_emitted = false
         @error_handler = nil
       end
 
@@ -82,6 +83,7 @@ module Datadog
           @provider_error_observed = false
           @ready_pending = false
           @ready_emitted = false
+          @stale_emitted = false
         end
 
         component, failure = activate_component
@@ -194,7 +196,10 @@ module Datadog
       def configuration_changed(event)
         event_type = @initialization_mutex.synchronize do
           if event == Component::CONFIGURATION_READY
-            if @initialization_failed
+            if @stale_emitted && !@initializing
+              @stale_emitted = false
+              ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY
+            elsif @initialization_failed
               if @provider_error_observed && !@ready_emitted
                 @ready_emitted = true
                 ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY
@@ -205,6 +210,9 @@ module Datadog
             end
           elsif event == Component::CONFIGURATION_CHANGED && !@initializing
             ::OpenFeature::SDK::ProviderEvent::PROVIDER_CONFIGURATION_CHANGED
+          elsif event == Component::CONFIGURATION_LOST && !@initializing
+            @stale_emitted = true
+            ::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE
           end
         end
 
