@@ -267,7 +267,6 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  gem 'grpc', platform: :ruby
 
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
@@ -278,6 +277,10 @@ appraise 'contrib' do
   gem 'bunny', '~> 2.19.0' # uninitialized constant OpenSSL::SSL::TLS1_3_VERSION for jruby, https://github.com/ruby-amqp/bunny/issues/645
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0', '< 2.0.0'
+end
+
+appraise 'grpc' do
+  gem 'grpc'
 end
 
 [

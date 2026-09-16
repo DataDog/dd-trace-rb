@@ -51,6 +51,7 @@ namespace :edge do
       "excon" => "excon",
       "faraday" => ["faraday", "faraday-follow_redirects"],
       "graphql" => "graphql",
+      "grpc" => "grpc",
       "httpclient" => "httpclient",
       "httprb" => "http",
       "karafka" => "karafka",

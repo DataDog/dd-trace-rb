@@ -201,7 +201,6 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  gem 'grpc', '>= 1.38.0', platform: :ruby # Minimum version with Ruby 3.0 support
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'
@@ -210,6 +209,10 @@ appraise 'contrib' do
   gem 'sidekiq', '~> 7'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0'
+end
+
+appraise 'grpc' do
+  gem 'grpc'
 end
 
 [

@@ -170,6 +170,10 @@ appraise 'contrib' do
   gem 'rackup'
 end
 
+appraise 'grpc' do
+  gem 'grpc'
+end
+
 [
   'latest',
   '2.3',
