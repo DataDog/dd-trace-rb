@@ -1,0 +1,17 @@
+module Datadog
+  module AIGuard
+    module Contrib
+      module RubyLLM
+        module MessageConverter
+          def self?.convert: (Array[::RubyLLM::Message] messages) -> Array[Evaluation::Message]
+
+          private
+
+          def self?.build_message: (::RubyLLM::Message message) -> Evaluation::Message
+
+          def self?.build_tool: (::RubyLLM::Message message) -> Evaluation::Message
+        end
+      end
+    end
+  end
+end

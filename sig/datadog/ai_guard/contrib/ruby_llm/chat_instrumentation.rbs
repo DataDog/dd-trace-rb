@@ -3,14 +3,9 @@ module Datadog
     module Contrib
       module RubyLLM
         module ChatInstrumentation : RubyLLM::Chat
-          def self.evaluate!: (::Array[::RubyLLM::Message] messages) -> (AIGuard::Evaluation::Result | AIGuard::Evaluation::NoOpResult)
-
           private
 
-          def self.build_ai_guard_message: (::RubyLLM::Message message) -> AIGuard::Evaluation::Message
-
-          def self.build_ai_guard_tool: (::RubyLLM::Message message) -> AIGuard::Evaluation::Message
-
+          def handle_tool_calls: (::RubyLLM::Message response) ?{ () -> untyped } -> (::RubyLLM::Message | ::RubyLLM::Tool::Halt)
         end
       end
     end
