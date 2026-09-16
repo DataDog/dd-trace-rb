@@ -13,10 +13,10 @@ module Datadog
         MAX_REQUEST_TIMEOUT_SECONDS = 300
         MAX_INITIALIZATION_TIMEOUT_MS = 2_147_483_647
 
-        def self.parse_integer(value, default:, setting:)
+        def self.parse_integer(value, default:, setting_name:)
           Integer(value, 10)
         rescue ArgumentError
-          Datadog.logger.warn("#{setting} must be an integer; using the default")
+          Datadog.logger.warn("#{setting_name} must be an integer; using the default")
           default
         end
 
@@ -79,7 +79,7 @@ module Datadog
                   Settings.parse_integer(
                     value,
                     default: Settings::DEFAULT_POLL_INTERVAL_SECONDS,
-                    setting: "Feature Flags agentless poll interval",
+                    setting_name: "Feature Flags agentless poll interval",
                   )
                 end
                 o.default Settings::DEFAULT_POLL_INTERVAL_SECONDS
@@ -103,7 +103,7 @@ module Datadog
                   Settings.parse_integer(
                     value,
                     default: Settings::DEFAULT_REQUEST_TIMEOUT_SECONDS,
-                    setting: "Feature Flags agentless request timeout",
+                    setting_name: "Feature Flags agentless request timeout",
                   )
                 end
                 o.default Settings::DEFAULT_REQUEST_TIMEOUT_SECONDS
@@ -127,7 +127,7 @@ module Datadog
                   Settings.parse_integer(
                     value,
                     default: Settings::DEFAULT_INITIALIZATION_TIMEOUT_MS,
-                    setting: "Feature Flags provider initialization timeout",
+                    setting_name: "Feature Flags provider initialization timeout",
                   )
                 end
                 o.default Settings::DEFAULT_INITIALIZATION_TIMEOUT_MS
