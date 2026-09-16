@@ -1,0 +1,34 @@
+name: dd-apm-sdk-review
+version: "0.1"
+
+# One file on purpose: the platform CLI errors if suites/ has more than one YAML.
+# One starter case. Copy the block to add the next one.
+cases:
+  - id: rb-conventions-time-now
+    files:
+      - AGENTS.md
+      - .agents/skills/dd-apm-sdk-review/reviewers/conventions.md
+      - .agents/skills/dd-apm-sdk-review/reviewers/_common.md
+      - .agents/dd-apm-sdk-review-overrides/reviewers/conventions.md
+    input: |
+      Apply this repo's conventions-review criteria (reviewers/conventions.md, its
+      .agents/dd-apm-sdk-review-overrides/reviewers/conventions.md override, _common.md, and
+      AGENTS.md) to the following code. No git checkout available — this snippet is the
+      entire change to review. Treat the snippet as
+      `lib/datadog/tracing/contrib/http/instrumentation.rb` starting at line 10 (shipped
+      code, not a spec). Direct `ENV` reads are out of scope for this lens:
+      CustomCops/EnvUsageCop already covers them.
+
+      ```ruby
+      def started_at
+        Time.now
+      end
+      ```
+    expected_criteria:
+      - "Flags `Time.now` — shipped code under lib/ must use `Datadog::Core::Utils::Time.now` so tests can override the provider."
+      - "Names `Datadog::Core::Utils::Time.now` as the replacement, not a generic 'avoid Time.now'."
+    bad_signals:
+      - "Approves the `Time.now` call."
+      - "Treats it as a style nit with no repo-specific reason."
+      - "Invents a different time-wrapper name that this gem does not use."
+      - "Flags a direct ENV read even though this snippet has none and ENV is out of scope for this lens."
