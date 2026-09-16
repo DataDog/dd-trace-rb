@@ -21,6 +21,8 @@ module Datadog
 
           def self.activate_active_record!: (untyped datadog_config, untyped rails_config) -> (nil | untyped)
 
+          def self.activate_active_storage!: (untyped datadog_config, untyped rails_config) -> (nil | untyped)
+
           def self.activate_lograge!: (untyped datadog_config, untyped rails_config) -> (nil | untyped)
 
           def self.activate_semantic_logger!: (untyped datadog_config, untyped rails_config) -> (nil | untyped)
