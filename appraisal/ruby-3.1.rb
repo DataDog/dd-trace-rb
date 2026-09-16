@@ -141,7 +141,6 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  gem 'grpc', '>= 1.38.0', platform: :ruby # Minimum version with Ruby 3.0 support
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'
@@ -152,7 +151,12 @@ appraise 'contrib' do
   gem 'que', '>= 1.0.0'
 end
 
+appraise 'grpc' do
+  gem 'grpc'
+end
+
 [
+  'latest',
   '2.3',
   '2.2',
   '2.1',
@@ -161,7 +165,8 @@ end
 ].each do |v|
   appraise "graphql-#{v}" do
     gem 'rails', '~> 6.1.0'
-    gem 'graphql', "~> #{v}.0"
+    gem 'graphql' if v == 'latest'
+    gem 'graphql', "~> #{v}.0" unless v == 'latest'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end

@@ -170,7 +170,12 @@ appraise 'contrib' do
   gem 'rackup'
 end
 
+appraise 'grpc' do
+  gem 'grpc'
+end
+
 [
+  'latest',
   '2.3',
   '2.2',
   '2.1',
@@ -179,7 +184,8 @@ end
 ].each do |v|
   appraise "graphql-#{v}" do
     gem 'rails', '~> 6.1.0'
-    gem 'graphql', "~> #{v}.0"
+    gem 'graphql' if v == 'latest'
+    gem 'graphql', "~> #{v}.0" unless v == 'latest'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'mutex_m', '>= 0.1.0'
