@@ -13,15 +13,68 @@ module Datadog
         INVALID_SITE_CHARACTERS = /[\s\/?#@:]/
         INTERNAL_WHITESPACE = /\s/
 
-        attr_reader :uri
+        class << self
+          def build(site:, environment:, base_url: nil, logger: Datadog.logger)
+            if base_url
+              build_custom(base_url, logger)
+            else
+              build_managed(site, environment, logger)
+            end
+          end
 
-        def self.build(site:, environment:, base_url: nil, logger: Datadog.logger)
-          if base_url
-            build_custom(base_url, logger)
-          else
-            build_managed(site, environment, logger)
+          private
+
+          def build_custom(base_url, logger)
+            unless base_url.ascii_only?
+              logger.warn("Feature Flags agentless base URL is invalid; agentless delivery is disabled")
+              return
+            end
+
+            if base_url.match?(INTERNAL_WHITESPACE)
+              logger.warn("Feature Flags agentless base URL contains whitespace; agentless delivery is disabled")
+              return
+            end
+
+            uri = URI.parse(base_url)
+            unless uri.is_a?(URI::HTTP) && uri.absolute? && uri.host
+              logger.warn("Feature Flags agentless base URL must be an absolute HTTP or HTTPS URL; agentless delivery is disabled")
+              return
+            end
+
+            uri.path = CONFIGURATION_PATH if uri.path.to_s.empty? || uri.path == "/"
+            new(uri, managed: false)
+          rescue URI::InvalidURIError
+            logger.warn("Feature Flags agentless base URL is invalid; agentless delivery is disabled")
+            nil
+          end
+
+          def build_managed(site, environment, logger)
+            string_site = site.to_s
+            unless string_site.ascii_only?
+              logger.warn("Feature Flags site is invalid; agentless delivery is disabled")
+              return
+            end
+
+            normalized_site = string_site.strip.downcase
+            normalized_site = DEFAULT_SITE if normalized_site.empty?
+            if normalized_site.match?(INVALID_SITE_CHARACTERS)
+              logger.warn("Feature Flags site is invalid; agentless delivery is disabled")
+              return
+            end
+
+            uri = URI::HTTPS.build(
+              host: "#{AGENTLESS_SUBDOMAIN}.#{normalized_site}",
+              path: CONFIGURATION_PATH,
+              query: environment.nil? ? nil : URI.encode_www_form(dd_env: environment),
+            )
+            new(uri, managed: true)
+          rescue URI::InvalidComponentError
+            logger.warn("Feature Flags site is invalid; agentless delivery is disabled")
+            nil
           end
         end
+
+        attr_reader :uri
 
         def initialize(uri, managed:)
           @uri = uri
@@ -31,57 +84,6 @@ module Datadog
         def managed?
           @managed
         end
-
-        def self.build_custom(base_url, logger)
-          unless base_url.ascii_only?
-            logger.warn("Feature Flags agentless base URL is invalid; agentless delivery is disabled")
-            return
-          end
-
-          if base_url.match?(INTERNAL_WHITESPACE)
-            logger.warn("Feature Flags agentless base URL contains whitespace; agentless delivery is disabled")
-            return
-          end
-
-          uri = URI.parse(base_url)
-          unless uri.is_a?(URI::HTTP) && uri.absolute? && uri.host
-            logger.warn("Feature Flags agentless base URL must be an absolute HTTP or HTTPS URL; agentless delivery is disabled")
-            return
-          end
-
-          uri.path = CONFIGURATION_PATH if uri.path.to_s.empty? || uri.path == "/"
-          new(uri, managed: false)
-        rescue URI::InvalidURIError
-          logger.warn("Feature Flags agentless base URL is invalid; agentless delivery is disabled")
-          nil
-        end
-        private_class_method :build_custom
-
-        def self.build_managed(site, environment, logger)
-          string_site = site.to_s
-          unless string_site.ascii_only?
-            logger.warn("Feature Flags site is invalid; agentless delivery is disabled")
-            return
-          end
-
-          normalized_site = string_site.strip.downcase
-          normalized_site = DEFAULT_SITE if normalized_site.empty?
-          if normalized_site.match?(INVALID_SITE_CHARACTERS)
-            logger.warn("Feature Flags site is invalid; agentless delivery is disabled")
-            return
-          end
-
-          uri = URI::HTTPS.build(
-            host: "#{AGENTLESS_SUBDOMAIN}.#{normalized_site}",
-            path: CONFIGURATION_PATH,
-            query: environment.nil? ? nil : URI.encode_www_form(dd_env: environment),
-          )
-          new(uri, managed: true)
-        rescue URI::InvalidComponentError
-          logger.warn("Feature Flags site is invalid; agentless delivery is disabled")
-          nil
-        end
-        private_class_method :build_managed
       end
     end
   end
