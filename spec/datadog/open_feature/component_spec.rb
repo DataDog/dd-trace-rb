@@ -27,7 +27,7 @@ RSpec.describe Datadog::OpenFeature::Component do
   let(:worker) { instance_double(Datadog::OpenFeature::Exposures::Worker) }
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
   let(:resolution) do
-    Datadog::OpenFeature::Configuration::Source::Resolution.new(enabled: true, source: "agentless")
+    Datadog::OpenFeature::Configuration::Source::Resolution.new("agentless", enabled: true)
   end
   let(:on_configuration_change) { instance_double(Proc, call: nil) }
 
@@ -108,7 +108,7 @@ RSpec.describe Datadog::OpenFeature::Component do
 
     context "when open_feature is not enabled" do
       let(:resolution) do
-        Datadog::OpenFeature::Configuration::Source::Resolution.new(enabled: false, source: "offline")
+        Datadog::OpenFeature::Configuration::Source::Resolution.new("offline", enabled: false)
       end
 
       it { expect(component).to be_nil }
