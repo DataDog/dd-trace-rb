@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "json"
+
 module Datadog
   module AIGuard
     module Contrib
@@ -13,15 +15,15 @@ module Datadog
           def convert(messages)
             messages.flat_map do |message|
               if message.tool_call?
-                message.tool_calls.map do |tool_call_id, tool_call|
-                  AIGuard.assistant(id: tool_call_id, tool_name: tool_call.name, arguments: tool_call.arguments.to_s)
-                end
+                build_tool_call(message)
               elsif message.tool_result?
                 build_tool(message)
               else
                 build_message(message)
               end
             end
+          rescue JSON::JSONError
+            nil
           end
 
           private_class_method def build_message(message)
@@ -56,6 +58,16 @@ module Datadog
             content = content.text.to_s if content.is_a?(::RubyLLM::Content)
 
             AIGuard.tool(tool_call_id: message.tool_call_id, content: content)
+          end
+
+          private_class_method def build_tool_call(message)
+            message.tool_calls.map do |tool_call_id, tool_call|
+              AIGuard.assistant(
+                id: tool_call_id,
+                tool_name: tool_call.name,
+                arguments: JSON.generate(tool_call.arguments)
+              )
+            end
           end
         end
       end

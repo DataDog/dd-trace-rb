@@ -392,4 +392,37 @@ RSpec.describe "RubyLLM chat instrumentation" do
       expect { chat.ask("List files under root directory") }.to raise_error(Datadog::AIGuard::AIGuardAbortError)
     end
   end
+
+  context "when message conversion fails" do
+    before do
+      allow(chat).to receive(:messages).and_return([tool_call_message])
+      allow(JSON).to receive(:generate).and_raise(JSON::GeneratorError.new("Failed to generate JSON"))
+      allow(Datadog::AIGuard::Metrics::Telemetry).to receive(:report_error)
+
+      allow_any_instance_of(RubyLLM::Providers::OpenAI).to receive(:render_payload).and_return({})
+      allow_any_instance_of(RubyLLM::Provider).to receive(:sync_response).and_return(provider_response)
+    end
+
+    let(:chat) { RubyLLM.chat }
+    let(:tool_call_message) do
+      RubyLLM::Message.new(
+        role: :assistant,
+        content: "Running the command",
+        tool_calls: {
+          "tool_call_1" => RubyLLM::ToolCall.new(
+            id: "tool_call_1",
+            name: "shell",
+            arguments: {"command" => "ls /"}
+          )
+        }
+      )
+    end
+    let(:provider_response) { RubyLLM::Message.new(role: :assistant, content: "Hello") }
+
+    it "counts the error and continues without evaluation" do
+      expect { chat.ask("Hello") }.not_to raise_error
+      expect(a_request(:post, "https://app.datadoghq.com/api/v2/ai-guard/evaluate")).not_to have_been_made
+      expect(Datadog::AIGuard::Metrics::Telemetry).to have_received(:report_error).once
+    end
+  end
 end

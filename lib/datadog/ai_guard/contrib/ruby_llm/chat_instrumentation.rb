@@ -7,7 +7,14 @@ module Datadog
         # module that gets prepended to RubyLLM::Chat
         module ChatInstrumentation
           def handle_tool_calls(response, &block)
-            AIGuard.evaluate(*MessageConverter.convert(messages))
+            converted_messages = MessageConverter.convert(messages)
+
+            unless converted_messages
+              Metrics::Telemetry.report_error
+              return super
+            end
+
+            AIGuard.evaluate(*converted_messages)
 
             super
           end
