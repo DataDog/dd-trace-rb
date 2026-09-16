@@ -15,7 +15,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
 
   context "when using the managed endpoint" do
     it "builds the default endpoint" do
-      expect(endpoint&.uri&.to_s).to eq(
+      expect(endpoint.uri.to_s).to eq(
         "https://ufc-server.ff-cdn.datadoghq.com/api/v2/feature-flagging/config/rules-based/server"
       )
       expect(endpoint).to be_managed
@@ -26,7 +26,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
       let(:environment) { "staging/east" }
 
       it "normalizes the site and URL-encodes the raw environment" do
-        expect(endpoint&.uri&.to_s).to eq(
+        expect(endpoint.uri.to_s).to eq(
           "https://ufc-server.ff-cdn.us3.datadoghq.com/api/v2/feature-flagging/config/rules-based/server?dd_env=staging%2Feast"
         )
       end
@@ -36,7 +36,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
       let(:site) { "  " }
 
       it "uses the default site" do
-        expect(endpoint&.uri&.host).to eq("ufc-server.ff-cdn.datadoghq.com")
+        expect(endpoint.uri.host).to eq("ufc-server.ff-cdn.datadoghq.com")
       end
     end
 
@@ -59,7 +59,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
     let(:base_url) { "http://localhost:8126" }
 
     it "appends the standard path to an origin URL" do
-      expect(endpoint&.uri&.to_s).to eq(
+      expect(endpoint.uri.to_s).to eq(
         "http://localhost:8126/api/v2/feature-flagging/config/rules-based/server"
       )
       expect(endpoint).not_to be_managed
@@ -69,7 +69,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
       let(:base_url) { "https://example.test/?tenant=one" }
 
       it "appends the standard path and preserves the query" do
-        expect(endpoint&.uri&.to_s).to eq(
+        expect(endpoint.uri.to_s).to eq(
           "https://example.test/api/v2/feature-flagging/config/rules-based/server?tenant=one"
         )
       end
@@ -80,7 +80,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
       let(:environment) { "ignored" }
 
       it "uses the URL verbatim without adding the environment" do
-        expect(endpoint&.uri&.to_s).to eq("https://user:password@example.test/custom/path?dd_env=test")
+        expect(endpoint.uri.to_s).to eq("https://user:password@example.test/custom/path?dd_env=test")
       end
     end
 

@@ -33,7 +33,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::Source do
     end
   end
 
-  ["agentless", "remote_config", "offline"].each do |source|
+  [["agentless", true], ["remote_config", true], ["offline", false]].each do |source, enabled|
     context "when the explicit source is #{source}" do
       with_env "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE" => source,
         "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED" => "true"
@@ -42,7 +42,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::Source do
 
       it "uses the explicit source" do
         expect(resolution.source).to eq(source)
-        expect(resolution.enabled?).to be(source != "offline")
+        expect(resolution.enabled?).to be(enabled)
       end
     end
   end
