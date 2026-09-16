@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module AwsLambda
+        module Tagging
+          def self?.tag_request: (Request request, context: AppSec::Context) -> void
+          def self?.tag_response: (Response response, context: AppSec::Context) -> void
+          def self?.tag_and_keep: (AppSec::Context context, cold_start: bool) -> void
+        end
+      end
+    end
+  end
+end

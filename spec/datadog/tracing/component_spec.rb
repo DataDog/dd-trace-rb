@@ -10,8 +10,34 @@ require "datadog/tracing/sampling/rule_sampler"
 require "datadog/tracing/sync_writer"
 require "datadog/tracing/tracer"
 require "datadog/tracing/writer"
+require "datadog/tracing/contrib/aws_lambda_ric/integration"
 
 RSpec.describe Datadog::Tracing::Component do
+  describe "::build_writer for AWS Lambda" do
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+    let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+
+    before do
+      allow(Datadog::Tracing::Contrib::AwsLambdaRic::Integration)
+        .to receive(:synchronous_writer?).with(settings).and_return(true)
+    end
+
+    it "uses a synchronous writer and ignores asynchronous-only options" do
+      writer = described_class.build_writer(settings, agent_settings, buffer_size: 1, flush_interval: 1)
+
+      expect(writer).to be_a(Datadog::Tracing::SyncWriter)
+    ensure
+      writer&.stop
+    end
+
+    it "preserves an explicitly configured writer" do
+      configured_writer = double("configured writer")
+      settings.tracing.writer = configured_writer
+
+      expect(described_class.build_writer(settings, agent_settings)).to be(configured_writer)
+    end
+  end
+
   describe "::build_tracer" do
     subject(:build_tracer) { described_class.build_tracer(settings, agent_settings, logger: logger) }
 

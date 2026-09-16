@@ -14,6 +14,7 @@ RSpec.describe Datadog::Tracing::Contrib do
     "active_record" => "ActiveRecord",
     "active_support" => "ActiveSupport",
     "aws" => "Aws",
+    "aws_lambda_ric" => "AwsLambdaRic",
     "concurrent_ruby" => "ConcurrentRuby",
     "dalli" => "Dalli",
     "delayed_job" => "DelayedJob",

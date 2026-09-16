@@ -1,0 +1,36 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module AwsLambdaRic
+        module Lifecycle
+          PROPAGATOR: Tracing::Distributed::Datadog
+          REQUEST_TIMEOUT: Integer
+
+          self.@cold_start: bool
+          self.@extension_running: bool?
+          self.@http: Net::HTTP?
+          self.@mutex: Thread::Mutex
+
+          def self.start: (untyped request, String request_id) -> TraceDigest?
+          def self.finish: (untyped response, span: SpanOperation, request_id: String, ?error: Exception?, ?trace_digest: TraceDigest?) -> untyped
+          def self.extension_running?: () -> bool
+          def self.claim_cold_start: () -> bool
+          def self.close: () -> nil
+          def self.reset!: () -> nil
+
+          private
+
+          def self.post: (String path, String body, request_id: String, ?headers: Hash[String, String]) -> Net::HTTPResponse
+          def self.connection: () -> Net::HTTP
+          def self.reset_connection: () -> void
+          def self.event_trace_context: (untyped event) -> TraceDigest?
+          def self.json_payload: (untyped value) -> String
+          def self.response_payload: (untyped response) -> String
+          def self.add_error_headers: (Hash[String, String] headers, Exception error) -> void
+          def self.encode: (String value) -> String
+          def self.log_failure: (String stage, Exception error) -> void
+        end
+      end
+    end
+  end
+end

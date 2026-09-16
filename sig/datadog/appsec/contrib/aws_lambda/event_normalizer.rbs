@@ -1,0 +1,14 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module AwsLambda
+        module EventNormalizer
+          def self?.normalize: (untyped event) -> Hash[String, untyped]
+          def self?.normalize_v1: (Hash[String, untyped] event) -> Hash[String, untyped]
+          def self?.normalize_v2: (Hash[String, untyped] event) -> Hash[String, untyped]
+          def self?.compact: (Hash[String, untyped] data) -> Hash[String, untyped]
+        end
+      end
+    end
+  end
+end

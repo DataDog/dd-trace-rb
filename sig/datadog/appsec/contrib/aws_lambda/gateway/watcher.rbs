@@ -6,9 +6,9 @@ module Datadog
           module Watcher
             def self.watch: () -> void
 
-            def self.watch_request: (?Instrumentation::Gateway gateway) -> void
+            def self.watch_request: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> void
 
-            def self.watch_response: (?Instrumentation::Gateway gateway) -> void
+            def self.watch_response: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> void
           end
         end
       end
