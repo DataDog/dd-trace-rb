@@ -10,8 +10,13 @@ module Datadog
         module ProviderInstrumentation
           def complete(messages, **options, &block)
             converted_messages = MessageConverter.convert(messages)
-            evaluation = AIGuard.evaluate(*converted_messages)
 
+            unless converted_messages
+              Metrics::Telemetry.report_error
+              return super
+            end
+
+            evaluation = AIGuard.evaluate(*converted_messages)
             redacted_messages =
               if evaluation.messages.equal?(converted_messages)
                 messages
