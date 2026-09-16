@@ -77,15 +77,23 @@ namespace :edge do
         RuntimeMatcher.match?(rubies)
       end
 
-      update_flags = Array(gems).map { |gem| "--update=#{gem}" }.join(" ")
-
       candidates.each do |group, _|
         gemfile = AppraisalConversion.to_bundle_gemfile(group)
 
+        # A group's gems aren't all present in every ruby-version gemfile (e.g. faraday-follow_redirects
+        # is latest-only); `bundle lock --update` errors out if asked to update a gem that isn't there.
+        lockfile_specs = Bundler::LockfileParser.new(Bundler.read_file("#{gemfile}.lock")).specs.map(&:name)
+        gems_to_update = Array(gems).select { |gem| lockfile_specs.include?(gem) }
+
+        next if gems_to_update.empty?
+
+        update_flags = gems_to_update.map { |gem| "--update=#{gem}" }.join(" ")
+
         Bundler.with_unbundled_env do
-          output, = Open3.capture2e({"BUNDLE_GEMFILE" => gemfile.to_s}, "bundle lock #{update_flags}")
+          output, status = Open3.capture2e({"BUNDLE_GEMFILE" => gemfile.to_s}, "bundle lock #{update_flags}")
 
           puts output
+          raise "bundle lock failed for #{gemfile}" unless status.success?
         end
       end
     end
