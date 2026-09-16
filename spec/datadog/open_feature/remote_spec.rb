@@ -153,7 +153,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
 
         receiver.call(repository, transaction)
 
-        expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
+        expect(new_content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
       end
     end
 
