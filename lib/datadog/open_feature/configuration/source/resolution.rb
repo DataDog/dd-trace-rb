@@ -7,9 +7,9 @@ module Datadog
         class Resolution
           attr_reader :source
 
-          def initialize(enabled:, source:)
-            @enabled = enabled
+          def initialize(source, enabled:)
             @source = source
+            @enabled = enabled
           end
 
           def enabled?
