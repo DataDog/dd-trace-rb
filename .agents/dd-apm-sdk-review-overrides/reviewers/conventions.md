@@ -2,7 +2,7 @@ Override for `reviewers/conventions.md` (in the core skill folder) — read that
 
 # Codebase conventions — dd-trace-rb specifics
 
-These addenda apply to `lib/**/*.rb` only. Do not flag `ENV` or `Time.now` in
+These addenda apply to `lib/**/*.rb` only. NEVER flag `ENV` or `Time.now` in
 specs, `tasks/`, gemfiles, CI, or other non-library paths.
 
 This file starts with one confirmed pattern and should grow — add the next
@@ -19,7 +19,7 @@ that check rather than inventing an ENV finding.
 
 The time provider is configurable (`Core::Utils::Time.now_provider=`).
 `Time.now` in `lib/**/*.rb` is a conventions finding — tests cannot override
-it. **P1**. Do not flag `Time.now` outside `lib/`.
+it. **P1**. NEVER flag `Time.now` outside `lib/`.
 
 ## Mechanical checks — run these, don't eyeball them
 
