@@ -4,7 +4,7 @@ require "spec_helper"
 require "datadog/open_feature/configuration/source/resolution"
 
 RSpec.describe Datadog::OpenFeature::Configuration::Source::Resolution do
-  subject(:resolution) { described_class.new(enabled: enabled, source: "remote_config") }
+  subject(:resolution) { described_class.new("remote_config", enabled: enabled) }
 
   let(:enabled) { true }
 

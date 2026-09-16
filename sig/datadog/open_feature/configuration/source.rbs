@@ -22,7 +22,7 @@ module Datadog
 
         private
 
-        def self.resolve_explicit_source: (String source, Datadog::Core::Logger logger) -> String
+        def self.resolve_source: (_Settings settings, logger: Datadog::Core::Logger) -> String
       end
     end
   end

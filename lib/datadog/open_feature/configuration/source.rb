@@ -10,29 +10,34 @@ module Datadog
         REMOTE_CONFIG = "remote_config"
         OFFLINE = "offline"
 
-        def self.resolve(settings, logger: Datadog.logger)
-          legacy_enabled = settings.enabled
-          configured_source = settings.configuration_source
-          source = if !settings.using_default?(:configuration_source) && !configured_source.empty?
-            resolve_explicit_source(configured_source, logger)
-          elsif !settings.using_default?(:feature_flags_enabled)
-            AGENTLESS
-          elsif !settings.using_default?(:enabled)
-            legacy_enabled ? REMOTE_CONFIG : OFFLINE
-          else
-            AGENTLESS
+        class << self
+          def resolve(settings, logger: Datadog.logger)
+            source = resolve_source(settings, logger: logger)
+            enabled = settings.feature_flags_enabled && source != OFFLINE
+
+            Resolution.new(source, enabled: enabled)
           end
 
-          Resolution.new(enabled: settings.feature_flags_enabled && source != OFFLINE, source: source)
-        end
+          private
 
-        def self.resolve_explicit_source(source, logger)
-          return source if source == AGENTLESS || source == REMOTE_CONFIG || source == OFFLINE
+          def resolve_source(settings, logger:)
+            configured_source = settings.configuration_source
+            if !settings.using_default?(:configuration_source) && !configured_source.empty?
+              return configured_source if configured_source == AGENTLESS ||
+                configured_source == REMOTE_CONFIG ||
+                configured_source == OFFLINE
 
-          logger.warn("Unsupported Feature Flags configuration source; Feature Flags are disabled")
-          OFFLINE
+              logger.warn("Unsupported Feature Flags configuration source; Feature Flags are disabled")
+              OFFLINE
+            elsif !settings.using_default?(:feature_flags_enabled)
+              AGENTLESS
+            elsif !settings.using_default?(:enabled)
+              settings.enabled ? REMOTE_CONFIG : OFFLINE
+            else
+              AGENTLESS
+            end
+          end
         end
-        private_class_method :resolve_explicit_source
       end
     end
   end
