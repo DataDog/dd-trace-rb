@@ -210,6 +210,16 @@ module Datadog
           def trace_logging=: (bool) -> void
         end
 
+        interface _DataStreams
+          def enabled: () -> bool
+
+          def enabled=: (bool) -> void
+
+          def interval: () -> ::Float
+
+          def interval=: (::Float) -> void
+        end
+
         def initialize: (*untyped _) -> untyped
 
         def env: -> String?
@@ -253,6 +263,8 @@ module Datadog
         def opentelemetry: () -> OpenTelemetry::Configuration::Settings::_OpenTelemetry
 
         def symbol_database: (?untyped? options) -> _SymbolDatabase
+
+        def data_streams: (?untyped? options) -> _DataStreams
       end
     end
   end
