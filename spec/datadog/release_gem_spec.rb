@@ -61,6 +61,7 @@ RSpec.describe "gem release process" do
             sig
             |spec
             |docs
+            |\.agents
             |\.claude
             |\.cursor
             |\.github

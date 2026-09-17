@@ -23,7 +23,9 @@ vale/styles/*
 !vale/styles/Changelog
 !vale/styles/README.md
 
-.cursor/
+.cursor/*
+!.cursor/rules/
+!.cursor/skills/
 .cache/
 .claude/settings.local.json
 compile_commands.json
