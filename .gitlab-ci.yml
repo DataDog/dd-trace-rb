@@ -16,7 +16,7 @@ include:
   - local: ".gitlab/benchmarks.yml"
   - project: "DataDog/apm-reliability/apm-sdks-benchmarks"
     file: ".gitlab/ci-ruby-acme-parallel.yml"
-    ref: "6e0c06b02f6e4642caec88abdb958ec32d69c6b8" # apm-sdks-benchmarks#215 merge commit
+    ref: "fac3cc729a442486d780f0ace8b43aef855a28e9" # apm-sdks-benchmarks#261 merge commit
 
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
