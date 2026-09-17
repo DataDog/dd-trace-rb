@@ -16,6 +16,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
   let(:connection) do
     Excon.new("http://example.com", connection_options).tap do
       Excon.stub({method: :get, path: "/success"}, body: "OK", status: 200, headers: response_headers)
+      Excon.stub({method: :get, path: "/users/123"}, body: "OK", status: 200)
       Excon.stub({method: :post, path: "/failure"}, body: "Boom!", status: 500)
       Excon.stub({method: :get, path: "/not_found"}, body: "Not Found.", status: 404)
       Excon.stub(
@@ -67,6 +68,19 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
   shared_context "connection with default middleware" do
     let(:connection_options) do
       super().merge(middlewares: described_class.with(middleware_options).around_default_stack)
+    end
+  end
+
+  context "when HTTP client resource-name quantization is enabled" do
+    subject(:response) { connection.get(path: "/users/123") }
+
+    before do
+      Datadog.configuration.tracing.http_client_resource_name_quantize = true
+      response
+    end
+
+    it "includes the quantized path in the resource" do
+      expect(request_span.resource).to eq("GET /users/*")
     end
   end
 
