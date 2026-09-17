@@ -4,6 +4,8 @@ module Datadog
       class Evaluator
         MATCHES_TIMEOUT_SECONDS: ::Float
 
+        EVALUATION_DEADLINE_CHECK_INTERVAL: ::Integer
+
         @context: Context
 
         @regexps: ::Array[::Regexp]
@@ -49,6 +51,8 @@ module Datadog
         def any: (Array[any] | Hash[any, any] collection) { (?) -> any } -> bool
 
         def filter: (Array[any] | Hash[any, any] collection) { (?) -> any } -> (Array[any] | Hash[any, any])
+
+        private def evaluation_deadline_exceeded?: () -> bool
 
         def instanceof: (any object, String cls_name) -> bool
       end

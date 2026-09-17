@@ -149,6 +149,10 @@ module DIHelpers
         double("di settings").tap do |settings|
           allow(settings).to receive(:internal).and_return(di_internal_settings)
           allow(settings).to receive(:redaction_excluded_identifiers).and_return([])
+          # Default to no evaluation deadline so existing DI specs preserve their
+          # pre-timeout behavior; specs exercising the cooperative bound
+          # override this with a real value.
+          allow(settings).to receive(:max_time_to_evaluate_ms).and_return(nil)
         end
       end
 
