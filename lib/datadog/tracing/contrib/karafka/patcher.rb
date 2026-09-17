@@ -10,14 +10,6 @@ module Datadog
       module Karafka
         # Patch to add tracing to Karafka::Messages::Messages
         module MessagesPatch
-          def configuration
-            Datadog.configuration.tracing[:karafka]
-          end
-
-          def propagation
-            @propagation ||= Contrib::Karafka::Distributed::Propagation.new
-          end
-
           # `each` is the most popular access point to Karafka messages,
           # but not the only one
           #  Other access patterns do not have a straightforward tracing avenue
@@ -25,6 +17,7 @@ module Datadog
           # @see https://github.com/karafka/karafka/blob/b06d1f7c17818e1605f80c2bb573454a33376b40/README.md?plain=1#L29-L35
           def each(&block)
             @messages_array.each do |message|
+              configuration = datadog_configuration(message.topic)
               trace_digest = if configuration[:distributed_tracing]
                 headers = if message.metadata.respond_to?(:raw_headers)
                   message.metadata.raw_headers
@@ -62,6 +55,12 @@ module Datadog
                 yield message
               end
             end
+          end
+
+          private
+
+          def datadog_configuration(topic)
+            Datadog.configuration.tracing[:karafka, topic]
           end
         end
 
