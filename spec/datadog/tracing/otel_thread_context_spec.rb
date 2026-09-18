@@ -57,6 +57,22 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? d
         )
       end
 
+      it "clears the thread context when the trace ID is zero" do
+        otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+
+        expect do
+          otel_thread_context.set(trace_id: 0, span_id: 2, local_root_span_id: 3)
+        end.to change { described_class::Testing._native_read }.to(nil)
+      end
+
+      it "clears the thread context when the span ID is zero" do
+        otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+
+        expect do
+          otel_thread_context.set(trace_id: 1, span_id: 0, local_root_span_id: 3)
+        end.to change { described_class::Testing._native_read }.to(nil)
+      end
+
       it "updates the thread context on fiber switch" do
         otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
 
