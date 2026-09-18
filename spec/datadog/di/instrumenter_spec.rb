@@ -366,7 +366,6 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(observed_calls.first).to be_a(Datadog::DI::Context)
           expect(observed_calls.first.return_value).to eq 2
           expect(observed_calls.first.duration).to be_a(Float)
-          # expect(observed_calls.first.serialized_entry_args).to eq(arg1: 2)
         end
       end
 
@@ -394,7 +393,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first.duration).to be_a(Float)
 
             expect(observed_calls.first.serialized_entry_args).to eq(
-              arg1: {type: "Integer", value: "2"},
+              arg: {type: "Integer", value: "2"},
               self: {type: "HookTestClass", fields: {}},
             )
           end
@@ -422,7 +421,7 @@ RSpec.describe Datadog::DI::Instrumenter do
               expect(observed_calls.first.duration).to be_a(Float)
 
               expect(observed_calls.first.serialized_entry_args).to eq(
-                arg1: {type: "Integer", value: "2"},
+                arg: {type: "Integer", value: "2"},
                 self: {
                   type: "HookIvarTestClass",
                   fields: {
@@ -574,9 +573,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first.duration).to be_a(Float)
 
             expect(observed_calls.first.serialized_entry_args).to eq(
-              # TODO actual argument name not captured yet,
-              # requires method call trace point.
-              arg1: {type: "Integer", value: "41"},
+              arg: {type: "Integer", value: "41"},
               kwarg: {type: "Integer", value: "42"},
               self: {type: "HookTestClass", fields: {}},
             )
@@ -606,6 +603,112 @@ RSpec.describe Datadog::DI::Instrumenter do
             include_examples "does not invoke callback but invokes target method"
           end
         end
+      end
+    end
+
+    context "when the method is already instrumented by an earlier probe" do
+      let(:probe_args) do
+        {type_name: "HookTestClass", method_name: "hook_test_method_with_arg",
+         capture_snapshot: true}
+      end
+
+      let(:first_probe) do
+        Datadog::DI::Probe.new(**base_probe_args.merge(
+          id: "first", type_name: "HookTestClass",
+          method_name: "hook_test_method_with_arg", capture_snapshot: true
+        ))
+      end
+
+      let(:first_calls) { [] }
+
+      before do
+        hook_method(first_probe) { |payload| first_calls << payload }
+        # Establish the precondition: the method is already instrumented
+        # by the earlier probe.
+        expect(first_probe.instrumentation_module).not_to be_nil
+      end
+
+      after do
+        instrumenter.unhook(first_probe)
+      end
+
+      it "captures positional args under their real names for the later probe" do
+        hook_method(probe) { |payload| observed_calls << payload }
+
+        expect(HookTestClass.new.hook_test_method_with_arg(2)).to eq 2
+
+        expect(first_calls.length).to eq 1
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first.serialized_entry_args).to eq(
+          arg: {type: "Integer", value: "2"},
+          self: {type: "HookTestClass", fields: {}},
+        )
+      end
+    end
+
+    context "positional args with a splat parameter" do
+      let(:probe_args) do
+        {type_name: "HookTestClass", method_name: "method_with_splat",
+         capture_snapshot: true}
+      end
+
+      it "names the leading fixed positionals and falls back to arg-N for splat values" do
+        hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        expect(HookTestClass.new.method_with_splat(1, 2, 3)).to eq [1, [2, 3]]
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first.serialized_entry_args).to eq(
+          first: {type: "Integer", value: "1"},
+          arg2: {type: "Integer", value: "2"},
+          arg3: {type: "Integer", value: "3"},
+          self: {type: "HookTestClass", fields: {}},
+        )
+      end
+    end
+
+    context "positional arg whose name collides with a keyword key" do
+      let(:probe_args) do
+        {type_name: "HookTestClass", method_name: "method_kwarg_name_collision",
+         capture_snapshot: true}
+      end
+
+      it "keeps the positional under arg-N and the keyword under its own name" do
+        hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        expect(HookTestClass.new.method_kwarg_name_collision("/a", path: "override")).to eq ["/a", {path: "override"}]
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first.serialized_entry_args).to eq(
+          arg1: {type: "String", value: "/a"},
+          path: {type: "String", value: "override"},
+          self: {type: "HookTestClass", fields: {}},
+        )
+      end
+    end
+
+    context "when method is virtual (defined via method_missing) with snapshot capture" do
+      let(:probe_args) do
+        {type_name: "YieldingMethodMissingHookTestClass", method_name: "yielding",
+         capture_snapshot: true}
+      end
+
+      it "captures positional args as arg-N because no parameter names are available" do
+        hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        expect(YieldingMethodMissingHookTestClass.new.yielding("hello") { |_| }).to eq [["hello"], {}]
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first.serialized_entry_args).to eq(
+          arg1: {type: "String", value: "hello"},
+          self: {type: "YieldingMethodMissingHookTestClass", fields: {}},
+        )
       end
     end
 
@@ -710,7 +813,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first.duration).to be_a(Float)
 
             expect(observed_calls.first.serialized_entry_args).to eq(
-              arg1: {type: "String", value: "hello"},
+              arg: {type: "String", value: "hello"},
               kwarg: {type: "Integer", value: "42"},
               self: {type: "HookTestClass", fields: {}},
             )
@@ -1179,8 +1282,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              # We use "arg1" here, actual variable name is not currently available
-              "ref('arg1') == 41"
+              "ref('arg') == 41"
             )
           end
 
@@ -1191,8 +1293,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              # We use "arg1" here, actual variable name is not currently available
-              "ref('arg1') == 42"
+              "ref('arg') == 42"
             )
           end
 
@@ -2284,6 +2385,163 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(observed_calls.length).to eq 1
         end
       end
+    end
+  end
+
+  describe "#extract_positional_param_names" do
+    let(:target_class) do
+      Class.new do
+        def only_req(a, b)
+          [a, b]
+        end
+
+        def req_and_opt(a, b = 1)
+          [a, b]
+        end
+
+        def leading_req_then_rest(a, b, *rest)
+          [a, b, rest]
+        end
+
+        def rest_first(*rest, a)
+          [rest, a]
+        end
+
+        def kwargs_only(x:, y: 1, **opts)
+          [x, y, opts]
+        end
+
+        def block_only(&blk)
+          blk
+        end
+
+        def no_params
+          nil
+        end
+
+        attr_writer :written
+      end
+    end
+
+    def positional_param_names(method_name)
+      instrumenter.send(:extract_positional_param_names, target_class.instance_method(method_name))
+    end
+
+    it "returns required positional names in order" do
+      expect(positional_param_names(:only_req)).to eq([:a, :b])
+    end
+
+    it "includes optional positional parameters" do
+      expect(positional_param_names(:req_and_opt)).to eq([:a, :b])
+    end
+
+    it "stops at a rest parameter, keeping the leading fixed positionals" do
+      expect(positional_param_names(:leading_req_then_rest)).to eq([:a, :b])
+    end
+
+    it "stops at a leading rest parameter, dropping post-splat positionals" do
+      expect(positional_param_names(:rest_first)).to eq([])
+    end
+
+    it "ignores keyword and keyword-splat parameters" do
+      expect(positional_param_names(:kwargs_only)).to eq([])
+    end
+
+    it "ignores block parameters" do
+      expect(positional_param_names(:block_only)).to eq([])
+    end
+
+    it "returns an empty array for a method with no parameters" do
+      expect(positional_param_names(:no_params)).to eq([])
+    end
+
+    it "returns a nil name for a generated method (attr_writer) with no parameter name" do
+      # attr_writer-generated methods expose a nameless [:req] parameter; this
+      # shape is a stable MRI attribute contract across the supported range.
+      expect(positional_param_names(:written=)).to eq([nil])
+    end
+
+    it "returns nil and logs when parameter extraction raises" do
+      broken = instance_double(UnboundMethod)
+      allow(broken).to receive(:parameters).and_raise(RuntimeError.new("boom"))
+
+      logged = nil
+      expect(logger).to receive(:debug) do |&blk|
+        logged = blk.call
+      end
+
+      expect(instrumenter.send(:extract_positional_param_names, broken)).to be_nil
+      expect(logged).to include("failed to extract positional parameter names")
+    end
+  end
+
+  describe "#original_target_method" do
+    let(:target_class) do
+      Class.new do
+        def method_with_args(account, action, count)
+          [account, action, count]
+        end
+      end
+    end
+
+    def build_wrapper
+      Module.new do
+        define_method(:method_with_args) { |*args, **kwargs, &blk| super(*args, **kwargs, &blk) }
+      end
+    end
+
+    def wrapper_module
+      mod = build_wrapper
+      mod.extend(Datadog::DI::Instrumenter::InstrumentedMethodMarker)
+      mod
+    end
+
+    def resolve
+      instrumenter.send(:original_target_method, target_class.instance_method(:method_with_args))
+    end
+
+    it "returns the method unchanged when it is not a wrapper" do
+      expect(resolve.parameters).to eq([[:req, :account], [:req, :action], [:req, :count]])
+    end
+
+    it "resolves past a single prepended wrapper to the original method" do
+      target_class.prepend(wrapper_module)
+      expect(resolve.parameters).to eq([[:req, :account], [:req, :action], [:req, :count]])
+    end
+
+    it "resolves past multiple stacked wrappers to the original method" do
+      target_class.prepend(wrapper_module)
+      target_class.prepend(wrapper_module)
+      expect(resolve.parameters).to eq([[:req, :account], [:req, :action], [:req, :count]])
+    end
+
+    it "stops at a non-DI wrapper installed by module prepend" do
+      plain = build_wrapper
+      target_class.prepend(plain)
+      target_class.prepend(wrapper_module)
+
+      resolved = resolve
+      expect(resolved.owner).to eq(plain)
+      expect(resolved.parameters).to eq([[:rest, :args], [:keyrest, :kwargs], [:block, :blk]])
+    end
+
+    it "returns nil when only wrappers underlie the target (virtual method)" do
+      virtual_class = Class.new do
+        def method_missing(name, *args, **kwargs, &blk)
+          [args, kwargs]
+        end
+
+        def respond_to_missing?(name, include_private = false)
+          true
+        end
+      end
+      virtual_class.prepend(wrapper_module)
+      resolved = instrumenter.send(:original_target_method, virtual_class.instance_method(:method_with_args))
+      expect(resolved).to be_nil
+    end
+
+    it "returns nil when given nil" do
+      expect(instrumenter.send(:original_target_method, nil)).to be_nil
     end
   end
 end
