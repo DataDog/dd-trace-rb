@@ -166,8 +166,8 @@ module Datadog
         !@capture_expressions.empty?
       end
 
-      # Whether this probe captures user data, either as a full snapshot
-      # or via capture expressions.
+      # Whether the probe captures data: a full snapshot, or at least one
+      # capture expression.
       #
       # @return [Boolean]
       def capturing?
