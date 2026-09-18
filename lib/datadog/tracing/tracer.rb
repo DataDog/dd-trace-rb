@@ -52,7 +52,7 @@ module Datadog
         # rubocop:disable Style/KeywordParametersOrder
         # https://github.com/rubocop/rubocop/issues/13933
         trace_flush: Flush::Finished.new,
-        context_provider: DefaultContextProvider.new,
+        context_provider: nil,
         default_service: Core::Environment::Ext::FALLBACK_SERVICE_NAME,
         enabled: true,
         logger: Datadog.logger,
@@ -72,13 +72,16 @@ module Datadog
         @default_service = default_service
         @enabled = enabled
         @logger = logger
-        @provider = context_provider
         @sampler = sampler
         @span_sampler = span_sampler
         @tags = tags
         @writer = writer
 
         @otel_thread_context = otel_thread_context
+
+        @provider = context_provider || DefaultContextProvider.new(
+          otel_thread_context: otel_thread_context
+        )
       end
 
       # Return a {Datadog::Tracing::SpanOperation span_op} and {Datadog::Tracing::TraceOperation trace_op}

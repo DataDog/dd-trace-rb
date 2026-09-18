@@ -2,6 +2,7 @@ require "spec_helper"
 
 require "datadog/tracing/context"
 require "datadog/tracing/trace_operation"
+require "datadog/tracing/otel_thread_context"
 
 RSpec.describe Datadog::Tracing::Context do
   subject(:context) { described_class.new(**options) }
@@ -147,6 +148,8 @@ RSpec.describe Datadog::Tracing::Context do
       end
 
       context "that isn't finished" do
+        let(:otel_thread_context) { instance_spy(Datadog::Tracing::OTelThreadContext) }
+        let(:options) { super().merge(otel_thread_context: otel_thread_context) }
         let(:finished?) { false }
 
         it { expect { |b| context.activate!(trace, &b) }.to yield_control }
@@ -207,21 +210,12 @@ RSpec.describe Datadog::Tracing::Context do
               end
             end
 
-            it "publishes only the trace activation event for the new trace" do
+            it "updates the OTel thread context for the new trace" do
               context.activate!(original_trace)
-              published_events = []
-
-              original_trace.send(:events).trace_deactivated.subscribe do |trace_op|
-                published_events << [:trace_deactivated, trace_op]
-              end
-
-              trace.send(:events).trace_activated.subscribe do |trace_op|
-                published_events << [:trace_activated, trace_op]
-              end
-
               context.activate!(trace)
 
-              expect(published_events).to eq([[:trace_activated, trace]])
+              expect(otel_thread_context).to have_received(:update_from_trace_op).with(trace)
+              expect(otel_thread_context).not_to have_received(:clear)
             end
           end
 
@@ -246,22 +240,19 @@ RSpec.describe Datadog::Tracing::Context do
           end
         end
 
-        it "publishes trace activation and deactivation events" do
-          published_events = []
-
-          trace.send(:events).trace_activated.subscribe do |trace_op|
-            published_events << [:trace_activated, trace_op]
+        it "does not update the OTel thread context again for the same trace" do
+          2.times do
+            context.activate!(trace)
           end
 
-          trace.send(:events).trace_deactivated.subscribe do |trace_op|
-            published_events << [:trace_deactivated, trace_op]
-          end
+          expect(otel_thread_context).to have_received(:update_from_trace_op).with(trace).once
+        end
 
+        it "clears the OTel thread context when deactivating a trace" do
           context.activate!(trace)
-          context.activate!(trace)
+
+          expect(otel_thread_context).to receive(:clear).once
           context.activate!(nil)
-
-          expect(published_events).to eq([[:trace_activated, trace], [:trace_deactivated, trace]])
         end
       end
     end

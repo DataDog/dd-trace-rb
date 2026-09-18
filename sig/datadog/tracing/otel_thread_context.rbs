@@ -21,6 +21,8 @@ module Datadog
 
       def supported?: () -> bool
 
+      def update_from_trace_op: (TraceOperation trace_op) -> void
+
       def _native_supported?: () -> bool
 
       def _native_enable: () -> bool
@@ -32,8 +34,6 @@ module Datadog
       private
 
       def enable!: () -> bool
-
-      def update_from_trace_op: (TraceOperation trace_op) -> void
     end
   end
 end

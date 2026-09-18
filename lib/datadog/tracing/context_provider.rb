@@ -12,12 +12,17 @@ module Datadog
     # @see https://ruby-doc.org/core-3.1.2/Thread.html#method-i-5B-5D Thread attributes are fiber-local
     class DefaultContextProvider
       # Initializes the default context provider with a fiber-bound context.
-      def initialize
-        @context = FiberLocalContext.new
+      def initialize(otel_thread_context: nil)
+        @otel_thread_context = otel_thread_context
+        @context = FiberLocalContext.new(otel_thread_context: otel_thread_context)
       end
 
       # Sets the current context.
       def context=(ctx)
+        if @otel_thread_context && ctx.respond_to?(:otel_thread_context=)
+          ctx.otel_thread_context = @otel_thread_context
+        end
+
         @context.local = ctx
       end
 
@@ -48,10 +53,11 @@ module Datadog
     class FiberLocalContext
       # To support multiple tracers simultaneously, each {Datadog::Tracing::FiberLocalContext}
       # instance has its own fiber-local variable.
-      def initialize
+      def initialize(otel_thread_context: nil)
+        @otel_thread_context = otel_thread_context
         @key = :"datadog_context_#{FiberLocalContext.next_instance_id}"
 
-        self.local = Context.new
+        self.local = Context.new(otel_thread_context: otel_thread_context)
       end
 
       # Override the fiber-local context with a new context.
@@ -61,7 +67,7 @@ module Datadog
 
       # Return the fiber-local context.
       def local(storage = Thread.current)
-        storage[@key] ||= Context.new
+        storage[@key] ||= Context.new(otel_thread_context: @otel_thread_context)
       end
 
       # Ensure two instances of {FiberLocalContext} do not conflict.

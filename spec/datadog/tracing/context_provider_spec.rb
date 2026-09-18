@@ -2,6 +2,7 @@ require "spec_helper"
 
 require "datadog/tracing/context_provider"
 require "datadog/tracing/context"
+require "datadog/tracing/otel_thread_context"
 
 RSpec.describe Datadog::Tracing::DefaultContextProvider do
   let(:provider) { described_class.new }
@@ -18,6 +19,19 @@ RSpec.describe Datadog::Tracing::DefaultContextProvider do
     it do
       expect(local_context).to receive(:local=).with(ctx)
       set_context
+    end
+
+    context "with an OTel thread context" do
+      let(:provider) { described_class.new(otel_thread_context: otel_thread_context) }
+      let(:otel_thread_context) { instance_double(Datadog::Tracing::OTelThreadContext) }
+      let(:ctx) { instance_spy(Datadog::Tracing::Context) }
+
+      it "passes the OTel thread context to the replacement context" do
+        allow(local_context).to receive(:local=)
+
+        expect(ctx).to receive(:otel_thread_context=).with(otel_thread_context)
+        set_context
+      end
     end
   end
 
