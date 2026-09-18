@@ -254,6 +254,14 @@ RSpec.describe Datadog::Tracing::Context do
           expect(otel_thread_context).to receive(:clear).once
           context.activate!(nil)
         end
+
+        it "clears the OTel thread context when deactivating a finished trace" do
+          context.activate!(trace)
+          allow(trace).to receive(:finished?).and_return(true)
+
+          expect(otel_thread_context).to receive(:clear).once
+          context.activate!(nil)
+        end
       end
     end
   end
