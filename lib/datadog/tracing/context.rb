@@ -79,7 +79,7 @@ module Datadog
 
         if @active_trace
           @otel_thread_context&.update_from_trace_op(@active_trace)
-        elsif previous_trace && !previous_trace.finished?
+        elsif previous_trace
           @otel_thread_context&.clear
         end
 

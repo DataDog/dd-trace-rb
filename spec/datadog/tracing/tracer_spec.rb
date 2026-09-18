@@ -241,6 +241,14 @@ RSpec.describe Datadog::Tracing::Tracer do
               )
             end
           end
+
+          it "clears the OTel thread context when the trace block finishes" do
+            expect(otel_thread_context).to receive(:clear).ordered
+            expect(otel_thread_context).to receive(:set).ordered
+            expect(otel_thread_context).to receive(:clear).ordered
+
+            tracer.trace(name) {}
+          end
         end
 
         context "with OTel thread context disabled" do
@@ -690,6 +698,18 @@ RSpec.describe Datadog::Tracing::Tracer do
           it "sets the span start_time" do
             expect(span.start_time).to eq(start_time)
           end
+        end
+      end
+
+      context "with OTel thread context enabled" do
+        include_context "OTel thread context enabled"
+
+        it "clears the OTel thread context when the manual span finishes" do
+          expect(otel_thread_context).to receive(:clear).ordered
+          expect(otel_thread_context).to receive(:set).ordered
+          expect(otel_thread_context).to receive(:clear).ordered
+
+          tracer.trace(name).finish
         end
       end
 

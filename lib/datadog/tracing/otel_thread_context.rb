@@ -32,14 +32,9 @@ module Datadog
         end
 
         events.span_finished.subscribe do |_event_span_op, event_trace_op|
-          # we already clear the context in `trace_finished` subscriber
           next if event_trace_op.finished?
 
           update_from_trace_op(event_trace_op)
-        end
-
-        events.trace_finished.subscribe do
-          clear
         end
       end
 
