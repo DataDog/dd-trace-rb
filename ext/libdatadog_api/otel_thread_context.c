@@ -32,14 +32,14 @@ static VALUE native_read(VALUE _self);
 void otel_thread_context_init(VALUE tracing_module) {
   fiber_context_slot = rb_intern("__dd_otel_fiber_context");
 
-  VALUE otel_thread_context_module = rb_define_module_under(tracing_module, "OTelThreadContext");
+  VALUE otel_thread_context_class = rb_define_class_under(tracing_module, "OTelThreadContext", rb_cObject);
 
-  rb_define_singleton_method(otel_thread_context_module, "_native_enable", native_enable, 0);
-  rb_define_singleton_method(otel_thread_context_module, "_native_set", native_set, 3);
-  rb_define_singleton_method(otel_thread_context_module, "_native_clear", native_clear, 0);
-  rb_define_singleton_method(otel_thread_context_module, "_native_supported?", native_supported_p, 0);
+  rb_define_method(otel_thread_context_class, "_native_enable", native_enable, 0);
+  rb_define_method(otel_thread_context_class, "_native_set", native_set, 3);
+  rb_define_method(otel_thread_context_class, "_native_clear", native_clear, 0);
+  rb_define_method(otel_thread_context_class, "_native_supported?", native_supported_p, 0);
 
-  VALUE testing_module = rb_define_module_under(otel_thread_context_module, "Testing");
+  VALUE testing_module = rb_define_module_under(otel_thread_context_class, "Testing");
   rb_define_singleton_method(testing_module, "_native_read", native_read, 0);
 }
 
