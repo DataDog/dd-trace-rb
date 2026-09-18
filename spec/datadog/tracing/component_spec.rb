@@ -83,7 +83,7 @@ RSpec.describe Datadog::Tracing::Component do
         let(:writer_options) { defined?(super) ? super() : {} }
 
         before do
-          expect(Datadog::Tracing::OTelThreadContext).to receive(:new)
+          expect(Datadog::Tracing::OTelThreadContext).to receive(:build)
             .with(settings.tracing)
             .and_return(otel_thread_context)
 

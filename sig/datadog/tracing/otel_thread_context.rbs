@@ -3,13 +3,11 @@ module Datadog
     class OTelThreadContext
       UNKNOWN_LOCAL_ROOT_SPAN_ID: Integer
 
-      @enabled: bool?
-
       interface _TracingSettings
         def otel_thread_context_enabled: () -> bool
       end
 
-      def initialize: (_TracingSettings tracing_settings) -> void
+      def self.build: (_TracingSettings tracing_settings) -> OTelThreadContext?
 
       def subscribe_to_tracer_events!: (TraceOperation::Events events) -> void
 
@@ -30,10 +28,6 @@ module Datadog
       def _native_set: (Integer trace_id, Integer span_id, Integer local_root_span_id) -> bool
 
       def _native_clear: () -> bool
-
-      private
-
-      def enable!: () -> bool
     end
   end
 end

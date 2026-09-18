@@ -2,8 +2,61 @@ require "spec_helper"
 
 require "datadog/tracing/otel_thread_context"
 
+RSpec.describe Datadog::Tracing::OTelThreadContext do
+  describe ".build" do
+    subject(:build) { described_class.build(tracing_settings) }
+
+    let(:tracing_settings) { double("tracing settings", otel_thread_context_enabled: enabled) }
+
+    context "when disabled" do
+      let(:enabled) { false }
+
+      it { is_expected.to be_nil }
+    end
+
+    context "when enabled but unsupported" do
+      let(:enabled) { true }
+
+      before do
+        allow_any_instance_of(described_class).to receive(:supported?).and_return(false)
+      end
+
+      it { is_expected.to be_nil }
+    end
+
+    it "keeps direct construction private" do
+      expect { described_class.new }.to raise_error(NoMethodError)
+    end
+  end
+end
+
 RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? do
-  subject(:otel_thread_context) { described_class.new(tracing_settings) }
+  describe ".build" do
+    subject(:build) { described_class.build(tracing_settings) }
+
+    let(:tracing_settings) { double("tracing settings", otel_thread_context_enabled: true) }
+
+    before do
+      allow_any_instance_of(described_class).to receive(:supported?).and_return(true)
+      allow_any_instance_of(described_class).to receive(:_native_enable).and_return(native_enabled)
+    end
+
+    context "when native enablement succeeds" do
+      let(:native_enabled) { true }
+
+      it { is_expected.to be_a(described_class) }
+    end
+
+    context "when native enablement fails" do
+      let(:native_enabled) { false }
+
+      it { is_expected.to be_nil }
+    end
+  end
+
+  subject(:otel_thread_context) do
+    described_class.build(tracing_settings) || fail("libdatadog built without otel-thread-ctx")
+  end
 
   let(:tracing_settings) { double("tracing settings", otel_thread_context_enabled: true) }
 
@@ -178,13 +231,6 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? d
         fiber.resume
         expect(fiber.resume).to be_nil
       end
-    end
-
-    it "returns false without calling native code when not supported" do
-      stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", "Some error")
-      expect(otel_thread_context).to_not receive(:_native_clear)
-
-      expect(otel_thread_context.clear).to be(false)
     end
   end
 
