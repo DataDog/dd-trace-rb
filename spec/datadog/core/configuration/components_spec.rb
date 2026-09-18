@@ -838,10 +838,21 @@ RSpec.describe Datadog::Core::Configuration::Components do
   describe "#after_fork" do
     subject(:after_fork) { components.after_fork }
 
+    let(:open_feature_activation) do
+      instance_double(Datadog::OpenFeature::Activation, after_fork: nil)
+    end
+
     before do
       allow(telemetry).to receive(:after_fork)
       allow(remote).to receive(:after_fork)
       allow(Datadog::Core::ProcessDiscovery).to receive(:after_fork)
+      allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(open_feature_activation)
+    end
+
+    it "dispatches after_fork to OpenFeature activation" do
+      after_fork
+
+      expect(open_feature_activation).to have_received(:after_fork).once
     end
 
     it "dispatches after_fork! to the symbol_database when present" do
@@ -870,6 +881,25 @@ RSpec.describe Datadog::Core::Configuration::Components do
       allow(components).to receive(:data_streams).and_return(nil)
 
       expect { after_fork }.not_to raise_error
+    end
+  end
+
+  describe "#deactivate_open_feature!" do
+    subject(:deactivate_open_feature) { components.deactivate_open_feature!(provider) }
+
+    let(:provider) { instance_double(Object) }
+    let(:open_feature_activation) do
+      instance_double(Datadog::OpenFeature::Activation, deactivate: nil)
+    end
+
+    before do
+      allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(open_feature_activation)
+    end
+
+    it "delegates deactivation to OpenFeature" do
+      deactivate_open_feature
+
+      expect(open_feature_activation).to have_received(:deactivate).with(provider).once
     end
   end
 

@@ -56,6 +56,8 @@ module Datadog
 
         def initialize: (untyped settings) -> untyped
 
+        def after_fork: () -> void
+
         def startup!: (untyped settings, ?old_state: ComponentsState?) -> untyped
 
         def shutdown!: (?untyped? replacement) -> untyped
@@ -63,6 +65,8 @@ module Datadog
         def open_feature: () -> Datadog::OpenFeature::Component?
 
         def activate_open_feature!: (Datadog::OpenFeature::Provider provider) -> Datadog::OpenFeature::Component?
+
+        def deactivate_open_feature!: (Datadog::OpenFeature::Provider provider) -> void
 
         def open_feature_activation_failure: () -> String?
       end

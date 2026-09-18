@@ -16,7 +16,12 @@ RSpec.describe Datadog::OpenFeature::Activation do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:provider) { instance_double(Datadog::OpenFeature::Provider) }
   let(:component) do
-    instance_double(Datadog::OpenFeature::Component, reconfigure!: nil, shutdown!: nil)
+    instance_double(
+      Datadog::OpenFeature::Component,
+      configuration_received?: false,
+      reconfigure!: nil,
+      shutdown!: nil,
+    )
   end
   let(:endpoint) do
     Datadog::OpenFeature::Configuration::AgentlessEndpoint.new(
@@ -122,6 +127,20 @@ RSpec.describe Datadog::OpenFeature::Activation do
         expect(remote).to have_received(:start).once
       end
 
+      it "preserves eager delivery when the provider is replaced" do
+        replacement_provider = instance_double(Datadog::OpenFeature::Provider)
+        activation.start!
+        activation.activate(provider)
+
+        activation.deactivate(provider)
+
+        expect(component).not_to have_received(:shutdown!)
+        expect(activation.activate(replacement_provider)).to be(component)
+        expect(Datadog::OpenFeature::Component).to have_received(:build).once
+        expect(remote).to have_received(:register).once
+        expect(remote).to have_received(:start).once
+      end
+
       context "when Remote Configuration is unavailable" do
         let(:remote) { nil }
 
@@ -178,6 +197,31 @@ RSpec.describe Datadog::OpenFeature::Activation do
     end
   end
 
+  describe "#after_fork" do
+    it "re-enters agentless delivery start" do
+      activation.activate(provider)
+
+      activation.after_fork
+
+      expect(configuration_source).to have_received(:start).twice
+    end
+
+    it "does not start delivery before activation" do
+      activation.after_fork
+
+      expect(configuration_source).not_to have_received(:start)
+    end
+
+    it "does not restart delivery after shutdown" do
+      activation.activate(provider)
+      activation.shutdown!
+
+      activation.after_fork
+
+      expect(configuration_source).to have_received(:start).once
+    end
+  end
+
   describe "#shutdown!" do
     it "stops agentless delivery and the component" do
       activation.activate(provider)
@@ -193,6 +237,55 @@ RSpec.describe Datadog::OpenFeature::Activation do
 
       expect(activation.activate(provider)).to be_nil
       expect(configuration_source).not_to have_received(:start)
+    end
+
+    it "reports lost configuration before shutting down a configured component" do
+      allow(component).to receive(:configuration_received?).and_return(true)
+      activation.activate(provider)
+      expect(provider).to receive(:configuration_changed).with(:lost).ordered
+      expect(component).to receive(:shutdown!).ordered
+
+      activation.shutdown!
+    end
+  end
+
+  describe "#deactivate" do
+    let(:replacement_provider) { instance_double(Datadog::OpenFeature::Provider) }
+
+    it "stops delivery and clears the adopted provider and component" do
+      activation.activate(provider)
+
+      activation.deactivate(provider)
+
+      expect(configuration_source).to have_received(:stop).once
+      expect(component).to have_received(:shutdown!).once
+      expect(activation.provider).to be_nil
+      expect(activation.component).to be_nil
+    end
+
+    it "does not stop delivery adopted by another provider" do
+      activation.activate(provider)
+
+      activation.deactivate(replacement_provider)
+
+      expect(configuration_source).not_to have_received(:stop)
+      expect(component).not_to have_received(:shutdown!)
+      expect(activation.provider).to be(provider)
+      expect(activation.component).to be(component)
+    end
+
+    it "allows a later provider to activate fresh delivery" do
+      replacement_component = instance_double(Datadog::OpenFeature::Component, shutdown!: nil)
+      replacement_source = instance_double(Datadog::OpenFeature::Agentless::ConfigurationSource, start: true)
+      allow(Datadog::OpenFeature::Component).to receive(:build).and_return(component, replacement_component)
+      allow(Datadog::OpenFeature::Agentless::ConfigurationSource)
+        .to receive(:build).and_return(configuration_source, replacement_source)
+      activation.activate(provider)
+      activation.deactivate(provider)
+
+      expect(activation.activate(replacement_provider)).to be(replacement_component)
+      expect(replacement_source).to have_received(:start).once
+      expect(activation.provider).to be(replacement_provider)
     end
   end
 end
