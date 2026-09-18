@@ -165,7 +165,7 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? d
     end
 
     it "returns false without calling native code when not supported" do
-      allow(otel_thread_context).to receive(:supported?).and_return(false)
+      stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", "Some error")
       expect(otel_thread_context).to_not receive(:_native_clear)
 
       expect(otel_thread_context.clear).to be(false)

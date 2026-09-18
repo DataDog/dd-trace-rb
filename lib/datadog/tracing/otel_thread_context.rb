@@ -13,7 +13,11 @@ module Datadog
       UNKNOWN_LOCAL_ROOT_SPAN_ID = 0
 
       def initialize(tracing_settings)
-        @enabled = enable! if tracing_settings.otel_thread_context_enabled
+        @enabled = if tracing_settings.otel_thread_context_enabled
+          enable!
+        else
+          false
+        end
       end
 
       def subscribe_to_tracer_events!(events)
@@ -34,15 +38,6 @@ module Datadog
           update_from_trace_op(event_trace_op)
         end
 
-        events.trace_activated.subscribe do |event_trace_op|
-          update_from_trace_op(event_trace_op)
-        end
-
-        events.trace_deactivated.subscribe do |event_trace_op|
-          # we already clear the context in `trace_finished` subscriber
-          clear unless event_trace_op.finished?
-        end
-
         events.trace_finished.subscribe do
           clear
         end
@@ -57,24 +52,24 @@ module Datadog
       end
 
       def clear
-        return false unless supported?
+        return false unless @enabled
 
         _native_clear
+      rescue => e
+        Datadog.logger.debug do
+          "Error clearing OTel thread context: #{e.class}: #{e.message}"
+        end
+
+        false
       end
 
       def supported?
         Datadog::Core::LIBDATADOG_API_FAILURE.nil? && _native_supported?
       end
 
-      private
-
-      def enable!
-        return false unless supported?
-
-        _native_enable
-      end
-
       def update_from_trace_op(trace_op)
+        return unless @enabled
+
         active_span = trace_op.active_span
 
         if active_span
@@ -92,6 +87,18 @@ module Datadog
         else
           clear
         end
+      rescue => e
+        Datadog.logger.debug do
+          "Error updating OTel thread context: #{e.class}: #{e.message}"
+        end
+      end
+
+      private
+
+      def enable!
+        return false unless supported?
+
+        _native_enable
       end
     end
   end

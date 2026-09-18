@@ -20,9 +20,14 @@ module Datadog
       attr_reader \
         :active_trace
 
+      attr_writer \
+        :otel_thread_context
+
       def initialize(
-        trace: nil
+        trace: nil,
+        otel_thread_context: nil
       )
+        @otel_thread_context = otel_thread_context
         @active_trace = nil
         activate!(trace)
       end
@@ -55,7 +60,11 @@ module Datadog
       # Creates a copy of the context, when forked.
       def fork_clone
         forked_trace = @active_trace&.fork_clone
-        self.class.new(trace: forked_trace)
+
+        self.class.new(
+          trace: forked_trace,
+          otel_thread_context: @otel_thread_context
+        )
       end
 
       private
@@ -69,9 +78,9 @@ module Datadog
         return @active_trace if previous_trace.equal?(@active_trace)
 
         if @active_trace
-          @active_trace.send(:events).trace_activated.publish(@active_trace)
-        elsif previous_trace
-          previous_trace.send(:events).trace_deactivated.publish(previous_trace)
+          @otel_thread_context&.update_from_trace_op(@active_trace)
+        elsif previous_trace && !previous_trace.finished?
+          @otel_thread_context&.clear
         end
 
         @active_trace
