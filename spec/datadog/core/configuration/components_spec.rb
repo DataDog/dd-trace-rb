@@ -629,6 +629,38 @@ RSpec.describe Datadog::Core::Configuration::Components do
   describe "#startup!" do
     subject(:startup!) { components.startup!(settings) }
 
+    it "starts eager OpenFeature delivery" do
+      activation = instance_double(Datadog::OpenFeature::Activation, start!: nil)
+      allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
+
+      expect(activation).to receive(:start!)
+
+      startup!
+    end
+
+    context "when eager OpenFeature delivery raises" do
+      let(:error) { RuntimeError.new("test failure") }
+      let(:activation) do
+        instance_double(Datadog::OpenFeature::Activation, start!: nil)
+      end
+
+      before do
+        allow(activation).to receive(:start!).and_raise(error)
+        allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
+      end
+
+      it "reports the failure and continues library startup" do
+        expect(components.logger).to receive(:error)
+          .with("Feature Flags delivery failed to start: RuntimeError: test failure")
+        expect(telemetry).to receive(:report)
+          .with(error, description: "Feature Flags delivery failed to start")
+        expect(Datadog::Core::ProcessDiscovery).to receive(:publish).with(settings)
+        expect(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
+
+        expect { startup! }.not_to raise_error
+      end
+    end
+
     context "when profiling" do
       context "is unsupported" do
         before do
@@ -760,6 +792,47 @@ RSpec.describe Datadog::Core::Configuration::Components do
         startup!
       end
     end
+
+    context "with an adopted OpenFeature provider from the old component tree" do
+      let(:provider) { instance_double("Datadog::OpenFeature::Provider") }
+      let(:old_state) do
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: false,
+          remote_started: false,
+          open_feature_provider: provider,
+        )
+      end
+
+      before do
+        allow(Datadog::Core::ProcessDiscovery).to receive(:publish)
+        allow(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
+      end
+
+      it "reactivates configuration delivery for that provider" do
+        expect(components).to receive(:activate_open_feature!).with(provider)
+
+        components.startup!(settings, old_state: old_state)
+      end
+
+      context "when provider reactivation raises" do
+        let(:error) { RuntimeError.new("test failure") }
+
+        before do
+          allow(components).to receive(:activate_open_feature!).with(provider).and_raise(error)
+        end
+
+        it "reports the failure and continues library startup" do
+          expect(components.logger).to receive(:error)
+            .with("Feature Flags delivery failed to start: RuntimeError: test failure")
+          expect(telemetry).to receive(:report)
+            .with(error, description: "Feature Flags delivery failed to start")
+          expect(Datadog::Core::ProcessDiscovery).to receive(:publish).with(settings)
+          expect(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
+
+          expect { components.startup!(settings, old_state: old_state) }.not_to raise_error
+        end
+      end
+    end
   end
 
   describe "#after_fork" do
@@ -826,6 +899,14 @@ RSpec.describe Datadog::Core::Configuration::Components do
       it "captures di_implicitly_enabled? as false (start was explicit)" do
         expect(components.state.di_implicitly_enabled?).to be false
       end
+    end
+
+    it "captures the adopted OpenFeature provider" do
+      provider = instance_double("Datadog::OpenFeature::Provider")
+      activation = instance_double(Datadog::OpenFeature::Activation, provider: provider)
+      components.instance_variable_set(:@open_feature_activation, activation)
+
+      expect(components.state.open_feature_provider).to be(provider)
     end
 
     context "when DI is started and the customer never touched the env var" do
