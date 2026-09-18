@@ -43,7 +43,7 @@ module Datadog
           default_service: settings.service,
           enabled: settings.tracing.enabled,
           logger: logger,
-          otel_thread_context: OTelThreadContext.new(settings.tracing),
+          otel_thread_context: OTelThreadContext.build(settings.tracing),
           trace_flush: trace_flush,
           sampler: sampler_delegator,
           span_sampler: build_span_sampler(settings),

@@ -12,17 +12,16 @@ module Datadog
     class OTelThreadContext
       UNKNOWN_LOCAL_ROOT_SPAN_ID = 0
 
-      def initialize(tracing_settings)
-        @enabled = if tracing_settings.otel_thread_context_enabled
-          enable!
-        else
-          false
-        end
+      def self.build(tracing_settings)
+        return unless tracing_settings.otel_thread_context_enabled
+
+        instance = new
+        instance if instance.supported? && instance._native_enable
       end
 
-      def subscribe_to_tracer_events!(events)
-        return unless @enabled
+      private_class_method :new
 
+      def subscribe_to_tracer_events!(events)
         events.span_before_start.subscribe do |event_span_op, event_trace_op|
           set(
             trace_id: event_trace_op.id,
@@ -52,8 +51,6 @@ module Datadog
       end
 
       def clear
-        return false unless @enabled
-
         _native_clear
       rescue => e
         Datadog.logger.debug do
@@ -68,8 +65,6 @@ module Datadog
       end
 
       def update_from_trace_op(trace_op)
-        return unless @enabled
-
         active_span = trace_op.active_span
 
         if active_span
@@ -91,14 +86,6 @@ module Datadog
         Datadog.logger.debug do
           "Error updating OTel thread context: #{e.class}: #{e.message}"
         end
-      end
-
-      private
-
-      def enable!
-        return false unless supported?
-
-        _native_enable
       end
     end
   end

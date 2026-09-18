@@ -27,16 +27,10 @@ RSpec.describe Datadog::Tracing::Tracer do
   after { tracer.shutdown! }
 
   shared_context "OTel thread context enabled" do
-    let(:otel_thread_context) { Datadog::Tracing::OTelThreadContext.new(otel_thread_context_settings) }
-    let(:otel_thread_context_settings) do
-      settings = Datadog::Core::Configuration::Settings.new
-      settings.tracing.otel_thread_context_enabled = true
-      settings.tracing
-    end
+    let(:otel_thread_context) { Datadog::Tracing::OTelThreadContext.send(:new) }
     let(:tracer_options) { super().merge(otel_thread_context: otel_thread_context) }
 
     before do
-      allow_any_instance_of(Datadog::Tracing::OTelThreadContext).to receive(:enable!).and_return(true)
       allow(otel_thread_context).to receive(:set)
       allow(otel_thread_context).to receive(:clear)
     end
@@ -248,26 +242,6 @@ RSpec.describe Datadog::Tracing::Tracer do
             expect(otel_thread_context).to receive(:clear).ordered
 
             tracer.trace(name) {}
-          end
-        end
-
-        context "with OTel thread context disabled" do
-          let(:otel_thread_context) { Datadog::Tracing::OTelThreadContext.new(otel_thread_context_settings) }
-          let(:otel_thread_context_settings) do
-            settings = Datadog::Core::Configuration::Settings.new
-            settings.tracing.otel_thread_context_enabled = false
-            settings.tracing
-          end
-          let(:tracer_options) { super().merge(otel_thread_context: otel_thread_context) }
-
-          it "does not update the OTel thread context" do
-            allow(otel_thread_context).to receive(:set)
-            allow(otel_thread_context).to receive(:clear)
-
-            tracer.trace(name) {}
-
-            expect(otel_thread_context).to_not have_received(:set)
-            expect(otel_thread_context).to_not have_received(:clear)
           end
         end
 
