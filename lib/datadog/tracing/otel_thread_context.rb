@@ -47,9 +47,7 @@ module Datadog
         # OTEP requires trace-id and span-id to be either both set or both unset.
         # Zeroes can be used to indicate that no trace and span are active.
         # https://github.com/open-telemetry/opentelemetry-specification/blob/main/oteps/profiles/4947-thread-ctx.md#thread-local-context-record
-        if !trace_id || trace_id.zero? || !span_id || span_id.zero?
-          return clear
-        end
+        return clear if trace_id.zero? || span_id.zero?
 
         _native_set(trace_id, span_id, local_root_span_id)
       end
