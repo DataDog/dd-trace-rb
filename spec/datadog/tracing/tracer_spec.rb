@@ -929,6 +929,17 @@ RSpec.describe Datadog::Tracing::Tracer do
         end
       end
 
+      context "with a trace ID but no propagated parent" do
+        let(:digest) { Datadog::Tracing::TraceDigest.new(trace_id: 1) }
+
+        it "clears the context when the trace is activated" do
+          expect(otel_thread_context).to receive(:clear)
+          expect(otel_thread_context).not_to receive(:set)
+
+          tracer.continue_trace!(digest)
+        end
+      end
+
       it "clears the context when called with nil" do
         expect(otel_thread_context).to receive(:clear)
 
