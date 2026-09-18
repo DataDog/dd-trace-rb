@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Core",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6316",
+  "message": "Fix automatic instrumentation crashing Bundler when default and full-gem copies of the same Bundler version coexist."
+}

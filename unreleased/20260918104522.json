@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Core",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6316",
+  "message": "Support automatic instrumentation when Bundler forces Ruby-platform gems with `BUNDLE_FORCE_RUBY_PLATFORM=true`."
+}

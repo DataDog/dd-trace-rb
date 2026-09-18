@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6254",
+  "message": "Include Ruby SDK source and version metadata with flag evaluation and exposure events."
+}

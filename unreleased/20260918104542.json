@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Core",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6316",
+  "message": "Fix `bundle exec` dropping `RUBYOPT` entries that follow the automatic-instrumentation injector."
+}

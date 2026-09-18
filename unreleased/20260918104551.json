@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6134",
+  "message": "Add span event support to the experimental native transport; enable it with `DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED=true`."
+}
