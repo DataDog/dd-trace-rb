@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Core",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6316",
+  "message": "Fix automatic instrumentation failing dependency resolution when an application already selects a compatible package dependency transitively."
+}
