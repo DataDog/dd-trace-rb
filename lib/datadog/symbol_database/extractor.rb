@@ -331,6 +331,18 @@ module Datadog
         true
       end
 
+      def declared_instance_method(mod, name)
+        original_method = mod.instance_method(name)
+        method = original_method
+        # Prepending changes method lookup, not which module declares the method.
+        until method.owner.equal?(mod)
+          super_method = method.super_method
+          return original_method unless super_method
+          method = super_method
+        end
+        method
+      end
+
       # Find source file for a module.
       # Prefers user code paths over gem/stdlib paths. ActiveRecord models have
       # generated methods (autosave callbacks) whose source is in the gem, but
@@ -349,7 +361,7 @@ module Datadog
 
         # Try instance methods first
         mod.instance_methods(false).each do |method_name|
-          method = mod.instance_method(method_name)
+          method = declared_instance_method(mod, method_name)
           location = method.source_location
           next unless location
 
@@ -504,7 +516,7 @@ module Datadog
         starts = []
         ends = []
         methods.each do |method_name|
-          method = klass.instance_method(method_name)
+          method = declared_instance_method(klass, method_name)
           location = method.source_location
           next unless location && location[0]
           starts << location[1]
@@ -596,7 +608,7 @@ module Datadog
       # @param method_type [Symbol] :instance or :class
       # @return [Scope, nil] Method scope or nil
       def extract_method_scope(klass, method_name, method_type)
-        method = klass.instance_method(method_name)
+        method = declared_instance_method(klass, method_name)
         location = method.source_location
 
         return nil unless location  # Skip methods without source location
@@ -808,7 +820,7 @@ module Datadog
         # visibilities without an intermediate merged array.
         [mod.instance_methods(false), mod.private_instance_methods(false)].each do |method_names|
           method_names.each do |method_name|
-            method = mod.instance_method(method_name)
+            method = declared_instance_method(mod, method_name)
             loc = method.source_location
             next unless loc
             next unless user_code_path?(loc[0])
@@ -852,7 +864,7 @@ module Datadog
           # live only as long as the tree node holds them; they are released when
           # convert_tree_to_scope finishes building the file's Scope.
           method_infos = Core::Utils::EnumerableCompat.filter_map(method_names) do |name|
-            method = mod.instance_method(name)
+            method = declared_instance_method(mod, name)
             # Pass 1 (build_per_file_index) recorded this method under file_path.
             # If the method has been redefined in another file between the two
             # passes (e.g. a class reopened during a Rails reload while extract_all

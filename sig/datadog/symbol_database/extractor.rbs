@@ -47,6 +47,8 @@ module Datadog
 
       def user_code_path?: (String path) -> bool
 
+      def declared_instance_method: (Module mod, ::Symbol name) -> UnboundMethod
+
       def find_source_file: (Module mod) -> String?
 
       def wrap_in_file_scope: (String file_path, Array[Scope] inner_scopes) -> Scope
