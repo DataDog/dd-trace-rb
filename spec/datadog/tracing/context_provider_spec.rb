@@ -33,6 +33,20 @@ RSpec.describe Datadog::Tracing::DefaultContextProvider do
         set_context
       end
     end
+
+    context "without an OTel thread context" do
+      let(:ctx) { Datadog::Tracing::Context.new(otel_thread_context: stale_otel_thread_context) }
+      let(:stale_otel_thread_context) { instance_spy(Datadog::Tracing::OTelThreadContext) }
+
+      it "clears the replacement context's OTel thread context" do
+        allow(local_context).to receive(:local=)
+
+        set_context
+        ctx.activate!(double("trace", finished?: false))
+
+        expect(stale_otel_thread_context).not_to have_received(:update_from_trace_op)
+      end
+    end
   end
 
   describe "#context" do

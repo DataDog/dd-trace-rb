@@ -19,9 +19,7 @@ module Datadog
 
       # Sets the current context.
       def context=(ctx)
-        if @otel_thread_context && ctx.respond_to?(:otel_thread_context=)
-          ctx.otel_thread_context = @otel_thread_context
-        end
+        ctx.otel_thread_context = @otel_thread_context if ctx.respond_to?(:otel_thread_context=)
 
         @context.local = ctx
       end
