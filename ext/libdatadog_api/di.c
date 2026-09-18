@@ -2,6 +2,8 @@
 
 #include "datadog_ruby_common.h"
 
+#ifndef TRUFFLERUBY
+
 // Prototypes for Ruby functions declared in internal Ruby headers.
 // rb_iseqw_new wraps an internal iseq pointer into a Ruby-visible
 // RubyVM::InstructionSequence object.
@@ -207,7 +209,9 @@ void di_init(VALUE datadog_module) {
   rb_define_singleton_method(di_module, "enter_probe", enter_probe, 0);
   rb_define_singleton_method(di_module, "leave_probe", leave_probe, 0);
   rb_define_singleton_method(di_module, "hash?", is_hash, 1);
-#ifdef HAVE_RB_ISEQ_TYPE
-  rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);
-#endif
+  #ifdef HAVE_RB_ISEQ_TYPE
+    rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);
+  #endif
 }
+
+#endif // TRUFFLERUBY
