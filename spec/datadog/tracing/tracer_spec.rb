@@ -253,10 +253,13 @@ RSpec.describe Datadog::Tracing::Tracer do
           let(:tracer_options) { super().merge(otel_thread_context: otel_thread_context) }
 
           it "does not update the OTel thread context" do
-            expect(otel_thread_context).to_not receive(:set)
-            expect(otel_thread_context).to_not receive(:clear)
+            allow(otel_thread_context).to receive(:set)
+            allow(otel_thread_context).to receive(:clear)
 
             tracer.trace(name) {}
+
+            expect(otel_thread_context).to_not have_received(:set)
+            expect(otel_thread_context).to_not have_received(:clear)
           end
         end
 
@@ -1356,6 +1359,19 @@ RSpec.describe Datadog::Tracing::Tracer do
       it do
         expect(writer).to_not receive(:stop)
         shutdown!
+      end
+
+      context "with an OTel thread context" do
+        let(:otel_thread_context) { instance_double(Datadog::Tracing::OTelThreadContext) }
+        let(:tracer_options) { super().merge(otel_thread_context: otel_thread_context) }
+
+        it "clears the OTel thread context" do
+          allow(otel_thread_context).to receive(:clear)
+
+          shutdown!
+
+          expect(otel_thread_context).to have_received(:clear)
+        end
       end
     end
   end

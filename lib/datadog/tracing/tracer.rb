@@ -362,6 +362,7 @@ module Datadog
       #
       #   tracer.shutdown!
       def shutdown!
+        @otel_thread_context&.clear
         return unless @enabled
 
         @writer&.stop
