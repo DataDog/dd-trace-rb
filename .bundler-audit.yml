@@ -10,7 +10,20 @@
 #   - the gem and why it cannot be upgraded
 #
 # Reviewed on a regular cadence; remove entries once the gem can be upgraded.
-ignore: []
+ignore:
+  # mongo CVE-2026-88030 (GHSA-4ww7-gqv6-mffc, high; GridFS query-logic injection):
+  # fixed only in mongo 2.26.0+. The mongo-min Gemfiles intentionally pin the oldest
+  # tested driver version (2.11.0 / 2.20.0) and cannot be upgraded, and the mongo-latest
+  # lockfiles on master predate the 2.26.0 release and pick up the fix at the next lock
+  # refresh. Once no lockfile resolves a mongo < 2.26.0, this entry can be removed.
+  - CVE-2026-88030
+  # ruby_llm CVE-2026-67991 (GHSA-42r3-x6vx-x49x, high; ReDoS in RubyLLM::Utils.underscore
+  # on Ruby 3.1.x, reachable via crafted tool/agent class names):
+  # fixed only in ruby_llm >= 2.0.0.rc1; no 2.x stable release exists yet, and the
+  # ai_guard ruby_llm integration does not support the 2.x API (RubyLLM::Content was
+  # removed, verified 8/8 instrumentation spec failures against 2.0.0.rc3). Remove
+  # once lockfiles can resolve a fixed ruby_llm (2.0.0+) and the integration supports it.
+  - CVE-2026-67991
 
 # Gem+version-scoped ignore list, checked in addition to `ignore` above.
 # Unlike `ignore`, each entry only suppresses findings for that exact

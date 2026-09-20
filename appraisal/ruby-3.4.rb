@@ -62,6 +62,10 @@ appraise 'rails81' do
   gem 'rails', '~> 8.1.0'
 end
 
+appraise 'rails8' do
+  gem 'rails', '~> 8.0.0'
+end
+
 appraise 'rails8-mysql2' do
   gem 'rails', '~> 8.0.0'
   gem 'mysql2', '~> 0.5', platform: :ruby
@@ -135,16 +139,17 @@ end
 
 appraise 'http' do
   gem 'ethon'
-  gem 'http'
   gem 'httpclient'
+  # Typhoeus is the main consumer of ethon; its specs exercise the patch through it.
   gem 'typhoeus'
 end
 
-appraise 'http6' do
-  gem 'ethon'
-  gem 'http', '~> 6'
-  gem 'httpclient'
-  gem 'typhoeus'
+appraise 'httprb' do
+  gem 'http'
+end
+
+appraise 'httprb-5' do
+  gem 'http', '~> 5'
 end
 
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
@@ -202,8 +207,6 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  # Temporarily disable for Ruby 3.4: No binaries causing build time takes more than 10 minutes
-  # gem 'grpc', '>= 1.38.0', platform: :ruby
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'
@@ -219,7 +222,12 @@ appraise 'contrib' do
   gem 'rackup'
 end
 
+appraise 'grpc' do
+  gem 'grpc'
+end
+
 [
+  'latest',
   '2.3',
   '2.2',
   '2.1',
@@ -228,7 +236,8 @@ end
 ].each do |v|
   appraise "graphql-#{v}" do
     gem 'rails', '~> 6.1.0'
-    gem 'graphql', "~> #{v}.0"
+    gem 'graphql' if v == 'latest'
+    gem 'graphql', "~> #{v}.0" unless v == 'latest'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'mutex_m', '>= 0.1.0'

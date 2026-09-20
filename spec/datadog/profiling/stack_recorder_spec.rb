@@ -48,6 +48,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     described_class::Testing._native_recorder_heap_update(stack_recorder)
   end
 
+  def set_object_alloc_gen(record_id, alloc_gen)
+    described_class::Testing._native_heap_recorder_set_object_alloc_gen(stack_recorder, record_id, alloc_gen)
+  end
+
   describe "#initialize" do
     describe "locking behavior" do
       it "sets slot one as the active slot" do
@@ -744,31 +748,27 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
         describe "#recorder_heap_update" do
           def sample_and_clear
-            # The object is allocated and sampled on a separate thread which we immediately join. Once that thread
-            # is gone, so are its machine stack and registers, so there is nowhere left for a stale reference to
-            # the object to hide from Ruby's conservative garbage collector -- only the record id (an Integer)
-            # crosses back to us.
-            #
-            # Doing this on the main thread instead made these examples flaky on CI: the object would survive the
-            # GC below and the recorder would (correctly!) keep reporting it. That's the same class of problem the
-            # enclosing `before` documents, see https://bugs.ruby-lang.org/issues/19460.
-            #
-            # That's still not airtight, though: the conservative garbage collector also scans the main thread, and a
-            # stale value there that happens to look like a pointer to our object keeps the object alive. While that
-            # happens the recorder is right to keep reporting the object, so there's nothing left for these examples
-            # to check. We record a weak reference of our own so we can ask Ruby whether the object is really gone and
-            # bail out instead of flaking. (Seen on CI as `[true, false, false, false]` for the oldest object.)
-            record_id = Thread.new do
-              object = Object.new
-              id = sample_allocation(object)
-              @sampled_objects[id] = object
-              id
-            end.value
-            GC.start
+            # Use the `Thread.new { allocations; nil }.join; GC.start` trick to reliably GC the allocations.
+            # However we have seen that CRuby's conservative GC sometimes still keeps the object alive in CI.
+            # Retry up to 10 times in that case.
+            max_attempts = 10
+            max_attempts.times do
+              record_id = Thread.new do
+                object = Object.new
+                id = sample_allocation(object)
+                @sampled_objects[id] = object
+                id
+              end.value
 
-            skip "Ruby's conservative GC kept the sampled object alive" unless @sampled_objects[record_id].nil?
+              GC.start
+              if @sampled_objects[record_id].nil?
+                return record_id
+              else
+                # Try again
+              end
+            end
 
-            record_id
+            raise "Ruby's conservative GC kept the sampled object alive: #{@sampled_objects.inspect}"
           end
 
           before do
@@ -778,6 +778,12 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             @sampled_objects = ObjectSpace::WeakMap.new
 
             @record_ids = Array.new(4) { sample_and_clear }
+
+            # `sample_and_clear` triggers an unknown number of GCs, so instead of relying on it to space the objects
+            # out by exactly one GC generation, pin the ages explicitly: 4, 3, 2 and 1 generations old, as seen by the
+            # next heap recorder update. (`GC.count` can't change until then, since GC is disabled.)
+            gc_count = GC.count
+            @record_ids.reverse_each { |record_id| set_object_alloc_gen(record_id, gc_count -= 1) }
           end
 
           after { GC.enable }

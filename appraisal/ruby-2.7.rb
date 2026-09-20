@@ -164,9 +164,13 @@ end
 
 appraise 'http' do
   gem 'ethon'
-  gem 'http'
   gem 'httpclient'
+  # Typhoeus is the main consumer of ethon; its specs exercise the patch through it.
   gem 'typhoeus'
+end
+
+appraise 'httprb-5' do
+  gem 'http', '~> 5'
 end
 
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
@@ -212,7 +216,6 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  gem 'grpc'
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'
@@ -223,7 +226,12 @@ appraise 'contrib' do
   gem 'que', '>= 1.0.0'
 end
 
+appraise 'grpc' do
+  gem 'grpc'
+end
+
 [
+  'latest',
   '2.3',
   '2.2',
   '2.1',
@@ -232,7 +240,8 @@ end
 ].each do |v|
   appraise "graphql-#{v}" do
     gem 'rails', '~> 6.1.0'
-    gem 'graphql', "~> #{v}.0"
+    gem 'graphql' if v == 'latest'
+    gem 'graphql', "~> #{v}.0" unless v == 'latest'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
