@@ -1,7 +1,6 @@
 module Datadog
   module DI
     class Serializer
-      TELEMETRY_NAMESPACE: ::String
       CAPTURE_TIMEOUT_CEILING_SECONDS: Float
       MAX_MESSAGE_COLLECTION_SIZE: Integer
       MAX_MESSAGE_ATTRIBUTE_COUNT: Integer
