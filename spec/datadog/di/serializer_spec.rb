@@ -476,7 +476,7 @@ RSpec.describe Datadog::DI::Serializer do
   end
 
   describe "capture time budget" do
-    let(:telemetry) { double("telemetry") }
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
     let(:serializer) do
       described_class.new(settings, redactor, telemetry: telemetry)
     end
