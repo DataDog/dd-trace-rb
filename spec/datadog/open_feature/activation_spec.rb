@@ -239,9 +239,10 @@ RSpec.describe Datadog::OpenFeature::Activation do
       expect(configuration_source).not_to have_received(:start)
     end
 
-    it "reports lost configuration before shutting down a configured component" do
-      allow(component).to receive(:configuration_received?).and_return(true)
+    it "reports configuration received during delivery shutdown as lost" do
       activation.activate(provider)
+      expect(configuration_source).to receive(:stop).ordered
+      expect(component).to receive(:configuration_received?).ordered.and_return(true)
       expect(provider).to receive(:configuration_changed).with(:lost).ordered
       expect(component).to receive(:shutdown!).ordered
 
