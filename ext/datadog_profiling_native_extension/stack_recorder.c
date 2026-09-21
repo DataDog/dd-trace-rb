@@ -275,6 +275,7 @@ static VALUE _native_is_object_recorded(DDTRACE_UNUSED VALUE _self, VALUE record
 static VALUE _native_record_id_for(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE obj);
 static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_heap_recorder_exhaust_record_ids(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_heap_recorder_set_object_alloc_gen(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE record_id, VALUE alloc_gen);
 static VALUE _native_recorder_heap_update(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_benchmark_intern(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE string, VALUE times, VALUE use_all);
 static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE_UNUSED VALUE _self);
@@ -313,6 +314,7 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_record_id_for", _native_record_id_for, 2);
   rb_define_singleton_method(testing_module, "_native_heap_recorder_reset_last_update", _native_heap_recorder_reset_last_update, 1);
   rb_define_singleton_method(testing_module, "_native_heap_recorder_exhaust_record_ids", _native_heap_recorder_exhaust_record_ids, 1);
+  rb_define_singleton_method(testing_module, "_native_heap_recorder_set_object_alloc_gen", _native_heap_recorder_set_object_alloc_gen, 3);
   rb_define_singleton_method(testing_module, "_native_recorder_heap_update", _native_recorder_heap_update, 1);
   rb_define_singleton_method(testing_module, "_native_benchmark_intern", _native_benchmark_intern, 4);
   rb_define_singleton_method(testing_module, "_native_test_managed_string_storage_produces_valid_profiles", _native_test_managed_string_storage_produces_valid_profiles, 0);
@@ -1062,6 +1064,17 @@ static VALUE _native_heap_recorder_exhaust_record_ids(DDTRACE_UNUSED VALUE _self
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
   heap_recorder_testonly_exhaust_record_ids(state->heap_recorder);
+  return Qtrue;
+}
+
+static VALUE _native_heap_recorder_set_object_alloc_gen(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE record_id, VALUE alloc_gen) {
+  ENFORCE_TYPE(record_id, T_FIXNUM);
+  ENFORCE_TYPE(alloc_gen, T_FIXNUM);
+
+  stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
+
+  heap_recorder_testonly_set_object_alloc_gen(state->heap_recorder, FIX2LONG(record_id), NUM2SIZET(alloc_gen));
   return Qtrue;
 }
 

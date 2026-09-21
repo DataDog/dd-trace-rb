@@ -48,7 +48,7 @@ jobs:
       cache-key: "${{ steps.bundle-cache.outputs.cache-key }}"
       lockfile: "${{ steps.bundle-cache.outputs.lockfile }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
@@ -112,10 +112,13 @@ jobs:
       matrix:
         include: "${{ fromJson(needs.batch.outputs.batches).include }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
+        # Resolve every dynamic symbol at load time, so that a native extension referencing a symbol Ruby does not
+        # export fails here instead of in a customer's image (https://github.com/DataDog/dd-trace-rb/issues/6338)
+        LD_BIND_NOW: "1"
         DD_INSTRUMENTATION_TELEMETRY_ENABLED: "false"
         DD_REMOTE_CONFIGURATION_ENABLED: "false"
         TEST_POSTGRES_HOST: postgres
@@ -129,7 +132,9 @@ jobs:
         TEST_DATADOG_INTEGRATION: "1"
     services:
       agent:
-        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.37.0
+        # Pinned by digest for https://github.com/DataDog/dd-apm-test-agent/pull/410
+        # Switch to the v1.66.0 tag once it is released.
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent@sha256:67a560e0dbd928534e6d680362a5407d382acc263cb976c4a7a294070abfba26
         env:
           LOG_LEVEL: DEBUG
           TRACE_LANGUAGE: ruby
@@ -196,10 +201,11 @@ jobs:
       matrix:
         include: "${{ fromJson(needs.batch.outputs.misc).include }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
+        LD_BIND_NOW: "1" # See above
         DD_INSTRUMENTATION_TELEMETRY_ENABLED: "false"
         DD_REMOTE_CONFIGURATION_ENABLED: "false"
         TEST_ELASTICSEARCH_HOST: elasticsearch
@@ -216,7 +222,9 @@ jobs:
       options: --link mongodb:mongodb_secondary
     services:
       agent:
-        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.37.0
+        # Pinned by digest for https://github.com/DataDog/dd-apm-test-agent/pull/410
+        # Switch to the v1.66.0 tag once it is released.
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent@sha256:67a560e0dbd928534e6d680362a5407d382acc263cb976c4a7a294070abfba26
         env:
           LOG_LEVEL: DEBUG
           TRACE_LANGUAGE: ruby
@@ -240,7 +248,7 @@ jobs:
       memcached:
         image: ghcr.io/datadog/images-rb/services/memcached:1.6-alpine
       mongodb:
-        image: ghcr.io/datadog/images-rb/services/mongo:4.2
+        image: ghcr.io/datadog/images-rb/services/mongo:4.4
       opensearch:
         image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
         env:

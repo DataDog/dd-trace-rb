@@ -982,8 +982,15 @@ VALUE ddtrace_alloc_free_rb_mod_name(VALUE mod) {
 // Checking for '#' in the name is equivalent on older Rubies:
 // non-permanent names contain '#' from `#<Module:0x...>` or `#<Class:0x...>` prefixes.
 static bool has_permanent_classpath(DDTRACE_UNUSED VALUE mod, DDTRACE_UNUSED VALUE mod_name) {
-#if defined(RCLASS_PERMANENT_CLASSPATH_P) // 4.0+
-  return RCLASS_PERMANENT_CLASSPATH_P(mod);
+#if defined(RCLASS_EXT_PRIME) // 4.0+
+  // We can't actually use RCLASS_PERMANENT_CLASSPATH_P(mod) because that uses
+  // RCLASS_EXT_READABLE() which uses rb_current_box(), which is a private symbol:
+  // https://github.com/DataDog/dd-trace-rb/issues/6338
+  // Instead we use `RCLASS_EXT_PRIME(mod)->permanent_classpath`, which is equivalent for our usage:
+  // the two can only differ for boxable (= core) modules with no permanent name, i.e. metaclasses like
+  // String.singleton_class, and is_metaclass() already replaced those with the attached module, so we display
+  // `String.foo` and not `#<Class:String>#foo`. Same for the name in ddtrace_alloc_free_rb_mod_name().
+  return RCLASS_EXT_PRIME(mod)->permanent_classpath;
 #elif defined(HAVE_PERMANENT_CLASSPATH) // 3.3 - 3.4
   return RCLASS_EXT(mod)->permanent_classpath;
 #else // 3.2 and older

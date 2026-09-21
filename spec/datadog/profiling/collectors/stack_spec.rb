@@ -924,6 +924,52 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
+  context "when sampling inside a Ruby::Box", if: RubyVersion.is?(">= 4.0") do
+    it "reports the class name of a core class the box monkey patched" do
+      skip "https://bugs.ruby-lang.org/issues/22339" if asan_build?
+
+      require "open3"
+
+      spec_dir = File.expand_path("../../..", __dir__)
+      script = <<~RUBY
+        require "datadog"
+        require "datadog/profiling/collectors/stack"
+        require "datadog/profiling/pprof/pprof_pb"
+        require "zstd-ruby"
+
+        box = Ruby::Box.new
+        box.require("#{__dir__}/helper/ruby_box_sampler.rb")
+
+        recorder = Datadog::Profiling::StackRecorder.for_testing
+        box::BoxedSampler.sample(
+          Datadog::Profiling::Collectors::Stack::Testing,
+          recorder,
+          #{metric_values.inspect},
+          #{labels.inspect},
+        )
+
+        profile = Perftools::Profiles::Profile.decode(Zstd.decompress(recorder.serialize!._native_bytes))
+        profile.sample.first.location_id.each do |location_id|
+          location = profile.location.find { |it| it.id == location_id }
+          function = profile.function.find { |it| it.id == location.line.first.function_id }
+          puts profile.string_table[function.name]
+        end
+      RUBY
+
+      stdout, stderr, status = Open3.capture3(
+        {"RUBY_BOX" => "1"},
+        RbConfig.ruby,
+        "-I",
+        spec_dir,
+        "-e",
+        script,
+      )
+
+      expect(status.success?).to be(true), "Sampling inside a Ruby::Box failed. stderr: #{stderr}"
+      expect(stdout.lines).to include("String#method_patched_in_box\n")
+    end
+  end
+
   context "when sampling a thread with a stack that is deeper than the configured max_frames" do
     let(:max_frames) { 5 }
     let(:target_stack_depth) { 100 }
