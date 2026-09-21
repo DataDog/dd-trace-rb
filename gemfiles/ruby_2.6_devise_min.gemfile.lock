@@ -70,7 +70,7 @@ GEM
     hashdiff (1.2.1)
     i18n (0.9.5)
       concurrent-ruby (~> 1.0)
-    io-console (0.9.2)
+    io-console (0.9.4)
     json-schema (4.3.1)
       addressable (>= 2.8)
     libdatadog (40.0.0.2.0)
