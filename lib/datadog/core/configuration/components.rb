@@ -121,7 +121,7 @@ module Datadog
             Datadog::Core::Crashtracking::Component.build(settings, agent_settings, logger: logger)
           end
 
-          def build_data_streams(settings, agent_settings, logger, agent_info)
+          def build_data_streams(settings, agent_settings, logger)
             return unless settings.data_streams.enabled
 
             Datadog::DataStreams::Processor.new(
@@ -222,7 +222,7 @@ module Datadog
               )
             end
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
-          @data_streams = self.class.build_data_streams(settings, agent_settings, @logger, @agent_info)
+          @data_streams = self.class.build_data_streams(settings, agent_settings, @logger)
           # Reflects "the customer configured DI to be on" — true iff the
           # component was built AND the env-var-driven enabled flag is set.
           # This is the post-initialize / pre-startup value visible to tests
