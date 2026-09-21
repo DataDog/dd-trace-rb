@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6205",
+  "message": "Reject zero or negative `DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE` values with `ArgumentError`, instead of silently timing out every capture; set a positive value (default `150`) to capture normally."
+}
