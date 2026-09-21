@@ -504,7 +504,7 @@ RSpec.describe Datadog::DI::Serializer do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(0)
       end
 
-      it "returns a timeout stub for the top-level value without descending" do
+      it "returns a timeout stub for the top-level value and stops there" do
         expect(serializer.serialize_value([1, 2, 3], name: :x)).to eq(
           type: "Array", notCapturedReason: "timeout",
         )
