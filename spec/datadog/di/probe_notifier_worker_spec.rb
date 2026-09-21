@@ -86,6 +86,35 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
         expect(worker.send(:snapshot_queue)).to eq([snapshot])
       end
+
+      context "when the snapshot queue is full" do
+        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+
+        it "drops the snapshot and emits the canonical queueFull drop metric" do
+          allow(input_transport).to receive(:send_input)
+          allow(logger).to receive(:debug)
+          # Prevent the background worker from draining the queue so the
+          # capacity guard is reached deterministically.
+          allow(worker).to receive(:start)
+
+          expect(telemetry).to receive(:inc) do |namespace, name, value, tags:, **|
+            expect(namespace).to eq("dynamic_instrumentation")
+            expect(name).to eq("guardrails.events.dropped")
+            expect(value).to eq(1)
+            expect(tags).to eq(reason: "queueFull", event_type: "snapshot")
+          end
+
+          # The guard is queue.length > capacity, so the queue holds
+          # capacity + 1 items before the next add is dropped.
+          11.times { worker.add_snapshot(snapshot) }
+          expect(worker.send(:snapshot_queue).length).to eq(11)
+
+          # This add exceeds capacity and is dropped.
+          worker.add_snapshot(snapshot)
+
+          expect(worker.send(:snapshot_queue).length).to eq(11)
+        end
+      end
     end
   end
 
