@@ -68,9 +68,11 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         expect(errors).to eq([])
       end
 
-      it "resolves the capture deadline through the serializer so the clamp is shared" do
-        expect(serializer).to receive(:serialization_deadline).and_call_original
-        evaluator.evaluate(probe, context)
+      it "uses the serializer's clamped deadline so an exhausted budget times out every expression" do
+        allow(serializer).to receive(:serialization_deadline).and_return(-Float::INFINITY)
+        output, errors = evaluator.evaluate(probe, context)
+        expect(output.values).to all(eq(notCapturedReason: "timeout"))
+        expect(errors).to eq([])
       end
     end
 
