@@ -521,18 +521,15 @@ RSpec.describe Datadog::DI::Serializer do
     context "budget exhausted midway through a collection" do
       before do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
-        clock_calls = 0
-        # Reads: deadline computation, then a read for each serialize_value
-        # call. The deadline (100ms) is crossed on the third element.
-        clock_returns = [0.0, 0.0, 0.0, 0.0, 0.2, 0.2]
-        allow(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
-          if args == [::Process::CLOCK_MONOTONIC, :float_second]
-            clock_returns[clock_calls].tap { clock_calls += 1 }
-          else
-            original.call(*args)
-          end
-        end
       end
+
+      deadline_calc = 0.0
+      top_level_check = 0.0
+      first_elt = 0.0
+      second_elt = 0.0
+      third_elt = 0.2  # 100ms budget crossed here
+      fourth_elt = 0.2
+      stub_monotonic_clock([deadline_calc, top_level_check, first_elt, second_elt, third_elt, fourth_elt])
 
       it "captures earlier elements and times out later ones" do
         result = serializer.serialize_value([10, 20, 30, 40], name: :x)
@@ -549,17 +546,12 @@ RSpec.describe Datadog::DI::Serializer do
     context "budget shared across all variables of a single capture point" do
       before do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
-        clock_calls = 0
-        # Reads: deadline computation, first var, second var (past deadline).
-        clock_returns = [0.0, 0.0, 0.2]
-        allow(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
-          if args == [::Process::CLOCK_MONOTONIC, :float_second]
-            clock_returns[clock_calls].tap { clock_calls += 1 }
-          else
-            original.call(*args)
-          end
-        end
       end
+
+      deadline_calc = 0.0
+      first_var = 0.0
+      second_var = 0.2  # past the deadline
+      stub_monotonic_clock([deadline_calc, first_var, second_var])
 
       it "times out later variables once the shared deadline passes" do
         expect(serializer.serialize_vars({a: 1, b: 2})).to eq(
