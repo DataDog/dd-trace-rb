@@ -512,6 +512,34 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
     end
 
+    context "when the capture time budget is exhausted" do
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings, serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: 42, duration: 0.1,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(0)
+      end
+
+      it "reports notCapturedReason timeout for the return value and self" do
+        return_arguments = payload[:debugger][:snapshot][:captures][:return][:arguments]
+        expect(return_arguments[:@return]).to eq(
+          type: "Integer", notCapturedReason: "timeout",
+        )
+        expect(return_arguments[:self]).to eq(
+          type: "Object", notCapturedReason: "timeout",
+        )
+      end
+    end
+
     context "when exception has overridden message method" do
       let(:exception_class) do
         Class.new(StandardError) do
