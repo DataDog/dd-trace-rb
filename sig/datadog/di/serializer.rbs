@@ -7,7 +7,7 @@ module Datadog
       SERIALIZABLE_FATAL_EXCEPTION_CLASSES: ::Array[singleton(::Exception)]
       REDACTED_VALUE_FOR_MESSAGE: ::String
 
-      @@flat_registry: ::Array[{condition: ::Proc?, proc: ^(Serializer serializer, any value, name: ::Symbol?, depth: ::Integer, ?attribute_count: ::Integer?, ?deadline: ::Float?) -> untyped}]
+      @@flat_registry: ::Array[{condition: ::Proc?, proc: ^(Serializer serializer, any value, name: ::Symbol?, depth: ::Integer, ?attribute_count: ::Integer?) -> untyped}]
 
       @settings: Datadog::Core::Configuration::Settings
 
@@ -31,7 +31,7 @@ module Datadog
       def serialize_value_for_message: (any value, ?depth: ::Integer, ?name: (::Symbol | ::String)?) -> String?
 
       def self.register: (?condition: Proc?) {
-        (Serializer serializer, any value, name: ::Symbol?, depth: ::Integer, ?attribute_count: ::Integer?, ?deadline: ::Float?) -> untyped } -> void
+        (Serializer serializer, any value, name: ::Symbol?, depth: ::Integer, ?attribute_count: ::Integer?) -> untyped } -> void
 
       private
       def deadline_exceeded?: (::Float deadline) -> bool
