@@ -42,8 +42,6 @@ module Datadog
     #
     # @api private
     class Serializer
-      TELEMETRY_NAMESPACE = "dynamic_instrumentation"
-
       # RFC hard ceiling (DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS) for
       # snapshot/capture wall-time, expressed in seconds. The configured
       # max_time_to_serialize_ms is clamped to this value, so remote config

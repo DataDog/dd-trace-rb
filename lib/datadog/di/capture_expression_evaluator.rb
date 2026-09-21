@@ -7,8 +7,6 @@ require_relative "fatal_exceptions"
 module Datadog
   module DI
     class CaptureExpressionEvaluator
-      TELEMETRY_NAMESPACE = "dynamic_instrumentation"
-
       def initialize(settings:, serializer:, logger:, telemetry: nil)
         @settings = settings
         @serializer = serializer
