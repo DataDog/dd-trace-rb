@@ -59,6 +59,20 @@ RSpec.describe Datadog::DI::Configuration::Settings do
       end
     end
 
+    context "max_time_to_serialize_ms validation" do
+      it "raises ArgumentError for zero" do
+        expect do
+          settings.dynamic_instrumentation.max_time_to_serialize_ms = 0
+        end.to raise_error(ArgumentError, /positive integer/)
+      end
+
+      it "raises ArgumentError for a negative value" do
+        expect do
+          settings.dynamic_instrumentation.max_time_to_serialize_ms = -5
+        end.to raise_error(ArgumentError, /positive integer/)
+      end
+    end
+
     context "environment variable configuration" do
       [
         ["DD_DYNAMIC_INSTRUMENTATION_ENABLED", "true", "enabled", true],
