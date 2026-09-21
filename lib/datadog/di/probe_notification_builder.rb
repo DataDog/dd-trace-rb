@@ -83,8 +83,6 @@ module Datadog
         capture_expression_evaluation_errors = []
         captures = if probe.capture_snapshot?
           snapshot_limits = probe.snapshot_serializer_limits(settings)
-          # A single capture time budget shared across every value serialized
-          # at this capture point (return value + self, or locals + self).
           deadline = serializer.serialization_deadline
           if probe.method?
             return_arguments = {

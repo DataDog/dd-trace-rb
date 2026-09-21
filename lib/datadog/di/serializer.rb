@@ -42,10 +42,9 @@ module Datadog
     #
     # @api private
     class Serializer
-      # RFC hard ceiling (DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS) for
-      # snapshot/capture wall-time, expressed in seconds. The configured
-      # max_time_to_serialize_ms is clamped to this value, so remote config
-      # and env can only tighten the effective capture budget.
+      # Hard ceiling (DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS) for snapshot
+      # capture wall-time, in seconds. max_time_to_serialize_ms is clamped to this
+      # value, bounding the effective capture budget from above.
       CAPTURE_TIMEOUT_CEILING_SECONDS = 0.15
 
       # Exception classes that should never be caught during serialization.
@@ -163,8 +162,6 @@ module Datadog
         length: nil,
         collection_size: nil,
         deadline: nil)
-        # Resolve the capture time budget once so that all top-level variables
-        # in this capture point share a single deadline.
         deadline ||= serialization_deadline
         vars.each_with_object({}) do |(k, v), agg|
           agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count,
@@ -498,12 +495,10 @@ module Datadog
         "#<#{class_name(value.class)}: serialization error>"
       end
 
-      # Absolute monotonic deadline (in seconds) after which the main
-      # snapshot serializer aborts and emits notCapturedReason: "timeout".
-      # Shares the max_time_to_serialize_ms budget with the capture-expression
-      # evaluator; here it bounds serialization of arguments, locals and self.
-      # A caller that serializes several values for one capture point resolves
-      # this once and passes it as deadline so the budget is shared.
+      # Computes the absolute monotonic deadline (in seconds) for a capture
+      # point from max_time_to_serialize_ms, clamped to
+      # CAPTURE_TIMEOUT_CEILING_SECONDS. Resolve once per capture point and
+      # share across all serialized values so the budget is not exceeded.
       def serialization_deadline
         budget = [settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0, CAPTURE_TIMEOUT_CEILING_SECONDS].min
         monotonic_now + budget
