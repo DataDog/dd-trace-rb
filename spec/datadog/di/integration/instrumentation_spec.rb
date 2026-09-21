@@ -133,11 +133,11 @@ RSpec.describe "Instrumentation integration" do
          probeVersion: 0,
          runtimeId: String,
          status: "INSTALLED",
-       }
+       },
      },
      message: String,
      service: "rspec",
-     timestamp: Integer,}
+     timestamp: Integer}
   end
 
   let(:expected_emitting_payload) do
@@ -149,11 +149,11 @@ RSpec.describe "Instrumentation integration" do
          probeVersion: 0,
          runtimeId: String,
          status: "EMITTING",
-       }
+       },
      },
      message: String,
      service: "rspec",
-     timestamp: Integer,}
+     timestamp: Integer}
   end
 
   context "log probe" do
@@ -1096,7 +1096,7 @@ RSpec.describe "Instrumentation integration" do
                   type: "Error",
                   message: String,
                 },
-              }
+              },
             },
             message: /Probe circuit-breaker-test was disabled because it consumed .+ seconds of CPU time in DI processing/,
             service: "rspec",
@@ -1720,7 +1720,7 @@ RSpec.describe "Instrumentation integration" do
                   type: "Error",
                   message: String,
                 },
-              }
+              },
             },
             message: /Probe circuit-breaker-line-test was disabled because it consumed .+ seconds of CPU time in DI processing/,
             service: "rspec",

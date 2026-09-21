@@ -467,7 +467,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           {enabled: settings.runtime_metrics.enabled,
            services: [settings.service],
            experimental_runtime_id_enabled: settings.runtime_metrics.experimental_runtime_id_enabled,
-           experimental_propagate_process_tags_enabled: settings.experimental_propagate_process_tags_enabled,}
+           experimental_propagate_process_tags_enabled: settings.experimental_propagate_process_tags_enabled}
         end
         let(:options) { {} }
 
@@ -552,7 +552,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:default_options) do
           {
             enabled: settings.runtime_metrics.enabled,
-            metrics: runtime_metrics
+            metrics: runtime_metrics,
           }
         end
         let(:options) { {} }
@@ -781,6 +781,20 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
     it "does not raise when symbol_database is nil" do
       allow(components).to receive(:symbol_database).and_return(nil)
+
+      expect { after_fork }.not_to raise_error
+    end
+
+    it "dispatches restart_flush_thread to the data_streams processor when present" do
+      data_streams = instance_double(Datadog::DataStreams::Processor)
+      allow(components).to receive(:data_streams).and_return(data_streams)
+      expect(data_streams).to receive(:restart_flush_thread)
+
+      after_fork
+    end
+
+    it "does not raise when data_streams is nil" do
+      allow(components).to receive(:data_streams).and_return(nil)
 
       expect { after_fork }.not_to raise_error
     end

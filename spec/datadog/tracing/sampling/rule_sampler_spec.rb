@@ -367,7 +367,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       let(:rules) do
         [
           Datadog::Tracing::Sampling::SimpleRule.new(sample_rate: 1.0),
-          Datadog::Tracing::Sampling::SimpleRule.new(tags: {"http.status_code" => "404"}, sample_rate: 1.0)
+          Datadog::Tracing::Sampling::SimpleRule.new(tags: {"http.status_code" => "404"}, sample_rate: 1.0),
         ]
       end
 
@@ -377,7 +377,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     context "with a resource rule" do
       let(:rules) do
         [
-          Datadog::Tracing::Sampling::SimpleRule.new(resource: "Rails::HealthController#show", sample_rate: 1.0)
+          Datadog::Tracing::Sampling::SimpleRule.new(resource: "Rails::HealthController#show", sample_rate: 1.0),
         ]
       end
 

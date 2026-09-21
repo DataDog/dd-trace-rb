@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "base"
+require_relative "../configuration_value"
 
 module Datadog
   module Core
@@ -27,10 +28,11 @@ module Datadog
           def configuration
             config = Datadog.configuration
 
+            # @type var res: Array[telemetry_configuration]
             res = @changes.map do |name, value|
               {
                 name: name,
-                value: value,
+                value: Telemetry::ConfigurationValue.convert(value),
                 origin: @origin,
                 seq_id: Configuration::Option::Precedence::REMOTE_CONFIGURATION.numeric.next,
               }

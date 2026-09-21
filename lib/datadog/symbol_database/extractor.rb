@@ -616,7 +616,7 @@ module Datadog
           language_specifics: {
             visibility: method_visibility(klass, method_name),
             method_type: method_type.to_s,
-            arity: method.arity
+            arity: method.arity,
           },
           symbols: extract_method_parameters(method)
         )
@@ -647,7 +647,7 @@ module Datadog
       # @param start_line [Integer] Fallback end_line if iseq unavailable
       # @return [Array(Array<Hash>, Integer), Array(nil, Integer)]
       def extract_targetable_lines(method, start_line)
-        iseq = RubyVM::InstructionSequence.of(method) # steep:ignore
+        iseq = RubyVM::InstructionSequence.of(method)
         unless iseq
           @logger.debug { "symdb: no iseq for #{method.name} (C extension or native), skipping targetable lines" }
           return [nil, start_line]
@@ -801,7 +801,7 @@ module Datadog
       # objects allocated to read `source_location` are not retained between
       # passes, so they can be GC'd as soon as the inner loop ends.
       def collect_method_names_by_file(mod)
-        result = Hash.new { |h, k| h[k] = [] } # steep:ignore
+        result = Hash.new { |h, k| h[k] = [] }
 
         # Module#instance_methods(false) already returns both public and protected
         # methods, so iterating it plus private_instance_methods covers all three
@@ -905,7 +905,7 @@ module Datadog
           current[:children][part] ||= {
             name: fqn, type: resolve_scope_type(fqn),
             children: {}, methods: [], mod: nil,
-            source_file: file_path, fqn: fqn
+            source_file: file_path, fqn: fqn,
           }
           current = current[:children][part]
         end
@@ -924,7 +924,7 @@ module Datadog
             type: (Class === mod) ? "CLASS" : "MODULE",
             children: {}, methods: [],
             mod: mod, source_file: file_path,
-            fqn: mod_name
+            fqn: mod_name,
           }
           current[:children][leaf_name] = leaf
         end
@@ -1043,7 +1043,7 @@ module Datadog
           language_specifics: {
             visibility: klass ? method_visibility(klass, method_name) : "public", # steep:ignore
             method_type: "instance",
-            arity: method.arity
+            arity: method.arity,
           },
           symbols: extract_method_parameters(method)
         )

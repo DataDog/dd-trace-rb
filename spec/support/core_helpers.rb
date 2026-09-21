@@ -153,7 +153,12 @@ module CoreHelpers
         # In this case the handlers that are already registered would be
         # executed twice which is 1) probably not good and 2) would fail
         # our assertions.
-        Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
+        at_fork = Datadog::Core::Utils::AtForkMonkeyPatch
+        snapshot = at_fork.snapshot_at_fork_blocks
+        at_fork.send(
+          :replace_at_fork_blocks,
+          snapshot.merge(child: [].freeze).freeze
+        )
       end
     end
   end

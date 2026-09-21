@@ -4,6 +4,8 @@ module Datadog
       class Compiler
         def compile: (ast ast) -> [ ::String, ::Array[::Regexp] ]
 
+        def redaction_identifier: (ast ast) -> ::String?
+
         private
 
         OPERATORS: { "eq" => "==", "ne" => "!=", "ge" => ">=", "gt" => ">", "le" => "<=", "lt" => "<" }

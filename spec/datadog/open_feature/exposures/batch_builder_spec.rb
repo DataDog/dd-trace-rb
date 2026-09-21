@@ -14,7 +14,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::BatchBuilder do
         allocation: {key: "control"},
         flag: {key: "demo"},
         variant: {key: "a"},
-        subject: {id: "user-1", attributes: {"plan" => "pro"}}
+        subject: {id: "user-1", attributes: {"plan" => "pro"}},
       }
     end
 

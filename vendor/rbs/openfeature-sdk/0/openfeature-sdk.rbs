@@ -8,6 +8,8 @@ module OpenFeature
       def targeting_key: () -> ::String?
 
       def fields: () -> fields_t
+
+      def attributes: () -> fields_t
     end
 
     module Provider
@@ -45,6 +47,7 @@ module OpenFeature
       def variant: () -> ::String?
       def reason: () -> ::String?
       def error_code: () -> ::String?
+      def error_message: () -> ::String?
       def value: () -> untyped
       def flag_metadata: () -> ::Hash[::String, untyped]?
     end

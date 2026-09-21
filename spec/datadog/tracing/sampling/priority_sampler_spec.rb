@@ -232,6 +232,16 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
         expect(trace.agent_sample_rate).to be_nil
         expect(trace.get_tag("_dd.p.dm")).to be_nil
       end
+
+      context "when a previous pass left a rate limiter rate" do
+        before { trace.rate_limiter_rate = 0.5 }
+
+        it "clears the stale rate limiter rate so the probabilistic drop is not mistaken for a limiter drop" do
+          reconsider_sample_resource!
+
+          expect(trace.rate_limiter_rate).to be_nil
+        end
+      end
     end
 
     context "when a matching resource rule keeps the trace" do
@@ -295,7 +305,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
       -1 => false,
       0 => false,
       1 => true,
-      2 => true
+      2 => true,
     }.each do |priority_sampling, sampled|
       context "with priority_sampling #{priority_sampling}" do
         let(:priority_sampling) { priority_sampling }

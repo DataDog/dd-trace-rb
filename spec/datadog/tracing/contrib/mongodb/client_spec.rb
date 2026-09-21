@@ -295,7 +295,7 @@ RSpec.describe "Mongo::Client instrumentation" do
         let(:params) do
           [
             {name: "Steve", hobbies: ["hiking", "tennis", "fly fishing"]},
-            {name: "Sally", hobbies: ["skiing", "stamp collecting"]}
+            {name: "Sally", hobbies: ["skiing", "stamp collecting"]},
           ]
         end
 
@@ -383,7 +383,7 @@ RSpec.describe "Mongo::Client instrumentation" do
       let(:documents) do
         [
           {name: "Steve", hobbies: ["hiking", "tennis", "fly fishing"]},
-          {name: "Sally", hobbies: ["skiing", "stamp collecting"]}
+          {name: "Sally", hobbies: ["skiing", "stamp collecting"]},
         ]
       end
 
@@ -441,7 +441,7 @@ RSpec.describe "Mongo::Client instrumentation" do
       let(:documents) do
         [
           {name: "Steve", hobbies: ["hiking", "tennis", "fly fishing"]},
-          {name: "Sally", hobbies: ["skiing", "stamp collecting"]}
+          {name: "Sally", hobbies: ["skiing", "stamp collecting"]},
         ]
       end
 
@@ -551,7 +551,9 @@ RSpec.describe "Mongo::Client instrumentation" do
 
           expect(auth_span).to have_error
           expect(auth_span).to have_error_type("Mongo::Monitoring::Event::CommandFailed")
-          expect(auth_span).to have_error_message(/Unsupported mechanism 'PLAIN'/)
+          # MongoDB <= 4.2 replies "Unsupported mechanism 'PLAIN'";
+          # MongoDB >= 4.4 replies "Received authentication for mechanism PLAIN which is unknown or not enabled".
+          expect(auth_span).to have_error_message(/Unsupported mechanism 'PLAIN'|mechanism PLAIN which is unknown or not enabled/)
         end
       end
     end

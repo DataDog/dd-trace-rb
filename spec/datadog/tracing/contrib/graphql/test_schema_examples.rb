@@ -56,27 +56,48 @@ def unload_test_schema(prefix: "")
   Object.send(:remove_const, :"#{prefix}TestGraphQLSchema")
 end
 
-RSpec.shared_examples "graphql default instrumentation" do
+RSpec.shared_examples "graphql default instrumentation" do |legacy_output: false|
   describe "query trace" do
     subject(:result) { TestGraphQLSchema.execute("{ user(id: 1) { name } }") }
 
-    matrix = [
-      ["TestGraphQLQuery.authorized", "authorized"],
-      ["TestGraphQLQuery.user", "execute_field"],
-      ["TestUser.authorized", "authorized"],
-      ["analyze.graphql", "analyze_multiplex"],
-      ["analyze.graphql", "analyze_query"],
-      ["execute.graphql", "execute_multiplex"],
-      ["execute.graphql", "execute_query"],
-      ["execute.graphql", "execute_query_lazy"],
-      # New Ruby-based parser doesn't emit a "lex" event. (graphql/c_parser still does.)
-      (["lex.graphql", "lex"] if Gem::Version.new(GraphQL::VERSION) < Gem::Version.new("2.2")),
-      ["parse.graphql", "parse"],
-      ["validate.graphql", "validate"]
-    ].compact
+    # graphql 2.6 replaced `GraphQL::Tracing::DataDogTrace` with a MonitorTrace-based
+    # implementation with a reduced span structure: the `execute_query`, `execute_query_lazy`
+    # and `execute_multiplex` events became a single `execute` event, `analyze_query` and
+    # `analyze_multiplex` became `analyze`, and the `authorized`/field events lost their
+    # `component`/`operation` tags and gained a ".graphql" name suffix. The deprecated
+    # `GraphQL::Schema.tracer` path (`legacy_output`) still emits the legacy structure.
+    matrix =
+      if Gem::Version.new(GraphQL::VERSION) >= Gem::Version.new("2.6") && !legacy_output
+        [
+          ["TestGraphQLQuery.authorized.graphql", nil],
+          ["TestGraphQLQuery.user.graphql", nil],
+          ["TestUser.authorized.graphql", nil],
+          ["analyze.graphql", nil],
+          ["execute.graphql", "execute"],
+          ["parse.graphql", "parse"],
+          ["validate.graphql", "validate"],
+        ]
+      else
+        [
+          ["TestGraphQLQuery.authorized", "authorized"],
+          ["TestGraphQLQuery.user", "execute_field"],
+          ["TestUser.authorized", "authorized"],
+          ["analyze.graphql", "analyze_multiplex"],
+          ["analyze.graphql", "analyze_query"],
+          ["execute.graphql", "execute_multiplex"],
+          ["execute.graphql", "execute_query"],
+          ["execute.graphql", "execute_query_lazy"],
+          # New Ruby-based parser doesn't emit a "lex" event. (graphql/c_parser still does.)
+          (["lex.graphql", "lex"] if Gem::Version.new(GraphQL::VERSION) < Gem::Version.new("2.2")),
+          ["parse.graphql", "parse"],
+          ["validate.graphql", "validate"],
+        ].compact
+      end
 
     matrix.each_with_index do |(name, operation), index|
-      it "creates #{name} span with #{operation} operation" do
+      operation_description = operation ? " with #{operation} operation" : ""
+
+      it "creates #{name} span#{operation_description}" do
         expect(result.to_h["errors"]).to be nil
         expect(spans).to have(matrix.length).items
 
@@ -86,7 +107,7 @@ RSpec.shared_examples "graphql default instrumentation" do
         expect(span.resource).to eq(name)
         expect(span.service).to eq(tracer.default_service)
         expect(span.type).to eq("custom")
-        expect(span.get_tag("component")).to eq("graphql")
+        expect(span.get_tag("component")).to eq(operation ? "graphql" : nil)
         expect(span.get_tag("operation")).to eq(operation)
       end
     end
@@ -115,7 +136,7 @@ RSpec.shared_examples "graphql instrumentation with unified naming convention tr
       ["graphql.resolve", "#{prefix}TestGraphQLQuery.user"],
       ["graphql.resolve", "#{prefix}TestUser.name"],
       # New Ruby-based parser doesn't emit a "lex" event. (graphql/c_parser still does.)
-      ["graphql.validate", "Users"]
+      ["graphql.validate", "Users"],
     ].compact
 
     # graphql.source for execute_multiplex is not required in the span attributes specification

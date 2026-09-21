@@ -56,9 +56,9 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           "timestamp" => Time.now.to_i,
           "captures" => {
             "locals" => {
-              "binary_data" => escaped_binary
-            }
-          }
+              "binary_data" => escaped_binary,
+            },
+          },
         }
       end
 
@@ -97,9 +97,9 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           "id" => "test-snapshot",
           "captures" => {
             "locals" => {
-              "binary_data" => escaped_binary
-            }
-          }
+              "binary_data" => escaped_binary,
+            },
+          },
         }
       end
 

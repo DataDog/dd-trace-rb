@@ -13,7 +13,7 @@ module Datadog
           ALL = [
             Events::Consume,
             Events::Batch,
-            Events::Message
+            Events::Message,
           ].freeze
 
           module_function

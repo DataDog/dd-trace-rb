@@ -21,7 +21,7 @@ module Datadog
         #: () -> ::Array["-rdatadog/profiling/preload"]
         def rubyopts
           [
-            "-rdatadog/profiling/preload"
+            "-rdatadog/profiling/preload",
           ]
         end
 

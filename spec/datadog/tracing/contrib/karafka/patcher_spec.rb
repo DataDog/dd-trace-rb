@@ -213,7 +213,7 @@ RSpec.describe "Karafka patcher" do
           end
 
           expect(producer_middlewares).to eq([
-            Datadog::Tracing::Contrib::WaterDrop::Middleware
+            Datadog::Tracing::Contrib::WaterDrop::Middleware,
           ])
         end
       end
@@ -232,7 +232,7 @@ RSpec.describe "Karafka patcher" do
 
           expect(producer_middlewares).to eq([
             custom_middleware,
-            Datadog::Tracing::Contrib::WaterDrop::Middleware
+            Datadog::Tracing::Contrib::WaterDrop::Middleware,
           ])
         end
       end
@@ -247,7 +247,7 @@ RSpec.describe "Karafka patcher" do
           end
 
           expect(producer_middlewares).to eq([
-            Datadog::Tracing::Contrib::WaterDrop::Middleware
+            Datadog::Tracing::Contrib::WaterDrop::Middleware,
           ])
         end
       end

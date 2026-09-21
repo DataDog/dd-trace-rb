@@ -121,7 +121,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
               ),
               Datadog::Tracing::SpanLink.new(
                 Datadog::Tracing::TraceDigest.new,
-              )
+              ),
             ],
           )
         end
@@ -146,7 +146,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
                 "span_id" => 2,
                 "trace_id" => 0x0123456789abcdef,
                 "trace_id_high" => 10,
-                "flags" => 0
+                "flags" => 0,
               },
               {"span_id" => 0, "trace_id" => 0, "flags" => 0}]
           )
@@ -204,14 +204,14 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
               [
                 {"name" => "First Event", "time_unix_nano" => 123},
                 {"name" => "Another Event 0!", "time_unix_nano" => 456, "attributes" => {
-                  "id" => {"int_value" => 0, "type" => 2}, "required" => {"bool_value" => false, "type" => 1}
-                }}
+                  "id" => {"int_value" => 0, "type" => 2}, "required" => {"bool_value" => false, "type" => 1},
+                }},
               ],
               [
                 {"name" => "First Event", "time_unix_nano" => 123},
                 {"name" => "Another Event 1!", "time_unix_nano" => 456, "attributes" => {
-                  "id" => {"int_value" => 1, "type" => 2}, "required" => {"bool_value" => true, "type" => 1}
-                }}
+                  "id" => {"int_value" => 1, "type" => 2}, "required" => {"bool_value" => true, "type" => 1},
+                }},
               ],
             ]
           )

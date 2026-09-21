@@ -138,7 +138,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       context "with template segments" do
         let(:probe_spec) do
           {id: "11", name: "bar", type: "LOG_PROBE", where: {
-                                                       typeName: "Foo", methodName: "bar"
+                                                       typeName: "Foo", methodName: "bar",
                                                      },
            segments: segments}
         end
@@ -187,7 +187,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             expect(payload).to be_a(Hash)
             expect(payload[:message]).to eq "hello[evaluation error]"
             expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:evaluationErrors)).to eq [
-              {message: "ArgumentError: bad value for range", expr: "(expression)"}
+              {message: "ArgumentError: bad value for range", expr: "(expression)"},
             ]
 
             # We asked to not create a snapshot

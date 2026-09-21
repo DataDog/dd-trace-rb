@@ -17,7 +17,7 @@ module Datadog
             "x-appgw-trace-id",
             "x-cloud-trace-context",
             "x-sigsci-requestid",
-            "x-sigsci-tags"
+            "x-sigsci-tags",
           ].freeze
 
           IDENTITY_COLLECTABLE_REQUEST_HEADERS = [
@@ -38,7 +38,7 @@ module Datadog
             "x-cluster-client-ip",
             "x-forwarded",
             "x-forwarded-for",
-            "x-real-ip"
+            "x-real-ip",
           ].freeze
         end
       end

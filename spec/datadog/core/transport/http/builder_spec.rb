@@ -110,7 +110,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
       {
         "X-Test-One" => "foo",
         "X-Test-Two" => "blah",
-        "X-Test-Three" => "baz"
+        "X-Test-Three" => "baz",
       }
     end
 

@@ -10,7 +10,7 @@ module Datadog
         module HeaderTagging
           DATADOG_REQUEST_ATTRIBUTION_HEADERS = [
             "x-datadog-endpoint-scan",
-            "x-datadog-security-test"
+            "x-datadog-security-test",
           ].freeze
 
           def self.tag_request_headers(span, env, configuration)

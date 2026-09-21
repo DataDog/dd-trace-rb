@@ -46,7 +46,7 @@ module Datadog
             raise ArgumentError, "Malformed condition specification for probe: #{config}"
           end
           compiled, regexps = EL::Compiler.new.compile(cond_spec["json"])
-          EL::Expression.new(cond_spec["dsl"], compiled, regexps)
+          EL::Expression.new(cond_spec["dsl"], compiled, regexps: regexps)
         end
         capture_expressions = build_capture_expressions(config["captureExpressions"])
         capture_expressions = dedup_capture_expressions(capture_expressions, config["id"], logger)
@@ -101,7 +101,7 @@ module Datadog
             raise ArgumentError, "captureExpressions entry #{name}: missing or malformed expr"
           end
           compiled, regexps = EL::Compiler.new.compile(expr_spec["json"])
-          expr = EL::Expression.new(expr_spec["dsl"], compiled, regexps)
+          expr = EL::Expression.new(expr_spec["dsl"], compiled, regexps: regexps)
           limits = build_capture_limits(entry["capture"])
           CaptureExpression.new(name: name, expr: expr, limits: limits)
         end
@@ -152,8 +152,9 @@ module Datadog
               unless dsl = segment["dsl"]
                 raise ArgumentError, "Missing dsl for json in segment: #{segment}"
               end
-              compiled, regexps = EL::Compiler.new.compile(ast)
-              EL::Expression.new(dsl, compiled, regexps)
+              compiler = EL::Compiler.new
+              compiled, regexps = compiler.compile(ast)
+              EL::Expression.new(dsl, compiled, regexps: regexps, redaction_identifier: compiler.redaction_identifier(ast))
             else
               # TODO report to telemetry?
             end

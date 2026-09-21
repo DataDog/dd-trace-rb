@@ -165,7 +165,7 @@ module Datadog
               resetter: @resetter,
               setter: @setter,
               type: @type,
-              type_options: @type_options
+              type_options: @type_options,
             }
           end
 

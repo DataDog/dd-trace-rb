@@ -26,9 +26,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g47f47df86aeb379fb8b31dc6ad91a91bb3c97516
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
       env:
-        BUNDLE_GEMFILE: tools/yard.gemfile
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     steps:
       - name: Checkout
@@ -36,8 +36,9 @@ jobs:
         with:
           persist-credentials: false
       - run: ls -al
-      - name: Bundle
-        run: bundle install
+      - name: Prepare bundle cache
+        id: bundle-cache
+        uses: ./.github/actions/bundle-cache
       - name: Generate YARD documentation
         run: bundle exec rake docs --rakefile=tasks/yard.rake
       - name: Setup Pages
@@ -49,4 +50,4 @@ jobs:
           path: 'doc/'
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

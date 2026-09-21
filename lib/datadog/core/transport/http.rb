@@ -61,7 +61,7 @@ module Datadog
             Core::Transport::Ext::HTTP::HEADER_META_LANG_INTERPRETER_VENDOR =>
               Core::Environment::Ext::LANG_ENGINE,
             Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION =>
-              Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION
+              Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION,
           }.tap do |headers|
             # Add application container info
             headers.merge!(Core::Environment::Container.to_headers)

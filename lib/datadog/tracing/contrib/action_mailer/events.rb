@@ -11,7 +11,7 @@ module Datadog
         module Events
           ALL = [
             Events::Process,
-            Events::Deliver
+            Events::Deliver,
           ].freeze
 
           module_function

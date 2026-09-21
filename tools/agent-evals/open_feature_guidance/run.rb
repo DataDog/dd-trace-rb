@@ -45,7 +45,7 @@ def run_codex(prompt, output_path, model, root)
     "--color", "never",
     "--cd", root,
     "--output-schema", OUTPUT_SCHEMA,
-    "--output-last-message", output_path
+    "--output-last-message", output_path,
   ]
   command.concat(["--model", model]) if model
   command << prompt
@@ -89,7 +89,7 @@ case_paths.each do |case_path|
     else
       details = [
         "missing instruction files: #{missing_files.join(", ")}",
-        "result: #{JSON.pretty_generate(result)}"
+        "result: #{JSON.pretty_generate(result)}",
       ]
       failures << [name, details.join("\n")]
     end

@@ -44,7 +44,11 @@ module Datadog
         # Reports unhandled exceptions to the crash tracker if available and appropriate.
         # This is called from the at_exit hook to report unhandled exceptions.
         def self.report_unhandled_exception(exception)
-          return unless exception && !exception.is_a?(SystemExit) && !exception.is_a?(NoMemoryError)
+          return unless exception &&
+            !exception.is_a?(SystemExit) &&
+            !exception.is_a?(SignalException) &&
+            !exception.is_a?(NoMemoryError) &&
+            !exception.is_a?(SystemStackError)
 
           begin
             crashtracker = Datadog.send(:components, allow_initialization: false)&.crashtracker

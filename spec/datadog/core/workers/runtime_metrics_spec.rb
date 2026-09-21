@@ -311,7 +311,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
         {
           metrics: metrics,
           fork_policy: fork_policy,
-          enabled: true
+          enabled: true,
         }
       end
 

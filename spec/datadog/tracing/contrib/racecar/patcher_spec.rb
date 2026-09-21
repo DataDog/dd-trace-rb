@@ -108,7 +108,7 @@ RSpec.describe "Racecar patcher" do
         consumer_class: consumer,
         topic: topic,
         partition: partition,
-        offset: offset
+        offset: offset,
       }
     end
 
@@ -193,7 +193,7 @@ RSpec.describe "Racecar patcher" do
         topic: topic,
         partition: partition,
         message_count: message_count,
-        first_offset: offset
+        first_offset: offset,
       }
     end
 

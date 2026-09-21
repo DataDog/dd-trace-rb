@@ -31,6 +31,29 @@ module Datadog
           [code, regexps]
         end
 
+        # Returns the identifier that +ast+ directly references at its top
+        # level, so the message path can redact direct references the same
+        # way snapshots redact by name.
+        #
+        # @param ast [untyped] top-level expression AST from a probe definition.
+        # @return [String, nil] the variable name for a `ref`/`iref`, the field
+        #   name for a `getmember`, or the string key for an `index`; nil when
+        #   the top-level expression is not a direct reference.
+        def redaction_identifier(ast)
+          return nil unless Hash === ast && ast.length == 1
+
+          entry = ast.first
+          return nil if entry.nil?
+
+          op, target = entry
+          case op
+          when "ref"
+            target if String === target
+          when "getmember", "index"
+            target[1] if Array === target && target.length == 2 && String === target[1]
+          end
+        end
+
         private
 
         # Steep: https://github.com/soutaro/steep/issues/363

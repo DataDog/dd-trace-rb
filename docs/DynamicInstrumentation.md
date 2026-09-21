@@ -65,6 +65,12 @@ Dynamic Instrumentation without an application restart.
 The DD_ENV and source code metadata variables (steps 3 and 4 above)
 still need to be set for probes to appear correctly in the UI.
 
+The enablement signal can target a single service and environment, or be
+set as a default for a whole environment or the whole organization. When
+several of these apply to one service, the most specific one wins: a
+service-and-environment setting overrides an environment-wide default,
+which overrides an organization-wide default.
+
 **Precedence:** if `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false` is set
 explicitly, the env-var setting takes precedence and remote-config
 enablement is ignored. Leave the variable unset (do not set it to

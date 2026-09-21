@@ -24,7 +24,7 @@ RSpec.describe Datadog::Core::Transport::HTTP do
         {
           "Datadog-Container-ID" => "abc123",
           "Datadog-Entity-ID" => "ci-abc123",
-          "Datadog-External-Env" => "provided-by-container-runner"
+          "Datadog-External-Env" => "provided-by-container-runner",
         }
       end
 

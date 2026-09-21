@@ -1,7 +1,15 @@
 require "datadog/core/utils/at_fork_monkey_patch"
+require "timeout"
 
 RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
   before { skip "Forking not supported" unless Datadog::Core::Utils::AtForkMonkeyPatch.supported? } # rubocop:disable RSpec/DescribedClass
+
+  def clear_at_fork_blocks
+    Datadog::Core::Utils::AtForkMonkeyPatch.send(
+      :replace_at_fork_blocks,
+      {before: [].freeze, parent: [].freeze, child: [].freeze}.freeze
+    )
+  end
 
   describe "::apply!" do
     subject(:apply!) { described_class.apply! }
@@ -117,9 +125,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       end
 
       after do
-        Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_BEFORE_BLOCKS).clear
-        Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_PARENT_BLOCKS).clear
-        Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
+        clear_at_fork_blocks
       end
     end
 
@@ -187,6 +193,23 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
             end
           end
         end
+
+        context "when a later before callback raises" do
+          include_context "at_fork callbacks"
+
+          it "runs parent cleanup and does not fork" do
+            error = RuntimeError.new("before failed")
+            described_module = Datadog::Core::Utils::AtForkMonkeyPatch
+            described_module.at_fork(:before) { raise error }
+
+            expect(before_fork).to receive(:call).ordered
+            expect(parent).to receive(:call).ordered
+            expect(child).to_not receive(:call)
+            expect(Kernel).to_not receive(:fork)
+
+            expect { fork_class.fork }.to raise_error(error)
+          end
+        end
       end
     end
   end
@@ -216,9 +239,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     end
 
     after do
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_BEFORE_BLOCKS).clear
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_PARENT_BLOCKS).clear
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
+      clear_at_fork_blocks
     end
 
     describe ".daemon" do
@@ -235,8 +256,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       it "runs the before callback before the child callback" do
         calls = []
         described_class_blocks = Datadog::Core::Utils::AtForkMonkeyPatch
-        described_class_blocks.const_get(:AT_FORK_BEFORE_BLOCKS).clear
-        described_class_blocks.const_get(:AT_FORK_CHILD_BLOCKS).clear
+        clear_at_fork_blocks
         described_class_blocks.at_fork(:before) { calls << :before }
         described_class_blocks.at_fork(:child) { calls << :child }
 
@@ -247,6 +267,17 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
 
       it "passes any arguments to Process.daemon and returns its results" do
         expect(process_module.daemon(:arg1, :arg2)).to eq([:arg1, :arg2])
+      end
+
+      it "runs parent cleanup when a later before callback raises" do
+        error = RuntimeError.new("before failed")
+        Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:before) { raise error }
+
+        expect(before_callback).to receive(:call).ordered
+        expect(parent_callback).to receive(:call).ordered
+        expect(child_callback).to_not receive(:call)
+
+        expect { process_module.daemon }.to raise_error(error)
       end
     end
 
@@ -264,6 +295,28 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
 
         it "returns the result from _fork" do
           expect(process_module._fork).to be _fork_result
+        end
+
+        it "uses one callback snapshot for the complete fork lifecycle" do
+          calls = []
+          registered = false
+          at_fork = Datadog::Core::Utils::AtForkMonkeyPatch
+          at_fork.at_fork(:before) do
+            next if registered
+
+            registered = true
+            at_fork.at_fork_blocks(
+              before: proc { calls << :late_before },
+              parent: proc { calls << :late_parent },
+              child: proc { calls << :late_child }
+            )
+          end
+
+          process_module._fork
+          expect(calls).to eq([])
+
+          process_module._fork
+          expect(calls).to eq(%i[late_before late_child])
         end
       end
 
@@ -300,15 +353,58 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
 
           expect { process_module._fork }.to raise_error(Errno::EAGAIN)
         end
+
+        it "does not replace the fork failure when parent cleanup also fails" do
+          cleanup_error = RuntimeError.new("parent cleanup failed")
+          allow(parent_callback).to receive(:call).and_raise(cleanup_error)
+          expect(Datadog.logger).to receive(:warn) do |&message|
+            expect(message.call).to include("Parent at-fork cleanup failed", "RuntimeError: parent cleanup failed")
+          end
+
+          expect { process_module._fork }.to raise_error(Errno::EAGAIN)
+        end
+      end
+
+      context "when a later before callback raises" do
+        it "runs parent cleanup and does not run child callbacks" do
+          error = RuntimeError.new("before failed")
+          Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:before) { raise error }
+
+          expect(before_callback).to receive(:call).ordered
+          expect(parent_callback).to receive(:call).ordered
+          expect(child_callback).to_not receive(:call)
+
+          expect { process_module._fork }.to raise_error(error)
+        end
+
+        it "cleans up only callback triplets whose before stage started" do
+          calls = []
+          error = RuntimeError.new("before failed")
+          at_fork = Datadog::Core::Utils::AtForkMonkeyPatch
+          at_fork.at_fork_blocks(
+            before: proc do
+              calls << :started_before
+              raise error
+            end,
+            parent: proc { calls << :started_parent },
+            child: proc { calls << :started_child }
+          )
+          at_fork.at_fork_blocks(
+            before: proc { calls << :skipped_before },
+            parent: proc { calls << :skipped_parent },
+            child: proc { calls << :skipped_child }
+          )
+
+          expect { process_module._fork }.to raise_error(error)
+          expect(calls).to eq(%i[started_before started_parent])
+        end
       end
     end
   end
 
   describe "::at_fork and ::run_at_fork_blocks" do
     after do
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_BEFORE_BLOCKS).clear
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_PARENT_BLOCKS).clear
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
+      clear_at_fork_blocks
     end
 
     %i[before parent child].each do |stage|
@@ -316,11 +412,95 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
         calls = []
         described_class.at_fork(stage) { calls << :first }
         described_class.at_fork(stage) { calls << :second }
+        snapshot = described_class.snapshot_at_fork_blocks
 
-        described_class.run_at_fork_blocks(stage)
+        described_class.run_at_fork_blocks(stage, snapshot: snapshot)
 
         expect(calls).to eq(%i[first second])
       end
+    end
+
+    %i[parent child].each do |stage|
+      it "runs every #{stage} callback before re-raising the first failure" do
+        calls = []
+        error = RuntimeError.new("first #{stage} failed")
+        described_class.at_fork(stage) do
+          calls << :first
+          raise error
+        end
+        described_class.at_fork(stage) do
+          calls << :second
+          raise "second #{stage} failed"
+        end
+        snapshot = described_class.snapshot_at_fork_blocks
+
+        expect { described_class.run_at_fork_blocks(stage, snapshot: snapshot) }.to raise_error(error)
+        expect(calls).to eq(%i[first second])
+      end
+    end
+
+    it "stops before callbacks at the first failure" do
+      calls = []
+      described_class.at_fork(:before) do
+        calls << :first
+        raise "before failed"
+      end
+      described_class.at_fork(:before) { calls << :second }
+      snapshot = described_class.snapshot_at_fork_blocks
+
+      expect { described_class.run_at_fork_blocks(:before, snapshot: snapshot) }.to raise_error("before failed")
+      expect(calls).to eq([:first])
+    end
+
+    it "registers a callback triplet together" do
+      blocks = {
+        before: proc {},
+        parent: proc {},
+        child: proc {},
+      }
+
+      expect(described_class.at_fork_blocks(**blocks)).to eq(blocks)
+
+      snapshot = described_class.snapshot_at_fork_blocks
+      blocks.each do |stage, block|
+        expect(snapshot.fetch(stage).map(&:block)).to include(block)
+      end
+    end
+
+    it "publishes a new immutable registry without changing an active snapshot" do
+      described_class.at_fork(:before) {}
+      snapshot = described_class.snapshot_at_fork_blocks
+
+      described_class.at_fork(:before) {}
+
+      expect(snapshot).to be_frozen
+      expect(snapshot.fetch(:before)).to be_frozen
+      expect(snapshot.fetch(:before).length).to eq(1)
+      expect(described_class.snapshot_at_fork_blocks.fetch(:before).length).to eq(2)
+    end
+
+    it "dispatches an empty fork lifecycle from a signal trap without locking" do
+      at_fork = described_class
+      clear_at_fork_blocks
+      process_module = Module.new do
+        define_singleton_method(:_fork) { 1234 }
+      end
+      process_module.singleton_class.prepend(at_fork::ProcessMonkeyPatch)
+      result = nil
+      error = nil
+      previous_handler = Signal.trap("USR1") do
+        result = process_module._fork
+      rescue => e
+        error = e
+      end
+
+      Process.kill("USR1", Process.pid)
+      Timeout.timeout(1) { Thread.pass until result || error }
+
+      expect(error).to be_nil
+      expect(result).to eq(1234)
+    ensure
+      Signal.trap("USR1", previous_handler) if previous_handler
     end
 
     it "keeps the stages independent" do
@@ -328,12 +508,28 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       described_class.at_fork(:before) { calls << :before }
       described_class.at_fork(:parent) { calls << :parent }
       described_class.at_fork(:child) { calls << :child }
+      snapshot = described_class.snapshot_at_fork_blocks
 
-      described_class.run_at_fork_blocks(:before)
+      described_class.run_at_fork_blocks(:before, snapshot: snapshot)
       expect(calls).to eq(%i[before])
 
-      described_class.run_at_fork_blocks(:child)
+      described_class.run_at_fork_blocks(:child, snapshot: snapshot)
       expect(calls).to eq(%i[before child])
+    end
+
+    it "runs every selected callback when one deregisters itself" do
+      calls = []
+      first = nil
+      first = described_class.at_fork(:parent) do
+        calls << :first
+        described_class.remove_at_fork(:parent, first)
+      end
+      described_class.at_fork(:parent) { calls << :second }
+      snapshot = described_class.snapshot_at_fork_blocks
+
+      described_class.run_at_fork_blocks(:parent, snapshot: snapshot)
+
+      expect(calls).to eq(%i[first second])
     end
 
     it "raises ArgumentError for an unknown stage when registering" do
@@ -341,7 +537,10 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     end
 
     it "raises ArgumentError for an unknown stage when running" do
-      expect { described_class.run_at_fork_blocks(:nonsense) }.to raise_error(ArgumentError, /Unsupported stage nonsense/)
+      snapshot = described_class.snapshot_at_fork_blocks
+
+      expect { described_class.run_at_fork_blocks(:nonsense, snapshot: snapshot) }
+        .to raise_error(ArgumentError, /Unsupported stage nonsense/)
     end
 
     it "raises ArgumentError when no block is given" do
@@ -356,9 +555,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
 
   describe "::remove_at_fork" do
     after do
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_BEFORE_BLOCKS).clear
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_PARENT_BLOCKS).clear
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
+      clear_at_fork_blocks
     end
 
     %i[before parent child].each do |stage|
@@ -368,7 +565,8 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
         removed = described_class.at_fork(stage) { calls << :removed }
 
         described_class.remove_at_fork(stage, removed)
-        described_class.run_at_fork_blocks(stage)
+        snapshot = described_class.snapshot_at_fork_blocks
+        described_class.run_at_fork_blocks(stage, snapshot: snapshot)
 
         expect(calls).to eq(%i[kept])
         # The handle returned by at_fork is the one that was removed.
@@ -384,7 +582,8 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
 
       expect { described_class.remove_at_fork(:child, never_registered) }.to_not raise_error
 
-      described_class.run_at_fork_blocks(:child)
+      snapshot = described_class.snapshot_at_fork_blocks
+      described_class.run_at_fork_blocks(:child, snapshot: snapshot)
       expect(calls).to eq(%i[kept])
     end
 
@@ -395,7 +594,8 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       described_class.remove_at_fork(:child, block)
       expect { described_class.remove_at_fork(:child, block) }.to_not raise_error
 
-      described_class.run_at_fork_blocks(:child)
+      snapshot = described_class.snapshot_at_fork_blocks
+      described_class.run_at_fork_blocks(:child, snapshot: snapshot)
       expect(calls).to eq([])
     end
 

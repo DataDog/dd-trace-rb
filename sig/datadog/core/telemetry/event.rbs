@@ -3,7 +3,7 @@ module Datadog
     module Telemetry
       module Event
         # common to app-started and app-client-configuration-change
-        type telemetry_value = ::Integer | ::String | bool | nil
+        type telemetry_value = ::Integer | ::Float | ::String | bool | nil
         type telemetry_configuration = {
           name: ::String,
           value: telemetry_value,

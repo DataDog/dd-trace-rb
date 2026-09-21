@@ -90,7 +90,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             is_expected.to eq(
               [
                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
-                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
               ]
             )
           end
@@ -102,7 +102,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
               is_expected.to eq(
                 [
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
                 ]
               )
             end
@@ -136,7 +136,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             is_expected.to eq(
               [
                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
               ]
             )
           end
@@ -148,7 +148,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
               is_expected.to eq(
                 [
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
                 ]
               )
             end
@@ -311,7 +311,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           ClimateControl.modify(
             {
               Datadog::Tracing::Configuration::Ext::ENV_ENABLED => dd_enable,
-              "OTEL_TRACES_EXPORTER" => otel_exporter
+              "OTEL_TRACES_EXPORTER" => otel_exporter,
             }
           ) do
             example.run
@@ -1106,7 +1106,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       {
         "true" => true,
         "1" => true,
-        "false" => false
+        "false" => false,
       }.each do |env, value|
         context "when ENV['DD_TRACE_CLIENT_IP_ENABLED'] is '#{env}'" do
           around do |example|

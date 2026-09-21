@@ -27,7 +27,7 @@ module Datadog
             ENCODED_IDS = [
               :trace_id,
               :span_id,
-              :parent_id
+              :parent_id,
             ].freeze
 
             # Encodes a list of traces

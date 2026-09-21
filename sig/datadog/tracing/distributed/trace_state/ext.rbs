@@ -1,0 +1,32 @@
+module Datadog
+  module Tracing
+    module Distributed
+      class TraceState
+        module Ext
+          TRACESTATE_MAX_SIZE_LIMIT: ::Integer
+          TRACESTATE_MAX_LIST_VENDORS: ::Integer
+          TRACESTATE_VALUE_SIZE_LIMIT: ::Integer
+
+          module Datadog
+            VALID_KEY_CHARS: ::Regexp
+            VALID_VALUE_CHARS: ::Regexp
+            INVALID_ORIGIN_CHARS: ::Regexp
+            REMAP_ORIGIN_CHARS: ::Regexp
+            INVALID_TAG_KEY_CHARS: ::Regexp
+            INVALID_TAG_VALUE_CHARS: ::Regexp
+          end
+
+          module OpenTelemetry
+            MAX_THRESHOLD: ::Integer
+            MAX_ENCODABLE_THRESHOLD: ::Integer
+            UINT64_MODULO: ::Integer
+            UINT64_MASK: ::Integer
+            VALID_THRESHOLD: ::Regexp
+            VALID_RANDOM_VALUE: ::Regexp
+            NON_PROBABILITY_DECISIONS: ::Set[::String]
+          end
+        end
+      end
+    end
+  end
+end

@@ -24,11 +24,11 @@ module Datadog
           def call(tracing_header_tags)
             # Modify the remote configuration value that it matches the
             # environment variable it configures.
-            tracing_header_tags&.map! do |hash|
+            parsed_header_tags = tracing_header_tags&.map do |hash|
               "#{hash["header"]}:#{hash["tag_name"]}"
             end
 
-            super
+            super(parsed_header_tags)
           end
         end
 
@@ -42,6 +42,7 @@ module Datadog
           def call(tracing_sampling_rate)
             super
             Datadog.send(:components).reconfigure_sampler
+            tracing_sampling_rate
           end
 
           protected
@@ -78,8 +79,9 @@ module Datadog
               tracing_sampling_rules = tracing_sampling_rules.to_json
             end
 
-            super
+            telemetry_value = super
             Datadog.send(:components).reconfigure_sampler
+            telemetry_value
           end
 
           protected

@@ -25,7 +25,7 @@ module Datadog
             Events::ConsumerGroup::LeaveGroup,
             Events::ConsumerGroup::SyncGroup,
             Events::ProduceOperation::SendMessages,
-            Events::Producer::DeliverMessages
+            Events::Producer::DeliverMessages,
           ].freeze
 
           module_function

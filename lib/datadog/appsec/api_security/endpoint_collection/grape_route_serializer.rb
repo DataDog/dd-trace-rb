@@ -16,7 +16,7 @@ module Datadog
               resource_name: "#{route.request_method} #{path}",
               operation_name: "http.request",
               method: route.request_method,
-              path: path
+              path: path,
             }
           end
         end

@@ -80,7 +80,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patchable do
           {available?: true, loaded?: true, compatible?: true, expect: true},
           {available?: false, loaded?: true, compatible?: true, expect: false},
           {available?: true, loaded?: false, compatible?: true, expect: false},
-          {available?: true, loaded?: true, compatible?: false, expect: false}
+          {available?: true, loaded?: true, compatible?: false, expect: false},
         ].each do |test_case|
           # rubocop:disable Layout/LineLength
           context "when available? (#{test_case[:available?]}) loaded? (#{test_case[:loaded?]}) compatible? (#{test_case[:compatible?]})" do

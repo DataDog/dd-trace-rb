@@ -12,8 +12,6 @@ on: # yamllint disable-line rule:truthy
     branches:
       - master
   pull_request:
-    branches:
-      - master
 
 # Default permissions for all jobs
 permissions: {}
@@ -39,7 +37,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@a30dfa457ad68707b8b910ac3a244714b61c0626 # v1.320.0
+      - uses: ruby/setup-ruby@a0102e0972be65f351c307e2d64b9314a57c8073 # v1.324.0
         with:
           ruby-version: "4.0.1"
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
@@ -92,7 +90,7 @@ jobs:
       - name: List gem
         run: |
           find pkg
-      - uses: ruby/setup-ruby@a30dfa457ad68707b8b910ac3a244714b61c0626 # v1.320.0
+      - uses: ruby/setup-ruby@a0102e0972be65f351c307e2d64b9314a57c8073 # v1.324.0
         with:
           ruby-version: "4.0.1"
       - name: Install gem
@@ -124,7 +122,7 @@ jobs:
           find pkg
       - name: Get GitHub Token via dd-octo-sts
         id: generate-token
-        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        uses: DataDog/dd-octo-sts-action@c85802a58e202b7e764b5441e4378c76043c8108 # v1.0.5
         with:
           scope: DataDog/dd-trace-rb
           policy: self.build-gem

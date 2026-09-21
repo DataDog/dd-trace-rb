@@ -25,12 +25,6 @@
 # is collected in the PARENT process -- where its runtime can shut down cleanly
 # -- before the next group forks.
 module NativeTransportForkIsolation
-  STAGES = {
-    before: :AT_FORK_BEFORE_BLOCKS,
-    parent: :AT_FORK_PARENT_BLOCKS,
-    child: :AT_FORK_CHILD_BLOCKS,
-  }.freeze
-
   module_function
 
   # Deterministically release a native transport so its exporter -- and the
@@ -89,19 +83,18 @@ module NativeTransportForkIsolation
   end
 
   def push_snapshot
-    snapshot = STAGES.each_with_object({}) do |(stage, const), saved|
-      saved[stage] = registry.const_get(const).dup
-    end
-    stack << snapshot
+    stack << registry.snapshot_at_fork_blocks
+    registry.send(
+      :replace_at_fork_blocks,
+      {before: [].freeze, parent: [].freeze, child: [].freeze}.freeze
+    )
   end
 
   def pop_and_restore
     snapshot = stack.pop
     return unless snapshot
 
-    STAGES.each do |stage, const|
-      registry.const_get(const).replace(snapshot[stage])
-    end
+    registry.send(:replace_at_fork_blocks, snapshot)
   end
 
   def stack

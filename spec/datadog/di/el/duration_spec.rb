@@ -17,7 +17,8 @@ RSpec.describe "DI EL @duration" do
   end
 
   def evaluate(ast)
-    Datadog::DI::EL::Expression.new("(expression)", *compiler.compile(ast)).evaluate(context)
+    compiled, regexps = compiler.compile(ast)
+    Datadog::DI::EL::Expression.new("(expression)", compiled, regexps: regexps).evaluate(context)
   end
 
   context "at entry time, when duration is nil" do

@@ -37,12 +37,18 @@ module Datadog
             end
 
             def call_pipelined(client, commands, service_name, command_args)
+              # `redis-client` sends its per-connection handshake (`HELLO`, `CLIENT SETINFO`/`SETNAME`)
+              # as a pipeline through this same code path. Excluding those from resource naming keeps
+              # the resource focused on application-issued commands (e.g. a lone `SELECT` prelude).
+              traced_commands = commands.reject { |c| Contrib::Redis::Quantize.connection_setup_command?(c) }
+              return yield if traced_commands.empty? && !commands.empty?
+
               Tracing.trace(Redis::Ext::SPAN_COMMAND, type: Redis::Ext::TYPE, service: service_name) do |span|
                 span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Redis::Ext::TAG_COMPONENT)
-                raw_command = get_pipeline_commands(commands, true)
-                span.resource = command_args ? raw_command : get_pipeline_commands(commands, false)
+                raw_command = get_pipeline_commands(traced_commands, true)
+                span.resource = command_args ? raw_command : get_pipeline_commands(traced_commands, false)
 
-                span.set_metric Contrib::Redis::Ext::METRIC_PIPELINE_LEN, commands.length
+                span.set_metric Contrib::Redis::Ext::METRIC_PIPELINE_LEN, traced_commands.length
 
                 Contrib::Redis::Tags.set_common_tags(client, span, raw_command)
 

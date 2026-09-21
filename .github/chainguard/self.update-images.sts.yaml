@@ -1,0 +1,16 @@
+issuer: https://token.actions.githubusercontent.com
+
+subject_pattern: "repo:DataDog/dd-trace-rb:ref:refs/heads/master"
+
+# The corresponding cross-repo grant (images-rb -> dd-trace-rb, provisioned
+# externally) must identify the caller as images-rb's notify-consumers.yml
+# (formerly notify-dd-trace-rb.yml).
+claim_pattern:
+  event_name: repository_dispatch
+  repository: DataDog/dd-trace-rb
+  job_workflow_ref: DataDog/dd-trace-rb/\.github/workflows/update-images\.yml@refs/heads/master
+
+permissions:
+  contents: write
+  pull_requests: write
+  workflows: write

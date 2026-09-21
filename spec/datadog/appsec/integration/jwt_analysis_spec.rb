@@ -23,11 +23,11 @@ RSpec.describe "Blocking with deny and pass list configuration" do
           "conditions" => [
             {
               "parameters" => {"inputs" => [{"address" => "server.request.query"}]},
-              "operator" => "is_sqli"
-            }
+              "operator" => "is_sqli",
+            },
           ],
           "transformers" => ["removeNulls"],
-          "on_match" => ["block"]
+          "on_match" => ["block"],
         },
       ],
       "rules_compat" => [
@@ -38,7 +38,7 @@ RSpec.describe "Blocking with deny and pass list configuration" do
             "type" => "jwt",
             "category" => "api_security",
             "confidence" => "0",
-            "module" => "business-logic"
+            "module" => "business-logic",
           },
           "min_version" => "1.25.0",
           "conditions" => [
@@ -47,20 +47,20 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                 "inputs" => [
                   {
                     "address" => "server.request.jwt",
-                    "key_path" => ["payload", "exp"]
-                  }
-                ]
+                    "key_path" => ["payload", "exp"],
+                  },
+                ],
               },
-              "operator" => "!exists"
-            }
+              "operator" => "!exists",
+            },
           ],
           "transformers" => [],
           "output" => {
             "event" => false,
             "keep" => true,
-            "attributes" => {"_dd.appsec.api.jwt.no_expiry" => {"value" => 1}}
-          }
-        }
+            "attributes" => {"_dd.appsec.api.jwt.no_expiry" => {"value" => 1}},
+          },
+        },
       ],
       "processors" => [
         {
@@ -73,15 +73,15 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                 "inputs" => [
                   {
                     "address" => "server.request.headers.no_cookies",
-                    "key_path" => ["authorization"]
-                  }
+                    "key_path" => ["authorization"],
+                  },
                 ],
-                "output" => "server.request.jwt"
-              }
-            ]
+                "output" => "server.request.jwt",
+              },
+            ],
           },
           "evaluate" => true,
-          "output" => false
+          "output" => false,
         },
         {
           "id" => "extract-token",
@@ -93,30 +93,30 @@ RSpec.describe "Blocking with deny and pass list configuration" do
                 "inputs" => [
                   {
                     "address" => "waf.context.processor",
-                    "key_path" => ["extract-schema"]
-                  }
+                    "key_path" => ["extract-schema"],
+                  },
                 ],
                 "type" => "boolean",
-                "value" => true
-              }
-            }
+                "value" => true,
+              },
+            },
           ],
           "parameters" => {
             "mappings" => [
               {
                 "inputs" => [{"address" => "server.request.jwt"}],
-                "output" => "_dd.appsec.s.req.jwt"
-              }
+                "output" => "_dd.appsec.s.req.jwt",
+              },
             ],
             "scanners" => [
               {"tags" => {"category" => "credentials"}},
-              {"tags" => {"category" => "pii"}}
-            ]
+              {"tags" => {"category" => "pii"}},
+            ],
           },
           "evaluate" => false,
-          "output" => true
-        }
-      ]
+          "output" => true,
+        },
+      ],
     }
   end
 

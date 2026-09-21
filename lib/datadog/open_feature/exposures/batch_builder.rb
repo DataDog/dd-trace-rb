@@ -12,7 +12,7 @@ module Datadog
         def payload_for(events)
           {
             context: @context,
-            exposures: events
+            exposures: events,
           }
         end
 

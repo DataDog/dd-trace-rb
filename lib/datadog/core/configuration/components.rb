@@ -248,6 +248,7 @@ module Datadog
           crashtracker&.update_on_fork
           ProcessDiscovery.after_fork
           symbol_database&.after_fork!
+          data_streams&.restart_flush_thread
         end
 
         # Hot-swaps with a new sampler.
@@ -352,13 +353,13 @@ module Datadog
           # have direct ownership of it.
           old_statsd = [
             runtime_metrics.metrics.statsd,
-            health_metrics.statsd
+            health_metrics.statsd,
           ].compact.uniq
 
           new_statsd = if replacement
             [
               replacement.runtime_metrics.metrics.statsd,
-              replacement.health_metrics.statsd
+              replacement.health_metrics.statsd,
             ].compact.uniq
           else
             []

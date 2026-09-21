@@ -240,8 +240,8 @@ RSpec.describe Datadog::Tracing::Metadata::Tagging do
       let(:tags) do
         {
           "user" => {
-            "id" => 123
-          }
+            "id" => 123,
+          },
         }
       end
 

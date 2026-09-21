@@ -36,10 +36,10 @@ module Datadog
                 messages: @serialized_messages,
                 meta: {
                   service: Datadog.configuration.service,
-                  env: Datadog.configuration.env
-                }
-              }
-            }
+                  env: Datadog.configuration.env,
+                },
+              },
+            },
           }
         end
 
@@ -56,10 +56,10 @@ module Datadog
                   id: message.tool_call.id,
                   function: {
                     name: message.tool_call.tool_name,
-                    arguments: message.tool_call.arguments
-                  }
-                }
-              ]
+                    arguments: message.tool_call.arguments,
+                  },
+                },
+              ],
             }
           elsif message.content.is_a?(::Array)
             {role: message.role, content: serialize_content_parts(message.content)}

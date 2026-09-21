@@ -61,7 +61,7 @@ RSpec.describe "DI probe removal via remote config" do
 
   let(:probe_spec) do
     {id: "test-probe-removal", name: "bar", type: "LOG_PROBE",
-     where: {typeName: "ProbeRemovalSpecTargetClass", methodName: "target_method"},}
+     where: {typeName: "ProbeRemovalSpecTargetClass", methodName: "target_method"}}
   end
 
   let(:probe_configs) do

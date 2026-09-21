@@ -23,6 +23,23 @@ def concord(word, count, suffix = "s")
   (count > 1) ? pluralize(word, suffix) : word
 end
 
+def changes_ignoring_line(head_entries, base_entries)
+  unmatched_base_entries = base_entries.dup
+  added_entries = head_entries.each_with_object([]) do |head_entry, result|
+    matching_index = unmatched_base_entries.find_index do |base_entry|
+      head_entry.reject { |key, _value| key == :line } == base_entry.reject { |key, _value| key == :line }
+    end
+
+    if matching_index
+      unmatched_base_entries.delete_at(matching_index)
+    else
+      result << head_entry
+    end
+  end
+
+  [added_entries, unmatched_base_entries]
+end
+
 def create_intro(
   added:,
   removed:,
@@ -146,8 +163,10 @@ def ignored_files_summary(head_stats, base_stats)
 end
 
 def steep_ignore_summary(head_stats, base_stats)
-  steep_ignore_added = head_stats[:steep_ignore_comments] - base_stats[:steep_ignore_comments]
-  steep_ignore_removed = base_stats[:steep_ignore_comments] - head_stats[:steep_ignore_comments]
+  steep_ignore_added, steep_ignore_removed = changes_ignoring_line(
+    head_stats[:steep_ignore_comments],
+    base_stats[:steep_ignore_comments]
+  )
 
   create_summary(
     added: steep_ignore_added,
@@ -157,10 +176,11 @@ def steep_ignore_summary(head_stats, base_stats)
 end
 
 def untyped_methods_summary(head_stats, base_stats)
-  untyped_methods_added = head_stats[:untyped_methods] - base_stats[:untyped_methods]
-  untyped_methods_removed = base_stats[:untyped_methods] - head_stats[:untyped_methods]
-  partially_typed_methods_added = head_stats[:partially_typed_methods] - base_stats[:partially_typed_methods]
-  partially_typed_methods_removed = base_stats[:partially_typed_methods] - head_stats[:partially_typed_methods]
+  untyped_methods_added, untyped_methods_removed = changes_ignoring_line(head_stats[:untyped_methods], base_stats[:untyped_methods])
+  partially_typed_methods_added, partially_typed_methods_removed = changes_ignoring_line(
+    head_stats[:partially_typed_methods],
+    base_stats[:partially_typed_methods]
+  )
   total_methods_base = base_stats[:typed_methods_size] + base_stats[:untyped_methods].size + base_stats[:partially_typed_methods].size
   total_methods_head = head_stats[:typed_methods_size] + head_stats[:untyped_methods].size + head_stats[:partially_typed_methods].size
   typed_methods_percentage_base = (base_stats[:typed_methods_size] / total_methods_base.to_f * 100).round(2)
@@ -180,10 +200,11 @@ def untyped_methods_summary(head_stats, base_stats)
 end
 
 def untyped_others_summary(head_stats, base_stats)
-  untyped_others_added = head_stats[:untyped_others] - base_stats[:untyped_others]
-  untyped_others_removed = base_stats[:untyped_others] - head_stats[:untyped_others]
-  partially_typed_others_added = head_stats[:partially_typed_others] - base_stats[:partially_typed_others]
-  partially_typed_others_removed = base_stats[:partially_typed_others] - head_stats[:partially_typed_others]
+  untyped_others_added, untyped_others_removed = changes_ignoring_line(head_stats[:untyped_others], base_stats[:untyped_others])
+  partially_typed_others_added, partially_typed_others_removed = changes_ignoring_line(
+    head_stats[:partially_typed_others],
+    base_stats[:partially_typed_others]
+  )
   total_others_base = base_stats[:typed_others_size] + base_stats[:untyped_others].size + base_stats[:partially_typed_others].size
   total_others_head = head_stats[:typed_others_size] + head_stats[:untyped_others].size + head_stats[:partially_typed_others].size
   typed_others_percentage_base = (base_stats[:typed_others_size] / total_others_base.to_f * 100).round(2)

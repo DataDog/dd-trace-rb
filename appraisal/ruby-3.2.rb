@@ -62,6 +62,10 @@ appraise 'rails81' do
   gem 'rails', '~> 8.1.0'
 end
 
+appraise 'rails8' do
+  gem 'rails', '~> 8.0.0'
+end
+
 appraise 'rails8-mysql2' do
   gem 'rails', '~> 8.0.0'
   gem 'mysql2', '~> 0.5', platform: :ruby
@@ -134,19 +138,20 @@ end
 
 appraise 'http' do
   gem 'ethon'
+  gem 'httpclient'
+  # Typhoeus is the main consumer of ethon; its specs exercise the patch through it.
+  gem 'typhoeus'
+end
+
+appraise 'httprb' do
   gem 'http'
-  gem 'httpclient'
-  gem 'typhoeus'
 end
 
-appraise 'http6' do
-  gem 'ethon'
-  gem 'http', '~> 6'
-  gem 'httpclient'
-  gem 'typhoeus'
+appraise 'httprb-5' do
+  gem 'http', '~> 5'
 end
 
-build_coverage_matrix('stripe', 7..12, min: '5.15.0')
+build_coverage_matrix('stripe', min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday', meta: { 'faraday-follow_redirects' => nil })
@@ -161,7 +166,7 @@ build_coverage_matrix('openfeature', min: '0.5.1', gem: 'openfeature-sdk', meta:
   'opentelemetry-sdk' => '~> 1.1',
   'opentelemetry-metrics-sdk' => '>= 0.8',
 })
-build_coverage_matrix('ruby-llm', gem: 'ruby_llm')
+build_coverage_matrix('ruby-llm', [1], gem: 'ruby_llm')
 build_coverage_matrix('kicks', min: '3.0.0')
 
 appraise 'sneakers' do
@@ -194,7 +199,6 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  gem 'grpc', '>= 1.38.0', platform: :ruby # Minimum version with Ruby 3.0 support
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'
@@ -205,7 +209,12 @@ appraise 'contrib' do
   gem 'que', '>= 1.0.0'
 end
 
+appraise 'grpc' do
+  gem 'grpc'
+end
+
 [
+  'latest',
   '2.3',
   '2.2',
   '2.1',
@@ -214,14 +223,22 @@ end
 ].each do |v|
   appraise "graphql-#{v}" do
     gem 'rails', '~> 6.1.0'
-    gem 'graphql', "~> #{v}.0"
+    gem 'graphql' if v == 'latest'
+    gem 'graphql', "~> #{v}.0" unless v == 'latest'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 end
 
 build_coverage_matrix('redis', [3, 4])
-build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' => nil })
+build_coverage_matrix('rack', 1..2, meta: {
+  # rack-contrib >= 2.0.0 requires Rack::MediaType (Rack 2.0+); 1.8.0 is the
+  # newest release supporting Rack 1.x (see .bundler-audit.yml).
+  1 => { 'rack-contrib' => '1.8.0' },
+  2 => { 'rack-contrib' => nil },
+  :latest => { 'rack-contrib' => nil },
+  'rack-test' => nil,
+})
 
 [2, 3, 4].each do |n|
   appraise "sinatra-#{n}" do
@@ -252,11 +269,11 @@ appraise 'opentelemetry_otlp_1_5' do
   gem 'opentelemetry-exporter-otlp'
 end
 
-appraise 'contrib-old' do
+appraise 'presto-client' do
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 end
 
-appraise 'core-old' do
+appraise 'dogstatsd-ruby4' do
   gem 'dogstatsd-ruby', '~> 4'
 end
 

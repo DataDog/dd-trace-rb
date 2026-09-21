@@ -45,7 +45,7 @@ RSpec.describe Datadog::DI::Serializer do
       database: ENV.fetch("TEST_MYSQL_DB", "mysql"),
       host: ENV.fetch("TEST_MYSQL_HOST", "127.0.0.1"),
       password: ENV.fetch("TEST_MYSQL_ROOT_PASSWORD", "root"),
-      port: ENV.fetch("TEST_MYSQL_PORT", "3306")
+      port: ENV.fetch("TEST_MYSQL_PORT", "3306"),
     }
   end
 

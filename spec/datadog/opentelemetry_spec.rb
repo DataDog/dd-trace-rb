@@ -185,13 +185,13 @@ RSpec.describe Datadog::OpenTelemetry do
               [
                 :producer,
                 {"messaging.system" => "Kafka", "messaging.operation" => "Receive"},
-                "kafka.receive"
+                "kafka.receive",
               ],
               [:producer, {}, "producer"],
               [
                 :consumer,
                 {"messaging.system" => "Kafka", "messaging.operation" => "Receive"},
-                "kafka.receive"
+                "kafka.receive",
               ],
               [:consumer, {}, "consumer"],
               [:client, {"http.request.method" => "GET"}, "http.client.request"],
@@ -203,7 +203,7 @@ RSpec.describe Datadog::OpenTelemetry do
               [
                 :client,
                 {"faas.invoked_provider" => "aws", "faas.invoked_name" => "My-Function"},
-                "aws.my-function.invoke"
+                "aws.my-function.invoke",
               ],
               [:client, {"network.protocol.name" => "Amqp"}, "amqp.client.request"],
               [:client, {}, "client.request"],
@@ -394,6 +394,26 @@ RSpec.describe Datadog::OpenTelemetry do
           expect(span.links[1].trace_flags).to eq(1)
           expect(span.links[1].trace_state).to eq("otel=blahxd")
           expect(span.links[1].attributes).to eq({"key2" => true, "list" => [1, 2]})
+
+          expect(span.links.map(&:to_hash)).to eq(
+            [
+              {
+                trace_id: 0x5b953ca4d9c834ab,
+                trace_id_high: 0x6d,
+                span_id: 0x0fcec36d3f,
+                attributes: {"key" => "val", "1" => "true"},
+                tracestate: "",
+                flags: 0x8000_0000,
+              },
+              {
+                trace_id: 0x12d666,
+                span_id: 10,
+                attributes: {"key2" => "true", "list.0" => "1", "list.1" => "2"},
+                tracestate: "otel=blahxd",
+                flags: 0x8000_0001,
+              },
+            ]
+          )
         end
       end
     end
@@ -546,13 +566,13 @@ RSpec.describe Datadog::OpenTelemetry do
             [
               :producer,
               {"messaging.system" => "Kafka", "messaging.operation" => "Receive"},
-              "kafka.receive"
+              "kafka.receive",
             ],
             [:producer, {}, "producer"],
             [
               :consumer,
               {"messaging.system" => "Kafka", "messaging.operation" => "Receive"},
-              "kafka.receive"
+              "kafka.receive",
             ],
             [:consumer, {}, "consumer"],
             [:client, {"http.request.method" => "GET"}, "http.client.request"],
@@ -564,7 +584,7 @@ RSpec.describe Datadog::OpenTelemetry do
             [
               :client,
               {"faas.invoked_provider" => "aws", "faas.invoked_name" => "My-Function"},
-              "aws.my-function.invoke"
+              "aws.my-function.invoke",
             ],
             [:client, {"network.protocol.name" => "Amqp"}, "amqp.client.request"],
             [:client, {}, "client.request"],
@@ -936,7 +956,7 @@ RSpec.describe Datadog::OpenTelemetry do
         context "with TraceContext headers" do
           let(:carrier) do
             {
-              "traceparent" => "00-11111111111111111111111111111111-2222222222222222-01"
+              "traceparent" => "00-11111111111111111111111111111111-2222222222222222-01",
             }
           end
 

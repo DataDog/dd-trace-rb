@@ -258,7 +258,7 @@ RSpec.describe Datadog::Tracing::Tracer do
           RackSupport.header_to_rack("x-datadog-trace-id") => trace_id.to_s,
           RackSupport.header_to_rack("x-datadog-parent-id") => parent_id.to_s,
           RackSupport.header_to_rack("x-datadog-sampling-priority") => sampling_priority.to_s,
-          RackSupport.header_to_rack("x-datadog-origin") => origin
+          RackSupport.header_to_rack("x-datadog-origin") => origin,
         }
       end
 

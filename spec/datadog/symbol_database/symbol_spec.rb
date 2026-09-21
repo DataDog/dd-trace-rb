@@ -48,7 +48,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
         symbol_type: "STATIC_FIELD",
         name: "CONSTANT",
         line: 5,
-        type: nil
+        type: nil,
       })
     end
 
@@ -85,7 +85,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
         symbol_type: "FIELD",
         name: "@var",
         line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
-        type: nil
+        type: nil,
       })
       expect(hash).to have_key(:type)
       expect(hash).not_to have_key(:language_specifics)

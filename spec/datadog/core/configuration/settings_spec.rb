@@ -94,7 +94,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           ClimateControl.modify(
             {
               Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED => dd_debug_env,
-              "OTEL_LOG_LEVEL" => otel_level_env
+              "OTEL_LOG_LEVEL" => otel_level_env,
             }
           ) do
             example.run
@@ -988,6 +988,23 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to change { settings.profiling.advanced.experimental_use_system_dns }
             .from(true)
             .to(false)
+        end
+      end
+
+      describe "#experimental_show_classes_enabled" do
+        subject(:experimental_show_classes_enabled) { settings.profiling.advanced.experimental_show_classes_enabled }
+
+        it_behaves_like "a binary setting with",
+          env_variable: "DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED",
+          default: false
+      end
+
+      describe "#experimental_show_classes_enabled=" do
+        it "updates the #experimental_show_classes_enabled setting" do
+          expect { settings.profiling.advanced.experimental_show_classes_enabled = true }
+            .to change { settings.profiling.advanced.experimental_show_classes_enabled }
+            .from(false)
+            .to(true)
         end
       end
     end
