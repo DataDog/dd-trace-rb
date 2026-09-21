@@ -68,12 +68,14 @@ module Datadog
         active_span = trace_op.active_span
 
         if active_span
+          # Internally created active span
           set(
             trace_id: trace_op.id,
             span_id: active_span.id,
             local_root_span_id: trace_op.send(:root_span).id
           )
         elsif trace_op.parent_span_id && trace_op.parent_span_id != 0
+          # Active distributed trace context, before first local trace is created
           set(
             trace_id: trace_op.id,
             span_id: trace_op.parent_span_id,
