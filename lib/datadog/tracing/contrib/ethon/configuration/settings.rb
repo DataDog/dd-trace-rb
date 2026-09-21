@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/settings'
-require_relative '../ext'
+require_relative "../../configuration/settings"
+require_relative "../ext"
 
 module Datadog
   module Tracing
@@ -30,7 +30,11 @@ module Datadog
               o.default 1.0
             end
 
-            option :distributed_tracing, default: true, type: :bool
+            option :distributed_tracing do |o|
+              o.type :bool
+              o.env Ext::ENV_DISTRIBUTED_TRACING
+              o.default true
+            end
 
             option :split_by_domain, default: false, type: :bool
 

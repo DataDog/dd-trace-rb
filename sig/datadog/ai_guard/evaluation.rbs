@@ -7,7 +7,11 @@ module Datadog
 
       private
 
+      def self.truncate_messages: (::Array[Request::serialized_message]) -> ::Array[Request::serialized_message]
+
       def self.truncate_content: (::Array[Request::serialized_message]) -> ::Array[Request::serialized_message]
+
+      def self.truncate_content_value: (::String content, ::Integer max_bytes) -> ::String
     end
   end
 end

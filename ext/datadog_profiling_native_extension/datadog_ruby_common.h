@@ -5,6 +5,13 @@
 #include <ruby.h>
 #include <datadog/common.h>
 
+// All recommended backward compatible macros for keyword argument functions can be found here:
+// https://github.com/ruby/ruby/blob/master/doc/extension.rdoc#defining-backward-compatible-macros-for-keyword-argument-functions
+#ifndef RB_PASS_KEYWORDS
+/* Only define macros on Ruby <2.7 */
+#define rb_funcallv_kw(o, m, c, v, kw) rb_funcallv(o, m, c, v)
+#endif
+
 // Must be called once during initialization
 void datadog_ruby_common_init(void);
 
@@ -47,11 +54,6 @@ NORETURN(
   __attribute__ ((format (printf, 2, 3)));
 );
 
-// Internal helper for raising pre-formatted exceptions
-NORETURN(
-  void private_raise_error_formatted(VALUE exception_class, const char *detailed_message, const char *static_message)
-);
-
 // Raises an exception with separate telemetry-safe and detailed messages.
 // NOTE: Raising an exception always invokes Ruby code so it requires the GVL and is not compatible with "debug_enter_unsafe_context".
 // @see debug_enter_unsafe_context
@@ -60,13 +62,6 @@ NORETURN(
 );
 
 #define MAX_RAISE_MESSAGE_SIZE 256
-
-#define FORMAT_VA_ERROR_MESSAGE(buf, fmt) \
-  char buf[MAX_RAISE_MESSAGE_SIZE]; \
-  va_list buf##_args; \
-  va_start(buf##_args, fmt); \
-  vsnprintf(buf, MAX_RAISE_MESSAGE_SIZE, fmt, buf##_args); \
-  va_end(buf##_args);
 
 // Helper to retrieve Datadog::VERSION::STRING
 VALUE datadog_gem_version(void);

@@ -14,7 +14,12 @@ gem 'rackup'
 
 # Known compatibility issue: https://github.com/redis/redis-rb/issues/1142
 gem 'redis', '< 5'
-gem 'sidekiq'
+# Sidekiq 7 requires Ruby 2.7+
+if RUBY_VERSION >= '2.7.0'
+  gem 'sidekiq', '~> 7'
+else
+  gem 'sidekiq', '~> 6.5'
+end
 gem 'resque'
 gem 'rake'
 

@@ -1,5 +1,5 @@
-if Gem.loaded_specs["yard"]
-  require 'yard'
+if Gem.loaded_specs.key?("yard")
+  require "yard"
 else
   warn "'yard' gem not loaded: skipping tasks..." if Rake.verbose == true
   return
@@ -13,5 +13,5 @@ YARD::Rake::YardocTask.new(:docs) do |t|
   # as `.yardopts` can be read by external YARD tools, like the
   # hot-reload YARD server `yard server --reload`.
 
-  t.options += ['--title', "datadog #{Datadog::VERSION::STRING} documentation"]
+  t.options += ["--title", "datadog #{Datadog::VERSION::STRING} documentation"]
 end

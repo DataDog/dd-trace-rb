@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../../analytics'
-require_relative 'ext'
+require_relative "../../metadata/ext"
+require_relative "../../analytics"
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -55,7 +55,7 @@ module Datadog
             span.set_tag(Ext::TAG_REQUEST_PATH, event.path)
             span.set_tag(Ext::TAG_REQUEST_NUM_RETRIES, event.num_retries.to_s)
           rescue => e
-            Datadog.logger.debug(e.message)
+            Datadog.logger.debug { "#{e.class}: #{e.message}" }
           end
 
           def configuration

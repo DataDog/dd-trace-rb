@@ -1,18 +1,18 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-require 'datadog/appsec/api_security/endpoint_collection/rails_collector'
+require "spec_helper"
+require "datadog/appsec/api_security/endpoint_collection/rails_collector"
 
 RSpec.describe Datadog::AppSec::APISecurity::EndpointCollection::RailsCollector do
-  describe '#to_enum' do
-    it 'returns an Enumerator' do
+  describe "#to_enum" do
+    it "returns an Enumerator" do
       expect(described_class.new([]).to_enum).to be_a(Enumerator)
     end
 
-    it 'serializes Rails dispatcher routes' do
+    it "serializes Rails dispatcher routes" do
       route = instance_double(
-        'ActionDispatch::Journey::Route', dispatcher?: true, verb: 'GET',
-        path: instance_double('ActionDispatch::Journey::Path::Pattern', spec: '/events')
+        "ActionDispatch::Journey::Route", dispatcher?: true, verb: "GET",
+        path: instance_double("ActionDispatch::Journey::Path::Pattern", spec: "/events")
       )
 
       expect(Datadog::AppSec::APISecurity::EndpointCollection::RailsRouteSerializer)
@@ -21,17 +21,17 @@ RSpec.describe Datadog::AppSec::APISecurity::EndpointCollection::RailsCollector 
       described_class.new([route]).to_enum.first
     end
 
-    it 'serializes Rails dispatcher routes that support multiple methods' do
+    it "serializes Rails dispatcher routes that support multiple methods" do
       route = instance_double(
-        'ActionDispatch::Journey::Route', dispatcher?: true, verb: 'GET|POST',
-        path: instance_double('ActionDispatch::Journey::Path::Pattern', spec: '/events')
+        "ActionDispatch::Journey::Route", dispatcher?: true, verb: "GET|POST",
+        path: instance_double("ActionDispatch::Journey::Path::Pattern", spec: "/events")
       )
 
       expect(Datadog::AppSec::APISecurity::EndpointCollection::RailsRouteSerializer)
-        .to receive(:serialize).with(route, method_override: 'GET').once.and_call_original
+        .to receive(:serialize).with(route, method_override: "GET").once.and_call_original
 
       expect(Datadog::AppSec::APISecurity::EndpointCollection::RailsRouteSerializer)
-        .to receive(:serialize).with(route, method_override: 'POST').once.and_call_original
+        .to receive(:serialize).with(route, method_override: "POST").once.and_call_original
 
       described_class.new([route]).to_enum.first(2)
     end

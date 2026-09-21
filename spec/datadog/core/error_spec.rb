@@ -1,10 +1,10 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'benchmark'
-require 'datadog/core/error'
+require "benchmark"
+require "datadog/core/error"
 
 RSpec.describe Datadog::Core::Error do
-  context 'with default values' do
+  context "with default values" do
     let(:error) { described_class.new }
 
     it do
@@ -15,9 +15,9 @@ RSpec.describe Datadog::Core::Error do
 
     # Empty strings were being interpreted as ASCII strings breaking `msgpack`
     # decoding on the agent-side.
-    it 'encodes default values in UTF-8' do
-      if PlatformHelpers.jruby? && JRUBY_VERSION.start_with?('9.3')
-        skip('Test flaky on JRuby 9.3, see https://github.com/jruby/jruby/issues/7166')
+    it "encodes default values in UTF-8" do
+      if PlatformHelpers.jruby? && JRUBY_VERSION.start_with?("9.3")
+        skip("Test flaky on JRuby 9.3, see https://github.com/jruby/jruby/issues/7166")
       end
 
       error = described_class.new
@@ -28,44 +28,44 @@ RSpec.describe Datadog::Core::Error do
     end
   end
 
-  context 'with all values provided' do
-    let(:error) { described_class.new('ErrorClass', 'message', %w[line1 line2 line3]) }
+  context "with all values provided" do
+    let(:error) { described_class.new("ErrorClass", "message", %w[line1 line2 line3]) }
 
     it do
-      expect(error.type).to eq('ErrorClass')
-      expect(error.message).to eq('message')
+      expect(error.type).to eq("ErrorClass")
+      expect(error.message).to eq("message")
       expect(error.backtrace).to eq("line1\nline2\nline3")
     end
   end
 
-  describe '.build_from' do
+  describe ".build_from" do
     subject(:error) { described_class.build_from(value) }
 
-    context 'with an exception' do
+    context "with an exception" do
       let(:value) { begin 1 / 0; rescue => e; e; end }
       it do
-        expect(error.type).to eq('ZeroDivisionError')
-        expect(error.message).to eq('divided by 0')
-        expect(error.backtrace).to include('error_spec.rb')
+        expect(error.type).to eq("ZeroDivisionError")
+        expect(error.message).to eq("divided by 0")
+        expect(error.backtrace).to include("error_spec.rb")
       end
 
-      context 'with a cause' do
+      context "with a cause" do
         let(:clazz) do
           Class.new do
             def root
-              raise 'root cause'
+              raise "root cause"
             end
 
             def middle
               root
             rescue
-              raise 'middle cause'
+              raise "middle cause"
             end
 
             def wrapper
               middle
             rescue
-              raise 'wrapper layer'
+              raise "wrapper layer"
             end
 
             def call
@@ -82,9 +82,9 @@ RSpec.describe Datadog::Core::Error do
           puts e
         end
 
-        it 'reports nested errors' do
-          expect(error.type).to eq('RuntimeError')
-          expect(error.message).to eq('wrapper layer')
+        it "reports nested errors" do
+          expect(error.type).to eq("RuntimeError")
+          expect(error.message).to eq("wrapper layer")
 
           # Outer-most error first, inner-most last
           # Ruby 3.4 adjusts the format of error messages and Hash#inspect renderings
@@ -112,15 +112,13 @@ RSpec.describe Datadog::Core::Error do
           expect(error.backtrace.each_line.reject { |l| l.start_with?("\tfrom") }).to have(3).items
         end
 
-        context 'that is reused' do
-          before { skip("This version of Ruby doesn't support setting exception cause") if RUBY_VERSION < '2.2.0' }
-
+        context "that is reused" do
           let(:value) do
             begin
-              raise 'first error'
+              raise "first error"
             rescue => e
               begin
-                raise 'second error'
+                raise "second error"
               rescue
                 ex2 = $ERROR_INFO
               end
@@ -130,11 +128,11 @@ RSpec.describe Datadog::Core::Error do
             e
           end
 
-          it 'reports errors only once', if: RUBY_VERSION < '2.6' ||
+          it "reports errors only once", if: RubyVersion.is?("< 2.6") ||
             PlatformHelpers.truffleruby? || PlatformHelpers.jruby? &&
-              Gem::Version.new(RUBY_ENGINE_VERSION) >= '9.3.7.0' do # rubocop:disable Layout/LineLength
-            expect(error.type).to eq('RuntimeError')
-            expect(error.message).to eq('first error')
+              Gem::Version.new(RUBY_ENGINE_VERSION) >= "9.3.7.0" do # rubocop:disable Layout/LineLength
+            expect(error.type).to eq("RuntimeError")
+            expect(error.message).to eq("first error")
 
             expect(error.backtrace).to match(/first error \(RuntimeError\).*second error \(RuntimeError\)/m)
 
@@ -142,10 +140,10 @@ RSpec.describe Datadog::Core::Error do
             expect(error.backtrace.each_line.reject { |l| l.start_with?("\tfrom") }).to have(2).items
           end
 
-          it 'reports errors only once', if: RUBY_VERSION >= '2.6.0' &&
+          it "reports errors only once", if: RubyVersion.is?(">= 2.6") &&
             PlatformHelpers.mri? do
-            expect(error.type).to eq('ArgumentError')
-            expect(error.message).to eq('circular causes')
+            expect(error.type).to eq("ArgumentError")
+            expect(error.message).to eq("circular causes")
 
             expect(error.backtrace).to match(/circular causes \(ArgumentError\).*first error \(RuntimeError\)/m)
 
@@ -154,11 +152,11 @@ RSpec.describe Datadog::Core::Error do
             expect(error.backtrace.each_line.reject { |l| l.start_with?("\tfrom") }).to have(2).items
           end
 
-          it 'reports errors only once', if: RUBY_VERSION >= '2.6.0' &&
+          it "reports errors only once", if: RubyVersion.is?(">= 2.6") &&
             PlatformHelpers.jruby? &&
-            Gem::Version.new(RUBY_ENGINE_VERSION) < '9.3.7.0' do # rubocop:disable Layout/LineLength
-            expect(error.type).to eq('RuntimeError')
-            expect(error.message).to eq('circular causes')
+            Gem::Version.new(RUBY_ENGINE_VERSION) < "9.3.7.0" do # rubocop:disable Layout/LineLength
+            expect(error.type).to eq("RuntimeError")
+            expect(error.message).to eq("circular causes")
 
             expect(error.backtrace)
               .to match(/circular causes \(RuntimeError\).*first error \(RuntimeError\)/m)
@@ -168,7 +166,7 @@ RSpec.describe Datadog::Core::Error do
           end
         end
 
-        context 'with nil message' do
+        context "with nil message" do
           let(:cause) do
             Class.new(StandardError) do
               def message
@@ -177,30 +175,30 @@ RSpec.describe Datadog::Core::Error do
           end
           let(:value) { begin; raise cause; rescue => e; e; end }
           before do
-            stub_const('NilMessageError', cause)
+            stub_const("NilMessageError", cause)
           end
 
-          it 'is expected to message is empty' do
-            expect(error.type).to eq('NilMessageError')
-            expect(error.message).to eq('')
-            expect(error.backtrace).to include('error_spec.rb')
+          it "is expected to message is empty" do
+            expect(error.type).to eq("NilMessageError")
+            expect(error.message).to eq("")
+            expect(error.backtrace).to include("error_spec.rb")
           end
 
-          it 'is expected to include class name in backtrace' do
-            expect(error.backtrace).to include(':  (NilMessageError)') # :[space][nil][space](NilMessageError)
+          it "is expected to include class name in backtrace" do
+            expect(error.backtrace).to include(":  (NilMessageError)") # :[space][nil][space](NilMessageError)
           end
         end
 
-        context 'benchmark' do
-          before { skip('Benchmark not run by default') }
+        context "benchmark" do
+          before { skip("Benchmark not run by default") }
 
           it do
-            require 'benchmark/ips'
+            require "benchmark/ips"
 
             Benchmark.ips do |x|
               x.config(time: 8, warmup: 2)
 
-              x.report 'build_from' do
+              x.report "build_from" do
                 described_class.build_from(value)
               end
 
@@ -211,42 +209,42 @@ RSpec.describe Datadog::Core::Error do
       end
     end
 
-    context 'with an array' do
-      let(:value) { ['ZeroDivisionError', 'divided by 0'] }
+    context "with an array" do
+      let(:value) { ["ZeroDivisionError", "divided by 0"] }
 
       it do
-        expect(error.type).to eq('ZeroDivisionError')
-        expect(error.message).to eq('divided by 0')
+        expect(error.type).to eq("ZeroDivisionError")
+        expect(error.message).to eq("divided by 0")
         expect(error.backtrace).to be_empty
       end
     end
 
-    context 'with a custom object responding to :message' do
+    context "with a custom object responding to :message" do
       let(:value) do
         # RSpec 'double' hijacks the #class method, thus not allowing us
         # to organically test the `Error#type` inferred for this object.
-        clazz = stub_const('Test::CustomMessage', Struct.new(:message))
-        clazz.new('custom msg')
+        clazz = stub_const("Test::CustomMessage", Struct.new(:message))
+        clazz.new("custom msg")
       end
 
       it do
-        expect(error.type).to eq('Test::CustomMessage')
-        expect(error.message).to eq('custom msg')
+        expect(error.type).to eq("Test::CustomMessage")
+        expect(error.message).to eq("custom msg")
         expect(error.backtrace).to be_empty
       end
     end
 
-    context 'with a string' do
-      let(:value) { 'my-message' }
+    context "with a string" do
+      let(:value) { "my-message" }
 
-      it 'records it as the message' do
+      it "records it as the message" do
         expect(error.type).to be_empty
-        expect(error.message).to eq('my-message')
+        expect(error.message).to eq("my-message")
         expect(error.backtrace).to be_empty
       end
     end
 
-    context 'with nil' do
+    context "with nil" do
       let(:value) { nil }
 
       it do
@@ -256,11 +254,11 @@ RSpec.describe Datadog::Core::Error do
       end
     end
 
-    context 'with a utf8 incompatible message' do
+    context "with a utf8 incompatible message" do
       let(:value) { StandardError.new("\xC2".force_encoding(::Encoding::ASCII_8BIT)) }
 
-      it 'discards unencodable value' do
-        expect(error.type).to eq('StandardError')
+      it "discards unencodable value" do
+        expect(error.type).to eq("StandardError")
         expect(error.message).to be_empty
         expect(error.backtrace).to be_empty
       end

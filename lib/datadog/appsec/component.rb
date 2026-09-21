@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative 'security_engine/engine'
-require_relative 'security_engine/runner'
-require_relative 'processor/rule_loader'
-require_relative 'actions_handler'
-require_relative 'thread_safe_ref'
+require_relative "security_engine/engine"
+require_relative "security_engine/runner"
+require_relative "processor/rule_loader"
+require_relative "actions_handler"
+require_relative "thread_safe_ref"
 
 module Datadog
   module AppSec
@@ -14,21 +14,21 @@ module Datadog
         def build_appsec_component(settings, telemetry:)
           return if !settings.respond_to?(:appsec) || !settings.appsec.enabled
 
-          ffi_version = Gem.loaded_specs['ffi']&.version
+          ffi_version = Gem.loaded_specs["ffi"]&.version
           unless ffi_version
-            Datadog.logger.warn('FFI gem is not loaded, AppSec will be disabled.')
-            telemetry.error('AppSec: Component not loaded, due to missing FFI gem')
+            Datadog.logger.warn("FFI gem is not loaded, AppSec will be disabled.")
+            telemetry.error("AppSec: Component not loaded, due to missing FFI gem")
 
             return
           end
 
-          if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.3') && ffi_version < Gem::Version.new('1.16.0')
+          if RubyVersion.is?(">= 3.3") && ffi_version < Gem::Version.new("1.16.0")
             Datadog.logger.warn(
-              'AppSec is not supported in Ruby versions above 3.3.0 when using `ffi` versions older than 1.16.0, ' \
-              'and will be forcibly disabled due to a memory leak in `ffi`. ' \
-              'Please upgrade your `ffi` version to 1.16.0 or higher.'
+              "AppSec is not supported in Ruby versions above 3.3.0 when using `ffi` versions older than 1.16.0, " \
+              "and will be forcibly disabled due to a memory leak in `ffi`. " \
+              "Please upgrade your `ffi` version to 1.16.0 or higher."
             )
-            telemetry.error('AppSec: Component not loaded, ffi version is leaky with ruby > 3.3.0')
+            telemetry.error("AppSec: Component not loaded, ffi version is leaky with ruby > 3.3.0")
 
             return
           end
@@ -45,19 +45,27 @@ module Datadog
           settings.appsec.instrument(:devise) unless devise_integration.patcher.patched?
 
           security_engine = SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
-          new(security_engine: security_engine, telemetry: telemetry)
-        rescue
-          Datadog.logger.warn('AppSec is disabled, see logged errors above')
+          new(security_engine: security_engine)
+        # NOTE: At this point we should capture all possible exceptions and
+        #       gracefully fail component initialization, preventing propagation
+        #       into the host application code.
+        rescue Exception => e # standard:disable Lint/RescueException
+          Datadog.logger.warn("AppSec is disabled: #{e.class}: #{e.message}; there may be additional logged errors above")
 
+          # Not reporting to telemetry here because some of the rescued exceptions
+          # have already been reported by the code that raised them
+          # (e.g. SecurityEngine::Engine.new reports WAF init failures).
+          # TODO: reconsider whether telemetry reporting belongs here
+          # (single catch-all) or in the downstream code (as it is now).
           nil
         end
 
         private
 
         def require_libddwaf(telemetry:)
-          require('libddwaf')
+          require("libddwaf")
         rescue LoadError => e
-          libddwaf_platform = Gem.loaded_specs['libddwaf']&.platform || 'unknown'
+          libddwaf_platform = Gem.loaded_specs["libddwaf"]&.platform || "unknown"
           ruby_platforms = Gem.platforms.map(&:to_s)
 
           error_message = "libddwaf failed to load - installed platform: #{libddwaf_platform}, " \
@@ -70,11 +78,10 @@ module Datadog
         end
       end
 
-      attr_reader :security_engine, :telemetry
+      attr_reader :security_engine
 
-      def initialize(security_engine:, telemetry:)
+      def initialize(security_engine:)
         @security_engine = security_engine
-        @telemetry = telemetry
       end
 
       def reconfigure!

@@ -16,9 +16,18 @@
 /log/
 TODO
 ext/**/skipped_reason.txt
+
+# Vale style packages are downloaded by .github/scripts/install_vale_styles.sh,
+# not vendored; only the house rules in vale/styles/Changelog/ are tracked.
+vale/styles/*
+!vale/styles/Changelog
+!vale/styles/README.md
+
 .cursor/
 .cache/
+.claude/settings.local.json
 compile_commands.json
+/.worktrees/
 
 ## Documentation cache and generated files:
 /.yardoc/
@@ -57,3 +66,6 @@ lib/*.so
 
 # Benchmark result files
 /benchmarks/*.json
+
+# Superpowers brainstorming/plan output (local, not tracked)
+/docs/superpowers/

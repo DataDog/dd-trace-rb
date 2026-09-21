@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/settings'
-require_relative '../ext'
+require_relative "../../configuration/settings"
+require_relative "../ext"
 
 module Datadog
   module Tracing
@@ -33,7 +33,7 @@ module Datadog
             option :service_name
             option :template_base_path do |o|
               o.type :string
-              o.default 'views/'
+              o.default "views/"
             end
           end
         end

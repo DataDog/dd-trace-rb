@@ -1,13 +1,13 @@
-require 'datadog/tracing/contrib/support/spec_helper'
+require "datadog/tracing/contrib/support/spec_helper"
 
-require 'rack/test'
-require 'rack'
+require "rack/test"
+require "rack"
 
-require 'datadog/tracing/sampling/ext'
-require 'datadog'
-require 'datadog/tracing/contrib/rack/middlewares'
+require "datadog/tracing/sampling/ext"
+require "datadog"
+require "datadog/tracing/contrib/rack/middlewares"
 
-RSpec.describe 'Rack integration distributed tracing' do
+RSpec.describe "Rack integration distributed tracing" do
   include Rack::Test::Methods
 
   let(:rack_options) { {} }
@@ -20,46 +20,46 @@ RSpec.describe 'Rack integration distributed tracing' do
 
   after { Datadog.registry[:rack].reset_configuration! }
 
-  shared_context 'an incoming HTTP request' do
-    subject(:response) { get '/' }
+  shared_context "an incoming HTTP request" do
+    subject(:response) { get "/" }
 
     let(:app) do
       Rack::Builder.new do
         use Datadog::Tracing::Contrib::Rack::TraceMiddleware
 
-        map '/' do
-          run(proc { |_env| [200, {'Content-Type' => 'text/html'}, ['OK']] })
+        map "/" do
+          run(proc { |_env| [200, {"Content-Type" => "text/html"}, ["OK"]] })
         end
       end.to_app
     end
   end
 
-  shared_context 'distributed tracing headers' do
+  shared_context "distributed tracing headers" do
     let(:trace_id) { 8694058539399423136 }
     let(:parent_id) { 3605612475141592985 }
     let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP }
-    let(:origin) { 'synthetics' }
+    let(:origin) { "synthetics" }
 
     before do
-      header 'x-datadog-trace-id', trace_id
-      header 'x-datadog-parent-id', parent_id
-      header 'x-datadog-sampling-priority', sampling_priority
-      header 'x-datadog-origin', origin
+      header "x-datadog-trace-id", trace_id
+      header "x-datadog-parent-id", parent_id
+      header "x-datadog-sampling-priority", sampling_priority
+      header "x-datadog-origin", origin
     end
   end
 
-  shared_context 'no distributed tracing headers' do
+  shared_context "no distributed tracing headers" do
     let(:trace_id) { nil }
     let(:parent_id) { nil }
     let(:sampling_priority) { nil }
     let(:origin) { nil }
   end
 
-  shared_examples_for 'a Rack request with distributed tracing' do
-    it 'produces a distributed Rack trace' do
+  shared_examples_for "a Rack request with distributed tracing" do
+    it "produces a distributed Rack trace" do
       is_expected.to be_ok
       expect(span).to_not be nil
-      expect(span.name).to eq('rack.request')
+      expect(span.name).to eq("rack.request")
       expect(span.trace_id).to eq(trace_id)
       expect(span.parent_id).to eq(parent_id)
       expect(trace.sampling_priority).to eq(sampling_priority)
@@ -67,13 +67,13 @@ RSpec.describe 'Rack integration distributed tracing' do
     end
   end
 
-  shared_examples_for 'a Rack request without distributed tracing' do
-    it 'produces a non-distributed Rack trace' do
+  shared_examples_for "a Rack request without distributed tracing" do
+    it "produces a non-distributed Rack trace" do
       expect(Datadog::Tracing).not_to receive(:continue_trace!)
 
       is_expected.to be_ok
       expect(span).to_not be nil
-      expect(span.name).to eq('rack.request')
+      expect(span.name).to eq("rack.request")
       expect(span.trace_id).to_not eq(trace_id)
       expect(span.parent_id).to eq(0)
       expect(trace.sampling_priority).to_not be nil
@@ -81,23 +81,23 @@ RSpec.describe 'Rack integration distributed tracing' do
     end
   end
 
-  context 'by default' do
-    context 'and a request is received' do
-      include_context 'an incoming HTTP request'
+  context "by default" do
+    context "and a request is received" do
+      include_context "an incoming HTTP request"
 
-      context 'with distributed tracing headers' do
-        include_context 'distributed tracing headers'
-        it_behaves_like 'a Rack request with distributed tracing'
+      context "with distributed tracing headers" do
+        include_context "distributed tracing headers"
+        it_behaves_like "a Rack request with distributed tracing"
 
-        context 'and request_queuing is enabled' do
+        context "and request_queuing is enabled" do
           let(:rack_options) { super().merge(request_queuing: true, web_service_name: web_service_name) }
-          let(:web_service_name) { 'frontend_web_server' }
+          let(:web_service_name) { "frontend_web_server" }
 
           before do
-            header 'X-Request-Start', "t=#{Time.now.to_f}"
+            header "X-Request-Start", "t=#{Time.now.to_f}"
           end
 
-          it 'contains request and request_queuing spans that belongs to the distributed trace' do
+          it "contains request and request_queuing spans that belongs to the distributed trace" do
             is_expected.to be_ok
 
             expect(trace.sampling_priority).to eq(sampling_priority)
@@ -108,42 +108,42 @@ RSpec.describe 'Rack integration distributed tracing' do
             server_queue_span = spans[0]
             rack_span = spans[2]
 
-            expect(server_request_span.name).to eq('http.proxy.request')
+            expect(server_request_span.name).to eq("http.proxy.request")
             expect(server_request_span.trace_id).to eq(trace_id)
             expect(server_request_span.parent_id).to eq(parent_id)
 
-            expect(server_queue_span.name).to eq('http.proxy.queue')
+            expect(server_queue_span.name).to eq("http.proxy.queue")
             expect(server_queue_span.trace_id).to eq(trace_id)
             expect(server_queue_span.parent_id).to eq(server_request_span.id)
 
-            expect(rack_span.name).to eq('rack.request')
+            expect(rack_span.name).to eq("rack.request")
             expect(rack_span.trace_id).to eq(trace_id)
             expect(rack_span.parent_id).to eq(server_request_span.id)
           end
         end
       end
 
-      context 'without distributed tracing headers' do
-        include_context 'no distributed tracing headers'
-        it_behaves_like 'a Rack request without distributed tracing'
+      context "without distributed tracing headers" do
+        include_context "no distributed tracing headers"
+        it_behaves_like "a Rack request without distributed tracing"
       end
     end
   end
 
-  context 'when disabled' do
+  context "when disabled" do
     let(:rack_options) { super().merge(distributed_tracing: false) }
 
-    context 'and a request is received' do
-      include_context 'an incoming HTTP request'
+    context "and a request is received" do
+      include_context "an incoming HTTP request"
 
-      context 'with distributed tracing headers' do
-        include_context 'distributed tracing headers'
-        it_behaves_like 'a Rack request without distributed tracing'
+      context "with distributed tracing headers" do
+        include_context "distributed tracing headers"
+        it_behaves_like "a Rack request without distributed tracing"
       end
 
-      context 'without distributed tracing headers' do
-        include_context 'no distributed tracing headers'
-        it_behaves_like 'a Rack request without distributed tracing'
+      context "without distributed tracing headers" do
+        include_context "no distributed tracing headers"
+        it_behaves_like "a Rack request without distributed tracing"
       end
     end
   end

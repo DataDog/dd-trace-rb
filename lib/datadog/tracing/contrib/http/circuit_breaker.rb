@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../core/transport/ext'
+require_relative "../../../core/transport/ext"
 
 module Datadog
   module Tracing

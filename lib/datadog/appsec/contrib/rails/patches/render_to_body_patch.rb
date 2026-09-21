@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../../utils/hash_coercion'
-require_relative '../../../instrumentation/gateway/argument'
+require_relative "../../../utils/hash_coercion"
+require_relative "../../../instrumentation/gateway/argument"
 
 module Datadog
   module AppSec
@@ -21,7 +21,7 @@ module Datadog
               return super unless data
 
               container = Instrumentation::Gateway::DataContainer.new(data, context: context)
-              Instrumentation.gateway.push('rails.response.body.json', container)
+              Instrumentation.gateway.push("rails.response.body.json", container)
 
               super
             end

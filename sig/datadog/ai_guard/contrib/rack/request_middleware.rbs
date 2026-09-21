@@ -1,0 +1,27 @@
+module Datadog
+  module AIGuard
+    module Contrib
+      module Rack
+        class RequestMiddleware
+          NETWORK_CLIENT_IP_TAG: ::String
+
+          @app: ::Rack::app
+
+          def initialize: (::Rack::app app, ?::Hash[::Symbol, any] opt) -> void
+
+          def call: (::Rack::env env) -> ::Rack::response
+
+          private
+
+          def store_anomaly_detection_tags!: (Datadog::Tracing::TraceSegment trace, ::Rack::env env) -> void
+
+          def clean_up_ai_guard_temp_tags!: (Datadog::Tracing::TraceSegment trace) -> void
+
+          def ai_guard_executed?: (Datadog::Tracing::TraceSegment) -> bool
+
+          def tag_client_ip_on_request_span!: (Datadog::Tracing::TraceSegment trace) -> void
+        end
+      end
+    end
+  end
+end

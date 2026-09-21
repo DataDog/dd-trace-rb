@@ -1,14 +1,15 @@
 # frozen_string_literal: true
 
-require 'zlib'
-require_relative 'pathway_context'
-require_relative 'transport/http'
-require_relative '../version'
-require_relative '../core/worker'
-require_relative '../core/workers/polling'
-require_relative '../core/ddsketch'
-require_relative '../core/buffer/cruby'
-require_relative '../core/utils/time'
+require "zlib"
+require_relative "pathway_context"
+require_relative "transport/http"
+require_relative "../version"
+require_relative "../core/worker"
+require_relative "../core/workers/polling"
+require_relative "../core/ddsketch"
+require_relative "../core/buffer/cruby"
+require_relative "../core/utils/time"
+require_relative "../core/utils/fnv"
 
 module Datadog
   module DataStreams
@@ -21,7 +22,7 @@ module Datadog
     class Processor < Core::Worker
       include Core::Workers::Polling
 
-      PROPAGATION_KEY = 'dd-pathway-ctx-base64'
+      PROPAGATION_KEY = "dd-pathway-ctx-base64"
 
       # Default buffer size for lock-free event queue
       # Set to handle high-throughput scenarios (e.g., 10k events/sec for 10s interval)
@@ -35,14 +36,16 @@ module Datadog
       # @param logger [Datadog::Core::Logger] Logger instance for debugging
       # @param settings [Datadog::Core::Configuration::Settings] Global configuration settings
       # @param agent_settings [Datadog::Core::Configuration::AgentSettings] Agent connection settings
+      # @param agent_info [Datadog::Core::Environment::AgentInfo] Agent capability information
       # @param buffer_size [Integer] Size of the lock-free event buffer for async stat collection
       #   (default: DEFAULT_BUFFER_SIZE). Higher values support more throughput but use more memory.
       # @raise [UnsupportedError] if DDSketch is not available on this platform
-      def initialize(interval:, logger:, settings:, agent_settings:, buffer_size: DEFAULT_BUFFER_SIZE)
-        raise UnsupportedError, 'DDSketch is not supported' unless Datadog::Core::DDSketch.supported?
+      def initialize(interval:, logger:, settings:, agent_settings:, agent_info:, buffer_size: DEFAULT_BUFFER_SIZE)
+        raise UnsupportedError, "DDSketch is not supported" unless Datadog::Core::DDSketch.supported?
 
         @settings = settings
         @agent_settings = agent_settings
+        @agent_info = agent_info
         @logger = logger
 
         now = Core::Utils::Time.now
@@ -59,7 +62,24 @@ module Datadog
 
         super()
         self.loop_base_interval = interval
+        # Without this, a preload-then-fork deployment model (e.g. Puma cluster mode with
+        # preload_app!, or Sidekiq Enterprise's sidekiqswarm with SIDEKIQ_PRELOAD_APP) leaves
+        # every forked child with a dead flush thread: Ruby threads don't survive fork, and the
+        # default FORK_POLICY_STOP means #perform would otherwise just mark the worker stopped
+        # instead of restarting it. See #restart_flush_thread.
+        self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
 
+        perform
+      end
+
+      # Restarts the flush thread if a fork has been detected since this processor was created.
+      # Called by Components#after_fork. Safe to call even when no fork occurred: #perform (via
+      # Workers::Async::Thread) only restarts the worker when +forked?+ is true. Deliberately not
+      # named +after_fork+: Workers::Async::Thread already defines a protected +after_fork+
+      # template method that #perform's internal restart path (+restart_after_fork+) calls on
+      # every restart -- overriding it here would recurse.
+      def restart_flush_thread
+        discard_inherited_state_after_fork! if forked?
         perform
       end
 
@@ -76,7 +96,7 @@ module Datadog
             topic: topic,
             partition: partition,
             offset: offset,
-            timestamp_ns: (now.to_f * 1e9).to_i
+            timestamp_ns: (now.to_f * 1e9).to_i,
           }
         )
         true
@@ -95,7 +115,7 @@ module Datadog
             topic: topic,
             partition: partition,
             offset: offset,
-            timestamp: now
+            timestamp: now,
           }
         )
         true
@@ -109,8 +129,8 @@ module Datadog
       # @yield [key, value] Block to inject context into carrier
       # @return [String] Base64 encoded pathway context
       def set_produce_checkpoint(type:, destination:, manual_checkpoint: true, tags: {}, &block)
-        checkpoint_tags = ["type:#{type}", "topic:#{destination}", 'direction:out']
-        checkpoint_tags << 'manual_checkpoint:true' if manual_checkpoint
+        checkpoint_tags = ["type:#{type}", "topic:#{destination}", "direction:out"]
+        checkpoint_tags << "manual_checkpoint:true" if manual_checkpoint
         checkpoint_tags.concat(tags.map { |k, v| "#{k}:#{v}" }) unless tags.empty?
 
         span = Datadog::Tracing.active_span
@@ -137,8 +157,8 @@ module Datadog
           end
         end
 
-        checkpoint_tags = ["type:#{type}", "topic:#{source}", 'direction:in']
-        checkpoint_tags << 'manual_checkpoint:true' if manual_checkpoint
+        checkpoint_tags = ["type:#{type}", "topic:#{source}", "direction:in"]
+        checkpoint_tags << "manual_checkpoint:true" if manual_checkpoint
         checkpoint_tags.concat(tags.map { |k, v| "#{k}:#{v}" }) unless tags.empty?
 
         span = Datadog::Tracing.active_span
@@ -183,7 +203,7 @@ module Datadog
 
         bucket[:latest_produce_offsets][partition_key] = [
           event[:offset],
-          bucket[:latest_produce_offsets][partition_key] || 0
+          bucket[:latest_produce_offsets][partition_key] || 0,
         ].max
       end
 
@@ -193,7 +213,7 @@ module Datadog
           partition: event[:partition],
           offset: event[:offset],
           timestamp: event[:timestamp],
-          timestamp_sec: event[:timestamp].to_f
+          timestamp_sec: event[:timestamp].to_f,
         }
 
         timestamp_ns = (event[:timestamp].to_f * 1e9).to_i
@@ -213,7 +233,7 @@ module Datadog
             expected_offset: previous_offset + 1,
             actual_offset: event[:offset],
             gap_size: event[:offset] - previous_offset - 1,
-            timestamp_sec: event[:timestamp].to_f
+            timestamp_sec: event[:timestamp].to_f,
           }
         end
 
@@ -225,7 +245,7 @@ module Datadog
         bucket_time_ns = now_ns - (now_ns % @bucket_size_ns)
         bucket = @buckets[bucket_time_ns] ||= create_bucket
 
-        aggr_key = [event[:tags].join(','), event[:hash], event[:parent_hash]]
+        aggr_key = [event[:tags].join(","), event[:hash], event[:parent_hash]]
         stats = bucket[:pathway_stats][aggr_key] ||= create_pathway_stats
 
         stats[:edge_latency].add(event[:edge_latency_sec])
@@ -242,9 +262,9 @@ module Datadog
         current_context = get_current_context
         tags = tags.sort
 
-        direction = nil #: ::String?
+        direction = nil # : ::String?
         tags.each do |tag|
-          if tag.start_with?('direction:')
+          if tag.start_with?("direction:")
             direction = tag
             break
           end
@@ -269,7 +289,7 @@ module Datadog
         new_hash = compute_pathway_hash(parent_hash, tags)
 
         # Tag the APM span with the pathway hash to link DSM and APM
-        span&.set_tag('pathway.hash', new_hash.to_s)
+        span&.set_tag("pathway.hash", new_hash.to_s)
 
         edge_latency_sec = [now - current_context.current_edge_start, 0.0].max
         full_pathway_latency_sec = [now - current_context.pathway_start, 0.0].max
@@ -299,31 +319,48 @@ module Datadog
         PathwayContext.decode_b64(encoded_ctx)
       end
 
-      def flush_stats
-        payload = nil # : ::Hash[::String, untyped]?
-
+      # A fork copies whatever was buffered in the parent (unflushed events, aggregated
+      # buckets, consumer stats) into the child. If the parent process is still alive and
+      # flushing (e.g. a supervisor process that stays up after forking workers), letting
+      # the child flush that same inherited data as well would double-report it to the
+      # agent. Discard it instead: losing a few seconds of pre-fork stats is preferable to
+      # corrupting pipeline throughput/lag numbers with duplicates.
+      def discard_inherited_state_after_fork!
+        @event_buffer.pop
         @stats_mutex.synchronize do
-          return if @buckets.empty? && @consumer_stats.empty?
-
-          stats_buckets = serialize_buckets
-
-          payload = {
-            'Service' => @settings.service,
-            'TracerVersion' => Datadog::VERSION::STRING,
-            'Lang' => 'ruby',
-            'Stats' => stats_buckets,
-            'Hostname' => hostname
-          }
-
-          # Clear consumer stats even if sending fails to prevent unbounded memory growth
-          # Must be done inside mutex before we release it
+          @buckets.clear
           @consumer_stats.clear
         end
+      end
 
-        # Send to agent outside mutex to avoid blocking customer code if agent is slow/hung
-        send_stats_to_agent(payload) if payload
+      def flush_stats
+        stats_buckets = @stats_mutex.synchronize do
+          return if @buckets.empty? && @consumer_stats.empty?
+
+          serialized_buckets = serialize_buckets
+
+          # Clear consumer stats even if sending fails to prevent unbounded memory growth.
+          # Must be done inside mutex before we release it.
+          @consumer_stats.clear
+
+          serialized_buckets
+        end
+
+        payload = {
+          "Env" => @settings.env || "none",
+          "Service" => @settings.service,
+          "TracerVersion" => Datadog::VERSION::STRING,
+          "Lang" => "ruby",
+          "Stats" => stats_buckets,
+          "Hostname" => hostname,
+        } # : ::Hash[::String, (::String | ::Array[::String])]
+
+        payload["ProcessTags"] = Core::Environment::Process.tags if @settings.experimental_propagate_process_tags_enabled
+
+        # Send to agent outside mutex to avoid blocking customer code if agent is slow/hung.
+        send_stats_to_agent(payload)
       rescue => e
-        @logger.debug("Failed to flush DSM stats to agent: #{e.class}: #{e}")
+        @logger.debug("Failed to flush DSM stats to agent: #{e.class}: #{e.message}")
       end
 
       def get_current_pathway
@@ -351,38 +388,34 @@ module Datadog
       end
 
       def decode_and_set_pathway_context(headers)
-        return unless headers && headers['dd-pathway-ctx-base64']
+        return unless headers && headers["dd-pathway-ctx-base64"]
 
-        pathway_ctx = decode_pathway_context(headers['dd-pathway-ctx-base64'])
+        pathway_ctx = decode_pathway_context(headers["dd-pathway-ctx-base64"])
         set_pathway_context(pathway_ctx) if pathway_ctx
       end
 
       # Compute new pathway hash using FNV-1a algorithm.
       # Combines service, env, tags, and parent hash to create unique pathway identifier.
+      #
+      # The hash only needs to be internally consistent:
+      # @see Datadog::Core::Environment::AgentInfo#container_tags_checksum
       def compute_pathway_hash(current_hash, tags)
-        service = @settings.service || 'ruby-service'
-        env = @settings.env || 'none'
+        service = @settings.service || "ruby-service"
+        env = @settings.env || "none"
 
         bytes = service.bytes + env.bytes
-        tags.each { |tag| bytes += tag.bytes }
-        byte_string = bytes.pack('C*')
 
-        node_hash = fnv1_64(byte_string)
-        combined_bytes = [node_hash, current_hash].pack('QQ')
-        fnv1_64(combined_bytes)
-      end
-
-      # FNV-1a 64-bit hash function.
-      def fnv1_64(data)
-        fnv_offset_basis = 14695981039346656037
-        fnv_prime = 1099511628211
-
-        hash_value = fnv_offset_basis
-        data.each_byte do |byte|
-          hash_value ^= byte
-          hash_value = (hash_value * fnv_prime) & 0xFFFFFFFFFFFFFFFF
+        if @settings.experimental_propagate_process_tags_enabled
+          propagation_checksum = @agent_info.propagation_checksum
+          bytes += [propagation_checksum].pack("Q<").bytes if propagation_checksum
         end
-        hash_value
+
+        tags.each { |tag| bytes += tag.bytes }
+        byte_string = bytes.pack("C*")
+
+        node_hash = Core::Utils::FNV.fnv1_64(byte_string)
+        combined_bytes = [node_hash, current_hash].pack("QQ")
+        Core::Utils::FNV.fnv1_64(combined_bytes)
       end
 
       def record_checkpoint_stats(
@@ -398,7 +431,7 @@ module Datadog
             full_pathway_latency_sec: full_pathway_latency_sec,
             payload_size: payload_size,
             tags: tags,
-            timestamp_sec: timestamp_sec
+            timestamp_sec: timestamp_sec,
           }
         )
         true
@@ -431,38 +464,38 @@ module Datadog
           bucket_stats = []
           bucket[:pathway_stats].each do |aggr_key, stats|
             edge_tags_str, hash_value, parent_hash = aggr_key
-            edge_tags_array = edge_tags_str.split(',')
+            edge_tags_array = edge_tags_str.split(",")
 
             bucket_stats << {
-              'EdgeTags' => edge_tags_array,
-              'Hash' => hash_value,
-              'ParentHash' => parent_hash,
-              'PathwayLatency' => stats[:full_pathway_latency].encode,
-              'EdgeLatency' => stats[:edge_latency].encode,
+              "EdgeTags" => edge_tags_array,
+              "Hash" => hash_value,
+              "ParentHash" => parent_hash,
+              "PathwayLatency" => stats[:full_pathway_latency].encode,
+              "EdgeLatency" => stats[:edge_latency].encode,
             }
           end
 
           backlogs = []
           bucket[:latest_produce_offsets].each do |key, offset|
-            topic, partition = key.split(':', 2)
+            topic, partition = key.split(":", 2)
             backlogs << {
-              'Tags' => ['type:kafka_produce', "topic:#{topic}", "partition:#{partition}"],
-              'Value' => offset
+              "Tags" => ["type:kafka_produce", "topic:#{topic}", "partition:#{partition}"],
+              "Value" => offset,
             }
           end
           bucket[:latest_commit_offsets].each do |key, offset|
-            group, topic, partition = key.split(':', 3)
+            group, topic, partition = key.split(":", 3)
             backlogs << {
-              'Tags' => ['type:kafka_commit', "consumer_group:#{group}", "topic:#{topic}", "partition:#{partition}"],
-              'Value' => offset
+              "Tags" => ["type:kafka_commit", "consumer_group:#{group}", "topic:#{topic}", "partition:#{partition}"],
+              "Value" => offset,
             }
           end
 
           serialized_buckets << {
-            'Start' => bucket_time_ns,
-            'Duration' => @bucket_size_ns,
-            'Stats' => bucket_stats,
-            'Backlogs' => backlogs + serialize_consumer_backlogs
+            "Start" => bucket_time_ns,
+            "Duration" => @bucket_size_ns,
+            "Stats" => bucket_stats,
+            "Backlogs" => backlogs + serialize_consumer_backlogs,
           }
         end
 
@@ -474,12 +507,12 @@ module Datadog
       def serialize_consumer_backlogs
         @consumer_stats.map do |stat|
           {
-            'Tags' => [
-              'type:kafka_commit',
+            "Tags" => [
+              "type:kafka_commit",
               "topic:#{stat[:topic]}",
-              "partition:#{stat[:partition]}"
+              "partition:#{stat[:partition]}",
             ],
-            'Value' => stat[:offset]
+            "Value" => stat[:offset],
           }
         end
       end
@@ -492,7 +525,7 @@ module Datadog
         {
           pathway_stats: {},
           latest_produce_offsets: {},
-          latest_commit_offsets: {}
+          latest_commit_offsets: {},
         }
       end
 
@@ -501,7 +534,7 @@ module Datadog
           edge_latency: Datadog::Core::DDSketch.new,
           full_pathway_latency: Datadog::Core::DDSketch.new,
           payload_size_sum: 0,
-          payload_size_count: 0
+          payload_size_count: 0,
         }
       end
     end

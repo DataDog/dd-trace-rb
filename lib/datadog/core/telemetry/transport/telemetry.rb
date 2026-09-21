@@ -1,18 +1,14 @@
 # frozen_string_literal: true
 
-require_relative '../../transport/parcel'
-require_relative '../../transport/transport'
-require_relative 'http/telemetry'
+require_relative "../../transport/parcel"
+require_relative "../../transport/transport"
+require_relative "http/telemetry"
 
 module Datadog
   module Core
     module Telemetry
       module Transport
         module Telemetry
-          class EncodedParcel
-            include Datadog::Core::Transport::Parcel
-          end
-
           class Request < Datadog::Core::Transport::Request
             attr_reader :request_type
             attr_reader :api_key
@@ -28,8 +24,11 @@ module Datadog
             attr_accessor :api_key
 
             def send_telemetry(request_type:, payload:)
-              json = JSON.dump(payload)
-              parcel = EncodedParcel.new(json)
+              encoder = Core::Encoding::JSONEncoder
+              parcel = Core::Transport::Parcel.new(
+                encoder.encode(payload),
+                content_type: encoder.content_type,
+              )
               request = Request.new(request_type, parcel, api_key)
 
               @client.send_request(:telemetry, request)

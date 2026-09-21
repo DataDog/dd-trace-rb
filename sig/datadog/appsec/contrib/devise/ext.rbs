@@ -40,6 +40,8 @@ module Datadog
           TAG_DD_LOGIN_FAILURE_MODE: ::String
 
           TAG_DD_SIGNUP_MODE: ::String
+
+          TAG_DD_COLLECTION_MODE: ::String
         end
       end
     end

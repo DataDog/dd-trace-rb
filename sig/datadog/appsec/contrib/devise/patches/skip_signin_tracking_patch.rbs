@@ -4,6 +4,8 @@ module Datadog
       module Devise
         module Patches
           module SkipSigninTrackingPatch
+            @_datadog_appsec_skip_track_login_event: bool
+
             def validate: (*untyped args) -> untyped
           end
         end

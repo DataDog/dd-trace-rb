@@ -1,6 +1,6 @@
-require 'datadog/tracing/trace_operation'
+require "datadog/tracing/trace_operation"
 
-RSpec.shared_examples 'sampler with sample rate' do |sample_rate|
+RSpec.shared_examples "sampler with sample rate" do |sample_rate|
   subject(:sampler_sample_rate) { sampler.sample_rate(trace_op) }
 
   let(:trace_op) { Datadog::Tracing::TraceOperation.new }

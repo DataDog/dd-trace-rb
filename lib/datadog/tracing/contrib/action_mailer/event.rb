@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../analytics'
-require_relative '../active_support/notifications/event'
-require_relative 'ext'
+require_relative "../analytics"
+require_relative "../active_support/notifications/event"
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -31,7 +31,10 @@ module Datadog
               super
 
               span.type = span_type
-              span.service = configuration[:service_name] if configuration[:service_name]
+              if configuration[:service_name]
+                span.service = configuration[:service_name]
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
+              end
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
 
               # Set analytics sample rate

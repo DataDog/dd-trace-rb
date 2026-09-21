@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../../utils/hash_coercion'
-require_relative '../../../instrumentation/gateway/argument'
+require_relative "../../../utils/hash_coercion"
+require_relative "../../../instrumentation/gateway/argument"
 
 module Datadog
   module AppSec
@@ -12,14 +12,14 @@ module Datadog
           # body right before it is serialized.
           module JsonPatch
             def json(object, options = {})
-              context = @request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
+              context = @request.env[Datadog::AppSec::Ext::CONTEXT_KEY] # : Context?
               return super unless context
 
               data = Utils::HashCoercion.coerce(object)
               return super unless data
 
               container = Instrumentation::Gateway::DataContainer.new(data, context: context)
-              Instrumentation.gateway.push('sinatra.response.body.json', container)
+              Instrumentation.gateway.push("sinatra.response.body.json", container)
 
               super
             end

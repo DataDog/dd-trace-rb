@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../ext'
-require_relative '../configuration'
-require_relative '../data_extractor'
-require_relative '../../../trace_keeper'
+require_relative "../ext"
+require_relative "../configuration"
+require_relative "../data_extractor"
+require_relative "../../../trace_keeper"
 
 module Datadog
   module AppSec
@@ -21,7 +21,7 @@ module Datadog
                 context = AppSec.active_context
 
                 if context.trace.nil? || context.span.nil?
-                  Datadog.logger.debug { 'AppSec: unable to track signup events, due to missing trace or span' }
+                  Datadog.logger.debug { "AppSec: unable to track signup events, due to missing trace or span" }
                   next yield(resource) if block_given?
                 end
 
@@ -29,7 +29,7 @@ module Datadog
 
                 TraceKeeper.keep!(context.trace)
                 record_successful_signup(context, resource)
-                Instrumentation.gateway.push('appsec.events.user_lifecycle', Ext::EVENT_SIGNUP)
+                Instrumentation.gateway.push("appsec.events.user_lifecycle", Ext::EVENT_SIGNUP)
 
                 yield(resource) if block_given?
               end
@@ -43,7 +43,7 @@ module Datadog
               id = extractor.extract_id(resource)
               login = extractor.extract_login(resource_params) || extractor.extract_login(resource)
 
-              context.span[Ext::TAG_SIGNUP_TRACK] = 'true'
+              context.span[Ext::TAG_SIGNUP_TRACK] = "true"
               context.span[Ext::TAG_DD_USR_LOGIN] = login
               context.span[Ext::TAG_SIGNUP_USR_LOGIN] ||= login
               context.span[Ext::TAG_DD_SIGNUP_MODE] = Configuration.auto_user_instrumentation_mode
@@ -59,7 +59,7 @@ module Datadog
               #       and because of that we will trigger an additional event even
               #       if it was already done via the SDK
               AppSec::Instrumentation.gateway.push(
-                'identity.set_user', AppSec::Instrumentation::Gateway::User.new(id, login)
+                "identity.set_user", AppSec::Instrumentation::Gateway::User.new(id, login)
               )
             end
           end

@@ -44,6 +44,7 @@ module SerializerHelper
       double("di settings").tap do |settings|
         allow(settings).to receive(:enabled).and_return(true)
         allow(settings).to receive(:redacted_identifiers).and_return([])
+        allow(settings).to receive(:redaction_excluded_identifiers).and_return([])
         allow(settings).to receive(:redacted_type_names).and_return(%w[
           DISerializerSpecSensitiveType DISerializerSpecWildCard*
         ])
@@ -53,6 +54,25 @@ module SerializerHelper
         allow(settings).to receive(:max_capture_depth).and_return(2)
         allow(settings).to receive(:max_capture_string_length).and_return(100)
       end
+    end
+  end
+
+  # Helper to save and restore the DI custom serializer registry to prevent test pollution.
+  # Use this in contexts that register custom serializers with Datadog::DI::Serializer.register.
+  #
+  # Example:
+  #   context 'when custom serializer is registered' do
+  #     with_di_registry_change
+  #
+  #     before do
+  #       Datadog::DI::Serializer.register(...) { ... }
+  #     end
+  #   end
+  def with_di_registry_change
+    around do |example|
+      original_registry = Datadog::DI::Serializer.class_variable_get(:@@flat_registry).dup
+      example.run
+      Datadog::DI::Serializer.class_variable_set(:@@flat_registry, original_registry)
     end
   end
 end

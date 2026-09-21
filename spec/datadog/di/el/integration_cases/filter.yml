@@ -28,3 +28,9 @@
           y: 42
       result:
         x: ""
+
+- name: filter with non-array target
+  ast:
+    filter:
+      ref: collection
+  error: "Improper filter syntax"

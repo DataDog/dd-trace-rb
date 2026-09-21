@@ -1,12 +1,13 @@
-require 'support/faux_writer'
-require 'support/network_helpers'
+require "support/faux_writer"
+require "support/network_helpers"
 
-require 'datadog/tracing/tracer'
-require 'datadog/tracing/span'
-require 'datadog/tracing/sync_writer'
+require "datadog/tracing/tracer"
+require "datadog/tracing/span"
+require "datadog/tracing/sync_writer"
 
 module Contrib
   include NetworkHelpers
+
   # Contrib-specific tracer helpers.
   # For contrib, we only allow one tracer to be active:
   # the global tracer in +Datadog::Tracing+.
@@ -64,6 +65,35 @@ module Contrib
       @span = nil
     end
 
+    # Tears down ActiveSupport notification subscriptions for a contrib, runs the
+    # caller's +Datadog.configure+ block, then re-subscribes against the fresh
+    # configuration.
+    #
+    # Why: +Subscription#initialize+ snapshots +span_options+ (including +service+)
+    # at subscribe-time. Without this reset, a test that overrides +service_name+
+    # leaves the stale service cached in the subscription, leaking into later tests.
+    #
+    # We do NOT reset the patcher's +@patch_only_once+ flag because some patchers
+    # (e.g. ActionCable) re-register Rails callbacks every time +patch+ runs,
+    # which would accumulate duplicate callbacks across tests.
+    def reset_subscription_state!(registry_key, events_module)
+      # +Fanout#unsubscribe+ (called by +unsubscribe_all+ below) does
+      # +subscriber.try(:pattern)+ on its argument. AS 7.0+ requires +Object#try+
+      # in +fanout.rb+ itself; AS 6.x does not, so we hit a NoMethodError unless
+      # someone else has loaded the core_ext. Load it here to support AS 6.x;
+      # remove this require once activesupport < 7.0 support is dropped.
+      require "active_support/core_ext/object/try"
+
+      events_module::ALL.each do |klass|
+        klass.subscriptions.each(&:unsubscribe_all)
+        klass.subscriptions.clear
+        klass.instance_variable_set(:@subscribed, false)
+      end
+      Datadog.registry[registry_key].reset_configuration!
+      yield if block_given?
+      events_module.subscribe!
+    end
+
     RSpec.configure do |config|
       # Capture spans from the global tracer
       config.before do
@@ -107,7 +137,7 @@ module Contrib
               # write traces after the test to the agent in order to not mess up assertions
               # remake syncwriter instance for each flush to prevent headers from being overrwritten
               sync_writer = Datadog::Tracing::SyncWriter.new(agent_settings: tracer.writer.agent_settings)
-              sync_writer.transport.client.instance.headers['X-Datadog-Trace-Env-Variables'] = parse_tracer_config
+              sync_writer.transport.client.instance.headers["X-Datadog-Trace-Env-Variables"] = parse_tracer_config
               sync_writer.write(trace)
             end
           end
@@ -119,10 +149,10 @@ module Contrib
     #
     # @return [String] Key/Value pairs representing relevant Tracer Configuration
     def parse_tracer_config
-      dd_env_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }
-      dd_env_variables['DD_SERVICE'] = dd_env_variables['DD_TEST_EXPECTED_SERVICE']
-      dd_env_variables.delete('DD_TEST_EXPECTED_SERVICE')
-      dd_env_variables.map { |key, value| "#{key}=#{value}" }.join(',')
+      dd_env_variables = ENV.to_h.select { |key, _| key.start_with?("DD_") }
+      dd_env_variables["DD_SERVICE"] = dd_env_variables["DD_TEST_EXPECTED_SERVICE"]
+      dd_env_variables.delete("DD_TEST_EXPECTED_SERVICE")
+      dd_env_variables.map { |key, value| "#{key}=#{value}" }.join(",")
     end
 
     # Useful for integration testing.

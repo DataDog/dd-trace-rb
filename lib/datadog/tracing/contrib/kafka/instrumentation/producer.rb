@@ -12,7 +12,7 @@ module Datadog
             end
 
             module InstanceMethods
-              def deliver_messages(**kwargs)
+              def deliver_messages
                 if Datadog::DataStreams.enabled?
                   begin
                     pending_messages = instance_variable_get(:@pending_message_queue)
@@ -21,7 +21,7 @@ module Datadog
                       pending_messages.each do |message|
                         message.headers ||= {}
                         Datadog::DataStreams.set_produce_checkpoint(
-                          type: 'kafka',
+                          type: "kafka",
                           destination: message.topic,
                           auto_instrumentation: true
                         ) do |key, value|
@@ -30,20 +30,20 @@ module Datadog
                       end
                     end
                   rescue => e
-                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e}")
+                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e.message}")
                   end
                 end
 
                 super
               end
 
-              def send_messages(messages, **kwargs)
+              def send_messages(messages)
                 if Datadog::DataStreams.enabled?
                   begin
                     messages.each do |message|
                       message[:headers] ||= {}
                       Datadog::DataStreams.set_produce_checkpoint(
-                        type: 'kafka',
+                        type: "kafka",
                         destination: message[:topic],
                         auto_instrumentation: true
                       ) do |key, value|
@@ -51,7 +51,7 @@ module Datadog
                       end
                     end
                   rescue => e
-                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e}")
+                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e.message}")
                   end
                 end
 

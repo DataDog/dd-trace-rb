@@ -5,18 +5,15 @@ module Datadog
     module Utils
       # Generates values from a consistent sequence
       class Sequence
-        def initialize(seed = 0, &block)
+        def initialize(seed = 0)
           @seed = seed
           @current = seed
-          @next_item = block
         end
 
         def next
-          # Steep: https://github.com/soutaro/steep/issues/477
-          # @type ivar @next_item: ^(::Integer) -> Integer
-          next_item = @next_item ? @next_item.call(@current) : @current
+          current = @current
           @current += 1
-          next_item
+          current
         end
 
         def reset!

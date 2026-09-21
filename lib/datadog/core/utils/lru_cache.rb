@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'forwardable'
+require "forwardable"
 
 module Datadog
   module Core
@@ -16,8 +16,8 @@ module Datadog
         def_delegators :@store, :clear, :empty?
 
         def initialize(max_size)
-          raise ArgumentError, 'max_size must be an Integer' unless max_size.is_a?(Integer)
-          raise ArgumentError, 'max_size must be greater than 0' if max_size <= 0
+          raise ArgumentError, "max_size must be an Integer" unless max_size.is_a?(Integer)
+          raise ArgumentError, "max_size must be greater than 0" if max_size <= 0
 
           @max_size = max_size
           @store = {}

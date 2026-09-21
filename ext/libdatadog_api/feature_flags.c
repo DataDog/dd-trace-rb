@@ -21,6 +21,7 @@ static VALUE resolution_details_get_raw_value(VALUE self);
 static VALUE resolution_details_get_flag_type(VALUE self);
 static VALUE resolution_details_get_variant(VALUE self);
 static VALUE resolution_details_get_allocation_key(VALUE self);
+static VALUE resolution_details_get_serial_id(VALUE self);
 static VALUE resolution_details_get_reason(VALUE self);
 static VALUE resolution_details_get_error_code(VALUE self);
 static VALUE resolution_details_get_error_message(VALUE self);
@@ -101,6 +102,7 @@ void feature_flags_init(VALUE core_module) {
   rb_define_method(resolution_details_class, "flag_type", resolution_details_get_flag_type, 0);
   rb_define_method(resolution_details_class, "variant", resolution_details_get_variant, 0);
   rb_define_method(resolution_details_class, "allocation_key", resolution_details_get_allocation_key, 0);
+  rb_define_method(resolution_details_class, "serial_id", resolution_details_get_serial_id, 0);
   rb_define_method(resolution_details_class, "reason", resolution_details_get_reason, 0);
   rb_define_method(resolution_details_class, "error_code", resolution_details_get_error_code, 0);
   rb_define_method(resolution_details_class, "error_message", resolution_details_get_error_message, 0);
@@ -419,6 +421,30 @@ static VALUE resolution_details_get_allocation_key(VALUE self) {
     (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
   struct ddog_ffe_BorrowedStr allocation_key = ddog_ffe_assignment_get_allocation_key(resolution_details);
   return str_from_borrow(allocation_key);
+}
+
+/*
+ * call-seq:
+ *   resolution_details.serial_id() -> Integer or nil
+ *
+ * Get the split serial id assigned for this evaluation.
+ *
+ * libdatadog returns an optional 32-bit integer (`ddog_Option_I32`, a tagged
+ * union). When the assignment carries a serial id the tag is
+ * DDOG_OPTION_I32_SOME_I32 and the value is in the `.some` field; otherwise the
+ * tag is DDOG_OPTION_I32_NONE_I32 and we return nil. This is consumed by the
+ * APM span-enrichment hook as `__dd_split_serial_id`.
+ *
+ * @return [Integer, nil] The split serial id or nil when absent
+ */
+static VALUE resolution_details_get_serial_id(VALUE self) {
+  ddog_ffe_Handle_ResolutionDetails resolution_details =
+    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
+  struct ddog_Option_I32 serial_id = ddog_ffe_assignment_get_serial_id(resolution_details);
+  if (serial_id.tag == DDOG_OPTION_I32_SOME_I32) {
+    return INT2NUM(serial_id.some);
+  }
+  return Qnil;
 }
 
 /*

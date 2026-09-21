@@ -1,22 +1,19 @@
 # frozen_string_literal: true
 
-require_relative '../../core/chunker'
-require_relative '../../core/encoding'
-require_relative '../../core/tag_builder'
-require_relative '../../core/transport/parcel'
-require_relative '../../core/transport/request'
-require_relative '../../core/transport/transport'
-require_relative '../error'
-require_relative 'http/input'
+require_relative "../../core/chunker"
+require_relative "../../core/encoding"
+require_relative "../../core/tag_builder"
+require_relative "../../core/transport/parcel"
+require_relative "../../core/transport/request"
+require_relative "../../core/transport/transport"
+require_relative "../error"
+require_relative "../fatal_exceptions"
+require_relative "http/input"
 
 module Datadog
   module DI
     module Transport
       module Input
-        class EncodedParcel
-          include Datadog::Core::Transport::Parcel
-        end
-
         class Request < Datadog::Core::Transport::Request
           attr_reader :serialized_tags
 
@@ -28,6 +25,13 @@ module Datadog
         end
 
         class Transport < Core::Transport::Transport
+          attr_reader :telemetry
+
+          def initialize(apis, default_api, logger:, telemetry: nil)
+            super(apis, default_api, logger: logger)
+            @telemetry = telemetry
+          end
+
           # The limit on an individual snapshot payload, aka "log line",
           # is 1 MB.
           #
@@ -47,22 +51,53 @@ module Datadog
           # max chunk size, it will still get sent out.
           DEFAULT_CHUNK_SIZE = 2 * 1024 * 1024
 
-          def send_input(payload, tags)
-            # Tags are the same for all chunks, serialize them one time.
+          # Sends snapshot payloads to the agent.
+          #
+          # Each snapshot is serialized individually. If serialization fails
+          # for a snapshot (e.g., due to binary data from custom serializers),
+          # the on_serialization_error callback is invoked with the probe ID
+          # and exception, allowing the caller to disable the affected probe.
+          # Successfully serialized snapshots are still sent.
+          #
+          # Large snapshots (> 1MB) are dropped. Batches are split into chunks
+          # of ~2MB each to avoid large network requests.
+          #
+          # @param payload [Array<Hash>] Array of snapshot payloads
+          # @param tags [Hash] Tags to send with the snapshots
+          # @param on_serialization_error [Proc] Called with (probe_id, exception)
+          #   when a snapshot fails to serialize.
+          def send_input(payload, tags, on_serialization_error:)
             serialized_tags = Core::TagBuilder.serialize_tags(tags)
 
-            encoder = Core::Encoding::JSONEncoder
-            encoded_snapshots = Core::Utils::Array.filter_map(payload) do |snapshot|
+            # Serialize each snapshot individually to isolate failures
+            encoded_snapshots = []
+            payload.each do |snapshot|
               encoded = encoder.encode(snapshot)
               if encoded.length > MAX_SERIALIZED_SNAPSHOT_SIZE
-                # Drop the snapshot.
-                # TODO report via telemetry metric?
                 logger.debug { "di: dropping too big snapshot" }
-                nil
-              else
-                encoded
+                next
+              end
+              encoded_snapshots << encoded
+            rescue Exception => exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(exc)
+              # Serialization failed for this snapshot - report via callback
+              # This catches JSON::GeneratorError, Encoding errors, TypeError, etc.
+              probe_id = snapshot.dig(:debugger, :snapshot, :probe, :id)
+              logger.debug { "di: JSON encoding failed for snapshot (probe #{probe_id}): #{exc.class}: #{exc.message}" }
+              telemetry&.report(exc, description: "JSON encoding failed for snapshot")
+
+              if probe_id
+                begin
+                  on_serialization_error.call(probe_id, exc)
+                rescue Exception => callback_exc # standard:disable Lint/RescueException
+                  Datadog::DI.reraise_if_fatal(callback_exc)
+                  logger.debug { "di: error in serialization error callback for probe #{probe_id}: #{callback_exc.class}: #{callback_exc.message}" }
+                  telemetry&.report(callback_exc, description: "Error in serialization error callback")
+                end
               end
             end
+
+            return payload if encoded_snapshots.empty?
 
             Datadog::Core::Chunker.chunk_by_size(
               encoded_snapshots, DEFAULT_CHUNK_SIZE,
@@ -77,8 +112,10 @@ module Datadog
               # subsequent chunks are attempted to be sent.
               begin
                 send_input_chunk(chunked_payload, serialized_tags)
-              rescue => exc
-                logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc} (at #{exc.backtrace.first})" }
+              rescue Exception => exc # standard:disable Lint/RescueException
+                Datadog::DI.reraise_if_fatal(exc)
+                logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc.message} (at #{exc.backtrace&.first})" }
+                telemetry&.report(exc, description: "Error sending snapshot chunk")
               end
             end
 
@@ -86,7 +123,7 @@ module Datadog
           end
 
           def send_input_chunk(chunked_payload, serialized_tags)
-            parcel = EncodedParcel.new(chunked_payload)
+            parcel = Core::Transport::Parcel.new(chunked_payload, content_type: encoder.content_type)
             request = Request.new(parcel, serialized_tags)
 
             client.send_request(:input, request).tap do |response|
@@ -95,6 +132,10 @@ module Datadog
                 return send_input_chunk(chunked_payload, serialized_tags)
               end
             end
+          end
+
+          def encoder
+            Core::Encoding::JSONEncoder
           end
         end
       end

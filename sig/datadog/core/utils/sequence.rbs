@@ -4,11 +4,10 @@ module Datadog
       class Sequence
         @seed: ::Integer
         @current: ::Integer
-        @next_item: (^(::Integer) -> ::Integer)?
 
-        def initialize: (?::Integer seed) ?{ (::Integer) -> ::Integer } -> untyped
+        def initialize: (?::Integer seed) -> void
 
-        def next: () -> untyped
+        def next: () -> ::Integer
 
         def reset!: () -> void
       end

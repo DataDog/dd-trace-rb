@@ -1,0 +1,11 @@
+module Datadog
+  module OpenTelemetry
+    module SDK
+      TELEMETRY_TAGS: ::Hash[::String, ::String]
+
+      def self.telemetry_inc: (::String metric_name, ::Integer value) -> void
+
+      def self.telemetry: () -> Core::Telemetry::Component?
+    end
+  end
+end

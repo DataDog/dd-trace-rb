@@ -13,7 +13,7 @@ services:
       - redis
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
-      - DATABASE_URL=mysql2://mysql:mysql@mysql:3306
+      - DATABASE_URL=mysql2://mysql:mysql@mysql:3306/acme_production
       - DATABASE_ROOT_USER=root
       - DATABASE_ROOT_PASSWORD=root
       - DD_AGENT_HOST=ddagent

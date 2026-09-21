@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'json'
-require 'msgpack'
-require 'datadog/tracing/utils'
+require "json"
+require "msgpack"
+require "datadog/tracing/utils"
 
 module Datadog
   module Tracing
@@ -76,10 +76,10 @@ module Datadog
           if span.stopped?
             packer.write_map_header(number_of_elements_to_write + 2) # Set header with how many elements in the map
 
-            packer.write('start')
+            packer.write("start")
             packer.write(time_nano(span.start_time))
 
-            packer.write('duration')
+            packer.write("duration")
             packer.write(duration_nano(span.duration))
           else
             packer.write_map_header(number_of_elements_to_write) # Set header with how many elements in the map
@@ -88,40 +88,40 @@ module Datadog
           if span.events.any?
             if @native_events_supported
               # Use top-level field for native events
-              packer.write('span_events')
+              packer.write("span_events")
               packer.write(span.events.map(&:to_native_format))
             else
               # Serialize span events as meta tags
-              span.set_tag('events', span.events.map(&:to_hash).to_json)
+              span.set_tag("events", span.events.map(&:to_hash).to_json)
             end
           end
 
           # DEV: We use strings as keys here, instead of symbols, as
           # DEV: MessagePack will ultimately convert them to strings.
           # DEV: By providing strings directly, we skip this indirection operation.
-          packer.write('span_id')
+          packer.write("span_id")
           packer.write(span.id)
-          packer.write('parent_id')
+          packer.write("parent_id")
           packer.write(span.parent_id)
-          packer.write('trace_id')
+          packer.write("trace_id")
           packer.write(@trace_id)
-          packer.write('name')
+          packer.write("name")
           packer.write(span.name)
-          packer.write('service')
+          packer.write("service")
           packer.write(span.service)
-          packer.write('resource')
+          packer.write("resource")
           packer.write(span.resource)
-          packer.write('type')
+          packer.write("type")
           packer.write(span.type)
-          packer.write('meta')
+          packer.write("meta")
           packer.write(span.meta)
-          packer.write('metrics')
+          packer.write("metrics")
           packer.write(span.metrics)
-          packer.write('meta_struct')
+          packer.write("meta_struct")
           packer.write(span.metastruct)
-          packer.write('span_links')
+          packer.write("span_links")
           packer.write(span.links.map(&:to_hash))
-          packer.write('error')
+          packer.write("error")
           packer.write(span.status)
           packer
         end

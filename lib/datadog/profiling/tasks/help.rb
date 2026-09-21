@@ -5,6 +5,7 @@ module Datadog
     module Tasks
       # Prints help message for usage of `ddprofrb`
       class Help
+        #: () -> untyped
         def run
           puts %(
   Usage: ddprofrb [command] [arguments]

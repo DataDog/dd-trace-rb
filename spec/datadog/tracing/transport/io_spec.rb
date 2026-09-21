@@ -1,9 +1,9 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/tracing/transport/io'
+require "datadog/tracing/transport/io"
 
 RSpec.describe Datadog::Tracing::Transport::IO do
-  describe '.new' do
+  describe ".new" do
     subject(:new_io) { described_class.new(out, encoder) }
 
     let(:out) { instance_double(IO) }
@@ -19,10 +19,10 @@ RSpec.describe Datadog::Tracing::Transport::IO do
     it { is_expected.to be client }
   end
 
-  describe '.default' do
+  describe ".default" do
     let(:client) { instance_double(Datadog::Tracing::Transport::IO::Client) }
 
-    context 'given no options' do
+    context "given no options" do
       subject(:default) { described_class.default }
 
       before do
@@ -34,7 +34,7 @@ RSpec.describe Datadog::Tracing::Transport::IO do
       it { is_expected.to be client }
     end
 
-    context 'given overrides' do
+    context "given overrides" do
       subject(:default) { described_class.default(options) }
 
       let(:options) { {out: out, encoder: encoder} }

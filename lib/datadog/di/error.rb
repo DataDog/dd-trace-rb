@@ -18,6 +18,10 @@ module Datadog
       class MissingLineNumber < Error
       end
 
+      # Probe does not contain a method name (i.e., is not a method probe).
+      class MissingMethodName < Error
+      end
+
       # Failed to communicate to the local Datadog agent (e.g. to send
       # probe status or a snapshot).
       class AgentCommunicationError < Error
@@ -45,6 +49,12 @@ module Datadog
       # Raised when trying to instrument a probe when there is existing
       # instrumentation for the same probe id.
       class AlreadyInstrumented < Error
+      end
+
+      # Raised when a probe targets a class or module that the tracer
+      # refuses to instrument (for example, anything in the Datadog
+      # namespace, which the tracer itself uses internally).
+      class ProbeTargetForbidden < Error
       end
 
       # Raised when installing a line probe and multiple files match the

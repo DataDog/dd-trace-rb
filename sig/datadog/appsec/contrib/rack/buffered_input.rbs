@@ -1,0 +1,28 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rack
+        class BufferedInput
+          READ_BUFSIZE_BYTES: Integer
+
+          @stream: Utils::HTTP::_RackInput
+
+          # NOTE: StringIO supports explicit nil output buffers at runtime, but
+          #       released RBS signatures do not model it yet.
+          #       See: https://github.com/ruby/rbs/pull/3002
+          @buffer: untyped
+
+          def initialize: (Utils::HTTP::_RackInput stream, buffer: (Utils::HTTP::_RackInput | StringIO)) -> void
+
+          def read: (?Integer? length, ?String? outbuf) -> String?
+
+          def gets: () -> String?
+
+          def each: () { (String chunk) -> void } -> self
+
+          def close: () -> void
+        end
+      end
+    end
+  end
+end

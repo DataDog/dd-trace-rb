@@ -5,6 +5,10 @@ module Datadog
         module Patches
           module ProcessActionPatch
             def process_action: (*untyped args) -> untyped
+
+            private
+
+            def request: () -> ::ActionDispatch::Request
           end
         end
       end

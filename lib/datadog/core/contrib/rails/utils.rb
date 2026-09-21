@@ -7,11 +7,15 @@ module Datadog
         # common utilities for Rails
         module Utils
           def self.app_name
-            if ::Rails::VERSION::MAJOR >= 6
-              ::Rails.application.class.module_parent_name.underscore
+            application_name = if ::Rails::VERSION::MAJOR >= 6
+              ::Rails.application.class.module_parent_name
             else
-              ::Rails.application.class.parent_name.underscore
+              ::Rails.application.class.parent_name
             end
+            application_name&.underscore
+          rescue => e
+            Datadog.logger.debug("Failed to extract Rails application name: #{e.class}: #{e.message}")
+            nil
           end
 
           def self.railtie_supported?

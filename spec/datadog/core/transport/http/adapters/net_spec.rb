@@ -1,12 +1,12 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/transport/http/adapters/net'
-require 'datadog/core/configuration/agent_settings'
+require "datadog/core/transport/http/adapters/net"
+require "datadog/core/configuration/agent_settings"
 
 RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
   subject(:adapter) { described_class.new(agent_settings) }
 
-  let(:hostname) { 'hostname' }
+  let(:hostname) { "hostname" }
   let(:port) { 9999 }
   let(:timeout) { 15 }
   let(:ssl) { false }
@@ -22,7 +22,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
     )
   end
 
-  shared_context 'HTTP connection stub' do
+  shared_context "HTTP connection stub" do
     let(:http_connection) { instance_double(::Net::HTTP) }
 
     before do
@@ -41,7 +41,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
     end
   end
 
-  shared_context 'HTTP Env' do
+  shared_context "HTTP Env" do
     let(:env) do
       instance_double(
         Datadog::Core::Transport::HTTP::Env,
@@ -53,21 +53,21 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
       )
     end
 
-    let(:path) { '/foo' }
-    let(:body) { '{}' }
+    let(:path) { "/foo" }
+    let(:body) { "{}" }
     let(:headers) { {} }
     let(:form) { {} }
   end
 
-  describe '#initialize' do
-    context 'given a :timeout option' do
-      let(:timeout) { double('timeout') }
+  describe "#initialize" do
+    context "given a :timeout option" do
+      let(:timeout) { double("timeout") }
 
       it { is_expected.to have_attributes(timeout: timeout) }
     end
 
-    context 'given a :ssl option' do
-      context 'with true' do
+    context "given a :ssl option" do
+      context "with true" do
         let(:ssl) { true }
 
         it { is_expected.to have_attributes(ssl: true) }
@@ -75,31 +75,31 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
     end
   end
 
-  describe '#open' do
-    include_context 'HTTP connection stub'
+  describe "#open" do
+    include_context "HTTP connection stub"
 
-    it 'opens and yields a Net::HTTP connection' do
+    it "opens and yields a Net::HTTP connection" do
       expect { |b| adapter.open(&b) }.to yield_with_args(http_connection)
     end
   end
 
-  describe '#call' do
-    include_context 'HTTP Env'
+  describe "#call" do
+    include_context "HTTP Env"
 
     subject(:call) { adapter.call(env) }
 
-    context 'given an HTTP::Env with a verb' do
+    context "given an HTTP::Env with a verb" do
       before { allow(env).to receive(:verb).and_return(verb) }
 
-      context ':get' do
-        include_context 'HTTP connection stub'
+      context ":get" do
+        include_context "HTTP connection stub"
         let(:verb) { :get }
-        let(:http_response) { double('http_response') }
+        let(:http_response) { double("http_response") }
 
-        context 'and a simple get request' do
+        context "and a simple get request" do
           let(:get) { instance_double(Net::HTTP::Get) }
 
-          it 'makes a GET and produces a response' do
+          it "makes a GET and produces a response" do
             expect(Net::HTTP::Get)
               .to receive(:new)
               .with(env.path, env.headers)
@@ -116,16 +116,16 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
         end
       end
 
-      context ':post' do
-        include_context 'HTTP connection stub'
+      context ":post" do
+        include_context "HTTP connection stub"
         let(:verb) { :post }
-        let(:http_response) { double('http_response') }
+        let(:http_response) { double("http_response") }
 
-        context 'and an empty form body' do
+        context "and an empty form body" do
           let(:form) { {} }
           let(:post) { instance_double(Net::HTTP::Post) }
 
-          it 'makes a POST and produces a response' do
+          it "makes a POST and produces a response" do
             expect(Net::HTTP::Post)
               .to receive(:new)
               .with(env.path, env.headers)
@@ -145,11 +145,11 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
           end
         end
 
-        context 'and a form with fields' do
-          let(:form) { {'id' => '1234', 'type' => 'Test'} }
+        context "and a form with fields" do
+          let(:form) { {"id" => "1234", "type" => "Test"} }
           let(:multipart_post) { instance_double(Datadog::Core::Vendor::Net::HTTP::Post::Multipart) }
 
-          it 'makes a multipart POST and produces a response' do
+          it "makes a multipart POST and produces a response" do
             expect(Datadog::Core::Vendor::Net::HTTP::Post::Multipart)
               .to receive(:new)
               .with(env.path, env.form, env.headers)
@@ -166,25 +166,25 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
         end
       end
 
-      context ':head' do
+      context ":head" do
         let(:verb) { :head }
 
         it { expect { call }.to raise_error(described_class::UnknownHTTPMethod) }
       end
 
-      context ':put' do
+      context ":put" do
         let(:verb) { :put }
 
         it { expect { call }.to raise_error(described_class::UnknownHTTPMethod) }
       end
 
-      context ':delete' do
+      context ":delete" do
         let(:verb) { :delete }
 
         it { expect { call }.to raise_error(described_class::UnknownHTTPMethod) }
       end
 
-      context ':patch' do
+      context ":patch" do
         let(:verb) { :patch }
 
         it { expect { call }.to raise_error(described_class::UnknownHTTPMethod) }
@@ -192,29 +192,29 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
     end
   end
 
-  describe '#post' do
-    include_context 'HTTP connection stub'
-    include_context 'HTTP Env'
+  describe "#post" do
+    include_context "HTTP connection stub"
+    include_context "HTTP Env"
 
     subject(:post) { adapter.post(env) }
 
-    let(:http_response) { double('http_response') }
+    let(:http_response) { double("http_response") }
 
     before { expect(http_connection).to receive(:request).and_return(http_response) }
 
-    it 'produces a response' do
+    it "produces a response" do
       is_expected.to be_a_kind_of(described_class::Response)
       expect(post.http_response).to be(http_response)
     end
   end
 
-  describe '#url' do
+  describe "#url" do
     subject(:url) { adapter.url }
 
-    let(:hostname) { 'local.test' }
-    let(:port) { '345' }
+    let(:hostname) { "local.test" }
+    let(:port) { "345" }
     let(:timeout) { 7 }
 
-    it { is_expected.to eq('http://local.test:345?timeout=7') }
+    it { is_expected.to eq("http://local.test:345?timeout=7") }
   end
 end

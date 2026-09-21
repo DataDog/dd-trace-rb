@@ -6,19 +6,27 @@
 static ID telemetry_message_id;
 
 void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char *function_name) {
-  rb_exc_raise(
-    rb_exc_new_str(
-      rb_eTypeError,
-      rb_sprintf("wrong argument %"PRIsVALUE" for '%s' (expected a %s) at %s:%d:in `%s'",
-        rb_inspect(value),
-        value_name,
-        type_name,
-        file,
-        line,
-        function_name
-      )
+  // All of the below come from `ENFORCE_TYPE` and are constant for their call-site
+  VALUE simple_message = rb_sprintf("wrong argument for '%s' (expected a %s) at %s:%d:in `%s'",
+    value_name,
+    type_name,
+    file,
+    line,
+    function_name
+  );
+  VALUE exception = rb_exc_new_str(
+    rb_eTypeError,
+    rb_sprintf("wrong argument %"PRIsVALUE" for '%s' (expected a %s) at %s:%d:in `%s'",
+      rb_inspect(value),
+      value_name,
+      type_name,
+      file,
+      line,
+      function_name
     )
   );
+  rb_ivar_set(exception, telemetry_message_id, simple_message);
+  rb_exc_raise(exception);
 }
 
 // Raises an exception with separate telemetry-safe and detailed messages.
@@ -29,16 +37,15 @@ void private_raise_exception(VALUE exception, const char *static_message) {
   rb_exc_raise(exception);
 }
 
-// Helper for raising pre-formatted exceptions
-void private_raise_error_formatted(VALUE exception_class, const char *detailed_message, const char *static_message) {
-  VALUE exception = rb_exc_new_cstr(exception_class, detailed_message);
-  private_raise_exception(exception, static_message);
-}
-
 // Use `raise_error` the macro instead, as it provides additional argument checks.
 void private_raise_error(VALUE exception_class, const char *fmt, ...) {
-  FORMAT_VA_ERROR_MESSAGE(detailed_message, fmt);
-  private_raise_error_formatted(exception_class, detailed_message, fmt);
+  va_list args;
+  va_start(args, fmt);
+  VALUE detailed_message = rb_vsprintf(fmt, args);
+  va_end(args);
+
+  VALUE exception = rb_exc_new_str(exception_class, detailed_message);
+  private_raise_exception(exception, fmt);
 }
 
 VALUE datadog_gem_version(void) {
@@ -122,6 +129,24 @@ size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capa
   return error_msg_size;
 }
 
+static void verify_libdatadog_version(void) {
+  rb_eval_string(
+    "require 'libdatadog';"
+    "expected = '" EXPECTED_LIBDATADOG_VERSION "';"
+    "if expected != Libdatadog::VERSION;"
+      "raise(LoadError, <<MSG\n"
+        "The `datadog` gem needs to be reinstalled whenever the `libdatadog` gem version is changed. "
+        "The currently-installed version of `datadog` was built to work with `libdatadog` gem version #{expected} "
+        "but the currently-loaded version of `libdatadog` is #{Libdatadog::VERSION}. "
+        "To fix this, reinstall the `datadog` gem (e.g. `bundle exec gem pristine datadog`) "
+        "or contact Datadog support for help at <https://docs.datadoghq.com/help/>.\n"
+        "MSG\n"
+      ");"
+    "end"
+  );
+}
+
 void datadog_ruby_common_init(void) {
   telemetry_message_id = rb_intern("@telemetry_message");
+  verify_libdatadog_version();
 }

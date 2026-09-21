@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../core/error'
+require_relative "../../core/error"
 
-require_relative 'ext'
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -12,8 +12,8 @@ module Datadog
       module Errors
         def set_error(error)
           Datadog::Core.log_deprecation do
-            'Errors.set_error(..) is deprecated. ' \
-            'Use Errors.set_error_tags(..) instead.'
+            "Errors.set_error(..) is deprecated. " \
+            "Use Errors.set_error_tags(..) instead."
           end
           set_error_tags(error)
         end

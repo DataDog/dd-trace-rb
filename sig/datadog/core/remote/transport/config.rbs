@@ -3,13 +3,6 @@ module Datadog
     module Remote
       module Transport
         module Config
-          # Data transfer object for encoded traces
-          class EncodedParcel
-            include Datadog::Core::Transport::Parcel
-
-            def count: () -> untyped
-          end
-
           # Config request
           class Request < Datadog::Core::Transport::Request
           end

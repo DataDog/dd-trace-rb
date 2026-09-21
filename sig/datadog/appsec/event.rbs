@@ -8,10 +8,6 @@ module Datadog
         def headers: () -> Enumerable[[::String, ::String]]
       end
 
-      interface _ResponseInterface
-        def headers: () -> Enumerable[[::String, ::String]]
-      end
-
       type tags = ::Hash[::String, ::String]
 
       ATTRIBUTES_SCHEMA_KEY_PREFIX: ::String
@@ -20,9 +16,7 @@ module Datadog
 
       ALLOWED_REQUEST_HEADERS: ::Array[::String]
 
-      ALLOWED_RESPONSE_HEADERS: ::Array[::String]
-
-      def self.record: (Context context, ?request: _RequestInterface?, ?response: _ResponseInterface?) -> void
+      def self.record: (Context context, ?request: _RequestInterface?) -> void
 
       def self.tag: (Context context, SecurityEngine::result waf_result) -> void
 
@@ -31,8 +25,6 @@ module Datadog
       def self.waf_tags: (::Array[untyped]) -> tags
 
       def self.request_tags: (_RequestInterface request) -> tags
-
-      def self.response_tags: (_ResponseInterface response) -> tags
 
       def self.json_parse: (untyped value) -> ::String?
     end

@@ -3,9 +3,9 @@ module Datadog
     module Contrib
       module Rails
         module Request
-          def self.parsed_body: (untyped request) -> (nil | untyped)
+          def self.parsed_body: (untyped request) -> ::Hash[::String, untyped]?
 
-          def self.route_params: (untyped request) -> untyped
+          def self.route_params: (untyped request) -> ::Hash[::Symbol, untyped]
         end
       end
     end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
+require_relative "../patcher"
 
 module Datadog
   module Tracing
@@ -17,8 +17,8 @@ module Datadog
           end
 
           def patch
-            require_relative 'client_tracer'
-            require_relative 'server_tracer'
+            require_relative "client_tracer"
+            require_relative "server_tracer"
 
             ::Sidekiq.configure_client do |config|
               config.client_middleware do |chain|
@@ -49,8 +49,8 @@ module Datadog
           end
 
           def patch_server_heartbeat
-            require_relative 'server_internal_tracer/stop'
-            require_relative 'server_internal_tracer/heartbeat'
+            require_relative "server_internal_tracer/stop"
+            require_relative "server_internal_tracer/heartbeat"
 
             ::Sidekiq::Launcher.prepend(ServerInternalTracer::Stop)
 
@@ -63,19 +63,19 @@ module Datadog
           end
 
           def patch_server_job_fetch
-            require_relative 'server_internal_tracer/job_fetch'
+            require_relative "server_internal_tracer/job_fetch"
 
             ::Sidekiq::Processor.prepend(ServerInternalTracer::JobFetch)
           end
 
           def patch_server_scheduled_push
-            require_relative 'server_internal_tracer/scheduled_poller'
+            require_relative "server_internal_tracer/scheduled_poller"
 
             ::Sidekiq::Scheduled::Poller.prepend(ServerInternalTracer::ScheduledPoller)
           end
 
           def patch_redis_info
-            require_relative 'server_internal_tracer/redis_info'
+            require_relative "server_internal_tracer/redis_info"
 
             if Integration.supports_capsules?
               ::Sidekiq::Config.prepend(ServerInternalTracer::RedisInfo)

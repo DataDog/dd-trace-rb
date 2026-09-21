@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative 'ext'
-require_relative '../analytics'
+require_relative "../../metadata/ext"
+require_relative "ext"
+require_relative "../analytics"
 
 module Datadog
   module Tracing
@@ -25,7 +25,10 @@ module Datadog
               begin
                 request_method = request.request_method.to_s.upcase
 
-                span.service = configuration[:service_name] if configuration[:service_name]
+                if configuration[:service_name]
+                  span.service = configuration[:service_name]
+                  span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
+                end
 
                 span.type = Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
 
@@ -49,7 +52,7 @@ module Datadog
                 rescue
                   # The status code is unknown to Roda and decided by the upstream web runner.
                   # In this case, spans default to status code 500 rather than a blank status code.
-                  default_error_status = '500'
+                  default_error_status = "500"
                   span.resource = "#{request_method} #{default_error_status}"
                   span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, default_error_status)
                   raise

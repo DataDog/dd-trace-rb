@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'utils'
+require_relative "utils"
 
 module Datadog
   module Core
@@ -39,7 +39,7 @@ module Datadog
         # but it's around 3x faster in our benchmark test
         # at `error_spec.rb`.
         def full_backtrace(ex)
-          backtrace = +''
+          backtrace = +""
           backtrace_for(ex, backtrace)
 
           # Avoid circular causes
@@ -70,11 +70,11 @@ module Datadog
           if trace[0]
             # Add Exception information to error line
             backtrace << trace[0]
-            backtrace << ': '
+            backtrace << ": "
             backtrace << ex.message.to_s
-            backtrace << ' ('
+            backtrace << " ("
             backtrace << ex.class.to_s
-            backtrace << ')'
+            backtrace << ")"
           end
 
           if trace[1]

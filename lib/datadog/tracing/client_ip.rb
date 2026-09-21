@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../core/configuration'
-require_relative '../core/utils/network'
-require_relative 'metadata/ext'
-require_relative 'span'
+require_relative "../core/configuration"
+require_relative "../core/utils/network"
+require_relative "metadata/ext"
+require_relative "span"
 
 module Datadog
   module Tracing

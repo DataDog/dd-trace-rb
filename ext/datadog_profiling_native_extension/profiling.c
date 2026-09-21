@@ -21,14 +21,19 @@ void collectors_dynamic_sampling_rate_init(VALUE profiling_module);
 void collectors_idle_sampling_helper_init(VALUE profiling_module);
 void collectors_stack_init(VALUE profiling_module);
 void collectors_thread_context_init(VALUE profiling_module);
+void collectors_heap_recorder_init(void);
 void encoded_profile_init(VALUE profiling_module);
 void http_transport_init(VALUE profiling_module);
 void stack_recorder_init(VALUE profiling_module);
 void crashtracking_runtime_stacks_init(void);
+void setup_signal_handler_init(VALUE profiling_module);
 
 static VALUE native_working_p(VALUE self);
-static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE exception_class, VALUE test_message, VALUE test_message_arg, VALUE release_gvl);
+static VALUE _native_raise_error_value_arg(DDTRACE_UNUSED VALUE _self, VALUE exception_class, VALUE test_message_value_arg);
+static VALUE _native_grab_gvl_and_raise_cstr_arg(DDTRACE_UNUSED VALUE _self, VALUE exception_class, VALUE test_message, VALUE test_message_arg, VALUE release_gvl);
 static void *trigger_grab_gvl_and_raise(void *trigger_args);
+static VALUE _native_grab_gvl_and_raise_value_arg(DDTRACE_UNUSED VALUE _self, VALUE exception_class, VALUE test_message_value_arg, VALUE release_gvl);
+static void *trigger_grab_gvl_and_raise_value_arg(void *trigger_args);
 static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE syserr_errno, VALUE test_message, VALUE test_message_arg, VALUE release_gvl);
 static void *trigger_grab_gvl_and_raise_syserr(void *trigger_args);
 static VALUE _native_ddtrace_rb_ractor_main_p(DDTRACE_UNUSED VALUE _self);
@@ -62,12 +67,14 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   rb_funcall(native_extension_module, rb_intern("private_class_method"), 1, ID2SYM(rb_intern("native_working?")));
 
   ruby_helpers_init();
+  setup_signal_handler_init(profiling_module);
   collectors_cpu_and_wall_time_worker_init(profiling_module);
   collectors_discrete_dynamic_sampler_init(profiling_module);
   collectors_dynamic_sampling_rate_init(profiling_module);
   collectors_idle_sampling_helper_init(profiling_module);
   collectors_stack_init(profiling_module);
   collectors_thread_context_init(profiling_module);
+  collectors_heap_recorder_init();
   encoded_profile_init(profiling_module);
   http_transport_init(profiling_module);
   stack_recorder_init(profiling_module);
@@ -76,7 +83,9 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
 
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(native_extension_module, "Testing");
-  rb_define_singleton_method(testing_module, "_native_grab_gvl_and_raise", _native_grab_gvl_and_raise, 4);
+  rb_define_singleton_method(testing_module, "_native_raise_error_value_arg", _native_raise_error_value_arg, 2);
+  rb_define_singleton_method(testing_module, "_native_grab_gvl_and_raise_cstr_arg", _native_grab_gvl_and_raise_cstr_arg, 4);
+  rb_define_singleton_method(testing_module, "_native_grab_gvl_and_raise_value_arg", _native_grab_gvl_and_raise_value_arg, 3);
   rb_define_singleton_method(testing_module, "_native_grab_gvl_and_raise_syserr", _native_grab_gvl_and_raise_syserr, 4);
   rb_define_singleton_method(testing_module, "_native_ddtrace_rb_ractor_main_p", _native_ddtrace_rb_ractor_main_p, 0);
   rb_define_singleton_method(testing_module, "_native_is_current_thread_holding_the_gvl", _native_is_current_thread_holding_the_gvl, 0);
@@ -101,13 +110,17 @@ static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
   return Qtrue;
 }
 
+static VALUE _native_raise_error_value_arg(DDTRACE_UNUSED VALUE _self, VALUE exception_class, VALUE test_message_value_arg) {
+  raise_error(exception_class, ">%"PRIsVALUE"<", test_message_value_arg);
+}
+
 typedef struct {
   VALUE exception_class;
   char *test_message;
   char *test_message_arg;
 } trigger_grab_gvl_and_raise_arguments;
 
-static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE exception_class, VALUE test_message, VALUE test_message_arg, VALUE release_gvl) {
+static VALUE _native_grab_gvl_and_raise_cstr_arg(DDTRACE_UNUSED VALUE _self, VALUE exception_class, VALUE test_message, VALUE test_message_arg, VALUE release_gvl) {
   ENFORCE_TYPE(test_message, T_STRING);
 
   trigger_grab_gvl_and_raise_arguments args;
@@ -122,7 +135,7 @@ static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE except
     private_grab_gvl_and_raise(args.exception_class, 0, args.test_message, args.test_message_arg);
   }
 
-  raise_error(rb_eRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise; this should never happen");
+  raise_error(rb_eRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise_cstr_arg; this should never happen");
 }
 
 static void *trigger_grab_gvl_and_raise(void *trigger_args) {
@@ -133,6 +146,34 @@ static void *trigger_grab_gvl_and_raise(void *trigger_args) {
   } else {
     private_grab_gvl_and_raise(args->exception_class, 0, args->test_message, NULL);
   }
+
+  return NULL;
+}
+
+typedef struct {
+  VALUE exception_class;
+  VALUE test_message_value_arg;
+} trigger_grab_gvl_and_raise_value_arguments;
+
+static VALUE _native_grab_gvl_and_raise_value_arg(DDTRACE_UNUSED VALUE _self, VALUE exception_class, VALUE test_message_value_arg, VALUE release_gvl) {
+  trigger_grab_gvl_and_raise_value_arguments args;
+
+  args.exception_class = exception_class;
+  args.test_message_value_arg = test_message_value_arg;
+
+  if (RTEST(release_gvl)) {
+    rb_thread_call_without_gvl(trigger_grab_gvl_and_raise_value_arg, &args, NULL, NULL);
+  } else {
+    private_grab_gvl_and_raise(args.exception_class, 0, ">%"PRIsVALUE"<", args.test_message_value_arg);
+  }
+
+  raise_error(rb_eRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise_value_arg; this should never happen");
+}
+
+static void *trigger_grab_gvl_and_raise_value_arg(void *trigger_args) {
+  trigger_grab_gvl_and_raise_value_arguments *args = (trigger_grab_gvl_and_raise_value_arguments *) trigger_args;
+
+  private_grab_gvl_and_raise(args->exception_class, 0, ">%"PRIsVALUE"<", args->test_message_value_arg);
 
   return NULL;
 }
@@ -251,7 +292,7 @@ static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VA
 
   ENFORCE_SUCCESS_GVL(pthread_mutex_unlock(&holding_the_gvl_signal_handler_mutex));
 
-  replace_sigprof_signal_handler_with_empty_handler(holding_the_gvl_signal_handler);
+  replace_sigprof_signal_handler_with_empty_handler(holding_the_gvl_signal_handler, true);
 
   if (holding_the_gvl_signal_handler_result[0] == Qfalse) raise_error(rb_eRuntimeError, "Could not signal background_thread");
 

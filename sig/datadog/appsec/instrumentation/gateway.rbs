@@ -6,20 +6,16 @@ module Datadog
         type final_call_result = untyped
         type final_call = ^() -> final_call_result
         type stack = ::Proc
-        type argument = Gateway::Argument | ::String
 
         type stack_result = ::Array[nil | middleware_result | final_call_result]
 
         @middlewares: ::Hash[::String, ::Array[Middleware]]
-        @pushed_events: ::Hash[::String, bool]
 
         def initialize: () -> void
 
-        def push: (::String name, argument env) ?{ () -> final_call_result } -> stack_result
+        def push: (::String name, any env) ?{ () -> final_call_result } -> stack_result
 
-        def watch: (::String name, ::Symbol key) { (stack next, argument env) -> stack_result } -> void
-
-        def pushed?: (::String name) -> bool
+        def watch: (::String name) { (stack next, any env) -> stack_result } -> void
       end
 
       self.@gateway: Gateway

@@ -1,0 +1,2 @@
+[env]
+BUNDLE_GEMFILE = { value = "{{ config_root }}/gemfiles/ruby-{{ tools.ruby.version | truncate(length=3, end='') }}.gemfile", tools = true }

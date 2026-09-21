@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../analytics'
+require_relative "../analytics"
 
 module Datadog
   module Tracing
@@ -20,6 +20,7 @@ module Datadog
               type: Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
               on_error: @on_error
             ) do |span|
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_MESSAGING_SYSTEM)
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -50,7 +51,7 @@ module Datadog
           def resource(worker_instance, body)
             # If it's a Hash, try to get the job class from it.
             # This is for ActiveJob compatibility.
-            job_class = body['job_class'] if body.is_a?(Hash)
+            job_class = body["job_class"] if body.is_a?(Hash)
             # If nothing is available, use the worker class name.
             job_class || worker_instance.class.name
           end

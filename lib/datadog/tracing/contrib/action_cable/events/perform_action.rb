@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../../metadata/ext'
-require_relative '../../analytics'
-require_relative '../event'
+require_relative "../../../metadata/ext"
+require_relative "../../analytics"
+require_relative "../event"
 
 module Datadog
   module Tracing
@@ -16,7 +16,7 @@ module Datadog
           module PerformAction
             include ActionCable::RootContextEvent
 
-            EVENT_NAME = 'perform_action.action_cable'
+            EVENT_NAME = "perform_action.action_cable"
 
             module_function
 
@@ -37,7 +37,10 @@ module Datadog
               channel_class = payload[:channel_class]
               action = payload[:action]
 
-              span.service = configuration[:service_name] if configuration[:service_name]
+              if configuration[:service_name]
+                span.service = configuration[:service_name]
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
+              end
               span.resource = "#{channel_class}##{action}"
               span.type = span_type
 

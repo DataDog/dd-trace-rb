@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/telemetry/component'
+require "datadog/core/telemetry/component"
 
-RSpec.describe 'Telemetry full integration tests' do
+RSpec.describe "Telemetry full integration tests" do
   skip_unless_integration_testing_enabled
 
-  context 'when Datadog.configure is used' do
+  context "when Datadog.configure is used" do
     let(:worker1) do
       double(Datadog::Core::Telemetry::Worker)
     end
@@ -20,7 +20,7 @@ RSpec.describe 'Telemetry full integration tests' do
       Datadog.send(:reset!)
     end
 
-    it 'sends app-started followed by app-client-configuration-change' do
+    it "sends app-started followed by app-client-configuration-change" do
       expect(Datadog::Core::Telemetry::Worker).to receive(:new).and_return(worker1)
       expect(worker1).to receive(:start) do |event|
         # SynthAppClientConfigurationChange derives from AppStarted
@@ -57,7 +57,7 @@ RSpec.describe 'Telemetry full integration tests' do
     end
   end
 
-  context 'when Datadog.configure is used and dependency collection is enabled' do
+  context "when Datadog.configure is used and dependency collection is enabled" do
     skip_any_instance_on_buggy_jruby
 
     before do
@@ -70,7 +70,7 @@ RSpec.describe 'Telemetry full integration tests' do
       end
     end
 
-    it 'sends dependencies once' do
+    it "sends dependencies once" do
       events = []
       allow_any_instance_of(Datadog::Core::Telemetry::Worker).to receive(:send_event) do |_, event|
         events << event
@@ -117,7 +117,7 @@ RSpec.describe 'Telemetry full integration tests' do
     end
   end
 
-  context 'when Datadog.configure is used and dynamic instrumentation is enabled' do
+  context "when Datadog.configure is used and dynamic instrumentation is enabled" do
     skip_any_instance_on_buggy_jruby
 
     before do
@@ -132,7 +132,7 @@ RSpec.describe 'Telemetry full integration tests' do
 
     # Ideally this test would start with a completely virgin state and
     # the first configurtion would be via the auto_instrument require.
-    it 'sends dynamic instrumentation state on each configuration' do
+    it "sends dynamic instrumentation state on each configuration" do
       events = []
       allow_any_instance_of(Datadog::Core::Telemetry::Worker).to receive(:send_event) do |_, event|
         events << event
@@ -156,10 +156,10 @@ RSpec.describe 'Telemetry full integration tests' do
 
       event = events[0]
       expect(event.payload.fetch(:configuration)).to include(
-        name: 'dynamic_instrumentation.enabled',
+        name: "DD_DYNAMIC_INSTRUMENTATION_ENABLED",
         value: false,
-        origin: 'default',
-        seq_id: Integer,
+        origin: "default",
+        seq_id: 1,
       )
 
       events = []
@@ -189,10 +189,10 @@ RSpec.describe 'Telemetry full integration tests' do
 
       event = events[0]
       expect(event.payload.fetch(:configuration)).to include(
-        name: 'dynamic_instrumentation.enabled',
+        name: "DD_DYNAMIC_INSTRUMENTATION_ENABLED",
         value: true,
-        origin: 'code',
-        seq_id: Integer,
+        origin: "code",
+        seq_id: 5,
       )
     end
 

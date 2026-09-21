@@ -1,30 +1,23 @@
 # frozen_string_literal: true
 
-require 'os'
+require "os"
 
 module PlatformHelpers
-  EQUALITY_OPERATOR = '=='
+  EQUALITY_OPERATOR = "=="
   ALLOWED_COMPARISON_OPERATORS = %w[> >= == != < <=].freeze
 
   module_function
 
-  # Ruby runtime engines
-
   def mri?
-    RUBY_ENGINE == 'ruby'
+    RUBY_ENGINE == "ruby"
   end
 
   def jruby?
-    RUBY_ENGINE == 'jruby'
-  end
-
-  # After we resolve all "# TODO: JRuby 10.0 - " comments, remove this method and update docs/Compatibility.md
-  def jruby_100?
-    RUBY_ENGINE == 'jruby' && RUBY_ENGINE_VERSION.start_with?('10.0')
+    RUBY_ENGINE == "jruby"
   end
 
   def truffleruby?
-    RUBY_ENGINE == 'truffleruby'
+    RUBY_ENGINE == "truffleruby"
   end
 
   def engine_version
@@ -34,7 +27,7 @@ module PlatformHelpers
 
   def ruby_version_matches?(matcher_with_ruby_version)
     ruby_version = Gem::Version.new(RUBY_VERSION)
-    operator, guard_version = matcher_with_ruby_version.split(' ', 2).tap { |array| array.unshift('==') if array.size == 1 }
+    operator, guard_version = matcher_with_ruby_version.split(" ", 2).tap { |array| array.unshift("==") if array.size == 1 }
 
     unless ALLOWED_COMPARISON_OPERATORS.include?(operator)
       message = "Unsupported operator: #{operator}. Supported operators: #{ALLOWED_COMPARISON_OPERATORS.join(", ")}"
@@ -46,15 +39,13 @@ module PlatformHelpers
       raise ArgumentError, message
     end
 
-    if operator == EQUALITY_OPERATOR && guard_version.count('.') < 3
+    if operator == EQUALITY_OPERATOR && guard_version.count(".") < 3
       version = Gem::Version.new("#{guard_version}.0")
       (version...version.bump).cover?(ruby_version)
     else
       ruby_version.send(operator, Gem::Version.new(guard_version))
     end
   end
-
-  # Operating systems
 
   def linux?
     OS.linux?
@@ -64,13 +55,9 @@ module PlatformHelpers
     OS.mac?
   end
 
-  # Environment
-
   def ci?
-    ENV.key?('CI')
+    ENV.key?("CI")
   end
-
-  # Feature support
 
   def supports_fork?
     Process.respond_to?(:fork)
@@ -79,15 +66,15 @@ module PlatformHelpers
   module ClassMethods
     def skip_any_instance_on_buggy_jruby
       before do
-        if PlatformHelpers.jruby? && !PlatformHelpers.ruby_version_matches?('>= 2.6')
+        if PlatformHelpers.jruby? && !PlatformHelpers.ruby_version_matches?(">= 2.6")
           # See: https://github.com/rspec/rspec-mocks/issues/1338
-          skip 'any_instance expectations are broken on JRuby 9.2'
+          skip "any_instance expectations are broken on JRuby 9.2"
         end
       end
     end
 
     def ruby_2_only
-      if RUBY_VERSION >= '3'
+      if RUBY_VERSION >= "3"
         before(:all) do
           skip "Test is only for Ruby 2"
         end

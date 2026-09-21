@@ -2,6 +2,9 @@ module Datadog
   module Tracing
     module Distributed
       class TraceContext
+        type traceparent_fields = [::Integer, ::Integer, ::Integer]
+        type extracted_traceparent = [::Integer, ::Integer, ::Integer, ::Integer]
+
         TRACEPARENT_KEY: "traceparent"
 
         TRACESTATE_KEY: "tracestate"
@@ -15,35 +18,19 @@ module Datadog
         def extract: (untyped data) -> (nil | untyped)
 
         private
-        module Refine
-        end
-        def build_traceparent: (untyped digest) -> untyped
-        def build_traceparent_string: (untyped trace_id, untyped parent_id, untyped trace_flags) -> ::String
-        def build_trace_flags: (untyped digest) -> untyped
-        def build_tracestate: (untyped digest) -> untyped
-        def serialize_origin: (untyped value) -> untyped
-        def serialize_tag_key: (untyped name) -> untyped
-        def serialize_tag_value: (untyped value) -> untyped
+        def build_traceparent: (TraceDigest digest) -> ::String
+        def build_traceparent_string: (::Integer trace_id, ::Integer parent_id, ::Integer trace_flags) -> ::String
+        def build_trace_flags: (TraceDigest digest) -> ::Integer
+        def extract_traceparent: (::String? traceparent) -> extracted_traceparent?
 
-        def extract_traceparent: (untyped traceparent) -> (nil | ::Array[untyped])
+        def parse_traceparent_string: (::String? traceparent) -> traceparent_fields?
 
-        def parse_traceparent_string: (untyped traceparent) -> untyped
-
-        def parse_sampled_flag: (untyped trace_flags) -> untyped
-        def extract_tracestate: (untyped tracestate) -> (nil | untyped | ::Array[untyped])
-
-        def extract_datadog_fields: (untyped dd_tracestate) -> ::Array[untyped]
-        def deserialize_tag_value: (untyped value) -> untyped
-        def parse_priority_sampling: (untyped sampled, untyped sampling_priority) -> untyped
-
-        def split_tracestate: (untyped tracestate) -> untyped
+        def parse_sampled_flag: (::Integer trace_flags) -> ::Integer
+        def parse_priority_sampling: (::Integer sampled, ::Integer? sampling_priority) { (::String | :drop decision) -> void } -> ::Integer
+        TRACEPARENT_MAX_SIZE_LIMIT: 512
         INVALID_VERSION: "ff"
         DEFAULT_TRACE_FLAGS: 0
         TRACE_FLAGS_SAMPLED: 1
-        TRACESTATE_VALUE_SIZE_LIMIT: 256
-        INVALID_ORIGIN_CHARS: ::Regexp
-        INVALID_TAG_KEY_CHARS: ::Regexp
-        INVALID_TAG_VALUE_CHARS: ::Regexp
       end
     end
   end

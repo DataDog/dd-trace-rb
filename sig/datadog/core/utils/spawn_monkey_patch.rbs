@@ -1,0 +1,18 @@
+module Datadog
+  module Core
+    module Utils
+      module SpawnMonkeyPatch
+        # Set in apply! before Process.spawn is intercepted; internal wiring only.
+        self.@env_provider: ^() -> ::Hash[::String, ::String]
+
+        def self.apply!: (env_provider: ^() -> ::Hash[::String, ::String]) -> void
+
+        module ProcessSpawnPatch
+          def spawn: (*untyped args) -> untyped
+        end
+
+        def self.inject_envs: (untyped args) -> ::Array[untyped]
+      end
+    end
+  end
+end

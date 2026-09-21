@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    module DefaultHeaderTags
+      REQUEST_HEADERS_TAGS: Array[String]
+
+      RESPONSE_HEADERS_TAGS: Array[String]
+
+      def self?.tag_request: (Tracing::SpanOperation span, Core::HeaderCollection headers) -> void
+
+      def self?.tag_response: (Tracing::SpanOperation span, Core::HeaderCollection headers) -> void
+    end
+  end
+end

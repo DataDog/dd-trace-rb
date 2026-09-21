@@ -1,15 +1,15 @@
 # Loaded by the `bin/rails` script in a real Rails application
-require 'rails/command'
+require "rails/command"
 
 # We may not always want to require rails/all, especially when we don't have a database.
 # require is already done where Rails test application is used, manually or through rails_helper.
 
-if ENV['USE_SIDEKIQ']
-  require 'sidekiq/testing'
-  require 'datadog/tracing/contrib/sidekiq/server_tracer'
+if ENV["USE_SIDEKIQ"]
+  require "sidekiq/testing"
+  require "datadog/tracing/contrib/sidekiq/server_tracer"
 end
 
-RSpec.shared_context 'Rails 7 test application' do
+RSpec.shared_context "Rails 7 test application" do
   let(:rails_base_application) do
     klass = Class.new(Rails::Application) do
       def config.database_configuration
@@ -22,17 +22,17 @@ RSpec.shared_context 'Rails 7 test application' do
     klass.send(:define_method, :initialize) do |*args|
       super(*args)
       redis_cache =
-        if Gem.loaded_specs['redis-activesupport']
-          [:redis_store, {url: ENV['REDIS_URL']}]
+        if Gem.loaded_specs["redis-activesupport"]
+          [:redis_store, {url: ENV["REDIS_URL"]}]
         else
-          [:redis_cache_store, {url: ENV['REDIS_URL']}]
+          [:redis_cache_store, {url: ENV["REDIS_URL"]}]
         end
-      file_cache = [:file_store, '/tmp/datadog-rb/cache/']
+      file_cache = [:file_store, "/tmp/datadog-rb/cache/"]
 
-      config.load_defaults '7.0'
-      config.secret_key_base = 'f624861242e4ccf20eacb6bb48a886da'
-      config.active_record.cache_versioning = false if Gem.loaded_specs['redis-activesupport']
-      config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
+      config.load_defaults "7.0"
+      config.secret_key_base = "f624861242e4ccf20eacb6bb48a886da"
+      config.active_record.cache_versioning = false if Gem.loaded_specs["redis-activesupport"]
+      config.cache_store = ENV["REDIS_URL"] ? redis_cache : file_cache
       config.eager_load = false
       config.consider_all_requests_local = true
       config.hosts.clear # Allow requests for any hostname during tests
@@ -42,7 +42,7 @@ RSpec.shared_context 'Rails 7 test application' do
 
       if config.respond_to?(:active_job)
         config.active_job.queue_adapter = :inline
-        if ENV['USE_SIDEKIQ']
+        if ENV["USE_SIDEKIQ"]
           config.active_job.queue_adapter = :sidekiq
           # add Sidekiq middleware
           Sidekiq::Testing.server_middleware do |chain|
@@ -60,18 +60,18 @@ RSpec.shared_context 'Rails 7 test application' do
     klass.send(:define_method, :test_initialize!) do
       # we want to disable explicit instrumentation
       # when testing auto patching
-      if ENV['TEST_AUTO_INSTRUMENT'] == 'true'
-        require 'datadog/auto_instrument'
+      if ENV["TEST_AUTO_INSTRUMENT"] == "true"
+        require "datadog/auto_instrument"
       else
         # Enables the auto-instrumentation for the testing application
         Datadog.configure do |c|
           c.tracing.instrument :rails
-          c.tracing.instrument :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
+          c.tracing.instrument :redis if Gem.loaded_specs["redis"] && defined?(::Redis)
         end
       end
 
       if Rails.application.config.respond_to?(:active_job)
-        Rails.application.config.active_job.queue_adapter = ENV['USE_SIDEKIQ'] ? :sidekiq : :inline
+        Rails.application.config.active_job.queue_adapter = ENV["USE_SIDEKIQ"] ? :sidekiq : :inline
       end
 
       Rails.application.config.file_watcher = Class.new(ActiveSupport::FileUpdateChecker) do
@@ -89,7 +89,7 @@ RSpec.shared_context 'Rails 7 test application' do
         # in order to allow the file watcher to skip monitoring the "filesystem changes"
         # of the in-memory fixtures.
         def initialize(files, dirs = {}, &block)
-          dirs = dirs.delete('') if dirs.include?('')
+          dirs = dirs.delete("") if dirs.include?("")
 
           super
         end
@@ -129,7 +129,7 @@ RSpec.shared_context 'Rails 7 test application' do
       allow_any_instance_of(::ActionDispatch::DebugExceptions).to receive(:render_exception) do |this, env, exception|
         wrapper = ::ActionDispatch::ExceptionWrapper.new(env, exception)
 
-        this.send(:render, wrapper.status_code, 'Test error response body', 'text/plain')
+        this.send(:render, wrapper.status_code, "Test error response body", "text/plain")
       end
     end
   end
@@ -166,7 +166,7 @@ RSpec.shared_context 'Rails 7 test application' do
     # ActionText requires ApplicationController to be loaded since Rails 6
     example = self
     ActiveSupport.on_load(:action_text_content) do
-      example.stub_const('ApplicationController', Class.new(ActionController::Base))
+      example.stub_const("ApplicationController", Class.new(ActionController::Base))
     end
   end
 

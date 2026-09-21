@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'ext'
+require_relative "../patcher"
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -18,9 +18,9 @@ module Datadog
           end
 
           def patch
-            require_relative 'parsed_context'
-            require_relative 'instrumentation'
-            require_relative 'services'
+            require_relative "parsed_context"
+            require_relative "instrumentation"
+            require_relative "services"
 
             add_plugin(Seahorse::Client::Base, *loaded_constants)
 

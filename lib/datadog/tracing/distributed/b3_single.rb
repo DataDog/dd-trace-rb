@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'helpers'
-require_relative '../trace_digest'
+require_relative "helpers"
+require_relative "../trace_digest"
 
 module Datadog
   module Tracing
@@ -15,7 +15,7 @@ module Datadog
       #
       # @see https://github.com/openzipkin/b3-propagation#single-header
       class B3Single
-        B3_SINGLE_HEADER_KEY = 'b3'
+        B3_SINGLE_HEADER_KEY = "b3"
 
         def initialize(fetcher:, key: B3_SINGLE_HEADER_KEY)
           @key = key
@@ -47,7 +47,7 @@ module Datadog
 
           return unless value
 
-          parts = value.split('-')
+          parts = value.split("-")
           trace_id = Helpers.parse_hex_id(parts[0]) unless parts.empty?
           # Return early if this propagation is not valid
           return if trace_id.nil? || trace_id <= 0 || trace_id > Tracing::Utils::TraceId::MAX

@@ -1,8 +1,38 @@
-require_relative 'appraisal_conversion'
-require 'fileutils'
-require 'shellwords'
+require_relative "appraisal_conversion"
+require_relative "prelock"
+require_relative "security_capabilities"
 
 namespace :dependency do
+  # Call outside `Bundler.with_unbundled_env`, which clears `BUNDLE_*` from `ENV`
+  # for the duration of its block.
+  def bundle_env(gemfile)
+    env = {"BUNDLE_GEMFILE" => gemfile.to_s}
+    cooldown = ENV["BUNDLE_COOLDOWN"]
+    env["BUNDLE_COOLDOWN"] = cooldown if cooldown
+    env
+  end
+
+  # Resolving from scratch lets cooldown exclude a fresh Datadog-owned gem whose
+  # `~>` pin has no older fallback. Seeding pins it first; cooldown never
+  # retracts a pinned version.
+  def seed_lockfile(gemfile)
+    lockfile = "#{gemfile}.lock"
+    return if File.exist?(lockfile)
+
+    parent_lockfile = "#{AppraisalConversion.parent_gemfile}.lock"
+    return unless File.exist?(parent_lockfile)
+
+    cp(parent_lockfile, lockfile)
+  end
+
+  desc "Regenerate, lock, and propagate dependencies for #{AppraisalConversion.runtime_identifier}"
+  task all: [:generate, :lock, :propagate]
+
+  desc "Find gemfiles for #{AppraisalConversion.runtime_identifier} with no matching appraisal definition"
+  task :orphans do
+    sh "bundle exec ruby appraisal/orphans.rb"
+  end
+
   # Replacement for `bundle exec appraisal list`
   desc "List dependencies for #{AppraisalConversion.runtime_identifier}"
   task :list do |t, args|
@@ -22,97 +52,94 @@ namespace :dependency do
 
   # Replacement for `bundle exec appraisal generate`
   desc "Generate dependencies for #{AppraisalConversion.runtime_identifier}"
-  task :generate do |t, args|
-    sh 'bundle exec ruby appraisal/generate.rb'
+  task :generate do |_, _|
+    sh "bundle exec ruby appraisal/generate.rb"
   end
 
-  task :exec do |t, args|
-    command = args.extras.any? ? args.extras.first : 'bundle version'
+  desc "Run an arbitrary command across every appraisal gemfile for #{AppraisalConversion.runtime_identifier}"
+  task :exec do |_t, args|
+    command = args.extras.any? ? args.extras.first : "bundle version"
 
-    gemfiles = Dir.glob(AppraisalConversion.gemfile_pattern, base: AppraisalConversion.root_path)
+    gemfiles = Dir.glob(AppraisalConversion.gemfile_pattern)
 
     gemfiles.each do |gemfile|
+      env = bundle_env(gemfile)
+
       Bundler.with_unbundled_env do
-        sh({'BUNDLE_GEMFILE' => gemfile.to_s}, command)
+        sh(env, command)
+      end
+    end
+  end
+
+  # Replacement for `bundle exec appraisal bundle lock`
+  desc "Lock dependencies for #{AppraisalConversion.runtime_identifier}"
+  task :lock do |_t, args|
+    pattern = args.extras.any? ? args.extras : AppraisalConversion.gemfile_pattern
+
+    gemfiles = Dir.glob(pattern)
+    checksum_eligible = SecurityCapabilities.for_version(RUBY_VERSION)[:checksum]
+
+    gemfiles.each do |gemfile|
+      seed_lockfile(gemfile)
+      Prelock.call(gemfile)
+      env = bundle_env(gemfile)
+
+      Bundler.with_unbundled_env do
+        command = +"bundle lock"
+        command << " --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin"
+        command << " --add-checksums" if checksum_eligible
+        sh(env, command)
+      end
+    end
+  end
+
+  desc "Lock Datadog-owned gems without cooldown for one gemfile, when the cooled lock could not resolve them"
+  task :prelock do |_t, args|
+    Prelock.call(args.extras.first || Bundler.default_gemfile)
+  end
+
+  desc "Propagate parent lockfile versions into appraisal lockfiles for #{AppraisalConversion.runtime_identifier}"
+  task :propagate do
+    parent_lockfile = "#{AppraisalConversion.parent_gemfile}.lock"
+    raise "Parent lockfile #{parent_lockfile} not found" unless File.exist?(parent_lockfile)
+
+    parent_versions = Bundler::LockfileParser.new(File.read(parent_lockfile)).specs
+      .each_with_object({}) { |spec, hash| hash[spec.name] = spec.version.to_s }
+
+    gemfiles = Dir.glob(AppraisalConversion.gemfile_pattern)
+
+    gemfiles.each do |gemfile|
+      lockfile = "#{gemfile}.lock"
+      next unless File.exist?(lockfile)
+
+      appraisal_specs = Bundler::LockfileParser.new(File.read(lockfile)).specs
+      drifted = appraisal_specs.select do |spec|
+        parent_versions[spec.name] && parent_versions[spec.name] != spec.version.to_s
+      end.map(&:name).uniq
+
+      next if drifted.empty?
+
+      env = bundle_env(gemfile)
+
+      Bundler.with_unbundled_env do
+        sh(env, "bundle lock --update #{drifted.join(" ")}")
       end
     end
   end
 
   # Replacement for `bundle exec appraisal install`
-  # Generates lockfiles and runs dependencies gemspecs.
-  # `bundle install` is used instead of `bundle lock` because
-  # it checks each gem's gemspec requirements (e.g. required_ruby_version, required_rubygems_version).
-  #
-  # Usage:
-  #   rake dependency:install          # Install all gemfiles
-  #   rake dependency:install[frozen]  # Install with BUNDLE_FROZEN=true (for CI cache)
   desc "Install dependencies for #{AppraisalConversion.runtime_identifier}"
-  task :install, [:frozen] do |t, args|
-    frozen = args[:frozen] == 'frozen'
-    gemfiles = [''] + Dir.glob(AppraisalConversion.gemfile_pattern).sort
-    if (ENV['ACT'] == 'true' || ENV['DD_ACT_LIMIT_GEMFILES'] == 'true') && gemfiles.size > 1
-      gemfiles = gemfiles.first(2)
-    end
-    total = gemfiles.size
-    downloads_dir = 'tmp/bundle-downloads-matrix'
-    FileUtils.mkdir_p(downloads_dir)
+  task install: :lock do |_t, args|
+    pattern = args.extras.any? ? args.extras : AppraisalConversion.gemfile_pattern
 
-    # Add Linux platforms for CI compatibility (skip for JRuby and frozen mode)
-    add_platforms = !frozen && RUBY_ENGINE != 'jruby'
+    gemfiles = Dir.glob(pattern)
 
-    gemfiles.each_with_index do |gemfile, index|
-      puts "  # [#{index + 1}/#{total}] #{File.basename(gemfile)}"
+    gemfiles.each do |gemfile|
+      env = bundle_env(gemfile)
 
-      env = {'BUNDLE_GEMFILE' => gemfile}
-      gemfile_name = gemfile.empty? ? 'Gemfile' : File.basename(gemfile)
-      downloads_file = downloads_dir ? File.join(downloads_dir, "#{gemfile_name}.txt") : nil
-
-      start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      AppraisalConversion.with_retry do
-        Bundler.with_unbundled_env do
-          sh(env, 'bundle lock --add-platform x86_64-linux aarch64-linux') if add_platforms
-          env['BUNDLE_FROZEN'] = 'true' if frozen
-          command = "set -o pipefail; bundle install --verbose 2>&1 | grep -E '^(Fetching|Downloading)\\b' >> #{Shellwords.escape(downloads_file)} || true"
-          sh(env, "bash -lc #{Shellwords.escape(command)}")
-        end
+      Bundler.with_unbundled_env do
+        sh(env, "bundle check || bundle install")
       end
-      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
-
-      puts "  # [#{index + 1}/#{total}] #{File.basename(gemfile)}: Finished in #{elapsed.round(1)}s"
     end
-  end
-
-
-  desc "Show gems not needed by any Gemfile for this Ruby version (dry-run)"
-  task :clean_unused_gems do
-    require 'set'
-    require 'open3'
-
-    gemfiles = [''] + Dir.glob(AppraisalConversion.gemfile_pattern)
-
-    puts "Checking #{gemfiles.size} gemfiles for stale gems..."
-
-    # Run sequentially for JRuby to avoid thread issues
-    max_threads = RUBY_ENGINE == 'jruby' ? 1 : gemfiles.size
-
-    stale_per_gemfile = gemfiles.each_slice(max_threads).flat_map do |batch|
-      batch.map do |gf|
-        Thread.new(gf) do |gemfile|
-          output, _ = Bundler.with_unbundled_env do
-            Open3.capture2({ 'BUNDLE_GEMFILE' => gemfile }, 'bundle', 'clean', '--dry-run')
-          end
-
-          stale = output.lines
-            .grep(/^Would have removed/)
-            .map { |line| line.delete_prefix('Would have removed ').strip }
-
-          Set.new(stale)
-        end
-      end.map(&:value)
-    end
-    truly_stale = stale_per_gemfile.reduce(:&) || Set.new
-
-    puts "\nGems not needed by ANY gemfile: #{truly_stale.size}"
-    truly_stale.sort.each { |g| puts "  #{g}" }
   end
 end

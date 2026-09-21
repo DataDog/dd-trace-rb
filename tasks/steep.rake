@@ -1,10 +1,10 @@
 namespace :steep do
-  desc 'Runs the Steep type checker on the codebase'
+  desc "Runs the Steep type checker on the codebase"
   task :check do |_task, args|
-    if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
-      warn 'Sorry, cannot run Steep type checker on older rubies :('
+    if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("2.7.0")
+      warn "Sorry, cannot run Steep type checker on older rubies :("
     else
-      args_sh = args.to_a.map { |a| "'#{a}'" }.join(' ')
+      args_sh = args.to_a.map { |a| "'#{a}'" }.join(" ")
 
       begin
         sh "steep check #{args_sh}".strip
@@ -33,12 +33,12 @@ namespace :steep do
   end
 
   task :stats do |_task, args|
-    format = args.to_a.first || 'table'
+    format = args.to_a.first || "table"
 
-    if format == 'md'
+    if format == "md"
       data = `steep stats --format=csv`
 
-      require 'csv'
+      require "csv"
 
       csv = CSV.new(data, headers: true)
       headers = true
@@ -46,28 +46,28 @@ namespace :steep do
         hrow = row.to_h
 
         if headers
-          $stdout.write('|')
-          $stdout.write(hrow.keys.join('|'))
-          $stdout.write('|')
+          $stdout.write("|")
+          $stdout.write(hrow.keys.join("|"))
+          $stdout.write("|")
           $stdout.write("\n")
 
-          $stdout.write('|')
-          $stdout.write(hrow.values.map { |v| /^\d+$/.match?(v) ? '--:' : ':--' }.join('|'))
-          $stdout.write('|')
+          $stdout.write("|")
+          $stdout.write(hrow.values.map { |v| /^\d+$/.match?(v) ? "--:" : ":--" }.join("|"))
+          $stdout.write("|")
           $stdout.write("\n")
         end
 
         headers = false
 
-        $stdout.write('|')
-        $stdout.write(hrow.values.join('|'))
-        $stdout.write('|')
+        $stdout.write("|")
+        $stdout.write(hrow.values.join("|"))
+        $stdout.write("|")
         $stdout.write("\n")
       end
 
       # Append ignored files from Steepfile to the end of the steep/typecheck summary
       File
-        .foreach('Steepfile')
+        .foreach("Steepfile")
         .with_object([]) { |line, ignored_files| line =~ /^\s*ignore\s+(["'])(.*?(?:\\?.)*?)\1/ && ignored_files << $2 }
         .each do |file|
           if File.exist?(file)

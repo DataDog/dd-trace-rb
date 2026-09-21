@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
+require_relative "ext"
 
-require_relative '../metrics/client'
-require_relative '../environment/class_count'
-require_relative '../environment/gc'
-require_relative '../environment/thread_count'
-require_relative '../environment/vm_cache'
-require_relative '../environment/yjit'
-require_relative '../environment/process'
+require_relative "../metrics/client"
+require_relative "../environment/class_count"
+require_relative "../environment/gc"
+require_relative "../environment/thread_count"
+require_relative "../environment/vm_cache"
+require_relative "../environment/yjit"
+require_relative "../environment/process"
 
 module Datadog
   module Core
@@ -26,8 +26,7 @@ module Datadog
           # Initialize the collection of runtime-id
           @runtime_id_enabled = options.fetch(:experimental_runtime_id_enabled, false)
 
-          # Initialized process tags support
-          @process_tags_enabled = options.fetch(:experimental_propagate_process_tags_enabled, false)
+          @process_tags_enabled = options.fetch(:experimental_propagate_process_tags_enabled)
         end
 
         # Associate service with runtime metrics
@@ -101,7 +100,7 @@ module Datadog
         def try_flush
           yield
         rescue => e
-          Datadog.logger.warn("Error while sending runtime metric. Cause: #{e.class.name} #{e.message}")
+          Datadog.logger.warn("Error while sending runtime metric. Cause: #{e.class}: #{e.message}")
         end
 
         def default_metric_options
@@ -150,7 +149,7 @@ module Datadog
         end
 
         def to_metric_name(str)
-          str.downcase.gsub(/[-\s]/, '_')
+          str.downcase.gsub(/[-\s]/, "_")
         end
 
         def gauge_if_not_nil(metric_name, metric_value)

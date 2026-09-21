@@ -1,8 +1,6 @@
 module Datadog
   module Core
     module ProcessDiscovery
-      ONLY_ONCE: Core::Utils::OnlyOnce
-
       self.@file_descriptor: TracerMemfd?
 
       def self._native_store_tracer_metadata: (
@@ -25,6 +23,8 @@ module Datadog
       ) -> void
 
       def self.shutdown!: () -> void
+
+      def self.after_fork: () -> void
 
       def self.get_metadata: (Datadog::Core::Configuration::Settings settings) -> {
         runtime_id: String,

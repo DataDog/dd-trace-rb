@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'ext'
+require_relative "../patcher"
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -18,8 +18,8 @@ module Datadog
           end
 
           def patch
-            require_relative 'exception_handler'
-            require_relative 'instrumentation'
+            require_relative "exception_handler"
+            require_relative "instrumentation"
 
             ExceptionHandler.patch!
             Instrumentation.patch!

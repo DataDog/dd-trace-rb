@@ -1,26 +1,26 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/tracing/utils'
+require "datadog/tracing/utils"
 
 RSpec.describe Datadog::Tracing::Utils do
-  describe '.next_id' do
+  describe ".next_id" do
     subject(:next_id) { described_class.next_id }
 
-    it 'returns a positive integer smaller than 2**62' do
+    it "returns a positive integer smaller than 2**62" do
       is_expected.to be_a(Integer)
       is_expected.to be_between(1, 2**62 - 1)
     end
 
-    it 'fits in a CRuby VALUE slot', if: ObjectSpaceHelper.estimate_bytesize_supported? do
+    it "fits in a CRuby VALUE slot", if: ObjectSpaceHelper.estimate_bytesize_supported? do
       expect(ObjectSpaceHelper.estimate_bytesize(next_id)).to eq(0)
     end
 
-    it 'returns unique numbers on successive calls' do
+    it "returns unique numbers on successive calls" do
       is_expected.to_not eq(described_class.next_id)
     end
 
-    context 'after forking', if: PlatformHelpers.supports_fork? do
-      it 'generates unique ids across forks' do
+    context "after forking", if: PlatformHelpers.supports_fork? do
+      it "generates unique ids across forks" do
         ids = Array.new(3) do
           result = expect_in_fork { puts next_id }
           Integer(result[:stdout])
@@ -33,20 +33,20 @@ RSpec.describe Datadog::Tracing::Utils do
 end
 
 RSpec.describe Datadog::Tracing::Utils::TraceId do
-  describe '.to_low_order' do
-    context 'when given <= 64 bit' do
+  describe ".to_low_order" do
+    context "when given <= 64 bit" do
       [
         0xaaaaaaaaaaaaaaaa,
         0xffffffffffffffff,
         0,
       ].each do |input|
-        it 'returns itself' do
+        it "returns itself" do
           expect(described_class.to_low_order(input)).to eq(input)
         end
       end
     end
 
-    context 'when given > 64 bit' do
+    context "when given > 64 bit" do
       {
         0xffffffffffffffffaaaaaaaaaaaaaaaa => 0xaaaaaaaaaaaaaaaa,
         0xaaaaaaaaaaaaaaaaffffffffffffffff => 0xffffffffffffffff,
@@ -60,20 +60,20 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
     end
   end
 
-  describe '.to_high_order' do
-    context 'when given <= 64 bit' do
+  describe ".to_high_order" do
+    context "when given <= 64 bit" do
       [
         0xaaaaaaaaaaaaaaaa,
         0xffffffffffffffff,
         0,
       ].each do |input|
-        it 'returns 0' do
+        it "returns 0" do
           expect(described_class.to_high_order(input)).to eq(0)
         end
       end
     end
 
-    context 'when given > 64 bit' do
+    context "when given > 64 bit" do
       {
         0xffffffffffffffffaaaaaaaaaaaaaaaa => 0xffffffffffffffff,
         0xaaaaaaaaaaaaaaaaffffffffffffffff => 0xaaaaaaaaaaaaaaaa,
@@ -87,7 +87,7 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
     end
   end
 
-  describe '.concatenate' do
+  describe ".concatenate" do
     {
       [0xaaaaaaaaaaaaaaaa, 0xffffffffffffffff] => 0xaaaaaaaaaaaaaaaaffffffffffffffff,
       [0xffffffffffffffff, 0xaaaaaaaaaaaaaaaa] => 0xffffffffffffffffaaaaaaaaaaaaaaaa,

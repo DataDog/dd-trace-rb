@@ -1,8 +1,8 @@
-require 'datadog'
-require 'rack'
-require 'hanami'
+require "datadog"
+require "rack"
+require "hanami"
 
-RSpec.shared_context 'Hanami test application' do
+RSpec.shared_context "Hanami test application" do
   # rubocop:disable Lint/ConstantDefinitionInBlock
   # rubocop:disable RSpec/LeakyConstantDeclaration
   let(:build_test_app) do
@@ -12,12 +12,12 @@ RSpec.shared_context 'Hanami test application' do
           root "#{__dir__}/dummy"
 
           routes do
-            get '/simple_success', to: ->(_) { [200, {}, ['Welcome to Hanami!']] }
-            get '/books', to: 'books#index'
-            get '/server_error', to: 'books#server_error'
+            get "/simple_success", to: ->(_) { [200, {}, ["Welcome to Hanami!"]] }
+            get "/books", to: "books#index"
+            get "/server_error", to: "books#server_error"
           end
 
-          load_paths << ['controllers']
+          load_paths << ["controllers"]
         end
       end
     end
@@ -28,10 +28,10 @@ RSpec.shared_context 'Hanami test application' do
   # rubocop:enable RSpec/LeakyConstantDeclaration
 
   let(:app) do
-    if ENV['TEST_AUTO_INSTRUMENT'] == 'true'
-      require 'datadog/auto_instrument'
+    if ENV["TEST_AUTO_INSTRUMENT"] == "true"
+      require "datadog/auto_instrument"
     else
-      require 'datadog/tracing/contrib/hanami/plugin'
+      require "datadog/tracing/contrib/hanami/plugin"
     end
     Datadog.configure do |c|
       c.tracing.instrument :hanami
@@ -44,7 +44,7 @@ RSpec.shared_context 'Hanami test application' do
     test_app = build_test_app
 
     ::Hanami.configure do
-      mount test_app, at: '/'
+      mount test_app, at: "/"
     end
 
     ::Rack::Builder.new do
@@ -55,5 +55,8 @@ RSpec.shared_context 'Hanami test application' do
   after do
     # Release the assembled components, fresh start for every app boot
     ::Hanami::Components.release
+    # Reset Datadog configuration so a `service_name` override in one test
+    # does not leak into later tests that expect the default service.
+    Datadog.registry[:hanami].reset_configuration!
   end
 end

@@ -1,0 +1,29 @@
+module Datadog
+  module AppSec
+    module RouteNormalizer
+      GRAPE_ROUTE_KEY: String
+
+      SINATRA_ROUTE_KEY: String
+
+      DATADOG_ROUTE_KEY: String
+
+      RAILS_ROUTE_KEY: String
+
+      RAILS_ROUTE_URI_PATTERN_KEY: String
+
+      RAILS_PATH_PARAMS_KEY: String
+
+      def self.extract_normalized_route: (::Rack::env rack_env, ?prefix: String?, ?pattern: String?) -> String?
+
+      private
+
+      def extract_normalized_route: (::Rack::env rack_env, ?prefix: String?, ?pattern: String?) -> String?
+
+      def normalize_rails_route: (untyped route, ::Rack::env rack_env, String? route_prefix) -> String?
+
+      def normalize_route_string: (String? route) -> String?
+
+      def path_without_prefix: (String path, String? prefix) -> String
+    end
+  end
+end

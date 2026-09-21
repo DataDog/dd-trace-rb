@@ -1,19 +1,19 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'time'
-require 'json'
+require "time"
+require "json"
 
-require 'datadog/tracing'
-require 'datadog/tracing/pipeline'
-require 'datadog/tracing/pipeline/span_filter'
-require 'datadog/tracing/trace_segment'
-require 'datadog/tracing/workers'
-require 'datadog/tracing/writer'
+require "datadog/tracing"
+require "datadog/tracing/pipeline"
+require "datadog/tracing/pipeline/span_filter"
+require "datadog/tracing/trace_segment"
+require "datadog/tracing/workers"
+require "datadog/tracing/writer"
 
-RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
+RSpec.describe "Datadog::Workers::AsyncTransport integration tests" do
   let(:logger) { logger_allowing_debug }
 
-  let(:hostname) { 'http://127.0.0.1' }
+  let(:hostname) { "http://127.0.0.1" }
   let(:writer) do
     Datadog::Tracing::Writer.new(agent_settings: test_agent_settings).tap do |w|
       # write some stuff to trigger a #start
@@ -62,7 +62,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
     end
   end
 
-  describe 'when sending spans' do
+  describe "when sending spans" do
     let(:dumped_traces) { dump[200][:traces] }
     let(:trace_payload) { JSON.parse(dumped_traces[0]) }
     let(:trace) { trace_payload[0] }
@@ -72,18 +72,18 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
     # this is not purely an integration test as it does not rely on a real agent
     # but it checks that all the machinery around workers (tracer/writer/worker/transport)
     # is consistent and that data flows through it.
-    context 'with service names' do
+    context "with service names" do
       before do
-        skip 'TODO: Test is flaky on macOS' if RUBY_PLATFORM.include?('darwin')
+        skip "TODO: Test is flaky on macOS" if RUBY_PLATFORM.include?("darwin")
 
-        tracer.trace('my.op', service: 'my.service') do
+        tracer.trace("my.op", service: "my.service") do
           sleep(0.001)
         end
 
         wait_for_flush
       end
 
-      it 'flushes the trace correctly' do
+      it "flushes the trace correctly" do
         expect(stats[:traces_flushed]).to be >= 1
         expect(stats[:services_flushed]).to be_nil
 
@@ -103,26 +103,26 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
         expect(dumped_span).to be_a_kind_of(Hash)
 
         # Checking content
-        expect(dumped_span['parent_id']).to eq(0)
-        expect(dumped_span['error']).to eq(0)
-        expect(dumped_span['trace_id']).to_not eq(dumped_span['span_id'])
-        expect(dumped_span['service']).to eq('my.service')
+        expect(dumped_span["parent_id"]).to eq(0)
+        expect(dumped_span["error"]).to eq(0)
+        expect(dumped_span["trace_id"]).to_not eq(dumped_span["span_id"])
+        expect(dumped_span["service"]).to eq("my.service")
       end
     end
 
     # Test that a default service is provided if none has been given at all
-    context 'with default service names' do
+    context "with default service names" do
       before do
-        skip 'TODO: Test is flaky on macOS' if RUBY_PLATFORM.include?('darwin')
+        skip "TODO: Test is flaky on macOS" if RUBY_PLATFORM.include?("darwin")
 
-        tracer.trace('my.op') do
+        tracer.trace("my.op") do
           sleep(0.001)
         end
 
         wait_for_flush
       end
 
-      it 'flushes the trace correctly' do
+      it "flushes the trace correctly" do
         expect(stats[:traces_flushed]).to be >= 1
 
         # Sanity checks
@@ -139,16 +139,16 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
         expect(dumped_span).to be_a_kind_of(Hash)
 
         # Checking content
-        expect(dumped_span['parent_id']).to eq(0)
-        expect(dumped_span['error']).to eq(0)
-        expect(dumped_span['trace_id']).to_not eq(dumped_span['span_id'])
-        expect(dumped_span['service']).to eq('rspec')
+        expect(dumped_span["parent_id"]).to eq(0)
+        expect(dumped_span["error"]).to eq(0)
+        expect(dumped_span["trace_id"]).to_not eq(dumped_span["span_id"])
+        expect(dumped_span["service"]).to eq("rspec")
       end
     end
 
-    context 'that are filtered' do
+    context "that are filtered" do
       before do
-        skip 'TODO: Test is flaky on macOS' if RUBY_PLATFORM.include?('darwin')
+        skip "TODO: Test is flaky on macOS" if RUBY_PLATFORM.include?("darwin")
 
         # Activate filter
         filter = Datadog::Tracing::Pipeline::SpanFilter.new do |span|
@@ -158,31 +158,31 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
         Datadog::Tracing::Pipeline.before_flush(filter)
 
         # Create spans
-        tracer.trace('keep', service: 'tracer-test').finish
-        tracer.trace('discard', service: 'tracer-test').finish
+        tracer.trace("keep", service: "tracer-test").finish
+        tracer.trace("discard", service: "tracer-test").finish
 
         wait_for_flush(2)
       end
 
       after { Datadog::Tracing::Pipeline.processors = [] }
 
-      it 'filters the trace correctly' do
+      it "filters the trace correctly" do
         expect(transport.helper_sent[200][:traces].to_s).to match(/keep/)
         expect(transport.helper_sent[200][:traces].to_s).to_not match(/discard/)
       end
     end
   end
 
-  describe 'when setting service info' do
+  describe "when setting service info" do
     let(:dumped_services) { dump[200][:services] }
 
     # Test that services are correctly flushed, with two of them
-    context 'for two services' do
+    context "for two services" do
       before do
-        tracer.trace('my.op').finish
+        tracer.trace("my.op").finish
       end
 
-      it 'flushes the services correctly' do
+      it "flushes the services correctly" do
         expect(stats[:services_flushed]).to be_nil
 
         # Sanity checks
@@ -196,7 +196,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
     end
   end
 
-  describe 'when terminating the worker' do
+  describe "when terminating the worker" do
     before do
       worker.start
 
@@ -232,9 +232,9 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
       end
     end
 
-    context 'which underruns the timeout' do
-      let(:trace_task) { spy('trace task') }
-      let(:service_task) { spy('service task') }
+    context "which underruns the timeout" do
+      let(:trace_task) { spy("trace task") }
+      let(:service_task) { spy("service task") }
 
       it do
         expect(trace_task).to have_received(:call).once
@@ -244,12 +244,12 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
       end
     end
 
-    context 'which overruns the timeout' do
+    context "which overruns the timeout" do
       let(:task) { proc { sleep(10) } }
       let(:trace_task) { task }
       let(:service_task) { task }
 
-      it 'interrupts the worker to speed up shutdown' do
+      it "interrupts the worker to speed up shutdown" do
         expect(@shutdown_end - @shutdown_beg)
           .to be_within(5).of(
             Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT

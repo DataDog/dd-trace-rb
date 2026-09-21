@@ -1,0 +1,9 @@
+module Datadog
+  module Core
+    module Telemetry
+      module ConfigurationValue
+        def self?.convert: (any value) -> Event::telemetry_value
+      end
+    end
+  end
+end

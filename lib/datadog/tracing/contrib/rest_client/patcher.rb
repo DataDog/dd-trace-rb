@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
+require_relative "../patcher"
 
 module Datadog
   module Tracing
@@ -17,7 +17,7 @@ module Datadog
           end
 
           def patch
-            require_relative 'request_patch'
+            require_relative "request_patch"
 
             ::RestClient::Request.include(RequestPatch)
           end

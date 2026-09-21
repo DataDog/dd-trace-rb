@@ -5,6 +5,8 @@ module Datadog
       end
       class MissingLineNumber < Error
       end
+      class MissingMethodName < Error
+      end
       class AgentCommunicationError < Error
       end
       class DITargetNotDefined < Error
@@ -14,6 +16,8 @@ module Datadog
       class ProbePreviouslyFailed < Error
       end
       class AlreadyInstrumented < Error
+      end
+      class ProbeTargetForbidden < Error
       end
       class MultiplePathsMatch < Error
       end

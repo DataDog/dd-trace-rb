@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
-require_relative 'trace/span'
-require_relative '../../tracing/span_link'
-require_relative '../../tracing/span_event'
-require_relative '../../tracing/trace_digest'
+require_relative "trace/span"
+require_relative "../../core/utils"
+require_relative "../../tracing/span_link"
+require_relative "../../tracing/span_event"
+require_relative "../../tracing/trace_digest"
 
 module Datadog
   module OpenTelemetry
@@ -101,12 +102,14 @@ module Datadog
 
           unless span.links.nil?
             datadog_span.links = span.links.map do |link|
+              tracestate = link.span_context.tracestate&.to_s
+
               Datadog::Tracing::SpanLink.new(
                 Datadog::Tracing::TraceDigest.new(
                   trace_id: link.span_context.hex_trace_id.to_i(16),
                   span_id: link.span_context.hex_span_id.to_i(16),
                   trace_sampling_priority: (link.span_context.trace_flags&.sampled? ? 1 : 0),
-                  trace_state: link.span_context.tracestate&.to_s,
+                  trace_state: tracestate && ::Datadog::Core::Utils.utf8_encode(tracestate, placeholder: nil),
                   span_remote: link.span_context.remote?,
                 ),
                 attributes: link.attributes
@@ -119,29 +122,29 @@ module Datadog
 
         # Some special attributes can override Datadog Span fields
         def span_arguments(span, attributes)
-          if attributes.key?('analytics.event') && (analytics_event = attributes['analytics.event']).respond_to?(:casecmp)
-            attributes[Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE] = (analytics_event.casecmp('true') == 0) ? 1 : 0
+          if attributes.key?("analytics.event") && (analytics_event = attributes["analytics.event"]).respond_to?(:casecmp)
+            attributes[Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE] = (analytics_event.casecmp("true") == 0) ? 1 : 0
           end
 
-          if attributes.key?('http.response.status_code')
-            attributes[Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE] = attributes.delete('http.response.status_code')
+          if attributes.key?("http.response.status_code")
+            attributes[Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE] = attributes.delete("http.response.status_code")
           end
 
-          attributes[Tracing::Metadata::Ext::TAG_KIND] = span.kind || 'internal'
+          attributes[Tracing::Metadata::Ext::TAG_KIND] = span.kind || "internal"
 
           kwargs = {start_time: ns_to_time(span.start_timestamp)}
 
-          name = if attributes.key?('operation.name')
-            attributes['operation.name']
+          name = if attributes.key?("operation.name")
+            attributes["operation.name"]
           elsif (rich_name = Datadog::OpenTelemetry::Trace::Span.enrich_name(span.kind, attributes))
             rich_name.downcase
           else
             span.kind
           end
 
-          kwargs[:resource] = attributes.key?('resource.name') ? attributes['resource.name'] : span.name
-          kwargs[:service] = attributes['service.name'] if attributes.key?('service.name')
-          kwargs[:type] = attributes['span.type'] if attributes.key?('span.type')
+          kwargs[:resource] = attributes.key?("resource.name") ? attributes["resource.name"] : span.name
+          kwargs[:service] = attributes["service.name"] if attributes.key?("service.name")
+          kwargs[:type] = attributes["span.type"] if attributes.key?("span.type")
 
           attributes.reject! { |key, _| OpenTelemetry::Trace::Span::DATADOG_SPAN_ATTRIBUTE_OVERRIDES.include?(key) }
 

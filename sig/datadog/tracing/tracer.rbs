@@ -1,7 +1,7 @@
 module Datadog
   module Tracing
     class Tracer
-      
+
       @logger: Core::Logger
 
       attr_reader logger: Core::Logger
@@ -15,6 +15,8 @@ module Datadog
       def propagate_sampling_priority?: (upstream_tags: Hash[String, String]) -> bool
 
       def appsec_enabled: -> bool
+
+      def ai_guard_enabled: -> bool
 
       def apm_tracing_enabled: -> bool
     end

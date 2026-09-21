@@ -1,8 +1,8 @@
-require 'datadog/tracing/contrib/graphql/configuration/settings'
+require "datadog/tracing/contrib/graphql/configuration/settings"
 
 RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
-  describe 'schemas' do
-    context 'when default' do
+  describe "schemas" do
+    context "when default" do
       it do
         settings = described_class.new
 
@@ -10,7 +10,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
       end
     end
 
-    context 'when given an array' do
+    context "when given an array" do
       it do
         schema = double
 
@@ -20,7 +20,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
       end
     end
 
-    context 'when given an empty array' do
+    context "when given an empty array" do
       it do
         settings = described_class.new(schemas: [])
 
@@ -29,8 +29,8 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
     end
   end
 
-  describe 'with_deprecated_tracer' do
-    context 'when default' do
+  describe "with_deprecated_tracer" do
+    context "when default" do
       it do
         settings = described_class.new
 
@@ -38,7 +38,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
       end
     end
 
-    context 'when given `true`' do
+    context "when given `true`" do
       it do
         settings = described_class.new(with_deprecated_tracer: true)
 
@@ -46,7 +46,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
       end
     end
 
-    context 'when given `false`' do
+    context "when given `false`" do
       it do
         settings = described_class.new(with_deprecated_tracer: false)
 
@@ -55,8 +55,8 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
     end
   end
 
-  describe 'with_unified_tracer' do
-    context 'when default' do
+  describe "with_unified_tracer" do
+    context "when default" do
       it do
         settings = described_class.new
 
@@ -64,7 +64,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
       end
     end
 
-    context 'when given `true`' do
+    context "when given `true`" do
       it do
         settings = described_class.new(with_unified_tracer: true)
 
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
       end
     end
 
-    context 'when given `false`' do
+    context "when given `false`" do
       it do
         settings = described_class.new(with_unified_tracer: false)
 
@@ -81,8 +81,8 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
     end
   end
 
-  describe 'error_extensions' do
-    context 'when default' do
+  describe "error_extensions" do
+    context "when default" do
       it do
         settings = described_class.new
 
@@ -90,7 +90,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
       end
     end
 
-    context 'when given an array' do
+    context "when given an array" do
       it do
         error_extension = double
 
@@ -99,22 +99,22 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
         expect(settings.error_extensions).to eq([error_extension])
       end
 
-      context 'via the environment variable' do
+      context "via the environment variable" do
         it do
-          error_extension = 'foo,bar'
+          error_extension = "foo,bar"
 
-          ClimateControl.modify('DD_TRACE_GRAPHQL_ERROR_EXTENSIONS' => error_extension) do
+          ClimateControl.modify("DD_TRACE_GRAPHQL_ERROR_EXTENSIONS" => error_extension) do
             settings = described_class.new
 
-            expect(settings.error_extensions).to eq(['foo', 'bar'])
+            expect(settings.error_extensions).to eq(["foo", "bar"])
           end
         end
       end
     end
   end
 
-  describe 'error_tracking' do
-    context 'when default' do
+  describe "error_tracking" do
+    context "when default" do
       it do
         settings = described_class.new
 
@@ -122,7 +122,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
       end
     end
 
-    context 'when given `true`' do
+    context "when given `true`" do
       it do
         settings = described_class.new(error_tracking: true)
 
@@ -130,7 +130,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
       end
     end
 
-    context 'when given `false`' do
+    context "when given `false`" do
       it do
         settings = described_class.new(error_tracking: false)
 

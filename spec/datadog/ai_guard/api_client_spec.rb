@@ -3,6 +3,65 @@
 require "datadog/ai_guard/api_client"
 
 RSpec.describe Datadog::AIGuard::APIClient do
+  describe "#initialize" do
+    subject(:api_client) do
+      described_class.new(
+        endpoint: endpoint,
+        api_key: "api-key",
+        application_key: "application-key",
+        timeout: 10000
+      )
+    end
+
+    after do
+      Datadog.configuration.reset!
+    end
+
+    context "when endpoint is not nil" do
+      let(:endpoint) { "https://api.example.com/api-guard" }
+
+      it "sets the @endpoint to a parsed uri" do
+        expect(api_client.instance_variable_get(:@endpoint_uri)).to eq(URI(endpoint))
+      end
+    end
+
+    context "when endpoint is nil and Datadog.configuration.site is not set" do
+      let(:endpoint) { nil }
+
+      before do
+        Datadog.configuration.site = nil
+      end
+
+      it "sets the @endpoint to a parsed uri" do
+        expect(api_client.instance_variable_get(:@endpoint_uri)).to eq(URI("https://app.datadoghq.com/api/v2/ai-guard"))
+      end
+    end
+
+    context "when endpoint is nil and Datadog.configuration.site does not have a subdomain" do
+      let(:endpoint) { nil }
+
+      before do
+        Datadog.configuration.site = "example.com"
+      end
+
+      it "adds app subdomain to the host and adds a correct path" do
+        expect(api_client.instance_variable_get(:@endpoint_uri)).to eq(URI("https://app.example.com/api/v2/ai-guard"))
+      end
+    end
+
+    context "when endpoint is nil and Datadog.configuration.site has a subdomain" do
+      let(:endpoint) { nil }
+
+      before do
+        Datadog.configuration.site = "us5.datadoghq.com"
+      end
+
+      it "does not change subdomain and adds a correct path" do
+        expect(api_client.instance_variable_get(:@endpoint_uri)).to eq(URI("https://us5.datadoghq.com/api/v2/ai-guard"))
+      end
+    end
+  end
+
   describe "#post" do
     let(:api_client) do
       described_class.new(
@@ -15,7 +74,7 @@ RSpec.describe Datadog::AIGuard::APIClient do
 
     let(:response_body) do
       {
-        some: "response"
+        some: "response",
       }
     end
 
@@ -31,13 +90,13 @@ RSpec.describe Datadog::AIGuard::APIClient do
           "DD-AI-GUARD-VERSION": Datadog::VERSION::STRING,
           "DD-AI-GUARD-SOURCE": "SDK",
           "DD-AI-GUARD-LANGUAGE": "ruby",
-          "content-type": "application/json"
+          "content-type": "application/json",
         })
         .to_return do |request|
           {
             status: response_status_code,
             body: response_body.to_json,
-            headers: {"Content-Type" => "application/json"}
+            headers: {"Content-Type" => "application/json"},
           }
         end
     end

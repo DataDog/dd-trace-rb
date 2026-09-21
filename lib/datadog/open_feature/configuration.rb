@@ -12,11 +12,34 @@ module Datadog
 
         def self.add_settings!(base)
           base.class_eval do
+            # Steep does not update `self` for this `class_eval` block.
+            # @type self: Datadog::Core::Configuration::Base::_DslContext
             settings :open_feature do
               option :enabled do |o|
                 o.type :bool
-                o.env 'DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED'
+                o.env "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED"
                 o.default false
+              end
+
+              # Opt-in gate for APM feature-flag span enrichment. When enabled,
+              # the provider attaches `ffe_*` tags to the local root APM span on
+              # finish. Distinct from `:enabled` (the provider gate) and off by
+              # default so it can be rolled out independently.
+              #
+              # TODO: benchmark the per-span-finish overhead on a high-span-count
+              # trace with this gate on before enabling it by default.
+              option :span_enrichment_enabled do |o|
+                o.type :bool
+                o.env "DD_EXPERIMENTAL_FLAGGING_PROVIDER_SPAN_ENRICHMENT_ENABLED"
+                o.default false
+              end
+
+              # Killswitch for the EVP `flagevaluation` emission path only. Default on; when
+              # disabled the existing OTel `feature_flag.evaluations` metric is unaffected.
+              option :evaluation_counts_enabled do |o|
+                o.type :bool
+                o.env "DD_FLAGGING_EVALUATION_COUNTS_ENABLED"
+                o.default true
               end
             end
           end

@@ -4,17 +4,19 @@ module Datadog
       module Rack
         module Gateway
           class Response < Instrumentation::Gateway::Argument
-            attr_reader body: String
+            @response: ::Rack::Response?
+
+            attr_reader body: untyped
 
             attr_reader status: untyped
 
-            attr_reader headers: untyped
+            attr_reader headers: ::Hash[::String, ::String]
 
             attr_reader context: AppSec::Context
 
             def initialize: (untyped body, untyped status, untyped headers, context: AppSec::Context) -> void
 
-            def response: () -> untyped
+            def response: () -> ::Rack::Response
           end
         end
       end

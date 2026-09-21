@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../http'
-require_relative 'ext'
+require_relative "../../metadata/ext"
+require_relative "../http"
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -64,18 +64,11 @@ module Datadog
               )
               @datadog_multi_trace_digest = Tracing.active_trace.to_digest
 
+              @datadog_multi_span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               @datadog_multi_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               @datadog_multi_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_MULTI_REQUEST)
 
               @datadog_multi_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
-
-              # Tag original global service name if not used
-              if @datadog_multi_span.service != Datadog.configuration.service
-                @datadog_multi_span.set_tag(
-                  Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE,
-                  Datadog.configuration.service
-                )
-              end
 
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(@datadog_multi_span, analytics_sample_rate) if analytics_enabled?

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'base'
+require_relative "base"
 
 module Datadog
   module Core
@@ -9,7 +9,7 @@ module Datadog
         # Telemetry class for the 'app-heartbeat' event
         class AppHeartbeat < Base
           def type
-            'app-heartbeat'
+            "app-heartbeat"
           end
         end
       end

@@ -1,10 +1,10 @@
-require 'datadog/tracing/contrib/rails/rails_helper'
+require "datadog/tracing/contrib/rails/rails_helper"
 
-RSpec.describe 'Rails ActionController', execute_in_fork: Rails.version.to_i >= 8 do
+RSpec.describe "Rails ActionController", execute_in_fork: Rails.version.to_i >= 8 do
   let(:rails_options) { {} }
   let(:controller) do
     stub_const(
-      'TestController',
+      "TestController",
       Class.new(base_class) do
         def index
           # Do nothing
@@ -26,14 +26,14 @@ RSpec.describe 'Rails ActionController', execute_in_fork: Rails.version.to_i >= 
     end
   end
 
-  describe '#action' do
+  describe "#action" do
     subject(:result) { action.call(env) }
 
     let(:action) { controller.action(name) }
     let(:env) { {} }
 
-    describe 'for a controller' do
-      context 'that inherits from ActionController::Metal' do
+    describe "for a controller" do
+      context "that inherits from ActionController::Metal" do
         let(:base_class) { ActionController::Metal }
 
         it do
@@ -41,26 +41,26 @@ RSpec.describe 'Rails ActionController', execute_in_fork: Rails.version.to_i >= 
           expect(result).to be_a_kind_of(Array)
           expect(result).to have(3).items
           expect(spans).to have(1).items
-          expect(spans.first.name).to eq('rails.action_controller')
+          expect(spans.first.name).to eq("rails.action_controller")
         end
 
-        context 'with tracing disabled' do
+        context "with tracing disabled" do
           before do
             Datadog.configure { |c| c.tracing.enabled = false }
             expect(Datadog.logger).to_not receive(:error)
             expect(Datadog::Tracing).to_not receive(:trace)
           end
 
-          it 'runs the action without tracing' do
+          it "runs the action without tracing" do
             expect { result }.to_not raise_error
             expect(spans).to have(0).items
           end
         end
 
-        context 'when response is overridden' do
-          context 'with an Array' do
-            let(:headers) { double('headers') }
-            let(:body) { double('body') }
+        context "when response is overridden" do
+          context "with an Array" do
+            let(:headers) { double("headers") }
+            let(:body) { double("body") }
 
             before do
               expect_any_instance_of(controller).to receive(:response)
@@ -76,15 +76,15 @@ RSpec.describe 'Rails ActionController', execute_in_fork: Rails.version.to_i >= 
               expect(result).to be_a_kind_of(Array)
               expect(result).to include(200, headers, body)
               expect(spans).to have(1).items
-              expect(spans.first.name).to eq('rails.action_controller')
+              expect(spans.first.name).to eq("rails.action_controller")
             end
           end
 
-          context 'with some unknown kind of object' do
+          context "with some unknown kind of object" do
             let(:response_object) do
               double(
-                'response object',
-                to_a: [200, double('headers'), double('body')]
+                "response object",
+                to_a: [200, double("headers"), double("body")]
               )
             end
 
@@ -102,17 +102,17 @@ RSpec.describe 'Rails ActionController', execute_in_fork: Rails.version.to_i >= 
               expect(result).to be_a_kind_of(Array)
               expect(result).to have(3).items
               expect(spans).to have(1).items
-              expect(spans.first.name).to eq('rails.action_controller')
+              expect(spans.first.name).to eq("rails.action_controller")
             end
           end
         end
 
-        describe 'span resource' do
+        describe "span resource" do
           let(:observed) { {} }
           let(:controller) do
             observed = self.observed
             stub_const(
-              'TestController',
+              "TestController",
               Class.new(base_class) do
                 define_method(:index) do
                   observed[:active_span_resource] = Datadog::Tracing.active_span.resource
@@ -121,10 +121,10 @@ RSpec.describe 'Rails ActionController', execute_in_fork: Rails.version.to_i >= 
             )
           end
 
-          it 'sets the span resource before calling the controller' do
+          it "sets the span resource before calling the controller" do
             result
 
-            expect(observed[:active_span_resource]).to eq 'TestController#index'
+            expect(observed[:active_span_resource]).to eq "TestController#index"
           end
         end
       end

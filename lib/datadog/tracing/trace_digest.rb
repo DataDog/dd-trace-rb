@@ -22,6 +22,9 @@ module Datadog
       # @!attribute [r] span_type
       #   The type of the currently active span.
       #   @return [String]
+      # @!attribute [r] span_links
+      #   Span links associated with this trace context.
+      #   @return [Array<Datadog::Tracing::SpanLink>, nil]
       # @!attribute [r] trace_distributed_tags
       #   Datadog-specific tags that support richer distributed tracing association.
       #   @return [Hash<String,String>]
@@ -69,16 +72,22 @@ module Datadog
       #   @return [Integer]
       #   @see https://www.w3.org/TR/trace-context/#trace-flags
       # @!attribute [r] trace_state
-      #   The W3C "tracestate" extracted from a distributed context.
-      #   This field is a string representing vendor-specific distribution data.
-      #   The `dd=` entry is removed from `trace_state` as its value is dynamically calculated
-      #   on every propagation injection.
+      #   W3C "tracestate" members other than `dd=` and `ot=`, which are stored in parsed fields.
       #   @return [String]
       #   @see https://www.w3.org/TR/trace-context/#tracestate-header
       # @!attribute [r] trace_state_unknown_fields
       #   From W3C "tracestate"'s `dd=` entry, when keys are not recognized they are stored here long with their values.
       #   This allows later propagation to include those unknown fields, as they can represent future versions of the spec
       #   sending data through this service. This value ends in a trailing `;` to facilitate serialization.
+      #   @return [String]
+      # @!attribute [r] trace_otel_random_value
+      #   OpenTelemetry consistent probability sampling random value.
+      #   @return [String]
+      # @!attribute [r] trace_otel_threshold
+      #   OpenTelemetry consistent probability sampling threshold.
+      #   @return [String]
+      # @!attribute [r] trace_otel_unknown_fields
+      #   Unrecognized `ot=` fields, retained with a trailing `;` for propagation.
       #   @return [String]
       # @!attribute [r] baggage
       #   The W3C "baggage" extracted from a distributed context. This field is a hash of key/value pairs.
@@ -91,6 +100,7 @@ module Datadog
         :span_resource,
         :span_service,
         :span_type,
+        :span_links,
         :trace_distributed_tags,
         :trace_hostname,
         :trace_id,
@@ -105,6 +115,9 @@ module Datadog
         :trace_flags,
         :trace_state,
         :trace_state_unknown_fields,
+        :trace_otel_random_value,
+        :trace_otel_threshold,
+        :trace_otel_unknown_fields,
         :span_remote,
         :baggage
 
@@ -114,6 +127,7 @@ module Datadog
         span_resource: nil,
         span_service: nil,
         span_type: nil,
+        span_links: nil,
         trace_distributed_tags: nil,
         trace_hostname: nil,
         trace_id: nil,
@@ -128,6 +142,9 @@ module Datadog
         trace_flags: nil,
         trace_state: nil,
         trace_state_unknown_fields: nil,
+        trace_otel_random_value: nil,
+        trace_otel_threshold: nil,
+        trace_otel_unknown_fields: nil,
         span_remote: true,
         baggage: nil
       )
@@ -136,6 +153,7 @@ module Datadog
         @span_resource = span_resource && span_resource.dup.freeze
         @span_service = span_service && span_service.dup.freeze
         @span_type = span_type && span_type.dup.freeze
+        @span_links = span_links && span_links.dup.freeze
         @trace_distributed_tags = trace_distributed_tags && trace_distributed_tags.dup.freeze
         @trace_hostname = trace_hostname && trace_hostname.dup.freeze
         @trace_id = trace_id
@@ -150,6 +168,9 @@ module Datadog
         @trace_flags = trace_flags
         @trace_state = trace_state && trace_state.dup.freeze
         @trace_state_unknown_fields = trace_state_unknown_fields && trace_state_unknown_fields.dup.freeze
+        @trace_otel_random_value = trace_otel_random_value && trace_otel_random_value.dup.freeze
+        @trace_otel_threshold = trace_otel_threshold && trace_otel_threshold.dup.freeze
+        @trace_otel_unknown_fields = trace_otel_unknown_fields && trace_otel_unknown_fields.dup.freeze
         @span_remote = span_remote
         @baggage = baggage && baggage.dup.freeze
         freeze
@@ -167,6 +188,7 @@ module Datadog
           span_resource: span_resource,
           span_service: span_service,
           span_type: span_type,
+          span_links: span_links,
           trace_distributed_tags: trace_distributed_tags,
           trace_hostname: trace_hostname,
           trace_id: trace_id,
@@ -181,6 +203,9 @@ module Datadog
           trace_flags: trace_flags,
           trace_state: trace_state,
           trace_state_unknown_fields: trace_state_unknown_fields,
+          trace_otel_random_value: trace_otel_random_value,
+          trace_otel_threshold: trace_otel_threshold,
+          trace_otel_unknown_fields: trace_otel_unknown_fields,
           span_remote: span_remote,
           baggage: baggage, **field_value_pairs
         )

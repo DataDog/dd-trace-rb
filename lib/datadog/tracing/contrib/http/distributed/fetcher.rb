@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../distributed/fetcher'
+require_relative "../../../distributed/fetcher"
 
 module Datadog
   module Tracing
@@ -23,12 +23,12 @@ module Datadog
               # If not found, try the Rack-formatted key
               rack_header = +"HTTP-#{name}"
               rack_header.upcase!
-              rack_header.tr!('-', '_')
+              rack_header.tr!("-", "_")
 
               hdr = super(rack_header)
 
               # Only return the value if it is not an empty string
-              hdr if hdr != ''
+              hdr if hdr != ""
             end
           end
         end

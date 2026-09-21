@@ -16,10 +16,31 @@ require 'bundler'
 require 'appraisal/appraisal'
 
 require_relative '../tasks/appraisal_conversion'
+require_relative '../tasks/security_capabilities'
+require_relative 'coverage_matrix_helper'
+require_relative 'source_options'
 
 gemfile = Appraisal::Gemfile.new.tap do |g|
   # Support `eval_gemfile` for `Bundler::DSL`
   g.define_singleton_method(:eval_gemfile) { |file| load(file) }
+
+  if SecurityCapabilities.for_version(RUBY_VERSION)[:cooldown]
+    g.define_singleton_method(:source) do |src, options = {}, &block|
+      super(src, options.merge(cooldown: SecurityCapabilities::COOLDOWN_DAYS), &block)
+    end
+  end
+
+  # The base gemfiles under `gemfiles/` declare `gemspec path: '..'` so Bundler
+  # can resolve datadog.gemspec when those files are loaded directly via
+  # `BUNDLE_GEMFILE`. Appraisal flattens all `eval_gemfile` content into a
+  # single context, so the `..` would survive into integration gemfiles —
+  # combined with Appraisal::Utils.prefix_path prepending another `..`, the
+  # generated `gemspec path: "../.."` resolves outside the project. Normalize
+  # to `.` so the generated value becomes `..`, relative to gemfiles/.
+  g.define_singleton_method(:gemspec) do |options = {}|
+    @gemspecs << Appraisal::Gemspec.new(options.merge(path: '.'))
+  end
+
   g.load(Bundler.default_gemfile)
 end
 
@@ -37,14 +58,6 @@ define_singleton_method(:appraise) do |name, &block|
   appraisal = Appraisal::Appraisal.new(name, gemfile)
   appraisal.instance_eval(&block)
 
-  # Add Ruby version constraint so `bundle lock` respects `required_ruby_version`
-  # for already installed gemspecs.
-  # This is only a problem if cache is leaking between versions, which should be
-  # investigated.
-  # See: https://bundler.io/man/gemfile.5.html#RUBY
-  major, minor = RUBY_VERSION.split('.').take(2)
-  appraisal.ruby "~> #{major}.#{minor}"
-
   # Customize callback for removal
   to_remove.each do |group_name, gems|
     appraisal.group(group_name) do
@@ -53,74 +66,6 @@ define_singleton_method(:appraise) do |name, &block|
   end
 
   appraisals << appraisal
-end
-
-# Builds a matrix of versions to test for a given integration
-
-# `range`: optional, the range of versions to test
-# `gem`  : optional, gem name to test (gem name can be different from the integration name)
-# `min`  : optional, minimum version to test
-# `meta` : optional, additional metadata (development dependencies, etc.) for the group
-#
-# Examples:
-#
-# 1. Generating coverage starting minimal version
-#
-#    build_coverage_matrix('devise', min: '3.1.4')
-#     ├─ appraise 'devise-min'
-#     │   └─ gem 'devise', '= 3.1.4'
-#     └─ appraise 'devise-latest'
-#         └─ gem 'devise'
-#
-# 2. Generating coverage starting minimal version with some additional gems with
-#    specific version tied to only minimal version
-#
-#    build_coverage_matrix('devise', min: '3.1.4', meta: { min: { 'bigdecimal' => '1.3.4' } })
-#     ├─ appraise 'devise-min'
-#     │   ├─ gem 'devise', '= 3.1.4'
-#     │   └─ gem 'bigdecimal', '1.3.4'
-#     └─ appraise 'devise-latest'
-#         └─ gem 'devise'
-#
-# 3. Generating coverage starting minimal version with some additional gems with
-#    specific version for all possible combinations
-#
-#    build_coverage_matrix('devise', min: '3.1.4', meta: { 'bigdecimal' => '3.0.0' })
-#     ├─ appraise 'devise-min'
-#     │   ├─ gem 'devise', '= 3.1.4'
-#     │   └─ gem 'bigdecimal', '3.0.0'
-#     └─ appraise 'devise-latest'
-#         ├─ gem 'devise'
-#         └─ gem 'bigdecimal', '3.0.0'
-def build_coverage_matrix(integration, range = [], gem: nil, min: nil, meta: {})
-  gem ||= integration
-
-  meta_versions = meta.each_with_object({}) do |(key, value), memo|
-    memo[key] = meta.delete(key) if value.is_a?(Hash)
-  end
-
-  if min
-    appraise "#{integration}-min" do
-      gem gem, "= #{min}"
-
-      meta_versions[:min].to_h.merge(meta).each { |k, v| v ? gem(k, v) : gem(k) }
-    end
-  end
-
-  range.each do |n|
-    appraise "#{integration}-#{n}" do
-      gem gem, "~> #{n}"
-      meta_versions[n].to_h.merge(meta).each { |k, v| v ? gem(k, v) : gem(k) }
-    end
-  end
-
-  appraise "#{integration}-latest" do
-    # The latest group declares dependencies without version constraints,
-    # still requires being updated to pick up the next major version and
-    # committing the changes to lockfiles.
-    gem gem
-    meta_versions[:latest].to_h.merge(meta).each { |k, v| v ? gem(k, v) : gem(k) }
-  end
 end
 
 load(AppraisalConversion.definition)

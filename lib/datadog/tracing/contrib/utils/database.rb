@@ -6,9 +6,9 @@ module Datadog
       module Utils
         # Common database-related utility functions.
         module Database
-          VENDOR_DEFAULT = 'defaultdb'
-          VENDOR_POSTGRES = 'postgres'
-          VENDOR_SQLITE = 'sqlite'
+          VENDOR_DEFAULT = "defaultdb"
+          VENDOR_POSTGRES = "postgres"
+          VENDOR_SQLITE = "sqlite"
 
           module_function
 
@@ -16,9 +16,9 @@ module Datadog
             case vendor
             when nil
               VENDOR_DEFAULT
-            when 'postgresql'
+            when "postgresql"
               VENDOR_POSTGRES
-            when 'sqlite3'
+            when "sqlite3"
               VENDOR_SQLITE
             else
               vendor

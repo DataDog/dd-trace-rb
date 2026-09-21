@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../integration'
-require_relative 'configuration/settings'
-require_relative 'patcher'
+require_relative "../integration"
+require_relative "configuration/settings"
+require_relative "patcher"
 
 module Datadog
   module Tracing
@@ -12,16 +12,16 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new('1.8')
+          MINIMUM_VERSION = Gem::Version.new("1.8")
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :rest_client
           def self.gem_name
-            'rest-client'
+            "rest-client"
           end
 
           def self.version
-            Gem.loaded_specs['rest-client']&.version
+            Gem.loaded_specs["rest-client"]&.version
           end
 
           def self.loaded?

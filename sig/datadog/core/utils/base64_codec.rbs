@@ -1,0 +1,13 @@
+module Datadog
+  module Core
+    module Utils
+      module Base64Codec
+        def self.encode64: (String bin) -> String
+
+        def self.strict_encode64: (String bin) -> String
+
+        def self.strict_decode64: (::String str) -> ::String
+      end
+    end
+  end
+end

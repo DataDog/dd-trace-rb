@@ -17,7 +17,7 @@ module Datadog
       class ResolutionDetails
         type metadata_t = ::Hash[::String, ::String]
 
-        @value: ::Helpers::json
+        @value: Datadog::Helpers::json
 
         def flag_type: () -> ::Symbol?
 
@@ -30,6 +30,8 @@ module Datadog
         def variant: () -> ::String?
 
         def allocation_key: () -> ::String?
+
+        def serial_id: () -> ::Integer?
 
         def reason: () -> ::String
 

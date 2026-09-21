@@ -1,6 +1,6 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/tracing/transport/http/client'
+require "datadog/tracing/transport/http/client"
 
 RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
   let(:logger) { logger_allowing_debug }
@@ -8,25 +8,25 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
   let(:endpoint) { double(Datadog::Core::Transport::HTTP::API::Endpoint) }
   subject(:client) { described_class.new(instance, logger: logger) }
 
-  describe '#initialize' do
+  describe "#initialize" do
     it { is_expected.to be_a_kind_of(Datadog::Tracing::Transport::HTTP::Statistics) }
     it { is_expected.to have_attributes(instance: instance) }
   end
 
-  describe '#send_request' do
+  describe "#send_request" do
     subject(:send_request) { client.send(:send_request, :fake_action, request) }
 
     let(:request) { double(Datadog::Core::Transport::Request) }
     let(:response_class) do
-      stub_const('TestResponse', Class.new do
+      stub_const("TestResponse", Class.new do
         include Datadog::Core::Transport::HTTP::Response
       end)
     end
-    let(:response) { double(response_class, code: double('status code')) }
+    let(:response) { double(response_class, code: double("status code")) }
 
     before { allow(Datadog.health_metrics).to receive(:send_metrics) }
 
-    context 'which returns an OK response' do
+    context "which returns an OK response" do
       before do
         allow(response).to receive(:ok?).and_return(true)
         allow(response).to receive(:not_found?).and_return(false)
@@ -39,7 +39,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
           .with(response)
       end
 
-      it 'sends to only the current API once' do
+      it "sends to only the current API once" do
         allow(endpoint).to receive(:call).and_return(response)
 
         is_expected.to eq(response)
@@ -48,17 +48,17 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
       end
     end
 
-    context 'which raises an error' do
-      let(:error_class) { stub_const('TestError', Class.new(StandardError)) }
+    context "which raises an error" do
+      let(:error_class) { stub_const("TestError", Class.new(StandardError)) }
       let(:logger) { double(Datadog::Core::Logger) }
 
-      context 'once' do
+      context "once" do
         before do
           allow(logger).to receive(:debug)
           allow(logger).to receive(:error)
         end
 
-        it 'makes only one attempt and returns an internal error response' do
+        it "makes only one attempt and returns an internal error response" do
           expect(endpoint).to receive(:call).and_raise(error_class)
 
           expect(client).to receive(:update_stats_from_exception!)
@@ -73,7 +73,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
         end
       end
 
-      context 'twice consecutively' do
+      context "twice consecutively" do
         before do
           allow(logger).to receive(:debug)
           allow(logger).to receive(:error)
@@ -98,7 +98,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
         # This is a confusingly named test - there is still one attempt
         # for each request being made (two total), the difference is that
         # one response is reported at debug level and one at error level.
-        it 'makes only one attempt per request and returns an internal error response' do
+        it "makes only one attempt per request and returns an internal error response" do
           expect(endpoint).to receive(:call).twice.and_raise(error_class)
 
           is_expected.to be_a_kind_of(Datadog::Core::Transport::InternalErrorResponse)

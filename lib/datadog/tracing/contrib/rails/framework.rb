@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
-require_relative '../action_cable/integration'
-require_relative '../action_mailer/integration'
-require_relative '../action_pack/integration'
-require_relative '../action_view/integration'
-require_relative '../active_record/integration'
-require_relative '../active_support/integration'
-require_relative '../grape/endpoint'
-require_relative '../lograge/integration'
-require_relative 'ext'
-require_relative '../../../core/contrib/rails/utils'
-require_relative '../semantic_logger/integration'
+require_relative "../action_cable/integration"
+require_relative "../action_mailer/integration"
+require_relative "../action_pack/integration"
+require_relative "../action_view/integration"
+require_relative "../active_record/integration"
+require_relative "../active_support/integration"
+require_relative "../grape/endpoint"
+require_relative "../lograge/integration"
+require_relative "ext"
+require_relative "../../../core/contrib/rails/utils"
+require_relative "../semantic_logger/integration"
 
 module Datadog
   module Tracing

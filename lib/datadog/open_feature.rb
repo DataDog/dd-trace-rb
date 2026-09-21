@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'core/configuration'
-require_relative 'open_feature/configuration'
+require_relative "core/configuration"
+require_relative "open_feature/configuration"
 
 module Datadog
   # A namespace for the OpenFeature component.

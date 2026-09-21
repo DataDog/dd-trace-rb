@@ -1,11 +1,11 @@
-require 'datadog/core/utils/safe_dup'
+require "datadog/core/utils/safe_dup"
 
 RSpec.describe Datadog::Core::Utils::SafeDup do
-  context 'String' do
-    describe '.frozen_or_dup' do
-      context 'when given a frozen string' do
-        it 'returns the original input' do
-          input = 'a_frozen_string'.freeze
+  context "String" do
+    describe ".frozen_or_dup" do
+      context "when given a frozen string" do
+        it "returns the original input" do
+          input = "a_frozen_string".freeze
 
           result = described_class.frozen_or_dup(input)
 
@@ -16,9 +16,9 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
         end
       end
 
-      context 'when given a string' do
-        it 'returns a non-frozen duplicate' do
-          input = 'a_string'
+      context "when given a string" do
+        it "returns a non-frozen duplicate" do
+          input = "a_string"
 
           result = described_class.frozen_or_dup(input)
 
@@ -31,10 +31,10 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
       end
     end
 
-    describe '.frozen_dup' do
-      context 'when given a frozen string' do
-        it 'returns the original input' do
-          input = 'a_frozen_string'.freeze
+    describe ".frozen_dup" do
+      context "when given a frozen string" do
+        it "returns the original input" do
+          input = "a_frozen_string".freeze
 
           result = described_class.frozen_dup(input)
 
@@ -45,9 +45,9 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
         end
       end
 
-      context 'when given a string' do
-        it 'returns a frozen duplicate' do
-          input = 'a_string'
+      context "when given a string" do
+        it "returns a frozen duplicate" do
+          input = "a_string"
 
           result = described_class.frozen_dup(input)
 
@@ -61,10 +61,10 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
     end
   end
 
-  context 'Hash' do
-    describe '.frozen_or_dup' do
-      context 'when given a frozen hash' do
-        it 'returns the original input' do
+  context "Hash" do
+    describe ".frozen_or_dup" do
+      context "when given a frozen hash" do
+        it "returns the original input" do
           input = {a: :b}.freeze
 
           result = described_class.frozen_or_dup(input)
@@ -76,8 +76,8 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
         end
       end
 
-      context 'when given a hash' do
-        it 'returns a non-frozen duplicate' do
+      context "when given a hash" do
+        it "returns a non-frozen duplicate" do
           input = {a: :b}
 
           result = described_class.frozen_or_dup(input)
@@ -91,9 +91,9 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
       end
     end
 
-    describe '.frozen_dup' do
-      context 'when given a frozen hash' do
-        it 'returns the original input' do
+    describe ".frozen_dup" do
+      context "when given a frozen hash" do
+        it "returns the original input" do
           input = {a: :b}.freeze
 
           result = described_class.frozen_dup(input)
@@ -105,8 +105,8 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
         end
       end
 
-      context 'when given a hash' do
-        it 'returns a frozen duplicate' do
+      context "when given a hash" do
+        it "returns a frozen duplicate" do
           input = {a: :b}
 
           result = described_class.frozen_dup(input)
@@ -121,14 +121,10 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
     end
   end
 
-  context 'Boolean' do
-    before do
-      skip 'TrueClass and FalseClass are not frozen by default on ruby 2.1' if RUBY_VERSION < '2.2'
-    end
-
-    describe '.frozen_or_dup' do
-      context 'when given a boolean' do
-        it 'returns the original input' do
+  context "Boolean" do
+    describe ".frozen_or_dup" do
+      context "when given a boolean" do
+        it "returns the original input" do
           input = true
 
           result = described_class.frozen_or_dup(input)
@@ -141,9 +137,9 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
       end
     end
 
-    describe '.frozen_dup' do
-      context 'when given a boolean' do
-        it 'returns the original input' do
+    describe ".frozen_dup" do
+      context "when given a boolean" do
+        it "returns the original input" do
           input = true
 
           result = described_class.frozen_dup(input)
@@ -157,10 +153,10 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
     end
   end
 
-  context 'Array' do
-    describe '.frozen_or_dup' do
-      context 'when given a frozen array' do
-        it 'returns the original input' do
+  context "Array" do
+    describe ".frozen_or_dup" do
+      context "when given a frozen array" do
+        it "returns the original input" do
           input = [1].freeze
 
           result = described_class.frozen_or_dup(input)
@@ -172,8 +168,8 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
         end
       end
 
-      context 'when given an array' do
-        it 'returns a non-frozen copy of that array' do
+      context "when given an array" do
+        it "returns a non-frozen copy of that array" do
           input = [1]
 
           result = described_class.frozen_or_dup(input)
@@ -187,9 +183,9 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
       end
     end
 
-    describe '.frozen_dup' do
-      context 'when given a frozen array' do
-        it 'returns the original input' do
+    describe ".frozen_dup" do
+      context "when given a frozen array" do
+        it "returns the original input" do
           input = [1].freeze
 
           result = described_class.frozen_dup(input)
@@ -201,8 +197,8 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
         end
       end
 
-      context 'when given an array' do
-        it 'returns a frozen duplicate' do
+      context "when given an array" do
+        it "returns a frozen duplicate" do
           input = [1]
 
           result = described_class.frozen_dup(input)
@@ -217,10 +213,10 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
     end
   end
 
-  context 'Numeric' do
-    describe '.frozen_or_dup' do
-      context 'when given a numeric' do
-        it 'returns the original input' do
+  context "Numeric" do
+    describe ".frozen_or_dup" do
+      context "when given a numeric" do
+        it "returns the original input" do
           input = 1
 
           result = described_class.frozen_or_dup(input)
@@ -233,9 +229,9 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
       end
     end
 
-    describe '.frozen_dup' do
-      context 'when given a numeric' do
-        it 'returns the original input' do
+    describe ".frozen_dup" do
+      context "when given a numeric" do
+        it "returns the original input" do
           input = 10.0
 
           result = described_class.frozen_dup(input)

@@ -1,10 +1,10 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/worker'
-require 'datadog/core/workers/async'
+require "datadog/core/worker"
+require "datadog/core/workers/async"
 
 RSpec.describe Datadog::Core::Workers::Async::Thread do
-  context 'when included into a worker' do
+  context "when included into a worker" do
     subject(:worker) { worker_class.new(&task) }
 
     let(:worker_class) do
@@ -12,7 +12,7 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
     end
 
     let(:task) { proc { |*args| worker_spy.perform(*args) } }
-    let(:worker_spy) { double('worker spy') }
+    let(:worker_spy) { double("worker spy") }
 
     before { allow(worker_spy).to receive(:perform) }
 
@@ -32,11 +32,11 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
       end
     end
 
-    shared_context 'perform and wait' do
+    shared_context "perform and wait" do
       let(:perform) { worker.perform(*args) }
       let(:args) { [:foo, :bar] }
       let(:perform_complete) { ConditionVariable.new }
-      let(:perform_result) { double('perform result') }
+      let(:perform_result) { double("perform result") }
       let(:perform_task) { proc { |*_args| } }
 
       before do
@@ -58,10 +58,10 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
       end
     end
 
-    shared_context 'perform and wait with error' do
-      include_context 'perform and wait' do
+    shared_context "perform and wait with error" do
+      include_context "perform and wait" do
         let(:error) { error_class.new }
-        let(:error_class) { stub_const('TestError', Class.new(StandardError)) }
+        let(:error_class) { stub_const("TestError", Class.new(StandardError)) }
         let(:perform_task) do
           proc do |*_actual_args|
             # Silence "Thread terminated with exception" Ruby logs for this worker thread, since we're deliberately
@@ -74,13 +74,13 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
       end
     end
 
-    describe '#perform' do
+    describe "#perform" do
       subject(:perform) { worker.perform(*args) }
 
       let(:args) { [:foo, :bar] }
 
-      context 'given arguments' do
-        include_context 'perform and wait' do
+      context "given arguments" do
+        include_context "perform and wait" do
           let(:perform_task) do
             proc do |*actual_args|
               expect(actual_args).to eq args
@@ -88,7 +88,7 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
           end
         end
 
-        it 'performs the task async' do
+        it "performs the task async" do
           expect(worker.result).to eq(perform_result)
           expect(worker).to have_attributes(
             result: perform_result,
@@ -100,60 +100,60 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
           )
         end
 
-        it 'returns true' do
+        it "returns true" do
           expect(perform).to be true
         end
       end
     end
 
-    describe '#error?' do
+    describe "#error?" do
       subject(:error?) { worker.error? }
 
-      context 'by default' do
+      context "by default" do
         it { is_expected.to be false }
       end
 
-      context 'when #perform raises an error' do
-        include_context 'perform and wait with error'
+      context "when #perform raises an error" do
+        include_context "perform and wait with error"
         it { is_expected.to be true }
       end
     end
 
-    describe '#error' do
+    describe "#error" do
       subject(:error) { worker.error }
 
-      context 'by default' do
+      context "by default" do
         it { is_expected.to be nil }
       end
 
-      context 'when #perform raises an error' do
-        include_context 'perform and wait with error'
+      context "when #perform raises an error" do
+        include_context "perform and wait with error"
         it { is_expected.to be error }
       end
     end
 
-    describe '#result' do
+    describe "#result" do
       subject(:result) { worker.result }
 
-      context 'by default' do
+      context "by default" do
         it { is_expected.to be nil }
       end
 
-      context 'after #perform completes' do
-        include_context 'perform and wait'
+      context "after #perform completes" do
+        include_context "perform and wait"
         it { is_expected.to be perform_result }
       end
     end
 
-    describe '#fork_policy' do
+    describe "#fork_policy" do
       subject(:fork_policy) { worker.fork_policy }
 
-      context 'by default' do
+      context "by default" do
         it { is_expected.to be described_class::FORK_POLICY_STOP }
       end
 
-      context 'when set' do
-        let(:policy) { double('policy') }
+      context "when set" do
+        let(:policy) { double("policy") }
 
         it do
           expect { worker.fork_policy = policy }
@@ -164,10 +164,10 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
       end
     end
 
-    describe '#fork_policy=' do
+    describe "#fork_policy=" do
       subject(:set_fork_policy) { worker.fork_policy = policy }
 
-      let(:policy) { double('policy') }
+      let(:policy) { double("policy") }
 
       it do
         expect { set_fork_policy }
@@ -177,18 +177,18 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
       end
     end
 
-    describe '#join' do
+    describe "#join" do
       subject(:join) { worker.join }
 
       let(:thread) { worker.send(:worker) }
 
-      context 'when not started' do
+      context "when not started" do
         it { is_expected.to be true }
       end
 
-      context 'when started' do
+      context "when started" do
         let(:task) { proc { sleep(0.1) } }
-        let(:join_result) { double('join result') }
+        let(:join_result) { double("join result") }
 
         before do
           worker.perform
@@ -197,22 +197,22 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
             .with(timeout).and_call_original
         end
 
-        context 'given no arguments' do
+        context "given no arguments" do
           let(:timeout) { nil }
 
           it { is_expected.to be true }
         end
 
-        context 'given a timeout' do
+        context "given a timeout" do
           subject(:join) { worker.join(timeout) }
 
-          context 'which is not reached' do
+          context "which is not reached" do
             let(:timeout) { 10 }
 
             it { is_expected.to be true }
           end
 
-          context 'which is reached' do
+          context "which is reached" do
             let(:timeout) { 0 }
 
             it { is_expected.to be false }
@@ -221,16 +221,16 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
       end
     end
 
-    describe '#terminate' do
+    describe "#terminate" do
       subject(:terminate) { worker.terminate }
 
-      context 'when not started' do
+      context "when not started" do
         it { is_expected.to be false }
       end
 
-      context 'when started' do
+      context "when started" do
         let(:task) { proc { sleep(1) } }
-        let(:join_result) { double('join result') }
+        let(:join_result) { double("join result") }
 
         before do
           worker.perform
@@ -245,44 +245,44 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
       end
     end
 
-    describe '#run_async?' do
+    describe "#run_async?" do
       subject(:run_async?) { worker.run_async? }
 
-      context 'by default' do
+      context "by default" do
         it { is_expected.to be false }
       end
 
-      context 'when started' do
+      context "when started" do
         before { worker.perform }
 
         it { is_expected.to be true }
       end
     end
 
-    describe '#started?' do
+    describe "#started?" do
       subject(:started?) { worker.started? }
 
-      context 'by default' do
+      context "by default" do
         it { is_expected.to be false }
       end
 
-      context 'when started' do
+      context "when started" do
         before { worker.perform }
 
         it { is_expected.to be true }
       end
     end
 
-    describe '#running?' do
+    describe "#running?" do
       subject(:running?) { worker.running? }
 
       before { allow(worker_spy).to(receive(:perform)) { sleep 5 } }
 
-      context 'by default' do
+      context "by default" do
         it { is_expected.to be false }
       end
 
-      context 'when started' do
+      context "when started" do
         before do
           worker.perform
           try_wait_until { worker.running? }
@@ -292,14 +292,14 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
       end
     end
 
-    describe '#completed?' do
+    describe "#completed?" do
       subject(:completed?) { worker.completed? }
 
-      context 'by default' do
+      context "by default" do
         it { is_expected.to be false }
       end
 
-      context 'when running' do
+      context "when running" do
         let(:task) { proc { sleep(1) } }
 
         before do
@@ -313,25 +313,25 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
         end
       end
 
-      context 'when completed successfully' do
-        include_context 'perform and wait'
+      context "when completed successfully" do
+        include_context "perform and wait"
         it { is_expected.to be true }
       end
 
-      context 'when failed' do
-        include_context 'perform and wait with error'
+      context "when failed" do
+        include_context "perform and wait with error"
         it { is_expected.to be false }
       end
     end
 
-    describe '#failed?' do
+    describe "#failed?" do
       subject(:failed?) { worker.failed? }
 
-      context 'by default' do
+      context "by default" do
         it { is_expected.to be false }
       end
 
-      context 'when running' do
+      context "when running" do
         let(:task) { proc { sleep(1) } }
 
         before { worker.perform }
@@ -342,13 +342,13 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
         end
       end
 
-      context 'when completed successfully' do
-        include_context 'perform and wait'
+      context "when completed successfully" do
+        include_context "perform and wait"
         it { is_expected.to be false }
       end
 
-      context 'when failed' do
-        include_context 'perform and wait with error'
+      context "when failed" do
+        include_context "perform and wait with error"
 
         it do
           is_expected.to be true
@@ -357,16 +357,16 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
       end
     end
 
-    describe '#forked?' do
-      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
+    describe "#forked?" do
+      before { skip "Fork not supported on current platform" unless Process.respond_to?(:fork) }
 
       subject(:forked?) { worker.forked? }
 
-      context 'by default' do
+      context "by default" do
         it { is_expected.to be false }
       end
 
-      context 'when started but not forked' do
+      context "when started but not forked" do
         let(:task) { proc { sleep(1) } }
 
         before { worker.perform }
@@ -377,7 +377,7 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
         end
       end
 
-      context 'when started then forked' do
+      context "when started then forked" do
         let(:task) { proc { sleep(1) } }
 
         before { worker.perform }
@@ -393,15 +393,15 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
       end
     end
 
-    describe 'integration tests' do
-      describe 'forking' do
-        before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
+    describe "integration tests" do
+      describe "forking" do
+        before { skip "Fork not supported on current platform" unless Process.respond_to?(:fork) }
 
-        context 'when the process forks' do
-          context 'with FORK_POLICY_STOP fork policy' do
+        context "when the process forks" do
+          context "with FORK_POLICY_STOP fork policy" do
             before { worker.fork_policy = described_class::FORK_POLICY_STOP }
 
-            it 'does not restart the worker' do
+            it "does not restart the worker" do
               worker.perform
 
               expect_in_fork do
@@ -421,10 +421,10 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
             end
           end
 
-          context 'with FORK_POLICY_RESTART fork policy' do
+          context "with FORK_POLICY_RESTART fork policy" do
             before { worker.fork_policy = described_class::FORK_POLICY_RESTART }
 
-            it 'restarts the worker' do
+            it "restarts the worker" do
               # Start worker
               worker.perform
 
@@ -451,26 +451,26 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
       end
     end
 
-    describe 'thread naming and fork-safety marker' do
+    describe "thread naming and fork-safety marker" do
       after { worker.terminate }
 
       let(:worker_class) do
         stub_const(
-          'AsyncSpecThreadNaming',
+          "AsyncSpecThreadNaming",
           Class.new(Datadog::Core::Worker) do
             include Datadog::Core::Workers::Async::Thread
           end
         )
       end
 
-      it 'sets the name of the created thread to match the worker class name' do
+      it "sets the name of the created thread to match the worker class name" do
         worker.perform
 
         expect(worker.send(:worker).name).to eq worker_class.to_s
       end
 
       # See https://github.com/puma/puma/blob/32e011ab9e029c757823efb068358ed255fb7ef4/lib/puma/cluster.rb#L353-L359
-      it 'marks the worker thread as fork-safe (to avoid fork-safety warnings in webservers)' do
+      it "marks the worker thread as fork-safe (to avoid fork-safety warnings in webservers)" do
         worker.perform
 
         expect(worker.send(:worker).thread_variable_get(:fork_safe)).to be true

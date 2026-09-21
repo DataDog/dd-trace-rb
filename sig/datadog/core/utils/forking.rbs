@@ -4,9 +4,9 @@ module Datadog
       module Forking
         @fork_pid: Integer
 
-        def self.included: (untyped base) -> untyped
+        def self.included: (::Module base) -> void
 
-        def self.extended: (untyped base) -> untyped
+        def self.extended: (::Module base) -> void
 
         def after_fork!: () { () -> untyped } -> bool
 

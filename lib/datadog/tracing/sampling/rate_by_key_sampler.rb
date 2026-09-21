@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'sampler'
-require_relative 'rate_sampler'
+require_relative "sampler"
+require_relative "rate_sampler"
 
 module Datadog
   module Tracing
@@ -14,7 +14,7 @@ module Datadog
         def initialize(default_key, default_rate = 1.0, decision: nil, &block)
           super()
 
-          raise ArgumentError, 'No resolver given!' unless block
+          raise ArgumentError, "No resolver given!" unless block
 
           @default_key = default_key
           @resolver = block

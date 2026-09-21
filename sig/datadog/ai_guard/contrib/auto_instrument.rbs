@@ -1,0 +1,9 @@
+module Datadog
+  module AIGuard
+    module Contrib
+      module AutoInstrument
+        def self.patch_all: () -> void
+      end
+    end
+  end
+end

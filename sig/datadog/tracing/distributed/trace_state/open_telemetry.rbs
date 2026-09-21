@@ -1,0 +1,35 @@
+module Datadog
+  module Tracing
+    module Distributed
+      class TraceState
+        class OpenTelemetry
+          def self.from_digest: (TraceDigest digest, ?propagate_sampling: bool) -> OpenTelemetry
+          def self.from_tracestate_member: (::String? value) -> OpenTelemetry
+
+          attr_reader random_value: ::String?
+          attr_reader threshold: ::String?
+          attr_reader unknown_fields: ::String?
+
+          def initialize: (?random_value: ::String?, ?threshold: ::String?, ?unknown_fields: ::String?) -> void
+          def outbound: (
+            trace_id: ::Integer,
+            sampling_priority: ::Integer?,
+            decision_maker: ::String?,
+            applied_rate: ::Float?,
+            rate_limiter_rate: ::Float?,
+            distributed_sampling_priority: bool
+          ) -> OpenTelemetry
+          def to_s: -> ::String
+
+          private
+
+          def random_value_for: (::Integer trace_id) -> ::Integer
+          def threshold_for: (::Float rate) -> ::Integer
+          def reconcile_random_value: (::Integer random_value, ::Integer threshold, bool kept) -> ::Integer
+          def format_random_value: (::Integer random_value) -> ::String
+          def format_threshold: (::Integer threshold) -> ::String
+        end
+      end
+    end
+  end
+end

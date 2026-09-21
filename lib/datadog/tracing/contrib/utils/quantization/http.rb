@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'uri'
-require 'set'
+require "uri"
+require "set"
 
 module Datadog
   module Tracing
@@ -10,7 +10,7 @@ module Datadog
         module Quantization
           # Quantization for HTTP resources
           module HTTP
-            PLACEHOLDER = '?'
+            PLACEHOLDER = "?"
 
             # taken from Ruby https://github.com/ruby/uri/blob/eaf89cc31619d49e67c64d0b58ea9dc38892d175/lib/uri/rfc3986_parser.rb
             # but adjusted to parse only <scheme>://<host>:<port>/ components
@@ -32,7 +32,7 @@ module Datadog
               if (m = RFC3986_URL_BASE.match(url))
                 m[1]
               else
-                ''
+                ""
               end
             end
 
@@ -71,7 +71,7 @@ module Datadog
 
               # Short circuit if query string is meant to exclude everything
               # or if the query string is meant to include everything
-              return '' if options[:exclude] == :all
+              return "" if options[:exclude] == :all
 
               unless options[:show] == :all && !(options[:obfuscate] && options[:exclude])
                 query = collect_query(query, uniq: true) do |key, value|
@@ -98,20 +98,20 @@ module Datadog
 
               delims = query.scan(/(^|&|;)/).flatten
               query.split(/[&;]/).collect.with_index do |pairs, i|
-                key, value = pairs.split('=', 2)
+                key, value = pairs.split("=", 2)
                 key, value = yield(key, value, delims[i])
                 if uniq && keys.include?(key)
-                  ''
+                  ""
                 elsif key && value
                   "#{delims[i]}#{key}=#{value}"
                 elsif key
                   "#{delims[i]}#{key}".tap { keys << key }
                 # rubocop:disable Lint/DuplicateBranch
                 else
-                  ''
+                  ""
                 end
                 # rubocop:enable Lint/DuplicateBranch
-              end.join.sub(/^[&;]/, '')
+              end.join.sub(/^[&;]/, "")
             end
 
             private_class_method :collect_query
@@ -128,7 +128,7 @@ module Datadog
 
             private_class_method :obfuscate_query
 
-            OBFUSCATOR_WITH = '<redacted>'
+            OBFUSCATOR_WITH = "<redacted>"
 
             # rubocop:disable Layout/LineLength
             OBFUSCATOR_REGEX = %r{

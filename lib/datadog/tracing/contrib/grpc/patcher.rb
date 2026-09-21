@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative '../patcher'
+require_relative "ext"
+require_relative "../patcher"
 
 module Datadog
   module Tracing
@@ -18,7 +18,7 @@ module Datadog
           end
 
           def patch
-            require_relative 'intercept_with_datadog'
+            require_relative "intercept_with_datadog"
 
             prepend_interceptor
           end

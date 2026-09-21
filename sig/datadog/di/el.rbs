@@ -1,0 +1,8 @@
+module Datadog
+  module DI
+    module EL
+      # Expression AST parsed from a probe definition: a JSON value.
+      type ast = Datadog::Helpers::json
+    end
+  end
+end

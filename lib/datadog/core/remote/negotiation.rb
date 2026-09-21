@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'transport/http'
+require_relative "transport/http"
 
 module Datadog
   module Core

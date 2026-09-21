@@ -1,7 +1,7 @@
-require 'datadog/tracing/contrib/analytics_examples'
-require 'datadog/tracing/contrib/rails/rails_helper'
+require "datadog/tracing/contrib/analytics_examples"
+require "datadog/tracing/contrib/rails/rails_helper"
 
-RSpec.describe 'Rails trace analytics' do
+RSpec.describe "Rails trace analytics" do
   let(:configuration_options) { {} }
 
   before do
@@ -24,12 +24,12 @@ RSpec.describe 'Rails trace analytics' do
     Datadog.registry[:action_pack].reset_configuration!
   end
 
-  describe 'for a controller action' do
+  describe "for a controller action" do
     subject(:result) { action.call(env) }
 
     let(:controller) do
       stub_const(
-        'TestController',
+        "TestController",
         Class.new(base_class) do
           def index
             # Do nothing
@@ -42,22 +42,22 @@ RSpec.describe 'Rails trace analytics' do
     let(:action) { controller.action(name) }
     let(:env) { {} }
 
-    shared_examples_for 'a successful dispatch' do
+    shared_examples_for "a successful dispatch" do
       it do
         expect { result }.to_not raise_error
         expect(result).to be_a_kind_of(Array)
         expect(result).to have(3).items
         expect(spans).to have(1).items
-        expect(span.name).to eq('rails.action_controller')
+        expect(span.name).to eq("rails.action_controller")
       end
     end
 
-    it_behaves_like 'analytics for integration', ignore_global_flag: false do
+    it_behaves_like "analytics for integration", ignore_global_flag: false do
       before { expect { result }.to_not raise_error }
 
       let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Rails::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Rails::Ext::ENV_ANALYTICS_SAMPLE_RATE }
-      it_behaves_like 'a successful dispatch'
+      it_behaves_like "a successful dispatch"
     end
   end
 end

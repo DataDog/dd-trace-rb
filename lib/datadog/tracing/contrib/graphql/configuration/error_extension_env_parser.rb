@@ -11,7 +11,7 @@ module Datadog
             def self.call(values)
               # Split by comma, remove leading and trailing whitespaces,
               # remove empty values, and remove repeated values.
-              values.split(',').each(&:strip!).reject(&:empty?).uniq
+              values.split(",").each(&:strip!).reject(&:empty?).uniq
             end
           end
         end

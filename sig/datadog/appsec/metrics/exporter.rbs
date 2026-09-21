@@ -6,7 +6,11 @@ module Datadog
 
         def self?.export_rasp_metrics: (Metrics::Collector::Store metrics, Tracing::SpanOperation span) -> void
 
-        def self?.convert_ns_to_us: (::Integer value) -> ::Float
+        def self?.export_downstream_response_metrics: (Metrics::Collector::DownstreamResponseStore metrics, Tracing::SpanOperation span) -> void
+
+        private
+
+        def self?.convert_ns_to_us: (Integer value) -> Float
       end
     end
   end

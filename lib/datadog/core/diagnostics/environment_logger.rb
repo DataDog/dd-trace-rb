@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'json'
-require 'rbconfig'
-require 'time'
+require "json"
+require "rbconfig"
+require "time"
 
 module Datadog
   module Core
@@ -49,10 +49,12 @@ module Datadog
           if log?
             data = EnvironmentCollector.collect_config!
             data = data.merge(extra_fields) if extra_fields
-            log_configuration!('CORE', data.to_json)
+            log_configuration!("CORE", data.to_json)
           end
         rescue => e
-          logger.warn("Failed to collect core environment information: #{e} Location: #{Array(e.backtrace).first}")
+          logger.warn(
+            "Failed to collect core environment information: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+          )
         end
       end
 
@@ -73,7 +75,10 @@ module Datadog
               tags: tags,
               runtime_metrics_enabled: runtime_metrics_enabled,
               vm: vm,
-              health_metrics_enabled: health_metrics_enabled
+              health_metrics_enabled: health_metrics_enabled,
+              otlp_traces_export_enabled: otlp_traces_export_enabled,
+              otlp_metrics_export_enabled: otlp_metrics_export_enabled,
+              otlp_logs_export_enabled: otlp_logs_export_enabled,
             }
           end
 
@@ -85,7 +90,7 @@ module Datadog
           # Best portable guess of OS information.
           # @return [String] platform string
           def os_name
-            RbConfig::CONFIG['host']
+            RbConfig::CONFIG["host"]
           end
 
           # @return [String] datadog version
@@ -157,11 +162,43 @@ module Datadog
             !!Datadog.configuration.health_metrics.enabled
           end
 
+          # @return [Boolean] whether the tracer exports traces over OTLP.
+          #   Always false: Ruby exports spans in Datadog's native format and has no OTLP trace exporter.
+          def otlp_traces_export_enabled
+            false
+          end
+
+          # @return [Boolean] whether the tracer exports metrics over OTLP
+          def otlp_metrics_export_enabled
+            metrics = opentelemetry_settings&.metrics
+            # A "none" exporter skips the OTLP metric reader even when metrics are enabled
+            # (mirrors Datadog::OpenTelemetry::Ext::EXPORTER_NONE).
+            !!(metrics&.enabled && metrics.exporter != "none")
+          end
+
+          # @return [Boolean] whether the tracer exports logs over OTLP
+          def otlp_logs_export_enabled
+            logs = opentelemetry_settings&.logs
+            # A "none" exporter skips the OTLP log record processor even when logs are enabled
+            # (mirrors Datadog::OpenTelemetry::Ext::EXPORTER_NONE).
+            !!(logs&.enabled && logs.exporter != "none")
+          end
+
           private
+
+          # The `opentelemetry` settings namespace is registered by core configuration, but access it
+          # defensively so a missing/unregistered namespace defaults to `false` rather than raising.
+          def opentelemetry_settings
+            return unless Datadog.configuration.respond_to?(:opentelemetry)
+
+            Datadog.configuration.opentelemetry
+          rescue
+            nil
+          end
 
           # Outputs "k1:v1,k2:v2,..."
           def hash_serializer(h)
-            h.map { |k, v| "#{k}:#{v}" }.join(',')
+            h.map { |k, v| "#{k}:#{v}" }.join(",")
           end
         end
       end

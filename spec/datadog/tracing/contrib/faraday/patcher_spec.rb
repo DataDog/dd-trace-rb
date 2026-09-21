@@ -1,11 +1,11 @@
-require 'datadog/tracing/contrib/support/spec_helper'
+require "datadog/tracing/contrib/support/spec_helper"
 
-require 'faraday'
-require 'datadog'
-require 'datadog/tracing/contrib/faraday/patcher'
+require "faraday"
+require "datadog"
+require "datadog/tracing/contrib/faraday/patcher"
 
-RSpec.describe 'Faraday instrumentation' do
-  include_context 'tracer logging'
+RSpec.describe "Faraday instrumentation" do
+  include_context "tracer logging"
 
   let(:configuration_options) { {} }
 

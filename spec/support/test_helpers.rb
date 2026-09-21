@@ -13,7 +13,7 @@ module TestHelpers
         base.class_exec do
           skip_unless_integration_testing_enabled
 
-          include_context 'non-development execution environment'
+          include_context "non-development execution environment"
         end
       end
     end

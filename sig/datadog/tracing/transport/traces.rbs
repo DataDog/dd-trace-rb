@@ -2,16 +2,12 @@ module Datadog
   module Tracing
     module Transport
       module Traces
-        class EncodedParcel
-          @trace_count: untyped
+        class Parcel < Core::Transport::Parcel
+          @trace_count: Integer
 
-          include Datadog::Core::Transport::Parcel
+          attr_reader trace_count: Integer
 
-          attr_reader trace_count: untyped
-
-          def initialize: (untyped data, untyped trace_count) -> void
-
-          def count: () -> untyped
+          def initialize: (String data, trace_count: Integer, **untyped) -> void
         end
         class Request < Datadog::Core::Transport::Request
         end
@@ -46,9 +42,9 @@ module Datadog
           def self?.encode_trace: (untyped encoder, untyped trace, logger: untyped, native_events_supported: untyped) -> untyped
         end
         class Transport < Core::Transport::Transport
-          @native_events_supported: bool
+          include SpanEventsNegotiation
 
-          def send_traces: (Array[Tracing::TraceOperation] traces) -> untyped
+          def send_traces: (::Array[Tracing::TraceOperation] traces) -> untyped
 
           def stats: () -> untyped
 	  
@@ -57,9 +53,6 @@ module Datadog
           #@client: Tracing::Transport::HTTP::Client
           def client: () -> Tracing::Transport::HTTP::Client
 
-          private
-
-          def native_events_supported?: () -> bool
         end
       end
     end

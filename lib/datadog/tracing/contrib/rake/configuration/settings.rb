@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'set'
+require "set"
 
-require_relative '../../configuration/settings'
-require_relative '../ext'
+require_relative "../../configuration/settings"
+require_relative "../ext"
 
 module Datadog
   module Tracing

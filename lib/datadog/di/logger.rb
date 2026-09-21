@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'forwardable'
+require "forwardable"
 
 module Datadog
   module DI
@@ -20,9 +20,9 @@ module Datadog
 
       def_delegators :target, :debug
 
-      def trace(&block)
+      def trace
         if settings.dynamic_instrumentation.internal.trace_logging
-          debug(&block)
+          debug { yield }
         end
       end
     end

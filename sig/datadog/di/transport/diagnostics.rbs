@@ -2,15 +2,11 @@ module Datadog
   module DI
     module Transport
       module Diagnostics
-        class EncodedParcel
-          include Datadog::Core::Transport::Parcel
-        end
-
         class Request < Datadog::Core::Transport::Request
         end
 
         class Transport < Core::Transport::Transport
-          def send_diagnostics: (untyped payload) -> untyped
+          def send_diagnostics: (Array[Hash[Symbol, untyped]] payload) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
         end
       end
     end

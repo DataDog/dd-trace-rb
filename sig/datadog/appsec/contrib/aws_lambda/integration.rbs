@@ -1,0 +1,22 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module AwsLambda
+        class Integration
+          include Contrib::Integration
+          extend Contrib::Integration::ClassMethods
+
+          def self.version: () -> nil
+
+          def self.loaded?: () -> bool
+
+          def self.compatible?: () -> bool
+
+          def self.auto_instrument?: () -> bool
+
+          def patcher: () -> singleton(Patcher)
+        end
+      end
+    end
+  end
+end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -87,7 +87,7 @@ module Datadog
         private_class_method :filter_peer_service_sources
 
         def self.not_empty_tag?(tag)
-          tag && (tag != '')
+          tag && (tag != "")
         end
 
         private_class_method :not_empty_tag?

@@ -1,31 +1,26 @@
 # frozen_string_literal: true
 
-require_relative '../../core/chunker'
-require_relative '../../core/transport/parcel'
-require_relative '../../core/transport/request'
-require_relative '../../core/transport/transport'
-require_relative '../../core/utils/array'
-require_relative 'http/client'
-require_relative 'serializable_trace'
-require_relative 'trace_formatter'
+require_relative "../../core/chunker"
+require_relative "../../core/transport/parcel"
+require_relative "../../core/transport/request"
+require_relative "../../core/transport/transport"
+require_relative "../../core/utils/enumerable_compat"
+require_relative "http/client"
+require_relative "serializable_trace"
+require_relative "span_events_negotiation"
+require_relative "trace_formatter"
 
 module Datadog
   module Tracing
     module Transport
       module Traces
         # Data transfer object for encoded traces
-        class EncodedParcel
-          include Datadog::Core::Transport::Parcel
-
+        class Parcel < Core::Transport::Parcel
           attr_reader :trace_count
 
-          def initialize(data, trace_count)
-            super(data)
+          def initialize(data, trace_count:, **opts)
+            super(data, **opts)
             @trace_count = trace_count
-          end
-
-          def count
-            data.length
           end
         end
 
@@ -68,7 +63,7 @@ module Datadog
           # @return [Enumerable[Array[Bytes,Integer]]] list of encoded chunks: each containing a byte array and
           #   number of traces
           def encode_in_chunks(traces)
-            encoded_traces = Core::Utils::Array.filter_map(traces) do |trace|
+            encoded_traces = Core::Utils::EnumerableCompat.filter_map(traces) do |trace|
               encode_one(trace)
             end
 
@@ -124,6 +119,7 @@ module Datadog
         # batches of traces into smaller chunks and handles
         # API version downgrade handshake.
         class Transport < Core::Transport::Transport
+          include SpanEventsNegotiation
           self.http_client_class = Tracing::Transport::HTTP::Client
 
           def send_traces(traces)
@@ -135,7 +131,7 @@ module Datadog
             )
 
             responses = chunker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count|
-              request = Request.new(EncodedParcel.new(encoded_traces, trace_count))
+              request = Request.new(Parcel.new(encoded_traces, trace_count: trace_count))
 
               client.send_request(:traces, request).tap do |response|
                 if downgrade?(response)
@@ -166,28 +162,6 @@ module Datadog
 
           def stats
             client.stats
-          end
-
-          private
-
-          # Queries the agent for native span events serialization support.
-          # This changes how the serialization of span events performed.
-          def native_events_supported?
-            return @native_events_supported if defined?(@native_events_supported)
-
-            # Check for an explicit override
-            option = Datadog.configuration.tracing.native_span_events
-            unless option.nil?
-              @native_events_supported = option
-              return option
-            end
-
-            # Otherwise, check for agent support, to ensure a configuration-less setup.
-            if (res = Datadog.send(:components).agent_info.fetch)
-              @native_events_supported = res.span_events == true
-            else
-              false
-            end
           end
         end
       end

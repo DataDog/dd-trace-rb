@@ -1,13 +1,15 @@
 module Datadog
   module Core
     module TagBuilder
-      self.@fixed_environment_tags: Hash[String, String]
+      type tags = ::Hash[::String, ::String]
 
-      def self.fixed_environment_tags: () -> Hash[String, String]
+      self.@fixed_environment_tags: tags
 
-      def self.tags: (untyped settings) -> Hash[String, String]
+      def self.fixed_environment_tags: () -> tags
 
-      def self.serialize_tags: (Hash[String, String] tags) -> String
+      def self.tags: (Datadog::Core::Configuration::Settings settings) -> tags
+
+      def self.serialize_tags: (tags tags) -> ::String
     end
   end
 end

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'trace/span'
-require_relative '../../tracing/trace_operation'
-require_relative '../trace'
+require_relative "trace/span"
+require_relative "../../tracing/trace_operation"
+require_relative "../trace"
 
 module Datadog
   module OpenTelemetry
