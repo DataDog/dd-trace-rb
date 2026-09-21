@@ -10,6 +10,11 @@
 # `min`  : optional, minimum version to test
 # `meta` : optional, additional metadata (development dependencies, etc.) for the group
 #
+# `<integration>-latest` is always created, with no version constraint.
+# `latest` is automatically bumped up periodically by automation.
+#
+# If `min` and `latest` resolve to the same version, only `latest` is kept.
+#
 # Examples:
 #
 # 1. Generating coverage starting minimal version
