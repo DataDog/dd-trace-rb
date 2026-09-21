@@ -168,7 +168,7 @@ build_coverage_matrix('openfeature', min: '0.5.1', gem: 'openfeature-sdk', meta:
   'opentelemetry-sdk' => '~> 1.1',
   'opentelemetry-metrics-sdk' => '>= 0.8',
 })
-build_coverage_matrix('ruby-llm', gem: 'ruby_llm')
+build_coverage_matrix('ruby-llm', [1], gem: 'ruby_llm')
 build_coverage_matrix('kicks', min: '3.0.0')
 
 appraise 'sneakers' do
