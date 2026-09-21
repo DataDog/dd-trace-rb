@@ -390,7 +390,7 @@ module Datadog
       # Note that this method does not (currently) utilize the custom
       # serializers that the "normal" serialization logic uses.
       #
-      # This serializer differs from the RFC in two ways:
+      # This serializer differs from the snapshot serializer in two ways:
       # 1. We omit the middle of long strings rather than the end,
       #    and also the inner entries in arrays/hashes/objects.
       # 2. We use Ruby-ish syntax for hashes and objects.
@@ -401,6 +401,9 @@ module Datadog
       # +name+, when given, is the identifier the template expression
       # references at its top level; a redacted identifier yields the
       # redaction placeholder, mirroring #serialize_value on the snapshot path.
+      # Note: this message-rendering path is intentionally not bounded by the
+      # capture time budget; it is capped by depth (1) and
+      # MAX_MESSAGE_COLLECTION_SIZE / MAX_MESSAGE_ATTRIBUTE_COUNT instead.
       def serialize_value_for_message(value, depth: 1, name: nil)
         # This method is more verbose than "normal" Ruby code to avoid
         # array allocations.
@@ -500,7 +503,8 @@ module Datadog
       # CAPTURE_TIMEOUT_CEILING_SECONDS. Resolve once per capture point and
       # share across all serialized values so the budget is not exceeded.
       def serialization_deadline
-        budget = [settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0, CAPTURE_TIMEOUT_CEILING_SECONDS].min
+        budget_ms = settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0
+        budget = budget_ms < CAPTURE_TIMEOUT_CEILING_SECONDS ? budget_ms : CAPTURE_TIMEOUT_CEILING_SECONDS
         monotonic_now + budget
       end
 
