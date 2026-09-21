@@ -228,7 +228,7 @@ module Datadog
 
               if condition_result
                 serializer_proc = entry.fetch(:proc)
-                return serializer_proc.call(self, value, name: nil, depth: depth)
+                return serializer_proc.call(self, value, name: nil, depth: depth, deadline: deadline)
               end
             end
           end

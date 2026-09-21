@@ -10,7 +10,7 @@ Datadog::DI::Serializer.register(
   # logic for "instances of classes derived from X", but a condition Proc
   # is more universal.
   condition: lambda { |value| ActiveRecord::Base === value }
-) do |serializer, value, name:, depth:|
+) do |serializer, value, name:, depth:, deadline: nil|
   # +serializer+ is an instance of DI::Serializer.
   # Use it to perform the serialization to primitive values.
   #
@@ -37,5 +37,5 @@ Datadog::DI::Serializer.register(
     attributes: value.attributes,
     new_record: value.new_record?,
   }
-  serializer.serialize_value(value_to_serialize, depth: depth, type: value.class)
+  serializer.serialize_value(value_to_serialize, depth: depth, type: value.class, deadline: deadline)
 end
