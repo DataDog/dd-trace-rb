@@ -67,20 +67,20 @@ RSpec.describe "Datadog integration" do
         begin
           File.readlines("/proc/net/unix").each do |line|
             cols = line.split
-            return "AF_UNIX path=#{cols[7..-1].join(' ')}" if cols[6] == inode
+            return "AF_UNIX path=#{cols[7..-1].join(" ")}" if cols[6] == inode
           end
         rescue SystemCallError
           nil
         end
-        for proto in %w[tcp tcp6 udp udp6]
-          begin
-            File.readlines("/proc/net/#{proto}").each do |line|
-              cols = line.split
-              return "#{proto.upcase} local=#{cols[1]} remote=#{cols[2]} st=#{cols[3]}" if cols.last == inode
-            end
-          rescue SystemCallError
-            nil
+        # inode is the 10th field (index 9) in /proc/net/{tcp,tcp6,udp,udp6}; the
+        # trailing ref/pointer/timeout columns differ per protocol.
+        %w[tcp tcp6 udp udp6].each do |proto|
+          File.readlines("/proc/net/#{proto}").each do |line|
+            cols = line.split
+            return "#{proto.upcase} local=#{cols[1]} remote=#{cols[2]} st=#{cols[3]}" if cols[9] == inode
           end
+        rescue SystemCallError
+          nil
         end
         "socket inode=#{inode} (unclassified)"
       rescue SystemCallError
