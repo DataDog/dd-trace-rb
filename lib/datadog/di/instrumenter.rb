@@ -559,10 +559,24 @@ module Datadog
           end
 
           rate_limiter = probe.rate_limiter
-          admitted = continue && (rate_limiter.nil? || rate_limiter.allow?)
+          probe_admitted = rate_limiter.nil? || rate_limiter.allow?
+          admitted = continue && probe_admitted
+          if continue && !probe_admitted
+            logger.trace do
+              "di: #{probe.type} probe #{probe.id}: skipping due to per-probe rate limit" \
+                " (#{Guardrails::Reason::RATE_LIMIT_PROBE})"
+            end
+            Guardrails.skipped(telemetry, reason: Guardrails::Reason::RATE_LIMIT_PROBE,
+              probe_type: Guardrails.probe_type_for(probe))
+          end
           if admitted && !probe_global_rate_limiter(probe).allow?
             admitted = false
-            logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
+            logger.trace do
+              "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" \
+                " (#{Guardrails::Reason::RATE_LIMIT_GLOBAL})"
+            end
+            Guardrails.skipped(telemetry, reason: Guardrails::Reason::RATE_LIMIT_GLOBAL,
+              probe_type: Guardrails.probe_type_for(probe))
           end
           if admitted
             # Arguments may be mutated by the method, therefore
@@ -827,10 +841,23 @@ module Datadog
 
         # In practice we should always have a rate limiter, but be safe
         # and check that it is in fact set.
-        return if probe.rate_limiter && !probe.rate_limiter.allow?
+        if probe.rate_limiter && !probe.rate_limiter.allow?
+          logger.trace do
+            "di: #{probe.type} probe #{probe.id}: skipping due to per-probe rate limit" \
+              " (#{Guardrails::Reason::RATE_LIMIT_PROBE})"
+          end
+          Guardrails.skipped(telemetry, reason: Guardrails::Reason::RATE_LIMIT_PROBE,
+            probe_type: Guardrails.probe_type_for(probe))
+          return
+        end
 
         unless probe_global_rate_limiter(probe).allow?
-          logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
+          logger.trace do
+            "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" \
+              " (#{Guardrails::Reason::RATE_LIMIT_GLOBAL})"
+          end
+          Guardrails.skipped(telemetry, reason: Guardrails::Reason::RATE_LIMIT_GLOBAL,
+            probe_type: Guardrails.probe_type_for(probe))
           return
         end
 

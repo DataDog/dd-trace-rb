@@ -278,10 +278,19 @@ module Datadog
               if queue.length > settings.dynamic_instrumentation.internal.snapshot_queue_capacity
                 if event_type == :status && probe
                   status = event.dig(:debugger, :diagnostics, :status)
-                  logger.debug { "di: dropping status for #{probe.type} probe at #{probe.location} (#{probe.id}): #{status} because queue is full" }
+                  logger.debug do
+                    "di: dropping status for #{probe.type} probe at #{probe.location}" \
+                      " (#{probe.id}): #{status} because queue is full" \
+                      " (#{Guardrails::Reason::QUEUE_FULL})"
+                  end
                 else
-                  logger.debug { "di: #{self.class.name}: dropping #{event_type} event because queue is full" }
+                  logger.debug do
+                    "di: #{self.class.name}: dropping #{event_type} event because queue is full" \
+                      " (#{Guardrails::Reason::QUEUE_FULL})"
+                  end
                 end
+                Guardrails.dropped(telemetry, reason: Guardrails::Reason::QUEUE_FULL,
+                  event_type: Guardrails.event_type_for(event_type))
               else
                 if event_type == :status && probe
                   status = event.dig(:debugger, :diagnostics, :status)
