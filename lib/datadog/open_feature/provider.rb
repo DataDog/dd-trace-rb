@@ -75,7 +75,9 @@ module Datadog
         @ready_pending = false
         @ready_emitted = false
         @stale_emitted = false
+        @stale_pending = false
         @error_handler = nil
+        @initialization_ready_handler = nil
         @shutdown = false
       end
 
@@ -89,7 +91,9 @@ module Datadog
           @ready_pending = false
           @ready_emitted = false
           @stale_emitted = false
+          @stale_pending = false
         end
+        ready_handler_installed = install_initialization_ready_handler
 
         component, failure = activate_component
         cancel_initialization_if_shutdown!
@@ -100,7 +104,7 @@ module Datadog
 
         case wait_result
         when Component::CONFIGURATION_READY
-          @initialization_mutex.synchronize { @initializing = false }
+          @initialization_mutex.synchronize { @initializing = false } unless ready_handler_installed
         when Component::CONFIGURATION_TIMEOUT
           message = "Feature Flags provider initialization timed out while waiting for configuration"
           Datadog.logger.error(message)
@@ -113,6 +117,7 @@ module Datadog
       def shutdown
         configuration = @configuration
         should_shutdown = false
+        initialization_ready_handler = nil
         error_handler = @initialization_mutex.synchronize do
           unless @shutdown
             @shutdown = true
@@ -120,12 +125,20 @@ module Datadog
             should_shutdown = true
             handler = @error_handler
             @error_handler = nil
+            initialization_ready_handler = @initialization_ready_handler
+            @initialization_ready_handler = nil
             handler
           end
         end
         return unless should_shutdown
 
         configuration&.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, error_handler) if error_handler
+        if initialization_ready_handler
+          configuration&.remove_handler(
+            ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY,
+            initialization_ready_handler,
+          )
+        end
         # The SDK invokes provider shutdown on replacement; stop delivery with its only consumer.
         Datadog.send(:safely_synchronize) do
           Datadog.send(:components, allow_initialization: false)&.deactivate_open_feature!(self)
@@ -181,16 +194,25 @@ module Datadog
       end
 
       def fail_initialization(component, message)
-        cancelled = @initialization_mutex.synchronize do
+        cancelled, initialization_ready_handler = @initialization_mutex.synchronize do
+          handler = @initialization_ready_handler
+          @initialization_ready_handler = nil
+          @stale_pending = false
           if @shutdown
             @initializing = false
-            true
+            [true, handler]
           else
             @initializing = false
             @initialization_failed = true
             @ready_pending = component&.configuration_received? || false
-            false
+            [false, handler]
           end
+        end
+        if initialization_ready_handler
+          @configuration&.remove_handler(
+            ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY,
+            initialization_ready_handler,
+          )
         end
         raise INITIALIZATION_CANCELLED_MESSAGE if cancelled
 
@@ -208,6 +230,24 @@ module Datadog
 
       def shutdown?
         @initialization_mutex.synchronize { @shutdown }
+      end
+
+      def install_initialization_ready_handler
+        configuration = @configuration
+        return false unless configuration
+
+        handler = @initialization_mutex.synchronize do
+          return false if @shutdown
+
+          @initialization_ready_handler ||= ->(details) { provider_ready(details) }
+        end
+        configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, handler)
+
+        cancelled = @initialization_mutex.synchronize { @shutdown }
+        configuration.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, handler) if cancelled
+        return false if cancelled
+
+        true
       end
 
       def install_error_handler
@@ -240,12 +280,36 @@ module Datadog
         emit_event(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY) if emit_ready
       end
 
+      def provider_ready(_details)
+        configuration = @configuration
+        return unless configuration
+        return unless configuration.send(:provider_state, self) == ::OpenFeature::SDK::ProviderState::READY
+
+        handler, emit_stale = @initialization_mutex.synchronize do
+          handler = @initialization_ready_handler
+          @initialization_ready_handler = nil
+          @initializing = false
+          if @stale_pending && !@shutdown
+            @stale_pending = false
+            @stale_emitted = true
+            [handler, true]
+          else
+            [handler, false]
+          end
+        end
+        configuration.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, handler) if handler
+        emit_event(::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE) if emit_stale
+      end
+
       def configuration_changed(event)
         event_type = @initialization_mutex.synchronize do
           if @shutdown
             nil
           elsif event == Component::CONFIGURATION_READY
-            if @stale_emitted && !@initializing
+            if @initializing
+              @stale_pending = false
+              nil
+            elsif @stale_emitted
               @stale_emitted = false
               ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY
             elsif @initialization_failed
@@ -259,9 +323,14 @@ module Datadog
             end
           elsif event == Component::CONFIGURATION_CHANGED && !@initializing
             ::OpenFeature::SDK::ProviderEvent::PROVIDER_CONFIGURATION_CHANGED
-          elsif event == Component::CONFIGURATION_LOST && !@initializing
-            @stale_emitted = true
-            ::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE
+          elsif event == Component::CONFIGURATION_LOST
+            if @initializing
+              @stale_pending = true
+              nil
+            else
+              @stale_emitted = true
+              ::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE
+            end
           end
         end
 

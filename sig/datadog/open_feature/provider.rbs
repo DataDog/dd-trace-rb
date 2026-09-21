@@ -21,7 +21,11 @@ module Datadog
 
       @stale_emitted: bool
 
+      @stale_pending: bool
+
       @error_handler: (^(Hash[Symbol, untyped]) -> void)?
+
+      @initialization_ready_handler: (^(Hash[Symbol, untyped]) -> void)?
 
       @shutdown: bool
 
@@ -81,9 +85,13 @@ module Datadog
 
       def shutdown?: () -> bool
 
+      def install_initialization_ready_handler: () -> bool
+
       def install_error_handler: () -> void
 
       def provider_error: (Hash[Symbol, untyped] details) -> void
+
+      def provider_ready: (Hash[Symbol, untyped] details) -> void
 
       def configuration_changed: (Component::configuration_event event) -> void
 

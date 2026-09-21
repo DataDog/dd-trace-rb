@@ -208,6 +208,26 @@ RSpec.describe Datadog::OpenFeature::Provider do
       provider.shutdown
       configuration&.send(:reset)
     end
+
+    it "emits STALE after SDK readiness when configuration is lost during initialization" do
+      configuration = ::OpenFeature::SDK::Configuration.new
+      events = []
+      configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, ->(_) { events << :ready })
+      configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE, ->(_) { events << :stale })
+      allow(component).to receive(:wait_for_configuration) do
+        provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+        provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_LOST)
+        Datadog::OpenFeature::Component::CONFIGURATION_READY
+      end
+
+      configuration.set_provider_and_wait(provider)
+
+      expect(events).to eq([:ready, :stale])
+      expect(configuration.send(:provider_state, provider)).to eq(::OpenFeature::SDK::ProviderState::STALE)
+    ensure
+      provider.shutdown
+      configuration&.send(:reset)
+    end
   end
 
   describe "#fetch_boolean_value" do
