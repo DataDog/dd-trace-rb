@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Profiling",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6350",
+  "message": "Fix profiler not starting on Ruby 4 due to `undefined symbol: rb_current_box`."
+}
