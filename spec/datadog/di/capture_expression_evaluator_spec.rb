@@ -216,19 +216,13 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
     context "time budget exhausted mid-loop after some expressions have evaluated" do
       before do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
-        clock_calls = 0
-        # Reads in order: deadline computation, first-expression check,
-        # serialize_value of the first result (shares the deadline),
-        # second-expression check (past the deadline).
-        clock_returns = [0.0, 0.0, 0.0, 0.2]
-        allow(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
-          if args == [::Process::CLOCK_MONOTONIC, :float_second]
-            clock_returns[clock_calls].tap { clock_calls += 1 }
-          else
-            original.call(*args)
-          end
-        end
       end
+
+      deadline_calc = 0.0
+      first_expr_check = 0.0
+      first_result_serialize = 0.0
+      second_expr_check = 0.2  # past the deadline
+      stub_monotonic_clock([deadline_calc, first_expr_check, first_result_serialize, second_expr_check])
 
       let(:probe) do
         Datadog::DI::Probe.new(
