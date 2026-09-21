@@ -5,6 +5,8 @@ module Datadog
 
       NAME: ::String
 
+      INITIALIZATION_CANCELLED_MESSAGE: ::String
+
       @initialization_mutex: Thread::Mutex
 
       @initializing: bool
@@ -20,6 +22,8 @@ module Datadog
       @stale_emitted: bool
 
       @error_handler: (^(Hash[Symbol, untyped]) -> void)?
+
+      @shutdown: bool
 
       attr_reader metadata: ::OpenFeature::SDK::Provider::ProviderMetadata
 
@@ -72,6 +76,10 @@ module Datadog
       def activate_component: () -> [Component?, String?]
 
       def fail_initialization: (Component? component, String message) -> bot
+
+      def cancel_initialization_if_shutdown!: () -> void
+
+      def shutdown?: () -> bool
 
       def install_error_handler: () -> void
 

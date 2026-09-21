@@ -60,6 +60,58 @@ RSpec.describe Datadog::OpenFeature::Provider do
       expect(components).to have_received(:deactivate_open_feature!).with(provider).once
     end
 
+    it "does not activate after shutdown begins" do
+      initialization_started = SizedQueue.new(1)
+      continue_initialization = SizedQueue.new(1)
+      allow(Datadog).to receive(:send).with(:components) do
+        initialization_started.push(true)
+        continue_initialization.pop
+        components
+      end
+
+      initialization = Thread.new do
+        provider.init
+      rescue => error
+        error
+      end
+      initialization_started.pop
+
+      provider.shutdown
+      continue_initialization.push(true)
+
+      expect(initialization.value.message).to eq(described_class::INITIALIZATION_CANCELLED_MESSAGE)
+      expect(components).not_to have_received(:activate_open_feature!)
+    ensure
+      continue_initialization&.push(true, true)
+      initialization&.join(1)
+    end
+
+    it "does not complete initialization after shutdown while waiting" do
+      wait_started = SizedQueue.new(1)
+      continue_wait = SizedQueue.new(1)
+      allow(component).to receive(:wait_for_configuration) do
+        wait_started.push(true)
+        continue_wait.pop
+        Datadog::OpenFeature::Component::CONFIGURATION_READY
+      end
+
+      initialization = Thread.new do
+        provider.init
+      rescue => error
+        error
+      end
+      wait_started.pop
+
+      provider.shutdown
+      continue_wait.push(true)
+
+      expect(initialization.value.message).to eq(described_class::INITIALIZATION_CANCELLED_MESSAGE)
+      expect(components).to have_received(:deactivate_open_feature!).with(provider).once
+    ensure
+      continue_wait&.push(true, true)
+      initialization&.join(1)
+    end
+
     context "when no delivery source can start" do
       let(:component) { nil }
       let(:components) do

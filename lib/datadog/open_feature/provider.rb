@@ -62,6 +62,7 @@ module Datadog
       include ::OpenFeature::SDK::Provider::EventEmitter
 
       NAME = "Datadog Feature Flagging Provider"
+      INITIALIZATION_CANCELLED_MESSAGE = "Feature Flags provider initialization was cancelled by shutdown"
 
       attr_reader :metadata
 
@@ -75,10 +76,13 @@ module Datadog
         @ready_emitted = false
         @stale_emitted = false
         @error_handler = nil
+        @shutdown = false
       end
 
       def init
         @initialization_mutex.synchronize do
+          raise INITIALIZATION_CANCELLED_MESSAGE if @shutdown
+
           @initializing = true
           @initialization_failed = false
           @provider_error_observed = false
@@ -88,9 +92,13 @@ module Datadog
         end
 
         component, failure = activate_component
+        cancel_initialization_if_shutdown!
         fail_initialization(component, failure || "Feature Flags component could not be activated") unless component
 
-        case component.wait_for_configuration
+        wait_result = component.wait_for_configuration
+        cancel_initialization_if_shutdown!
+
+        case wait_result
         when Component::CONFIGURATION_READY
           @initialization_mutex.synchronize { @initializing = false }
         when Component::CONFIGURATION_TIMEOUT
@@ -104,14 +112,24 @@ module Datadog
 
       def shutdown
         configuration = @configuration
+        should_shutdown = false
         error_handler = @initialization_mutex.synchronize do
-          handler = @error_handler
-          @error_handler = nil
-          handler
+          unless @shutdown
+            @shutdown = true
+            @initializing = false
+            should_shutdown = true
+            handler = @error_handler
+            @error_handler = nil
+            handler
+          end
         end
+        return unless should_shutdown
+
         configuration&.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, error_handler) if error_handler
         # The SDK invokes provider shutdown on replacement; stop delivery with its only consumer.
-        Datadog.send(:components, allow_initialization: false)&.deactivate_open_feature!(self)
+        Datadog.send(:safely_synchronize) do
+          Datadog.send(:components, allow_initialization: false)&.deactivate_open_feature!(self)
+        end
       end
 
       def hooks
@@ -152,20 +170,44 @@ module Datadog
         # Initialize the component tree before taking its reconfiguration lock.
         Datadog.send(:components)
         Datadog.send(:safely_synchronize) do
-          components = Datadog.send(:components, allow_initialization: false)
-          component = components&.activate_open_feature!(self)
-          [component, components&.open_feature_activation_failure]
+          if shutdown?
+            [nil, nil]
+          else
+            components = Datadog.send(:components, allow_initialization: false)
+            component = components&.activate_open_feature!(self)
+            [component, components&.open_feature_activation_failure]
+          end
         end
       end
 
       def fail_initialization(component, message)
-        @initialization_mutex.synchronize do
-          @initializing = false
-          @initialization_failed = true
-          @ready_pending = component&.configuration_received? || false
+        cancelled = @initialization_mutex.synchronize do
+          if @shutdown
+            @initializing = false
+            true
+          else
+            @initializing = false
+            @initialization_failed = true
+            @ready_pending = component&.configuration_received? || false
+            false
+          end
         end
+        raise INITIALIZATION_CANCELLED_MESSAGE if cancelled
+
         install_error_handler
         raise message.to_s
+      end
+
+      def cancel_initialization_if_shutdown!
+        cancelled = @initialization_mutex.synchronize do
+          @initializing = false if @shutdown
+          @shutdown
+        end
+        raise INITIALIZATION_CANCELLED_MESSAGE if cancelled
+      end
+
+      def shutdown?
+        @initialization_mutex.synchronize { @shutdown }
       end
 
       def install_error_handler
@@ -184,11 +226,15 @@ module Datadog
         return unless configuration.send(:provider_state, self) == ::OpenFeature::SDK::ProviderState::ERROR
 
         emit_ready = @initialization_mutex.synchronize do
-          @provider_error_observed = true
-          if @ready_pending && !@ready_emitted
-            @ready_emitted = true
-          else
+          if @shutdown
             false
+          else
+            @provider_error_observed = true
+            if @ready_pending && !@ready_emitted
+              @ready_emitted = true
+            else
+              false
+            end
           end
         end
         emit_event(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY) if emit_ready
@@ -196,7 +242,9 @@ module Datadog
 
       def configuration_changed(event)
         event_type = @initialization_mutex.synchronize do
-          if event == Component::CONFIGURATION_READY
+          if @shutdown
+            nil
+          elsif event == Component::CONFIGURATION_READY
             if @stale_emitted && !@initializing
               @stale_emitted = false
               ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY
