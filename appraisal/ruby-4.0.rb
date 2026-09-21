@@ -101,7 +101,7 @@ appraise 'httprb-5' do
   gem 'http', '~> 5'
 end
 
-build_coverage_matrix('stripe', 7..12, min: '5.15.0')
+build_coverage_matrix('stripe', min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday', meta: { 'faraday-follow_redirects' => nil })
@@ -116,7 +116,7 @@ build_coverage_matrix('openfeature', min: '0.5.1', gem: 'openfeature-sdk', meta:
   'opentelemetry-sdk' => '~> 1.1',
   'opentelemetry-metrics-sdk' => '>= 0.8',
 })
-build_coverage_matrix('ruby-llm', gem: 'ruby_llm')
+build_coverage_matrix('ruby-llm', [1], gem: 'ruby_llm')
 build_coverage_matrix('kicks', min: '3.0.0')
 
 appraise 'sneakers' do

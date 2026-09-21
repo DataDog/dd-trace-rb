@@ -110,7 +110,7 @@ no external grant needed. No local trigger otherwise.
 
 ## Code changes
 
-- Follow the `write-comment` skill's rules for when a comment earns its place; default to no comment otherwise.
+- Follow the `write-comment` skill (`.agents/skills/write-comment/SKILL.md`) for when a comment earns its place; default to no comment otherwise.
 - Use `Core::Utils::EnumerableCompat.filter_map` instead of `filter_map` for compatibility with Ruby 2.5 and 2.6 (native `filter_map` requires Ruby 2.7+).
 - Use `Datadog::Core::Utils::Time.now` instead of `Time.now` everywhere. The time provider is configurable (for example, for Timecop support), and tests can override it via `Core::Utils::Time.now_provider=`.
 
@@ -166,7 +166,7 @@ docker compose run --rm tracer-4.0 bundle exec rake test:TASK_KEY
 - Use `--repo DataDog/dd-trace-rb` with `gh` commands; defaults are unreliable.
 - Use `.github/PULL_REQUEST_TEMPLATE.md` as the starting point for PR descriptions.
 - Write concisely for the developer performing code review, using one sentence per relevant summary or motivation point.
-- Write changelog entries for customers. Customer-visible changes need a changelog fragment in `unreleased/`; write it with the write-changelog skill (`.claude/skills/write-changelog/`). Internal CI, tooling, and tracer telemetry consumed only by Datadog engineering need no fragment.
+- Write changelog entries for customers. Customer-visible changes need a changelog fragment in `unreleased/`; write it with the write-changelog skill (`.agents/skills/write-changelog/`). Internal CI, tooling, and tracer telemetry consumed only by Datadog engineering need no fragment.
 - Telemetry that powers customer-facing Datadog product features, such as DI autocomplete, profiling, or AppSec, needs a customer-facing changelog fragment even though its data flows through the Datadog backend.
 - Add `--label "AI Generated"` when creating PRs; the label is sufficient, so do not mention AI in the description.
 
@@ -229,6 +229,16 @@ Ruby idioms:
 - `docker compose run` failures: run `docker compose pull` before retrying.
 - `ProbeNotifierWorker#flush` blocks until queues are empty; never add `sleep` after it.
 
+# Skills
+
+Skills live under `.agents/skills/` and are harness-agnostic. Read them before the matching task:
+
+- Before editing `sig/**/*.rbs`, `vendor/rbs/**`, or any inline `#:` annotation: `.agents/skills/write-rbs/SKILL.md`
+- Before writing any code comment: `.agents/skills/write-comment/SKILL.md`
+- Before writing a changelog fragment: `.agents/skills/write-changelog/SKILL.md`
+
+`.claude/` holds only Claude Code registration: `settings.json` (hook wiring) and `hooks/`, a Claude-only hard guard enforcing the first two skills above. Other harnesses rely on the pointers in this section.
+
 # References
 
 - `docs/DevelopmentGuide.md` - detailed development workflows
@@ -245,5 +255,5 @@ Ruby idioms:
 - If a requested change contradicts code evidence, alert the user before proceeding.
 - If a requested web page is inaccessible, state this and explain the basis for any suggestions.
 - Read the specialized personas under `.cursor/rules/` when writing code (`code-style.mdc`) or tests (`testing.mdc`).
-- Claude Code skills and hooks live under `.claude/`; see `.claude/hooks/README.md` for the hook build, test, and native re-verification workflow.
+- Agent skills live under `.agents/skills/` and are harness-agnostic; `.claude/` holds Claude Code registration only. See `.claude/hooks/README.md` for the hook build, test, and native re-verification workflow.
 - This `AGENTS.md` is a living document; update it when CI or scripts evolve, and update specialized personas as appropriate.
