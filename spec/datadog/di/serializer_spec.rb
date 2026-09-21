@@ -674,7 +674,7 @@ RSpec.describe Datadog::DI::Serializer do
 
     context "with condition" do
       before do
-        described_class.register(condition: lambda { |value| String === value && value =~ /serializer spec hello/ }) do |serializer, value, name:, depth:, deadline: nil|
+        described_class.register(condition: lambda { |value| String === value && value =~ /serializer spec hello/ }) do |serializer, value, name:, depth:|
           serializer.serialize_value("replacement value")
         end
       end
@@ -698,7 +698,7 @@ RSpec.describe Datadog::DI::Serializer do
       it "skips the custom serializer and uses default serialization" do
         # Register a custom serializer with a condition that raises an exception
         # This simulates a regex match against invalid UTF-8 strings
-        described_class.register(condition: lambda { |value| value =~ /test/ }) do |serializer, value, name:, depth:, deadline: nil|
+        described_class.register(condition: lambda { |value| value =~ /test/ }) do |serializer, value, name:, depth:|
           serializer.serialize_value("should not be called")
         end
 
@@ -722,12 +722,12 @@ RSpec.describe Datadog::DI::Serializer do
 
       it "continues checking other custom serializers after exception" do
         # Register a custom serializer with a condition that raises an exception
-        described_class.register(condition: lambda { |value| value =~ /first/ }) do |serializer, value, name:, depth:, deadline: nil|
+        described_class.register(condition: lambda { |value| value =~ /first/ }) do |serializer, value, name:, depth:|
           serializer.serialize_value("first serializer")
         end
 
         # Register another custom serializer that should work
-        described_class.register(condition: lambda { |value| String === value && value.encoding == Encoding::UTF_8 && !value.valid_encoding? }) do |serializer, value, name:, depth:, deadline: nil|
+        described_class.register(condition: lambda { |value| String === value && value.encoding == Encoding::UTF_8 && !value.valid_encoding? }) do |serializer, value, name:, depth:|
           {type: "String", value: "second serializer"}
         end
 
@@ -754,7 +754,7 @@ RSpec.describe Datadog::DI::Serializer do
           raise NotImplementedError, "boom" if value == "trigger non-standard"
           false
         end
-        described_class.register(condition: condition) do |serializer, value, name:, depth:, deadline: nil|
+        described_class.register(condition: condition) do |serializer, value, name:, depth:|
           serializer.serialize_value("should not be called")
         end
 
@@ -775,7 +775,7 @@ RSpec.describe Datadog::DI::Serializer do
           raise SystemExit if value == "trigger fatal"
           false
         end
-        described_class.register(condition: condition) do |serializer, value, name:, depth:, deadline: nil|
+        described_class.register(condition: condition) do |serializer, value, name:, depth:|
           serializer.serialize_value("should not be called")
         end
 

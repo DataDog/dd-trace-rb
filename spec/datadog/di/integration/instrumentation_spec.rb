@@ -816,7 +816,7 @@ RSpec.describe "Instrumentation integration" do
           component.probe_notifier_worker.flush
 
           return_arguments = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures).fetch(:return).fetch(:arguments)
-          expect(return_arguments[:"@return"]).to eq(
+          expect(return_arguments[:@return]).to eq(
             type: "Integer", notCapturedReason: "timeout",
           )
           expect(return_arguments[:self]).to eq(

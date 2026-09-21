@@ -228,7 +228,7 @@ module Datadog
 
               if condition_result
                 serializer_proc = entry.fetch(:proc)
-                return serializer_proc.call(self, value, name: nil, depth: depth, deadline: deadline)
+                return serializer_proc.call(self, value, name: nil, depth: depth)
               end
             end
           end
@@ -504,7 +504,7 @@ module Datadog
       # share across all serialized values so the budget is not exceeded.
       def serialization_deadline
         budget_ms = settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0
-        budget = budget_ms < CAPTURE_TIMEOUT_CEILING_SECONDS ? budget_ms : CAPTURE_TIMEOUT_CEILING_SECONDS
+        budget = [budget_ms, CAPTURE_TIMEOUT_CEILING_SECONDS].min
         monotonic_now + budget
       end
 
