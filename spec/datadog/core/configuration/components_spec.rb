@@ -855,6 +855,19 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(open_feature_activation).to have_received(:after_fork).once
     end
 
+    it "restarts Remote Configuration after its consumers reset" do
+      symbol_database = instance_double(Datadog::SymbolDatabase::Component)
+      data_streams = instance_double(Datadog::DataStreams::Processor)
+      allow(components).to receive(:symbol_database).and_return(symbol_database)
+      allow(components).to receive(:data_streams).and_return(data_streams)
+      expect(symbol_database).to receive(:after_fork!).ordered
+      expect(data_streams).to receive(:restart_flush_thread).ordered
+      expect(open_feature_activation).to receive(:after_fork).ordered
+      expect(remote).to receive(:after_fork).ordered
+
+      after_fork
+    end
+
     it "dispatches after_fork! to the symbol_database when present" do
       symbol_database = instance_double(Datadog::SymbolDatabase::Component)
       allow(components).to receive(:symbol_database).and_return(symbol_database)

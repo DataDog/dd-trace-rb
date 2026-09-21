@@ -254,12 +254,13 @@ module Datadog
         # Called when a fork is detected
         def after_fork
           telemetry.after_fork
-          remote&.after_fork
           crashtracker&.update_on_fork
           ProcessDiscovery.after_fork
           symbol_database&.after_fork!
           data_streams&.restart_flush_thread
           @open_feature_activation.after_fork
+          # Restart polling only after consumers have discarded inherited process state.
+          remote&.after_fork
         end
 
         # Hot-swaps with a new sampler.
