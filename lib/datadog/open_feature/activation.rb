@@ -100,15 +100,17 @@ module Datadog
       end
 
       def shutdown!
-        configuration_source, component, configuration_received = @mutex.synchronize do
+        configuration_source, component = @mutex.synchronize do
           return if @shutdown
 
           @shutdown = true
-          received = !@provider.nil? && (@component&.configuration_received? || false)
-          [@configuration_source, @component, received]
+          [@configuration_source, @component]
         end
 
         configuration_source&.stop
+        configuration_received = @mutex.synchronize do
+          !@provider.nil? && (component&.configuration_received? || false)
+        end
         configuration_changed(Component::CONFIGURATION_LOST) if configuration_received
         component&.shutdown!
       end
