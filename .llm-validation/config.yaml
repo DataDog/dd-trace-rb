@@ -1,0 +1,28 @@
+# LLM Validation Platform — dd-trace-rb config
+model: claude-opus-4-8
+runs: 3
+
+# Repo-relative instruction file(s) to monitor. candidate = the PR's copy, baseline = the target branch's.
+# This list is the single source of truth: the gate validates these, and CI derives its trigger paths from them.
+instruction_files:
+  - AGENTS.md
+
+# Testing-level presets (choose one via --level / LLMVAL_LEVEL). Start on `minimum` during bring-up: cheap & fast.
+# Explicit --case / --max-cases / --runs override a preset.
+default_level: minimum
+presets:
+  minimum:                 # cheapest meaningful set. Pin the highest-signal cases here.
+    cases: ["ruby-tracer-test-selection-001", "ruby-tracer-env-access-002"]
+    runs: 4                # 4 runs = 8 pairwise comparisons; tight enough CI to block a real regression. 3 is noisy.
+  medium:
+    max_cases: 2
+    runs: 3
+  full:                    # whole suite (empty preset = all cases)
+    runs: 3
+
+# A blocking case FAILs only on a CONFIDENT sub-floor pairwise loss; mark a case `only_warn: true` to soften it.
+policy:
+  noise_threshold: 1.0
+  pairwise_win_floor: 0.45     # candidate losing the pairwise majority on a case = a regression
+  blocking_fail_floor: 0.45    # a blocking case at/below this can FAIL (lower to 0.40 to allow a WARN band)
+  blocking_fail_ci_upper: 0.55 # ...but only when the win-rate CI upper bound is below this (a confident loss)

@@ -17,6 +17,19 @@ include:
   - project: "DataDog/apm-reliability/apm-sdks-benchmarks"
     file: ".gitlab/ci-ruby-acme-parallel.yml"
     ref: "0ba66f8dd5e9e3ab1d25f5e28eb04f50c8e7848f" # apm-sdks-benchmarks#283 merge commit
+  # LLM validation gate (prompt/AGENTS.md regression testing) — see ci/README.md in that repo.
+  # Pin both refs identically; bump together to adopt a new release.
+  - project: "ddoghq/llm-validation-platform"
+    file: "/ci/llm-validation.gitlab-ci.yml"
+    ref: "4bb157a2cbb50ef608b9ec8e14b886e0cf838ca3" # v0.1.4
+
+# Re-open the gate job to pin the ref that actually runs (must match the include ref above).
+"llm validation":
+  variables:
+    LLMVAL_PLATFORM_PROJECT: "ddoghq/llm-validation-platform"
+    LLMVAL_PLATFORM_REF: "4bb157a2cbb50ef608b9ec8e14b886e0cf838ca3" # v0.1.4
+    LLMVAL_BASE_REF: "master"
+    LLMVAL_LEVEL: "minimum"
 
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
