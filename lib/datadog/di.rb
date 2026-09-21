@@ -11,7 +11,6 @@ module Datadog
   module DI
     INSTRUMENTED_COUNTERS_LOCK = Mutex.new
 
-    # Telemetry namespace shared across DI components for emitted metrics.
     TELEMETRY_NAMESPACE = "dynamic_instrumentation"
 
     # Captured at load time from Exception itself (not a subclass).
