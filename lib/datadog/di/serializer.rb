@@ -506,16 +506,18 @@ module Datadog
       # this once and passes it as deadline so the budget is shared.
       def serialization_deadline
         budget = [settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0, CAPTURE_TIMEOUT_CEILING_SECONDS].min
-        now + budget
+        monotonic_now + budget
       end
 
       private
 
+      # Returns true once the monotonic clock has reached the capture deadline.
       def deadline_exceeded?(deadline)
-        now >= deadline
+        monotonic_now >= deadline
       end
 
-      def now
+      # Returns the current monotonic clock reading, in seconds.
+      def monotonic_now
         ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second)
       end
 

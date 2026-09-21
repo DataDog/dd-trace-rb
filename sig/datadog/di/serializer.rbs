@@ -36,7 +36,7 @@ module Datadog
 
       private
       def deadline_exceeded?: (Float deadline) -> bool
-      def now: () -> Float
+      def monotonic_now: () -> Float
       def max_capture_collection_size_for_message: () -> Integer
 
       def max_capture_attribute_count_for_message: () -> Integer
