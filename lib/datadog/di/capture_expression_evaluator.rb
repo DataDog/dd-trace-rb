@@ -23,8 +23,6 @@ module Datadog
       attr_reader :telemetry
 
       def evaluate(probe, context)
-        # Shares the clamped capture budget with the main serializer so both
-        # capture-budget consumers honor the same hard ceiling.
         deadline = serializer.serialization_deadline
 
         output = {}
