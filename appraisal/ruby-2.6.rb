@@ -163,12 +163,16 @@ end
 
 appraise 'http' do
   gem 'ethon'
-  gem 'http'
   gem 'httpclient'
+  # Typhoeus is the main consumer of ethon; its specs exercise the patch through it.
   gem 'typhoeus'
 end
 
-build_coverage_matrix('stripe', 7..12, min: '5.15.0')
+appraise 'httprb-5' do
+  gem 'http', '~> 5'
+end
+
+build_coverage_matrix('stripe', min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday', min: '0.14.0', meta: { latest: { 'faraday-follow_redirects' => nil } })
@@ -211,7 +215,6 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  gem 'grpc', platform: :ruby
 
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
@@ -222,6 +225,10 @@ appraise 'contrib' do
   gem 'sidekiq', '~> 6.5'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0', '< 2.0.0'
+end
+
+appraise 'grpc' do
+  gem 'grpc'
 end
 
 [

@@ -16,6 +16,13 @@
 /log/
 TODO
 ext/**/skipped_reason.txt
+
+# Vale style packages are downloaded by .github/scripts/install_vale_styles.sh,
+# not vendored; only the house rules in vale/styles/Changelog/ are tracked.
+vale/styles/*
+!vale/styles/Changelog
+!vale/styles/README.md
+
 .cursor/
 .cache/
 .claude/settings.local.json

@@ -18,7 +18,7 @@ jobs:
     name: build
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -51,7 +51,6 @@ jobs:
         with:
           lockfile: ${{ needs.build.outputs.lockfile }}
           cache-key: ${{ needs.build.outputs.cache-key }}
-      - run: bundle exec rubocop -D
       - run: bundle exec rake standard
 
   rubocop:
@@ -59,7 +58,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -79,7 +78,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -106,7 +105,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -129,12 +128,81 @@ jobs:
             echo "::error::See $DOC_URL for how to reproduce this locally and how to fix or document a CVE finding."
           fi
 
+  # Excluded from Green CI metrics: this workflow is static linting, and
+  # bundler-audit is a guard against newly published CVEs, not a test.
+  green-ci-exclude-metrics:
+    name: green-ci/exclude-metrics
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    container:
+      image: datadog/ci:v5.7.0
+    steps:
+      - name: Get Datadog credentials via dd-sts
+        id: dd-sts
+        uses: DataDog/dd-sts-action@639d841c72f15e4e77747bd726ef8105ce971da2
+        with:
+          policy: public-datadog-dd-trace-rb
+      - name: Exclude from Green CI process
+        env:
+          DD_API_KEY: ${{ steps.dd-sts.outputs.api_key }}
+        run: datadog-ci tag --level pipeline --tags green_ci.excluded:true
+
+  changelog:
+    name: changelog/check
+    runs-on: ubuntu-24.04
+    env:
+      BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+      BUNDLE_FROZEN: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
+        with:
+          ruby-version: "4.0.1"
+          bundler-cache: true
+
+      - name: Check CHANGELOG.md is only changed by release PRs
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: .github/scripts/check_changelog_release_only.sh
+
+      - name: Validate changelog fragment schema
+        run: bundle exec rake unreleased:lint
+
+      - name: Install vale
+        env:
+          VALE_VERSION: "3.20.0"
+          VALE_SHA256: f59e7030c5d4ace6cf915497d0d076a1699d61e876142765963237e6867c9712
+        run: .github/scripts/vale/install.sh
+
+      - name: Install vale style packages
+        env:
+          WRITE_GOOD_VERSION: "0.4.1"
+          WRITE_GOOD_SHA256: 2960ef10861ddc7dc76292a4967eb3789bf05ca24f862042f6d15f53332887f0
+          PROSELINT_VERSION: "0.3.4"
+          PROSELINT_SHA256: 48b1fb481ba44f6505d44346b283f6cdc74efd234f913bbdb09bf34420fab81c
+          HARPER_VERSION: "0.1.0"
+          HARPER_SHA256: bfab282e7abd8906f8656c240ccd4d873679878ed8e0c42d683ad7e2798c436c
+        run: .github/scripts/vale/install_styles.sh
+
+      - name: Lint changelog fragment messages
+        run: bundle exec rake unreleased:vale
+
+      - name: Render changelog fragments
+        run: bundle exec rake unreleased:render >> "$GITHUB_STEP_SUMMARY"
+
   checksum-coverage:
     name: checksum-coverage
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g6cd77b11e598a108c8a13dda1398462cf05d5080
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -177,12 +245,12 @@ jobs:
           persist-credentials: false
       - name: Get GitHub Token via dd-octo-sts
         id: generate-token
-        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        uses: DataDog/dd-octo-sts-action@c85802a58e202b7e764b5441e4378c76043c8108 # v1.0.5
         with:
           scope: DataDog/dd-trace-rb
           policy: self.check
       - name: Run zizmor
-        uses: zizmorcore/zizmor-action@3dc1ecc9bcb9e94e9b2c709687979e1298497054 # v0.6.2
+        uses: zizmorcore/zizmor-action@70fb788f84895a7701f5643d103d587e460b5c99 # v0.6.3
         with:
           version: 1.26.1
           min-severity: low
@@ -229,6 +297,8 @@ jobs:
       - 'yaml-lint'
       - 'checksum-coverage'
       - 'bundler-audit'
+      - 'green-ci-exclude-metrics'
+      - 'changelog'
     runs-on: ubuntu-24.04
     steps:
       - run: echo "Done"

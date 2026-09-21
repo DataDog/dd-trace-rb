@@ -13,19 +13,17 @@ run the test suite, write new integrations, and more.
 
 **Change log entry**
 <!--
-If you are a Datadog employee:
+If this is a customer-visible change, add a changelog fragment: see
+unreleased/README.md for how. Not every change needs one — internal
+refactors, tests, and CI/tooling changes usually don't.
 
-If this is a customer-visible change, use:
-`Yes. A brief summary to be placed into the CHANGELOG.md`
-Or opt out with `None/No/Nope`.
+If you are not a Datadog employee, you can skip this and a reviewer will
+add or edit the fragment for you.
 
-This will be the ONLY mention of the change in the release notes;
-it should be self-contained and understandable by customers.
-
-If you are not a Datadog employee:
-
-You can skip this section and it will be filled or deleted during PR review.
-Please do not remove this section from the PR though.
+Reviewer: if a fragment is present, judge it —
+- Do its claims (components, versions, behavior) match this diff?
+- Read the rendered entry in the CI "Render changelog fragments" step
+  as a customer would: is it informative and at the right level?
 -->
 
 **Additional Notes:**

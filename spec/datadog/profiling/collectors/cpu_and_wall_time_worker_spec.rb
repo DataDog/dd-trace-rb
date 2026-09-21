@@ -229,28 +229,17 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
     context "sampling of active threads" do
       # This option makes sure our samples are taken via thread interruptions (and not via idle sampling).
-      # See native bits for more details.
       let(:options) { {**super(), skip_idle_samples_for_testing: true} }
 
-      it "triggers sampling and records the results", :memcheck_valgrind_skip do
-        start
-
-        loop_until do
-          samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-          samples_for_thread(samples, Thread.current).any?
-        end
-      end
-
-      it(
-        "keeps statistics on how many samples were triggered by the background thread, " \
-        "as well as how many samples were requested from the VM",
-        :memcheck_valgrind_skip,
-      ) do
+      it "is able to sample to sample from the signal handler", :memcheck_valgrind_skip do
         start
 
         current_thread_samples = loop_until do
-          samples = samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
-          samples if samples.any?
+          samples_from_signal_handler = cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample)
+          if samples_from_signal_handler > 0
+            samples = samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
+            samples if samples.any?
+          end
         end
 
         cpu_and_wall_time_worker.stop
@@ -263,10 +252,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         stats = cpu_and_wall_time_worker.stats
 
         expect(sample_count).to be > 0
-        expect(stats.fetch(:signal_handler_enqueued_sample)).to be >= sample_count
         expect(stats.fetch(:trigger_sample_attempts)).to be >= stats.fetch(:signal_handler_enqueued_sample)
+
         # Validate that we actually tried to sample via thread interruption, and not other means
         expect(stats.fetch(:interrupt_thread_attempts)).to be > 0
+
+        # Make sure we didn't accidentally use the `grab_gvl_and_sample` codepaths
+        expect(stats.fetch(:trigger_simulated_signal_delivery_attempts)).to be 0
+        expect(stats.fetch(:simulated_signal_delivery)).to be 0
       end
     end
 
@@ -517,30 +510,18 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               .group_by { |s| s.labels[:state] }
               .map { |state, state_samples| [state, state_samples.sum { |s| s.values.fetch(:"wall-time") }] }.to_h
 
-          # Because the background_thread_affected_by_gvl_contention starts BEFORE the profiler, the first few samples
-          # will have a sequence of unknown states because the profiler may have missed the beginning of the
-          # Waiting for GVL (and cannot categorize the state yet).
+          # The background_thread_affected_by_gvl_contention starts BEFORE the profiler, and real contention only
+          # begins once background_thread starts competing for the GVL. Until then the profiler cannot categorize the
+          # thread's state: GVL waits below waiting_for_gvl_threshold_ns are reported as "unknown", and a sliver of
+          # CPU in a sampling window is enough to label it "had cpu".
           #
-          # In these cases, the pattern will be "unknown (one or more times), had cpu, waiting for gvl".
-          #
-          # In rare cases, we observe the background_thread_affected_by_gvl_contention just as it's starting the
-          # Waiting for GVL. Because "starting the Waiting for GVL" still uses a bit of CPU, we'll see
-          # "unknown, had cpu, unknown (one or more times), had cpu, waiting for gvl".
-          #
-          # So that the below assertions make sense (and are not flaky), we drop these first few samples from our
-          # consideration
+          # So that the below assertions make sense (and are not flaky), we drop everything before the first
+          # "waiting for gvl" sample from our consideration
 
-          found_first_cpu = false
           missed_by_profiler_time =
             samples
-              .take_while do |s|
-                if s.labels[:state] == "unknown"
-                  true
-                elsif s.labels[:state] == "had cpu" && !found_first_cpu
-                  found_first_cpu = true
-                  true
-                end
-              end.sum { |sample| sample.values.fetch(:"wall-time") }
+              .take_while { |sample| sample.labels[:state] != "waiting for gvl" }
+              .sum { |sample| sample.values.fetch(:"wall-time") }
 
           total_time = samples.sum { |sample| sample.values.fetch(:"wall-time") } - missed_by_profiler_time
           waiting_for_gvl_samples = samples.select { |sample| sample.labels[:state] == "waiting for gvl" }

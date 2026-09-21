@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Profiling",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/5955",
+  "message": "Reduce profiler overhead by sampling profiler-internal threads only once per minute."
+}

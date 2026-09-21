@@ -1,0 +1,11 @@
+# The failure-mode list of openers, not a verb allowlist: process-speak
+# ("This PR fixes...") and subject-first prose ("The gem now supports...")
+# never begin an entry, and a legitimate verb never appears here. Adding a
+# verb to an allowlist is maintenance poison; adding a bad opener here is a
+# one-line diff.
+extends: existence
+message: "Changelog message must start with a verb (Add, Fix, Support, Improve, ...), not '%s'."
+level: error
+scope: text
+raw:
+  - '(?i)^(?:the|a|an|this|these|that|it|we|you|now|there|here|also|some|i|pr)\b'
