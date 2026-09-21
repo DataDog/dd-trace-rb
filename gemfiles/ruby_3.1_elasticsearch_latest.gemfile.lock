@@ -46,7 +46,7 @@ GEM
       multi_json
     erb (4.0.4.1)
       cgi (>= 0.3.3)
-    faraday (2.14.3)
+    faraday (2.14.4)
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
@@ -206,7 +206,7 @@ CHECKSUMS
   elasticsearch (9.5.0) sha256=46b7e4a56e93128c1f55ea579f97f377b6dc78b8bcc61cd3a52c6c7a36a1b0c2
   elasticsearch-api (9.5.0) sha256=b98679e3f9635f5d3b578fa7600128ec595ae25af3c71d30394e1f1526b6c4d7
   erb (4.0.4.1) sha256=47e2a70922ba4cec8c23c2304ad7e581665c37a297cb9a22a860162c7727ee24
-  faraday (2.14.3) sha256=1882247e6766615c8220b4392bf1d27f6ebb63d8e28267587cef1fb0bf37f278
+  faraday (2.14.4) sha256=9bb4408c44621b0dbaaaa39e5dbfc4dbe58cc6751b6eb94d16ae9e1f2f2fab6e
   faraday-net_http (3.4.4) sha256=0e78af151747ed1b00f33e25973b4bc220d7f16c00c39676817c8b12331eb588
   ffi (1.17.4-aarch64-linux-gnu) sha256=b208f06f91ffd8f5e1193da3cae3d2ccfc27fc36fba577baf698d26d91c080df
   ffi (1.17.4-arm64-darwin) sha256=19071aaf1419251b0a46852abf960e77330a3b334d13a4ab51d58b31a937001b

@@ -36,8 +36,9 @@ GEM
     dogstatsd-ruby (5.7.1)
     erb (4.0.4.1)
       cgi (>= 0.3.3)
-    ethon (0.16.0)
+    ethon (0.18.0)
       ffi (>= 1.15.0)
+      logger
     ffi (1.17.4-aarch64-linux-gnu)
     ffi (1.17.4-arm64-darwin)
     ffi (1.17.4-x86_64-darwin)
@@ -47,7 +48,8 @@ GEM
     google-protobuf (3.25.8-x86_64-darwin)
     google-protobuf (3.25.8-x86_64-linux)
     hashdiff (1.2.1)
-    httpclient (2.8.3)
+    httpclient (2.9.0)
+      mutex_m
     io-console (0.9.2)
     irb (1.18.0)
       pp (>= 0.6.0)
@@ -73,6 +75,7 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.1.0)
     msgpack (1.8.5)
+    mutex_m (0.3.0)
     os (1.1.4)
     pp (0.6.4)
       prettyprint
@@ -123,8 +126,8 @@ GEM
     simplecov_json_formatter (0.1.4)
     stringio (3.2.0)
     tsort (0.2.0)
-    typhoeus (1.4.0)
-      ethon (>= 0.9.0)
+    typhoeus (1.6.0)
+      ethon (>= 0.18.0)
     warning (1.6.0)
     webmock (3.26.4)
       addressable (>= 2.8.0)
@@ -187,7 +190,7 @@ CHECKSUMS
   docile (1.4.1) sha256=96159be799bfa73cdb721b840e9802126e4e03dfc26863db73647204c727f21e
   dogstatsd-ruby (5.7.1) sha256=d2e211f9635d6bbe773e152e00fd4cb9f165d26e10356dbef8f917f7a9e5d58c
   erb (4.0.4.1) sha256=47e2a70922ba4cec8c23c2304ad7e581665c37a297cb9a22a860162c7727ee24
-  ethon (0.16.0) sha256=bba0da1cea8ac3e1f5cdd7cb1cb5fc78d7ac562c33736f18f0c3eb2b63053d9e
+  ethon (0.18.0) sha256=b598afc9f30448cb068b850714b7d6948e941476095d04f90a4ac65b8d6efcb2
   ffi (1.17.4-aarch64-linux-gnu) sha256=b208f06f91ffd8f5e1193da3cae3d2ccfc27fc36fba577baf698d26d91c080df
   ffi (1.17.4-arm64-darwin) sha256=19071aaf1419251b0a46852abf960e77330a3b334d13a4ab51d58b31a937001b
   ffi (1.17.4-x86_64-darwin) sha256=aa70390523cf3235096cf64962b709b4cfbd5c082a2cb2ae714eb0fe2ccda496
@@ -197,7 +200,7 @@ CHECKSUMS
   google-protobuf (3.25.8-x86_64-darwin) sha256=9c9e8c1c760eeb314fd6bcba1b0fb1e64c473fc9e2040c8992df61874974c108
   google-protobuf (3.25.8-x86_64-linux) sha256=07783d910635e2a60eaf929fe3e45ea4d657d023be3816bda99a21c14f7be959
   hashdiff (1.2.1) sha256=9c079dbc513dfc8833ab59c0c2d8f230fa28499cc5efb4b8dd276cf931457cd1
-  httpclient (2.8.3) sha256=2951e4991214464c3e92107e46438527d23048e634f3aee91c719e0bdfaebda6
+  httpclient (2.9.0) sha256=4b645958e494b2f86c2f8a2f304c959baa273a310e77a2931ddb986d83e498c8
   io-console (0.9.2) sha256=efa74f891dd03c0939a931dfc6e74c2813d904763d456ea9762b0525e748db08
   irb (1.18.0) sha256=de9454a0703a54704b9811a5ef31a60c86949fbf4013fcf244fabc7c775248e3
   json-schema (6.2.0) sha256=e8bff46ed845a22c1ab2bd0d7eccf831c01fe23bb3920caa4c74db4306813666
@@ -213,6 +216,7 @@ CHECKSUMS
   memory_profiler (0.9.14) sha256=de558cf6525d8d56d2c0ea465b1664517fbe45560f892dc7a898d3b8c2863b12
   method_source (1.1.0) sha256=181301c9c45b731b4769bc81e8860e72f9161ad7d66dd99103c9ab84f560f5c5
   msgpack (1.8.5) sha256=97419eaa7b35dfe3e462c0e6c1a3dfdcbfc8756605c09e46e4c6daef127517ba
+  mutex_m (0.3.0) sha256=cfcb04ac16b69c4813777022fdceda24e9f798e48092a2b817eb4c0a782b0751
   os (1.1.4) sha256=57816d6a334e7bd6aed048f4b0308226c5fb027433b67d90a9ab435f35108d3f
   pp (0.6.4) sha256=dfcb0fce700c41456265922884f9fe195d7fbb0674a3578e6c0f69588e82b570
   prettyprint (0.2.0) sha256=2bc9e15581a94742064a3cc8b0fb9d45aae3d03a1baa6ef80922627a0766f193
@@ -238,7 +242,7 @@ CHECKSUMS
   simplecov_json_formatter (0.1.4) sha256=529418fbe8de1713ac2b2d612aa3daa56d316975d307244399fa4838c601b428
   stringio (3.2.0) sha256=c37cb2e58b4ffbd33fe5cd948c05934af997b36e0b6ca6fdf43afa234cf222e1
   tsort (0.2.0) sha256=9650a793f6859a43b6641671278f79cfead60ac714148aabe4e3f0060480089f
-  typhoeus (1.4.0) sha256=fff9880d5dc35950e7706cf132fd297f377c049101794be1cf01c95567f642d4
+  typhoeus (1.6.0) sha256=bacc41c23e379547e29801dc235cd1699b70b955a1ba3d32b2b877aa844c331d
   warning (1.6.0) sha256=a49cdfae19fb77d19afff2efbe45f8ab759e9cd25b4e4ce2c79dbaf46bdb6c9e
   webmock (3.26.4) sha256=8d8da206d217ebe6968cfb09c77f4533c23074e1432bad865f3994eacbaad50d
   webrick (1.9.2) sha256=beb4a15fc474defed24a3bda4ffd88a490d517c9e4e6118c3edce59e45864131

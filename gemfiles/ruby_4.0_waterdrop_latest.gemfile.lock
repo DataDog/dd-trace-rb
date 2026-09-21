@@ -42,32 +42,32 @@ GEM
     google-protobuf (3.25.8)
     hashdiff (1.2.1)
     io-console (0.9.2)
-    json (2.21.2)
+    json (3.0.2)
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
-    karafka-core (2.5.7)
+    karafka-core (2.6.4)
       karafka-rdkafka (>= 0.20.0)
       logger (>= 1.6.0)
-    karafka-rdkafka (0.23.0)
+    karafka-rdkafka (0.29.0)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
-    karafka-rdkafka (0.23.0-aarch64-linux-gnu)
+    karafka-rdkafka (0.29.0-aarch64-linux-gnu)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
-    karafka-rdkafka (0.23.0-arm64-darwin)
+    karafka-rdkafka (0.29.0-arm64-darwin)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
-    karafka-rdkafka (0.23.0-x86_64-linux-gnu)
+    karafka-rdkafka (0.29.0-x86_64-linux-gnu)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
@@ -91,7 +91,7 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.1.0)
     mini_portile2 (2.8.9)
-    msgpack (1.8.4)
+    msgpack (1.8.5)
     mutex_m (0.3.0)
     os (1.1.4)
     ostruct (0.6.3)
@@ -132,16 +132,16 @@ GEM
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
     warning (1.6.0)
-    waterdrop (2.8.13)
-      karafka-core (>= 2.4.9, < 3.0.0)
-      karafka-rdkafka (>= 0.20.0)
+    waterdrop (2.10.4)
+      karafka-core (>= 2.5.12, < 3.0.0)
+      karafka-rdkafka (>= 0.24.0)
       zeitwerk (~> 2.3)
     webmock (3.26.4)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
     webrick (1.9.2)
-    zeitwerk (2.7.3)
+    zeitwerk (2.8.3)
     zstd-ruby (2.0.9)
 
 PLATFORMS
@@ -211,13 +211,13 @@ CHECKSUMS
   google-protobuf (3.25.8) sha256=102c8500502e224a5daa7447bdd2c458a25a6c7b0bf5d8496a559ada131952b7
   hashdiff (1.2.1) sha256=9c079dbc513dfc8833ab59c0c2d8f230fa28499cc5efb4b8dd276cf931457cd1
   io-console (0.9.2) sha256=efa74f891dd03c0939a931dfc6e74c2813d904763d456ea9762b0525e748db08
-  json (2.21.2) sha256=1f1d3b7cf2b3ba1a69beca0bb6db13d5438b80bff3cd54cdaaa620b9b07c1c6a
+  json (3.0.2) sha256=8e6d7e7b11384c21230430cef90b71f14849a34a1f4452796670f7c981bd19df
   json-schema (6.2.0) sha256=e8bff46ed845a22c1ab2bd0d7eccf831c01fe23bb3920caa4c74db4306813666
-  karafka-core (2.5.7) sha256=709f9499b013371f0ec0dd1f7f47451dfe8e8d3b60d85510dfd3abebf2e37bcb
-  karafka-rdkafka (0.23.0) sha256=ad98a8a3302abae7ba482a83df2da8370da58bf11f419bdad3f167f45ae38d3a
-  karafka-rdkafka (0.23.0-aarch64-linux-gnu) sha256=e7492205dd550045657a7075e07ec567953d610bfaa1760963f6c439d5e291ed
-  karafka-rdkafka (0.23.0-arm64-darwin) sha256=14b8c01462547f0e741b07cdf43205df694e0153f6afcf322fe31a5627e12169
-  karafka-rdkafka (0.23.0-x86_64-linux-gnu) sha256=767622cecfd4287b4e7bcdc6ce7fbe1ef2933765484bb3a422a38c4f03ff0ee5
+  karafka-core (2.6.4) sha256=e08166ca7ef12fadf0500f2a3aba63b5ba918a98533c3feaac9f43c90f159363
+  karafka-rdkafka (0.29.0) sha256=f2d39bbcc0f2bcd63dd0deea08ac4bb6ad31a714b7518c76493e724af0f0f2a2
+  karafka-rdkafka (0.29.0-aarch64-linux-gnu) sha256=4d7e7e8eb81a221c35d36d28bd6b02c666a901e064e11ca96f45800cd4575f29
+  karafka-rdkafka (0.29.0-arm64-darwin) sha256=d421ae4b7c5947cc78ac5c4fcb6b99f5045989b39f17d5cb2320c686cf8a0080
+  karafka-rdkafka (0.29.0-x86_64-linux-gnu) sha256=fbeb0ba7ed32bdce1ee18fb262b18b425594cb13a004eaf4e39e6a811e3eaac4
   libdatadog (40.0.0.2.0) sha256=235197c78fca10162970bbdf9178f6efd5ef8a94ada6fe1aaecd9075d0732cad
   libdatadog (40.0.0.2.0-aarch64-linux) sha256=a41b25b838bf1a74b17c9c0aa33f9dedc0e6dfb9928f4a31622cf5b8dfe9f331
   libdatadog (40.0.0.2.0-arm64-darwin) sha256=3863e4ef5a038a1ab5bca645f6cea95f3617181682fd47f2bbeb94ff9c74104c
@@ -231,7 +231,7 @@ CHECKSUMS
   memory_profiler (0.9.14) sha256=de558cf6525d8d56d2c0ea465b1664517fbe45560f892dc7a898d3b8c2863b12
   method_source (1.1.0) sha256=181301c9c45b731b4769bc81e8860e72f9161ad7d66dd99103c9ab84f560f5c5
   mini_portile2 (2.8.9) sha256=0cd7c7f824e010c072e33f68bc02d85a00aeb6fce05bb4819c03dfd3c140c289
-  msgpack (1.8.4) sha256=4411c22d350dd1c20250f7eada3cca2695438c2f769cf0782f0cd065d90a3e7b
+  msgpack (1.8.5) sha256=97419eaa7b35dfe3e462c0e6c1a3dfdcbfc8756605c09e46e4c6daef127517ba
   mutex_m (0.3.0) sha256=cfcb04ac16b69c4813777022fdceda24e9f798e48092a2b817eb4c0a782b0751
   os (1.1.4) sha256=57816d6a334e7bd6aed048f4b0308226c5fb027433b67d90a9ab435f35108d3f
   ostruct (0.6.3) sha256=95a2ed4a4bd1d190784e666b47b2d3f078e4a9efda2fccf18f84ddc6538ed912
@@ -253,10 +253,10 @@ CHECKSUMS
   simplecov-html (0.13.2) sha256=bd0b8e54e7c2d7685927e8d6286466359b6f16b18cb0df47b508e8d73c777246
   simplecov_json_formatter (0.1.4) sha256=529418fbe8de1713ac2b2d612aa3daa56d316975d307244399fa4838c601b428
   warning (1.6.0) sha256=a49cdfae19fb77d19afff2efbe45f8ab759e9cd25b4e4ce2c79dbaf46bdb6c9e
-  waterdrop (2.8.13) sha256=776b2fa6c06e9cfdadf8d342c0cfafd0f18357ea1a0bba6eb8a1e2ea10ccbf13
+  waterdrop (2.10.4) sha256=aac28f7d88f99acb8eafe3333d6d672106194a8b29eecaa7f2db99326ed75adb
   webmock (3.26.4) sha256=8d8da206d217ebe6968cfb09c77f4533c23074e1432bad865f3994eacbaad50d
   webrick (1.9.2) sha256=beb4a15fc474defed24a3bda4ffd88a490d517c9e4e6118c3edce59e45864131
-  zeitwerk (2.7.3) sha256=b2e86b4a9b57d26ba68a15230dcc7fe6f040f06831ce64417b0621ad96ba3e85
+  zeitwerk (2.8.3) sha256=2c85125a8467ce069e20123d1e709a08955c9d29c118c25b46b7b7fafdbb92e5
   zstd-ruby (2.0.9) sha256=d6e7ffb61f3b93947c3a38afe2669e11acc8e8bbf15f55dc14dd03604c0d1083
 
 BUNDLED WITH

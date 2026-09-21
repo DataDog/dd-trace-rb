@@ -212,7 +212,7 @@ GEM
     mime-types-data (3.2023.0808)
     mini_mime (1.1.5)
     minitest (5.27.0)
-    msgpack (1.8.4)
+    msgpack (1.8.5)
     mustermann (3.0.4)
       ruby2_keywords (~> 0.0.1)
     mustermann-grape (1.1.0)
@@ -512,7 +512,7 @@ CHECKSUMS
   mime-types-data (3.2023.0808) sha256=aad85663d2607e1f4b84e4b6aacff78ba3733bb958ee93189205e63f4f8ded9f
   mini_mime (1.1.5) sha256=8681b7e2e4215f2a159f9400b5816d85e9d8c6c6b491e96a12797e798f8bccef
   minitest (5.27.0) sha256=2d3b17f8a36fe7801c1adcffdbc38233b938eb0b4966e97a6739055a45fa77d5
-  msgpack (1.8.4) sha256=4411c22d350dd1c20250f7eada3cca2695438c2f769cf0782f0cd065d90a3e7b
+  msgpack (1.8.5) sha256=97419eaa7b35dfe3e462c0e6c1a3dfdcbfc8756605c09e46e4c6daef127517ba
   mustermann (3.0.4) sha256=85fadcb6b3c6493a8b511b42426f904b7f27b282835502233dd154daab13aa22
   mustermann-grape (1.1.0) sha256=8d258a986004c8f01ce4c023c0b037c168a9ed889cf5778068ad54398fa458c5
   net-http (0.9.1) sha256=25ba0b67c63e89df626ed8fac771d0ad24ad151a858af2cc8e6a716ca4336996

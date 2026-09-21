@@ -34,7 +34,7 @@ GEM
     diff-lcs (1.6.2)
     docile (1.4.1)
     dogstatsd-ruby (5.7.1)
-    domain_name (0.6.20260902)
+    domain_name (0.6.20260907)
     erb (6.0.7)
     ffi (1.17.4)
     ffi (1.17.4-aarch64-linux-gnu)
@@ -94,7 +94,7 @@ GEM
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    msgpack (1.8.4)
+    msgpack (1.8.5)
     os (1.1.4)
     pp (0.6.4)
       prettyprint
@@ -215,7 +215,7 @@ CHECKSUMS
   diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962
   docile (1.4.1) sha256=96159be799bfa73cdb721b840e9802126e4e03dfc26863db73647204c727f21e
   dogstatsd-ruby (5.7.1) sha256=d2e211f9635d6bbe773e152e00fd4cb9f165d26e10356dbef8f917f7a9e5d58c
-  domain_name (0.6.20260902) sha256=4fac7f8e0a77dc85ec02f6534fdeff38e143d434ab8a86528fe68ca5bc45a042
+  domain_name (0.6.20260907) sha256=5517a7f82c4464a61fc17133c3f6a02833faa13533c16c07e8f73b11d872cb03
   erb (6.0.7) sha256=c5ca6dc25b0ef974a44dc8f59fe847577122483b1968a38dec305c60bf91ee92
   ffi (1.17.4) sha256=bcd1642e06f0d16fc9e09ac6d49c3a7298b9789bcb58127302f934e437d60acf
   ffi (1.17.4-aarch64-linux-gnu) sha256=b208f06f91ffd8f5e1193da3cae3d2ccfc27fc36fba577baf698d26d91c080df
@@ -255,7 +255,7 @@ CHECKSUMS
   logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
   memory_profiler (0.9.14) sha256=de558cf6525d8d56d2c0ea465b1664517fbe45560f892dc7a898d3b8c2863b12
   method_source (1.1.0) sha256=181301c9c45b731b4769bc81e8860e72f9161ad7d66dd99103c9ab84f560f5c5
-  msgpack (1.8.4) sha256=4411c22d350dd1c20250f7eada3cca2695438c2f769cf0782f0cd065d90a3e7b
+  msgpack (1.8.5) sha256=97419eaa7b35dfe3e462c0e6c1a3dfdcbfc8756605c09e46e4c6daef127517ba
   os (1.1.4) sha256=57816d6a334e7bd6aed048f4b0308226c5fb027433b67d90a9ab435f35108d3f
   pp (0.6.4) sha256=dfcb0fce700c41456265922884f9fe195d7fbb0674a3578e6c0f69588e82b570
   prettyprint (0.2.0) sha256=2bc9e15581a94742064a3cc8b0fb9d45aae3d03a1baa6ef80922627a0766f193

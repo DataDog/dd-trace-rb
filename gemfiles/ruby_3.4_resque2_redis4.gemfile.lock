@@ -68,7 +68,7 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.1.0)
     mono_logger (1.1.2)
-    msgpack (1.8.4)
+    msgpack (1.8.5)
     multi_json (1.15.0)
     mustermann (3.1.1)
     mutex_m (0.3.0)
@@ -239,7 +239,7 @@ CHECKSUMS
   memory_profiler (0.9.14) sha256=de558cf6525d8d56d2c0ea465b1664517fbe45560f892dc7a898d3b8c2863b12
   method_source (1.1.0) sha256=181301c9c45b731b4769bc81e8860e72f9161ad7d66dd99103c9ab84f560f5c5
   mono_logger (1.1.2) sha256=2e359def7007f5c908aadd953687991fe667995d14ae5f0d10dda76e3e8670f7
-  msgpack (1.8.4) sha256=4411c22d350dd1c20250f7eada3cca2695438c2f769cf0782f0cd065d90a3e7b
+  msgpack (1.8.5) sha256=97419eaa7b35dfe3e462c0e6c1a3dfdcbfc8756605c09e46e4c6daef127517ba
   multi_json (1.15.0) sha256=1fd04138b6e4a90017e8d1b804c039031399866ff3fbabb7822aea367c78615d
   mustermann (3.1.1) sha256=4c6170c7234d5499c345562ba7c7dfe73e1754286dcc1abb053064d66a127198
   mutex_m (0.3.0) sha256=cfcb04ac16b69c4813777022fdceda24e9f798e48092a2b817eb4c0a782b0751

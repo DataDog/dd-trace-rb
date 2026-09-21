@@ -73,7 +73,7 @@ GEM
       zeitwerk (~> 2.3)
     addressable (2.9.0)
       public_suffix (>= 2.0.2, < 8.0)
-    base64 (0.2.0)
+    base64 (0.3.0)
     benchmark-ips (2.15.1)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -332,7 +332,7 @@ CHECKSUMS
   activestorage (6.1.7.10) sha256=5b3ae2ffd02565413b1a36705ddc56a9855307076497f0dfb1dbe679a635d4dc
   activesupport (6.1.7.10) sha256=3f8e1f787a7bfbf765959ba509ef70af8293b35cb864078919365a12bf33d470
   addressable (2.9.0) sha256=7fdf6ac3660f7f4e867a0838be3f6cf722ace541dd97767fa42bc6cfa980c7af
-  base64 (0.2.0) sha256=0f25e9b21a02a0cc0cea8ef92b2041035d39350946e8789c562b2d1a3da01507
+  base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
   benchmark-ips (2.15.1) sha256=07a1a9f3c6105ecaf68c174fc3fbcddd71a0e9ada6236ae03093a0dcfd812d59
   benchmark-memory (0.1.2) sha256=aa7bfe6776174d0ddefe6fb39945d88fff6d76eac165690188391d9acd441c87
   bigdecimal (4.1.2) sha256=53d217666027eab4280346fba98e7d5b66baaae1b9c3c1c0ffe89d48188a3fbd
