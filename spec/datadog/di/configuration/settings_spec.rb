@@ -60,16 +60,15 @@ RSpec.describe Datadog::DI::Configuration::Settings do
     end
 
     context "max_time_to_serialize_ms validation" do
-      it "raises ArgumentError for zero" do
-        expect do
-          settings.dynamic_instrumentation.max_time_to_serialize_ms = 0
-        end.to raise_error(ArgumentError, /positive integer/)
+      it "accepts zero as a valid exhausted-budget sentinel" do
+        settings.dynamic_instrumentation.max_time_to_serialize_ms = 0
+        expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq(0)
       end
 
       it "raises ArgumentError for a negative value" do
         expect do
           settings.dynamic_instrumentation.max_time_to_serialize_ms = -5
-        end.to raise_error(ArgumentError, /positive integer/)
+        end.to raise_error(ArgumentError, /must not be negative/)
       end
     end
 
