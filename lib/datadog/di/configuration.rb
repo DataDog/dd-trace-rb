@@ -134,12 +134,8 @@ module Datadog
                 o.default 20
               end
 
-              # Per-capture wall-time budget (milliseconds) for serializing a
-              # snapshot (arguments, locals, self) and evaluating capture
-              # expressions. Ruby alias for the RFC canonical
-              # DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS; the effective
-              # value is clamped to the 150 ms hard ceiling
-              # (Serializer::CAPTURE_TIMEOUT_CEILING_SECONDS).
+              # Ruby alias for DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS,
+              # clamped to Serializer::CAPTURE_TIMEOUT_CEILING_SECONDS.
               option :max_time_to_serialize_ms do |o|
                 o.type :int
                 o.default 150
