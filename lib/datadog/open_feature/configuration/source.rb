@@ -29,8 +29,6 @@ module Datadog
 
               logger.warn("Unsupported Feature Flags configuration source; Feature Flags are disabled")
               OFFLINE
-            elsif !settings.using_default?(:feature_flags_enabled)
-              AGENTLESS
             elsif !settings.using_default?(:enabled)
               settings.enabled ? REMOTE_CONFIG : OFFLINE
             else

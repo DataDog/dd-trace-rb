@@ -125,13 +125,50 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
       end
     end
 
+    describe "#agentless_poll_interval_seconds" do
+      subject(:agentless_poll_interval_seconds) { settings.open_feature.agentless_poll_interval_seconds }
+
+      context "when the environment variable is not defined" do
+        it { is_expected.to eq(30) }
+      end
+
+      context "when the environment variable is a positive integer" do
+        with_env "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS" => "7200"
+
+        it { is_expected.to eq(7200) }
+      end
+
+      ["0", "-1", "not-an-integer"].each do |configured_value|
+        context "when the environment variable is #{configured_value.inspect}" do
+          around do |example|
+            ClimateControl.modify(
+              "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS" => configured_value
+            ) { example.run }
+          end
+
+          before { allow(Datadog.logger).to receive(:warn) }
+
+          it { is_expected.to eq(30) }
+        end
+      end
+
+      context "when set programmatically to a positive integer" do
+        before { settings.open_feature.agentless_poll_interval_seconds = 7200 }
+
+        it { is_expected.to eq(7200) }
+      end
+
+      context "when set programmatically to zero" do
+        before do
+          allow(Datadog.logger).to receive(:warn)
+          settings.open_feature.agentless_poll_interval_seconds = 0
+        end
+
+        it { is_expected.to eq(30) }
+      end
+    end
+
     [
-      {
-        name: :agentless_poll_interval_seconds,
-        environment_variable: "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS",
-        default: 30,
-        maximum: 3600,
-      },
       {
         name: :agentless_request_timeout_seconds,
         environment_variable: "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS",
