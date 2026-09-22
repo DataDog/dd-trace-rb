@@ -116,6 +116,9 @@ jobs:
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
+        # Resolve every dynamic symbol at load time, so that a native extension referencing a symbol Ruby does not
+        # export fails here instead of in a customer's image (https://github.com/DataDog/dd-trace-rb/issues/6338)
+        LD_BIND_NOW: "1"
         DD_INSTRUMENTATION_TELEMETRY_ENABLED: "false"
         DD_REMOTE_CONFIGURATION_ENABLED: "false"
         TEST_POSTGRES_HOST: postgres
@@ -202,6 +205,7 @@ jobs:
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
+        LD_BIND_NOW: "1" # See above
         DD_INSTRUMENTATION_TELEMETRY_ENABLED: "false"
         DD_REMOTE_CONFIGURATION_ENABLED: "false"
         TEST_ELASTICSEARCH_HOST: elasticsearch

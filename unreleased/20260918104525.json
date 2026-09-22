@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "SSI",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6316",
+  "message": "Preserve Bundler selection and `RUBYOPT` options during injection."
+}

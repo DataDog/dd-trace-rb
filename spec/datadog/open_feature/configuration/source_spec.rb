@@ -5,7 +5,7 @@ require "datadog/open_feature/configuration"
 require "datadog/open_feature/configuration/source"
 
 RSpec.describe Datadog::OpenFeature::Configuration::Source do
-  subject(:resolution) { described_class.resolve(settings.open_feature) }
+  subject(:resolution) { described_class.resolve(settings) }
 
   let(:settings) { Datadog::Core::Configuration::Settings.new }
 
@@ -99,16 +99,28 @@ RSpec.describe Datadog::OpenFeature::Configuration::Source do
 
     before { allow(Datadog.logger).to receive(:warn) }
 
-    it "gives the stable switch precedence" do
-      expect(resolution.source).to eq("agentless")
+    it "preserves the legacy disabled source" do
+      expect(resolution.source).to eq("offline")
+      expect(resolution).not_to be_enabled
+    end
+  end
+
+  context "when the stable switch and the legacy switch are true" do
+    with_env "DD_FEATURE_FLAGS_ENABLED" => "true",
+      "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED" => "true"
+
+    before { allow(Datadog.logger).to receive(:warn) }
+
+    it "preserves the legacy Remote Configuration source" do
+      expect(resolution.source).to eq("remote_config")
       expect(resolution).to be_enabled
     end
   end
 
   context "when configured programmatically" do
     before do
-      settings.open_feature.feature_flags_enabled = true
-      settings.open_feature.configuration_source = "remote_config"
+      settings.feature_flags.enabled = true
+      settings.feature_flags.configuration_source = "remote_config"
       settings.open_feature.enabled = false
       allow(Datadog.logger).to receive(:warn)
     end

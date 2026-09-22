@@ -12,15 +12,16 @@ module Datadog
 
         class << self
           def resolve(settings, logger: Datadog.logger)
-            source = resolve_source(settings, logger: logger)
-            enabled = settings.feature_flags_enabled && source != OFFLINE
+            feature_flags = settings.feature_flags
+            source = resolve_source(feature_flags, legacy: settings.open_feature, logger: logger)
+            enabled = feature_flags.enabled && source != OFFLINE
 
             Resolution.new(source, enabled: enabled)
           end
 
           private
 
-          def resolve_source(settings, logger:)
+          def resolve_source(settings, legacy:, logger:)
             configured_source = settings.configuration_source
             if !settings.using_default?(:configuration_source) && !configured_source.empty?
               return configured_source if configured_source == AGENTLESS ||
@@ -29,10 +30,8 @@ module Datadog
 
               logger.warn("Unsupported Feature Flags configuration source; Feature Flags are disabled")
               OFFLINE
-            elsif !settings.using_default?(:feature_flags_enabled)
-              AGENTLESS
-            elsif !settings.using_default?(:enabled)
-              settings.enabled ? REMOTE_CONFIG : OFFLINE
+            elsif !legacy.using_default?(:enabled)
+              legacy.enabled ? REMOTE_CONFIG : OFFLINE
             else
               AGENTLESS
             end

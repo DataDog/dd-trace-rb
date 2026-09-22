@@ -6,11 +6,15 @@ module Datadog
         DEFAULT_REQUEST_TIMEOUT_SECONDS: Integer
         DEFAULT_INITIALIZATION_TIMEOUT_MS: Integer
 
-        MAX_POLL_INTERVAL_SECONDS: Integer
         MAX_REQUEST_TIMEOUT_SECONDS: Integer
         MAX_INITIALIZATION_TIMEOUT_MS: Integer
 
-        def self.parse_integer: (String value, default: Integer, setting_name: String) -> Integer
+        def self.configure_integer_option: (
+          Core::Configuration::OptionDefinition::Builder option,
+          environment_variable: String,
+          default: Integer,
+          setting_name: String
+        ) -> void
 
         def self.extended: (::Class | ::Module base) -> void
 
