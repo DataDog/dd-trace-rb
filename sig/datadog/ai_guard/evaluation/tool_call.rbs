@@ -2,13 +2,23 @@ module Datadog
   module AIGuard
     module Evaluation
       class ToolCall
-        attr_reader tool_name: ::String
-        attr_reader id: ::String
-        attr_reader arguments: ::String
+        type input_arguments = String | Hash[any, any]
 
-        def initialize: (::String tool_name, id: ::String, arguments: ::String) -> void
+        @tool_name: String
 
-        def with_arguments: (String arguments) -> ToolCall
+        @id: String
+
+        @arguments: String
+
+        attr_reader tool_name: String
+
+        attr_reader id: String
+
+        attr_reader arguments: String
+
+        def initialize: (String tool_name, id: String, arguments: input_arguments) -> void
+
+        def with_arguments: (input_arguments arguments) -> ToolCall
 
         def to_h: () -> Hash[Symbol, any]
       end

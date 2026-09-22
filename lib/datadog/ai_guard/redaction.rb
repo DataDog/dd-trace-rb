@@ -49,13 +49,13 @@ module Datadog
 
           case kind
           when :content
-            return if message.tool_call || !message.content.is_a?(::String)
+            return if message.tool_calls.any? || !message.content.is_a?(::String)
 
             message.with_content(replacement)
           when :text
             # @type var index: Integer
             content = message.content
-            return if message.tool_call || !content.is_a?(::Array)
+            return if message.tool_calls.any? || !content.is_a?(::Array)
 
             part = content[index]
             return if !part.is_a?(Evaluation::ContentPart::Text) || !part.text.is_a?(::String)
@@ -65,10 +65,14 @@ module Datadog
 
             message.with_content(redacted_content)
           when :arguments
-            tool_call = message.tool_call
+            # @type var index: Integer
+            tool_call = message.tool_calls[index]
             return if !tool_call || !tool_call.arguments.is_a?(::String)
 
-            message.with_tool_call(tool_call.with_arguments(replacement))
+            redacted_tool_calls = ::Array.new(message.tool_calls)
+            redacted_tool_calls[index] = tool_call.with_arguments(replacement)
+
+            message.with_tool_calls(redacted_tool_calls)
           end
         end
       end

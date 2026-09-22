@@ -153,68 +153,114 @@ RSpec.describe Datadog::AIGuard do
   end
 
   describe ".message" do
-    it "returns a message with the given role and content" do
-      message = described_class.message(role: :user, content: "Hello")
+    let(:message) { described_class.message(role: :user, content: "Hello") }
 
+    it "returns a message with the given role and content" do
       aggregate_failures "returned message" do
         expect(message).to be_a(Datadog::AIGuard::Evaluation::Message)
         expect(message.role).to eq(:user)
         expect(message.content).to eq("Hello")
       end
     end
-  end
 
-  describe ".assistant" do
-    context "when arguments are a string" do
+    context "when content and tool calls are provided" do
+      let(:tool_calls) { [described_class.tool_call(name: "git", id: "git-1", arguments: {})] }
       let(:message) do
-        described_class.assistant(
-          tool_name: "git",
-          id: "git-1",
-          arguments: '{"command":"commit -m \'Some message\'"}'
+        described_class.message(
+          role: :assistant,
+          content: "Running git",
+          tool_calls: tool_calls
         )
       end
 
-      it "returns a message containing a tool call" do
+      it "returns a message with the complete canonical shape" do
         aggregate_failures "returned message" do
-          expect(message).to be_a(Datadog::AIGuard::Evaluation::Message)
-          expect(message.role).to eq(:assistant)
-          expect(message.content).to be_nil
+          expect(message.content).to eq("Running git")
+          expect(message.tool_calls).to eq(tool_calls)
+        end
+      end
+    end
 
-          expect(message.tool_call).to be_a(Datadog::AIGuard::Evaluation::ToolCall)
-          expect(message.tool_call.id).to eq("git-1")
-          expect(message.tool_call.tool_name).to eq("git")
-          expect(message.tool_call.arguments).to eq('{"command":"commit -m \'Some message\'"}')
+    context "when a numeric tool call id is provided" do
+      let(:message) { described_class.message(role: :tool, content: "Done", tool_call_id: 42) }
+
+      it { expect(message.tool_call_id).to eq("42") }
+    end
+  end
+
+  describe ".tool_call" do
+    context "when arguments are a string" do
+      let(:tool_call) do
+        described_class.tool_call(name: "git", id: "git-1", arguments: '{"command":"commit"}')
+      end
+
+      it "returns a tool call with the given attributes" do
+        aggregate_failures "returned tool call" do
+          expect(tool_call).to be_a(Datadog::AIGuard::Evaluation::ToolCall)
+          expect(tool_call.id).to eq("git-1")
+          expect(tool_call.tool_name).to eq("git")
+          expect(tool_call.arguments).to eq('{"command":"commit"}')
         end
       end
     end
 
     context "when arguments are a hash" do
-      let(:message) do
-        described_class.assistant(tool_name: "git", id: "git-1", arguments: {"command" => "commit"})
+      let(:tool_call) do
+        described_class.tool_call(name: "git", id: "git-1", arguments: {"command" => "commit"})
       end
 
-      it { expect(message.tool_call.arguments).to eq('{"command":"commit"}') }
+      it { expect(tool_call.arguments).to eq('{"command":"commit"}') }
+    end
+
+    context "when the id is numeric" do
+      let(:tool_call) { described_class.tool_call(name: "git", id: 42, arguments: {}) }
+
+      it { expect(tool_call.id).to eq("42") }
     end
 
     context "when arguments are neither a string nor a hash" do
       it "raises an ArgumentError" do
         expect {
-          described_class.assistant(tool_name: "git", id: "git-1", arguments: [])
+          described_class.tool_call(name: "git", id: "git-1", arguments: [])
         }.to raise_error(ArgumentError, "Tool call arguments must be a String or Hash")
       end
     end
   end
 
-  describe ".tool" do
-    it "returns a message with :tool role and a given tool call id and content" do
-      message = described_class.tool(tool_call_id: "git-1", content: "Some output")
+  describe ".assistant" do
+    let(:tool_calls) do
+      [
+        described_class.tool_call(name: "git", id: "git-1", arguments: {}),
+        described_class.tool_call(name: "notify", id: "notify-1", arguments: {})
+      ]
+    end
+    let(:message) { described_class.assistant(content: "Running git", tool_calls: tool_calls) }
 
+    it "returns an assistant message" do
+      aggregate_failures "returned message" do
+        expect(message.role).to eq(:assistant)
+        expect(message.content).to eq("Running git")
+        expect(message.tool_calls).to eq(tool_calls)
+      end
+    end
+  end
+
+  describe ".tool" do
+    let(:message) { described_class.tool(tool_call_id: "git-1", content: "Some output") }
+
+    it "returns a message with :tool role and a given tool call id and content" do
       aggregate_failures "returned message" do
         expect(message).to be_a(Datadog::AIGuard::Evaluation::Message)
         expect(message.role).to eq(:tool)
         expect(message.content).to eq("Some output")
         expect(message.tool_call_id).to eq("git-1")
       end
+    end
+
+    context "when the tool call id is numeric" do
+      let(:message) { described_class.tool(tool_call_id: 42, content: "Some output") }
+
+      it { expect(message.tool_call_id).to eq("42") }
     end
   end
 end
