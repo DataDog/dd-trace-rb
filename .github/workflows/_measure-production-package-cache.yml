@@ -1,0 +1,76 @@
+name: Measure production package cache
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+
+permissions: {}
+
+jobs:
+  measure-ruby-40:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
+      env:
+        BUNDLE_CACHE_ALL: "true"
+        BUNDLE_CACHE_PATH: /tmp/ddtrace-bundle-package-cache
+        BUNDLE_FROZEN: "true"
+        BUNDLE_NO_PRUNE: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - id: key
+        name: Compute and look up package cache key
+        uses: ./.github/actions/package-cache-key
+        with:
+          base-gemfile: gemfiles/ruby-4.0.gemfile
+          cache-schema: bundle-packages-test-v1
+          matrix: Matrixfile
+          ruby-version: "4.0"
+          runtime-identifier: ruby-4.0
+
+      - id: restore
+        name: Restore package cache
+        uses: ./.github/actions/package-cache-restore
+        with:
+          primary-key: ${{ steps.key.outputs.primary-key }}
+          fallback-prefix: ${{ steps.key.outputs.fallback-prefix }}
+
+      - id: populate
+        if: steps.restore.outputs.exact-hit != 'true'
+        name: Populate package cache
+        uses: ./.github/actions/package-cache-populate
+        with:
+          manifest-path: ${{ steps.key.outputs.manifest-path }}
+
+      - id: save
+        if: steps.restore.outputs.exact-hit != 'true'
+        name: Save package cache
+        uses: ./.github/actions/package-cache-save
+        with:
+          primary-key: ${{ steps.key.outputs.primary-key }}
+          write-enabled: true
+          default-ref: ${{ github.ref }}
+
+      - name: Report measurements
+        shell: bash
+        env:
+          CACHE_PATH: /tmp/ddtrace-bundle-package-cache
+          DOWNLOADED_BYTES: ${{ steps.populate.outputs.downloaded-byte-count }}
+          DOWNLOADED_FILES: ${{ steps.populate.outputs.downloaded-file-count }}
+          EXACT_HIT: ${{ steps.restore.outputs.exact-hit }}
+          POPULATE_SECONDS: ${{ steps.populate.outputs.duration-seconds }}
+          RESTORE_SECONDS: ${{ steps.restore.outputs.duration-seconds }}
+          SAVE_SECONDS: ${{ steps.save.outputs.duration-seconds }}
+        run: |
+          stats=$(ruby tasks/package_cache_cli.rb statistics --manifest "${{ steps.key.outputs.manifest-path }}" --path "$CACHE_PATH")
+          echo "statistics=$stats"
+          echo "exact-hit=${EXACT_HIT:-false}"
+          echo "downloaded-files=${DOWNLOADED_FILES:-0}"
+          echo "downloaded-bytes=${DOWNLOADED_BYTES:-0}"
+          echo "restore-seconds=${RESTORE_SECONDS:-0}"
+          echo "population-seconds=${POPULATE_SECONDS:-0}"
+          echo "save-seconds=${SAVE_SECONDS:-0}"
