@@ -105,7 +105,7 @@ build_coverage_matrix('stripe', min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday', meta: { 'faraday-follow_redirects' => nil })
-['latest', '3', '2', '1'].each do |v|
+['1', '2', '3', 'latest'].each do |v|
   appraise "grape-#{v}" do
     gem 'grape' if v == 'latest'
     gem 'grape', "~> #{v}.0" unless v == 'latest'
