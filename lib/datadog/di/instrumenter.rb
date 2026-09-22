@@ -559,9 +559,9 @@ module Datadog
           end
 
           rate_limiter = probe.rate_limiter
-          probe_admitted = rate_limiter.nil? || rate_limiter.allow?
-          admitted = continue && probe_admitted
-          if continue && !probe_admitted
+          admitted = continue
+          if continue && rate_limiter && !rate_limiter.allow?
+            admitted = false
             logger.trace do
               "di: #{probe.type} probe #{probe.id}: skipping due to per-probe rate limit" \
                 " (#{Guardrails::Reason::RATE_LIMIT_PROBE})"

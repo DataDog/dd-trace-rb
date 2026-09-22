@@ -1197,6 +1197,18 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           include_examples "does not report the call"
+
+          it "does not consult the per-probe rate limiter" do
+            expect(probe.rate_limiter).not_to receive(:allow?)
+
+            hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            target_call
+
+            expect(observed_calls.length).to eq 0
+          end
         end
       end
 
