@@ -228,6 +228,81 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
     end
   end
 
+  describe "#client_resource" do
+    subject(:result) { described_class.client_resource(method, path, enabled: enabled) }
+
+    let(:method) { "GET" }
+    let(:path) { "/users/12345" }
+
+    context "when disabled" do
+      let(:enabled) { false }
+
+      it { is_expected.to eq("GET") }
+    end
+
+    context "when enabled" do
+      let(:enabled) { true }
+
+      it { is_expected.to eq("GET /users/?") }
+
+      context "given a lowercase method" do
+        let(:method) { "get" }
+
+        it { is_expected.to eq("GET /users/?") }
+      end
+
+      context "given a path carrying a query string" do
+        let(:path) { "/users/12345?foo=bar" }
+
+        it { is_expected.to eq("GET /users/?") }
+      end
+
+      context "given nil" do
+        let(:path) { nil }
+
+        it { is_expected.to eq("GET") }
+      end
+
+      context "given an empty path" do
+        let(:path) { "" }
+
+        it { is_expected.to eq("GET") }
+      end
+
+      context "given a percent-encoded slash within a segment" do
+        let(:path) { "/files/a%2Fb" }
+
+        # Decoding before splitting on "/" would turn the encoded slash into a
+        # separator, inventing a path segment that was never actually there.
+        it { is_expected.to eq("GET /files/?") }
+      end
+
+      context "given a dotted version-looking segment" do
+        let(:path) { "/v1.2/users" }
+
+        # Only a bare `v<digits>` segment is preserved as an API version;
+        # anything else containing a digit is quantized like any other segment.
+        it { is_expected.to eq("GET /?/users") }
+      end
+
+      context "when quantizing the path raises" do
+        before do
+          allow(described_class).to receive(:path).and_raise(ArgumentError, "invalid byte sequence")
+          allow(Datadog.logger).to receive(:error)
+          allow(Datadog::Core::Telemetry::Logger).to receive(:report)
+        end
+
+        it { is_expected.to eq("GET") }
+
+        it "logs the error" do
+          result
+          expect(Datadog.logger).to have_received(:error)
+          expect(Datadog::Core::Telemetry::Logger).to have_received(:report)
+        end
+      end
+    end
+  end
+
   describe "#query" do
     subject(:result) { described_class.query(query, options) }
 

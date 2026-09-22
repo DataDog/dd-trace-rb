@@ -3,6 +3,8 @@
 require "uri"
 require "set"
 
+require_relative "../../../../core/telemetry/logger"
+
 module Datadog
   module Tracing
     module Contrib
@@ -64,6 +66,25 @@ module Datadog
                   uri.scheme = nil
                 end
               end.to_s
+            end
+
+            # Builds the resource name for an HTTP client span.
+            #
+            # Returns the bare HTTP method unless `enabled`. When enabled, a quantized
+            # request path is appended, eg. `GET /users/?`.
+            def client_resource(method, raw_path, enabled:)
+              resource = method.to_s.upcase
+              return resource unless enabled && raw_path && !raw_path.to_s.empty?
+
+              # Some clients expose the query string as part of the path; it is reported
+              # separately and must not reach the resource name.
+              "#{resource} #{path(raw_path.to_s.split("?", 2).first)}"
+            rescue => e
+              # A path carrying invalid byte sequences would otherwise raise while being
+              # matched, so fall back to the unquantized resource name.
+              Datadog.logger.error("error building http client resource name: #{e.class}: #{e.message}")
+              Datadog::Core::Telemetry::Logger.report(e)
+              resource
             end
 
             # Replaces identifier-looking segments of an HTTP path with a placeholder, so

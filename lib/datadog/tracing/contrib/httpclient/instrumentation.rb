@@ -4,6 +4,7 @@ require_relative "../../metadata/ext"
 require_relative "../http"
 require_relative "../analytics"
 require_relative "../http_annotation_helper"
+require_relative "../utils/quantization/http"
 require_relative "../../../core/telemetry/logger"
 
 module Datadog
@@ -74,10 +75,15 @@ module Datadog
 
               http_method = req.header.request_method.upcase
               uri = req.header.request_uri
+              path = uri.path
 
-              span.resource = http_method
+              span.resource = Contrib::Utils::Quantization::HTTP.client_resource(
+                http_method,
+                path,
+                enabled: Datadog.configuration.tracing.http_client_resource_name_quantize
+              )
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, http_method)
-              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, uri.path)
+              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, path)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, uri.host)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, uri.port)
 
