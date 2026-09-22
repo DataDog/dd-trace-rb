@@ -50,9 +50,11 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
         it { expect(settings.open_feature.enabled).to be(false) }
       end
     end
+  end
 
-    describe "#feature_flags_enabled" do
-      subject(:feature_flags_enabled) { settings.open_feature.feature_flags_enabled }
+  describe "feature_flags" do
+    describe "#enabled" do
+      subject(:enabled) { settings.feature_flags.enabled }
 
       context "when DD_FEATURE_FLAGS_ENABLED is not defined" do
         it { is_expected.to be(true) }
@@ -65,7 +67,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
       end
 
       context "when set programmatically" do
-        before { settings.open_feature.feature_flags_enabled = false }
+        before { settings.feature_flags.enabled = false }
 
         it { is_expected.to be(false) }
       end
@@ -73,14 +75,14 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
       context "when programmatic configuration overrides the environment" do
         with_env "DD_FEATURE_FLAGS_ENABLED" => "false"
 
-        before { settings.open_feature.feature_flags_enabled = true }
+        before { settings.feature_flags.enabled = true }
 
         it { is_expected.to be(true) }
       end
     end
 
     describe "#configuration_source" do
-      subject(:configuration_source) { settings.open_feature.configuration_source }
+      subject(:configuration_source) { settings.feature_flags.configuration_source }
 
       context "when DD_FEATURE_FLAGS_CONFIGURATION_SOURCE is not defined" do
         it { is_expected.to eq("agentless") }
@@ -93,14 +95,14 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
       end
 
       context "when set programmatically" do
-        before { settings.open_feature.configuration_source = " OFFLINE " }
+        before { settings.feature_flags.configuration_source = " OFFLINE " }
 
         it { is_expected.to eq("offline") }
       end
     end
 
-    describe "#agentless_base_url" do
-      subject(:agentless_base_url) { settings.open_feature.agentless_base_url }
+    describe "#agentless.base_url" do
+      subject(:base_url) { settings.feature_flags.agentless.base_url }
 
       context "when the setting is not defined" do
         it { is_expected.to be_nil }
@@ -113,20 +115,20 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
       end
 
       context "when set programmatically to a blank string" do
-        before { settings.open_feature.agentless_base_url = "  " }
+        before { settings.feature_flags.agentless.base_url = "  " }
 
         it { is_expected.to be_nil }
       end
 
       it "is excluded from configuration reporting" do
-        option = settings.open_feature.send(:resolve_option, :agentless_base_url)
+        option = settings.feature_flags.agentless.send(:resolve_option, :base_url)
 
         expect(option.definition.skip_telemetry).to be(true)
       end
     end
 
-    describe "#agentless_poll_interval_seconds" do
-      subject(:agentless_poll_interval_seconds) { settings.open_feature.agentless_poll_interval_seconds }
+    describe "#agentless.poll_interval_seconds" do
+      subject(:poll_interval_seconds) { settings.feature_flags.agentless.poll_interval_seconds }
 
       context "when the environment variable is not defined" do
         it { is_expected.to eq(30) }
@@ -153,7 +155,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
       end
 
       context "when set programmatically to a positive integer" do
-        before { settings.open_feature.agentless_poll_interval_seconds = 7200 }
+        before { settings.feature_flags.agentless.poll_interval_seconds = 7200 }
 
         it { is_expected.to eq(7200) }
       end
@@ -161,7 +163,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
       context "when set programmatically to zero" do
         before do
           allow(Datadog.logger).to receive(:warn)
-          settings.open_feature.agentless_poll_interval_seconds = 0
+          settings.feature_flags.agentless.poll_interval_seconds = 0
         end
 
         it { is_expected.to eq(30) }
@@ -170,20 +172,24 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
 
     [
       {
-        name: :agentless_request_timeout_seconds,
+        name: :request_timeout_seconds,
+        configuration: ->(root_settings) { root_settings.feature_flags.agentless },
         environment_variable: "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS",
         default: 5,
         maximum: 300,
       },
       {
         name: :initialization_timeout_ms,
+        configuration: ->(root_settings) { root_settings.feature_flags },
         environment_variable: "DD_EXPERIMENTAL_FLAGGING_PROVIDER_INITIALIZATION_TIMEOUT_MS",
         default: 30_000,
         maximum: 2_147_483_647,
       },
     ].each do |definition|
       describe "##{definition[:name]}" do
-        subject(:value) { settings.open_feature.public_send(definition[:name]) }
+        subject(:value) { configuration.public_send(definition[:name]) }
+
+        let(:configuration) { definition[:configuration].call(settings) }
 
         context "when the environment variable is not defined" do
           it { is_expected.to eq(definition[:default]) }
@@ -220,7 +226,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
         end
 
         context "when set programmatically" do
-          before { settings.open_feature.public_send("#{definition[:name]}=", definition[:maximum]) }
+          before { configuration.public_send("#{definition[:name]}=", definition[:maximum]) }
 
           it { is_expected.to eq(definition[:maximum]) }
         end
@@ -228,14 +234,16 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
         context "when set programmatically outside the valid range" do
           before do
             allow(Datadog.logger).to receive(:warn)
-            settings.open_feature.public_send("#{definition[:name]}=", 0)
+            configuration.public_send("#{definition[:name]}=", 0)
           end
 
           it { is_expected.to eq(definition[:default]) }
         end
       end
     end
+  end
 
+  describe "open_feature" do
     describe "legacy enablement deprecation" do
       context "when DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED is defined" do
         with_env "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED" => "true"

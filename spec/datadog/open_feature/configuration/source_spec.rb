@@ -5,7 +5,7 @@ require "datadog/open_feature/configuration"
 require "datadog/open_feature/configuration/source"
 
 RSpec.describe Datadog::OpenFeature::Configuration::Source do
-  subject(:resolution) { described_class.resolve(settings.open_feature) }
+  subject(:resolution) { described_class.resolve(settings) }
 
   let(:settings) { Datadog::Core::Configuration::Settings.new }
 
@@ -119,8 +119,8 @@ RSpec.describe Datadog::OpenFeature::Configuration::Source do
 
   context "when configured programmatically" do
     before do
-      settings.open_feature.feature_flags_enabled = true
-      settings.open_feature.configuration_source = "remote_config"
+      settings.feature_flags.enabled = true
+      settings.feature_flags.configuration_source = "remote_config"
       settings.open_feature.enabled = false
       allow(Datadog.logger).to receive(:warn)
     end
