@@ -165,18 +165,42 @@ RSpec.describe Datadog::AIGuard do
   end
 
   describe ".assistant" do
-    it "returns a message containing a tool call" do
-      message = described_class.assistant(tool_name: "git", id: "git-1", arguments: "commit -m 'Some message'")
+    context "when arguments are a string" do
+      let(:message) do
+        described_class.assistant(
+          tool_name: "git",
+          id: "git-1",
+          arguments: '{"command":"commit -m \'Some message\'"}'
+        )
+      end
 
-      aggregate_failures "returned message" do
-        expect(message).to be_a(Datadog::AIGuard::Evaluation::Message)
-        expect(message.role).to eq(:assistant)
-        expect(message.content).to be_nil
+      it "returns a message containing a tool call" do
+        aggregate_failures "returned message" do
+          expect(message).to be_a(Datadog::AIGuard::Evaluation::Message)
+          expect(message.role).to eq(:assistant)
+          expect(message.content).to be_nil
 
-        expect(message.tool_call).to be_a(Datadog::AIGuard::Evaluation::ToolCall)
-        expect(message.tool_call.id).to eq("git-1")
-        expect(message.tool_call.tool_name).to eq("git")
-        expect(message.tool_call.arguments).to eq("commit -m 'Some message'")
+          expect(message.tool_call).to be_a(Datadog::AIGuard::Evaluation::ToolCall)
+          expect(message.tool_call.id).to eq("git-1")
+          expect(message.tool_call.tool_name).to eq("git")
+          expect(message.tool_call.arguments).to eq('{"command":"commit -m \'Some message\'"}')
+        end
+      end
+    end
+
+    context "when arguments are a hash" do
+      let(:message) do
+        described_class.assistant(tool_name: "git", id: "git-1", arguments: {"command" => "commit"})
+      end
+
+      it { expect(message.tool_call.arguments).to eq('{"command":"commit"}') }
+    end
+
+    context "when arguments are neither a string nor a hash" do
+      it "raises an ArgumentError" do
+        expect {
+          described_class.assistant(tool_name: "git", id: "git-1", arguments: [])
+        }.to raise_error(ArgumentError, "Tool call arguments must be a String or Hash")
       end
     end
   end

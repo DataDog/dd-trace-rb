@@ -10,7 +10,12 @@ module Datadog
         def initialize(tool_name, id:, arguments:)
           @tool_name = tool_name
           @id = id
-          @arguments = arguments
+          @arguments =
+            case arguments
+            when String then arguments
+            when Hash then JSON.generate(arguments)
+            else raise ArgumentError, "Tool call arguments must be a String or Hash"
+            end
         end
 
         def with_arguments(arguments)

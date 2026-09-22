@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "json"
+
+require_relative "ext"
 require_relative "http_client"
 require_relative "evaluation"
 require_relative "evaluation/request"
@@ -16,7 +19,6 @@ require_relative "redaction"
 require_relative "redaction/result"
 require_relative "redaction/replacements"
 require_relative "metrics/telemetry"
-require_relative "ext"
 
 module Datadog
   module AIGuard
