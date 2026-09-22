@@ -123,7 +123,9 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
   end
 
   def last_payload
-    MessagePack.unpack(mock_agent.requests.last.fetch(:body))
+    # The background agent-info worker's body-less +GET /info+ may land after the trace POST.
+    trace_request = mock_agent.requests.reverse.find { |entry| entry[:request_line].include?("/v0.4/traces") }
+    MessagePack.unpack(trace_request.fetch(:body))
   end
 
   # ---------------------------------------------------------------------------
