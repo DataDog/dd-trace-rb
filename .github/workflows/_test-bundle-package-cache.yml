@@ -1,7 +1,6 @@
 name: Test bundle package cache
 
 on: # yamllint disable-line rule:truthy
-  pull_request:
   workflow_dispatch:
     inputs:
       allow-save:
@@ -108,7 +107,7 @@ jobs:
           esac
 
       - id: populate
-        if: steps.restore.outputs.exact-hit != 'true' && (github.event_name == 'pull_request' || inputs.allow-save)
+        if: steps.restore.outputs.exact-hit != 'true' && inputs.allow-save
         name: Populate package cache
         uses: ./.github/actions/package-cache-populate
         with:
@@ -117,10 +116,10 @@ jobs:
       - name: Assert minimal package manifest and archive
         shell: bash
         env:
-          ALLOW_SAVE: ${{ github.event_name == 'pull_request' || inputs.allow-save }}
+          ALLOW_SAVE: ${{ inputs.allow-save }}
           EXPECTED_PACKAGE: ${{ inputs.fixture-version == 'alternate' && 'excon-1.7.0.gem' || 'excon-1.7.1.gem' }}
           EXPECTED_STATE: ${{ inputs.expected-state }}
-          FIXTURE_VERSION: ${{ inputs.fixture-version || 'original' }}
+          FIXTURE_VERSION: ${{ inputs.fixture-version }}
           MANIFEST_PATH: ${{ steps.key.outputs.manifest-path }}
         run: |
           ruby -rjson -e '
@@ -142,14 +141,14 @@ jobs:
           [ "$files" = "$archive_package" ]
 
       - name: Install original fixture from local package cache
-        if: inputs.fixture-version != 'alternate' && (github.event_name == 'pull_request' || inputs.allow-save || inputs.expected-state != 'miss')
+        if: inputs.fixture-version == 'original' && (inputs.allow-save || inputs.expected-state != 'miss')
         shell: bash
         env:
           BUNDLE_GEMFILE: ${{ github.workspace }}/spec/fixtures/package_cache/cache-appraisal.gemfile
         run: bundle install --local
 
       - name: Install original fixture without package cache
-        if: inputs.fixture-version != 'alternate' && github.event_name != 'pull_request' && !inputs.allow-save && inputs.expected-state == 'miss'
+        if: inputs.fixture-version == 'original' && !inputs.allow-save && inputs.expected-state == 'miss'
         shell: bash
         env:
           BUNDLE_GEMFILE: ${{ github.workspace }}/spec/fixtures/package_cache/cache-appraisal.gemfile
@@ -182,12 +181,12 @@ jobs:
         run: bundle install --local
 
       - id: save
-        if: steps.restore.outputs.exact-hit != 'true' && (github.event_name == 'pull_request' || inputs.allow-save)
+        if: steps.restore.outputs.exact-hit != 'true' && inputs.allow-save
         name: Save package cache
         uses: ./.github/actions/package-cache-save
         with:
           primary-key: ${{ steps.key.outputs.primary-key }}
-          write-enabled: ${{ github.event_name == 'pull_request' || inputs.allow-save }}
+          write-enabled: ${{ inputs.allow-save }}
           default-ref: ${{ github.ref }}
 
       - name: Verify production dependencies unchanged
