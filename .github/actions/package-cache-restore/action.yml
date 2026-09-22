@@ -1,0 +1,45 @@
+name: Restore package cache
+
+description: Restore exact or newest same-runtime downloaded package cache
+
+inputs:
+  primary-key:
+    description: Exact package cache key
+    required: true
+  fallback-prefix:
+    description: Same-runtime cache key prefix
+    required: true
+  cache-path:
+    description: Downloaded package cache path
+    required: false
+    default: /tmp/ddtrace-bundle-package-cache
+
+outputs:
+  exact-hit:
+    description: Whether exact package cache was restored
+    value: ${{ steps.restore.outputs.cache-hit }}
+  matched-key:
+    description: Restored cache key
+    value: ${{ steps.restore.outputs.cache-matched-key }}
+  duration-seconds:
+    description: Restore step duration
+    value: ${{ steps.timing.outputs.duration-seconds }}
+
+runs:
+  using: composite
+  steps:
+    - id: start
+      shell: bash
+      run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
+    - id: restore
+      name: Restore downloaded packages
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ inputs.primary-key }}
+        restore-keys: ${{ inputs.fallback-prefix }}
+        path: ${{ inputs.cache-path }}
+    - id: timing
+      shell: bash
+      env:
+        START_SECONDS: ${{ steps.start.outputs.seconds }}
+      run: echo "duration-seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"

@@ -1,0 +1,60 @@
+name: Save package cache
+
+description: Save downloaded packages only when explicitly enabled on default branch
+
+inputs:
+  primary-key:
+    description: Exact package cache key
+    required: true
+  write-enabled:
+    description: Whether caller permits package cache writes
+    required: true
+  default-ref:
+    description: Default branch ref permitted to save
+    required: false
+    default: refs/heads/master
+  cache-path:
+    description: Downloaded package cache path
+    required: false
+    default: /tmp/ddtrace-bundle-package-cache
+
+outputs:
+  save-eligible:
+    description: Whether cache write passed both gates
+    value: ${{ steps.eligibility.outputs.save-eligible }}
+  duration-seconds:
+    description: Save step duration
+    value: ${{ steps.timing.outputs.duration-seconds }}
+
+runs:
+  using: composite
+  steps:
+    - id: eligibility
+      name: Check package cache write policy
+      shell: bash
+      env:
+        CURRENT_REF: ${{ github.ref }}
+        DEFAULT_REF: ${{ inputs.default-ref }}
+        WRITE_ENABLED: ${{ inputs.write-enabled }}
+      run: |
+        eligible=false
+        if [ "$WRITE_ENABLED" = "true" ] && [ "$CURRENT_REF" = "$DEFAULT_REF" ]; then
+          eligible=true
+        fi
+        echo "save-eligible=$eligible" >> "$GITHUB_OUTPUT"
+    - id: start
+      if: steps.eligibility.outputs.save-eligible == 'true'
+      shell: bash
+      run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
+    - name: Save downloaded packages
+      if: steps.eligibility.outputs.save-eligible == 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ inputs.primary-key }}
+        path: ${{ inputs.cache-path }}
+    - id: timing
+      if: steps.eligibility.outputs.save-eligible == 'true'
+      shell: bash
+      env:
+        START_SECONDS: ${{ steps.start.outputs.seconds }}
+      run: echo "duration-seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"

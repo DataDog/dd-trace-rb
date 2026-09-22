@@ -18,8 +18,24 @@ runs:
     run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
     shell: bash
 
-  - run: bundle exec rake github:run_batch_build
+  - id: bundle-install-start
+    run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
     shell: bash
+
+  - name: Install batch dependencies
+    run: bundle exec rake github:run_batch_build
+    shell: bash
+
+  - name: Report batch dependency installation
+    shell: bash
+    env:
+      START_SECONDS: ${{ steps.bundle-install-start.outputs.seconds }}
+    run: |
+      duration=$(($(date +%s) - START_SECONDS))
+      {
+        echo "### Batch dependency installation"
+        echo "- Duration: \`${duration}s\`"
+      } >> "$GITHUB_STEP_SUMMARY"
 
   - name: Configure RSpec
     run: ln -s .rspec-local.example .rspec-local
