@@ -42,7 +42,7 @@ module Datadog
         # that do not supply a deadline).
         def evaluation_deadline_exceeded?
           deadline = @context&.deadline_ns
-          deadline && ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) >= deadline
+          !deadline.nil? && ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) >= deadline
         end
         private :evaluation_deadline_exceeded?
 
