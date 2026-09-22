@@ -1,6 +1,6 @@
 {
   "type": "Fixed",
-  "product": "Core",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6316",
-  "message": "Fix automatic instrumentation failing for frozen applications when `Gemfile.lock` has checksums enabled."
+  "product": "SSI",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6320",
+  "message": "Preserve checksums in injected Ruby lockfiles."
 }
