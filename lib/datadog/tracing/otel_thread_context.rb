@@ -19,10 +19,8 @@ module Datadog
         instance if instance.supported? && instance._native_enable
       end
 
-      private_class_method :new
-
-      def subscribe_to_tracer_events!(events)
-        events.span_before_start.subscribe do |event_span_op, event_trace_op|
+      def initialize
+        @span_before_start = proc do |event_span_op, event_trace_op|
           set(
             trace_id: event_trace_op.id,
             span_id: event_span_op.id,
@@ -30,11 +28,18 @@ module Datadog
           )
         end
 
-        events.span_finished.subscribe do |_event_span_op, event_trace_op|
+        @span_finished = proc do |_event_span_op, event_trace_op|
           next if event_trace_op.finished?
 
           update_from_trace_op(event_trace_op)
         end
+      end
+
+      private_class_method :new
+
+      def subscribe_to_tracer_events!(events)
+        events.span_before_start.subscribe(&@span_before_start)
+        events.span_finished.subscribe(&@span_finished)
       end
 
       def set(trace_id:, span_id:, local_root_span_id:)

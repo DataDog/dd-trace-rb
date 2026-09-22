@@ -7,7 +7,12 @@ module Datadog
         def otel_thread_context_enabled: () -> bool
       end
 
+      @span_before_start: ^(SpanOperation, TraceOperation) -> void
+      @span_finished: ^(Span?, TraceOperation) -> void
+
       def self.build: (_TracingSettings tracing_settings) -> OTelThreadContext?
+
+      def initialize: () -> void
 
       def subscribe_to_tracer_events!: (TraceOperation::Events events) -> void
 
