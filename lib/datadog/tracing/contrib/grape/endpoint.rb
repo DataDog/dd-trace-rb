@@ -15,6 +15,8 @@ module Datadog
         module Endpoint
           KEY_RUN = "datadog_grape_endpoint_run"
           KEY_RENDER = "datadog_grape_endpoint_render"
+          # Trailing format segment of a compiled path: "/widgets(.:format)"
+          FORMAT_SEGMENT = /\(\.:?\w+\)\z/
 
           class << self
             def subscribe
@@ -43,8 +45,8 @@ module Datadog
               # collect endpoint details
               endpoint = payload.fetch(:endpoint)
               env = payload.fetch(:env)
-              api_view = api_view(endpoint.options[:for])
-              request_method = endpoint.options.fetch(:method).first
+              api_view = api_view(endpoint_api(endpoint))
+              request_method = endpoint_request_method(endpoint)
               path = endpoint_expand_path(endpoint)
               resource = "#{api_view} #{request_method} #{path}"
 
@@ -70,7 +72,7 @@ module Datadog
                   # here we are removing the format from the path:
                   # e.g. /path/to/resource(.json) => /path/to/resource
                   # e.g. /path/to/resource(.:format) => /path/to/resource
-                  grape_route[:route_info].path&.gsub(/\(\.:?\w+\)\z/, "")
+                  grape_route[:route_info].path&.gsub(FORMAT_SEGMENT, "")
                 )
 
                 trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env["SCRIPT_NAME"])
@@ -96,8 +98,8 @@ module Datadog
               begin
                 # collect endpoint details
                 endpoint = payload.fetch(:endpoint)
-                api_view = api_view(endpoint.options[:for])
-                request_method = endpoint.options.fetch(:method).first
+                api_view = api_view(endpoint_api(endpoint))
+                request_method = endpoint_request_method(endpoint)
                 path = endpoint_expand_path(endpoint)
 
                 trace.resource = span.resource
@@ -266,8 +268,27 @@ module Datadog
               end
             end
 
+            # Grape 4 moved three values off the endpoint's public options Hash: the
+            # API class became the #api reader (ruby-grape/grape#2778), and the verb
+            # and path are read off the route (#2775, #2776). Each reader prefers the
+            # options Hash, so Grape 1.x through 3.x resolve as they did before.
+            def endpoint_api(endpoint)
+              return endpoint.api if endpoint.respond_to?(:api)
+
+              endpoint.options[:for]
+            end
+
+            def endpoint_request_method(endpoint)
+              request_methods = endpoint.options[:method]
+              return request_methods.first if request_methods
+
+              endpoint.routes.first&.request_method
+            end
+
             def endpoint_expand_path(endpoint)
               route_path = endpoint.options[:path]
+              return endpoint_route_path(endpoint) if route_path.nil? || route_path.empty?
+
               namespace = endpoint.routes.first&.namespace || ""
 
               path = (namespace.split("/") + route_path)
@@ -275,6 +296,11 @@ module Datadog
                 .join("/")
               path.prepend("/") if path[0] != "/"
               path
+            end
+
+            # A compiled path already carries the namespace, so it is used whole.
+            def endpoint_route_path(endpoint)
+              endpoint.routes.first&.path&.sub(FORMAT_SEGMENT, "") || "/"
             end
 
             def service_name

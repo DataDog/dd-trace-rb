@@ -37,4 +37,108 @@ RSpec.describe Datadog::Tracing::Contrib::Grape::Endpoint do
       end
     end
   end
+  # Grape 4 moved the API class, verb and path off the endpoint's options Hash.
+  # See: https://github.com/ruby-grape/grape/pull/2778
+  describe ".endpoint_api" do
+    subject(:endpoint_api) { described_class.send(:endpoint_api, endpoint) }
+
+    context "when the endpoint responds to #api (Grape 4 and later)" do
+      let(:api) { Class.new }
+      let(:endpoint) { double("Grape::Endpoint", api: api) }
+
+      it "reads the API off #api" do
+        expect(endpoint_api).to be(api)
+      end
+    end
+
+    context "when the endpoint does not respond to #api (Grape 3 and earlier)" do
+      let(:api) { Class.new }
+      let(:endpoint) { double("Grape::Endpoint", options: {for: api}) }
+
+      it "reads the API off options[:for]" do
+        expect(endpoint_api).to be(api)
+      end
+    end
+  end
+
+  describe ".endpoint_request_method" do
+    subject(:request_method) { described_class.send(:endpoint_request_method, endpoint) }
+
+    context "when the options Hash carries :method (Grape 3 and earlier)" do
+      let(:endpoint) do
+        double("Grape::Endpoint", options: {method: ["GET"]}, routes: [double("Route", request_method: "POST")])
+      end
+
+      it "prefers the options Hash, leaving existing versions unchanged" do
+        expect(request_method).to eq("GET")
+      end
+    end
+
+    context "when the options Hash does not carry :method (Grape 4 and later)" do
+      let(:endpoint) { double("Grape::Endpoint", options: {}, routes: [double("Route", request_method: "PATCH")]) }
+
+      it "reads the verb off the first route" do
+        expect(request_method).to eq("PATCH")
+      end
+    end
+
+    context "when the endpoint has no routes" do
+      let(:endpoint) { double("Grape::Endpoint", options: {}, routes: []) }
+
+      it "returns nil rather than raising" do
+        expect(request_method).to be_nil
+      end
+    end
+  end
+
+  describe ".endpoint_expand_path" do
+    subject(:path) { described_class.send(:endpoint_expand_path, endpoint) }
+
+    # No example for the pre-Grape-4 branch: it is unchanged, and its join calls
+    # ActiveSupport's String#blank?, which this spec does not load.
+    context "when the options Hash does not carry :path (Grape 4 and later)" do
+      let(:endpoint) do
+        double(
+          "Grape::Endpoint",
+          options: {},
+          routes: [double("Route", namespace: "/api/v1", path: "/api/v1/widgets(.json)")]
+        )
+      end
+
+      it "uses the compiled route path, which already carries the namespace" do
+        expect(path).to eq("/api/v1/widgets")
+      end
+
+      it "strips a :format segment too" do
+        allow(endpoint.routes.first).to receive(:path).and_return("/api/v1/widgets/:id(.:format)")
+        expect(path).to eq("/api/v1/widgets/:id")
+      end
+    end
+
+    context "when the endpoint has no routes" do
+      let(:endpoint) { double("Grape::Endpoint", options: {}, routes: []) }
+
+      it "returns the root path rather than raising" do
+        expect(path).to eq("/")
+      end
+    end
+
+    context "when the route has no path" do
+      let(:endpoint) { double("Grape::Endpoint", options: {}, routes: [double("Route", path: nil)]) }
+
+      it "returns the root path rather than raising" do
+        expect(path).to eq("/")
+      end
+    end
+
+    context "when the options Hash carries an empty :path" do
+      let(:endpoint) do
+        double("Grape::Endpoint", options: {path: []}, routes: [double("Route", path: "/widgets(.json)")])
+      end
+
+      it "uses the compiled route path rather than resolving to the namespace alone" do
+        expect(path).to eq("/widgets")
+      end
+    end
+  end
 end
