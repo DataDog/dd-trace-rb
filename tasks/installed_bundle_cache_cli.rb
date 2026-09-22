@@ -22,7 +22,7 @@ command = ARGV.shift
 parser.parse!(ARGV)
 raise OptionParser::MissingArgument, "--base-gemfile" unless options[:base_gemfile]
 
-matrix = GithubMatrix.new(matrix_path: options[:matrix])
+matrix = GithubMatrix.new(matrix_path: options[:matrix], fallback_gemfile: options[:base_gemfile])
 cache = InstalledBundleCache.new(
   root: options[:root],
   base_gemfile: options[:base_gemfile],

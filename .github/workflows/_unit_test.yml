@@ -115,8 +115,14 @@ jobs:
 
       - id: set-batches
         name: Distribute tasks into batches
+        env:
+          FALLBACK_GEMFILE: ${{ inputs.version == '4.0' && format('gemfiles/{0}-{1}.gemfile', inputs.engine, inputs.version) || '' }}
         run: |
-          data=$(bundle exec rake github:generate_batches)
+          if [ -n "$FALLBACK_GEMFILE" ]; then
+            data=$(bundle exec rake "github:generate_batches[$FALLBACK_GEMFILE]")
+          else
+            data=$(bundle exec rake github:generate_batches)
+          fi
           echo "$data" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
 
           # Extract each key and set it as a separate output

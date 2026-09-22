@@ -8,8 +8,11 @@ RSpec.describe GithubMatrix do
       matrix_path: matrix_path,
       ruby_version: "4.0",
       gemfile_resolver: gemfile_resolver,
+      fallback_gemfile: fallback_gemfile,
     )
   end
+
+  let(:fallback_gemfile) { "Gemfile" }
 
   let(:gemfile_resolver) do
     lambda do |group|
@@ -77,5 +80,14 @@ RSpec.describe GithubMatrix do
         "gemfiles/ruby_4.0_rails.gemfile",
       ]
     )
+  end
+
+  context "with a custom fallback Gemfile" do
+    let(:fallback_gemfile) { "gemfiles/ruby-4.0.gemfile" }
+
+    it "uses the fallback for groups without an appraisal Gemfile" do
+      expect(matrix.gemfiles).to include("gemfiles/ruby-4.0.gemfile")
+      expect(matrix.gemfiles).not_to include("Gemfile")
+    end
   end
 end
