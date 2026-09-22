@@ -17,6 +17,8 @@ RSpec.describe DeterministicJunitFormatter do
   let(:testsuite) { xpath_first("/testsuite") }
   let(:testcases) { xpath_all("/testsuite/testcase") }
   let(:fixture_path) { formatter_run.fetch(:fixture_path) }
+  let(:rake_task) { "spec:main" }
+  let(:bundle_gemfile) { ENV["BUNDLE_GEMFILE"].to_s.empty? ? "Gemfile" : ENV["BUNDLE_GEMFILE"] }
 
   let(:formatter_run) do
     tmp_root = File.join(root, "tmp")
@@ -31,7 +33,10 @@ RSpec.describe DeterministicJunitFormatter do
       File.write(spec_path, formatter_fixture)
 
       stdout, stderr, status = Open3.capture3(
-        {"SKIP_SIMPLECOV" => "1"},
+        {
+          "SKIP_SIMPLECOV" => "1",
+          "RSPEC_JUNIT_RAKE_TASK" => rake_task,
+        },
         "bundle",
         "exec",
         "rspec",
@@ -69,8 +74,21 @@ RSpec.describe DeterministicJunitFormatter do
     REXML::XPath.match(node, path)
   end
 
+  def suite_property(name)
+    xpath_first(%(/testsuite/properties/property[@name="#{name}"]))
+  end
+
+  def expected_bundle_gemfile
+    expanded_path = File.expand_path(bundle_gemfile)
+    root_prefix = "#{root}/"
+    return expanded_path[root_prefix.length..-1] if expanded_path.start_with?(root_prefix)
+
+    File.basename(bundle_gemfile)
+  end
+
   def formatter_configuration
     <<~RUBY
+      ENV['BUNDLE_GEMFILE'] = #{bundle_gemfile.inspect}
       require './spec/support/deterministic_junit_formatter'
     RUBY
   end
@@ -128,7 +146,17 @@ RSpec.describe DeterministicJunitFormatter do
     expect(testsuite["tests"]).to eq("4")
     expect(testsuite["failures"]).to eq("1")
     expect(testsuite["skipped"]).to eq("1")
-    expect(xpath_first('/testsuite/properties/property[@name="rspec.version"]')["value"]).to eq(RSpec::Core::Version::STRING)
+    expect(suite_property("rspec.version")["value"]).to eq(RSpec::Core::Version::STRING)
+    expect(suite_property("dd_tags[runtime.name]")["value"]).to eq(RUBY_ENGINE)
+    expect(suite_property("dd_tags[runtime.version]")["value"]).to eq(RUBY_ENGINE_VERSION)
+    expect(suite_property("dd_tags[runtime.architecture]")["value"]).to eq(RbConfig::CONFIG["host_cpu"])
+    expect(suite_property("dd_tags[ruby.engine]")["value"]).to eq(RUBY_ENGINE)
+    expect(suite_property("dd_tags[ruby.version]")["value"]).to eq(RUBY_VERSION)
+    expect(suite_property("dd_tags[ruby.platform]")["value"]).to eq(RUBY_PLATFORM)
+    expect(suite_property("dd_tags[bundle.gemfile]")["value"]).to eq(expected_bundle_gemfile)
+    expect(suite_property("dd_tags[test.framework]")["value"]).to eq("rspec")
+    expect(suite_property("dd_tags[test.framework_version]")["value"]).to eq(RSpec::Core::Version::STRING)
+    expect(suite_property("dd_tags[rake.task]")["value"]).to eq("spec:main")
 
     expect(testcases.size).to eq(4)
     testcases.each do |testcase|
@@ -153,5 +181,21 @@ RSpec.describe DeterministicJunitFormatter do
     expect(xpath_all("failure", aggregate_case).size).to eq(1)
     expect(xpath_first("failure", aggregate_case).text).to include('expected: "bravo"')
     expect(xpath_first("failure", aggregate_case).text).to include('expected: "delta"')
+  end
+
+  context "with a Gemfile outside the repository" do
+    let(:bundle_gemfile) { "/external/gemfiles/ruby-3.3.gemfile" }
+
+    it "omits the local path" do
+      expect(suite_property("dd_tags[bundle.gemfile]")["value"]).to eq("ruby-3.3.gemfile")
+    end
+  end
+
+  context "without a Rake task" do
+    let(:rake_task) { nil }
+
+    it "omits the Rake task tag" do
+      expect(suite_property("dd_tags[rake.task]")).to be_nil
+    end
   end
 end
