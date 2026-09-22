@@ -9,7 +9,6 @@ module Datadog
         DEFAULT_REQUEST_TIMEOUT_SECONDS = 5
         DEFAULT_INITIALIZATION_TIMEOUT_MS = 30_000
 
-        MAX_POLL_INTERVAL_SECONDS = 3600
         MAX_REQUEST_TIMEOUT_SECONDS = 300
         MAX_INITIALIZATION_TIMEOUT_MS = 2_147_483_647
 
@@ -84,12 +83,11 @@ module Datadog
                 end
                 o.default Settings::DEFAULT_POLL_INTERVAL_SECONDS
                 o.setter do |value|
-                  if value.is_a?(Integer) && value > 0 && value <= Settings::MAX_POLL_INTERVAL_SECONDS
+                  if value.is_a?(Integer) && value > 0
                     value
                   else
                     Datadog.logger.warn(
-                      "Feature Flags agentless poll interval must be within (0, " \
-                      "#{Settings::MAX_POLL_INTERVAL_SECONDS}]; using the default"
+                      "Feature Flags agentless poll interval must be positive; using the default"
                     )
                     Settings::DEFAULT_POLL_INTERVAL_SECONDS
                   end

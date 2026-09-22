@@ -99,8 +99,20 @@ RSpec.describe Datadog::OpenFeature::Configuration::Source do
 
     before { allow(Datadog.logger).to receive(:warn) }
 
-    it "gives the stable switch precedence" do
-      expect(resolution.source).to eq("agentless")
+    it "preserves the legacy disabled source" do
+      expect(resolution.source).to eq("offline")
+      expect(resolution).not_to be_enabled
+    end
+  end
+
+  context "when the stable switch and the legacy switch are true" do
+    with_env "DD_FEATURE_FLAGS_ENABLED" => "true",
+      "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED" => "true"
+
+    before { allow(Datadog.logger).to receive(:warn) }
+
+    it "preserves the legacy Remote Configuration source" do
+      expect(resolution.source).to eq("remote_config")
       expect(resolution).to be_enabled
     end
   end
