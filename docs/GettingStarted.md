@@ -2952,7 +2952,7 @@ Alternatively, set DI parameters inside a `Datadog.configure` block:
 | `c.dynamic_instrumentation.redaction_excluded_identifiers` | `Array` | Variable/key names to exclude from the built-in redaction list. | `[]` |
 | `c.dynamic_instrumentation.redacted_type_names` | `Array` | Class names whose values will be redacted. Suffix with `*` for wildcard. | `[]` |
 | `c.dynamic_instrumentation.max_time_to_serialize_ms` | `Integer` | Per-probe-fire time budget (in milliseconds) for capture-expression evaluation. | `200` |
-| `c.dynamic_instrumentation.max_time_to_evaluate_ms` | `Integer` | Wall-time budget (in milliseconds) for evaluating a probe condition (`when`) or template segment. | `50` |
+| `c.dynamic_instrumentation.max_time_to_evaluate_ms` | `Integer` | Wall-time budget (in milliseconds) for evaluating a probe condition or template segment. | `50` |
 
 #### Symbol Database
 
