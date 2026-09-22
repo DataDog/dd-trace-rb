@@ -77,8 +77,10 @@ module Datadog
                 logger.debug do
                   "di: dropping too big snapshot (#{Guardrails::Reason::PAYLOAD_TOO_LARGE})"
                 end
-                Guardrails.dropped(telemetry, reason: Guardrails::Reason::PAYLOAD_TOO_LARGE,
-                  event_type: Guardrails::EVENT_TYPE_SNAPSHOT, bytes: encoded.bytesize)
+                Guardrails.dropped(
+                  telemetry, reason: Guardrails::Reason::PAYLOAD_TOO_LARGE,
+                  event_type: Guardrails::EVENT_TYPE_SNAPSHOT, bytes: encoded.bytesize,
+                )
                 next
               end
               encoded_snapshots << encoded

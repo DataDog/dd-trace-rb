@@ -59,8 +59,10 @@ module Datadog
       def self.skipped(telemetry, reason:, probe_type:)
         return unless telemetry
 
-        telemetry.inc(TELEMETRY_NAMESPACE, "guardrails.events.skipped", 1,
-          tags: {reason: reason, probe_type: probe_type})
+        telemetry.inc(
+          TELEMETRY_NAMESPACE, "guardrails.events.skipped", 1,
+          tags: {reason: reason, probe_type: probe_type},
+        )
       end
 
       # Emits the canonical +guardrails.events.dropped+ count metric for a
@@ -77,12 +79,16 @@ module Datadog
       def self.dropped(telemetry, reason:, event_type:, bytes: nil)
         return unless telemetry
 
-        telemetry.inc(TELEMETRY_NAMESPACE, "guardrails.events.dropped", 1,
-          tags: {reason: reason, event_type: event_type})
+        telemetry.inc(
+          TELEMETRY_NAMESPACE, "guardrails.events.dropped", 1,
+          tags: {reason: reason, event_type: event_type},
+        )
         return unless bytes
 
-        telemetry.inc(TELEMETRY_NAMESPACE, "guardrails.queue.dropped_bytes", bytes,
-          tags: {reason: reason, event_type: event_type})
+        telemetry.inc(
+          TELEMETRY_NAMESPACE, "guardrails.queue.dropped_bytes", bytes,
+          tags: {reason: reason, event_type: event_type},
+        )
       end
     end
   end

@@ -566,8 +566,10 @@ module Datadog
               "di: #{probe.type} probe #{probe.id}: skipping due to per-probe rate limit" \
                 " (#{Guardrails::Reason::RATE_LIMIT_PROBE})"
             end
-            Guardrails.skipped(telemetry, reason: Guardrails::Reason::RATE_LIMIT_PROBE,
-              probe_type: Guardrails.probe_type_tag(probe))
+            Guardrails.skipped(
+              telemetry, reason: Guardrails::Reason::RATE_LIMIT_PROBE,
+              probe_type: Guardrails.probe_type_tag(probe),
+            )
           end
           if admitted && !probe_global_rate_limiter(probe).allow?
             admitted = false
@@ -575,8 +577,10 @@ module Datadog
               "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" \
                 " (#{Guardrails::Reason::RATE_LIMIT_GLOBAL})"
             end
-            Guardrails.skipped(telemetry, reason: Guardrails::Reason::RATE_LIMIT_GLOBAL,
-              probe_type: Guardrails.probe_type_tag(probe))
+            Guardrails.skipped(
+              telemetry, reason: Guardrails::Reason::RATE_LIMIT_GLOBAL,
+              probe_type: Guardrails.probe_type_tag(probe),
+            )
           end
           if admitted
             # Arguments may be mutated by the method, therefore
@@ -846,8 +850,10 @@ module Datadog
             "di: #{probe.type} probe #{probe.id}: skipping due to per-probe rate limit" \
               " (#{Guardrails::Reason::RATE_LIMIT_PROBE})"
           end
-          Guardrails.skipped(telemetry, reason: Guardrails::Reason::RATE_LIMIT_PROBE,
-            probe_type: Guardrails.probe_type_tag(probe))
+          Guardrails.skipped(
+            telemetry, reason: Guardrails::Reason::RATE_LIMIT_PROBE,
+            probe_type: Guardrails.probe_type_tag(probe),
+          )
           return
         end
 
@@ -856,8 +862,10 @@ module Datadog
             "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" \
               " (#{Guardrails::Reason::RATE_LIMIT_GLOBAL})"
           end
-          Guardrails.skipped(telemetry, reason: Guardrails::Reason::RATE_LIMIT_GLOBAL,
-            probe_type: Guardrails.probe_type_tag(probe))
+          Guardrails.skipped(
+            telemetry, reason: Guardrails::Reason::RATE_LIMIT_GLOBAL,
+            probe_type: Guardrails.probe_type_tag(probe),
+          )
           return
         end
 
