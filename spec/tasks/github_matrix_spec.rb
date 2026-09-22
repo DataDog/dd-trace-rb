@@ -60,7 +60,17 @@ RSpec.describe GithubMatrix do
     expect(matrix.misc_tasks.map { |task| task[:task] }).to eq(["mongodb"])
   end
 
-  it "returns sorted unique appraisal Gemfiles" do
+  it "returns sorted unique applicable Gemfiles" do
+    expect(matrix.gemfiles).to eq(
+      [
+        "Gemfile",
+        "gemfiles/ruby_4.0_mongo.gemfile",
+        "gemfiles/ruby_4.0_rails.gemfile",
+      ]
+    )
+  end
+
+  it "returns appraisal Gemfiles without the root Gemfile" do
     expect(matrix.appraisal_gemfiles).to eq(
       [
         "gemfiles/ruby_4.0_mongo.gemfile",

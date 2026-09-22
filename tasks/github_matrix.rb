@@ -36,8 +36,12 @@ class GithubMatrix
     tasks.select { |task| MISC_CANDIDATES.include?(task[:task]) }
   end
 
+  def gemfiles
+    tasks.map { |task| task[:gemfile] }.uniq.sort
+  end
+
   def appraisal_gemfiles
-    tasks.map { |task| task[:gemfile] }.reject { |path| path == "Gemfile" }.uniq.sort
+    gemfiles.reject { |path| path == "Gemfile" }
   end
 
   private

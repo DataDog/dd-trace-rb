@@ -7,7 +7,7 @@ RSpec.describe InstalledBundleCache do
     described_class.new(
       root: temporary_directory,
       base_gemfile: "base.gemfile",
-      appraisal_gemfiles: ["second.gemfile", "first.gemfile"],
+      applicable_gemfiles: ["second.gemfile", "first.gemfile"],
     )
   end
 

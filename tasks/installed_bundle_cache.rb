@@ -20,19 +20,19 @@ class InstalledBundleCache
     MAKEFLAGS
   ].freeze
 
-  attr_reader :root, :base_gemfile, :appraisal_gemfiles
+  attr_reader :root, :base_gemfile, :applicable_gemfiles
 
-  def initialize(root: Pathname.pwd, base_gemfile: AppraisalConversion.parent_gemfile, matrix: nil, appraisal_gemfiles: nil)
-    raise ArgumentError, "Provide matrix or appraisal_gemfiles, not both" if matrix && appraisal_gemfiles
+  def initialize(root: Pathname.pwd, base_gemfile: AppraisalConversion.parent_gemfile, matrix: nil, applicable_gemfiles: nil)
+    raise ArgumentError, "Provide matrix or applicable_gemfiles, not both" if matrix && applicable_gemfiles
 
     @root = Pathname(root).expand_path
     @base_gemfile = absolute_path(base_gemfile)
-    selected_gemfiles = appraisal_gemfiles || (matrix || GithubMatrix.new).appraisal_gemfiles
-    @appraisal_gemfiles = selected_gemfiles.map { |path| absolute_path(path) }.sort
+    selected_gemfiles = applicable_gemfiles || (matrix || GithubMatrix.new).gemfiles
+    @applicable_gemfiles = selected_gemfiles.map { |path| absolute_path(path) }.sort
   end
 
   def gemfiles
-    ([base_gemfile] + appraisal_gemfiles).uniq
+    ([base_gemfile] + applicable_gemfiles).uniq
   end
 
   def lockfiles
@@ -66,7 +66,7 @@ class InstalledBundleCache
       cache_key: cache_key(cache_schema: cache_schema, image_identity: image_identity),
       environment: environment(image_identity: image_identity),
       base_gemfile: relative_path(base_gemfile),
-      appraisal_gemfiles: appraisal_gemfiles.map { |path| relative_path(path) },
+      applicable_gemfiles: applicable_gemfiles.map { |path| relative_path(path) },
       lockfiles: lockfiles.map { |path| relative_path(path) },
       lockfile_digest: lockfile_digest,
     }
