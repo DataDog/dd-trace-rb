@@ -102,7 +102,7 @@ GEM
       method_source (~> 1.0)
       reline (>= 0.6.0)
     public_suffix (5.1.1)
-    rack (3.2.7)
+    rack (2.2.24)
     rack-accept (0.4.5)
       rack (>= 0.4)
     rack-test (2.2.0)
@@ -171,6 +171,7 @@ DEPENDENCIES
   memory_profiler (~> 0.9)
   os (~> 1.1)
   pry
+  rack (~> 2)
   rack-test
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
