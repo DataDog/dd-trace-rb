@@ -362,7 +362,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
 
     it "blocks tool execution when AI Guard denies the tool call" do
       allow(Datadog::AIGuard).to receive(:evaluate) do |*messages, **_kwargs|
-        tool_call = messages.map(&:tool_call).compact.first
+        tool_call = messages.flat_map(&:tool_calls).first
 
         if tool_call&.tool_name == "shell"
           raise Datadog::AIGuard::AIGuardAbortError.new(

@@ -13,7 +13,7 @@ module Datadog
           module_function
 
           def convert(messages)
-            messages.flat_map do |message|
+            messages.map do |message|
               if message.tool_call?
                 build_tool_call(message)
               elsif message.tool_result?
@@ -61,13 +61,15 @@ module Datadog
           end
 
           private_class_method def build_tool_call(message)
-            message.tool_calls.map do |tool_call_id, tool_call|
-              AIGuard.assistant(
+            tool_calls = message.tool_calls.map do |tool_call_id, tool_call|
+              AIGuard.tool_call(
                 id: tool_call_id,
-                tool_name: tool_call.name,
+                name: tool_call.name,
                 arguments: JSON.generate(tool_call.arguments)
               )
             end
+
+            AIGuard.assistant(tool_calls: tool_calls)
           end
         end
       end

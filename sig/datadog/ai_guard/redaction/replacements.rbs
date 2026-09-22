@@ -4,7 +4,7 @@ module Datadog
       class Replacements
         extend Forwardable
 
-        type path = [Integer, :content] | [Integer, :text, Integer] | [Integer, :arguments]
+        type path = [Integer, :content] | [Integer, :text, Integer] | [Integer, :arguments, Integer]
         type replacements = Hash[path, String]
 
         TEXT_PATH_PATTERN: Regexp

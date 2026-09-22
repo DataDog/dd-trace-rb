@@ -102,16 +102,23 @@ RSpec.describe Datadog::AIGuard::Redaction do
       end
     end
 
-    context "when the target is a tool call argument string" do
+    context "when the target is multiple tool call argument strings" do
       let(:messages) do
         [
           Datadog::AIGuard::Evaluation::Message.new(
             role: :assistant,
-            tool_call: Datadog::AIGuard::Evaluation::ToolCall.new(
-              "send_email",
-              id: "call-1",
-              arguments: '{"to":"person@example.com"}'
-            )
+            tool_calls: [
+              Datadog::AIGuard::Evaluation::ToolCall.new(
+                "send_email",
+                id: "call-1",
+                arguments: '{"to":"person@example.com"}'
+              ),
+              Datadog::AIGuard::Evaluation::ToolCall.new(
+                "lookup_user",
+                id: "call-2",
+                arguments: '{"email":"person@example.com"}'
+              )
+            ]
           ),
         ]
       end
@@ -121,11 +128,15 @@ RSpec.describe Datadog::AIGuard::Redaction do
             "path" => "messages[0].tool_calls[0].function.arguments",
             "replacement" => '{"to":"<REDACTED>"}',
           },
+          {
+            "path" => "messages[0].tool_calls[1].function.arguments",
+            "replacement" => '{"email":"<REDACTED>"}',
+          },
         ]
       end
 
-      it "replaces the complete argument string" do
-        aggregate_failures "successful tool argument redaction" do
+      it "replaces every complete argument string" do
+        aggregate_failures "successful tool argument redactions" do
           expect(result.messages.map(&:to_h)).to eq([
             {
               role: :assistant,
@@ -137,10 +148,17 @@ RSpec.describe Datadog::AIGuard::Redaction do
                     arguments: '{"to":"<REDACTED>"}',
                   },
                 },
+                {
+                  id: "call-2",
+                  function: {
+                    name: "lookup_user",
+                    arguments: '{"email":"<REDACTED>"}',
+                  },
+                },
               ],
             },
           ])
-          expect(result.applied).to eq(1)
+          expect(result.applied).to eq(2)
           expect(result.failures).to eq(0)
         end
       end
@@ -274,11 +292,13 @@ RSpec.describe Datadog::AIGuard::Redaction do
         [
           Datadog::AIGuard::Evaluation::Message.new(
             role: :assistant,
-            tool_call: Datadog::AIGuard::Evaluation::ToolCall.new(
-              "send_email",
-              id: "call-1",
-              arguments: '{"to":"person@example.com"}'
-            )
+            tool_calls: [
+              Datadog::AIGuard::Evaluation::ToolCall.new(
+                "send_email",
+                id: "call-1",
+                arguments: '{"to":"person@example.com"}'
+              )
+            ]
           ),
         ]
       end
@@ -294,8 +314,8 @@ RSpec.describe Datadog::AIGuard::Redaction do
       it "copies the message and tool call without modifying the caller's arguments" do
         aggregate_failures "copy-on-write tool argument redaction" do
           expect(result.messages[0]).not_to equal(messages[0])
-          expect(result.messages[0].tool_call).not_to equal(messages[0].tool_call)
-          expect(messages[0].tool_call.arguments).to eq('{"to":"person@example.com"}')
+          expect(result.messages[0].tool_calls[0]).not_to equal(messages[0].tool_calls[0])
+          expect(messages[0].tool_calls[0].arguments).to eq('{"to":"person@example.com"}')
         end
       end
     end

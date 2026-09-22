@@ -3,7 +3,7 @@
 module Datadog
   module AIGuard
     module Evaluation
-      # Tool call class for AI Guard
+      # Represents a tool invocation requested by an assistant message
       class ToolCall
         attr_reader :tool_name, :id, :arguments
 

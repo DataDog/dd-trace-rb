@@ -27,7 +27,7 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageConverter do
 
       it "serializes the arguments as JSON" do
         converted_message = described_class.convert([message]).first
-        expect(converted_message.tool_call.arguments).to eq('{"command":"ls /"}')
+        expect(converted_message.tool_calls.first.arguments).to eq('{"command":"ls /"}')
       end
     end
 

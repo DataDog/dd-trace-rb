@@ -18,7 +18,7 @@ RSpec.describe Datadog::AIGuard::Redaction::Replacements do
             "replacement" => "Card <REDACTED>",
           },
           {
-            "path" => "messages[2].tool_calls[000].function.arguments",
+            "path" => "messages[2].tool_calls[3].function.arguments",
             "replacement" => "{}",
           },
         ]
@@ -30,7 +30,7 @@ RSpec.describe Datadog::AIGuard::Redaction::Replacements do
           expect(replacements.each.to_a).to eq([
             [[0, :content], ""],
             [[1, :text, 2], "Card <REDACTED>"],
-            [[2, :arguments], "{}"],
+            [[2, :arguments, 3], "{}"],
           ])
         end
       end
@@ -90,14 +90,13 @@ RSpec.describe Datadog::AIGuard::Redaction::Replacements do
           {"path" => "messages.content", "replacement" => "<REDACTED>"},
           {"path" => "items[0].content", "replacement" => "<REDACTED>"},
           {"path" => "messages[0].unknown", "replacement" => "<REDACTED>"},
-          {"path" => "messages[0].tool_calls[1].function.arguments", "replacement" => "{}"},
         ]
       end
 
       it "skips every unsupported path and records each failure" do
         aggregate_failures "unsupported replacement paths" do
           expect(replacements.each.to_a).to be_empty
-          expect(replacements.failures).to eq(5)
+          expect(replacements.failures).to eq(4)
         end
       end
     end

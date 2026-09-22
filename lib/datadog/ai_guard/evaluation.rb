@@ -25,14 +25,16 @@ module Datadog
             end
 
             if (last_message = messages.last)
-              if last_message.tool_call
+              if (tool_call = last_message.tool_calls.first)
                 span.set_tag(Ext::TARGET_TAG, "tool")
-                span.set_tag(Ext::TOOL_NAME_TAG, last_message.tool_call.tool_name)
+                span.set_tag(Ext::TOOL_NAME_TAG, tool_call.tool_name)
               elsif last_message.tool_call_id
                 span.set_tag(Ext::TARGET_TAG, "tool")
 
-                if (tool_call_message = messages.find { |m| m.tool_call&.id == last_message.tool_call_id })
-                  span.set_tag(Ext::TOOL_NAME_TAG, tool_call_message.tool_call.tool_name) # steep:ignore
+                messages.reverse_each do |message|
+                  # @type var tool_call: ToolCall?
+                  tool_call = message.tool_calls.find { |call| call.id == last_message.tool_call_id }
+                  break span.set_tag(Ext::TOOL_NAME_TAG, tool_call.tool_name) if tool_call
                 end
               else
                 span.set_tag(Ext::TARGET_TAG, "prompt")

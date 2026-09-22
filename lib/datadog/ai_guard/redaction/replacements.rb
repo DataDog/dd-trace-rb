@@ -14,10 +14,7 @@ module Datadog
 
         TEXT_PATH_PATTERN = /\Amessages\[([0-9]+)\]\.content\[([0-9]+)\]\.text\z/
         CONTENT_PATH_PATTERN = /\Amessages\[([0-9]+)\]\.content\z/
-        # NOTE: `Datadog::AIGuard::Evaluation::Message` has at most one tool call,
-        #       serialized as a one-element array. Only index zero is valid, and
-        #       zero-padded forms such as `[00]` are accepted
-        ARGUMENTS_PATH_PATTERN = /\Amessages\[([0-9]+)\]\.tool_calls\[0+\]\.function\.arguments\z/
+        ARGUMENTS_PATH_PATTERN = /\Amessages\[([0-9]+)\]\.tool_calls\[([0-9]+)\]\.function\.arguments\z/
 
         def_delegator :@replacements, :each
 
@@ -49,7 +46,7 @@ module Datadog
         #   {
         #     [0, :content] => "<redacted>",
         #     [1, :text, 2] => "<redacted>",
-        #     [2, :arguments] => "{}"
+        #     [2, :arguments, 0] => "{}"
         #   }
         def build(raw_replacements)
           unless raw_replacements.is_a?(::Array)
@@ -75,7 +72,7 @@ module Datadog
               elsif (match = TEXT_PATH_PATTERN.match(raw_path))
                 [match[1].to_i, :text, match[2].to_i]
               elsif (match = ARGUMENTS_PATH_PATTERN.match(raw_path))
-                [match[1].to_i, :arguments]
+                [match[1].to_i, :arguments, match[2].to_i]
               end
 
             next @failures += 1 unless path
