@@ -169,6 +169,10 @@ namespace :spec do
     t.pattern = "spec/datadog/open_feature/**/*_spec.rb"
     t.rspec_opts = args.to_a.join(" ")
   end
+  # Some open_feature specs drive the libdatadog_api C extension directly
+  # (Core::FeatureFlags::Configuration#get_assignment), so the extension must be
+  # compiled before this task runs.
+  Rake::Task["spec:open_feature"].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
 
   desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:rails) do |t, args|
@@ -299,6 +303,20 @@ namespace :spec do
   # run in their own process (see NATIVE_TRANSPORT_SPECS) to avoid sharing with
   # the fork-heavy ProcessDiscovery specs.
   Rake::Task["spec:native_transport"].enhance([:compile])
+
+  desc "Run native transport cleanup specs with memory leak checking"
+  if Gem.loaded_specs.key?("ruby_memcheck")
+    RubyMemcheck::RSpec::RakeTask.new(:native_transport_memcheck) do |t, args|
+      t.pattern = NATIVE_TRANSPORT_SPECS.join(", ")
+      t.rspec_opts = [*args.to_a, "--tag native_transport_memcheck"].join(" ")
+    end
+    Rake::Task["spec:native_transport_memcheck"].enhance([:compile])
+    Rake::Task["spec:core_with_libdatadog_api_memcheck"].enhance(["spec:native_transport_memcheck"])
+  else
+    task :native_transport_memcheck do
+      raise "Memcheck requires the ruby_memcheck gem to be installed"
+    end
+  end
 
   desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:core_with_rails) do |t, args|

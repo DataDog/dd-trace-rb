@@ -28,6 +28,11 @@ namespace :dependency do
   desc "Regenerate, lock, and propagate dependencies for #{AppraisalConversion.runtime_identifier}"
   task all: [:generate, :lock, :propagate]
 
+  desc "Find gemfiles for #{AppraisalConversion.runtime_identifier} with no matching appraisal definition"
+  task :orphans do
+    sh "bundle exec ruby appraisal/orphans.rb"
+  end
+
   # Replacement for `bundle exec appraisal list`
   desc "List dependencies for #{AppraisalConversion.runtime_identifier}"
   task :list do |t, args|

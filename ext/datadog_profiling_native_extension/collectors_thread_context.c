@@ -888,7 +888,12 @@ void thread_context_collector_on_gc_start(VALUE self_instance) {
   }
 
   // Here we record the wall-time first and in on_gc_finish we record it second to try to avoid having wall-time be slightly < cpu-time
-  thread_context->gc_tracking.wall_time_at_start_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  long wall_time_at_start_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+
+  // If our start timestamp is not OK, we skip tracking this GC as well
+  if (wall_time_at_start_ns == 0) return;
+
+  thread_context->gc_tracking.wall_time_at_start_ns = wall_time_at_start_ns;
   thread_context->gc_tracking.cpu_time_at_start_ns = cpu_time_now_ns(thread_context);
 }
 
@@ -917,7 +922,8 @@ bool thread_context_collector_on_gc_finish(VALUE self_instance) {
   long cpu_time_at_start_ns = thread_context->gc_tracking.cpu_time_at_start_ns;
   long wall_time_at_start_ns = thread_context->gc_tracking.wall_time_at_start_ns;
 
-  if (cpu_time_at_start_ns == INVALID_TIME && wall_time_at_start_ns == INVALID_TIME) {
+  // Both fields are always set and cleared together, so checking one is enough
+  if (cpu_time_at_start_ns == INVALID_TIME) {
     // If this happened, it means that on_gc_start was either never called for the thread OR it was called but no thread
     // context existed at the time. The former can be the result of a bug, but since we can't distinguish them, we just
     // do nothing.
@@ -1443,9 +1449,6 @@ static VALUE _native_per_thread_context(DDTRACE_UNUSED VALUE _self, VALUE collec
 }
 
 static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, per_thread_context *thread_context) {
-  // If we didn't have a time for the previous sample, we use the current one
-  if (*time_at_previous_sample_ns == INVALID_TIME) *time_at_previous_sample_ns = current_time_ns;
-
   // We don't expect to be sampling a thread (and thus updating these counters) while Ruby is doing GC (between
   // `thread_context_collector_on_gc_start` and `thread_context_collector_on_gc_finish`)
   if (thread_context->gc_tracking.cpu_time_at_start_ns != INVALID_TIME) {
@@ -1467,6 +1470,13 @@ static long update_time_since_previous_sample(long *time_at_previous_sample_ns, 
 }
 
 static long update_cpu_time_since_previous_sample(per_thread_context *thread_context, long current_cpu_time_ns) {
+  // A previous `cpu_time_now_ns` may have failed to read the clock and thus invalidated our baseline; in that case we
+  // use the current time, so this sample gets no cpu-time and the next one gets an accurate delta.
+  // Note wall-time never needs this: it is always seeded with a real value in `initialize_context`.
+  if (thread_context->cpu_time_at_previous_sample_ns == INVALID_TIME) {
+    thread_context->cpu_time_at_previous_sample_ns = current_cpu_time_ns;
+  }
+
   long elapsed_time_ns = update_time_since_previous_sample(
     &thread_context->cpu_time_at_previous_sample_ns,
     current_cpu_time_ns,
