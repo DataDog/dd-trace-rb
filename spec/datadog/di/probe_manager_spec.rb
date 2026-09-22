@@ -462,12 +462,17 @@ RSpec.describe Datadog::DI::ProbeManager do
   end
 
   describe "#probe_condition_evaluation_failed_callback" do
+    let(:rate_limiter) do
+      instance_double(Datadog::Core::TokenBucket)
+    end
+
     let(:probe) do
       instance_double(
         Datadog::DI::Probe,
-        id: "test-probe",
-        type: "log",
-        condition_evaluation_failed_rate_limiter: per_probe_limiter,
+        :id => "test-probe",
+        :type => "log",
+        :capture_snapshot? => false,
+        :condition_evaluation_failed_rate_limiter => rate_limiter,
       )
     end
 
@@ -475,12 +480,17 @@ RSpec.describe Datadog::DI::ProbeManager do
       instance_double(Datadog::DI::Context, probe: probe)
     end
 
+    let(:telemetry) do
+      instance_double(Datadog::Core::Telemetry::Component)
+    end
+
+    let(:manager) do
+      described_class.new(settings, instrumenter, probe_notification_builder,
+        probe_notifier_worker, logger, probe_repository, telemetry: telemetry)
+    end
+
     let(:exc) { StandardError.new("boom") }
     let(:expr) { "undefined_function()" }
-
-    let(:per_probe_limiter) do
-      instance_double(Datadog::Core::TokenBucket, allow?: true)
-    end
 
     context "when both the per-probe and global limiters admit" do
       let(:global_limiter) do
@@ -488,6 +498,7 @@ RSpec.describe Datadog::DI::ProbeManager do
       end
 
       before do
+        allow(rate_limiter).to receive(:allow?).and_return(true)
         expect(instrumenter).to receive(:global_snapshot_rate_limiter).and_return(global_limiter)
       end
 
@@ -502,18 +513,22 @@ RSpec.describe Datadog::DI::ProbeManager do
     end
 
     context "when the per-probe limiter rejects" do
-      let(:per_probe_limiter) do
-        instance_double(Datadog::Core::TokenBucket, allow?: false)
-      end
-
       it "does not consult the global limiter and enqueues nothing" do
+        allow(rate_limiter).to receive(:allow?).and_return(false)
+
         expect(instrumenter).not_to receive(:global_snapshot_rate_limiter)
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+        expect(telemetry).to receive(:inc) do |namespace, name, value, tags:, **|
+          expect(namespace).to eq("dynamic_instrumentation")
+          expect(name).to eq("guardrails.events.skipped")
+          expect(value).to eq(1)
+          expect(tags).to eq(reason: "evaluationErrorThrottled", probe_type: "log")
+        end
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
 
         manager.probe_condition_evaluation_failed_callback(context, expr, exc)
 
-        expect(per_probe_limiter).to have_received(:allow?)
+        expect(rate_limiter).to have_received(:allow?)
       end
     end
 
@@ -523,6 +538,7 @@ RSpec.describe Datadog::DI::ProbeManager do
       end
 
       before do
+        allow(rate_limiter).to receive(:allow?).and_return(true)
         expect(instrumenter).to receive(:global_snapshot_rate_limiter).and_return(global_limiter)
       end
 
