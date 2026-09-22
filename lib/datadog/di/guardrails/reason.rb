@@ -2,17 +2,9 @@
 
 module Datadog
   module DI
-    # Canonical DI guardrails observability surface: reason-code vocabulary
-    # and tagged-telemetry helpers for skip and drop events.
-    #
-    # This module and {Reason} implement RFC C24 (canonical skip/drop reason
-    # codes) and the skip/drop subset of C22 (the
-    # +dynamic_instrumentation.guardrails.*+ metric family).
     module Guardrails
-      # Canonical skip and drop reason codes from the Live Debugger
-      # Guardrails and Circuit Breakers RFC (Observability section and
-      # Appendix B). The values are fixed strings shared across every
-      # tracer language; Ruby-specific spellings are prohibited.
+      # Canonical skip and drop reason codes. The values are fixed strings
+      # shared verbatim across every tracer language.
       module Reason
         # Skip reasons: no-emission decisions made before expensive work.
 

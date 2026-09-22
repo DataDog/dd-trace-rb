@@ -4,23 +4,21 @@ require_relative "guardrails/reason"
 
 module Datadog
   module DI
-    # Canonical DI guardrails observability surface: reason-code vocabulary
-    # and tagged-telemetry helpers for skip and drop events.
-    #
-    # This module implements RFC C24 (canonical skip/drop reason codes) and
-    # the skip/drop subset of C22 (the +dynamic_instrumentation.guardrails.*+
-    # metric family). Every DI no-emission decision (skip) and post-production
-    # discard (drop) emits the canonical metric with the RFC reason tag so
-    # operators can attribute reduced DI work to a specific cause across
-    # languages.
+    # Canonical DI guardrails observability surface: the reason-code
+    # vocabulary and the tagged-telemetry helpers that emit the
+    # +dynamic_instrumentation.guardrails.*+ metric family. A skip is a
+    # decision taken before expensive work; a drop discards an event after
+    # it has been produced. Each helper tags its metric with the canonical
+    # reason so operators can attribute reduced DI work to a specific cause
+    # across languages.
     module Guardrails
       TELEMETRY_NAMESPACE = "dynamic_instrumentation"
 
-      # Canonical probe_type tag values (RFC Appendix B).
+      # Canonical probe_type tag values.
       PROBE_TYPE_SNAPSHOT = "snapshot"
       PROBE_TYPE_LOG = "log"
 
-      # Canonical event_type tag values (RFC Appendix B).
+      # Canonical event_type tag values.
       EVENT_TYPE_SNAPSHOT = "snapshot"
       EVENT_TYPE_LOG = "log"
       EVENT_TYPE_DIAGNOSTIC = "diagnostic"
@@ -38,8 +36,7 @@ module Datadog
       end
 
       # Maps an internal queue event type symbol to the canonical event_type
-      # tag value. Probe status updates are diagnostic events per RFC
-      # Appendix B.
+      # tag value. Probe status updates map to diagnostic events.
       #
       # @param event_type [Symbol] the internal queue type
       # @return [String] the canonical event_type tag
@@ -58,6 +55,7 @@ module Datadog
       #   telemetry component; a no-op when nil
       # @param reason [String] a {Reason} constant
       # @param probe_type [String] +PROBE_TYPE_SNAPSHOT+ or +PROBE_TYPE_LOG+
+      # @return [void]
       def self.skipped(telemetry, reason:, probe_type:)
         return unless telemetry
 
@@ -75,6 +73,7 @@ module Datadog
       # @param event_type [String] +EVENT_TYPE_SNAPSHOT+, +EVENT_TYPE_LOG+,
       #   or +EVENT_TYPE_DIAGNOSTIC+
       # @param bytes [Integer, nil] discarded byte count, when known
+      # @return [void]
       def self.dropped(telemetry, reason:, event_type:, bytes: nil)
         return unless telemetry
 
