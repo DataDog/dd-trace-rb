@@ -180,6 +180,7 @@ build_coverage_matrix('faraday', min: '0.14.0', meta: { latest: { 'faraday-follo
 ['1'].each do |v|
   appraise "grape-#{v}" do
     gem 'grape', "~> #{v}.0"
+    gem 'rack', '~> 2' if v == '1'
     gem 'rack-test'
   end
 end

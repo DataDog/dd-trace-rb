@@ -105,7 +105,14 @@ build_coverage_matrix('stripe', min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday', meta: { 'faraday-follow_redirects' => nil })
-build_coverage_matrix('grape', [1, 2, 3], meta: { 'rack-test' => nil })
+['latest', '3', '2', '1'].each do |v|
+  appraise "grape-#{v}" do
+    gem 'grape' if v == 'latest'
+    gem 'grape', "~> #{v}.0" unless v == 'latest'
+    gem 'rack', '~> 2' if v == '1'
+    gem 'rack-test'
+  end
+end
 build_coverage_matrix('excon')
 build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.20.0')

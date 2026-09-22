@@ -101,6 +101,7 @@ build_coverage_matrix('faraday', meta: { 'faraday-follow_redirects' => nil })
 ['1', '2', '3'].each do |v|
   appraise "grape-#{v}" do
     gem 'grape', "~> #{v}.0"
+    gem 'rack', '~> 2' if v == '1'
     gem 'rack-test'
   end
 end
