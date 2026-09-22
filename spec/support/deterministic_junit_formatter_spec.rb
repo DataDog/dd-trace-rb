@@ -72,9 +72,6 @@ RSpec.describe DeterministicJunitFormatter do
   def formatter_configuration
     <<~RUBY
       require './spec/support/deterministic_junit_formatter'
-
-      DeterministicJunitFormatter.include_line_number = true
-      DeterministicJunitFormatter.metadata_properties = [:junit_scalar, :junit_complex, :aggregate_failures]
     RUBY
   end
 
@@ -102,7 +99,7 @@ RSpec.describe DeterministicJunitFormatter do
       end
 
       RSpec.describe 'deterministic junit formatter fixture' do
-        it 'passes with scalar metadata', junit_scalar: 'visible', junit_complex: ['hidden'] do
+        it 'passes with scalar metadata', type: :unit do
           expect(true).to be(true)
         end
 
@@ -110,7 +107,7 @@ RSpec.describe DeterministicJunitFormatter do
           skip 'not implemented yet'
         end
 
-        it 'captures invalid bytes in output', :capture_output do
+        it 'captures invalid bytes in output', :capture_output, type: ['hidden'] do
           $stdout.write([0xc3].pack('C').force_encoding(Encoding::UTF_8))
           $stderr.write([0xff].pack('C').force_encoding(Encoding::ASCII_8BIT))
         end
@@ -124,6 +121,8 @@ RSpec.describe DeterministicJunitFormatter do
   end
 
   it "emits strict JUnit XML with the formatter extensions used by dd-trace-rb", :aggregate_failures do
+    expect(described_class.include_line_number).to be(true)
+    expect(described_class.metadata_properties).to eq([:type, :aggregate_failures])
     expect(formatter_run.fetch(:status).exitstatus).to eq(1), formatter_run.values_at(:stdout, :stderr).join("\n")
 
     expect(testsuite["tests"]).to eq("4")
@@ -144,12 +143,13 @@ RSpec.describe DeterministicJunitFormatter do
     output_case = xpath_first('//testcase[contains(@name, "captures invalid bytes")]')
     expect(xpath_first("system-out", output_case).text).to eq('\\uFFFD')
     expect(xpath_first("system-err", output_case).text).to eq('\\uFFFD')
+    expect(xpath_all('properties/property[@name="type"]', output_case)).to be_empty
 
     metadata_case = xpath_first('//testcase[contains(@name, "passes with scalar metadata")]')
-    expect(xpath_first('properties/property[@name="junit_scalar"]', metadata_case)["value"]).to eq("visible")
-    expect(xpath_all('properties/property[@name="junit_complex"]', metadata_case)).to be_empty
+    expect(xpath_first('properties/property[@name="type"]', metadata_case)["value"]).to eq("unit")
 
     aggregate_case = xpath_first('//testcase[contains(@name, "reports aggregate failure details")]')
+    expect(xpath_first('properties/property[@name="aggregate_failures"]', aggregate_case)["value"]).to eq("true")
     expect(xpath_all("failure", aggregate_case).size).to eq(1)
     expect(xpath_first("failure", aggregate_case).text).to include('expected: "bravo"')
     expect(xpath_first("failure", aggregate_case).text).to include('expected: "delta"')

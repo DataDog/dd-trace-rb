@@ -27,8 +27,8 @@ class DeterministicJunitFormatter < RspecJunitFormatter
     end
   end
 
-  self.include_line_number = false
-  self.metadata_properties = []
+  self.include_line_number = true
+  self.metadata_properties = [:type, :aggregate_failures]
 
   SANITIZATIONS = [
 
