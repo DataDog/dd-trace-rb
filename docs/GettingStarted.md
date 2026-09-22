@@ -2941,7 +2941,7 @@ Dynamic Instrumentation allows you to add log probes, metric probes, and span pr
 | `DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS` | `Array` | Comma-separated list of variable/key names to exclude from the built-in redaction list, allowing their values to be captured. | `[]` |
 | `DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES` | `Array` | Comma-separated list of class names whose values will be redacted. Suffix with `*` for wildcard matching (for example, `Foo*` redacts `Foo`, `FooBar`, `Foo::Bar`). | `[]` |
 | `DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE` | `Integer` | Time budget (in milliseconds) per probe fire for capture-expression evaluation. | `200` |
-| `DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS` | `Integer` | Wall-time budget (in milliseconds) for evaluating a probe condition (`when`) or template segment. An over-budget evaluation is aborted and reported as an evaluation error rather than producing a captured snapshot. | `50` |
+| `DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS` | `Integer` | Wall-time budget (in milliseconds) for evaluating a probe condition or template segment. | `50` |
 
 Alternatively, set DI parameters inside a `Datadog.configure` block:
 
