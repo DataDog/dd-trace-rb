@@ -173,7 +173,7 @@ appraise 'httprb-5' do
   gem 'http', '~> 5'
 end
 
-build_coverage_matrix('stripe', 7..12, min: '5.15.0')
+build_coverage_matrix('stripe', min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday', min: '0.14.0', meta: { latest: { 'faraday-follow_redirects' => nil } })
