@@ -567,7 +567,7 @@ module Datadog
                 " (#{Guardrails::Reason::RATE_LIMIT_PROBE})"
             end
             Guardrails.skipped(telemetry, reason: Guardrails::Reason::RATE_LIMIT_PROBE,
-              probe_type: Guardrails.probe_type_for(probe))
+              probe_type: Guardrails.probe_type_tag(probe))
           end
           if admitted && !probe_global_rate_limiter(probe).allow?
             admitted = false
@@ -576,7 +576,7 @@ module Datadog
                 " (#{Guardrails::Reason::RATE_LIMIT_GLOBAL})"
             end
             Guardrails.skipped(telemetry, reason: Guardrails::Reason::RATE_LIMIT_GLOBAL,
-              probe_type: Guardrails.probe_type_for(probe))
+              probe_type: Guardrails.probe_type_tag(probe))
           end
           if admitted
             # Arguments may be mutated by the method, therefore
@@ -847,7 +847,7 @@ module Datadog
               " (#{Guardrails::Reason::RATE_LIMIT_PROBE})"
           end
           Guardrails.skipped(telemetry, reason: Guardrails::Reason::RATE_LIMIT_PROBE,
-            probe_type: Guardrails.probe_type_for(probe))
+            probe_type: Guardrails.probe_type_tag(probe))
           return
         end
 
@@ -857,7 +857,7 @@ module Datadog
               " (#{Guardrails::Reason::RATE_LIMIT_GLOBAL})"
           end
           Guardrails.skipped(telemetry, reason: Guardrails::Reason::RATE_LIMIT_GLOBAL,
-            probe_type: Guardrails.probe_type_for(probe))
+            probe_type: Guardrails.probe_type_tag(probe))
           return
         end
 
