@@ -9,6 +9,7 @@
 #   --format DeterministicJunitFormatter
 #   --out junit.xml
 
+require "rbconfig"
 require "rspec_junit_formatter"
 
 class DeterministicJunitFormatter < RspecJunitFormatter
@@ -99,7 +100,32 @@ class DeterministicJunitFormatter < RspecJunitFormatter
     [
       ["seed", RSpec.configuration.seed.to_s],
       ["rspec.version", RSpec::Core::Version::STRING],
-    ]
+      ["dd_tags[runtime.name]", RUBY_ENGINE],
+      ["dd_tags[runtime.version]", ruby_engine_version],
+      ["dd_tags[runtime.architecture]", RbConfig::CONFIG["host_cpu"]],
+      ["dd_tags[ruby.engine]", RUBY_ENGINE],
+      ["dd_tags[ruby.version]", RUBY_VERSION],
+      ["dd_tags[ruby.platform]", RUBY_PLATFORM],
+      ["dd_tags[bundle.gemfile]", bundle_gemfile],
+      ["dd_tags[test.framework]", "rspec"],
+      ["dd_tags[test.framework_version]", RSpec::Core::Version::STRING],
+      ["dd_tags[rake.task]", ENV["RSPEC_JUNIT_RAKE_TASK"]],
+    ].reject { |_name, value| value.nil? || value.empty? }
+  end
+
+  def ruby_engine_version
+    defined?(RUBY_ENGINE_VERSION) ? RUBY_ENGINE_VERSION : RUBY_VERSION
+  end
+
+  def bundle_gemfile
+    path = ENV["BUNDLE_GEMFILE"].to_s
+    path = "Gemfile" if path.empty?
+
+    root = "#{File.expand_path("../..", __dir__)}/"
+    expanded_path = File.expand_path(path)
+    return expanded_path[root.length..-1] if expanded_path.start_with?(root)
+
+    File.basename(path)
   end
 
   def xml_dump_pending(notification)

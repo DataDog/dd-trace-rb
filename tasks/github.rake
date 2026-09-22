@@ -106,7 +106,10 @@ namespace :github do
     rng = Random.new(ENV["CI_TEST_SEED"].to_i)
 
     durations = tasks.map do |task|
-      env = {"BUNDLE_GEMFILE" => task["gemfile"]}
+      env = {
+        "BUNDLE_GEMFILE" => task["gemfile"],
+        "RSPEC_JUNIT_RAKE_TASK" => "spec:#{task["task"]}",
+      }
       cmd = "bundle exec rake spec:#{task["task"]}'[--seed #{rng.rand(0xFFFF)}]'"
 
       junit_files_before = Dir["tmp/rspec/*.xml"]
