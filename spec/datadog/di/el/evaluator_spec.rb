@@ -234,7 +234,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         checks = 0
         allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC, :nanosecond) do
           checks += 1
-          checks <= 1 ? deadline_ns - 1 : deadline_ns + 1
+          (checks <= 1) ? deadline_ns - 1 : deadline_ns + 1
         end
         # Going through #satisfied? sets @context on the evaluator (the
         # compiled evaluate method does this), so #filter can read the

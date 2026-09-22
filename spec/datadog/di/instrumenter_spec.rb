@@ -2134,7 +2134,6 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
         expect(responder).not_to receive(:probe_executed_callback)
 
-
         begin
           instrumenter.hook_method(probe, responder)
           # The condition timeout is caught by DI; the customer method
