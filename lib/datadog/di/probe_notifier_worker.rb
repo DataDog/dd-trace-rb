@@ -290,7 +290,7 @@ module Datadog
                   end
                 end
                 Guardrails.dropped(telemetry, reason: Guardrails::Reason::QUEUE_FULL,
-                  event_type: Guardrails.event_type_for(event_type))
+                  event_type: Guardrails.event_type_tag(event_type))
               else
                 if event_type == :status && probe
                   status = event.dig(:debugger, :diagnostics, :status)

@@ -33,7 +33,7 @@ module Datadog
       #
       # @param probe [Probe] the probe being skipped
       # @return [String] +PROBE_TYPE_SNAPSHOT+ or +PROBE_TYPE_LOG+
-      def self.probe_type_for(probe)
+      def self.probe_type_tag(probe)
         probe.capture_snapshot? ? PROBE_TYPE_SNAPSHOT : PROBE_TYPE_LOG
       end
 
@@ -43,7 +43,7 @@ module Datadog
       #
       # @param event_type [Symbol] the internal queue type
       # @return [String] the canonical event_type tag
-      def self.event_type_for(event_type)
+      def self.event_type_tag(event_type)
         case event_type
         when :snapshot then EVENT_TYPE_SNAPSHOT
         when :status then EVENT_TYPE_DIAGNOSTIC

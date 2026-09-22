@@ -21,31 +21,31 @@ RSpec.describe Datadog::DI::Guardrails do
     end
   end
 
-  describe ".probe_type_for" do
+  describe ".probe_type_tag" do
     it "returns snapshot for a capturing probe" do
       probe = Datadog::DI::Probe.new(id: "p1", type: :log, type_name: "C",
         method_name: "m", capture_snapshot: true)
-      expect(described_class.probe_type_for(probe)).to eq("snapshot")
+      expect(described_class.probe_type_tag(probe)).to eq("snapshot")
     end
 
     it "returns log for a non-capturing probe" do
       probe = Datadog::DI::Probe.new(id: "p1", type: :log, type_name: "C",
         method_name: "m", capture_snapshot: false)
-      expect(described_class.probe_type_for(probe)).to eq("log")
+      expect(described_class.probe_type_tag(probe)).to eq("log")
     end
   end
 
-  describe ".event_type_for" do
+  describe ".event_type_tag" do
     it "maps snapshot to snapshot" do
-      expect(described_class.event_type_for(:snapshot)).to eq("snapshot")
+      expect(described_class.event_type_tag(:snapshot)).to eq("snapshot")
     end
 
     it "maps status to diagnostic" do
-      expect(described_class.event_type_for(:status)).to eq("diagnostic")
+      expect(described_class.event_type_tag(:status)).to eq("diagnostic")
     end
 
     it "falls back to the string form for unknown types" do
-      expect(described_class.event_type_for(:log)).to eq("log")
+      expect(described_class.event_type_tag(:log)).to eq("log")
     end
   end
 
