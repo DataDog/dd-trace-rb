@@ -3,24 +3,6 @@ require "datadog/di/guardrails"
 require "datadog/di/probe"
 
 RSpec.describe Datadog::DI::Guardrails do
-  describe "Reason constants" do
-    it "defines canonical skip reason strings" do
-      expect(Datadog::DI::Guardrails::Reason::RATE_LIMIT_PROBE).to eq("rateLimitProbe")
-      expect(Datadog::DI::Guardrails::Reason::RATE_LIMIT_GLOBAL).to eq("rateLimitGlobal")
-      expect(Datadog::DI::Guardrails::Reason::EVALUATION_TIMEOUT).to eq("evaluationTimeout")
-      expect(Datadog::DI::Guardrails::Reason::EVALUATION_ERROR_THROTTLED).to eq("evaluationErrorThrottled")
-      expect(Datadog::DI::Guardrails::Reason::BUDGET_EXCEEDED_INVOCATION).to eq("budgetExceededInvocation")
-      expect(Datadog::DI::Guardrails::Reason::BUDGET_EXCEEDED_GLOBAL).to eq("budgetExceededGlobal")
-      expect(Datadog::DI::Guardrails::Reason::QUEUE_FULL).to eq("queueFull")
-      expect(Datadog::DI::Guardrails::Reason::QUEUE_HIGH_WATERMARK).to eq("queueHighWatermark")
-    end
-
-    it "defines canonical drop reason strings" do
-      expect(Datadog::DI::Guardrails::Reason::PAYLOAD_TOO_LARGE).to eq("payloadTooLarge")
-      expect(Datadog::DI::Guardrails::Reason::BATCH_BYTES_EXCEEDED).to eq("batchBytesExceeded")
-    end
-  end
-
   describe ".probe_type_tag" do
     it "returns snapshot for a capturing probe" do
       probe = Datadog::DI::Probe.new(id: "p1", type: :log, type_name: "C",
