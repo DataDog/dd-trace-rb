@@ -8,6 +8,7 @@ require_relative "../../core/transport/request"
 require_relative "../../core/transport/transport"
 require_relative "../error"
 require_relative "../fatal_exceptions"
+require_relative "../guardrails"
 require_relative "http/input"
 
 module Datadog

@@ -5,6 +5,7 @@ require_relative "../core/utils/time"
 require_relative "../ruby_version"
 require_relative "fatal_exceptions"
 require_relative "capture_expression_evaluator"
+require_relative "guardrails"
 
 # rubocop:disable Lint/AssignmentInCondition
 # rubocop:disable Style/AndOr
