@@ -1,6 +1,0 @@
-{
-  "type": "Fixed",
-  "product": "Profiling",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6248",
-  "message": "Fix incorrect GC duration measurements when the start timestamp cannot be read."
-}

@@ -1,6 +1,0 @@
-{
-  "type": "Fixed",
-  "product": "Tracing",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6225",
-  "message": "Fix missing Sequel database host, port, and name tags on JRuby when configured through JNDI or a DataSource."
-}
