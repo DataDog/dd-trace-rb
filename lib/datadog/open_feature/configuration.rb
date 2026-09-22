@@ -12,11 +12,16 @@ module Datadog
         MAX_REQUEST_TIMEOUT_SECONDS = 300
         MAX_INITIALIZATION_TIMEOUT_MS = 2_147_483_647
 
-        def self.parse_integer(value, default:, setting_name:)
-          Integer(value, 10)
-        rescue ArgumentError
-          Datadog.logger.warn("#{setting_name} must be an integer; using the default")
-          default
+        def self.configure_integer_option(option, environment_variable:, default:, setting_name:)
+          option.type :int
+          option.env environment_variable
+          option.env_parser do |value|
+            Integer(value, 10)
+          rescue ArgumentError
+            Datadog.logger.warn("#{setting_name} must be an integer; using the default")
+            default
+          end
+          option.default default
         end
 
         def self.extended(base)
@@ -96,16 +101,12 @@ module Datadog
                 end
 
                 option :poll_interval_seconds do |o|
-                  o.type :int
-                  o.env "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS"
-                  o.env_parser do |value|
-                    Settings.parse_integer(
-                      value,
-                      default: Settings::DEFAULT_POLL_INTERVAL_SECONDS,
-                      setting_name: "Feature Flags agentless poll interval",
-                    )
-                  end
-                  o.default Settings::DEFAULT_POLL_INTERVAL_SECONDS
+                  Settings.configure_integer_option(
+                    o,
+                    environment_variable: "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS",
+                    default: Settings::DEFAULT_POLL_INTERVAL_SECONDS,
+                    setting_name: "Feature Flags agentless poll interval",
+                  )
                   o.setter do |value|
                     if value.is_a?(Integer) && value > 0
                       value
@@ -119,16 +120,12 @@ module Datadog
                 end
 
                 option :request_timeout_seconds do |o|
-                  o.type :int
-                  o.env "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS"
-                  o.env_parser do |value|
-                    Settings.parse_integer(
-                      value,
-                      default: Settings::DEFAULT_REQUEST_TIMEOUT_SECONDS,
-                      setting_name: "Feature Flags agentless request timeout",
-                    )
-                  end
-                  o.default Settings::DEFAULT_REQUEST_TIMEOUT_SECONDS
+                  Settings.configure_integer_option(
+                    o,
+                    environment_variable: "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS",
+                    default: Settings::DEFAULT_REQUEST_TIMEOUT_SECONDS,
+                    setting_name: "Feature Flags agentless request timeout",
+                  )
                   o.setter do |value|
                     if value.is_a?(Integer) && value > 0 && value <= Settings::MAX_REQUEST_TIMEOUT_SECONDS
                       value
@@ -144,16 +141,12 @@ module Datadog
               end
 
               option :initialization_timeout_ms do |o|
-                o.type :int
-                o.env "DD_EXPERIMENTAL_FLAGGING_PROVIDER_INITIALIZATION_TIMEOUT_MS"
-                o.env_parser do |value|
-                  Settings.parse_integer(
-                    value,
-                    default: Settings::DEFAULT_INITIALIZATION_TIMEOUT_MS,
-                    setting_name: "Feature Flags provider initialization timeout",
-                  )
-                end
-                o.default Settings::DEFAULT_INITIALIZATION_TIMEOUT_MS
+                Settings.configure_integer_option(
+                  o,
+                  environment_variable: "DD_EXPERIMENTAL_FLAGGING_PROVIDER_INITIALIZATION_TIMEOUT_MS",
+                  default: Settings::DEFAULT_INITIALIZATION_TIMEOUT_MS,
+                  setting_name: "Feature Flags provider initialization timeout",
+                )
                 o.setter do |value|
                   if value.is_a?(Integer) && value > 0 && value <= Settings::MAX_INITIALIZATION_TIMEOUT_MS
                     value
