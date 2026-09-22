@@ -16,6 +16,14 @@ on: # yamllint disable-line rule:truthy
       package-cache-write:
         required: true
         type: boolean
+      installed-matrix-cache:
+        required: false
+        type: boolean
+        default: true
+      test-seed:
+        required: false
+        type: string
+        default: ''
     outputs:
       lockfile:
         description: "The lockfile artifact"
@@ -49,6 +57,16 @@ on: # yamllint disable-line rule:truthy
         required: true
         type: boolean
         default: false
+      installed-matrix-cache:
+        description: "Use the Ruby 4.0 installed-matrix cache experiment"
+        required: true
+        type: boolean
+        default: true
+      test-seed:
+        description: "Fixed test seed for comparable experimental runs"
+        required: false
+        type: string
+        default: ''
 
 permissions: {}
 
@@ -78,12 +96,12 @@ jobs:
           persist-credentials: false
 
       - name: Prepare bundle cache
-        if: inputs.version != '4.0'
+        if: inputs.version != '4.0' || !inputs.installed-matrix-cache
         id: bundle-cache
         uses: ./.github/actions/bundle-cache
 
       - name: Prepare installed matrix bundle cache
-        if: inputs.version == '4.0'
+        if: inputs.version == '4.0' && inputs.installed-matrix-cache
         id: installed-bundle-cache
         uses: ./.github/actions/installed-bundle-cache
         with:
@@ -91,7 +109,7 @@ jobs:
           image-identity: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
 
       - name: Report installed matrix bundle cache
-        if: inputs.version == '4.0'
+        if: inputs.version == '4.0' && inputs.installed-matrix-cache
         shell: bash
         env:
           BYTE_COUNT: ${{ steps.installed-bundle-cache.outputs.byte-count }}
@@ -301,19 +319,19 @@ jobs:
         with:
           persist-credentials: false
       - name: Restore bundle cache
-        if: inputs.version != '4.0'
+        if: inputs.version != '4.0' || !inputs.installed-matrix-cache
         uses: ./.github/actions/bundle-restore
         with:
           lockfile: ${{ needs.batch.outputs.lockfile }}
           cache-key: ${{ needs.batch.outputs.cache-key }}
       - id: installed-bundle-restore
-        if: inputs.version == '4.0'
+        if: inputs.version == '4.0' && inputs.installed-matrix-cache
         name: Restore installed matrix bundle
         uses: ./.github/actions/installed-bundle-restore
         with:
           cache-key: ${{ needs.batch.outputs.installed-cache-key }}
       - name: Report installed matrix bundle restore
-        if: inputs.version == '4.0'
+        if: inputs.version == '4.0' && inputs.installed-matrix-cache
         shell: bash
         env:
           RESTORE_SECONDS: ${{ steps.installed-bundle-restore.outputs.restore-seconds }}
@@ -349,6 +367,7 @@ jobs:
         with:
           alias: ${{ inputs.alias }}
           container-id: "standard-${{ matrix.batch }}"
+          test-seed: ${{ inputs.test-seed }}
 
   build-test-misc:
     needs:
@@ -431,19 +450,19 @@ jobs:
         with:
           persist-credentials: false
       - name: Restore bundle cache
-        if: inputs.version != '4.0'
+        if: inputs.version != '4.0' || !inputs.installed-matrix-cache
         uses: ./.github/actions/bundle-restore
         with:
           lockfile: ${{ needs.batch.outputs.lockfile }}
           cache-key: ${{ needs.batch.outputs.cache-key }}
       - id: installed-bundle-restore
-        if: inputs.version == '4.0'
+        if: inputs.version == '4.0' && inputs.installed-matrix-cache
         name: Restore installed matrix bundle
         uses: ./.github/actions/installed-bundle-restore
         with:
           cache-key: ${{ needs.batch.outputs.installed-cache-key }}
       - name: Report installed matrix bundle restore
-        if: inputs.version == '4.0'
+        if: inputs.version == '4.0' && inputs.installed-matrix-cache
         shell: bash
         env:
           RESTORE_SECONDS: ${{ steps.installed-bundle-restore.outputs.restore-seconds }}
@@ -479,3 +498,4 @@ jobs:
         with:
           alias: ${{ inputs.alias }}
           container-id: "misc-${{ matrix.batch }}"
+          test-seed: ${{ inputs.test-seed }}

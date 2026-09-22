@@ -10,6 +10,10 @@ inputs:
   container-id:
     description: 'Container Identifier'
     required: true
+  test-seed:
+    description: 'Fixed test seed for comparable experimental runs'
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -45,7 +49,7 @@ runs:
     shell: bash
     env:
       COVERAGE_DIR: coverage/versions/${{ inputs.alias }}/${{ inputs.container-id }}
-      CI_TEST_SEED: "${{ github.run_id }}"
+      CI_TEST_SEED: "${{ inputs.test-seed || github.run_id }}"
 
   - name: Display debug info
     if: ${{ !cancelled() }}
