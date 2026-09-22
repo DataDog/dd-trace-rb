@@ -2,6 +2,7 @@
 
 require_relative "../core/semaphore"
 require_relative "fatal_exceptions"
+require_relative "guardrails"
 
 module Datadog
   module DI
