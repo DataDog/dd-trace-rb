@@ -52,6 +52,19 @@ CustomCops/EnvStringValidationCop:
   Exclude:
     - "lib/datadog/core/configuration/supported_configurations.rb"
 
+# Prevent direct Time.now usage in library code; Datadog::Core::Utils::Time.now
+# captures the original (non-monkey-patched) implementation once at load time,
+# so all callers observe a consistent, dependable current time.
+CustomCops/TimeNowUsageCop:
+  Enabled: true
+  Description: 'Prevents direct usage of Time.now; use Datadog::Core::Utils::Time.now instead'
+  SafeAutoCorrect: false
+  Include:
+    - "lib/**/*"
+  Exclude:
+    # This file defines Utils::Time.now itself, by aliasing the original ::Time.now.
+    - "lib/datadog/core/utils/time.rb"
+
 # The trailing-comma and leading-comment cops below should stay in sync with
 # .standard_todo.yml's "**/**" ignore list so it stays clear which tool is
 # enforcing each cop.
