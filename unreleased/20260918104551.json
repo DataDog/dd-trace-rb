@@ -1,6 +1,0 @@
-{
-  "type": "Added",
-  "product": "Core",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/5971",
-  "message": "Add an experimental `libdatadog`-backed native trace transport with full feature parity. Opt in with `DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED=true`."
-}
