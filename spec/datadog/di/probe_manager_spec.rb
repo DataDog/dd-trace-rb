@@ -460,4 +460,63 @@ RSpec.describe Datadog::DI::ProbeManager do
       manager.probe_executed_callback(context)
     end
   end
+
+  describe "#probe_condition_evaluation_failed_callback" do
+    let(:rate_limiter) do
+      instance_double(Datadog::Core::TokenBucket)
+    end
+
+    let(:probe) do
+      instance_double(
+        Datadog::DI::Probe,
+        :id => "test-probe",
+        :type => "log",
+        :capture_snapshot? => false,
+        :condition_evaluation_failed_rate_limiter => rate_limiter,
+      )
+    end
+
+    let(:context) do
+      instance_double(Datadog::DI::Context, probe: probe)
+    end
+
+    let(:telemetry) do
+      instance_double(Datadog::Core::Telemetry::Component)
+    end
+
+    let(:manager) do
+      described_class.new(settings, instrumenter, probe_notification_builder,
+        probe_notifier_worker, logger, probe_repository, telemetry: telemetry)
+    end
+
+    context "when the per-probe rate limiter admits" do
+      it "queues the condition evaluation failure snapshot" do
+        allow(rate_limiter).to receive(:allow?).and_return(true)
+        allow(probe_notification_builder).to receive(:build_condition_evaluation_failed)
+          .and_return({snapshot: "failure"})
+
+        expect(probe_notifier_worker).to receive(:add_snapshot) do |payload|
+          expect(payload).to eq({snapshot: "failure"})
+        end
+
+        manager.probe_condition_evaluation_failed_callback(context, "expr", RuntimeError.new("boom"))
+      end
+    end
+
+    context "when the per-probe rate limiter rejects" do
+      it "emits the canonical evaluationErrorThrottled skip metric and does not queue" do
+        allow(rate_limiter).to receive(:allow?).and_return(false)
+
+        expect(telemetry).to receive(:inc) do |namespace, name, value, tags:, **|
+          expect(namespace).to eq("dynamic_instrumentation")
+          expect(name).to eq("guardrails.events.skipped")
+          expect(value).to eq(1)
+          expect(tags).to eq(reason: "evaluationErrorThrottled", probe_type: "log")
+        end
+        expect(probe_notifier_worker).not_to receive(:add_snapshot)
+
+        manager.probe_condition_evaluation_failed_callback(context, "expr", RuntimeError.new("boom"))
+      end
+    end
+  end
 end
