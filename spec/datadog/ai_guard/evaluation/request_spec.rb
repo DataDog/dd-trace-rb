@@ -31,17 +31,17 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
     context "when messages contain tool calls" do
       let(:messages) do
         [
-          Datadog::AIGuard.assistant(tool_name: "date", id: "call-1", arguments: ""),
+          Datadog::AIGuard.assistant(tool_name: "date", id: "call-1", arguments: "{}"),
           Datadog::AIGuard.message(role: :user, content: "List files under home"),
-          Datadog::AIGuard.assistant(tool_name: "ls", id: "call-2", arguments: "~"),
+          Datadog::AIGuard.assistant(tool_name: "ls", id: "call-2", arguments: {"path" => "~"}),
         ]
       end
 
       it "serializes the tool calls" do
         expect(body.dig(:data, :attributes, :messages)).to eq([
-          {role: :assistant, tool_calls: [{id: "call-1", function: {name: "date", arguments: ""}}]},
+          {role: :assistant, tool_calls: [{id: "call-1", function: {name: "date", arguments: "{}"}}]},
           {role: :user, content: "List files under home"},
-          {role: :assistant, tool_calls: [{id: "call-2", function: {name: "ls", arguments: "~"}}]},
+          {role: :assistant, tool_calls: [{id: "call-2", function: {name: "ls", arguments: '{"path":"~"}'}}]},
         ])
       end
     end

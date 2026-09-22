@@ -395,21 +395,12 @@ RSpec.describe Datadog::AIGuard::Redaction do
               Datadog::AIGuard::Evaluation::ContentPart::ImageURL.new("https://example.com/image.png"),
             ]
           ),
-          Datadog::AIGuard::Evaluation::Message.new(
-            role: :assistant,
-            tool_call: Datadog::AIGuard::Evaluation::ToolCall.new(
-              "send_email",
-              id: "call-1",
-              arguments: {to: "person@example.com"}
-            )
-          ),
         ]
       end
       let(:replacements) do
         [
           {"path" => "messages[0].content", "replacement" => "redacted"},
           {"path" => "messages[0].content[1].image_url.url", "replacement" => "redacted"},
-          {"path" => "messages[1].tool_calls[0].function.arguments", "replacement" => "redacted"},
         ]
       end
 
@@ -417,7 +408,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
         aggregate_failures "unsupported and non-string targets" do
           expect(result.messages).to equal(messages)
           expect(result.applied).to eq(0)
-          expect(result.failures).to eq(3)
+          expect(result.failures).to eq(2)
           expect(result).not_to be_redacted
         end
       end

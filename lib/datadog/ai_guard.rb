@@ -141,8 +141,8 @@ module Datadog
       #   The name of the tool the assistant intends to invoke.
       # @param id [String]
       #   A unique identifier for the tool call. Will be converted to a String.
-      # @param arguments [String]
-      #   The arguments passed to the tool.
+      # @param arguments [String, Hash]
+      #   A Hash or a JSON object encoded as a string containing the arguments passed to the tool.
       #
       # @return [Datadog::AIGuard::Evaluation::Message]
       #   A message with role `:assistant` containing a tool call payload.
