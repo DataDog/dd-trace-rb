@@ -1,0 +1,139 @@
+name: Prepare installed matrix bundle cache
+
+description: Restore or build an exact installed bundle containing every applicable Gemfile
+
+inputs:
+  base-gemfile:
+    description: Runtime base Gemfile
+    required: true
+  matrix:
+    description: Matrixfile used to select applicable appraisal Gemfiles
+    required: false
+    default: Matrixfile
+  cache-schema:
+    description: Installed bundle cache namespace
+    required: false
+    default: bundle-installed-matrix-test-v1
+  image-identity:
+    description: Immutable engine image identity
+    required: true
+
+outputs:
+  cache-key:
+    description: Exact installed bundle cache key
+    value: ${{ steps.manifest.outputs.cache-key }}
+  exact-hit:
+    description: Whether exact installed bundle cache was restored
+    value: ${{ steps.restore.outputs.cache-hit }}
+  restore-seconds:
+    description: Cache restore duration
+    value: ${{ steps.restore-duration.outputs.seconds }}
+  population-seconds:
+    description: Bundle population duration
+    value: ${{ steps.population-duration.outputs.seconds }}
+  save-seconds:
+    description: Cache save duration
+    value: ${{ steps.save-duration.outputs.seconds }}
+  byte-count:
+    description: Uncompressed installed bundle bytes
+    value: ${{ steps.statistics.outputs.byte-count }}
+  file-count:
+    description: Installed bundle file count
+    value: ${{ steps.statistics.outputs.file-count }}
+
+runs:
+  using: composite
+  steps:
+    - id: manifest
+      name: Compute installed bundle manifest
+      shell: bash
+      env:
+        BASE_GEMFILE: ${{ inputs.base-gemfile }}
+        CACHE_SCHEMA: ${{ inputs.cache-schema }}
+        IMAGE_IDENTITY: ${{ inputs.image-identity }}
+        MATRIX: ${{ inputs.matrix }}
+      run: |
+        ruby tasks/installed_bundle_cache_cli.rb manifest \
+          --base-gemfile "$BASE_GEMFILE" \
+          --matrix "$MATRIX" \
+          --cache-schema "$CACHE_SCHEMA" \
+          --image-identity "$IMAGE_IDENTITY" > /tmp/ddtrace-installed-bundle-manifest.json
+        ruby -rjson -e '
+          manifest = JSON.parse(File.read("/tmp/ddtrace-installed-bundle-manifest.json"))
+          File.open(ENV.fetch("GITHUB_OUTPUT"), "a") do |output|
+            output.puts("cache-key=#{manifest.fetch("cache_key")}")
+          end
+        '
+    - id: restore-start
+      shell: bash
+      run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
+    - id: restore
+      name: Restore exact installed bundle
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.manifest.outputs.cache-key }}
+        path: /usr/local/bundle
+    - id: restore-duration
+      shell: bash
+      env:
+        START_SECONDS: ${{ steps.restore-start.outputs.seconds }}
+      run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"
+    - id: population-start
+      if: steps.restore.outputs.cache-hit != 'true'
+      shell: bash
+      run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
+    - name: Reset installed bundle path
+      if: steps.restore.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        mkdir -p /usr/local/bundle
+        find /usr/local/bundle -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+    - name: Install complete matrix bundle
+      if: steps.restore.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        BASE_GEMFILE: ${{ inputs.base-gemfile }}
+        MATRIX: ${{ inputs.matrix }}
+      run: |
+        ruby tasks/installed_bundle_cache_cli.rb install \
+          --base-gemfile "$BASE_GEMFILE" \
+          --matrix "$MATRIX" \
+          --jobs 8
+    - id: population-duration
+      if: steps.restore.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        START_SECONDS: ${{ steps.population-start.outputs.seconds }}
+      run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"
+    - name: Verify complete matrix bundle
+      shell: bash
+      env:
+        BASE_GEMFILE: ${{ inputs.base-gemfile }}
+        MATRIX: ${{ inputs.matrix }}
+      run: |
+        ruby tasks/installed_bundle_cache_cli.rb check \
+          --base-gemfile "$BASE_GEMFILE" \
+          --matrix "$MATRIX"
+    - id: statistics
+      name: Measure installed bundle
+      shell: bash
+      run: |
+        file_count=$(find /usr/local/bundle -type f | wc -l | tr -d ' ')
+        byte_count=$(du -sb /usr/local/bundle | cut -f1)
+        { echo "file-count=$file_count"; echo "byte-count=$byte_count"; } >> "$GITHUB_OUTPUT"
+    - id: save-start
+      if: steps.restore.outputs.cache-hit != 'true'
+      shell: bash
+      run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
+    - name: Save exact installed bundle
+      if: steps.restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.manifest.outputs.cache-key }}
+        path: /usr/local/bundle
+    - id: save-duration
+      if: steps.restore.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        START_SECONDS: ${{ steps.save-start.outputs.seconds }}
+      run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"
