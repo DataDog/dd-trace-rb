@@ -951,8 +951,8 @@ bool thread_context_collector_on_gc_finish(VALUE self_instance) {
   long gc_cpu_time_elapsed_ns = cpu_time_at_finish_ns - cpu_time_at_start_ns;
   long gc_wall_time_elapsed_ns = wall_time_at_finish_ns - wall_time_at_start_ns;
 
-  // Wall-time can go backwards if the system clock gets changed (and we observed spurious jumps back on macOS as well)
-  // so let's ensure we don't get negative values for time deltas.
+  // @ivoanjo: We don't expect these clocks to ever go backwards (and in other code paths we enforce that with an exception)
+  // but during GC it's really really awkward to signal back failures so for now I left the clamping.
   gc_cpu_time_elapsed_ns = long_max_of(gc_cpu_time_elapsed_ns, 0);
   gc_wall_time_elapsed_ns = long_max_of(gc_wall_time_elapsed_ns, 0);
 
