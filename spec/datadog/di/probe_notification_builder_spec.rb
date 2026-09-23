@@ -312,6 +312,27 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
     end
 
+    context "when the evaluation time budget is exhausted before a template segment" do
+      let(:compiler) { Datadog::DI::EL::Compiler.new }
+
+      let(:probe) do
+        compiled, regexps = compiler.compile("ref" => "hello")
+        Datadog::DI::Probe.new(id: "123", type: :log, file: "X", line_no: 1,
+          template_segments: [Datadog::DI::EL::Expression.new("(expression)", compiled, regexps: regexps)])
+      end
+
+      before do
+        allow(di_settings).to receive(:max_time_to_evaluate_ms).and_return(0)
+      end
+
+      it "surfaces the timeout as an evaluation error in the rendered message" do
+        expect(payload[:message]).to eq("[evaluation error]")
+        evaluation_errors = payload[:debugger][:snapshot][:evaluationErrors]
+        expect(evaluation_errors.length).to eq(1)
+        expect(evaluation_errors.first[:message]).to match(/EvaluationTimeout/)
+      end
+    end
+
     context "without snapshot capture" do
       let(:probe) do
         Datadog::DI::Probe.new(id: "123", type: :log, file: "X", line_no: 1,

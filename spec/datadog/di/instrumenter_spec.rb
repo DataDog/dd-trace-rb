@@ -2129,7 +2129,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "evaluation_timeouts", 1)
 
-        expect(responder).to receive(:probe_condition_evaluation_failed_callback) do |context, exc|
+        expect(responder).to receive(:probe_condition_evaluation_failed_callback) do |context, expr, exc|
           expect(exc).to be_a(Datadog::DI::Error::EvaluationTimeout)
         end
         expect(responder).not_to receive(:probe_executed_callback)

@@ -404,11 +404,16 @@ module Datadog
         # instant than the condition, so resolve a fresh evaluation
         # deadline shared across all segments. Collection operators
         # inside a segment read this from the context and abort the
-        # segment when the budget is exhausted; the per-segment rescue
-        # below surfaces it as an evaluationErrors entry.
-        context.deadline_ns = evaluation_deadline_ns
+        # segment when the budget is exhausted; the between-segment
+        # check below aborts when the budget is exhausted before a
+        # segment starts, and the per-segment rescue surfaces either
+        # case as an evaluationErrors entry.
+        context.deadline = Datadog::DI::EL::Evaluator.evaluation_deadline(settings)
         evaluation_errors = []
         message = template_segments.map do |segment|
+          if segment.is_a?(EL::Expression) && Datadog::DI::EL::Evaluator.evaluation_deadline_exceeded?(context)
+            raise DI::Error::EvaluationTimeout, "expression evaluation timeout"
+          end
           case segment
           when String
             segment
@@ -439,16 +444,6 @@ module Datadog
 
       def timestamp_now
         (Core::Utils::Time.now.to_f * MILLISECONDS).to_i
-      end
-
-      # Resolves a per-invocation wall-time deadline for evaluating
-      # template segments, from the configured evaluation timeout
-      # setting. Returns nil when no evaluation timeout is
-      # configured, leaving template evaluation unbounded.
-      def evaluation_deadline_ns
-        budget_ms = settings.dynamic_instrumentation.max_time_to_evaluate_ms
-        return nil unless budget_ms
-        ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) + budget_ms * 1_000_000
       end
 
       def active_trace

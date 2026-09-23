@@ -18,6 +18,10 @@ module Datadog
 
         def self.compile_regexp: (::String needle) -> ::Regexp
 
+        def self.evaluation_deadline: (Datadog::Core::Configuration::Settings settings) -> ::Float?
+
+        def self.evaluation_deadline_exceeded?: (Context? context) -> bool
+
         def ref: ((Symbol | String) var) -> any
 
         def iref: ((Symbol | String) var) -> any

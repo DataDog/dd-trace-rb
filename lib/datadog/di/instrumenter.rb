@@ -522,7 +522,7 @@ module Datadog
                 locals: serializer.combine_args(args, kwargs, target_self),
                 target_self: target_self,
                 probe: probe, settings: settings, serializer: serializer,
-                deadline_ns: evaluation_deadline_ns,
+                deadline: Datadog::DI::EL::Evaluator.evaluation_deadline(settings),
               )
               continue = condition.satisfied?(context)
             rescue Exception => exc # standard:disable Lint/RescueException
@@ -534,7 +534,7 @@ module Datadog
                 !exc.is_a?(DI::Error::ExpressionEvaluationError)
 
               if exc.is_a?(DI::Error::EvaluationTimeout)
-                telemetry&.inc("dynamic_instrumentation", "evaluation_timeouts", 1)
+                telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
                 logger.debug { "di: probe #{probe.id}: condition evaluation timed out" }
               end
 
@@ -544,7 +544,7 @@ module Datadog
                 # the context, we won't be able to report anything as
                 # the probe notifier builder requires a context.
                 begin
-                  responder.probe_condition_evaluation_failed_callback(context, exc)
+                  responder.probe_condition_evaluation_failed_callback(context, condition, exc)
                 rescue Exception => nested_exc # standard:disable Lint/RescueException
                   Datadog::DI.reraise_if_fatal(nested_exc)
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
@@ -793,7 +793,7 @@ module Datadog
 
         if condition = probe.condition
           begin
-            context = build_trace_point_context(probe, tp, deadline_ns: evaluation_deadline_ns)
+            context = build_trace_point_context(probe, tp, deadline: Datadog::DI::EL::Evaluator.evaluation_deadline(settings))
             return unless condition.satisfied?(context)
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
@@ -804,7 +804,7 @@ module Datadog
               !exc.is_a?(DI::Error::ExpressionEvaluationError)
 
             if exc.is_a?(DI::Error::EvaluationTimeout)
-              telemetry&.inc("dynamic_instrumentation", "evaluation_timeouts", 1)
+              telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
               logger.debug { "di: probe #{probe.id}: condition evaluation timed out" }
             end
 
@@ -862,7 +862,7 @@ module Datadog
         # TODO test this path
       end
 
-      def build_trace_point_context(probe, tp, deadline_ns: nil)
+      def build_trace_point_context(probe, tp, deadline: nil)
         stack = caller_locations
         # We have two helper methods being invoked from the trace point
         # handler block, remove them from the stack.
@@ -877,18 +877,8 @@ module Datadog
           serializer: serializer,
           path: tp.path,
           caller_locations: stack,
-          deadline_ns: deadline_ns,
+          deadline: deadline,
         )
-      end
-
-      # Resolves a per-invocation wall-time deadline for evaluating a
-      # probe condition, from the configured evaluation timeout setting.
-      # Returns nil when no evaluation timeout is configured, leaving
-      # condition evaluation unbounded.
-      def evaluation_deadline_ns
-        budget_ms = settings.dynamic_instrumentation.max_time_to_evaluate_ms
-        return nil unless budget_ms
-        ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) + budget_ms * 1_000_000
       end
 
       # Circuit breaker: disables the probe if total CPU time consumed by
