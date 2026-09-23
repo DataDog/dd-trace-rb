@@ -1216,7 +1216,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         GC.stress = true
         begin
-
           cpu_and_wall_time_worker.start(on_failure_proc: proc { on_failure_proc_called = true })
           cpu_and_wall_time_worker.wait_until_running(timeout_seconds: 30)
 
