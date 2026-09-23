@@ -2,16 +2,19 @@ require "spec_helper"
 require "datadog/core/configuration/components_state"
 
 RSpec.describe Datadog::Core::Configuration::ComponentsState do
-  describe "#open_feature_provider" do
-    it "retains the adopted provider across component-tree replacement" do
-      provider = instance_double("Datadog::OpenFeature::Provider")
+  describe "#open_feature_providers" do
+    it "retains the adopted providers across component-tree replacement" do
+      providers = [
+        instance_double("Datadog::OpenFeature::Provider"),
+        instance_double("Datadog::OpenFeature::Provider"),
+      ]
       state = described_class.new(
         telemetry_enabled: true,
         remote_started: false,
-        open_feature_provider: provider,
+        open_feature_providers: providers,
       )
 
-      expect(state.open_feature_provider).to be(provider)
+      expect(state.open_feature_providers).to eq(providers)
     end
   end
 

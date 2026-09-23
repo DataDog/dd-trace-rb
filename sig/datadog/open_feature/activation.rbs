@@ -19,7 +19,7 @@ module Datadog
 
       @failure: String?
 
-      @provider: Provider?
+      @providers: Array[Provider]
 
       @activated: bool
 
@@ -32,8 +32,6 @@ module Datadog
       attr_reader component: Component?
 
       attr_reader failure: String?
-
-      attr_reader provider: Provider?
 
       def initialize: (
         Core::Configuration::Settings settings,
@@ -48,6 +46,8 @@ module Datadog
       def start!: () -> Component?
 
       def activated?: () -> bool
+
+      def providers: () -> Array[Provider]
 
       def after_fork: () -> void
 

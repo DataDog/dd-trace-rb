@@ -793,13 +793,18 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
     end
 
-    context "with an adopted OpenFeature provider from the old component tree" do
-      let(:provider) { instance_double("Datadog::OpenFeature::Provider") }
+    context "with adopted OpenFeature providers from the old component tree" do
+      let(:providers) do
+        [
+          instance_double("Datadog::OpenFeature::Provider"),
+          instance_double("Datadog::OpenFeature::Provider"),
+        ]
+      end
       let(:old_state) do
         Datadog::Core::Configuration::ComponentsState.new(
           telemetry_enabled: false,
           remote_started: false,
-          open_feature_provider: provider,
+          open_feature_providers: providers,
         )
       end
 
@@ -808,8 +813,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
         allow(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
       end
 
-      it "reactivates configuration delivery for that provider" do
-        expect(components).to receive(:activate_open_feature!).with(provider)
+      it "reactivates configuration delivery for each provider" do
+        providers.each do |provider|
+          expect(components).to receive(:activate_open_feature!).with(provider)
+        end
 
         components.startup!(settings, old_state: old_state)
       end
@@ -818,7 +825,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:error) { RuntimeError.new("test failure") }
 
         before do
-          allow(components).to receive(:activate_open_feature!).with(provider).and_raise(error)
+          allow(components).to receive(:activate_open_feature!).with(providers.first).and_raise(error)
         end
 
         it "reports the failure and continues library startup" do
@@ -944,12 +951,15 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
     end
 
-    it "captures the adopted OpenFeature provider" do
-      provider = instance_double("Datadog::OpenFeature::Provider")
-      activation = instance_double(Datadog::OpenFeature::Activation, provider: provider)
+    it "captures the adopted OpenFeature providers" do
+      providers = [
+        instance_double("Datadog::OpenFeature::Provider"),
+        instance_double("Datadog::OpenFeature::Provider"),
+      ]
+      activation = instance_double(Datadog::OpenFeature::Activation, providers: providers)
       components.instance_variable_set(:@open_feature_activation, activation)
 
-      expect(components.state.open_feature_provider).to be(provider)
+      expect(components.state.open_feature_providers).to eq(providers)
     end
 
     context "when DI is started and the customer never touched the env var" do

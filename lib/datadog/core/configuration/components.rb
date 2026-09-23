@@ -277,7 +277,7 @@ module Datadog
 
           begin
             @open_feature_activation.start!
-            activate_open_feature!(old_state.open_feature_provider) if old_state&.open_feature_provider
+            old_state&.open_feature_providers&.each { |provider| activate_open_feature!(provider) }
           rescue => e
             # Feature Flags is optional and must never interrupt library startup.
             description = "Feature Flags delivery failed to start"
@@ -419,7 +419,7 @@ module Datadog
             telemetry_enabled: telemetry.enabled,
             remote_started: remote&.started?,
             di_implicitly_enabled: di_implicit || false,
-            open_feature_provider: @open_feature_activation.provider,
+            open_feature_providers: @open_feature_activation.providers,
           )
         end
 

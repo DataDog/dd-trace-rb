@@ -8,13 +8,13 @@ module Datadog
 
         @di_implicitly_enabled: bool
 
-        @open_feature_provider: OpenFeature::Provider?
+        @open_feature_providers: Array[OpenFeature::Provider]
 
         def initialize: (
           telemetry_enabled: bool,
           remote_started: bool?,
           ?di_implicitly_enabled: bool,
-          ?open_feature_provider: OpenFeature::Provider?
+          ?open_feature_providers: Array[OpenFeature::Provider]
         ) -> void
 
         def telemetry_enabled?: () -> bool
@@ -23,7 +23,7 @@ module Datadog
 
         def di_implicitly_enabled?: () -> bool
 
-        attr_reader open_feature_provider: OpenFeature::Provider?
+        attr_reader open_feature_providers: Array[OpenFeature::Provider]
       end
     end
   end

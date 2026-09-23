@@ -10,7 +10,7 @@ module Datadog
   module OpenFeature
     # Owns eager Remote Configuration and lazy agentless delivery activation.
     class Activation
-      attr_reader :component, :failure, :provider
+      attr_reader :component, :failure
 
       def initialize(settings, agent_settings, remote, logger:, telemetry:)
         @settings = settings
@@ -22,7 +22,7 @@ module Datadog
         @configuration_source = nil
         @delivery_source = nil
         @failure = nil
-        @provider = nil
+        @providers = []
         @activated = false
         @delivery_started = false
         @shutdown = false
@@ -34,7 +34,7 @@ module Datadog
           return if @shutdown
           return unless open_feature_available?
 
-          @provider = provider
+          @providers << provider unless @providers.any? { |active_provider| active_provider.equal?(provider) }
           return @component if @activated && @delivery_started
           return if @activated
 
@@ -59,6 +59,10 @@ module Datadog
         @mutex.synchronize { @activated }
       end
 
+      def providers
+        @mutex.synchronize { @providers.dup }
+      end
+
       # Timer-driven delivery has no operation in the child that can restart its inherited worker.
       def after_fork
         configuration_source = @mutex.synchronize do
@@ -76,9 +80,11 @@ module Datadog
       def deactivate(provider)
         configuration_source, component = @mutex.synchronize do
           return if @shutdown
-          return unless @provider.equal?(provider)
+          provider_index = @providers.index { |active_provider| active_provider.equal?(provider) }
+          return unless provider_index
 
-          @provider = nil
+          @providers.delete_at(provider_index)
+          return unless @providers.empty?
           if @delivery_source == Configuration::Source::REMOTE_CONFIG && @delivery_started
             # Remote Configuration is process-scoped and may already hold configuration needed by the next provider.
             [nil, nil]
@@ -109,7 +115,7 @@ module Datadog
 
         configuration_source&.stop
         configuration_received = @mutex.synchronize do
-          !@provider.nil? && (component&.configuration_received? || false)
+          !@providers.empty? && (component&.configuration_received? || false)
         end
         configuration_changed(Component::CONFIGURATION_LOST) if configuration_received
         component&.shutdown!
@@ -220,8 +226,8 @@ module Datadog
       end
 
       def configuration_changed(event)
-        provider = @mutex.synchronize { @provider }
-        provider&.send(:configuration_changed, event)
+        providers = @mutex.synchronize { @providers.dup }
+        providers.each { |provider| provider.send(:configuration_changed, event) }
       end
     end
   end
