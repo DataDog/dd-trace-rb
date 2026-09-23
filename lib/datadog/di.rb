@@ -11,6 +11,8 @@ module Datadog
   module DI
     INSTRUMENTED_COUNTERS_LOCK = Mutex.new
 
+    TELEMETRY_NAMESPACE = "dynamic_instrumentation"
+
     # Captured at load time from Exception itself (not a subclass).
     # Used to bypass subclass overrides of backtrace_locations.
     #

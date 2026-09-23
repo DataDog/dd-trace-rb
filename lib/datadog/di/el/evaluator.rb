@@ -41,10 +41,27 @@ module Datadog
         # evaluation unbounded (preserves existing behavior for callers
         # that do not supply a deadline).
         def evaluation_deadline_exceeded?
-          deadline = @context&.deadline_ns
-          !deadline.nil? && ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) >= deadline
+          self.class.evaluation_deadline_exceeded?(@context)
         end
         private :evaluation_deadline_exceeded?
+
+        # Resolves a per-invocation wall-time deadline (float seconds) for
+        # evaluating a probe condition or template segment, from the
+        # configured evaluation timeout setting. Returns nil when no
+        # evaluation timeout is configured, leaving evaluation unbounded.
+        def self.evaluation_deadline(settings)
+          budget_ms = settings.dynamic_instrumentation.max_time_to_evaluate_ms
+          return nil unless budget_ms
+          ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) + budget_ms / 1000.0
+        end
+
+        # Returns true when the monotonic clock has passed the deadline
+        # carried by +context+. Returns false when no deadline is set,
+        # leaving evaluation unbounded.
+        def self.evaluation_deadline_exceeded?(context)
+          deadline = context&.deadline
+          !deadline.nil? && ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) >= deadline
+        end
 
         def ref(var)
           @context.fetch(var)
