@@ -13,10 +13,14 @@ inputs:
   cache-schema:
     description: Installed bundle cache namespace
     required: false
-    default: bundle-installed-matrix-test-v1
+    default: bundle-installed-matrix-test-v2
   image-identity:
     description: Immutable engine image identity
     required: true
+  write-enabled:
+    description: Whether an exact miss may build and save the complete bundle
+    required: false
+    default: "false"
 
 outputs:
   cache-key:
@@ -25,6 +29,9 @@ outputs:
   exact-hit:
     description: Whether exact installed bundle cache was restored
     value: ${{ steps.restore.outputs.cache-hit }}
+  ready:
+    description: Whether the exact installed bundle is available to child jobs
+    value: ${{ steps.lifecycle.outputs.ready }}
   restore-seconds:
     description: Cache restore duration
     value: ${{ steps.restore-duration.outputs.seconds }}
@@ -78,18 +85,29 @@ runs:
       env:
         START_SECONDS: ${{ steps.restore-start.outputs.seconds }}
       run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"
+    - id: lifecycle
+      shell: bash
+      env:
+        EXACT_HIT: ${{ steps.restore.outputs.cache-hit }}
+        WRITE_ENABLED: ${{ inputs.write-enabled }}
+      run: |
+        if [ "$EXACT_HIT" = "true" ] || [ "$WRITE_ENABLED" = "true" ]; then
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "ready=false" >> "$GITHUB_OUTPUT"
+        fi
     - id: population-start
-      if: steps.restore.outputs.cache-hit != 'true'
+      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash
       run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
     - name: Reset installed bundle path
-      if: steps.restore.outputs.cache-hit != 'true'
+      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash
       run: |
         mkdir -p /usr/local/bundle
         find /usr/local/bundle -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
     - name: Install complete matrix bundle
-      if: steps.restore.outputs.cache-hit != 'true'
+      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
@@ -100,12 +118,13 @@ runs:
           --matrix "$MATRIX" \
           --jobs 8
     - id: population-duration
-      if: steps.restore.outputs.cache-hit != 'true'
+      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash
       env:
         START_SECONDS: ${{ steps.population-start.outputs.seconds }}
       run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"
     - name: Verify complete matrix bundle
+      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
@@ -115,6 +134,7 @@ runs:
           --base-gemfile "$BASE_GEMFILE" \
           --matrix "$MATRIX"
     - id: statistics
+      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       name: Measure installed bundle
       shell: bash
       run: |
@@ -122,17 +142,17 @@ runs:
         byte_count=$(du -sb /usr/local/bundle | cut -f1)
         { echo "file-count=$file_count"; echo "byte-count=$byte_count"; } >> "$GITHUB_OUTPUT"
     - id: save-start
-      if: steps.restore.outputs.cache-hit != 'true'
+      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash
       run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
     - name: Save exact installed bundle
-      if: steps.restore.outputs.cache-hit != 'true'
+      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.cache-key }}
         path: /usr/local/bundle
     - id: save-duration
-      if: steps.restore.outputs.cache-hit != 'true'
+      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash
       env:
         START_SECONDS: ${{ steps.save-start.outputs.seconds }}

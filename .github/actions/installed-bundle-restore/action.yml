@@ -33,5 +33,3 @@ runs:
       env:
         START_SECONDS: ${{ steps.start.outputs.seconds }}
       run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"
-    - shell: bash
-      run: bundle check

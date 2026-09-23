@@ -38,6 +38,7 @@ require "support/faux_writer"
 require "support/loaded_gem"
 require "support/health_metric_helpers"
 require "support/log_helpers"
+require "support/minimal_examples" if ENV["CI_MINIMAL_TESTS"] == "true"
 require "support/native_transport_fork_isolation"
 require "support/network_helpers"
 require "support/object_space_helper"
@@ -99,6 +100,11 @@ RSpec.configure do |config|
   config.order = :random
   config.filter_run focus: true
   config.run_all_when_everything_filtered = true
+
+  if ENV["CI_MINIMAL_TESTS"] == "true"
+    minimal_examples = MinimalExamples.new
+    config.around { |example| minimal_examples.run(example) }
+  end
   config.example_status_persistence_file_path = "tmp/example_status_persistence"
   config.backtrace_exclusion_patterns << /spec\/support\/forkable_example\.rb/
 

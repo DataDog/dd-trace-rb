@@ -14,6 +14,14 @@ inputs:
     description: 'Fixed test seed for comparable experimental runs'
     required: false
     default: ''
+  install-dependencies:
+    description: 'Run dependency checks and install missing gems for each batch'
+    required: false
+    default: 'true'
+  minimal-tests:
+    description: 'Run one RSpec example per spec file'
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
@@ -23,14 +31,17 @@ runs:
     shell: bash
 
   - id: bundle-install-start
+    if: inputs.install-dependencies == 'true'
     run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
     shell: bash
 
   - name: Install batch dependencies
+    if: inputs.install-dependencies == 'true'
     run: bundle exec rake github:run_batch_build
     shell: bash
 
   - name: Report batch dependency installation
+    if: inputs.install-dependencies == 'true'
     shell: bash
     env:
       START_SECONDS: ${{ steps.bundle-install-start.outputs.seconds }}
@@ -49,7 +60,9 @@ runs:
     shell: bash
     env:
       COVERAGE_DIR: coverage/versions/${{ inputs.alias }}/${{ inputs.container-id }}
+      CI_MINIMAL_TESTS: "${{ inputs.minimal-tests }}"
       CI_TEST_SEED: "${{ inputs.test-seed || github.run_id }}"
+      SKIP_SIMPLECOV: "${{ inputs.minimal-tests == 'true' && '1' || '0' }}"
 
   - name: Display debug info
     if: ${{ !cancelled() }}
