@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "socket"
 require "datadog/open_feature/configuration/agentless_endpoint"
 require "datadog/open_feature/agentless/transport"
 
@@ -114,6 +115,48 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
     it "returns the transport error" do
       expect(response.status).to be_nil
       expect(response.error).to be_a(Net::ReadTimeout)
+    end
+  end
+
+  context "when the connection closes before responding" do
+    let(:server) { TCPServer.new("127.0.0.1", 0) }
+    let(:endpoint) do
+      Datadog::OpenFeature::Configuration::AgentlessEndpoint.new(
+        URI("http://127.0.0.1:#{server.addr[1]}/config"),
+        managed: false,
+      )
+    end
+
+    around do |example|
+      WebMock.disable!
+      example.run
+    ensure
+      WebMock.enable!
+    end
+
+    it "does not retry inside the transport" do
+      accepted_connections = SizedQueue.new(2)
+      server_thread = Thread.new do
+        loop do
+          connection = server.accept
+          begin
+            accepted_connections.push(true)
+          ensure
+            connection.close
+          end
+        end
+      rescue IOError, Errno::EBADF
+        nil
+      end
+
+      begin
+        expect(response.error).not_to be_nil
+      ensure
+        server.close
+        server_thread.join(1)
+      end
+
+      expect(accepted_connections.size).to eq(1)
     end
   end
 

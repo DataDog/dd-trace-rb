@@ -31,8 +31,8 @@ module Datadog
           new(
             endpoint: endpoint,
             api_key: api_key.empty? ? nil : api_key,
-            poll_interval_seconds: settings.open_feature.agentless_poll_interval_seconds,
-            request_timeout_seconds: settings.open_feature.agentless_request_timeout_seconds,
+            poll_interval_seconds: settings.feature_flags.agentless.poll_interval_seconds,
+            request_timeout_seconds: settings.feature_flags.agentless.request_timeout_seconds,
             apply: apply,
             logger: logger,
           )
