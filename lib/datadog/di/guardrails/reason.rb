@@ -3,10 +3,11 @@
 module Datadog
   module DI
     module Guardrails
-      # Canonical skip and drop reason codes. The values are fixed strings
-      # shared verbatim across every tracer language.
+      # Canonical skip and drop reason codes. Most codes are shared with the
+      # other Datadog tracers; the remaining codes are Ruby-only forward
+      # declarations for guardrails not yet implemented in Ruby.
       module Reason
-        # Skip reasons: no-emission decisions made before expensive work.
+        # Skip reasons.
 
         RATE_LIMIT_PROBE = "rateLimitProbe"
         RATE_LIMIT_GLOBAL = "rateLimitGlobal"
@@ -17,8 +18,8 @@ module Datadog
         QUEUE_FULL = "queueFull"
         QUEUE_HIGH_WATERMARK = "queueHighWatermark"
 
-        # Drop reasons: post-production discards. QUEUE_FULL and
-        # QUEUE_HIGH_WATERMARK are shared with the skip vocabulary.
+        # Drop reasons. QUEUE_FULL and QUEUE_HIGH_WATERMARK are shared with
+        # the skip vocabulary.
 
         PAYLOAD_TOO_LARGE = "payloadTooLarge"
         BATCH_BYTES_EXCEEDED = "batchBytesExceeded"
