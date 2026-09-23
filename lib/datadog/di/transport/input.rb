@@ -8,7 +8,7 @@ require_relative "../../core/transport/request"
 require_relative "../../core/transport/transport"
 require_relative "../error"
 require_relative "../fatal_exceptions"
-require_relative "../snapshot_pruner"
+require_relative "../snapshot_encoder"
 require_relative "http/input"
 
 module Datadog
@@ -74,21 +74,17 @@ module Datadog
             # Serialize each snapshot individually to isolate failures
             encoded_snapshots = []
             payload.each do |snapshot|
-              encoded = encoder.encode(snapshot)
-              if encoded.bytesize > MAX_SERIALIZED_SNAPSHOT_SIZE
-                # Prune the snapshot's captured values to fit under the
-                # per-event cap before dropping it, so a portion of the
-                # captured data is still sent. Drop only when pruning
-                # cannot bring the snapshot under the cap.
-                pruned = SnapshotPruner.prune(snapshot, MAX_SERIALIZED_SNAPSHOT_SIZE, encoded: encoded)
-                if pruned.nil?
-                  logger.debug { "di: dropping too big snapshot (pruning did not fit)" }
-                  next
-                end
-                telemetry&.inc("dynamic_instrumentation", "snapshots_pruned_by_payload_size", 1)
-                encoded = pruned
+              result = SnapshotEncoder.encode(snapshot, MAX_SERIALIZED_SNAPSHOT_SIZE)
+              if result.encoded.nil?
+                logger.debug { "di: dropping too big snapshot (payloadTooLarge)" }
+                telemetry&.inc("dynamic_instrumentation", "guardrails.events.dropped", 1,
+                  tags: {reason: "payloadTooLarge", event_type: "snapshot"})
+                next
               end
-              encoded_snapshots << encoded
+              if result.pruned
+                telemetry&.inc("dynamic_instrumentation", "snapshots_pruned_by_payload_size", 1)
+              end
+              encoded_snapshots << result.encoded
             rescue Exception => exc # standard:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               # Serialization failed for this snapshot - report via callback

@@ -167,12 +167,16 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
         [small_snapshot, snapshot]
       end
 
+      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
       it "drops snapshot that is too big" do
         expect(transport).to receive(:send_input_chunk).once do |chunked_payload, serialized_tags|
           expect(chunked_payload.length).to be < 1_000
           expect(chunked_payload.length).to be > 100
         end
-        expect_lazy_log(logger, :debug, "di: dropping too big snapshot (pruning did not fit)")
+        expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.dropped", 1,
+          tags: {reason: "payloadTooLarge", event_type: "snapshot"})
+        expect_lazy_log(logger, :debug, "di: dropping too big snapshot (payloadTooLarge)")
         transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
       end
     end
