@@ -139,7 +139,7 @@ module Datadog
       def record_rate_limit_skip(probe, reason)
         logger.trace do
           "di: #{probe.type} probe #{probe.id}: skipping due to " \
-            "#{reason == Guardrails::Reason::RATE_LIMIT_PROBE ? "per-probe" : "global"} rate limit" \
+            "#{(reason == Guardrails::Reason::RATE_LIMIT_PROBE) ? "per-probe" : "global"} rate limit" \
             " (#{reason})"
         end
         Guardrails.skipped(
