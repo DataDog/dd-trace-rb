@@ -94,7 +94,7 @@
     "integration": "ethon",
     "package": "ethon",
     "source": "rubygems.org",
-    "min_tested": "0.15.0",
+    "min_tested": "0.16.0",
     "max_tested": "0.18.0"
   },
   {
@@ -102,14 +102,14 @@
     "package": "excon",
     "source": "rubygems.org",
     "min_tested": "0.109.0",
-    "max_tested": "1.7.0"
+    "max_tested": "1.7.1"
   },
   {
     "integration": "faraday",
     "package": "faraday",
     "source": "rubygems.org",
     "min_tested": "0.14.0",
-    "max_tested": "2.14.3"
+    "max_tested": "2.14.4"
   },
   {
     "integration": "grape",
@@ -122,15 +122,15 @@
     "integration": "graphql",
     "package": "graphql",
     "source": "rubygems.org",
-    "min_tested": "1.13.21",
-    "max_tested": "2.3.23"
+    "min_tested": "1.13.25",
+    "max_tested": "2.6.10"
   },
   {
     "integration": "grpc",
     "package": "grpc",
     "source": "rubygems.org",
     "min_tested": "1.48.0",
-    "max_tested": "1.82.0"
+    "max_tested": "1.84.0"
   },
   {
     "integration": "hanami",
@@ -143,22 +143,22 @@
     "integration": "http",
     "package": "http",
     "source": "rubygems.org",
-    "min_tested": "5.0.1",
-    "max_tested": "6.0.2"
+    "min_tested": "5.0.4",
+    "max_tested": "6.0.4"
   },
   {
     "integration": "httpclient",
     "package": "httpclient",
     "source": "rubygems.org",
-    "min_tested": "2.8.3",
+    "min_tested": "2.9.0",
     "max_tested": "2.9.0"
   },
   {
     "integration": "httprb",
     "package": "http",
     "source": "rubygems.org",
-    "min_tested": "5.0.1",
-    "max_tested": "6.0.2"
+    "min_tested": "5.0.4",
+    "max_tested": "6.0.4"
   },
   {
     "integration": "httpx",
@@ -179,22 +179,22 @@
     "integration": "karafka",
     "package": "karafka",
     "source": "rubygems.org",
-    "min_tested": "2.0.41",
-    "max_tested": "2.6.0"
+    "min_tested": "2.3.0",
+    "max_tested": "2.6.1"
   },
   {
     "integration": "kicks",
     "package": "kicks",
     "source": "rubygems.org",
     "min_tested": "3.0.0",
-    "max_tested": "3.2.0"
+    "max_tested": "3.4.0"
   },
   {
     "integration": "lograge",
     "package": "lograge",
     "source": "rubygems.org",
     "min_tested": "0.12.0",
-    "max_tested": "0.14.0"
+    "max_tested": "0.15.0"
   },
   {
     "integration": "makara",
@@ -208,7 +208,7 @@
     "package": "mongo",
     "source": "rubygems.org",
     "min_tested": "2.11.0",
-    "max_tested": "2.25.0"
+    "max_tested": "2.26.0"
   },
   {
     "integration": "mysql2",
@@ -320,7 +320,7 @@
     "package": "shoryuken",
     "source": "rubygems.org",
     "min_tested": "6.0.0",
-    "max_tested": "6.2.1"
+    "max_tested": "7.0.3"
   },
   {
     "integration": "sidekiq",
@@ -348,7 +348,7 @@
     "package": "stripe",
     "source": "rubygems.org",
     "min_tested": "5.15.0",
-    "max_tested": "19.5.0"
+    "max_tested": "19.6.2"
   },
   {
     "integration": "sucker_punch",
@@ -369,6 +369,6 @@
     "package": "waterdrop",
     "source": "rubygems.org",
     "min_tested": "2.6.14",
-    "max_tested": "2.10.3"
+    "max_tested": "2.10.4"
   }
 ]

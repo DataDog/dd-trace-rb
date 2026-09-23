@@ -200,7 +200,7 @@ RSpec.describe Datadog::OpenFeature::Component do
     before do
       settings.open_feature.enabled = true
       settings.open_feature.evaluation_counts_enabled = false
-      settings.open_feature.initialization_timeout_ms = 1
+      settings.feature_flags.initialization_timeout_ms = 1
       settings.remote.enabled = true
       stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", nil)
       allow(worker).to receive(:graceful_shutdown)
@@ -310,7 +310,7 @@ RSpec.describe Datadog::OpenFeature::Component do
           end
           method.call(*arguments)
         end
-        settings.open_feature.initialization_timeout_ms = 30_000
+        settings.feature_flags.initialization_timeout_ms = 30_000
         waiting_thread = Thread.new { result << component.wait_for_configuration }
         begin
           Timeout.timeout(1) { wait_started.pop }
@@ -337,7 +337,7 @@ RSpec.describe Datadog::OpenFeature::Component do
           end
           method.call(*arguments)
         end
-        settings.open_feature.initialization_timeout_ms = 30_000
+        settings.feature_flags.initialization_timeout_ms = 30_000
         waiting_thread = Thread.new { result << component.wait_for_configuration }
         begin
           Timeout.timeout(1) { wait_started.pop }
