@@ -89,30 +89,25 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
       context "when the snapshot queue is full" do
         let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+        let(:capacity) { settings.dynamic_instrumentation.internal.snapshot_queue_capacity }
 
-        it "drops the snapshot and emits the canonical queueFull drop metric" do
+        before do
           allow(input_transport).to receive(:send_input)
           allow(logger).to receive(:debug)
           # Prevent the background worker from draining the queue so the
           # capacity guard is reached deterministically.
           allow(worker).to receive(:start)
+          (capacity + 1).times { worker.add_snapshot(snapshot) }
+          expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
+        end
 
-          expect(telemetry).to receive(:inc) do |namespace, name, value, tags:, **|
-            expect(namespace).to eq("dynamic_instrumentation")
-            expect(name).to eq("guardrails.events.dropped")
-            expect(value).to eq(1)
-            expect(tags).to eq(reason: "queueFull", event_type: "snapshot")
-          end
+        it "drops the snapshot and emits the canonical queueFull drop metric" do
+          expect_guardrails_metric(telemetry, name: "guardrails.events.dropped", value: 1,
+            tags: {reason: "queueFull", event_type: "snapshot"})
 
-          # The guard is queue.length > capacity, so the queue holds
-          # capacity + 1 items before the next add is dropped.
-          11.times { worker.add_snapshot(snapshot) }
-          expect(worker.send(:snapshot_queue).length).to eq(11)
-
-          # This add exceeds capacity and is dropped.
           worker.add_snapshot(snapshot)
 
-          expect(worker.send(:snapshot_queue).length).to eq(11)
+          expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
         end
       end
     end
@@ -267,6 +262,31 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
           # Queue should be cleared even after error
           expect(worker.send(:status_queue)).to eq([])
+        end
+      end
+
+      context "when the status queue is full" do
+        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+        let(:probe) do
+          instance_double(Datadog::DI::Probe, id: "test-probe", type: "log", location: "test.rb:42")
+        end
+        let(:capacity) { settings.dynamic_instrumentation.internal.snapshot_queue_capacity }
+
+        before do
+          allow(input_transport).to receive(:send_input)
+          allow(logger).to receive(:debug)
+          allow(worker).to receive(:start)
+          (capacity + 1).times { worker.add_status(status, probe: probe) }
+          expect(worker.send(:status_queue).length).to eq(capacity + 1)
+        end
+
+        it "drops the status event and emits the queueFull drop metric with the diagnostic event type" do
+          expect_guardrails_metric(telemetry, name: "guardrails.events.dropped", value: 1,
+            tags: {reason: "queueFull", event_type: "diagnostic"})
+
+          worker.add_status(status, probe: probe)
+
+          expect(worker.send(:status_queue).length).to eq(capacity + 1)
         end
       end
     end
