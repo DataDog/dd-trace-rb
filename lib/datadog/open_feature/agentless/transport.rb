@@ -74,11 +74,13 @@ module Datadog
 
           # Agentless delivery requires public egress, so use Ruby's standard proxy discovery.
           http = Net::HTTP.new(hostname, uri.port)
+          http.max_retries = 0
           http.use_ssl = uri.scheme == "https"
           http.open_timeout = @timeout_seconds
           http.read_timeout = @timeout_seconds
           http.write_timeout = @timeout_seconds if http.respond_to?(:write_timeout=)
 
+          # Bounds total request time, including DNS resolution, which the per-phase timeouts do not cover.
           Timeout.timeout(@timeout_seconds) do
             http.start { |connection| connection.request(request) }
           end

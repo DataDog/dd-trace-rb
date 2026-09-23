@@ -34,7 +34,7 @@ RSpec.describe Datadog::OpenFeature::Activation do
   end
 
   before do
-    settings.api_key = "secret" if settings.respond_to?(:open_feature)
+    settings.api_key = "secret" if settings.respond_to?(:feature_flags)
     allow(Datadog::OpenFeature::Component).to receive(:build).and_return(component)
     allow(Datadog::OpenFeature::Configuration::AgentlessEndpoint).to receive(:build).and_return(endpoint)
     allow(Datadog::OpenFeature::Agentless::ConfigurationSource).to receive(:build).and_return(configuration_source)
@@ -104,7 +104,7 @@ RSpec.describe Datadog::OpenFeature::Activation do
     end
 
     context "with Remote Configuration selected" do
-      before { settings.open_feature.configuration_source = "remote_config" }
+      before { settings.feature_flags.configuration_source = "remote_config" }
 
       it "registers and starts Remote Configuration eagerly" do
         expect(activation.start!).to be(component)
@@ -158,7 +158,7 @@ RSpec.describe Datadog::OpenFeature::Activation do
     end
 
     context "when Feature Flags are disabled" do
-      before { settings.open_feature.feature_flags_enabled = false }
+      before { settings.feature_flags.enabled = false }
 
       it "does not build or start a delivery source" do
         expect(activation.activate(provider)).to be_nil
@@ -177,6 +177,20 @@ RSpec.describe Datadog::OpenFeature::Activation do
 
       it "does not activate delivery for a provider" do
         expect(activation.activate(provider)).to be_nil
+        expect(Datadog::OpenFeature::Component).not_to have_received(:build)
+      end
+    end
+
+    context "when only legacy OpenFeature settings are available" do
+      let(:settings) { instance_double(Datadog::Core::Configuration::Settings) }
+
+      before do
+        allow(settings).to receive(:respond_to?).with(:open_feature).and_return(true)
+        allow(settings).to receive(:respond_to?).with(:feature_flags).and_return(false)
+      end
+
+      it "does not start delivery" do
+        expect(activation.start!).to be_nil
         expect(Datadog::OpenFeature::Component).not_to have_received(:build)
       end
     end
