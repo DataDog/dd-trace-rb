@@ -22,12 +22,16 @@ RSpec.describe Datadog::DI::Guardrails do
       expect(described_class.event_type_tag(:snapshot)).to eq("snapshot")
     end
 
+    it "maps log to log" do
+      expect(described_class.event_type_tag(:log)).to eq("log")
+    end
+
     it "maps status to diagnostic" do
       expect(described_class.event_type_tag(:status)).to eq("diagnostic")
     end
 
-    it "falls back to the string form for unknown types" do
-      expect(described_class.event_type_tag(:log)).to eq("log")
+    it "raises ArgumentError for unknown event types" do
+      expect { described_class.event_type_tag(:bogus) }.to raise_error(ArgumentError, /Unknown DI event type/)
     end
   end
 
