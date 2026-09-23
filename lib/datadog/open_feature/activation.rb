@@ -37,7 +37,7 @@ module Datadog
           return @component if @activated && @delivery_started
           return if @activated
 
-          resolution = Configuration::Source.resolve(@settings.open_feature, logger: @logger)
+          resolution = Configuration::Source.resolve(@settings, logger: @logger)
           activate_delivery(resolution)
         end
       end
@@ -47,7 +47,7 @@ module Datadog
           return if @shutdown || @activated
           return unless open_feature_available?
 
-          resolution = Configuration::Source.resolve(@settings.open_feature, logger: @logger)
+          resolution = Configuration::Source.resolve(@settings, logger: @logger)
           return unless resolution.enabled? && resolution.source == Configuration::Source::REMOTE_CONFIG
 
           activate_delivery(resolution)
@@ -73,7 +73,7 @@ module Datadog
       private
 
       def open_feature_available?
-        @settings.respond_to?(:open_feature)
+        @settings.respond_to?(:open_feature) && @settings.respond_to?(:feature_flags)
       end
 
       def activate_delivery(resolution)
@@ -124,7 +124,7 @@ module Datadog
         endpoint = Configuration::AgentlessEndpoint.build(
           site: @settings.site,
           environment: @settings.env,
-          base_url: @settings.open_feature.agentless_base_url,
+          base_url: @settings.feature_flags.agentless.base_url,
           logger: @logger,
         )
         unless endpoint
