@@ -507,12 +507,8 @@ RSpec.describe Datadog::DI::ProbeManager do
       it "emits the canonical evaluationErrorThrottled skip metric and does not queue" do
         allow(rate_limiter).to receive(:allow?).and_return(false)
 
-        expect(telemetry).to receive(:inc) do |namespace, name, value, tags:, **|
-          expect(namespace).to eq("dynamic_instrumentation")
-          expect(name).to eq("guardrails.events.skipped")
-          expect(value).to eq(1)
-          expect(tags).to eq(reason: "evaluationErrorThrottled", probe_type: "log")
-        end
+        expect_guardrails_metric(telemetry, name: "guardrails.events.skipped", value: 1,
+          tags: {reason: "evaluationErrorThrottled", probe_type: "log"})
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
 
         manager.probe_condition_evaluation_failed_callback(context, "expr", RuntimeError.new("boom"))

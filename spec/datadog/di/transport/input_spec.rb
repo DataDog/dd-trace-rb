@@ -174,19 +174,15 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           expect(chunked_payload.length).to be < 1_000
           expect(chunked_payload.length).to be > 100
         end
-        expect(telemetry).to receive(:inc) do |namespace, name, value, tags:, **|
-          expect(namespace).to eq("dynamic_instrumentation")
-          expect(name).to eq("guardrails.events.dropped")
-          expect(value).to eq(1)
-          expect(tags).to eq(reason: "payloadTooLarge", event_type: "snapshot")
-        end
+        expect_guardrails_metric(telemetry, name: "guardrails.events.dropped", value: 1,
+          tags: {reason: "payloadTooLarge", event_type: "snapshot"})
         expect(telemetry).to receive(:inc) do |namespace, name, value, tags:, **|
           expect(namespace).to eq("dynamic_instrumentation")
           expect(name).to eq("guardrails.queue.dropped_bytes")
           expect(value).to be > 2_000
           expect(tags).to eq(reason: "payloadTooLarge", event_type: "snapshot")
         end
-        allow(logger).to receive(:debug)
+        expect_lazy_log(logger, :debug, "di: dropping too big snapshot (payloadTooLarge)")
         transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
       end
     end
