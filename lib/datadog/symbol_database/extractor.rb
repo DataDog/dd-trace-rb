@@ -115,6 +115,7 @@ module Datadog
       def initialize(logger:, settings:)
         @logger = logger
         @settings = settings
+        @method_resolution_cache = nil
       end
 
       # Extract symbols from a single module or class.
@@ -136,16 +137,26 @@ module Datadog
 
         return nil unless user_code_module?(mod)
 
-        source_file = find_source_file(mod)
-        return nil unless source_file
+        # Memoize resolution for this call so find_source_file,
+        # calculate_class_line_range and extract_method_scopes do not re-walk
+        # the super_method chain per method. extract_all stays uncached: its
+        # two passes must re-resolve to detect methods that moved files.
+        previous_cache = @method_resolution_cache
+        @method_resolution_cache = {}
+        begin
+          source_file = find_source_file(mod)
+          return nil unless source_file
 
-        inner_scope = if Class === mod
-          extract_class_scope(mod)
-        else
-          extract_module_scope(mod)
+          inner_scope = if Class === mod
+            extract_class_scope(mod)
+          else
+            extract_module_scope(mod)
+          end
+
+          wrap_in_file_scope(source_file, [inner_scope])
+        ensure
+          @method_resolution_cache = previous_cache
         end
-
-        wrap_in_file_scope(source_file, [inner_scope])
       rescue Exception => e # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: failed to extract #{mod_name || "<unknown>"}: #{e.class}: #{e.message}" }
@@ -340,6 +351,12 @@ module Datadog
       # @return [UnboundMethod] Method whose owner is +mod+, or the
       #   prepend-resolved method when +mod+ owns no method in the super chain
       def declared_instance_method(mod, method_name)
+        cache = @method_resolution_cache
+        if cache
+          cached = cache[[mod, method_name]]
+          return cached if cached
+        end
+
         original_method = mod.instance_method(method_name)
         method = original_method
         until method.owner.equal?(mod)
@@ -347,6 +364,7 @@ module Datadog
           return original_method unless super_method
           method = super_method
         end
+        cache[[mod, method_name]] = method if cache
         method
       end
 
@@ -380,6 +398,8 @@ module Datadog
 
         # Try singleton methods
         mod.singleton_methods(false).each do |method_name|
+          # Method-logpoint probes prepend instance methods only, so singleton
+          # methods are never shadowed by a DI wrapper.
           method = mod.method(method_name)
           location = method.source_location
           next unless location

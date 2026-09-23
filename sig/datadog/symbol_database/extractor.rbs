@@ -21,6 +21,7 @@ module Datadog
 
       @logger: untyped
       @settings: untyped
+      @method_resolution_cache: Hash[[Module, ::Symbol], UnboundMethod]?
       def initialize: (logger: untyped, settings: untyped) -> void
 
       def extract: (Module mod) -> Scope?
