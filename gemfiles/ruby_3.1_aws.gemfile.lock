@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.43.0.dev)
+    datadog (2.44.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.5)
       libdatadog (~> 40.0.0.2.0)
@@ -14,8 +14,8 @@ GEM
   specs:
     addressable (2.9.0)
       public_suffix (>= 2.0.2, < 8.0)
-    aws-eventstream (1.2.0)
-    aws-partitions (1.813.0)
+    aws-eventstream (1.4.0)
+    aws-partitions (1.1287.0)
     aws-sdk (3.1.0)
       aws-sdk-resources (~> 3)
     aws-sdk-accessanalyzer (1.39.0)
@@ -278,11 +278,15 @@ GEM
     aws-sdk-controltower (1.7.0)
       aws-sdk-core (~> 3, >= 3.177.0)
       aws-sigv4 (~> 1.1)
-    aws-sdk-core (3.181.0)
-      aws-eventstream (~> 1, >= 1.0.2)
-      aws-partitions (~> 1, >= 1.651.0)
-      aws-sigv4 (~> 1.5)
+    aws-sdk-core (3.257.0)
+      aws-eventstream (~> 1, >= 1.3.0)
+      aws-partitions (~> 1, >= 1.992.0)
+      aws-sigv4 (~> 1.9)
+      base64
+      bigdecimal
       jmespath (~> 1, >= 1.6.1)
+      logger
+      rexml (~> 3.4, >= 3.4.2)
     aws-sdk-costandusagereportservice (1.49.0)
       aws-sdk-core (~> 3, >= 3.177.0)
       aws-sigv4 (~> 1.1)
@@ -1330,9 +1334,9 @@ GEM
     aws-sdk-sns (1.65.0)
       aws-sdk-core (~> 3, >= 3.177.0)
       aws-sigv4 (~> 1.1)
-    aws-sdk-sqs (1.62.0)
-      aws-sdk-core (~> 3, >= 3.177.0)
-      aws-sigv4 (~> 1.1)
+    aws-sdk-sqs (1.119.0)
+      aws-sdk-core (~> 3, >= 3.256.0)
+      aws-sigv4 (~> 1.5)
     aws-sdk-ssm (1.156.0)
       aws-sdk-core (~> 3, >= 3.177.0)
       aws-sigv4 (~> 1.1)
@@ -1433,12 +1437,13 @@ GEM
       aws-sdk-core (~> 3, >= 3.177.0)
       aws-sigv4 (~> 1.1)
     aws-sigv2 (1.1.0)
-    aws-sigv4 (1.6.0)
+    aws-sigv4 (1.12.1)
       aws-eventstream (~> 1, >= 1.0.2)
+    base64 (0.3.0)
     benchmark-ips (2.15.1)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
-    bigdecimal (4.1.2)
+    bigdecimal (4.1.3)
     byebug (12.0.0)
     cgi (0.5.2)
     climate_control (1.2.0)
@@ -1466,7 +1471,7 @@ GEM
     google-protobuf (3.25.8-x86_64-darwin)
     google-protobuf (3.25.8-x86_64-linux)
     hashdiff (1.2.1)
-    io-console (0.9.2)
+    io-console (0.9.4)
     irb (1.18.0)
       pp (>= 0.6.0)
       prism (>= 1.3.0)
@@ -1591,8 +1596,8 @@ DEPENDENCIES
 
 CHECKSUMS
   addressable (2.9.0) sha256=7fdf6ac3660f7f4e867a0838be3f6cf722ace541dd97767fa42bc6cfa980c7af
-  aws-eventstream (1.2.0) sha256=ffa53482c92880b001ff2fb06919b9bb82fd847cbb0fa244985d2ebb6dd0d1df
-  aws-partitions (1.813.0) sha256=2ec1026e39b6f76bc327e0b20b6bd5d71832da23618de7ac1085b51faa8211be
+  aws-eventstream (1.4.0) sha256=116bf85c436200d1060811e6f5d2d40c88f65448f2125bc77ffce5121e6e183b
+  aws-partitions (1.1287.0) sha256=76f4c73011654553566c5db5bbef0f24738bb016e923910e8b1b3f9cb7d989ca
   aws-sdk (3.1.0) sha256=fecbc05fceb55c162ce99e3cc27208021af83eadf3fe19359136d9ab70561279
   aws-sdk-accessanalyzer (1.39.0) sha256=5953fe7d44c56031284112816f0130154d4e8e8bfb2cc2c0676e4d3be5934fc9
   aws-sdk-account (1.17.0) sha256=6740f0d533c50da024f52894d39c0eda1636e61dddf5c9b022eb56c0bef1e20b
@@ -1681,7 +1686,7 @@ CHECKSUMS
   aws-sdk-connectparticipant (1.34.0) sha256=9cec71f8a96b7bbbee1a90f8d368488752bdf49750c1eb57377f930379e8f718
   aws-sdk-connectwisdomservice (1.19.0) sha256=96648de7898449bb9d201cc1fa69e203c6a9e0913b751eb90f830149384773d2
   aws-sdk-controltower (1.7.0) sha256=578cc8dc6c723091143ac30751b8579d20d614fc9de2072d732b60fa13644082
-  aws-sdk-core (3.181.0) sha256=711cdf9483e48c63cd16b063b5f55d7ea23c4c432ce6123b287c356a1c4b5c76
+  aws-sdk-core (3.257.0) sha256=a92ad19c7ff668cec6688ee3200ee562da80647a3bbeed9fda02e8b0ca6492c6
   aws-sdk-costandusagereportservice (1.49.0) sha256=821ea0c281c6ec6701751f4156e996b979ef25d1622ed092c878964da9df565c
   aws-sdk-costexplorer (1.90.0) sha256=6a06182ad8cc2ac794b7ce568a6f5ef0edae4101acc4f63313a9a6573d5613c6
   aws-sdk-customerprofiles (1.35.0) sha256=67585653deefa0a845862a96e215f6b15ab773912e7f59f005fe63930458aea9
@@ -1914,7 +1919,7 @@ CHECKSUMS
   aws-sdk-snowball (1.60.0) sha256=3737b883c73d1f2aeb2458ca7c2b2e4adeb5a9c59e28a29a8ab38bfe5992174a
   aws-sdk-snowdevicemanagement (1.14.0) sha256=c39792f38fd20f7f0b3cc9482fe4ab4b0f004a736ed73f66bf0b5c0f6cf60fed
   aws-sdk-sns (1.65.0) sha256=339ed0807f2ec6a66536206585309c6091436a6d01a7bb2fb8f92a6267408f13
-  aws-sdk-sqs (1.62.0) sha256=33ae30f48d9e24cfe560a27d262775b4f948cf68bf5fa7546d17dd0055723634
+  aws-sdk-sqs (1.119.0) sha256=62d4d505303879e6e416a7346d35e6f93d0b794f2555f37ed6535b48c133795e
   aws-sdk-ssm (1.156.0) sha256=534bf39928da2fc9388453f5ee369d57bcea0fad35c4124ce930967f69b6169d
   aws-sdk-ssmcontacts (1.22.0) sha256=d884aa36704f6a11185c73f0a26f9b8d0bb46e51a3d5a17bc73f510e95e24c05
   aws-sdk-ssmincidents (1.27.0) sha256=a15793708841ccf71780306b7b0dddd87b051e1202bae85902a707cb72e8bbb1
@@ -1949,17 +1954,18 @@ CHECKSUMS
   aws-sdk-workspacesweb (1.14.0) sha256=41c9bbd876b893bc688a2733e5d0098e6d1bbee13e4eab46e1d7c21d712bcf0a
   aws-sdk-xray (1.57.0) sha256=3811acebb82e649ee5e644f4fa6b152a28a87810c01149ddb72617944ee2fd28
   aws-sigv2 (1.1.0) sha256=33c3d5eab3af3ef5a16cb02e00e67dbe49c6487a12769cbd7ae383b68de0daae
-  aws-sigv4 (1.6.0) sha256=ca9e6a15cd424f1f32b524b9760995331459bc22e67d3daad4fcf0c0084b087d
+  aws-sigv4 (1.12.1) sha256=6973ff95cb0fd0dc58ba26e90e9510a2219525d07620c8babeb70ef831826c00
+  base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
   benchmark-ips (2.15.1) sha256=07a1a9f3c6105ecaf68c174fc3fbcddd71a0e9ada6236ae03093a0dcfd812d59
   benchmark-memory (0.1.2) sha256=aa7bfe6776174d0ddefe6fb39945d88fff6d76eac165690188391d9acd441c87
-  bigdecimal (4.1.2) sha256=53d217666027eab4280346fba98e7d5b66baaae1b9c3c1c0ffe89d48188a3fbd
+  bigdecimal (4.1.3) sha256=61ebe1e5e559bdc3cc6f2c0ee7f427321fc838f59611c294356eb04d6e21cf66
   byebug (12.0.0) sha256=d4a150d291cca40b66ec9ca31f754e93fed8aa266a17335f71bb0afa7fca1a1e
   cgi (0.5.2) sha256=61ca30298171190fd4fa0d8018e57ada456eae9b7a2b78526debf7f0a0e6f8bb
   climate_control (1.2.0) sha256=36b21896193fa8c8536fa1cd843a07cf8ddbd03aaba43665e26c53ec1bd70aa5
   coderay (1.1.3) sha256=dc530018a4684512f8f38143cd2a096c9f02a1fc2459edcfe534787a7fc77d4b
   concurrent-ruby (1.3.8) sha256=b2f1be836e968ccc78ccfce277ea79c72a88633f22306782c16ff23fb415d1e1
   crack (1.0.1) sha256=ff4a10390cd31d66440b7524eb1841874db86201d5b70032028553130b6d4c7e
-  datadog (2.43.0.dev)
+  datadog (2.44.0.dev)
   datadog-ruby_core_source (3.5.5) sha256=5df55ea06feda22e5d4b7db62a70f19a86660bd06d3a3ff739d2f549eaff45e6
   date (3.5.1) sha256=750d06384d7b9c15d562c76291407d89e368dda4d4fff957eb94962d325a0dc0
   debug (1.11.1) sha256=2e0b0ac6119f2207a6f8ac7d4a73ca8eb4e440f64da0a3136c30343146e952b6
@@ -1976,7 +1982,7 @@ CHECKSUMS
   google-protobuf (3.25.8-x86_64-darwin) sha256=9c9e8c1c760eeb314fd6bcba1b0fb1e64c473fc9e2040c8992df61874974c108
   google-protobuf (3.25.8-x86_64-linux) sha256=07783d910635e2a60eaf929fe3e45ea4d657d023be3816bda99a21c14f7be959
   hashdiff (1.2.1) sha256=9c079dbc513dfc8833ab59c0c2d8f230fa28499cc5efb4b8dd276cf931457cd1
-  io-console (0.9.2) sha256=efa74f891dd03c0939a931dfc6e74c2813d904763d456ea9762b0525e748db08
+  io-console (0.9.4) sha256=a403304f32928ee85e56d457b4612ca43f2703b561a3258844992bd24085fbb1
   irb (1.18.0) sha256=de9454a0703a54704b9811a5ef31a60c86949fbf4013fcf244fabc7c775248e3
   jmespath (1.6.2) sha256=238d774a58723d6c090494c8879b5e9918c19485f7e840f2c1c7532cf84ebcb1
   json-schema (6.2.0) sha256=e8bff46ed845a22c1ab2bd0d7eccf831c01fe23bb3920caa4c74db4306813666

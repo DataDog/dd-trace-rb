@@ -18,7 +18,7 @@ jobs:
     name: build
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -105,7 +105,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -128,6 +128,26 @@ jobs:
             echo "::error::See $DOC_URL for how to reproduce this locally and how to fix or document a CVE finding."
           fi
 
+  # Excluded from Green CI metrics: this workflow is static linting, and
+  # bundler-audit is a guard against newly published CVEs, not a test.
+  green-ci-exclude-metrics:
+    name: green-ci/exclude-metrics
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    container:
+      image: datadog/ci:v5.7.0
+    steps:
+      - name: Get Datadog credentials via dd-sts
+        id: dd-sts
+        uses: DataDog/dd-sts-action@639d841c72f15e4e77747bd726ef8105ce971da2
+        with:
+          policy: public-datadog-dd-trace-rb
+      - name: Exclude from Green CI process
+        env:
+          DD_API_KEY: ${{ steps.dd-sts.outputs.api_key }}
+        run: datadog-ci tag --level pipeline --tags green_ci.excluded:true
+
   changelog:
     name: changelog/check
     runs-on: ubuntu-24.04
@@ -140,7 +160,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Set up Ruby
-        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
+        uses: ruby/setup-ruby@a0102e0972be65f351c307e2d64b9314a57c8073 # v1.324.0
         with:
           ruby-version: "4.0.1"
           bundler-cache: true
@@ -182,7 +202,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -230,7 +250,7 @@ jobs:
           scope: DataDog/dd-trace-rb
           policy: self.check
       - name: Run zizmor
-        uses: zizmorcore/zizmor-action@70fb788f84895a7701f5643d103d587e460b5c99 # v0.6.3
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
         with:
           version: 1.26.1
           min-severity: low
@@ -277,6 +297,7 @@ jobs:
       - 'yaml-lint'
       - 'checksum-coverage'
       - 'bundler-audit'
+      - 'green-ci-exclude-metrics'
       - 'changelog'
     runs-on: ubuntu-24.04
     steps:
