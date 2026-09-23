@@ -110,6 +110,18 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? d
         )
       end
 
+      it "sets the thread context with small integer span IDs" do
+        trace_id = 0xf0e1_d2c3_b4a5_9687_7869_5a4b_3c2d_1e0f
+        span_id = 0x1234_5678_90ab_cdef
+        local_root_span_id = 0x2345_6789_0abc_def1
+
+        otel_thread_context.set(trace_id: trace_id, span_id: span_id, local_root_span_id: local_root_span_id)
+
+        expect(decode_context(described_class::Testing._native_read)).to include(
+          trace_id: trace_id, span_id: span_id, local_root_span_id: local_root_span_id,
+        )
+      end
+
       it "clears the thread context when the trace ID is zero" do
         otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
 
