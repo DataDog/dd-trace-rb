@@ -143,7 +143,10 @@ appraise 'relational_db' do
   gem 'delayed_job'
   gem 'delayed_job_active_record'
   gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
-  gem 'mysql2', '>= 0.5.3', platform: :ruby
+  # 0.5.7 raises an empty Mysql2::Error from #affected_rows after SELECT on MariaDB Connector/C 11.8
+  # (Debian 13 base image); fixed upstream but unreleased. Remove once 0.5.8 is out:
+  # https://github.com/brianmario/mysql2/issues/1614
+  gem 'mysql2', '>= 0.5.3', '!= 0.5.7', platform: :ruby
   gem 'pg', platform: :ruby
   gem 'sqlite3', '~> 1.4', platform: :ruby
   gem 'sequel'

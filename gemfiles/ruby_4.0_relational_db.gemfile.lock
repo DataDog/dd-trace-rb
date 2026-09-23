@@ -95,8 +95,7 @@ GEM
       prism (~> 1.5)
     msgpack (1.8.5)
     mutex_m (0.3.0)
-    mysql2 (0.5.7)
-      bigdecimal
+    mysql2 (0.5.6)
     os (1.1.4)
     ostruct (0.6.3)
     pg (1.6.2)
@@ -180,7 +179,7 @@ DEPENDENCIES
   makara (>= 0.6.0.pre)
   memory_profiler (~> 0.9)
   mutex_m
-  mysql2 (>= 0.5.3)
+  mysql2 (>= 0.5.3, != 0.5.7)
   os (~> 1.1)
   ostruct
   pg
@@ -253,7 +252,7 @@ CHECKSUMS
   minitest (6.0.6) sha256=153ea36d1d987a62942382b61075745042a2b3123b1cd48f4c3675af9cc7d6f1
   msgpack (1.8.5) sha256=97419eaa7b35dfe3e462c0e6c1a3dfdcbfc8756605c09e46e4c6daef127517ba
   mutex_m (0.3.0) sha256=cfcb04ac16b69c4813777022fdceda24e9f798e48092a2b817eb4c0a782b0751
-  mysql2 (0.5.7) sha256=ba09ede515a0ae8a7192040a1b778c0fb0f025fa5877e9be895cd325fa5e9d7b
+  mysql2 (0.5.6) sha256=70f447d45d6b3cc16b00f7dd30366f708a81b4093a35d026ff7135d778d8da33
   os (1.1.4) sha256=57816d6a334e7bd6aed048f4b0308226c5fb027433b67d90a9ab435f35108d3f
   ostruct (0.6.3) sha256=95a2ed4a4bd1d190784e666b47b2d3f078e4a9efda2fccf18f84ddc6538ed912
   pg (1.6.2) sha256=58614afd405cc9c2c9e15bffe8432e0d6cfc58b722344ad4a47c73a85189c875
