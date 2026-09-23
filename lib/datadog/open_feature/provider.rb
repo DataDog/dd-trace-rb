@@ -320,6 +320,7 @@ module Datadog
           elsif event == Component::CONFIGURATION_CHANGED && !@initializing
             ::OpenFeature::SDK::ProviderEvent::PROVIDER_CONFIGURATION_CHANGED
           elsif event == Component::CONFIGURATION_LOST
+            @ready_pending = false
             if @initializing
               @stale_pending = true
               nil

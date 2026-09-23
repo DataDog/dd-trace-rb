@@ -173,6 +173,20 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
           expect(events).to eq([:error, :ready])
         end
+
+        it "does not report READY when raced configuration is withdrawn before the SDK error" do
+          configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE, ->(_) { events << :stale })
+          allow(provider).to receive(:install_error_handler).and_wrap_original do |method|
+            method.call
+            provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+            provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_LOST)
+          end
+
+          expect { configuration.set_provider_and_wait(provider) }
+            .to raise_error(::OpenFeature::SDK::ProviderInitializationError)
+
+          expect(events).to eq([:stale, :error])
+        end
       end
     end
 
