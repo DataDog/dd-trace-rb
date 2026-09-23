@@ -47,7 +47,7 @@ module Datadog
 
       def user_code_path?: (String path) -> bool
 
-      def declared_instance_method: (Module mod, ::Symbol name) -> UnboundMethod
+      def declared_instance_method: (Module mod, ::Symbol method_name) -> UnboundMethod
 
       def find_source_file: (Module mod) -> String?
 

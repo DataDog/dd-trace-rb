@@ -331,10 +331,17 @@ module Datadog
         true
       end
 
-      def declared_instance_method(mod, name)
-        original_method = mod.instance_method(name)
+      # Resolve the UnboundMethod +mod+ itself declares for +method_name+,
+      # skipping prepended wrapper modules (e.g. a DI method-logpoint wrapper)
+      # that shadow it.
+      #
+      # @param mod [Module] Module or class expected to declare the method
+      # @param method_name [Symbol] Name of the method to resolve
+      # @return [UnboundMethod] Method whose owner is +mod+, or the
+      #   prepend-resolved method when +mod+ owns no method in the super chain
+      def declared_instance_method(mod, method_name)
+        original_method = mod.instance_method(method_name)
         method = original_method
-        # Prepending changes method lookup, not which module declares the method.
         until method.owner.equal?(mod)
           super_method = method.super_method
           return original_method unless super_method
