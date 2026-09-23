@@ -748,9 +748,9 @@ bool thread_context_collector_sample(VALUE self_instance, long current_monotonic
   VALUE current_thread = rb_thread_current();
   per_thread_context *current_thread_context = get_or_create_context_for(current_thread);
 
-  // Sample the current thread first:
-  // * CPU-time spent by customer code gets assigned to the user's thread stack here
-  // * CPU-time spent by the profiler will be accounted separately in `record_sampling_overhead` below
+  // Sample the current thread (which will use the current CPU-time) first.
+  // This ensures any CPU-time the profiler spends sampling (e.g. the rest of the function) is not wrongly blamed on this thread,
+  // and instead is separately accounted by `record_sampling_overhead()` below.
   update_metrics_and_sample(
     state,
     current_thread,
