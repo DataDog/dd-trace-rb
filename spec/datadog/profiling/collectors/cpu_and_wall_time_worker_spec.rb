@@ -1202,6 +1202,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
       end
 
+      # Make sure the profiler doesn't skip samples during GC.stress
+      let(:options) { {dynamic_sampling_rate_enabled: false} }
       let(:allocation_profiling_enabled) { true }
       let(:allocation_counting_enabled) { true }
       let(:heap_profiling_enabled) { RubyVersion.is?(">= 3.1") }
