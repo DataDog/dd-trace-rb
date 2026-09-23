@@ -1211,14 +1211,32 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
   end
 
   describe ".declared_instance_method" do
-    it "preserves inherited methods with a local visibility override" do
-      parent = Class.new do
-        def inherited
+    it "resolves past a prepended wrapper to the method the module itself owns" do
+      wrapper = Module.new do
+        def home
         end
       end
-      child = Class.new(parent) { private :inherited }
+      klass = Class.new do
+        def home
+        end
+      end
+      klass.prepend(wrapper)
 
-      expect(extractor.send(:declared_instance_method, child, :inherited)).to eq(child.instance_method(:inherited))
+      expect(klass.instance_method(:home).owner).to eq(wrapper)
+      expect(extractor.send(:declared_instance_method, klass, :home).owner).to eq(klass)
+    end
+
+    it "falls back to the prepend-resolved method when the module owns none" do
+      wrapper = Module.new do
+        def only_in_wrapper
+        end
+      end
+      klass = Class.new
+      klass.prepend(wrapper)
+
+      resolved = extractor.send(:declared_instance_method, klass, :only_in_wrapper)
+      expect(resolved).to eq(klass.instance_method(:only_in_wrapper))
+      expect(resolved.owner).to eq(wrapper)
     end
   end
 
@@ -1230,28 +1248,31 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
     end
 
-    before do
-      @filename = create_user_code_file(<<~RUBY)
-        class TestProbedClass
-          def home(value)
-            value
-          end
-
-          private
-
-          def secret(value)
-            value
-          end
+    let(:filename) { create_user_code_file(<<~RUBY) }
+      class TestProbedClass
+        def home(value)
+          value
         end
-      RUBY
-      load @filename
+
+        private
+
+        def secret(value)
+          value
+        end
+      end
+    RUBY
+
+    before do
+      load filename
       probes.each { |probe| instrumenter.hook_method(probe, nil) }
+      expect(TestProbedClass.instance_method(:home).owner).not_to eq(TestProbedClass)
+      expect(TestProbedClass.instance_method(:secret).owner).not_to eq(TestProbedClass)
     end
 
     after do
       probes.reverse_each { |probe| instrumenter.unhook_method(probe) }
       Object.send(:remove_const, :TestProbedClass) if defined?(TestProbedClass)
-      cleanup_user_code_file(@filename)
+      cleanup_user_code_file(filename)
     end
 
     [:extract, :extract_all].each do |entrypoint|
@@ -1259,16 +1280,16 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         file_scope = if entrypoint == :extract
           extractor.extract(TestProbedClass)
         else
-          extractor.extract_all.find { |scope| scope.source_file == @filename }
+          extractor.extract_all.find { |scope| scope.source_file == filename }
         end
 
         expect(file_scope).not_to be_nil
         class_scope = file_scope.scopes.find { |scope| scope.name == "TestProbedClass" }
         expect(class_scope.scopes.map(&:name)).to contain_exactly("home", "secret")
-        expect(class_scope.source_file).to eq(@filename)
+        expect(class_scope.source_file).to eq(filename)
         expect(class_scope.start_line).to eq(2)
         class_scope.scopes.each do |method|
-          expect(method.source_file).to eq(@filename)
+          expect(method.source_file).to eq(filename)
           expect(method.symbols.map(&:name)).to eq(["value"])
           expect(method.language_specifics[:arity]).to eq(1)
           expect(method.targetable_lines).not_to be_empty
