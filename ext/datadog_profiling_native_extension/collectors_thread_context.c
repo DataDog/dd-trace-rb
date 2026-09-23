@@ -748,27 +748,36 @@ bool thread_context_collector_sample(VALUE self_instance, long current_monotonic
 
   VALUE current_thread = rb_thread_current();
   per_thread_context *current_thread_context = get_or_create_context_for(current_thread);
-  long cpu_time_at_sample_start_for_current_thread = cpu_time_now_ns(current_thread_context);
+
+  // Sample the current thread first:
+  // * CPU-time spent by customer code gets assigned to the user's thread stack here
+  // * CPU-time spent by the profiler will be accounted separately in `record_sampling_overhead` below
+  update_metrics_and_sample(
+    state,
+    current_thread,
+    current_thread_context,
+    cpu_time_now_ns(current_thread_context),
+    current_monotonic_wall_time_ns,
+    false
+  );
 
   VALUE threads = thread_list(state);
 
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
-    VALUE thread = RARRAY_AREF(threads, i);
-    per_thread_context *thread_context = get_or_create_context_for(thread);
+    VALUE thread = rb_ary_entry(threads, i);
+    if (thread == current_thread) continue; // Already sampled above
 
-    // We account for cpu-time for the current thread in a different way: we use the cpu-time at sampling start,
-    // to avoid blaming the time the profiler took on whatever is currently running on the thread,
-    // and instead we report that time the profiler took as sampling overhead below.
-    long current_cpu_time_ns = (thread == current_thread) ? cpu_time_at_sample_start_for_current_thread : cpu_time_now_ns(thread_context);
+    per_thread_context *thread_context = get_or_create_context_for(thread);
 
     update_metrics_and_sample(
       state,
       thread,
       thread_context,
-      current_cpu_time_ns,
+      cpu_time_now_ns(thread_context),
       current_monotonic_wall_time_ns,
-      false);
+      false
+    );
   }
 
   state->stats.sample_count++;
