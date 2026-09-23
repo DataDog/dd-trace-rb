@@ -1224,7 +1224,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           10.times { |i| i.to_s }
 
           cpu_and_wall_time_worker.stop
-          recorder.serialize!
+          profile = recorder.serialize!
         ensure
           GC.stress = false
         end
@@ -1237,6 +1237,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               "#{failure_exception&.backtrace&.join("\n")}"
           }
         )
+
+        samples = samples_from_pprof(profile).select do |sample|
+          sample.locations.any? { |location| location.path == __FILE__ }
+        end
+        expect(samples.map(&:values)).to include(include("alloc-samples": be > 0))
       end
     end
 
