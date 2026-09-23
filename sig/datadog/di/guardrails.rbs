@@ -1,16 +1,12 @@
 module Datadog
   module DI
     module Guardrails
-      TELEMETRY_NAMESPACE: ::String
-
       PROBE_TYPE_SNAPSHOT: ::String
       PROBE_TYPE_LOG: ::String
 
       EVENT_TYPE_SNAPSHOT: ::String
       EVENT_TYPE_LOG: ::String
       EVENT_TYPE_DIAGNOSTIC: ::String
-
-      SCOPE_GLOBAL: ::String
 
       def self?.probe_type_tag: (Probe probe) -> ::String
       def self?.event_type_tag: (::Symbol event_type) -> ::String

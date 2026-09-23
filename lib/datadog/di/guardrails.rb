@@ -10,16 +10,12 @@ module Datadog
     # been produced. Each helper tags its metric with the canonical reason
     # so operators can attribute reduced DI work to a specific cause.
     module Guardrails
-      TELEMETRY_NAMESPACE = "dynamic_instrumentation"
-
       PROBE_TYPE_SNAPSHOT = "snapshot"
       PROBE_TYPE_LOG = "log"
 
       EVENT_TYPE_SNAPSHOT = "snapshot"
       EVENT_TYPE_LOG = "log"
       EVENT_TYPE_DIAGNOSTIC = "diagnostic"
-
-      SCOPE_GLOBAL = "global"
 
       # Returns the canonical probe_type tag for a probe, derived from
       # whether the probe captures a full snapshot.
@@ -32,17 +28,16 @@ module Datadog
       def self.event_type_tag(event_type)
         case event_type
         when :snapshot then EVENT_TYPE_SNAPSHOT
+        when :log then EVENT_TYPE_LOG
         when :status then EVENT_TYPE_DIAGNOSTIC
-        else event_type.to_s
+        else raise ArgumentError, "Unknown DI event type: #{event_type.inspect}"
         end
       end
 
       # Emits the canonical +guardrails.events.skipped+ count metric.
       def self.skipped(telemetry, reason:, probe_type:)
-        return unless telemetry
-
-        telemetry.inc(
-          TELEMETRY_NAMESPACE, "guardrails.events.skipped", 1,
+        telemetry&.inc(
+          DI::TELEMETRY_NAMESPACE, "guardrails.events.skipped", 1,
           tags: {reason: reason, probe_type: probe_type},
         )
       end
@@ -51,16 +46,14 @@ module Datadog
       # when +bytes+ is provided, the +guardrails.queue.dropped_bytes+ count
       # metric.
       def self.dropped(telemetry, reason:, event_type:, bytes: nil)
-        return unless telemetry
-
-        telemetry.inc(
-          TELEMETRY_NAMESPACE, "guardrails.events.dropped", 1,
+        telemetry&.inc(
+          DI::TELEMETRY_NAMESPACE, "guardrails.events.dropped", 1,
           tags: {reason: reason, event_type: event_type},
         )
         return unless bytes
 
-        telemetry.inc(
-          TELEMETRY_NAMESPACE, "guardrails.queue.dropped_bytes", bytes,
+        telemetry&.inc(
+          DI::TELEMETRY_NAMESPACE, "guardrails.queue.dropped_bytes", bytes,
           tags: {reason: reason, event_type: event_type},
         )
       end

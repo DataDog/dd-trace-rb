@@ -7,8 +7,6 @@ require_relative "fatal_exceptions"
 module Datadog
   module DI
     class CaptureExpressionEvaluator
-      TELEMETRY_NAMESPACE = "dynamic_instrumentation"
-
       def initialize(settings:, serializer:, logger:, telemetry: nil)
         @settings = settings
         @serializer = serializer
@@ -36,7 +34,7 @@ module Datadog
 
           if ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) >= deadline_ns
             output[name] = {notCapturedReason: "timeout"}
-            telemetry&.inc(TELEMETRY_NAMESPACE, "capture_expressions_skipped_by_timeout", 1)
+            telemetry&.inc(DI::TELEMETRY_NAMESPACE, "capture_expressions_skipped_by_timeout", 1)
             next
           end
 
