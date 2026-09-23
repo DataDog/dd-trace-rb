@@ -65,12 +65,16 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
 
               if (grape_route = env["grape.routing_args"]) && grape_route[:route_info]
+                route_info = grape_route[:route_info]
+                # Grape 2.3 through 3.0 return nil from GreedyRoute#path; the
+                # path lives at pattern.path in those versions.
+                route_path = route_info.path || route_info.pattern&.path
                 trace.set_tag(
                   Tracing::Metadata::Ext::HTTP::TAG_ROUTE,
                   # here we are removing the format from the path:
                   # e.g. /path/to/resource(.json) => /path/to/resource
                   # e.g. /path/to/resource(.:format) => /path/to/resource
-                  grape_route[:route_info].path&.gsub(/\(\.:?\w+\)\z/, "")
+                  route_path&.gsub(/\(\.:?\w+\)\z/, "")
                 )
 
                 trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env["SCRIPT_NAME"])
