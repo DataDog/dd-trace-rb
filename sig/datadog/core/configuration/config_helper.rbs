@@ -35,6 +35,10 @@ module Datadog
         def resolve_env: (String name, ?source_env: env_hash) -> String
 
         UNSET: Object
+
+        private
+
+        def otel_environment_variable_unset?: (String name, String? value) -> bool
       end
     end
   end
