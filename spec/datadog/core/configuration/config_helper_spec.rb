@@ -181,6 +181,33 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
           expect(subject.get_environment_variable("DD_SUPPORTED_ENV_VAR")).to eq("main-service")
         end
       end
+
+      context "when the OpenTelemetry alias is empty" do
+        subject do
+          described_class.new(
+            source_env: {"OTEL_SUPPORTED_ENV_VAR" => ""},
+            supported_configurations: ["DD_SUPPORTED_ENV_VAR"],
+            aliases: {"DD_SUPPORTED_ENV_VAR" => ["OTEL_SUPPORTED_ENV_VAR"]}
+          )
+        end
+
+        it "treats the alias as unset" do
+          expect(subject.get_environment_variable("DD_SUPPORTED_ENV_VAR")).to be_nil
+        end
+      end
+    end
+
+    context "when an OpenTelemetry environment variable is empty" do
+      subject do
+        described_class.new(
+          source_env: {"OTEL_SUPPORTED_ENV_VAR" => ""},
+          supported_configurations: ["OTEL_SUPPORTED_ENV_VAR"]
+        )
+      end
+
+      it "treats the environment variable as unset" do
+        expect(subject.get_environment_variable("OTEL_SUPPORTED_ENV_VAR")).to be_nil
+      end
     end
 
     context "when Datadog::CI is defined" do

@@ -76,20 +76,23 @@ module Datadog
           end
 
           env_value = source_env[name]
-          if env_value.nil? && @aliases[name]
+          if otel_environment_variable_unset?(name, env_value) && @aliases[name]
             @aliases[name].each do |alias_name|
-              return source_env[alias_name] if source_env[alias_name]
+              alias_value = source_env[alias_name]
+              return alias_value unless otel_environment_variable_unset?(alias_name, alias_value)
             end
           end
 
-          env_value || default_value
+          return env_value unless otel_environment_variable_unset?(name, env_value)
+
+          default_value
         end
 
         # Only used in error message creation. Match get_environment_variable logic to return the resolved environment variable name.
         def resolve_env(name, source_env: @source_env)
-          if source_env[name].nil? && @aliases[name]
+          if otel_environment_variable_unset?(name, source_env[name]) && @aliases[name]
             @aliases[name].each do |alias_name|
-              return alias_name if source_env[alias_name]
+              return alias_name unless otel_environment_variable_unset?(alias_name, source_env[alias_name])
             end
           end
 
@@ -100,6 +103,11 @@ module Datadog
         # This is necessary because `nil` is a valid default value.
         UNSET = Object.new
         private_constant :UNSET
+
+        def otel_environment_variable_unset?(name, value)
+          value.nil? || (name.start_with?("OTEL_") && value == "")
+        end
+        private :otel_environment_variable_unset?
       end
     end
   end
