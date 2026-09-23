@@ -74,6 +74,7 @@ module Datadog
 
           # Agentless delivery requires public egress, so use Ruby's standard proxy discovery.
           http = Net::HTTP.new(hostname, uri.port)
+          http.max_retries = 0
           http.use_ssl = uri.scheme == "https"
           http.open_timeout = @timeout_seconds
           http.read_timeout = @timeout_seconds
