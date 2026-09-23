@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6205",
+  "message": "Lower the default `DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE` from `200` to `150` and clamp configured values at the 150 ms hard ceiling."
+}
