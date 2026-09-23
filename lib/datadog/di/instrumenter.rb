@@ -128,6 +128,30 @@ module Datadog
         end
       end
 
+      # Logs and emits the canonical rate-limit skip metric for a probe.
+      # Boundaries the telemetry emission so a raising telemetry component
+      # stays contained on the method-probe path, matching the line-probe
+      # callback's method-level rescue.
+      #
+      # @param probe [Probe] the probe being skipped
+      # @param reason [String] a Guardrails::Reason constant
+      # @return [void]
+      def record_rate_limit_skip(probe, reason)
+        logger.trace do
+          "di: #{probe.type} probe #{probe.id}: skipping due to " \
+            "#{reason == Guardrails::Reason::RATE_LIMIT_PROBE ? "per-probe" : "global"} rate limit" \
+            " (#{reason})"
+        end
+        Guardrails.skipped(
+          telemetry, reason: reason,
+          probe_type: Guardrails.probe_type_tag(probe),
+        )
+      rescue Exception => exc # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(exc)
+        raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+        logger.debug { "di: error emitting rate-limit skip telemetry: #{exc.class}: #{exc.message}" }
+      end
+
       # This is a substitute for Thread::Backtrace::Location
       # which does not have a public constructor.
       # Used for the fabricated stack frame for the method itself
@@ -563,25 +587,11 @@ module Datadog
           admitted = continue
           if continue && rate_limiter && !rate_limiter.allow?
             admitted = false
-            logger.trace do
-              "di: #{probe.type} probe #{probe.id}: skipping due to per-probe rate limit" \
-                " (#{Guardrails::Reason::RATE_LIMIT_PROBE})"
-            end
-            Guardrails.skipped(
-              telemetry, reason: Guardrails::Reason::RATE_LIMIT_PROBE,
-              probe_type: Guardrails.probe_type_tag(probe),
-            )
+            record_rate_limit_skip(probe, Guardrails::Reason::RATE_LIMIT_PROBE)
           end
           if admitted && !probe_global_rate_limiter(probe).allow?
             admitted = false
-            logger.trace do
-              "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" \
-                " (#{Guardrails::Reason::RATE_LIMIT_GLOBAL})"
-            end
-            Guardrails.skipped(
-              telemetry, reason: Guardrails::Reason::RATE_LIMIT_GLOBAL,
-              probe_type: Guardrails.probe_type_tag(probe),
-            )
+            record_rate_limit_skip(probe, Guardrails::Reason::RATE_LIMIT_GLOBAL)
           end
           if admitted
             # Arguments may be mutated by the method, therefore
@@ -847,26 +857,12 @@ module Datadog
         # In practice we should always have a rate limiter, but be safe
         # and check that it is in fact set.
         if probe.rate_limiter && !probe.rate_limiter.allow?
-          logger.trace do
-            "di: #{probe.type} probe #{probe.id}: skipping due to per-probe rate limit" \
-              " (#{Guardrails::Reason::RATE_LIMIT_PROBE})"
-          end
-          Guardrails.skipped(
-            telemetry, reason: Guardrails::Reason::RATE_LIMIT_PROBE,
-            probe_type: Guardrails.probe_type_tag(probe),
-          )
+          record_rate_limit_skip(probe, Guardrails::Reason::RATE_LIMIT_PROBE)
           return
         end
 
         unless probe_global_rate_limiter(probe).allow?
-          logger.trace do
-            "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" \
-              " (#{Guardrails::Reason::RATE_LIMIT_GLOBAL})"
-          end
-          Guardrails.skipped(
-            telemetry, reason: Guardrails::Reason::RATE_LIMIT_GLOBAL,
-            probe_type: Guardrails.probe_type_tag(probe),
-          )
+          record_rate_limit_skip(probe, Guardrails::Reason::RATE_LIMIT_GLOBAL)
           return
         end
 
