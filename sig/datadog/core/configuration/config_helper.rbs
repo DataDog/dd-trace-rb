@@ -38,7 +38,7 @@ module Datadog
 
         private
 
-        def otel_environment_variable_unset?: (String name, String? value) -> bool
+        def unset_by_spec?: (String name, String? value) -> bool
       end
     end
   end
