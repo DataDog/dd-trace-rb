@@ -45,6 +45,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           max_capture_string_length: 20,
           max_capture_collection_size: 20,)
         allow(settings).to receive(:untargeted_trace_points).and_return(false)
+        allow(settings).to receive(:max_time_to_evaluate_ms).and_return(nil)
       end
     end
 
