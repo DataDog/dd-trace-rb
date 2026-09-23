@@ -80,6 +80,7 @@ module Datadog
           http.read_timeout = @timeout_seconds
           http.write_timeout = @timeout_seconds if http.respond_to?(:write_timeout=)
 
+          # Bounds total request time, including DNS resolution, which the per-phase timeouts do not cover.
           Timeout.timeout(@timeout_seconds) do
             http.start { |connection| connection.request(request) }
           end
