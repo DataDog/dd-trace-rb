@@ -2,6 +2,7 @@
 
 #include "datadog_ruby_common.h"
 
+// rb_iseq is CRuby-specific
 #ifndef TRUFFLERUBY
 
 // Prototypes for Ruby functions declared in internal Ruby headers.

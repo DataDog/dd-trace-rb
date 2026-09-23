@@ -4,6 +4,7 @@
 #include "datadog_ruby_common.h"
 #include "otel_thread_context.h"
 
+// Relies on a :fiber_switch TracePoint that TruffleRuby does not support yet
 #if defined(__linux__) && !defined(TRUFFLERUBY)
   #define OTEL_THREAD_CONTEXT_SUPPORTED
 #endif
