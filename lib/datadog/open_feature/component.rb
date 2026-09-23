@@ -103,7 +103,7 @@ module Datadog
       end
 
       def wait_for_configuration
-        timeout_seconds = @settings.open_feature.initialization_timeout_ms / 1000.0
+        timeout_seconds = @settings.feature_flags.initialization_timeout_ms / 1000.0
         deadline = Core::Utils::Time.get_time + timeout_seconds
 
         @configuration_mutex.synchronize do
