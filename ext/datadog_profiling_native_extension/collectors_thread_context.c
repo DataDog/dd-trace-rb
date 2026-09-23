@@ -311,7 +311,6 @@ static void update_metrics_and_sample(
   thread_context_collector_state *state,
   VALUE thread_being_sampled,
   per_thread_context *thread_context,
-  long current_cpu_time_ns,
   long current_monotonic_wall_time_ns,
   bool force_sample
 );
@@ -748,25 +747,30 @@ bool thread_context_collector_sample(VALUE self_instance, long current_monotonic
 
   VALUE current_thread = rb_thread_current();
   per_thread_context *current_thread_context = get_or_create_context_for(current_thread);
-  long cpu_time_at_sample_start_for_current_thread = cpu_time_now_ns(current_thread_context);
+
+  // Sample the current thread (which will use the current CPU-time) first.
+  // This ensures any CPU-time the profiler spends sampling (e.g. the rest of the function) is not wrongly blamed on this thread,
+  // and instead is separately accounted by `record_sampling_overhead()` below.
+  update_metrics_and_sample(
+    state,
+    current_thread,
+    current_thread_context,
+    current_monotonic_wall_time_ns,
+    false);
 
   VALUE threads = thread_list(state);
 
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
-    VALUE thread = RARRAY_AREF(threads, i);
-    per_thread_context *thread_context = get_or_create_context_for(thread);
+    VALUE thread = rb_ary_entry(threads, i);
+    ENFORCE_THREAD(thread);
 
-    // We account for cpu-time for the current thread in a different way: we use the cpu-time at sampling start,
-    // to avoid blaming the time the profiler took on whatever is currently running on the thread,
-    // and instead we report that time the profiler took as sampling overhead below.
-    long current_cpu_time_ns = (thread == current_thread) ? cpu_time_at_sample_start_for_current_thread : cpu_time_now_ns(thread_context);
+    if (thread == current_thread) continue; // Already sampled above
 
     update_metrics_and_sample(
       state,
       thread,
-      thread_context,
-      current_cpu_time_ns,
+      get_or_create_context_for(thread),
       current_monotonic_wall_time_ns,
       false);
   }
@@ -790,10 +794,10 @@ static void update_metrics_and_sample(
   thread_context_collector_state *state,
   VALUE thread_being_sampled,
   per_thread_context *thread_context,
-  long current_cpu_time_ns,
   long current_monotonic_wall_time_ns,
   bool force_sample
 ) {
+  long current_cpu_time_ns = cpu_time_now_ns(thread_context);
   bool is_gvl_waiting_state =
     handle_gvl_waiting(state, thread_being_sampled, thread_context, current_cpu_time_ns);
 
@@ -1325,6 +1329,8 @@ void thread_context_collector_reset_all_per_thread_contexts(VALUE self_instance)
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
     VALUE thread = rb_ary_entry(threads, i);
+    ENFORCE_THREAD(thread);
+
     per_thread_context *thread_context = get_per_thread_context(thread);
     if (thread_context != NULL) {
       bool is_profiler_internal_thread = thread_context->is_profiler_internal_thread;
@@ -1439,7 +1445,9 @@ static VALUE _native_per_thread_context(DDTRACE_UNUSED VALUE _self, VALUE collec
   VALUE threads = thread_list(state);
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
-    VALUE thread = RARRAY_AREF(threads, i);
+    VALUE thread = rb_ary_entry(threads, i);
+    ENFORCE_THREAD(thread);
+
     per_thread_context *thread_context = get_per_thread_context(thread);
     if (thread_context != NULL) {
       rb_hash_aset(result, thread, per_thread_context_to_ruby_hash(thread_context));
@@ -2166,14 +2174,12 @@ void thread_context_collector_profiler_internal_thread_done(VALUE self_instance)
     rb_raise(rb_eRuntimeError, "current thread %"PRIsVALUE" is not profiler-internal thread", current_thread);
   }
 
-  long current_cpu_time_ns = cpu_time_now_ns(thread_context);
   long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
 
   update_metrics_and_sample(
     state,
     current_thread,
     thread_context,
-    current_cpu_time_ns,
     current_monotonic_wall_time_ns,
     true);
 }
@@ -2190,17 +2196,17 @@ void thread_context_collector_on_serialize(VALUE self_instance) {
   const long thread_count = RARRAY_LEN(threads);
 
   for (long i = 0; i < thread_count; i++) {
-    VALUE thread = RARRAY_AREF(threads, i);
+    VALUE thread = rb_ary_entry(threads, i);
+    ENFORCE_THREAD(thread);
+
     per_thread_context *thread_context = get_per_thread_context(thread);
 
     if (thread_context != NULL && (thread_context->was_skipped_at_last_sample || thread_context->is_profiler_internal_thread)) {
-      long current_cpu_time_ns = cpu_time_now_ns(thread_context);
       // We need to force_sample=true otherwise this sample would be skipped too
       update_metrics_and_sample(
         state,
         thread,
         thread_context,
-        current_cpu_time_ns,
         current_monotonic_wall_time_ns,
         true);
     }
@@ -2342,18 +2348,12 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
       return Qfalse;
     }
 
-    // We don't actually account for cpu-time during Waiting for GVL. BUT, we may choose to push an
-    // extra sample to represent the period prior to Waiting for GVL. To support that, we retrieve the current
-    // cpu-time of the thread and let `update_metrics_and_sample` decide what to do with it.
-    long cpu_time_for_thread = cpu_time_now_ns(thread_context);
-
     // TODO: Should we update the dynamic sampling rate overhead tracking with this sample as well?
 
     update_metrics_and_sample(
       state,
       current_thread,
       thread_context,
-      cpu_time_for_thread,
       current_monotonic_wall_time_ns,
       false);
 
