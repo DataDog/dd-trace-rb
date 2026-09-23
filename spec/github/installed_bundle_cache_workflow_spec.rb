@@ -13,6 +13,12 @@ RSpec.describe "installed bundle cache workflow" do
     )
   end
   let(:steps) { action.fetch("runs").fetch("steps") }
+  let(:workflow) do
+    YAML.safe_load_file(
+      File.expand_path("../../.github/workflows/_unit_test.yml", __dir__),
+      aliases: true,
+    )
+  end
   let(:lifecycle_step) { steps.find { |step| step["id"] == "lifecycle" } }
   let(:writer_steps) do
     steps.select do |step|
@@ -69,6 +75,32 @@ RSpec.describe "installed bundle cache workflow" do
     let(:write_enabled) { false }
 
     it { is_expected.to be(false) }
+  end
+
+  context "with a selected experimental runtime" do
+    it "remains disabled for reusable workflow calls by default" do
+      inputs = workflow.fetch(true).fetch("workflow_call").fetch("inputs")
+
+      expect(inputs.fetch("installed-matrix-cache").fetch("default")).to be(false)
+    end
+
+    it "does not restrict the installed cache to one Ruby version" do
+      batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
+      preparation = batch_steps.find { |step| step["name"] == "Prepare installed matrix bundle cache" }
+      fallback_gemfile = batch_steps.find { |step| step["name"] == "Distribute tasks into batches" }
+        .fetch("env").fetch("FALLBACK_GEMFILE")
+
+      expect(preparation.fetch("if")).to eq("inputs.installed-matrix-cache")
+      expect(fallback_gemfile).to include("inputs.installed-matrix-cache")
+      expect(fallback_gemfile).not_to include("inputs.version == '4.0'")
+    end
+
+    it "keeps downloaded-package work out of installed-cache runs" do
+      batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
+      package_steps = batch_steps.select { |step| step.fetch("name", "").include?("package cache") }
+
+      expect(package_steps).to all(include("if" => include("!inputs.installed-matrix-cache")))
+    end
   end
 
   context "with an invalid writer generation" do
