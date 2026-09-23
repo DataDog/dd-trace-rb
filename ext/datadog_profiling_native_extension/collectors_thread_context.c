@@ -763,6 +763,8 @@ bool thread_context_collector_sample(VALUE self_instance, long current_monotonic
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
     VALUE thread = rb_ary_entry(threads, i);
+    ENFORCE_THREAD(thread);
+
     if (thread == current_thread) continue; // Already sampled above
 
     update_metrics_and_sample(
@@ -1327,6 +1329,8 @@ void thread_context_collector_reset_all_per_thread_contexts(VALUE self_instance)
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
     VALUE thread = rb_ary_entry(threads, i);
+    ENFORCE_THREAD(thread);
+
     per_thread_context *thread_context = get_per_thread_context(thread);
     if (thread_context != NULL) {
       bool is_profiler_internal_thread = thread_context->is_profiler_internal_thread;
@@ -1441,7 +1445,9 @@ static VALUE _native_per_thread_context(DDTRACE_UNUSED VALUE _self, VALUE collec
   VALUE threads = thread_list(state);
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
-    VALUE thread = RARRAY_AREF(threads, i);
+    VALUE thread = rb_ary_entry(threads, i);
+    ENFORCE_THREAD(thread);
+
     per_thread_context *thread_context = get_per_thread_context(thread);
     if (thread_context != NULL) {
       rb_hash_aset(result, thread, per_thread_context_to_ruby_hash(thread_context));
@@ -2190,7 +2196,9 @@ void thread_context_collector_on_serialize(VALUE self_instance) {
   const long thread_count = RARRAY_LEN(threads);
 
   for (long i = 0; i < thread_count; i++) {
-    VALUE thread = RARRAY_AREF(threads, i);
+    VALUE thread = rb_ary_entry(threads, i);
+    ENFORCE_THREAD(thread);
+
     per_thread_context *thread_context = get_per_thread_context(thread);
 
     if (thread_context != NULL && (thread_context->was_skipped_at_last_sample || thread_context->is_profiler_internal_thread)) {
