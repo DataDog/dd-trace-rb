@@ -351,8 +351,8 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   context "OpenFeature component" do
     let(:settings) do
       Datadog::Core::Configuration::Settings.new.tap do |settings|
-        settings.open_feature.enabled = true
-        settings.open_feature.configuration_source = "remote_config"
+        settings.feature_flags.enabled = true
+        settings.feature_flags.configuration_source = "remote_config"
       end
     end
 

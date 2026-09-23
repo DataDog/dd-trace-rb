@@ -117,21 +117,18 @@ module Datadog
 
       def shutdown
         configuration = @configuration
-        should_shutdown = false
-        initialization_ready_handler = nil
-        error_handler = @initialization_mutex.synchronize do
-          unless @shutdown
-            @shutdown = true
-            @initializing = false
-            should_shutdown = true
-            handler = @error_handler
-            @error_handler = nil
-            initialization_ready_handler = @initialization_ready_handler
-            @initialization_ready_handler = nil
-            handler
-          end
+        handlers = @initialization_mutex.synchronize do
+          return if @shutdown
+
+          @shutdown = true
+          @initializing = false
+          handlers = [@error_handler, @initialization_ready_handler]
+          @error_handler = nil
+          @initialization_ready_handler = nil
+          handlers
         end
-        return unless should_shutdown
+        error_handler = handlers[0]
+        initialization_ready_handler = handlers[1]
 
         configuration&.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, error_handler) if error_handler
         if initialization_ready_handler
@@ -182,11 +179,10 @@ module Datadog
           handler = @initialization_ready_handler
           @initialization_ready_handler = nil
           @stale_pending = false
+          @initializing = false
           if @shutdown
-            @initializing = false
             [true, handler]
           else
-            @initializing = false
             @initialization_failed = true
             @ready_pending = component&.configuration_received? || false
             [false, handler]

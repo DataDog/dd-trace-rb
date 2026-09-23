@@ -19,7 +19,7 @@ module Datadog
 
       @failure: String?
 
-      @provider: Provider?
+      @providers: Array[Provider]
 
       @activated: bool
 
@@ -46,6 +46,8 @@ module Datadog
       def start!: () -> Component?
 
       def activated?: () -> bool
+
+      def providers: () -> Array[Provider]
 
       def after_fork: () -> void
 
