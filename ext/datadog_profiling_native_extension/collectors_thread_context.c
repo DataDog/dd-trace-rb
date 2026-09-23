@@ -756,8 +756,7 @@ bool thread_context_collector_sample(VALUE self_instance, long current_monotonic
     current_thread,
     current_thread_context,
     current_monotonic_wall_time_ns,
-    false
-  );
+    false);
 
   VALUE threads = thread_list(state);
 
@@ -771,8 +770,7 @@ bool thread_context_collector_sample(VALUE self_instance, long current_monotonic
       thread,
       get_or_create_context_for(thread),
       current_monotonic_wall_time_ns,
-      false
-    );
+      false);
   }
 
   state->stats.sample_count++;
