@@ -9,7 +9,7 @@ require_relative "../../core/transport/transport"
 require_relative "../error"
 require_relative "../fatal_exceptions"
 require_relative "../guardrails_telemetry"
-require_relative "../snapshot_pruner"
+require_relative "../snapshot_encoder"
 require_relative "http/input"
 
 module Datadog
@@ -89,24 +89,18 @@ module Datadog
             encoded_snapshots = []
             dropped_events = []
             payload.each do |event|
-              encoded = encoder.encode(event.payload)
-              if encoded.bytesize > MAX_SERIALIZED_SNAPSHOT_SIZE
-                # Prune the snapshot's captured values to fit under the
-                # per-event cap before dropping it, so a portion of the
-                # captured data is still sent. Drop only when pruning
-                # cannot bring the snapshot under the cap.
-                pruned = SnapshotPruner.prune(event.payload, MAX_SERIALIZED_SNAPSHOT_SIZE, encoded: encoded)
-                if pruned.nil?
-                  logger.debug do
-                    "di: dropping too big snapshot (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
-                  end
-                  dropped_events << [event, encoded.bytesize]
-                  next
+              result = SnapshotEncoder.encode(event.payload, MAX_SERIALIZED_SNAPSHOT_SIZE)
+              if result.encoded.nil?
+                logger.debug do
+                  "di: dropping too big snapshot (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
                 end
-                telemetry&.inc(DI::TELEMETRY_NAMESPACE, "snapshots_pruned_by_payload_size", 1)
-                encoded = pruned
+                dropped_events << event
+                next
               end
-              encoded_snapshots << encoded
+              if result.pruned
+                telemetry&.inc(DI::TELEMETRY_NAMESPACE, "snapshots_pruned_by_payload_size", 1)
+              end
+              encoded_snapshots << result.encoded
             rescue Exception => exc # standard:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               # Serialization failed for this snapshot - report via callback
@@ -126,10 +120,10 @@ module Datadog
               end
             end
 
-            dropped_events.each do |event, bytes|
+            dropped_events.each do |event|
               guardrails_telemetry.dropped(
                 reason: GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE,
-                event_type: event.event_type, bytes: bytes,
+                event_type: event.event_type,
               )
             end
 
