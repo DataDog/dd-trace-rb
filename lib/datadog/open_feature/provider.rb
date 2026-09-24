@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "ext"
+require_relative "../open_feature"
 require_relative "../core/utils/time"
 require "open_feature/sdk"
 
@@ -95,7 +96,7 @@ module Datadog
         end
         ready_handler_installed = install_initialization_ready_handler
 
-        component, failure = activate_component
+        component, failure = OpenFeature.activate_provider(self)
         cancel_initialization_if_shutdown!
         fail_initialization(component, failure || "Feature Flags component could not be activated") unless component
 
@@ -136,10 +137,7 @@ module Datadog
             initialization_ready_handler,
           )
         end
-        # The SDK invokes provider shutdown when replacing a domain's provider.
-        Datadog.send(:safely_synchronize) do
-          Datadog.send(:components, allow_initialization: false)&.deactivate_open_feature!(self)
-        end
+        OpenFeature.deactivate_provider(self)
       end
 
       def hooks
@@ -175,20 +173,6 @@ module Datadog
       end
 
       private
-
-      def activate_component
-        # Initialize the component tree before taking its reconfiguration lock.
-        Datadog.send(:components)
-        Datadog.send(:safely_synchronize) do
-          if shutdown?
-            [nil, nil]
-          else
-            components = Datadog.send(:components, allow_initialization: false)
-            component = components&.activate_open_feature!(self)
-            [component, components&.open_feature_activation_failure]
-          end
-        end
-      end
 
       def fail_initialization(component, message)
         cancelled, initialization_ready_handler = @initialization_mutex.synchronize do

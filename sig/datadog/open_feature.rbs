@@ -3,5 +3,9 @@ module Datadog
     def self.enabled?: () -> bool
 
     def self.engine: () -> EvaluationEngine?
+
+    def self.activate_provider: (Provider provider) -> [Component?, String?]
+
+    def self.deactivate_provider: (Provider provider) -> void
   end
 end

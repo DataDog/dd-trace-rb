@@ -60,14 +60,11 @@ RSpec.describe "OpenFeature provider span enrichment (end-to-end)" do
     components = instance_double(
       Datadog::Core::Configuration::Components,
       open_feature: open_feature_component,
-      activate_open_feature!: open_feature_component,
-      deactivate_open_feature!: nil,
-      open_feature_activation_failure: nil,
     )
+    allow(Datadog::OpenFeature).to receive(:activate_provider)
+      .and_return([open_feature_component, nil])
     allow(Datadog).to receive(:send).and_call_original
     allow(Datadog).to receive(:send).with(:components).and_return(components)
-    allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
-    allow(Datadog).to receive(:send).with(:safely_synchronize).and_yield
 
     install_provider(provider)
   end

@@ -77,8 +77,6 @@ module Datadog
 
       private
 
-      def activate_component: () -> [Component?, String?]
-
       def fail_initialization: (Component? component, String message) -> bot
 
       def cancel_initialization_if_shutdown!: () -> void

@@ -800,6 +800,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
           instance_double("Datadog::OpenFeature::Provider"),
         ]
       end
+      let(:activation) do
+        instance_double(Datadog::OpenFeature::Activation, start!: nil, activate: nil)
+      end
       let(:old_state) do
         Datadog::Core::Configuration::ComponentsState.new(
           telemetry_enabled: false,
@@ -809,13 +812,14 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       before do
+        allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
         allow(Datadog::Core::ProcessDiscovery).to receive(:publish)
         allow(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
       end
 
       it "reactivates configuration delivery for each provider" do
         providers.each do |provider|
-          expect(components).to receive(:activate_open_feature!).with(provider)
+          expect(activation).to receive(:activate).with(provider)
         end
 
         components.startup!(settings, old_state: old_state)
@@ -825,7 +829,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:error) { RuntimeError.new("test failure") }
 
         before do
-          allow(components).to receive(:activate_open_feature!).with(providers.first).and_raise(error)
+          allow(activation).to receive(:activate).with(providers.first).and_raise(error)
         end
 
         it "reports the failure and continues library startup" do
@@ -901,25 +905,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
       allow(components).to receive(:data_streams).and_return(nil)
 
       expect { after_fork }.not_to raise_error
-    end
-  end
-
-  describe "#deactivate_open_feature!" do
-    subject(:deactivate_open_feature) { components.deactivate_open_feature!(provider) }
-
-    let(:provider) { instance_double(Object) }
-    let(:open_feature_activation) do
-      instance_double(Datadog::OpenFeature::Activation, deactivate: nil)
-    end
-
-    before do
-      allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(open_feature_activation)
-    end
-
-    it "delegates deactivation to OpenFeature" do
-      deactivate_open_feature
-
-      expect(open_feature_activation).to have_received(:deactivate).with(provider).once
     end
   end
 
@@ -1174,6 +1159,39 @@ RSpec.describe Datadog::Core::Configuration::Components do
         expect(components.telemetry).to receive(:shutdown!)
 
         shutdown!
+      end
+
+      context "when OpenFeature shutdown raises" do
+        let(:error) { RuntimeError.new("test failure") }
+        let(:activation) do
+          instance_double(Datadog::OpenFeature::Activation, shutdown!: nil)
+        end
+
+        before do
+          allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
+          allow(activation).to receive(:shutdown!).and_raise(error)
+        end
+
+        it "reports the failure and continues library shutdown" do
+          expect(components.remote).to receive(:shutdown!) unless components.remote.nil?
+          expect(components.dynamic_instrumentation).to receive(:shutdown!) unless components.dynamic_instrumentation.nil?
+          expect(components.symbol_database).to receive(:shutdown!) unless components.symbol_database.nil?
+          expect(components.logger).to receive(:error)
+            .with("Feature Flags delivery failed to shut down: RuntimeError: test failure")
+          expect(telemetry).to receive(:report)
+            .with(error, description: "Feature Flags delivery failed to shut down")
+          expect(components.appsec).to receive(:shutdown!) unless components.appsec.nil?
+          expect(components.tracer).to receive(:shutdown!)
+          expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
+          expect(components.runtime_metrics).to receive(:stop)
+            .with(true, close_metrics: false)
+          expect(components.runtime_metrics.metrics.statsd).to receive(:close)
+          expect(components.health_metrics.statsd).to receive(:close)
+          expect(components.telemetry).to receive(:emit_closing!)
+          expect(components.telemetry).to receive(:shutdown!)
+
+          expect { shutdown! }.not_to raise_error
+        end
       end
     end
 
