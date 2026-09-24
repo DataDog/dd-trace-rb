@@ -277,9 +277,7 @@ module Datadog
             # and path are read off the route (#2775, #2776). Each reader prefers the
             # options Hash, so Grape 1.x through 3.x resolve as they did before.
             def endpoint_api(endpoint)
-              return endpoint.api if endpoint.respond_to?(:api)
-
-              endpoint.options[:for]
+              endpoint.options.fetch(:for) { endpoint.api }
             end
 
             def endpoint_request_method(endpoint)

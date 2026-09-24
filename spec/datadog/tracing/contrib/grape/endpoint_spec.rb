@@ -42,20 +42,28 @@ RSpec.describe Datadog::Tracing::Contrib::Grape::Endpoint do
   describe ".endpoint_api" do
     subject(:endpoint_api) { described_class.send(:endpoint_api, endpoint) }
 
-    context "when the endpoint responds to #api (Grape 4 and later)" do
-      let(:api) { Class.new }
-      let(:endpoint) { double("Grape::Endpoint", api: api) }
+    let(:api) { Class.new }
+
+    context "when options carries :for (Grape 3 and earlier)" do
+      let(:endpoint) { double("Grape::Endpoint", options: {for: api}) }
+
+      it "reads the API off options[:for]" do
+        expect(endpoint_api).to be(api)
+      end
+    end
+
+    context "when options has no :for (Grape 4 and later)" do
+      let(:endpoint) { double("Grape::Endpoint", options: {}, api: api) }
 
       it "reads the API off #api" do
         expect(endpoint_api).to be(api)
       end
     end
 
-    context "when the endpoint does not respond to #api (Grape 3 and earlier)" do
-      let(:api) { Class.new }
-      let(:endpoint) { double("Grape::Endpoint", options: {for: api}) }
+    context "when options carries :for and the endpoint also responds to #api" do
+      let(:endpoint) { double("Grape::Endpoint", options: {for: api}, api: Class.new) }
 
-      it "reads the API off options[:for]" do
+      it "prefers options[:for]" do
         expect(endpoint_api).to be(api)
       end
     end
