@@ -25,11 +25,11 @@ module Datadog
             # Pass the original arguments to the composited executor, which
             # pushes them (possibly transformed) as block args
             executor.post(*args) do |*block_args|
-              Tracing.continue_trace!(digest)
-
-              # Pass the executor-provided block args as they should have been
-              # originally passed without composition, see ChainPromise#on_resolvable
-              yield(*block_args)
+              Tracing.continue_trace!(digest) do
+                # Pass the executor-provided block args as they should have been
+                # originally passed without composition, see ChainPromise#on_resolvable
+                yield(*block_args)
+              end
             end
           end
 
