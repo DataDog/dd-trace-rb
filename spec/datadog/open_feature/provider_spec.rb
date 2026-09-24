@@ -9,6 +9,48 @@ require "datadog/open_feature/hooks/flag_eval_evp_hook"
 require "datadog/open_feature/flag_evaluation/writer"
 require "datadog/open_feature/hooks/span_enrichment_hook"
 
+RSpec.describe Datadog::OpenFeature, ".activate_provider" do
+  subject(:activate_provider) { described_class.activate_provider(provider) }
+
+  let(:provider) { instance_double(Datadog::OpenFeature::Provider) }
+  let(:component) { instance_double(Datadog::OpenFeature::Component) }
+  let(:activation) do
+    instance_double(
+      Datadog::OpenFeature::Activation,
+      activate: component,
+      failure: activation_failure,
+    )
+  end
+  let(:activation_failure) { nil }
+  let(:components) do
+    instance_double(
+      Datadog::Core::Configuration::Components,
+      open_feature_activation: activation,
+    )
+  end
+
+  before do
+    allow(Datadog).to receive(:send).and_call_original
+    allow(Datadog).to receive(:send).with(:components).and_return(components)
+    allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
+    allow(Datadog).to receive(:send).with(:safely_synchronize).and_yield
+  end
+
+  it "adopts the provider through the active component tree" do
+    expect(activate_provider).to eq([component, nil])
+    expect(activation).to have_received(:activate).with(provider)
+  end
+
+  context "when delivery cannot be activated" do
+    let(:component) { nil }
+    let(:activation_failure) { "Feature Flags Remote Configuration is unavailable" }
+
+    it do
+      expect(activate_provider).to eq([nil, "Feature Flags Remote Configuration is unavailable"])
+    end
+  end
+end
+
 RSpec.describe Datadog::OpenFeature::Provider do
   before do
     allow(telemetry).to receive(:report)
@@ -27,39 +69,26 @@ RSpec.describe Datadog::OpenFeature::Provider do
     let(:component) do
       instance_double(Datadog::OpenFeature::Component, wait_for_configuration: wait_result, configuration_received?: false)
     end
-    let(:components) do
-      instance_double(
-        Datadog::Core::Configuration::Components,
-        activate_open_feature!: component,
-        open_feature_activation_failure: nil,
-      )
-    end
+    let(:activation_failure) { nil }
     let(:wait_result) { Datadog::OpenFeature::Component::CONFIGURATION_READY }
 
     before do
       allow(Datadog).to receive(:logger).and_return(logger)
-      allow(Datadog).to receive(:send).and_call_original
-      allow(Datadog).to receive(:send).with(:components).and_return(components)
-      allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
-      allow(Datadog).to receive(:send).with(:safely_synchronize).and_yield
+      allow(Datadog::OpenFeature).to receive(:activate_provider)
+        .with(provider)
+        .and_return([component, activation_failure])
     end
 
     it "activates delivery and waits for configuration" do
       expect { provider.init }.not_to raise_error
 
-      expect(components).to have_received(:activate_open_feature!).with(provider)
+      expect(Datadog::OpenFeature).to have_received(:activate_provider).with(provider)
       expect(component).to have_received(:wait_for_configuration)
     end
 
     context "when no delivery source can start" do
       let(:component) { nil }
-      let(:components) do
-        instance_double(
-          Datadog::Core::Configuration::Components,
-          activate_open_feature!: nil,
-          open_feature_activation_failure: "Feature Flags Remote Configuration is unavailable",
-        )
-      end
+      let(:activation_failure) { "Feature Flags Remote Configuration is unavailable" }
 
       it "fails without waiting for the initialization timeout" do
         expect { provider.init }

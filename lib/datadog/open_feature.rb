@@ -15,5 +15,15 @@ module Datadog
     def self.engine
       Datadog.send(:components).open_feature&.engine
     end
+
+    def self.activate_provider(provider)
+      # Initialize the component tree before taking its reconfiguration lock.
+      Datadog.send(:components)
+      Datadog.send(:safely_synchronize) do
+        components = Datadog.send(:components, allow_initialization: false)
+        activation = components&.send(:open_feature_activation)
+        [activation&.activate(provider), activation&.failure]
+      end
+    end
   end
 end

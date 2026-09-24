@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "ext"
+require_relative "../open_feature"
 require_relative "../core/utils/time"
 require "open_feature/sdk"
 
@@ -85,7 +86,7 @@ module Datadog
           @ready_emitted = false
         end
 
-        component, failure = activate_component
+        component, failure = OpenFeature.activate_provider(self)
         fail_initialization(component, failure || "Feature Flags component could not be activated") unless component
 
         case component.wait_for_configuration
@@ -143,16 +144,6 @@ module Datadog
       end
 
       private
-
-      def activate_component
-        # Initialize the component tree before taking its reconfiguration lock.
-        Datadog.send(:components)
-        Datadog.send(:safely_synchronize) do
-          components = Datadog.send(:components, allow_initialization: false)
-          component = components&.activate_open_feature!(self)
-          [component, components&.open_feature_activation_failure]
-        end
-      end
 
       def fail_initialization(component, message)
         @initialization_mutex.synchronize do

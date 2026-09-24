@@ -277,7 +277,7 @@ module Datadog
 
           begin
             @open_feature_activation.start!
-            activate_open_feature!(old_state.open_feature_provider) if old_state&.open_feature_provider
+            @open_feature_activation.activate(old_state.open_feature_provider) if old_state&.open_feature_provider
           rescue => e
             # Feature Flags is optional and must never interrupt library startup.
             description = "Feature Flags delivery failed to start"
@@ -343,8 +343,14 @@ module Datadog
           # Shutdown Symbol Database
           symbol_database&.shutdown!
 
-          # Shutdown OpenFeature component
-          @open_feature_activation.shutdown!
+          begin
+            @open_feature_activation.shutdown!
+          rescue => e
+            # Feature Flags is optional and must never interrupt library shutdown.
+            description = "Feature Flags delivery failed to shut down"
+            logger.error("#{description}: #{e.class}: #{e.message}")
+            telemetry.report(e, description: description)
+          end
 
           # Decommission AppSec
           appsec&.shutdown!
@@ -427,13 +433,9 @@ module Datadog
           @open_feature_activation.component
         end
 
-        def activate_open_feature!(provider)
-          @open_feature_activation.activate(provider)
-        end
+        private
 
-        def open_feature_activation_failure
-          @open_feature_activation.failure
-        end
+        attr_reader :open_feature_activation
       end
     end
   end
