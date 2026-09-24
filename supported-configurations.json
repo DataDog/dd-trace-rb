@@ -296,7 +296,7 @@
     ],
     "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS": [
       {
-        "version": "A",
+        "version": "C",
         "type": "int",
         "default": "150"
       }
