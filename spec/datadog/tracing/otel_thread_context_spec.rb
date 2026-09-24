@@ -2,7 +2,7 @@ require "spec_helper"
 
 require "datadog/tracing/otel_thread_context"
 
-RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? do
+RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? && PlatformHelpers.mri? do
   around(:each) do |example|
     Thread.new do
       example.run

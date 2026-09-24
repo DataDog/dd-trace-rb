@@ -29,7 +29,7 @@ module Datadog
           return
         end
 
-        if RUBY_ENGINE != "ruby"
+        unless ["ruby", "truffleruby"].include?(RUBY_ENGINE)
           message = "OpenFeature could not be enabled as MRI is required, " \
             "but running on #{RUBY_ENGINE.inspect}"
 
