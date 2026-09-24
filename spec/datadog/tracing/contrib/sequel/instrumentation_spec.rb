@@ -245,7 +245,13 @@ RSpec.describe "Sequel instrumentation" do
     let(:connection_string) { "sqlite::memory:" }
     let(:adapter) { "sqlite" }
     let(:host) { nil }
-    let(:database_name) { nil }
+    # Newer Sequel reports ":memory:" as the sqlite database name; older versions reported "".
+    # Either way the tracer tags the database name verbatim when non-empty, so mirror the
+    # connection's own value rather than assuming.
+    let(:database_name) do
+      name = sequel.opts[:database]
+      (name.nil? || name.empty?) ? nil : name
+    end
     let(:db_system) { "sqlite" }
 
     it_behaves_like "instrumented queries"

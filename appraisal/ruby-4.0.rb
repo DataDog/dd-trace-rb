@@ -105,6 +105,14 @@ build_coverage_matrix('stripe', min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday', meta: { 'faraday-follow_redirects' => nil })
+['1', '2', '3', 'latest'].each do |v|
+  appraise "grape-#{v}" do
+    gem 'grape' if v == 'latest'
+    gem 'grape', "~> #{v}.0" unless v == 'latest'
+    gem 'rack', '~> 2' if v == '1'
+    gem 'rack-test'
+  end
+end
 build_coverage_matrix('excon')
 build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.20.0')
@@ -135,7 +143,11 @@ appraise 'relational_db' do
   gem 'delayed_job'
   gem 'delayed_job_active_record'
   gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
-  gem 'mysql2', '>= 0.5.3', platform: :ruby
+  # mysql2 0.5.7 is excluded permanently: it raises an empty Mysql2::Error from #affected_rows
+  # after SELECT on MariaDB Connector/C 11.8 clients (e.g. Debian 13), which breaks Sequel's
+  # Database#run for SELECT statements. 0.5.6 and the 0.5.8+ line are fixed
+  # (https://github.com/brianmario/mysql2/pull/1417); the auto-updater picks up newer releases.
+  gem 'mysql2', '>= 0.5.3', '!= 0.5.7', platform: :ruby
   gem 'pg', platform: :ruby
   gem 'sqlite3', '~> 1.4', platform: :ruby
   gem 'sequel'
@@ -147,7 +159,6 @@ appraise 'activesupport' do
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
-  gem 'grape'
   gem 'lograge'
   gem 'racecar', '>= 0.3.5'
   gem 'ruby-kafka', '>= 0.7.10'
