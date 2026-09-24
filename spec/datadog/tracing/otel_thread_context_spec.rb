@@ -30,7 +30,7 @@ RSpec.describe Datadog::Tracing::OTelThreadContext do
   end
 end
 
-RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? do
+RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? && PlatformHelpers.mri? do
   describe ".build" do
     subject(:build) { described_class.build(tracing_settings) }
 

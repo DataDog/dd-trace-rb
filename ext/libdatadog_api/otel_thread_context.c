@@ -4,7 +4,12 @@
 #include "datadog_ruby_common.h"
 #include "otel_thread_context.h"
 
-#ifdef __linux__
+// Relies on a :fiber_switch TracePoint that TruffleRuby does not support yet
+#if defined(__linux__) && !defined(TRUFFLERUBY)
+  #define OTEL_THREAD_CONTEXT_SUPPORTED
+#endif
+
+#ifdef OTEL_THREAD_CONTEXT_SUPPORTED
   #include <datadog/otel-thread-ctx.h>
   extern __thread const uint8_t *otel_thread_ctx_v1;
 
@@ -43,7 +48,7 @@ void otel_thread_context_init(VALUE tracing_module) {
   rb_define_singleton_method(testing_module, "_native_read", native_read, 0);
 }
 
-#ifdef __linux__
+#ifdef OTEL_THREAD_CONTEXT_SUPPORTED
   static ddog_ThreadContextHandle *get_fiber_handle_for(VALUE thread) {
     VALUE obj = rb_thread_local_aref(thread, fiber_context_slot);
 
@@ -154,7 +159,7 @@ void otel_thread_context_init(VALUE tracing_module) {
 #endif
 
 static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
-  #ifdef __linux__
+  #ifdef OTEL_THREAD_CONTEXT_SUPPORTED
     if (otel_context_enabled) return Qtrue;
     otel_context_enabled = true;
 
@@ -180,7 +185,7 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
 }
 
 static VALUE native_supported_p(DDTRACE_UNUSED VALUE _self) {
-  #ifdef __linux__
+  #ifdef OTEL_THREAD_CONTEXT_SUPPORTED
     return Qtrue;
   #else
     return Qfalse;
@@ -193,7 +198,7 @@ static VALUE native_set(
     DDTRACE_UNUSED VALUE span_id,
     DDTRACE_UNUSED VALUE local_root_span_id
   ) {
-  #ifdef __linux__
+  #ifdef OTEL_THREAD_CONTEXT_SUPPORTED
     if (!otel_context_enabled) return Qfalse;
 
     uint8_t trace_id_bytes[16];
@@ -226,7 +231,7 @@ static VALUE native_set(
 }
 
 static VALUE native_clear(DDTRACE_UNUSED VALUE _self) {
-  #ifdef __linux__
+  #ifdef OTEL_THREAD_CONTEXT_SUPPORTED
     if (!otel_context_enabled) return Qfalse;
 
     ddog_ThreadContextHandle *detached = ddog_otel_thread_ctx_detach();
@@ -239,7 +244,7 @@ static VALUE native_clear(DDTRACE_UNUSED VALUE _self) {
 }
 
 static VALUE native_read(DDTRACE_UNUSED VALUE _self) {
-  #ifdef __linux__
+  #ifdef OTEL_THREAD_CONTEXT_SUPPORTED
     const uint8_t *raw = otel_thread_ctx_v1;
     if (!raw) return Qnil;
 
