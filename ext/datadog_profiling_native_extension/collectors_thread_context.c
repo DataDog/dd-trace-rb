@@ -2170,7 +2170,7 @@ static VALUE _native_mark_thread_as_profiler_internal(DDTRACE_UNUSED VALUE self,
 // threads are already dead and absent from thread_list.
 //
 // Assumption 1: When called while the profiler is active, `during_sample` MUST be set.
-void thread_context_collector_profiler_internal_thread_done(VALUE self_instance) {
+VALUE thread_context_collector_profiler_internal_thread_done(VALUE self_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
@@ -2188,6 +2188,8 @@ void thread_context_collector_profiler_internal_thread_done(VALUE self_instance)
     thread_context,
     current_monotonic_wall_time_ns,
     true);
+
+  return Qnil;
 }
 
 // Flushes threads whose last per-tick sample was skipped (either by the SUSPENDED-skip
