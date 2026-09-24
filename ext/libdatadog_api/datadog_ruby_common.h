@@ -109,3 +109,13 @@ size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capa
 #ifdef NO_RB_HASH_NEW_CAPA
 static inline VALUE rb_hash_new_capa(long capa) { (void)capa; return rb_hash_new(); }
 #endif
+
+#define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))
+
+// rb_hash_bulk_insert was exported in Ruby 2.7 to insert key-value pairs from a flat array
+// into a hash in one call. On older Rubies we polyfill it with a simple loop.
+#ifdef NO_RB_HASH_BULK_INSERT
+static inline void rb_hash_bulk_insert(long argc, const VALUE *argv, VALUE hash) {
+  for (long i = 0; i < argc; i += 2) rb_hash_aset(hash, argv[i], argv[i + 1]);
+}
+#endif

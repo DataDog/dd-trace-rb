@@ -84,6 +84,9 @@ end
 # On older Rubies, rb_hash_new_capa did not exist (we polyfill it in datadog_ruby_common.h)
 $defs << "-DNO_RB_HASH_NEW_CAPA" if RUBY_VERSION < "3.2"
 
+# On older Rubies, rb_hash_bulk_insert was not exported
+$defs << "-DNO_RB_HASH_BULK_INSERT" if RUBY_VERSION < "2.7"
+
 # On older Rubies, rb_ext_ractor_safe did not exist
 $defs << "-DNO_RB_EXT_RACTOR_SAFE" if RUBY_VERSION < "3"
 

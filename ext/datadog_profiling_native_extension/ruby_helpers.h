@@ -38,8 +38,6 @@ static inline int check_if_pending_exception(void) {
   return pending_exception;
 }
 
-#define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))
-
 // rb_gc_mark_movable and rb_gc_location were added in Ruby 2.7 for GC compaction support.
 // On older Rubies we polyfill: mark_movable falls back to rb_gc_mark (pins objects),
 // and rb_gc_location is a no-op since objects never move.
@@ -82,14 +80,6 @@ static inline void ddtrace_gc_compact_refs(const size_t *refs, size_t refs_sizeo
     *field = rb_gc_location(*field);
   }
 }
-
-// rb_hash_bulk_insert was added in Ruby 2.6 to insert key-value pairs from a flat array
-// into a hash in one call. On older Rubies we polyfill it with a simple loop.
-#ifdef NO_RB_HASH_BULK_INSERT
-static inline void rb_hash_bulk_insert(long argc, const VALUE *argv, VALUE hash) {
-  for (long i = 0; i < argc; i += 2) rb_hash_aset(hash, argv[i], argv[i + 1]);
-}
-#endif
 
 // Raises a SysErr exception with the formatted string as its message.
 // See `raise_error` for details about telemetry messages.
