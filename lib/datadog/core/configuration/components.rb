@@ -258,7 +258,16 @@ module Datadog
           ProcessDiscovery.after_fork
           symbol_database&.after_fork!
           data_streams&.restart_flush_thread
-          @open_feature_activation.after_fork
+
+          begin
+            @open_feature_activation.after_fork
+          rescue => e
+            # Feature Flags is optional and must never interrupt other post-fork handlers.
+            description = "Feature Flags delivery failed to restart after fork"
+            logger.error("#{description}: #{e.class}: #{e.message}")
+            telemetry.report(e, description: description)
+          end
+
           # Restart polling only after consumers have discarded inherited process state.
           remote&.after_fork
         end
