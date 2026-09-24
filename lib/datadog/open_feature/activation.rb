@@ -10,7 +10,7 @@ module Datadog
   module OpenFeature
     # Owns eager Remote Configuration and lazy agentless delivery activation.
     class Activation
-      attr_reader :component, :failure, :provider
+      attr_reader :component, :failure
 
       def initialize(settings, agent_settings, remote, logger:, telemetry:)
         @settings = settings
