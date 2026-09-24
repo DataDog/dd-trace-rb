@@ -49,13 +49,13 @@ module Datadog
 
           case kind
           when :content
-            return if message.tool_calls.any? || !message.content.is_a?(::String)
+            return unless message.content.is_a?(::String)
 
             message.with_content(replacement)
           when :text
             # @type var index: Integer
             content = message.content
-            return if message.tool_calls.any? || !content.is_a?(::Array)
+            return unless content.is_a?(::Array)
 
             part = content[index]
             return if !part.is_a?(Evaluation::ContentPart::Text) || !part.text.is_a?(::String)

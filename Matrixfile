@@ -398,10 +398,9 @@
   "ai_guard:main" => {
     "" => "✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 4.0",
   },
-  "ai_guard:ruby_llm" => {
-    # FIXME: ruby-llm-latest locks ruby_llm 2.x, which removed RubyLLM::Content; flip to ✅ when the integration supports it
-    "ruby-llm-1"      => "❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 4.0",
-    "ruby-llm-latest" => "❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ❌ 3.4 / ❌ 4.0",
+  'ai_guard:ruby_llm' => {
+    'ruby-llm-min'    => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 4.0',
+    'ruby-llm-latest' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 4.0'
   },
   "ai_guard:rack" => {
     "rack-latest" => "✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 4.0",

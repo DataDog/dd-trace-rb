@@ -9,20 +9,23 @@ module Datadog
         # @api private
         module ProviderInstrumentation
           def complete(messages, **options, &block)
-            converted_messages = MessageConverter.convert(messages)
+            adapter = MessageAdapter.new(messages)
 
-            unless converted_messages
+            begin
+              converted_messages = adapter.to_ai_guard
+            rescue JSON::JSONError
               Metrics::Telemetry.report_error
               return super
             end
 
             evaluation = AIGuard.evaluate(*converted_messages)
-            redacted_messages =
-              if evaluation.messages.equal?(converted_messages)
-                messages
-              else
-                MessageRedactor.redact(messages, with: evaluation.messages)
-              end
+
+            begin
+              redacted_messages = adapter.apply_redactions(evaluation.messages)
+            rescue JSON::JSONError
+              Metrics::Telemetry.report_error
+              return super
+            end
 
             super(redacted_messages, **options, &block)
           end

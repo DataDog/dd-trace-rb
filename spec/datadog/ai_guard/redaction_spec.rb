@@ -64,6 +64,36 @@ RSpec.describe Datadog::AIGuard::Redaction do
       end
     end
 
+    context "when an assistant message contains content and tool calls" do
+      let(:messages) do
+        [
+          Datadog::AIGuard::Evaluation::Message.new(
+            role: :assistant,
+            content: "Account 123",
+            tool_calls: tool_calls
+          )
+        ]
+      end
+      let(:tool_calls) do
+        [
+          Datadog::AIGuard::Evaluation::ToolCall.new(
+            "lookup_account", id: "call-1", arguments: '{"account":"123"}'
+          )
+        ]
+      end
+      let(:replacements) do
+        [{"path" => "messages[0].content", "replacement" => "Account <REDACTED>"}]
+      end
+
+      it "redacts content and preserves the tool calls" do
+        aggregate_failures "assistant message redaction" do
+          expect(result.messages[0].content).to eq("Account <REDACTED>")
+          expect(result.messages[0].tool_calls).to be(tool_calls)
+          expect(result.failures).to eq(0)
+        end
+      end
+    end
+
     context "when the target is a multimodal text part" do
       let(:messages) do
         [
