@@ -234,11 +234,14 @@ static VALUE native_read(DDTRACE_UNUSED VALUE _self) {
       );
     }
 
-    VALUE result = rb_hash_new();
-    rb_hash_aset(result, ID2SYM(rb_intern("trace_id")), rb_str_new((const char *) raw, 16));
-    rb_hash_aset(result, ID2SYM(rb_intern("span_id")), rb_str_new((const char *) (raw + 16), 8));
-    rb_hash_aset(result, ID2SYM(rb_intern("valid")), rb_str_new((const char *) (raw + 24), 1));
-    rb_hash_aset(result, ID2SYM(rb_intern("attrs")), rb_str_new((const char *) (raw + 28), attrs_data_size));
+    VALUE arguments[] = {
+      ID2SYM(rb_intern("trace_id")), rb_str_new((const char *) raw, 16),
+      ID2SYM(rb_intern("span_id")), rb_str_new((const char *) (raw + 16), 8),
+      ID2SYM(rb_intern("valid")), rb_str_new((const char *) (raw + 24), 1),
+      ID2SYM(rb_intern("attrs")), rb_str_new((const char *) (raw + 28), attrs_data_size),
+    };
+    VALUE result = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
+    rb_hash_bulk_insert(VALUE_COUNT(arguments), arguments, result);
 
     return result;
   #else
