@@ -2212,13 +2212,13 @@ void thread_context_collector_on_serialize(VALUE self_instance) {
     per_thread_context *thread_context = get_per_thread_context(thread);
 
     if (thread_context != NULL && (thread_context->was_skipped_at_last_sample || thread_context->is_profiler_internal_thread)) {
-      // We need to force_sample=true otherwise this sample would be skipped too
       update_metrics_and_sample(
         state,
         thread,
         thread_context,
         current_monotonic_wall_time_ns,
-        true);
+        true // We need to force_sample=true otherwise this sample would be skipped too
+      );
     }
   }
 }
