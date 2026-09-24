@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Core",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6371",
+  "message": "Fix native extension build failures when the libdatadog installation path contains spaces."
+}
