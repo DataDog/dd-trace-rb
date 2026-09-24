@@ -200,7 +200,9 @@ static VALUE native_set(
     uint8_t span_id_bytes[8];
     uint8_t local_root_span_id_bytes[8];
 
+    // W3C Trace Context IDs are big-endian.
     const int BIG_ENDIAN_PACK_FLAGS = INTEGER_PACK_MSWORD_FIRST | INTEGER_PACK_BIG_ENDIAN;
+    // For 128-bit IDs, `rb_integer_pack` has a fast path for `wordsize` 4 and 8.
     rb_integer_pack(trace_id, trace_id_bytes, 2, sizeof(uint64_t), 0, BIG_ENDIAN_PACK_FLAGS);
     pack_span_id(span_id, span_id_bytes);
     pack_span_id(local_root_span_id, local_root_span_id_bytes);
