@@ -22,7 +22,7 @@ module Datadog
         @configuration_source = nil
         @delivery_source = nil
         @failure = nil
-        @providers = []
+        @providers = {}.compare_by_identity
         @activated = false
         @delivery_started = false
         @shutdown = false
@@ -34,7 +34,7 @@ module Datadog
           return if @shutdown
           return unless open_feature_available?
 
-          @providers << provider unless @providers.any? { |active_provider| active_provider.equal?(provider) }
+          @providers[provider] = true
           return @component if @activated && @delivery_started
           return if @activated
 
@@ -60,7 +60,7 @@ module Datadog
       end
 
       def providers
-        @mutex.synchronize { @providers.dup }
+        @mutex.synchronize { @providers.keys }
       end
 
       # Timer-driven delivery has no operation in the child that can restart its inherited worker.
@@ -80,10 +80,7 @@ module Datadog
       def deactivate(provider)
         configuration_source, component = @mutex.synchronize do
           return if @shutdown
-          provider_index = @providers.index { |active_provider| active_provider.equal?(provider) }
-          return unless provider_index
-
-          @providers.delete_at(provider_index)
+          return unless @providers.delete(provider)
           return unless @providers.empty?
           if @delivery_source == Configuration::Source::REMOTE_CONFIG && @delivery_started
             # Remote Configuration is process-scoped and may already hold configuration needed by the next provider.
@@ -226,7 +223,7 @@ module Datadog
       end
 
       def configuration_changed(event)
-        providers = @mutex.synchronize { @providers.dup }
+        providers = @mutex.synchronize { @providers.keys }
         providers.each { |provider| provider.send(:configuration_changed, event) }
       end
     end

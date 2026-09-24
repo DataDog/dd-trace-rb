@@ -793,43 +793,29 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
     end
 
-    context "with adopted OpenFeature providers from the old component tree" do
-      let(:providers) do
-        [
-          instance_double("Datadog::OpenFeature::Provider"),
-          instance_double("Datadog::OpenFeature::Provider"),
-        ]
-      end
+    context "when reattaching adopted OpenFeature providers" do
       let(:activation) do
         instance_double(Datadog::OpenFeature::Activation, start!: nil, activate: nil)
-      end
-      let(:old_state) do
-        Datadog::Core::Configuration::ComponentsState.new(
-          telemetry_enabled: false,
-          remote_started: false,
-          open_feature_providers: providers,
-        )
       end
 
       before do
         allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
+        allow(Datadog::OpenFeature).to receive(:reattach).with(activation)
         allow(Datadog::Core::ProcessDiscovery).to receive(:publish)
         allow(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
       end
 
-      it "reactivates configuration delivery for each provider" do
-        providers.each do |provider|
-          expect(activation).to receive(:activate).with(provider)
-        end
+      it "delegates provider reattachment to OpenFeature" do
+        components.startup!(settings)
 
-        components.startup!(settings, old_state: old_state)
+        expect(Datadog::OpenFeature).to have_received(:reattach).with(activation).once
       end
 
       context "when provider reactivation raises" do
         let(:error) { RuntimeError.new("test failure") }
 
         before do
-          allow(activation).to receive(:activate).with(providers.first).and_raise(error)
+          allow(Datadog::OpenFeature).to receive(:reattach).with(activation).and_raise(error)
         end
 
         it "reports the failure and continues library startup" do
@@ -840,7 +826,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(Datadog::Core::ProcessDiscovery).to receive(:publish).with(settings)
           expect(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
 
-          expect { components.startup!(settings, old_state: old_state) }.not_to raise_error
+          expect { components.startup!(settings) }.not_to raise_error
         end
       end
     end
@@ -952,17 +938,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
       it "captures di_implicitly_enabled? as false (start was explicit)" do
         expect(components.state.di_implicitly_enabled?).to be false
       end
-    end
-
-    it "captures the adopted OpenFeature providers" do
-      providers = [
-        instance_double("Datadog::OpenFeature::Provider"),
-        instance_double("Datadog::OpenFeature::Provider"),
-      ]
-      activation = instance_double(Datadog::OpenFeature::Activation, providers: providers)
-      components.instance_variable_set(:@open_feature_activation, activation)
-
-      expect(components.state.open_feature_providers).to eq(providers)
     end
 
     context "when DI is started and the customer never touched the env var" do

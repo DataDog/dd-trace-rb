@@ -13,16 +13,21 @@ RSpec.describe Datadog::OpenFeature, ".activate_provider" do
   subject(:activate_provider) { described_class.activate_provider(provider) }
 
   let(:provider) { instance_double(Datadog::OpenFeature::Provider, shutdown?: provider_shutdown) }
+  let(:second_provider) { instance_double(Datadog::OpenFeature::Provider, shutdown?: false) }
   let(:provider_shutdown) { false }
   let(:component) { instance_double(Datadog::OpenFeature::Component) }
   let(:activation) do
     instance_double(
       Datadog::OpenFeature::Activation,
       activate: component,
+      deactivate: nil,
       failure: activation_failure,
     )
   end
   let(:activation_failure) { nil }
+  let(:replacement_activation) do
+    instance_double(Datadog::OpenFeature::Activation, activate: component)
+  end
   let(:components) do
     instance_double(
       Datadog::Core::Configuration::Components,
@@ -37,9 +42,52 @@ RSpec.describe Datadog::OpenFeature, ".activate_provider" do
     allow(Datadog).to receive(:send).with(:safely_synchronize).and_yield
   end
 
+  after do
+    described_class.deactivate_provider(provider)
+    described_class.deactivate_provider(second_provider)
+  end
+
   it "adopts the provider through the active component tree" do
     expect(activate_provider).to eq([component, nil])
     expect(activation).to have_received(:activate).with(provider)
+  end
+
+  it "reattaches the adopted provider to a replacement component tree" do
+    activate_provider
+
+    described_class.reattach(replacement_activation)
+
+    expect(replacement_activation).to have_received(:activate).with(provider)
+  end
+
+  it "does not detach the adopted provider for a different instance" do
+    other_provider = instance_double(Datadog::OpenFeature::Provider)
+    activate_provider
+
+    described_class.deactivate_provider(other_provider)
+    described_class.reattach(replacement_activation)
+
+    expect(replacement_activation).to have_received(:activate).with(provider)
+  end
+
+  it "does not reattach a provider after it is deactivated" do
+    activate_provider
+
+    described_class.deactivate_provider(provider)
+    described_class.reattach(replacement_activation)
+
+    expect(replacement_activation).not_to have_received(:activate)
+  end
+
+  it "reattaches every provider except the deactivated instance" do
+    activate_provider
+    described_class.activate_provider(second_provider)
+
+    described_class.deactivate_provider(provider)
+    described_class.reattach(replacement_activation)
+
+    expect(replacement_activation).not_to have_received(:activate).with(provider)
+    expect(replacement_activation).to have_received(:activate).with(second_provider)
   end
 
   context "when delivery cannot be activated" do
@@ -48,6 +96,14 @@ RSpec.describe Datadog::OpenFeature, ".activate_provider" do
 
     it do
       expect(activate_provider).to eq([nil, "Feature Flags Remote Configuration is unavailable"])
+    end
+
+    it "retains the provider for a later activation attempt" do
+      activate_provider
+
+      described_class.reattach(replacement_activation)
+
+      expect(replacement_activation).to have_received(:activate).with(provider)
     end
   end
 
@@ -91,6 +147,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
     allow(telemetry).to receive(:report)
     allow(reporter).to receive(:report)
     allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
+    allow(Datadog::OpenFeature).to receive(:deactivate_provider).with(provider)
   end
 
   let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger) }
@@ -121,7 +178,6 @@ RSpec.describe Datadog::OpenFeature::Provider do
       allow(Datadog::OpenFeature).to receive(:activate_provider)
         .with(provider)
         .and_return([component, activation_failure])
-      allow(Datadog::OpenFeature).to receive(:deactivate_provider).with(provider)
     end
 
     it "activates delivery and waits for configuration" do
