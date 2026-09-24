@@ -39,6 +39,9 @@ variables:
       - platform/artifacts/
     expire_in: 3 months
   variables:
+    # See https://datadoghq.atlassian.net/wiki/spaces/APMINT/pages/7223313012/Flaky+Benchmarks+Monitoring for more details.
+    FLAKY_BENCHMARKS_REGEX: ""
+
     # Benchmark's env variables. Modify to tweak benchmark parameters.
     DD_TRACE_DEBUG: "false"
     DD_RUNTIME_METRICS_ENABLED: "true"
@@ -245,6 +248,8 @@ microbenchmarks:
     CI_PROJECT_NAME: $CI_PROJECT_NAME
     CI_JOB_ID: $CI_JOB_ID
     CI_PIPELINE_ID: $CI_PIPELINE_ID
+    # See https://datadoghq.atlassian.net/wiki/spaces/APMINT/pages/7223313012/Flaky+Benchmarks+Monitoring for more details.
+    FLAKY_BENCHMARKS_REGEX: ""
   script:
     - export ARTIFACTS_DIR="$(pwd)/artifacts"
     - |
@@ -312,6 +317,8 @@ open-feature-microbenchmarks:
     CI_PROJECT_NAME: $CI_PROJECT_NAME
     CI_JOB_ID: $CI_JOB_ID
     CI_PIPELINE_ID: $CI_PIPELINE_ID
+    # See https://datadoghq.atlassian.net/wiki/spaces/APMINT/pages/7223313012/Flaky+Benchmarks+Monitoring for more details.
+    FLAKY_BENCHMARKS_REGEX: ""
     # OpenFeature EVP benchmarks are informational and manual to avoid allocating a dedicated
     # bare-metal benchmark runner unless someone explicitly needs fresh performance data.
     BENCHMARKS: "open_feature_flagevaluation.rb"
