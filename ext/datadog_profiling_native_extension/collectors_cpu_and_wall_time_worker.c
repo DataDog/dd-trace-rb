@@ -314,6 +314,9 @@ static void commit_heap_recordings_from_postponed_job_may_lose_gvl(DDTRACE_UNUSE
 //
 // This global state is needed because a bunch of functions on this file need to access it from situations
 // (e.g. signal handler) where it's impossible or just awkward to pass it as an argument.
+//
+// P.s.: Because we register `active_sampler_instance` with `rb_global_variable`, the object we point to here is pinned
+// in place and won't be moved during compaction.
 static VALUE active_sampler_instance = Qnil;
 static cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
 static VALUE clock_failure_exception_class = Qnil;
@@ -406,6 +409,9 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
 // On Ruby 3.3+, declarative marking lets the GC read this list directly for marking and compaction.
 // On older Rubies, the manual mark/compact callbacks iterate this same list via ddtrace_gc_mark_refs/compact_refs.
 RUBY_REFERENCES(cpu_and_wall_time_worker_refs) = {
+  // Note: While `active_sampler_instance` points to this worker's `self_instance`, it is pinned and won't be moved during GC compaction.
+  // When the profiler is inactive, the instance can move, so compaction must update it.
+  RUBY_REF_EDGE(cpu_and_wall_time_worker_state, self_instance),
   RUBY_REF_EDGE(cpu_and_wall_time_worker_state, thread_context_collector_instance),
   RUBY_REF_EDGE(cpu_and_wall_time_worker_state, idle_sampling_helper_instance),
   RUBY_REF_EDGE(cpu_and_wall_time_worker_state, owner_thread),
