@@ -80,17 +80,23 @@ variables:
   allow_failure: true
 
 baseline:
+  rules:
+    - when: always
   extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: baseline
 
 only-tracing:
+  rules:
+    - when: always
   extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-tracing
     DD_TRACE_ENABLED: "true"
 
 only-tracing-with-tracecontext-extract:
+  rules:
+    - when: always
   extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-tracing-with-tracecontext-extract
@@ -99,6 +105,8 @@ only-tracing-with-tracecontext-extract:
     K6_TRACE_CONTEXT_ENABLED: "true"
 
 only-tracing-without-tracecontext-extract:
+  rules:
+    - when: always
   extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-tracing-without-tracecontext-extract
@@ -108,6 +116,8 @@ only-tracing-without-tracecontext-extract:
     K6_TRACE_CONTEXT_ENABLED: "true"
 
 only-profiling:
+  rules:
+    - when: always
   extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
@@ -115,6 +125,8 @@ only-profiling:
     ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
 only-profiling-alloc:
+  rules:
+    - when: always
   extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
@@ -123,6 +135,8 @@ only-profiling-alloc:
     ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
 only-profiling-heap:
+  rules:
+    - when: always
   extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
@@ -132,6 +146,8 @@ only-profiling-heap:
     ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
 profiling-and-tracing:
+  rules:
+    - when: always
   extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing
@@ -139,6 +155,8 @@ profiling-and-tracing:
     DD_PROFILING_ENABLED: "true"
 
 tracing-and-appsec:
+  rules:
+    - when: always
   extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: tracing-and-appsec
@@ -146,6 +164,8 @@ tracing-and-appsec:
     DD_APPSEC_ENABLED: "true"
 
 profiling-and-tracing-and-appsec:
+  rules:
+    - when: always
   extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing-and-appsec
@@ -158,6 +178,8 @@ profiling-and-tracing-and-appsec:
 # -----------------------------------------------------
 
 ddprof-benchmark:
+  rules:
+    - when: never
   stage: microbenchmarks
   tags: ["runner:apm-k8s-same-cpu"]
   timeout: 1h
@@ -236,7 +258,8 @@ microbenchmarks:
   needs: []
   tags: ["runner:apm-k8s-tweaked-metal"]
   image: $BASE_CI_IMAGE
-  rules: *microbenchmark-rules
+  rules:
+    - when: always
   timeout: 1h
   variables:
     # GitLab CI variables passed to bp-runner
@@ -291,17 +314,6 @@ open-feature-microbenchmarks:
   tags: ["runner:apm-k8s-tweaked-metal"]
   image: $BASE_CI_IMAGE
   rules:
-    - if: $CI_COMMIT_REF_NAME == "master"
-      when: manual
-      interruptible: false
-    - changes:
-        - benchmarks/open_feature_flagevaluation.rb
-        - lib/datadog/open_feature/**/*
-        - spec/datadog/open_feature/**/*
-        - .gitlab/benchmarks.yml
-        - .gitlab/benchmarks/bp-runner.microbenchmarks.yml
-      when: manual
-      interruptible: true
     - when: never
   timeout: 1h
   allow_failure: true
@@ -347,7 +359,8 @@ open-feature-microbenchmarks:
 
 microbenchmarks-pr-comment:
   stage: microbenchmarks
-  rules: *microbenchmark-rules
+  rules:
+    - when: never
   allow_failure: true
   needs:
     - job: microbenchmarks
@@ -400,7 +413,8 @@ microbenchmarks-check-big-regressions:
   image: $BASE_CI_IMAGE
   timeout: 30m
   allow_failure: false
-  rules: *microbenchmark-rules
+  rules:
+    - when: never
   script:
     - export ARTIFACTS_DIR="$(pwd)/artifacts"
     - bp-runner .gitlab/benchmarks/bp-runner.fail-on-regression.yml --debug

@@ -16,7 +16,7 @@ include:
   - local: ".gitlab/benchmarks.yml"
   - project: "DataDog/apm-reliability/apm-sdks-benchmarks"
     file: ".gitlab/ci-ruby-acme-parallel.yml"
-    ref: "0ba66f8dd5e9e3ab1d25f5e28eb04f50c8e7848f" # apm-sdks-benchmarks#283 merge commit
+    ref: "12a3157e4e36ad5530c283c0e751f1fe71560192" # apm-sdks-benchmarks#283 merge commit
 
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
@@ -59,12 +59,16 @@ workflow:
     - ddsign sign $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID --digest-from-docker
 
 build-image-amd64:
+  rules:
+    - when: never
   extends: .build-image-base
   tags: ["docker-in-docker:amd64"]
   variables:
     ARCHITECTURE: amd64
 
 build-image-arm64:
+  rules:
+    - when: never
   extends: .build-image-base
   tags: ["docker-in-docker:arm64"]
   variables:
@@ -72,13 +76,8 @@ build-image-arm64:
 
 promote-image:
   stage: manual-images
-  rules: # same as build-image
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
-      changes:
-        - .gitlab/Dockerfile-* # these are direct dependencies
-        - .gitlab-ci.yml # list of images is here so it is a dependency too
-      when: manual # this one is manual, but it means that install-dependencies may be hitting the wrong <base>:current til this is run
-      allow_failure: true
+  rules:
+    - when: never
   tags: ["docker-in-docker:amd64"]
   image: $DOCKER_REGISTRY/docker:29.4.0-noble
   parallel:
