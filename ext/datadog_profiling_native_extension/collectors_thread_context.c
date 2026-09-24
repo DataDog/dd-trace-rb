@@ -1440,9 +1440,9 @@ static VALUE _native_per_thread_context(DDTRACE_UNUSED VALUE _self, VALUE collec
   thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-  VALUE result = rb_hash_new();
   VALUE threads = thread_list(state);
   const long thread_count = RARRAY_LEN(threads);
+  VALUE result = rb_hash_new_capa(thread_count);
   for (long i = 0; i < thread_count; i++) {
     VALUE thread = rb_ary_entry(threads, i);
     ENFORCE_THREAD(thread);
