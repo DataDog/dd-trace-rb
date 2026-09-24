@@ -94,7 +94,8 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
         "libdatadog-x86_64-unknown-linux-gnu/lib/pkgconfig"
     end
 
-    it "builds and loads an extension with spaces in its source and libdatadog paths" do
+    # Valgrind traces compiler/linker subprocesses and reports their leaks; regular CI still exercises this build.
+    it "builds and loads an extension with spaces in its source and libdatadog paths", :memcheck_valgrind_skip do
       skip_if_libdatadog_not_supported
 
       Dir.mktmpdir do |directory|
