@@ -109,6 +109,7 @@ module Datadog
           handler
         end
         configuration&.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, error_handler) if error_handler
+        OpenFeature.deactivate_provider(self)
       end
 
       def hooks

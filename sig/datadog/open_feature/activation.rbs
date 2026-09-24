@@ -31,8 +31,6 @@ module Datadog
 
       attr_reader failure: String?
 
-      attr_reader provider: Provider?
-
       def initialize: (
         Core::Configuration::Settings settings,
         Core::Configuration::AgentSettings agent_settings,
