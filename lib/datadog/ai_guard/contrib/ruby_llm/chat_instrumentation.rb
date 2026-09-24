@@ -4,19 +4,31 @@ module Datadog
   module AIGuard
     module Contrib
       module RubyLLM
-        # module that gets prepended to RubyLLM::Chat
+        # Protects tool calls before RubyLLM executes them locally
+        #
+        # @api private
         module ChatInstrumentation
-          def handle_tool_calls(response, &block)
-            converted_messages = MessageConverter.convert(messages)
+          def execute_pending_tool_calls(response)
+            response_index = messages.index { |message| message == response }
+            return super unless response_index
+
+            adapter = MessageAdapter.new(messages)
+            converted_messages = adapter.to_ai_guard
 
             unless converted_messages
               Metrics::Telemetry.report_error
               return super
             end
 
-            AIGuard.evaluate(*converted_messages)
+            evaluation = AIGuard.evaluate(*converted_messages)
+            begin
+              redacted_messages = adapter.apply_redactions(evaluation.messages)
+            rescue JSON::JSONError
+              Metrics::Telemetry.report_error
+              return super
+            end
 
-            super
+            super(redacted_messages[response_index])
           end
         end
       end

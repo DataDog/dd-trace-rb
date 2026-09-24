@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "message_converter"
-require_relative "message_redactor"
+require_relative "message_adapter"
 require_relative "chat_instrumentation"
 require_relative "provider_instrumentation"
 
