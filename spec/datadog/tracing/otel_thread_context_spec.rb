@@ -66,6 +66,19 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
     end.join
   end
 
+  def kill_thread_holding_context
+    signal_queue = Queue.new
+    killed = Thread.new do
+      otel_thread_context.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
+      signal_queue << true
+      Queue.new.pop
+    end
+
+    signal_queue.pop # ensure the context was set before killing the thread
+    killed.kill
+    killed.join
+  end
+
   describe "#set" do
     def decode_context(raw)
       return unless raw
@@ -188,16 +201,7 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
           otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
         end.join
 
-        signal_queue = Queue.new
-        killed = Thread.new do
-          otel_thread_context.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
-          signal_queue << true
-          Queue.new.pop
-        end
-
-        signal_queue.pop # ensure we set the thread context before we kill the thread
-        killed.kill
-        killed.join
+        kill_thread_holding_context
 
         failed = Thread.new do
           Thread.current.report_on_exception = false
@@ -219,16 +223,7 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
       end
 
       it "returns false on a fresh thread after a killed thread attached a context" do
-        signal_queue = Queue.new
-        killed = Thread.new do
-          otel_thread_context.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
-          signal_queue << true
-          Queue.new.pop
-        end
-
-        signal_queue.pop # ensure the context was set before killing the thread
-        killed.kill
-        killed.join
+        kill_thread_holding_context
 
         # A fresh thread must start with no context record attached.
         fresh_result = Thread.new { otel_thread_context.clear }.value
