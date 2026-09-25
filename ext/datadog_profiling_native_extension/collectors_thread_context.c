@@ -268,7 +268,7 @@ struct per_thread_context {
   bool was_skipped_at_last_sample;
   // Set as true for CpuAndWallTimeWorker and IdleSamplingHelper threads.
   // When true, per-tick samples are skipped entirely; the thread is sampled only once per
-  // reporting period during the on_serialize flush.
+  // reporting period during prepare_serialize.
   //
   // These threads are always in native code so their stacks aren't interesting;
   // the Profiling::Scheduler thread on the other hand does a lot of different
@@ -385,6 +385,7 @@ static VALUE safely_lookup_hash_without_going_into_ruby_code(VALUE hash, VALUE k
 static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static VALUE _native_prepare_sample_inside_signal_handler(DDTRACE_UNUSED VALUE self);
 static VALUE _native_mark_thread_as_profiler_internal(DDTRACE_UNUSED VALUE self, VALUE thread);
+static VALUE _native_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static VALUE _native_remove_per_thread_context_for(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_global_reset_per_thread_context(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static bool skip_sample(thread_context_collector_state *state, per_thread_context *thread_context, bool is_gvl_waiting_state, bool force_sample);
@@ -426,6 +427,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_remove_per_thread_context_for", _native_remove_per_thread_context_for, 1);
   rb_define_singleton_method(testing_module, "_native_global_reset_per_thread_context", _native_global_reset_per_thread_context, 1);
   rb_define_singleton_method(testing_module, "_native_mark_thread_as_profiler_internal", _native_mark_thread_as_profiler_internal, 1);
+  rb_define_singleton_method(testing_module, "_native_prepare_serialize", _native_prepare_serialize, 1);
   rb_define_singleton_method(testing_module, "_native_on_gvl_waiting", _native_on_gvl_waiting, 1);
   rb_define_singleton_method(testing_module, "_native_on_gvl_released", _native_on_gvl_released, 1);
   #ifndef NO_GVL_INSTRUMENTATION
@@ -612,7 +614,6 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   // Update this when modifying state struct
   sample_locations_initialize(&state->locations, max_frame_int, show_classes == Qtrue);
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
-  recorder_install_on_serialize(recorder_instance, self_instance);
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
   state->native_filenames_enabled = (native_filenames_enabled == Qtrue);
   state->show_classes = (show_classes == Qtrue);
@@ -848,7 +849,7 @@ static bool skip_sample(thread_context_collector_state *state, per_thread_contex
   // Skip this per-tick sample entirely when the thread does not have the GVL and did not acquire
   // it since the previous sample: its Ruby-level stack has not changed. The skipped wall-time will
   // be picked up by either by an extra sample when the thread acquires the GVL, or by
-  // the on-serialize flush in the stack recorder (using was_skipped_at_last_sample).
+  // prepare_serialize (using was_skipped_at_last_sample).
   // The check is gated by `!is_gvl_waiting_state` so the existing "Waiting for GVL" machinery
   // in handle_gvl_waiting (situation 1 extra sample, situation 2 regular sample) keeps running.
   // TODO: we could probably also skip while "Waiting for GVL"
@@ -2164,8 +2165,8 @@ static VALUE _native_mark_thread_as_profiler_internal(DDTRACE_UNUSED VALUE self,
 }
 
 // Called via rb_ensure when a profiler-internal thread (worker or idle helper) is about to exit.
-// Records a final sample so the thread's accumulated cpu/wall time since the last on_serialize
-// flush is not lost. on_serialize (below) also flushes profiler-internal threads during periodic
+// Records a final sample so the thread's accumulated cpu/wall time since the last prepare_serialize
+// is not lost. prepare_serialize (below) also flushes profiler-internal threads during periodic
 // serialization, but it can't help at shutdown: by the time the final serialize runs, these
 // threads are already dead and absent from thread_list.
 //
@@ -2194,10 +2195,10 @@ VALUE thread_context_collector_profiler_internal_thread_done(VALUE self_instance
 
 // Flushes threads whose last per-tick sample was skipped (either by the SUSPENDED-skip
 // optimization, or by is_profiler_internal_thread) so their accumulated time is recorded.
-// Called by the stack recorder at the start of _native_serialize (regular periodic flush).
+// Called before serialization so that threads suspended across the whole profile period still get sampled.
 //
 // Assumption 1: When called while the profiler is active, `during_sample` MUST be set.
-void thread_context_collector_on_serialize(VALUE self_instance) {
+VALUE thread_context_prepare_serialize(VALUE self_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
@@ -2221,6 +2222,12 @@ void thread_context_collector_on_serialize(VALUE self_instance) {
       );
     }
   }
+
+  return state->recorder_instance;
+}
+
+static VALUE _native_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
+  return thread_context_prepare_serialize(collector_instance);
 }
 
 void thread_context_collector_on_gvl_released(per_thread_context *thread_context) {

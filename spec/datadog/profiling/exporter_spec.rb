@@ -9,7 +9,6 @@ RSpec.describe Datadog::Profiling::Exporter do
 
   subject(:exporter) do
     described_class.new(
-      pprof_recorder: pprof_recorder,
       worker: worker,
       info_collector: info_collector,
       code_provenance_collector: code_provenance_collector,
@@ -30,7 +29,11 @@ RSpec.describe Datadog::Profiling::Exporter do
   let(:worker) do
     # TODO: Change this to a direct reference when we drop support for old Rubies which currently error if we try
     #       to `require 'profiling/collectors/cpu_and_wall_time_worker'`
-    instance_double("Datadog::Profiling::Collectors::CpuAndWallTimeWorker", stats_and_reset_not_thread_safe: worker_stats)
+    instance_double(
+      "Datadog::Profiling::Collectors::CpuAndWallTimeWorker",
+      stats_and_reset_not_thread_safe: worker_stats,
+      prepare_serialize: pprof_recorder,
+    )
   end
   let(:code_provenance_collector) do
     collector = instance_double(Datadog::Profiling::Collectors::CodeProvenance, generate_json: code_provenance_data)
