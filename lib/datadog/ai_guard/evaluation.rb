@@ -59,7 +59,7 @@ module Datadog
             span.set_metastruct_tag(
               Ext::METASTRUCT_TAG,
               {
-                messages: truncate_content(truncate_messages(result.messages.map(&:to_h))),
+                messages: truncate_content(truncate_messages(result.messages).map(&:to_h)),
                 attack_categories: result.tags,
                 sds: result.sds_findings,
                 tag_probs: result.tag_probabilities,
