@@ -1,5 +1,6 @@
 require "json"
 require_relative "appraisal_conversion"
+require_relative "prelock"
 
 # rubocop:disable Metrics/BlockLength
 namespace :github do
@@ -90,6 +91,8 @@ namespace :github do
     tasks = JSON.parse(ENV["BATCHED_TASKS"] || {})
 
     tasks.each do |task|
+      Prelock.call(task["gemfile"])
+
       env = {"BUNDLE_GEMFILE" => task["gemfile"]}
       cmd = "bundle check || bundle install"
       # Retry mechanism to improve reliability in Github Actions,
