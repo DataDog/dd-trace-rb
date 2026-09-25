@@ -13,11 +13,11 @@ module Datadog
             return super unless response_index
 
             adapter = MessageAdapter.new(messages)
-            converted_messages = adapter.to_ai_guard
-
-            unless converted_messages
+            begin
+              converted_messages = adapter.to_ai_guard
+            rescue JSON::JSONError
               Metrics::Telemetry.report_error
-              return super
+              return super(response)
             end
 
             evaluation = AIGuard.evaluate(*converted_messages)

@@ -453,6 +453,43 @@ RSpec.describe "RubyLLM chat instrumentation" do
     end
   end
 
+  context "when message conversion before tool execution raises JSON generator error" do
+    before do
+      allow(tool).to receive(:name).and_return("shell")
+      allow(tool).to receive(:execute).and_return("done")
+      allow(JSON).to receive(:generate).and_raise(JSON::GeneratorError.new("Failed to generate JSON"))
+      allow(Datadog::AIGuard::Metrics::Telemetry).to receive(:report_error)
+      chat.messages << tool_call_response
+    end
+
+    let(:chat) { RubyLLM.chat.with_tools(tool) }
+    let(:tool) do
+      Class.new(RubyLLM::Tool) do
+        def execute(command:)
+          command
+        end
+      end.new
+    end
+    let(:tool_call_response) do
+      RubyLLM::Message.new(
+        role: :assistant,
+        content: "Running the command",
+        tool_calls: {"tool_call_1" => tool_call}
+      )
+    end
+    let(:tool_call) do
+      RubyLLM::ToolCall.new(id: "tool_call_1", name: "shell", arguments: {"command" => "ls /"})
+    end
+
+    it "counts the error and executes the tool with the original arguments" do
+      expect { chat.run_tools }.not_to raise_error
+
+      expect(tool).to have_received(:execute).with(command: "ls /")
+      expect(a_request(:post, "https://app.datadoghq.com/api/v2/ai-guard/evaluate")).not_to have_been_made
+      expect(Datadog::AIGuard::Metrics::Telemetry).to have_received(:report_error)
+    end
+  end
+
   context "when applying a tool-call redaction before execution raises JSON parser error" do
     before do
       allow(tool).to receive(:name).and_return("shell")
