@@ -490,7 +490,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
       # which BLOCKS until the in-flight send finishes, so `fork` itself blocks
       # until the releaser below allows the agent to answer.
       releaser = Thread.new do
-        fork_prepared.pop
+        Timeout.timeout(15) { fork_prepared.pop }
         mock_agent.release
       end
       read_io, write_io = IO.pipe
@@ -529,7 +529,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
       expect(status.success?).to be(true)
 
       # The in-flight parent send completed without error.
-      parent_responses = sender_result.pop
+      parent_responses = Timeout.timeout(15) { sender_result.pop }
       expect(parent_responses.first.ok?).to be(true)
       expect(sender.join(10)).to_not be_nil
 
@@ -559,7 +559,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
         close_started << true
         transport.close
       end
-      close_started.pop
+      Timeout.timeout(5) { close_started.pop }
       Timeout.timeout(5) do
         Thread.pass until closer.status == "sleep" || !closer.alive?
       end
@@ -603,9 +603,9 @@ RSpec.describe "Native transport fork safety and cancellation" do
 
       child_result = Timeout.timeout(15) { read_io.read }
       read_io.close
-      _, status = Process.wait2(fork_result.pop)
+      _, status = Process.wait2(Timeout.timeout(5) { fork_result.pop })
 
-      expect(sender_result.pop.first.ok?).to be(true)
+      expect(Timeout.timeout(5) { sender_result.pop }.first.ok?).to be(true)
       expect(child_result).to match(/\A(?:OK|CLOSED)\z/)
       expect(status.success?).to be(true)
       expect(transport.send_traces([build_trace(name: "parent-after-close.op")]).first).to be_internal_error
