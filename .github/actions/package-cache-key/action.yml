@@ -1,0 +1,92 @@
+name: Compute package cache key
+
+description: Compute package manifest and perform an exact cache lookup
+
+inputs:
+  base-gemfile:
+    description: Base Gemfile path
+    required: true
+  matrix:
+    description: Matrixfile path
+    required: true
+  ruby-version:
+    description: Ruby minor version
+    required: true
+  runtime-identifier:
+    description: Stable runtime identifier
+    required: true
+  appraisal-pattern:
+    description: Optional format pattern containing %{group}
+    required: false
+  cache-schema:
+    description: Package cache key namespace
+    required: false
+    default: bundle-packages-v1
+  cache-path:
+    description: Downloaded package cache path
+    required: false
+    default: /tmp/ddtrace-bundle-package-cache
+  manifest-path:
+    description: Generated package manifest path
+    required: false
+    default: /tmp/ddtrace-bundle-package-manifest.json
+
+outputs:
+  primary-key:
+    description: Exact package cache key
+    value: ${{ steps.manifest.outputs.primary-key }}
+  fallback-prefix:
+    description: Same-runtime cache key prefix
+    value: ${{ steps.manifest.outputs.fallback-prefix }}
+  exact-hit:
+    description: Whether exact package cache exists
+    value: ${{ steps.lookup.outputs.cache-hit }}
+  matched-key:
+    description: Key matched by exact lookup
+    value: ${{ steps.lookup.outputs.cache-matched-key }}
+  manifest-path:
+    description: Generated package manifest path
+    value: ${{ inputs.manifest-path }}
+
+runs:
+  using: composite
+  steps:
+    - id: manifest
+      name: Generate package manifest
+      shell: bash
+      env:
+        APPRAISAL_PATTERN: ${{ inputs.appraisal-pattern }}
+        BASE_GEMFILE: ${{ inputs.base-gemfile }}
+        CACHE_SCHEMA: ${{ inputs.cache-schema }}
+        MANIFEST_PATH: ${{ inputs.manifest-path }}
+        MATRIX_PATH: ${{ inputs.matrix }}
+        RUBY_MINOR: ${{ inputs.ruby-version }}
+        RUNTIME_IDENTIFIER: ${{ inputs.runtime-identifier }}
+      run: |
+        args=(
+          manifest
+          --base-gemfile "$BASE_GEMFILE"
+          --cache-schema "$CACHE_SCHEMA"
+          --matrix "$MATRIX_PATH"
+          --ruby-version "$RUBY_MINOR"
+          --runtime-identifier "$RUNTIME_IDENTIFIER"
+          --output "$MANIFEST_PATH"
+        )
+        if [ -n "$APPRAISAL_PATTERN" ]; then
+          args+=(--appraisal-pattern "$APPRAISAL_PATTERN")
+        fi
+        ruby tasks/package_cache_cli.rb "${args[@]}"
+        ruby -rjson -e '
+          manifest = JSON.parse(File.read(ARGV.fetch(0)))
+          File.open(ENV.fetch("GITHUB_OUTPUT"), "a") do |output|
+            output.puts("primary-key=#{manifest.fetch("cache_key")}")
+            output.puts("fallback-prefix=#{manifest.fetch("cache_key_prefix")}")
+          end
+        ' "$MANIFEST_PATH"
+    - id: lookup
+      name: Look up exact package cache
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.manifest.outputs.primary-key }}
+        path: ${{ inputs.cache-path }}
+        lookup-only: true

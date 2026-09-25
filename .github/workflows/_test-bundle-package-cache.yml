@@ -1,0 +1,230 @@
+name: Test bundle package cache
+
+on: # yamllint disable-line rule:truthy
+  workflow_dispatch:
+    inputs:
+      allow-save:
+        description: Permit test cache save on default branch
+        required: true
+        type: boolean
+        default: false
+      expected-state:
+        description: Expected restore state
+        required: true
+        type: choice
+        options:
+          - miss
+          - exact
+          - fallback
+        default: miss
+      fixture-version:
+        description: Fixture dependency version
+        required: true
+        type: choice
+        options:
+          - original
+          - alternate
+        default: original
+
+permissions: {}
+
+jobs:
+  test-package-cache:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
+      env:
+        BUNDLE_CACHE_ALL: "true"
+        BUNDLE_CACHE_PATH: /tmp/ddtrace-bundle-package-cache
+        BUNDLE_FROZEN: "true"
+        BUNDLE_NO_PRUNE: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install action runtime for act
+        if: env.ACT == 'true'
+        shell: bash
+        run: |
+          apt-get update
+          apt-get install --yes nodejs
+
+      - name: Verify fixture runtime
+        shell: bash
+        run: ruby -e 'abort RUBY_DESCRIPTION unless RUBY_VERSION.start_with?("4.0.")'
+
+      - name: Record production dependency state
+        shell: bash
+        run: |
+          {
+            sha256sum Gemfile Matrixfile
+            find gemfiles -type f -print0 | sort -z | xargs -0 sha256sum
+          } > /tmp/production-dependencies-before
+
+      - id: key
+        name: Compute and look up package cache key
+        uses: ./.github/actions/package-cache-key
+        with:
+          base-gemfile: spec/fixtures/package_cache/cache-base.gemfile
+          cache-schema: bundle-packages-test-v1
+          matrix: ${{ inputs.fixture-version == 'alternate' && 'spec/fixtures/package_cache/Matrixfile.alternate' || 'spec/fixtures/package_cache/Matrixfile' }}
+          ruby-version: "4.0"
+          runtime-identifier: ruby-4.0
+          appraisal-pattern: spec/fixtures/package_cache/%{group}.gemfile
+
+      - id: restore
+        name: Restore package cache
+        uses: ./.github/actions/package-cache-restore
+        with:
+          primary-key: ${{ steps.key.outputs.primary-key }}
+          fallback-prefix: ${{ steps.key.outputs.fallback-prefix }}
+
+      - name: Assert restore state
+        shell: bash
+        env:
+          EXACT_HIT: ${{ steps.restore.outputs.exact-hit }}
+          EXPECTED_STATE: ${{ inputs.expected-state }}
+          MATCHED_KEY: ${{ steps.restore.outputs.matched-key }}
+          PRIMARY_KEY: ${{ steps.key.outputs.primary-key }}
+        run: |
+          case "$EXPECTED_STATE" in
+            exact)
+              [ "$EXACT_HIT" = "true" ]
+              [ "$MATCHED_KEY" = "$PRIMARY_KEY" ]
+              ;;
+            fallback)
+              [ "$EXACT_HIT" != "true" ]
+              [ -n "$MATCHED_KEY" ]
+              [ "$MATCHED_KEY" != "$PRIMARY_KEY" ]
+              ;;
+            miss)
+              [ "$EXACT_HIT" != "true" ]
+              [ -z "$MATCHED_KEY" ]
+              ;;
+          esac
+
+      - id: populate
+        if: steps.restore.outputs.exact-hit != 'true' && inputs.allow-save
+        name: Populate package cache
+        uses: ./.github/actions/package-cache-populate
+        with:
+          manifest-path: ${{ steps.key.outputs.manifest-path }}
+
+      - name: Assert minimal package manifest and archive
+        shell: bash
+        env:
+          ALLOW_SAVE: ${{ inputs.allow-save }}
+          EXPECTED_PACKAGE: ${{ inputs.fixture-version == 'alternate' && 'excon-1.7.0.gem' || 'excon-1.7.1.gem' }}
+          EXPECTED_STATE: ${{ inputs.expected-state }}
+          FIXTURE_VERSION: ${{ inputs.fixture-version }}
+          MANIFEST_PATH: ${{ steps.key.outputs.manifest-path }}
+        run: |
+          ruby -rjson -e '
+            manifest = JSON.parse(File.read(ENV.fetch("MANIFEST_PATH")))
+            expected = [ENV.fetch("EXPECTED_PACKAGE")]
+            abort manifest.fetch("package_filenames").inspect unless manifest.fetch("package_filenames") == expected
+            abort manifest.fetch("cache_key") unless manifest.fetch("cache_key").start_with?("bundle-packages-test-v1-")
+          '
+          archive_package="$EXPECTED_PACKAGE"
+          if [ "$EXPECTED_STATE" = "miss" ] && [ "$ALLOW_SAVE" != "true" ]; then
+            archive_package=""
+          elif [ "$FIXTURE_VERSION" = "alternate" ] && [ "$EXPECTED_STATE" = "fallback" ] && [ "$ALLOW_SAVE" != "true" ]; then
+            archive_package="excon-1.7.1.gem"
+          fi
+          files=""
+          if [ -d "$BUNDLE_CACHE_PATH" ]; then
+            files=$(find "$BUNDLE_CACHE_PATH" -type f -name '*.gem' -exec basename {} \; | sort)
+          fi
+          [ "$files" = "$archive_package" ]
+
+      - name: Install original fixture from local package cache
+        if: inputs.fixture-version == 'original' && (inputs.allow-save || inputs.expected-state != 'miss')
+        shell: bash
+        env:
+          BUNDLE_GEMFILE: ${{ github.workspace }}/spec/fixtures/package_cache/cache-appraisal.gemfile
+        run: bundle install --local
+
+      - name: Install original fixture without package cache
+        if: inputs.fixture-version == 'original' && !inputs.allow-save && inputs.expected-state == 'miss'
+        shell: bash
+        env:
+          BUNDLE_GEMFILE: ${{ github.workspace }}/spec/fixtures/package_cache/cache-appraisal.gemfile
+        run: |
+          bundle install 2>&1 | tee /tmp/uncached-bundle-install.log
+          grep -F "Fetching excon 1.7.1" /tmp/uncached-bundle-install.log
+          if grep -F "Fetching logger" /tmp/uncached-bundle-install.log; then
+            exit 1
+          fi
+
+      - name: Install alternate fixture delta
+        if: inputs.fixture-version == 'alternate' && !inputs.allow-save
+        shell: bash
+        env:
+          BUNDLE_GEMFILE: ${{ github.workspace }}/spec/fixtures/package_cache/cache-appraisal-alternate.gemfile
+        run: |
+          bundle install 2>&1 | tee /tmp/alternate-bundle-install.log
+          grep -F "Fetching excon 1.7.0" /tmp/alternate-bundle-install.log
+          if grep -F "Fetching logger" /tmp/alternate-bundle-install.log; then
+            exit 1
+          fi
+          files=$(find "$BUNDLE_CACHE_PATH" -type f -name '*.gem' -exec basename {} \; | sort)
+          [ "$files" = "excon-1.7.1.gem" ]
+
+      - name: Install populated alternate fixture locally
+        if: inputs.fixture-version == 'alternate' && inputs.allow-save
+        shell: bash
+        env:
+          BUNDLE_GEMFILE: ${{ github.workspace }}/spec/fixtures/package_cache/cache-appraisal-alternate.gemfile
+        run: bundle install --local
+
+      - id: save
+        if: steps.restore.outputs.exact-hit != 'true' && inputs.allow-save
+        name: Save package cache
+        uses: ./.github/actions/package-cache-save
+        with:
+          primary-key: ${{ steps.key.outputs.primary-key }}
+          write-enabled: ${{ inputs.allow-save }}
+          default-ref: ${{ github.ref }}
+
+      - name: Verify production dependencies unchanged
+        shell: bash
+        run: |
+          {
+            sha256sum Gemfile Matrixfile
+            find gemfiles -type f -print0 | sort -z | xargs -0 sha256sum
+          } > /tmp/production-dependencies-after
+          diff -u /tmp/production-dependencies-before /tmp/production-dependencies-after
+
+      - name: Report package cache result
+        shell: bash
+        env:
+          DOWNLOADED_BYTES: ${{ steps.populate.outputs.downloaded-byte-count }}
+          DOWNLOADED_FILES: ${{ steps.populate.outputs.downloaded-file-count }}
+          EXACT_HIT: ${{ steps.restore.outputs.exact-hit }}
+          MANIFEST_PATH: ${{ steps.key.outputs.manifest-path }}
+          MATCHED_KEY: ${{ steps.restore.outputs.matched-key }}
+          POPULATE_SECONDS: ${{ steps.populate.outputs.duration-seconds }}
+          PRIMARY_KEY: ${{ steps.key.outputs.primary-key }}
+          RESTORE_SECONDS: ${{ steps.restore.outputs.duration-seconds }}
+          SAVE_SECONDS: ${{ steps.save.outputs.duration-seconds }}
+        run: |
+          read -r file_count byte_count < <(
+            ruby tasks/package_cache_cli.rb statistics --manifest "$MANIFEST_PATH" --path "$BUNDLE_CACHE_PATH" |
+              ruby -rjson -e 'value = JSON.parse(STDIN.read); puts [value.fetch("file_count"), value.fetch("byte_count")].join(" ")'
+          )
+          {
+            echo "### Bundle package cache fixture"
+            echo "- Primary key: \`$PRIMARY_KEY\`"
+            echo "- Matched key: \`${MATCHED_KEY:-none}\`"
+            echo "- Exact hit: \`${EXACT_HIT:-false}\`"
+            echo "- Files: \`$file_count\`"
+            echo "- Bytes: \`$byte_count\`"
+            echo "- Downloaded files: \`${DOWNLOADED_FILES:-0}\`"
+            echo "- Downloaded bytes: \`${DOWNLOADED_BYTES:-0}\`"
+            echo "- Restore seconds: \`${RESTORE_SECONDS:-0}\`"
+            echo "- Population seconds: \`${POPULATE_SECONDS:-0}\`"
+            echo "- Save seconds: \`${SAVE_SECONDS:-0}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
