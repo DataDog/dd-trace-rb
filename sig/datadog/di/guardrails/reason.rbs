@@ -1,0 +1,18 @@
+module Datadog
+  module DI
+    module Guardrails
+      module Reason
+        RATE_LIMIT_PROBE: ::String
+        RATE_LIMIT_GLOBAL: ::String
+        EVALUATION_TIMEOUT: ::String
+        EVALUATION_ERROR_THROTTLED: ::String
+        BUDGET_EXCEEDED_INVOCATION: ::String
+        BUDGET_EXCEEDED_GLOBAL: ::String
+        QUEUE_FULL: ::String
+        QUEUE_HIGH_WATERMARK: ::String
+        PAYLOAD_TOO_LARGE: ::String
+        BATCH_BYTES_EXCEEDED: ::String
+      end
+    end
+  end
+end

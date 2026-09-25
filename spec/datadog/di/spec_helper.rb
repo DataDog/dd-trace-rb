@@ -188,6 +188,19 @@ module DIHelpers
   end
 
   module InstanceMethods
+    # Asserts a Guardrails metric +inc+ call carries the canonical
+    # namespace, the given metric name and tags, and, when +value+ is given,
+    # the metric count.
+    def expect_guardrails_metric(telemetry, name:, tags:, value: nil)
+      expected_tags = tags
+      expect(telemetry).to receive(:inc) do |namespace, metric_name, metric_value, tags:, **|
+        expect(namespace).to eq("dynamic_instrumentation")
+        expect(metric_name).to eq(name)
+        expect(metric_value).to eq(value) unless value.nil?
+        expect(tags).to eq(expected_tags)
+      end
+    end
+
     # Helper method to generate a deeply nested hash for circuit breaker tests
     def generate_deep_hash(keys_per_level, depth)
       return "leaf_value" if depth == 0

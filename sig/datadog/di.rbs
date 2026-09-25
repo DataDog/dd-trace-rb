@@ -2,6 +2,7 @@ module Datadog
   module DI
     type instrumentation_kind = :line | :method
     INSTRUMENTED_COUNTERS_LOCK: Mutex
+    TELEMETRY_NAMESPACE: ::String
 
     self.@instrumented_count: ::Hash[instrumentation_kind, ::Integer]
 

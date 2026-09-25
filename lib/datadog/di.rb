@@ -11,6 +11,11 @@ module Datadog
   module DI
     INSTRUMENTED_COUNTERS_LOCK = Mutex.new
 
+    # Telemetry namespace shared by DI metric emitters (Guardrails,
+    # CaptureExpressionEvaluator). Defined once here so the literal cannot
+    # drift between emitters.
+    TELEMETRY_NAMESPACE = "dynamic_instrumentation"
+
     # Captured at load time from Exception itself (not a subclass).
     # Used to bypass subclass overrides of backtrace_locations.
     #
