@@ -838,12 +838,20 @@ RSpec.describe Datadog::Core::Configuration::Components do
     let(:open_feature_activation) do
       instance_double(Datadog::OpenFeature::Activation, after_fork: nil)
     end
+    let(:symbol_database) do
+      instance_double(Datadog::SymbolDatabase::Component, after_fork!: nil)
+    end
+    let(:data_streams) do
+      instance_double(Datadog::DataStreams::Processor, restart_flush_thread: nil)
+    end
 
     before do
       allow(telemetry).to receive(:after_fork)
       allow(remote).to receive(:after_fork)
       allow(Datadog::Core::ProcessDiscovery).to receive(:after_fork)
       allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(open_feature_activation)
+      allow(components).to receive(:symbol_database).and_return(symbol_database)
+      allow(components).to receive(:data_streams).and_return(data_streams)
     end
 
     it "dispatches after_fork to OpenFeature activation" do
@@ -878,8 +886,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
 
     it "dispatches after_fork! to the symbol_database when present" do
-      symbol_database = instance_double(Datadog::SymbolDatabase::Component)
-      allow(components).to receive(:symbol_database).and_return(symbol_database)
       expect(symbol_database).to receive(:after_fork!)
 
       after_fork
@@ -892,8 +898,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
 
     it "dispatches restart_flush_thread to the data_streams processor when present" do
-      data_streams = instance_double(Datadog::DataStreams::Processor)
-      allow(components).to receive(:data_streams).and_return(data_streams)
       expect(data_streams).to receive(:restart_flush_thread)
 
       after_fork
