@@ -471,7 +471,12 @@ RSpec.describe "Native transport fork safety and cancellation" do
 
       sender = Thread.new do
         Thread.current.report_on_exception = false
-        sender_result.push(transport.send_traces([build_trace(name: "inflight.op")]))
+        # REPRODUCER: delay the sender's push past the child's completion to
+        # force the race between fork proceeding (mutex acquired by :before) and
+        # the Ruby-level send_traces return populating sender_result.
+        result = transport.send_traces([build_trace(name: "inflight.op")])
+        sleep 2
+        sender_result.push(result)
       end
 
       # Wait until the send has actually reached the agent (is in-flight). The
