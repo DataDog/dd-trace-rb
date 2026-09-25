@@ -21,7 +21,7 @@ require_relative "../../ai_guard/component"
 require_relative "../../di/component"
 require_relative "../../symbol_database"
 require_relative "../../symbol_database/component"
-require_relative "../../open_feature/component"
+require_relative "../../open_feature/activation"
 require_relative "../../error_tracking/component"
 require_relative "../crashtracking/component"
 require_relative "../environment/agent_info"
@@ -154,8 +154,7 @@ module Datadog
           :ai_guard,
           :agent_info,
           :data_streams,
-          :symbol_database,
-          :open_feature
+          :symbol_database
 
         def initialize(settings)
           @settings = settings
@@ -211,7 +210,13 @@ module Datadog
           @health_metrics = self.class.build_health_metrics(settings, @logger, telemetry)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
           @ai_guard = Datadog::AIGuard::Component.build(settings, logger: @logger, telemetry: telemetry)
-          @open_feature = OpenFeature::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
+          @open_feature_activation = OpenFeature::Activation.new(
+            settings,
+            agent_settings,
+            remote,
+            logger: @logger,
+            telemetry: telemetry,
+          )
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           # Only build symbol database when enabled, so a disabled component is
           # never constructed.
@@ -269,6 +274,16 @@ module Datadog
         # Starts up components
         def startup!(settings, old_state: nil)
           telemetry.start(old_state&.telemetry_enabled?, components: self)
+
+          begin
+            @open_feature_activation.start!
+            Datadog::OpenFeature.reattach(@open_feature_activation)
+          rescue => e
+            # Feature Flags is optional and must never interrupt library startup.
+            description = "Feature Flags delivery failed to start"
+            logger.error("#{description}: #{e.class}: #{e.message}")
+            telemetry.report(e, description: description)
+          end
 
           if settings.profiling.enabled
             if profiler
@@ -328,8 +343,14 @@ module Datadog
           # Shutdown Symbol Database
           symbol_database&.shutdown!
 
-          # Shutdown OpenFeature component
-          open_feature&.shutdown!
+          begin
+            @open_feature_activation.shutdown!
+          rescue => e
+            # Feature Flags is optional and must never interrupt library shutdown.
+            description = "Feature Flags delivery failed to shut down"
+            logger.error("#{description}: #{e.class}: #{e.message}")
+            telemetry.report(e, description: description)
+          end
 
           # Decommission AppSec
           appsec&.shutdown!
@@ -406,6 +427,14 @@ module Datadog
             di_implicitly_enabled: di_implicit || false,
           )
         end
+
+        def open_feature
+          @open_feature_activation.component
+        end
+
+        private
+
+        attr_reader :open_feature_activation
       end
     end
   end
