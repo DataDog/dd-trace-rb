@@ -223,11 +223,17 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
         expect(otel_thread_context.clear).to eq(false)
       end
 
-      it "returns false on a fresh thread after a killed thread attached a context" do
-        kill_thread_holding_context
+      # A fresh thread exposes the leak only by recycling the killed thread's
+      # native thread, which CRuby schedules nondeterministically; many
+      # kill/spawn cycles make the stale context reliably surface if the
+      # detach regresses.
+      it "returns false on fresh threads recycling killed context-holding threads' native threads" do
+        fresh_thread_clear_results = Array.new(100) do
+          kill_thread_holding_context
+          Thread.new { otel_thread_context.clear }.value
+        end
 
-        context_present_on_fresh_thread = Thread.new { otel_thread_context.clear }.value
-        expect(context_present_on_fresh_thread).to eq(false)
+        expect(fresh_thread_clear_results).to all(eq(false))
       end
 
       it "returns true when a context record was attached" do
