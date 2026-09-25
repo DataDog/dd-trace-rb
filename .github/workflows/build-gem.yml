@@ -94,10 +94,6 @@ jobs:
         with:
           ruby-version: "4.0.1"
       - name: Install gem
-        # zizmor: ignore[adhoc-packages] installs the artifact just built by this workflow, not an external dependency
-        run: |
-          gem install pkg/*.gem
-      - name: Verify native extensions in a path containing spaces
         env:
           GEM_HOME: "${{ runner.temp }}/project space/gems"
           GEM_PATH: "${{ runner.temp }}/project space/gems"
