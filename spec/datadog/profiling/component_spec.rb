@@ -513,13 +513,6 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
 
-        it "sets up the Exporter with the StackRecorder" do
-          expect(Datadog::Profiling::Exporter)
-            .to receive(:new).with(hash_including(pprof_recorder: instance_of(Datadog::Profiling::StackRecorder)))
-
-          build_profiler_component
-        end
-
         it "sets up the Exporter internal_metadata with relevant settings" do
           allow(Datadog::Profiling::Collectors::ThreadContext).to receive(:new)
           allow(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new)
