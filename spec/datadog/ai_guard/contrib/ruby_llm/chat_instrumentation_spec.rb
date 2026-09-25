@@ -44,6 +44,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
 
   let(:chat) { RubyLLM.chat }
   let(:ai_guard_span) { spans.find { |span| span.name == "ai_guard" } }
+  let(:telemetry) { spy(Datadog::Core::Telemetry::Component) }
   let(:raw_response) do
     {
       "data" => {
@@ -451,7 +452,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
   context "when applying a tool-call redaction raises JSON parser error" do
     before do
       allow(chat).to receive(:messages).and_return([tool_call_message])
-      allow(Datadog::AIGuard::Metrics::Telemetry).to receive(:report_error)
+      allow(Datadog::AIGuard).to receive(:telemetry).and_return(telemetry)
       allow_any_instance_of(RubyLLM::Protocols::Responses).to receive(:complete) do |_protocol, messages, **_options|
         provider_messages.replace(messages)
         RubyLLM::Message.new(role: :assistant, content: "Done")
@@ -489,11 +490,12 @@ RSpec.describe "RubyLLM chat instrumentation" do
       }
     end
 
-    it "counts the error and continues with the original messages" do
+    it "reports the error and continues with the original messages" do
       expect { chat.generate }.not_to raise_error
 
       expect(provider_messages[0].tool_calls.fetch("tool_call_1").arguments).to eq("command" => "ls /")
-      expect(Datadog::AIGuard::Metrics::Telemetry).to have_received(:report_error)
+      expect(telemetry).to have_received(:report)
+        .with(an_instance_of(JSON::ParserError), description: "AI Guard: Failed to apply RubyLLM redaction")
     end
   end
 
@@ -525,7 +527,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
       RubyLLM::ToolCall.new(id: "tool_call_1", name: "shell", arguments: {"command" => "ls /"})
     end
 
-    it "counts the error and executes the tool with the original arguments" do
+    it "reports the error and executes the tool with the original arguments" do
       expect { chat.run_tools }.not_to raise_error
 
       expect(tool).to have_received(:execute).with(command: "ls /")
@@ -538,7 +540,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
     before do
       allow(tool).to receive(:name).and_return("shell")
       allow(tool).to receive(:execute).and_return("done")
-      allow(Datadog::AIGuard::Metrics::Telemetry).to receive(:report_error)
+      allow(Datadog::AIGuard).to receive(:telemetry).and_return(telemetry)
       chat.messages << tool_call_response
     end
 
@@ -584,7 +586,8 @@ RSpec.describe "RubyLLM chat instrumentation" do
       expect { chat.run_tools }.not_to raise_error
 
       expect(tool).to have_received(:execute).with(command: "ls /")
-      expect(Datadog::AIGuard::Metrics::Telemetry).to have_received(:report_error)
+      expect(telemetry).to have_received(:report)
+        .with(an_instance_of(JSON::ParserError), description: "AI Guard: Failed to apply RubyLLM redaction")
     end
   end
 end
