@@ -70,11 +70,12 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
     signal_queue = Queue.new
     killed = Thread.new do
       otel_thread_context.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
-      signal_queue << true
+      signal_queue << described_class::Testing._native_read
       Queue.new.pop
     end
 
-    signal_queue.pop # ensure the context was set before killing the thread
+    attached_context = signal_queue.pop
+    expect(attached_context).not_to be_nil
     killed.kill
     killed.join
   end
