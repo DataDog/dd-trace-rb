@@ -219,6 +219,9 @@ module Datadog
           end
 
           if (di_enabled = lib_config["dynamic_instrumentation_enabled"]) != nil # rubocop:disable Style/NonNilCheck
+            # Coerce to a boolean so the value matches the handle_rc_enablement
+            # contract regardless of the JSON type the backend sent.
+            di_enabled = di_enabled ? true : false
             # repository is forwarded so that an enable signal can reconcile DI
             # against probes delivered in an earlier poll while DI was stopped
             # (see Datadog::DI::Remote.handle_rc_enablement).
