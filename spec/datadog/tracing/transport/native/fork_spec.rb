@@ -466,9 +466,6 @@ RSpec.describe "Native transport fork safety and cancellation" do
         result
       end
 
-      # Signalled while @send_mutex is held, before the mutex is released and
-      # fork can proceed. This is deterministic relative to fork; send_traces
-      # returns during post-mutex bookkeeping, which races with fork.
       send_drained = Queue.new
       allow(exporter).to receive(:_native_send_traces).and_wrap_original do |method, chunks, native_events_supported|
         result = method.call(chunks, native_events_supported)
@@ -514,9 +511,6 @@ RSpec.describe "Native transport fork safety and cancellation" do
       end
       write_io.close
 
-      # `fork` returns only after the :before hook acquired @send_mutex, which the
-      # in-flight send held until after it signalled send_drained; a non-empty
-      # send_drained here therefore proves the drain happened before the fork.
       expect(send_drained).to_not be_empty,
         "expected the in-flight send to have drained before the fork proceeded"
 
