@@ -274,15 +274,29 @@ RSpec.describe Datadog::OpenFeature::Activation do
     end
 
     it "reports configuration received during delivery shutdown as lost" do
+      events = []
       activation.activate(provider)
       activation.activate(second_provider)
-      expect(configuration_source).to receive(:stop).ordered
-      expect(component).to receive(:configuration_received?).ordered.and_return(true)
-      expect(provider).to receive(:configuration_changed).with(:lost).ordered
-      expect(second_provider).to receive(:configuration_changed).with(:lost).ordered
-      expect(component).to receive(:shutdown!).ordered
+      allow(configuration_source).to receive(:stop) { events << :source_stopped }
+      allow(component).to receive(:configuration_received?) do
+        events << :configuration_checked
+        true
+      end
+      allow(provider).to receive(:configuration_changed).with(:lost) { events << :provider_notified }
+      allow(second_provider).to receive(:configuration_changed).with(:lost) { events << :second_provider_notified }
+      allow(component).to receive(:shutdown!) { events << :component_shutdown }
 
       activation.shutdown!
+
+      expect(events).to eq(
+        [
+          :source_stopped,
+          :configuration_checked,
+          :provider_notified,
+          :second_provider_notified,
+          :component_shutdown,
+        ],
+      )
     end
   end
 

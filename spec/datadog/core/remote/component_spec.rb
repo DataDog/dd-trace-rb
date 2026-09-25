@@ -250,49 +250,58 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
       expect(component.client.dispatcher.receivers).to include(receiver)
     end
 
-    it "does not lose a receiver when the client is replaced concurrently" do
-      original_client = component.client
-      replacement_client = Datadog::Core::Remote::Client.new(
-        original_client.transport,
-        capabilities,
-        settings: settings,
-        logger: logger,
-      )
-      replacement_started = SizedQueue.new(1)
-      release_replacement = SizedQueue.new(1)
-      registration_started = SizedQueue.new(1)
+    context "when client replacement races with registration" do
+      let(:release_replacement) { SizedQueue.new(1) }
+      let(:threads) { [] }
 
-      allow(Datadog::Core::Remote::Client).to receive(:new) do
-        replacement_started.push(true)
-        release_replacement.pop
-        replacement_client
+      after do
+        release_replacement.push(true, true)
+      rescue ThreadError
+        nil
+      ensure
+        threads.each { |thread| thread.join(1) }
       end
 
-      replacement_thread = Thread.new { component.after_fork }
-      try_wait_until { replacement_started.pop(true) unless replacement_started.empty? }
-
-      registration_thread = Thread.new do
-        registration_started.push(true)
-        component.register(
-          capabilities: [1 << 46],
-          products: ["FFE_FLAGS"],
-          receivers: [receiver],
+      it "does not lose a receiver" do
+        original_client = component.client
+        replacement_client = Datadog::Core::Remote::Client.new(
+          original_client.transport,
+          capabilities,
+          settings: settings,
+          logger: logger,
         )
+        replacement_started = SizedQueue.new(1)
+        registration_started = SizedQueue.new(1)
+
+        allow(Datadog::Core::Remote::Client).to receive(:new) do
+          replacement_started.push(true)
+          release_replacement.pop
+          replacement_client
+        end
+
+        replacement_thread = Thread.new { component.after_fork }
+        threads << replacement_thread
+        try_wait_until { replacement_started.pop(true) unless replacement_started.empty? }
+
+        registration_thread = Thread.new do
+          registration_started.push(true)
+          component.register(
+            capabilities: [1 << 46],
+            products: ["FFE_FLAGS"],
+            receivers: [receiver],
+          )
+        end
+        threads << registration_thread
+        try_wait_until { registration_started.pop(true) unless registration_started.empty? }
+        try_wait_until { registration_thread.status == "sleep" || !registration_thread.alive? }
+
+        release_replacement.push(true)
+        try_wait_until { threads.none?(&:alive?) }
+        threads.each(&:join)
+
+        expect(component.client).to equal(replacement_client)
+        expect(component.client.dispatcher.receivers).to include(receiver)
       end
-      try_wait_until { registration_started.pop(true) unless registration_started.empty? }
-      try_wait_until { registration_thread.status == "sleep" || !registration_thread.alive? }
-
-      release_replacement.push(true)
-      try_wait_until { !replacement_thread.alive? && !registration_thread.alive? }
-      replacement_thread.join
-      registration_thread.join
-
-      expect(component.client).to equal(replacement_client)
-      expect(component.client.dispatcher.receivers).to include(receiver)
-    ensure
-      release_replacement&.push(true, true)
-      replacement_thread&.join(1)
-      registration_thread&.join(1)
     end
   end
 
