@@ -218,8 +218,9 @@ module Datadog
 
         handler = @initialization_mutex.synchronize do
           return false if @shutdown
+          return true if @initialization_ready_handler
 
-          @initialization_ready_handler ||= ->(details) { provider_ready(details) }
+          @initialization_ready_handler = ->(details) { provider_ready(details) }
         end
         configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, handler)
 

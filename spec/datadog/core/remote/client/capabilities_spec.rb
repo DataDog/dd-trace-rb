@@ -356,7 +356,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
     end
 
-    it "defers registration until source-aware OpenFeature activation" do
+    it "does not register Feature Flags during initial capability construction" do
       expect(capabilities.capabilities).not_to include(1 << 46)
       expect(capabilities.products).not_to include("FFE_FLAGS")
       expect(capabilities.receivers).not_to include(

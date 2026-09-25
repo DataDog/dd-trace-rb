@@ -269,7 +269,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
       end
 
       replacement_thread = Thread.new { component.after_fork }
-      Timeout.timeout(1) { replacement_started.pop }
+      try_wait_until { replacement_started.pop(true) unless replacement_started.empty? }
 
       registration_thread = Thread.new do
         registration_started.push(true)
@@ -279,14 +279,13 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
           receivers: [receiver],
         )
       end
-      Timeout.timeout(1) { registration_started.pop }
-      Timeout.timeout(1) { Thread.pass until registration_thread.status == "sleep" || !registration_thread.alive? }
+      try_wait_until { registration_started.pop(true) unless registration_started.empty? }
+      try_wait_until { registration_thread.status == "sleep" || !registration_thread.alive? }
 
       release_replacement.push(true)
-      Timeout.timeout(1) do
-        replacement_thread.join
-        registration_thread.join
-      end
+      try_wait_until { !replacement_thread.alive? && !registration_thread.alive? }
+      replacement_thread.join
+      registration_thread.join
 
       expect(component.client).to equal(replacement_client)
       expect(component.client.dispatcher.receivers).to include(receiver)
