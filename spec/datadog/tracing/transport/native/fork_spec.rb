@@ -421,6 +421,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
       Timeout.timeout(5) do
         sleep 0.01 until sender.status == "sleep" || !sender.alive?
       end
+      expect(sender).to be_alive
 
       kill_started = Datadog::Core::Utils::Time.get_time
       sender.kill
