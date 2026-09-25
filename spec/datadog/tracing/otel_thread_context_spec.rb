@@ -226,9 +226,8 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
       it "returns false on a fresh thread after a killed thread attached a context" do
         kill_thread_holding_context
 
-        # A fresh thread must start with no context record attached.
-        fresh_result = Thread.new { otel_thread_context.clear }.value
-        expect(fresh_result).to eq(false)
+        context_present_on_fresh_thread = Thread.new { otel_thread_context.clear }.value
+        expect(context_present_on_fresh_thread).to eq(false)
       end
 
       it "returns true when a context record was attached" do
