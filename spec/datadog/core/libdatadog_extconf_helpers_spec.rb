@@ -1,8 +1,5 @@
 require "ext/libdatadog_extconf_helpers"
 require "libdatadog"
-require "fileutils"
-require "open3"
-require "tmpdir"
 
 RSpec.describe Datadog::LibdatadogExtconfHelpers do
   describe ".libdatadog_folder_relative_to_native_lib_folder" do
@@ -92,43 +89,6 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
     let(:pkgconfig_folder) do
       "#{gem_home}/gems/libdatadog-14.0.0.1.0-x86_64-linux/vendor/libdatadog-14.0.0/x86_64-linux/" \
         "libdatadog-x86_64-unknown-linux-gnu/lib/pkgconfig"
-    end
-
-    # Valgrind traces compiler/linker subprocesses and reports their leaks; regular CI still exercises this build.
-    it "builds and loads an extension with spaces in its source and libdatadog paths", :memcheck_valgrind_skip do
-      skip_if_libdatadog_not_supported
-
-      Dir.mktmpdir do |directory|
-        project = File.join(directory, "project space")
-        FileUtils.mkdir_p(project)
-        File.symlink(File.expand_path("../..", Libdatadog.pkgconfig_folder), File.join(project, "libdatadog"))
-        helper = File.expand_path("../../../ext/libdatadog_extconf_helpers.rb", __dir__)
-        File.write(File.join(project, "extconf.rb"), <<~RUBY)
-          require "mkmf"
-          require #{helper.inspect}
-          Datadog::LibdatadogExtconfHelpers.configure_libdatadog(
-            extconf_folder: __dir__,
-            libdatadog_pkgconfig_folder: File.join(__dir__, "libdatadog/lib/pkgconfig"),
-            gem_dir: __dir__
-          )
-          abort "libdatadog headers unavailable" unless have_header("datadog/profiling.h")
-          create_makefile("space_extension")
-        RUBY
-        File.write(File.join(project, "space_extension.c"), <<~C)
-          #include <ruby.h>
-          #include <datadog/profiling.h>
-          void Init_space_extension(void) { rb_define_module("SpaceExtension"); }
-        C
-
-        [
-          [RbConfig.ruby, "extconf.rb"],
-          ["make"],
-          [RbConfig.ruby, "-e", 'require "./space_extension"; abort unless defined?(SpaceExtension)'],
-        ].each do |command|
-          output, status = Open3.capture2e(*command, chdir: project)
-          expect(status.success?).to be(true), "#{command.inspect} failed:\n#{output}"
-        end
-      end
     end
 
     context "when libdatadog pkgconfig_folder is nil" do

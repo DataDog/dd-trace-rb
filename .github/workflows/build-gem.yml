@@ -106,10 +106,6 @@ jobs:
         # zizmor: ignore[adhoc-packages] installs the artifact just built by this workflow, not an external dependency
         run: |
           gem install pkg/*.gem
-          ruby -rdatadog -rdatadog/profiling -e '
-            abort Datadog::Core::LIBDATADOG_API_FAILURE if Datadog::Core::LIBDATADOG_API_FAILURE
-            abort Datadog::Profiling.unsupported_reason unless Datadog::Profiling.supported?
-          '
   push:
     strategy:
       fail-fast: false

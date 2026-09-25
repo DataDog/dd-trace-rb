@@ -260,7 +260,8 @@ dir_config("ruby") # allow user to pass in non-standard core include directory
 #
 # To workaround this issue, we override `with_cppflags` for datadog-ruby_core_source to still include `$CPPFLAGS`.
 Datadog::RubyCoreSource.define_singleton_method(:with_cppflags) do |newflags, &block|
-  # ruby_core_source supplies one unescaped -I argument containing the complete header path.
+  # Note: The `Shellwords.escape` is an additional workaround for ruby_core_source supplying
+  # one unescaped -I argument containing the complete header path, not the CPPFLAGS thing above.
   super("#{Shellwords.escape(newflags)} #{$CPPFLAGS}", &block)
 end
 
