@@ -59,6 +59,16 @@ RSpec.describe "RubyLLM chat instrumentation" do
     }
   end
 
+  context "when rendering a request" do
+    before { chat.add_message(role: :user, content: "Hello") }
+
+    it "does not evaluate messages" do
+      chat.render
+
+      expect(a_request(:post, "https://app.datadoghq.com/api/v2/ai-guard/evaluate")).not_to have_been_made
+    end
+  end
+
   context "ai_guard span and blocking" do
     context "when AI Guard evaluates messages as safe" do
       it "creates ai_guard span" do

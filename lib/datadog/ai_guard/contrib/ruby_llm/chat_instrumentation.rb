@@ -8,7 +8,18 @@ module Datadog
         #
         # @api private
         module ChatInstrumentation
+          private
+
+          def provider_completion(usage_recorder:, stream_tracker: nil, &block)
+            @_datadog_ai_guard_evaluate = true
+            super
+          ensure
+            @_datadog_ai_guard_evaluate = false
+          end
+
           def preprocessed_messages(list = messages)
+            return super unless @_datadog_ai_guard_evaluate
+
             adapter = MessageAdapter.new(list)
 
             begin
