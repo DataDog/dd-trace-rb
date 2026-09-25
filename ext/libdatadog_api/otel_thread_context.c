@@ -101,6 +101,25 @@ void otel_thread_context_init(VALUE tracing_module) {
     ) {
       ddog_otel_thread_ctx_detach();
     }
+
+    // RUBY_EVENT_THREAD_END fires for threads that exit on their own but
+    // does not fire for threads terminated via Thread#kill on Ruby < 3.3, so a
+    // killed thread's otel_thread_ctx_v1 TLS is never detached. CRuby caches
+    // and recycles native threads, so the next Thread.new may reuse that
+    // native thread and inherit the stale context record. Detach on thread
+    // begin so each new Ruby thread starts from a clean TLS, discarding any
+    // context left behind by a previously killed thread. Ruby 3.3+ uses
+    // RUBY_INTERNAL_THREAD_EVENT_EXITED (on_thread_exited above), which does
+    // fire for killed threads, so it does not need this hook.
+    static void on_thread_begin(
+      DDTRACE_UNUSED rb_event_flag_t evflag,
+      DDTRACE_UNUSED VALUE data,
+      DDTRACE_UNUSED VALUE self,
+      DDTRACE_UNUSED ID mid,
+      DDTRACE_UNUSED VALUE klass
+    ) {
+      ddog_otel_thread_ctx_detach();
+    }
   #endif
 
   #ifdef HAVE_RUBY_THREAD_STORAGE_API
@@ -167,6 +186,7 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
       rb_internal_thread_add_event_hook(on_thread_exited, RUBY_INTERNAL_THREAD_EVENT_EXITED, NULL);
     #else
       rb_add_event_hook(on_thread_end, RUBY_EVENT_THREAD_END, Qnil);
+      rb_add_event_hook(on_thread_begin, RUBY_EVENT_THREAD_BEGIN, Qnil);
     #endif
 
     // These hooks only matter under the M:N thread scheduler (Ruby 3.3+),
