@@ -1,50 +1,121 @@
 module RubyLLM
   class Provider
-    def complete: (::Array[Message] messages, **untyped options) ?{ (untyped chunk) -> untyped } -> Message
+    def complete: (Array[Message] messages, **untyped options) ?{ (untyped chunk) -> untyped } -> Message
   end
 
   class Chat
-    def messages: () -> ::Array[Message]
+    def messages: () -> Array[Message]
 
-    def handle_tool_calls: (Message response) ?{ () -> untyped } -> (Message | Tool::Halt)
+    private
+
+    def provider_completion: (
+      usage_recorder: untyped,
+      ?stream_tracker: untyped
+    ) ?{ (untyped chunk) -> untyped } -> Message
+
+    def preprocessed_messages: (?Array[Message] list) -> Array[Message]
+
+    def execute_pending_tool_calls: (Message response) -> void
   end
 
-  class Content
-    def text: () -> ::String?
+  class Configuration
+  end
 
-    def attachments: () -> ::Array[Attachment]
+  class Thinking
+  end
+
+  class Citation
+  end
+
+  class ServerToolCall
   end
 
   class Attachment
-    def type: () -> ::Symbol
+    attr_reader source: untyped
 
-    def for_llm: () -> ::String
+    attr_reader filename: String?
+
+    def initialize: (untyped source, ?filename: String?, ?config: Configuration?) -> void
+
+    def config: () -> Configuration
+
+    def url?: () -> bool
+
+    def provider_file?: () -> bool
+
+    def content: () -> String
+
+    def type: () -> Symbol
+
+    def for_llm: () -> String
   end
 
   class Message
-    def role: () -> ::String
+    attr_reader role: Symbol
 
-    def content: () -> (::String | Content)
+    attr_reader content: String?
 
-    def content=: (::String content) -> ::String
+    attr_reader attachments: Array[Attachment]
 
-    def tool_calls: () -> ::Hash[::String, ToolCall]
+    attr_reader model: String?
 
-    def tool_call_id: () -> ::String
+    attr_reader tool_calls: Hash[String, ToolCall]?
 
-    def tool_call?: () -> bool
+    attr_reader tool_call_id: String?
 
-    def tool_result?: () -> bool
+    attr_reader raw: untyped
+
+    attr_reader thinking: Thinking?
+
+    attr_reader citations: Array[Citation]
+
+    attr_reader finish_reason: Symbol?
+
+    attr_reader server_tool_calls: Array[ServerToolCall]
+
+    attr_reader raw_content: untyped
+
+    attr_reader raw_reasoning: untyped
+
+    attr_accessor conversation: Chat?
+
+    def initialize: (
+      role: String | Symbol,
+      content: String?,
+      ?attachments: Array[Attachment],
+      ?model: String?,
+      ?tool_calls: Hash[String, ToolCall]?,
+      ?tool_call_id: String?,
+      ?raw: untyped,
+      ?thinking: Thinking?,
+      ?citations: Array[Citation],
+      ?finish_reason: Symbol?,
+      ?server_tool_calls: Array[ServerToolCall],
+      ?raw_content: untyped,
+      ?raw_reasoning: untyped,
+      ?cache_until_here: bool
+    ) -> void
+
+    def cache_until_here?: () -> bool
   end
 
   class ToolCall
-    def name: () -> ::String
+    attr_reader id: String
 
-    def arguments: () -> ::Hash[::String | ::Symbol, untyped]
-  end
+    attr_reader name: String
 
-  class Tool
-    class Halt
-    end
+    attr_reader arguments: Hash[String | Symbol, untyped]
+
+    attr_accessor thought_signature: untyped
+
+    def initialize: (
+      id: String,
+      name: String,
+      ?arguments: Hash[String | Symbol, untyped],
+      ?thought_signature: untyped,
+      ?remote: bool
+    ) -> void
+
+    def remote?: () -> bool
   end
 end

@@ -43,7 +43,8 @@ module Datadog
 
           private
 
-          def content_replacement(original_content, redacted_content)
+          # NOTE: Steep treats original and redacted content shapes as independent
+          def content_replacement(original_content, redacted_content) # steep:ignore MethodBodyTypeMismatch
             return if original_content.is_a?(Array) || redacted_content == original_content
 
             redacted_content
@@ -54,9 +55,9 @@ module Datadog
 
             replacements = {}
             original_content.each_with_index do |content_part, index|
-              next if content_part == redacted_content[index]
+              next if content_part == redacted_content[index] # steep:ignore NoMethod
 
-              replacements[index] = redacted_content[index]
+              replacements[index] = redacted_content[index] # steep:ignore NoMethod
             end
 
             replacements
@@ -90,6 +91,7 @@ module Datadog
             return message.attachments if @content_part_replacements.empty?
 
             content_part_index = message.content.to_s.empty? ? 0 : 1
+            # @type var attachments: Array[::RubyLLM::Attachment]?
             attachments = nil
 
             message.attachments.each_with_index do |attachment, attachment_index|
@@ -102,7 +104,7 @@ module Datadog
               next unless replacement && attachment.type == :text
 
               attachments ||= message.attachments.dup
-              attachments[attachment_index] = ::RubyLLM::Attachment.new(
+              attachments[attachment_index] = ::RubyLLM::Attachment.new( # steep:ignore NoMethod
                 StringIO.new(replacement.text), filename: attachment.filename, config: attachment.config
               )
             end
@@ -113,7 +115,8 @@ module Datadog
           def build_tool_calls(message)
             return message.tool_calls if @tool_call_replacements.empty?
 
-            tool_calls = message.tool_calls.dup
+            # @type var tool_calls: Hash[String, ::RubyLLM::ToolCall]
+            tool_calls = message.tool_calls.dup # steep:ignore IncompatibleAssignment
             @tool_call_replacements.each do |id, replacement|
               tool_call = tool_calls.fetch(id)
               tool_calls[id] = ::RubyLLM::ToolCall.new(

@@ -34,9 +34,12 @@ module Datadog
           private
 
           def build_ai_guard_message(message)
+            # NOTE: Hash block arguments are misinterpreted by Steep after `nil.to_h`
+            # steep:ignore:start
             tool_calls = message.tool_calls.to_h.map do |id, tool_call|
               AIGuard.tool_call(name: tool_call.name, id: id, arguments: tool_call.arguments)
             end
+            # steep:ignore:end
 
             if message.attachments.empty?
               return AIGuard.message(
@@ -45,7 +48,7 @@ module Datadog
             end
 
             AIGuard.message(role: message.role, tool_calls: tool_calls, tool_call_id: message.tool_call_id) do |builder|
-              builder.text(message.content) unless message.content.to_s.empty?
+              builder.text(message.content) if message.content && !message.content.empty?
 
               message.attachments.each do |attachment|
                 next if attachment.provider_file?

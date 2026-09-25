@@ -24,11 +24,11 @@ RSpec.describe "RubyLLM chat instrumentation" do
 
     stub_request(:post, "https://app.datadoghq.com/api/v2/ai-guard/evaluate")
       .to_return do |request|
-        {
-          status: 200,
-          body: raw_response.to_json,
-          headers: {"Content-Type" => "application/json"},
-        }
+      {
+        status: 200,
+        body: raw_response.to_json,
+        headers: {"Content-Type" => "application/json"},
+      }
     end
 
     allow_any_instance_of(RubyLLM::Protocols::Responses).to receive(:complete)

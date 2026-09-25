@@ -3,9 +3,18 @@ module Datadog
     module Contrib
       module RubyLLM
         module ChatInstrumentation : RubyLLM::Chat
+          @_datadog_ai_guard_evaluate: bool
+
           private
 
-          def handle_tool_calls: (::RubyLLM::Message response) ?{ () -> untyped } -> (::RubyLLM::Message | ::RubyLLM::Tool::Halt)
+          def provider_completion: (
+            usage_recorder: untyped,
+            ?stream_tracker: untyped
+          ) ?{ (untyped chunk) -> untyped } -> ::RubyLLM::Message
+
+          def preprocessed_messages: (?Array[::RubyLLM::Message] list) -> Array[::RubyLLM::Message]
+
+          def execute_pending_tool_calls: (::RubyLLM::Message response) -> void
         end
       end
     end
