@@ -280,6 +280,15 @@ RSpec.describe "Native transport fork safety and cancellation" do
     end
   end
 
+  # A thread blocked inside a GVL-releasing native call reports its status as
+  # "sleep"; poll for that and confirm the thread parked rather than finished.
+  def wait_until_blocked(thread, timeout: 5)
+    Timeout.timeout(timeout) do
+      sleep 0.01 until thread.status == "sleep" || !thread.alive?
+    end
+    expect(thread).to be_alive
+  end
+
   # ===========================================================================
   # 1. Fork lifecycle
   # ===========================================================================
@@ -416,12 +425,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
       # Wait until the send has actually reached the agent and is blocked
       # waiting for a response that never comes.
       mock_agent.wait_for_connection(timeout: 10)
-      # Releasing the GVL for the native read surfaces as the sender thread
-      # reporting "sleep".
-      Timeout.timeout(5) do
-        sleep 0.01 until sender.status == "sleep" || !sender.alive?
-      end
-      expect(sender).to be_alive
+      wait_until_blocked(sender)
 
       kill_started = Datadog::Core::Utils::Time.get_time
       sender.kill
@@ -564,10 +568,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
         transport.close
       end
       Timeout.timeout(5) { close_started.pop }
-      Timeout.timeout(5) do
-        sleep 0.01 until closer.status == "sleep" || !closer.alive?
-      end
-      expect(closer).to be_alive
+      wait_until_blocked(closer)
 
       # Start the fork only after close is waiting for the send. The fork keeps
       # its callback snapshot even if close deregisters the global hooks first.
