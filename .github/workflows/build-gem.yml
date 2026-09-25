@@ -93,10 +93,19 @@ jobs:
       - uses: ruby/setup-ruby@a0102e0972be65f351c307e2d64b9314a57c8073 # v1.324.0
         with:
           ruby-version: "4.0.1"
-      - name: Install gem
+      - name: Install gem in a path containing spaces
+        env:
+          GEM_HOME: "${{ runner.temp }}/project space/gems"
+          GEM_PATH: "${{ runner.temp }}/project space/gems"
+          DD_FAIL_INSTALL_IF_MISSING_EXTENSION: "true"
+          DD_PROFILING_FAIL_INSTALL_IF_MISSING_EXTENSION: "true"
         # zizmor: ignore[adhoc-packages] installs the artifact just built by this workflow, not an external dependency
         run: |
           gem install pkg/*.gem
+          ruby -rdatadog -rdatadog/profiling -e '
+            abort Datadog::Core::LIBDATADOG_API_FAILURE if Datadog::Core::LIBDATADOG_API_FAILURE
+            abort Datadog::Profiling.unsupported_reason unless Datadog::Profiling.supported?
+          '
   push:
     strategy:
       fail-fast: false
