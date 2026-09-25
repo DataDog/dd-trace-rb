@@ -62,6 +62,7 @@ namespace :edge do
       "rack" => "rack",
       "redis" => "redis",
       "rest_client" => "rest-client",
+      "sequel" => "sequel",
       "shoryuken" => ["shoryuken", "aws-sdk-sqs"],
       "sneakers" => "kicks",
       "stripe" => "stripe",

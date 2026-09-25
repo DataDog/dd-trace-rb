@@ -280,6 +280,22 @@ RSpec.describe Datadog::Core::Configuration do
       end
 
       context "when the tracer" do
+        context "when OTel thread context is disabled" do
+          let(:otel_thread_context) { instance_double(Datadog::Tracing::OTelThreadContext) }
+
+          it "clears the previous OTel thread context" do
+            allow(Datadog::Tracing::OTelThreadContext).to receive(:build).and_return(otel_thread_context, nil)
+
+            test_class.configure { |c| c.tracing.otel_thread_context_enabled = true }
+            old_tracer = test_class.send(:components).tracer
+            expect(otel_thread_context).to receive(:clear)
+
+            test_class.configure { |c| c.tracing.otel_thread_context_enabled = false }
+
+            expect(test_class.send(:components).tracer).to_not be(old_tracer)
+          end
+        end
+
         context "is replaced" do
           let(:old_tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
           let(:new_tracer) { Datadog::Tracing::Tracer.new(writer: writer) }

@@ -94,6 +94,11 @@ jobs:
         with:
           ruby-version: "4.0.1"
       - name: Install gem
+        env:
+          GEM_HOME: "${{ runner.temp }}/project space/gems"
+          GEM_PATH: "${{ runner.temp }}/project space/gems"
+          DD_FAIL_INSTALL_IF_MISSING_EXTENSION: "true"
+          DD_PROFILING_FAIL_INSTALL_IF_MISSING_EXTENSION: "true"
         # zizmor: ignore[adhoc-packages] installs the artifact just built by this workflow, not an external dependency
         run: |
           gem install pkg/*.gem
