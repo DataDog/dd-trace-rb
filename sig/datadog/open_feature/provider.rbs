@@ -17,7 +17,7 @@ module Datadog
 
       @ready_pending: bool
 
-      @ready_emitted: bool
+      @ready_dispatch_claimed: bool
 
       @stale_emitted: bool
 
