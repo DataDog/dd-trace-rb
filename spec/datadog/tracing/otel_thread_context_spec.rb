@@ -230,11 +230,7 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
         killed.kill
         killed.join
 
-        # CRuby caches and recycles native threads, and RUBY_EVENT_THREAD_END
-        # does not fire for Thread#kill-ed threads on Ruby < 3.3, so the
-        # killed thread's otel_thread_ctx_v1 TLS can leak onto the next
-        # Thread.new that reuses its native thread. A fresh thread must
-        # start with no context record attached.
+        # A fresh thread must start with no context record attached.
         fresh_result = Thread.new { otel_thread_context.clear }.value
         expect(fresh_result).to eq(false)
       end
