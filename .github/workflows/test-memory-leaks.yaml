@@ -29,6 +29,10 @@ jobs:
       - run: bundle exec rake compile spec:profiling:memcheck spec:core_with_libdatadog_api_memcheck
   test-asan:
     runs-on: ubuntu-24.04
+    env:
+      # asan-release currently builds Ruby 4.0; update the gemfile when it moves.
+      BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+      BUNDLE_FROZEN: "true"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
