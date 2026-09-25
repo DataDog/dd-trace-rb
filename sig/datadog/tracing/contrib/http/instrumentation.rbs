@@ -16,6 +16,8 @@ module Datadog
 
             private
 
+            def request_uri_path: (untyped request) -> ::String?
+
             def host_and_port: (untyped request) -> ::Array[untyped]
 
             def datadog_configuration: (?::Symbol host) -> untyped
