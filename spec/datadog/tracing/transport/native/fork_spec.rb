@@ -466,6 +466,19 @@ RSpec.describe "Native transport fork safety and cancellation" do
         result
       end
 
+      # The in-flight send's responses, captured while the send still holds
+      # @send_mutex: the push happens before the mutex is released, so before
+      # the :before hook can acquire it and the fork can proceed. Asserting
+      # here is deterministic; sender_result only fills once the sender
+      # thread is scheduled to return from send_traces, which can lag behind
+      # the forked child's completion.
+      drained_responses = Queue.new
+      allow(exporter).to receive(:_native_send_traces).and_wrap_original do |method, *args|
+        responses = method.call(*args)
+        drained_responses << responses
+        responses
+      end
+
       # The background send's result, pushed only when send_traces returns.
       sender_result = Queue.new
 
@@ -513,18 +526,17 @@ RSpec.describe "Native transport fork safety and cancellation" do
         end
       _, status = Process.wait2(pid)
 
-      # The fork call cannot return until the agent releases the in-flight send,
-      # so the background send must have completed before the child runs.
-      expect(sender_result).to_not be_empty,
-        "expected the in-flight send to have completed before the child started"
+      # The fork call cannot return until the agent releases the in-flight
+      # send, so the native send must have completed before the child runs.
+      parent_responses = drained_responses.pop
+      expect(parent_responses.first.ok?).to be(true)
 
       # No deadlock/crash/SIGSEGV: the child sent successfully and exited 0.
       expect(child_result).to eq("OK")
       expect(status.success?).to be(true)
 
-      # The in-flight parent send completed without error.
-      parent_responses = sender_result.pop
-      expect(parent_responses.first.ok?).to be(true)
+      # The sender thread returned the same responses without hanging.
+      expect(sender_result.pop).to eq(parent_responses)
       expect(sender.join(10)).to_not be_nil
 
       # The parent transport still works after the fork.
