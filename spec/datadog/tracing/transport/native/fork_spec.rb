@@ -416,8 +416,11 @@ RSpec.describe "Native transport fork safety and cancellation" do
       # Wait until the send has actually reached the agent and is blocked
       # waiting for a response that never comes.
       mock_agent.wait_for_connection(timeout: 10)
-      # Give the request a beat to settle into the blocking read.
-      sleep 0.2
+      # The native send releases the GVL and blocks reading the response that
+      # never comes, which surfaces as the sender thread reporting "sleep".
+      Timeout.timeout(5) do
+        sleep 0.01 until sender.status == "sleep" || !sender.alive?
+      end
 
       kill_started = Datadog::Core::Utils::Time.get_time
       sender.kill
