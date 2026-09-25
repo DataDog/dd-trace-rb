@@ -112,7 +112,7 @@ module Datadog
 
         configuration_source&.stop
         configuration_received = @mutex.synchronize do
-          !@providers.empty? && (component&.configuration_received? || false)
+          !@providers.empty? && !!component&.configuration_received?
         end
         configuration_changed(Component::CONFIGURATION_LOST) if configuration_received
         component&.shutdown!
