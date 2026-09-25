@@ -281,7 +281,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
   end
 
   # A thread blocked inside a GVL-releasing native call reports its status as
-  # "sleep"; poll for that and confirm the thread parked rather than finished.
+  # "sleep"; poll for that and confirm the thread parked.
   def wait_until_blocked(thread, timeout: 5)
     Timeout.timeout(timeout) do
       sleep 0.01 until thread.status == "sleep" || !thread.alive?
