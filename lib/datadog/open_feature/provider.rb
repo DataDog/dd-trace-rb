@@ -74,7 +74,7 @@ module Datadog
         @initialization_failed = false
         @provider_error_observed = false
         @ready_pending = false
-        @ready_emitted = false
+        @ready_dispatch_claimed = false
         @stale_emitted = false
         @stale_pending = false
         @error_handler = nil
@@ -90,7 +90,7 @@ module Datadog
           @initialization_failed = false
           @provider_error_observed = false
           @ready_pending = false
-          @ready_emitted = false
+          @ready_dispatch_claimed = false
           @stale_emitted = false
           @stale_pending = false
         end
@@ -253,8 +253,8 @@ module Datadog
             false
           else
             @provider_error_observed = true
-            if @ready_pending && !@ready_emitted
-              @ready_emitted = true
+            if @ready_pending && !@ready_dispatch_claimed
+              @ready_dispatch_claimed = true
             else
               false
             end
@@ -296,8 +296,8 @@ module Datadog
               @stale_emitted = false
               ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY
             elsif @initialization_failed
-              if @provider_error_observed && !@ready_emitted
-                @ready_emitted = true
+              if @provider_error_observed && !@ready_dispatch_claimed
+                @ready_dispatch_claimed = true
                 ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY
               else
                 @ready_pending = true
