@@ -1897,9 +1897,9 @@ void trace_exporter_init(VALUE tracing_module) {
   id_to_h             = rb_intern("to_h");
   id_negative_p       = rb_intern("negative?");
 
-  event_name_key = rb_str_new_cstr("name");
-  event_time_key = rb_str_new_cstr("time_unix_nano");
-  event_attributes_key = rb_str_new_cstr("attributes");
+  event_name_key = rb_str_new_lit("name");
+  event_time_key = rb_str_new_lit("time_unix_nano");
+  event_attributes_key = rb_str_new_lit("attributes");
   rb_global_variable(&event_name_key);
   rb_global_variable(&event_time_key);
   rb_global_variable(&event_attributes_key);

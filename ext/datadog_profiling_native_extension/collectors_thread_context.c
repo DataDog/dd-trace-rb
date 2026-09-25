@@ -1351,7 +1351,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-  VALUE result = rb_str_new2(" (native state)");
+  VALUE result = rb_str_new_lit(" (native state)");
 
   // Update this when modifying state struct
   rb_str_concat(result, rb_sprintf(" max_frames=%d", state->locations.len));
@@ -1378,11 +1378,9 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
 }
 
 static VALUE per_thread_context_to_ruby_hash(per_thread_context *thread_context) {
-  VALUE context_as_hash = rb_hash_new();
-
   VALUE arguments[] = {
-    ID2SYM(rb_intern("thread_id")),                       /* => */ rb_str_new2(thread_context->thread_id),
-    ID2SYM(rb_intern("thread_invoke_location")),          /* => */ rb_str_new2(thread_context->thread_invoke_location),
+    ID2SYM(rb_intern("thread_id")),                       /* => */ rb_str_new_cstr(thread_context->thread_id),
+    ID2SYM(rb_intern("thread_invoke_location")),          /* => */ rb_str_new_cstr(thread_context->thread_invoke_location),
     ID2SYM(rb_intern("thread_cpu_time_id_valid?")),       /* => */ thread_context->thread_cpu_time_id.valid ? Qtrue : Qfalse,
     #ifdef __APPLE__
       ID2SYM(rb_intern("thread_cpu_time_id")),              /* => */ ULL2NUM(thread_context->thread_cpu_time_id.clock_id),
@@ -1401,7 +1399,8 @@ static VALUE per_thread_context_to_ruby_hash(per_thread_context *thread_context)
     ID2SYM(rb_intern("was_skipped_at_last_sample")), /* => */ thread_context->was_skipped_at_last_sample ? Qtrue : Qfalse,
     ID2SYM(rb_intern("is_profiler_internal_thread")), /* => */ thread_context->is_profiler_internal_thread ? Qtrue : Qfalse,
   };
-  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(context_as_hash, arguments[i], arguments[i+1]);
+  VALUE context_as_hash = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
+  rb_hash_bulk_insert(VALUE_COUNT(arguments), arguments, context_as_hash);
 
   return context_as_hash;
 }
@@ -1416,20 +1415,20 @@ static VALUE stats_to_ruby_hash(thread_context_collector_state *state, VALUE has
     ID2SYM(rb_intern("inactive_thread_samples_skipped")),          /* => */ UINT2NUM(state->stats.inactive_thread_samples_skipped),
     ID2SYM(rb_intern("profiler_thread_samples_skipped")),          /* => */ UINT2NUM(state->stats.profiler_thread_samples_skipped),
   };
-  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(hash, arguments[i], arguments[i+1]);
+  rb_hash_bulk_insert(VALUE_COUNT(arguments), arguments, hash);
   return hash;
 }
 
 static VALUE gc_tracking_as_ruby_hash(thread_context_collector_state *state) {
   // Update this when modifying state struct (gc_tracking inner struct)
-  VALUE result = rb_hash_new();
   VALUE arguments[] = {
     ID2SYM(rb_intern("accumulated_cpu_time_ns")),               /* => */ ULONG2NUM(state->gc_tracking.accumulated_cpu_time_ns),
     ID2SYM(rb_intern("accumulated_wall_time_ns")),              /* => */ ULONG2NUM(state->gc_tracking.accumulated_wall_time_ns),
     ID2SYM(rb_intern("wall_time_at_previous_gc_ns")),           /* => */ LONG2NUM(state->gc_tracking.wall_time_at_previous_gc_ns),
     ID2SYM(rb_intern("wall_time_at_last_flushed_gc_event_ns")), /* => */ LONG2NUM(state->gc_tracking.wall_time_at_last_flushed_gc_event_ns),
   };
-  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(result, arguments[i], arguments[i+1]);
+  VALUE result = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
+  rb_hash_bulk_insert(VALUE_COUNT(arguments), arguments, result);
   return result;
 }
 
@@ -1441,9 +1440,9 @@ static VALUE _native_per_thread_context(DDTRACE_UNUSED VALUE _self, VALUE collec
   thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-  VALUE result = rb_hash_new();
   VALUE threads = thread_list(state);
   const long thread_count = RARRAY_LEN(threads);
+  VALUE result = rb_hash_new_capa(thread_count);
   for (long i = 0; i < thread_count; i++) {
     VALUE thread = rb_ary_entry(threads, i);
     ENFORCE_THREAD(thread);

@@ -28,8 +28,8 @@ static const rb_data_type_t ddsketch_typed_data = {
   .function = {
     .dmark = NULL, // We don't store references to Ruby objects so we don't need to mark any of them
     .dfree = ddsketch_free,
-    .dsize = NULL, // We don't track memory usage (although it'd be cool if we did!)
     //.dcompact = NULL, // Not needed -- we don't store references to Ruby objects
+    .dsize = NULL, // Opaque libdatadog type -- libdatadog does not expose its internal size
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };

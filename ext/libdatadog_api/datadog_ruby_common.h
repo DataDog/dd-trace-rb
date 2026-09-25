@@ -97,3 +97,25 @@ static inline VALUE get_error_details_and_drop(ddog_Error *error) {
 // Returns the amount of characters written to string (which are necessarily
 // bounded by capacity - 1 since the string will be null-terminated).
 size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capacity);
+
+// ---
+// Modern Ruby C API compatibility
+//
+// These polyfill newer Ruby C APIs on older Rubies. See extconf.rb for feature detection.
+// ---
+
+// rb_hash_new_capa was added in Ruby 3.2 to pre-size a hash and avoid resizing.
+// On older Rubies we polyfill it with a plain rb_hash_new() -- it still works, just may resize.
+#ifdef NO_RB_HASH_NEW_CAPA
+static inline VALUE rb_hash_new_capa(long capa) { (void)capa; return rb_hash_new(); }
+#endif
+
+#define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))
+
+// rb_hash_bulk_insert was exported in Ruby 2.7 to insert key-value pairs from a flat array
+// into a hash in one call. On older Rubies we polyfill it with a simple loop.
+#ifdef NO_RB_HASH_BULK_INSERT
+static inline void rb_hash_bulk_insert(long argc, const VALUE *argv, VALUE hash) {
+  for (long i = 0; i < argc; i += 2) rb_hash_aset(hash, argv[i], argv[i + 1]);
+}
+#endif

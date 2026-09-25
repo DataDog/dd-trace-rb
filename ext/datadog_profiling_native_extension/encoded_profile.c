@@ -15,7 +15,6 @@ void encoded_profile_init(VALUE profiling_module) {
   encoded_profile_class = rb_define_class_under(profiling_module, "EncodedProfile", rb_cObject);
 
   rb_undef_alloc_func(encoded_profile_class); // Class cannot be created from Ruby code
-  rb_global_variable(&encoded_profile_class);
 
   rb_define_method(encoded_profile_class, "_native_bytes", _native_bytes, 0);
 }
@@ -27,8 +26,8 @@ static const rb_data_type_t encoded_profile_typed_data = {
   .function = {
     .dmark = NULL, // We don't store references to Ruby objects so we don't need to mark any of them
     .dfree = encoded_profile_typed_data_free,
-    .dsize = NULL, // We don't track memory usage (although it'd be cool if we did!)
     //.dcompact = NULL, // Not needed -- we don't store references to Ruby objects
+    .dsize = NULL, // Opaque libdatadog type -- libdatadog does not expose its internal size
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
