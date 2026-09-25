@@ -564,7 +564,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
       end
       Timeout.timeout(5) { close_started.pop }
       Timeout.timeout(5) do
-        Thread.pass until closer.status == "sleep" || !closer.alive?
+        sleep 0.01 until closer.status == "sleep" || !closer.alive?
       end
       expect(closer).to be_alive
 
