@@ -30,6 +30,8 @@ module Datadog
         def self._native_sampling_loop: (CpuAndWallTimeWorker self_instance) -> void
         def self._native_hold_signals: () -> void
         def self._native_resume_signals: () -> void
+
+        def _native_profiler_internal_thread_done: () -> nil
       end
     end
   end

@@ -763,16 +763,14 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       context "when sampling the idle sampling helper thread" do
         let(:expected_method_name) { "_native_idle_sampling_loop" }
-        let(:thread_context_collector) {
-          Datadog::Profiling::Collectors::ThreadContext.for_testing(
-            recorder: Datadog::Profiling::StackRecorder.for_testing,
-          )
+        let(:cpu_and_wall_time_worker) {
+          instance_double(Datadog::Profiling::Collectors::CpuAndWallTimeWorker, _native_profiler_internal_thread_done: nil)
         }
-        let(:idle_sampling_helper) { Datadog::Profiling::Collectors::IdleSamplingHelper.new(thread_context_collector: thread_context_collector) }
+        let(:idle_sampling_helper) { Datadog::Profiling::Collectors::IdleSamplingHelper.new }
         let(:do_in_background_thread) do
           proc do |ready_queue|
             ready_queue << true
-            Datadog::Profiling::Collectors::IdleSamplingHelper._native_idle_sampling_loop(idle_sampling_helper, thread_context_collector)
+            Datadog::Profiling::Collectors::IdleSamplingHelper._native_idle_sampling_loop(idle_sampling_helper, cpu_and_wall_time_worker)
           end
         end
         let(:metric_values) { {"cpu-time" => 0, "cpu-samples" => 1, "wall-time" => 1} }
