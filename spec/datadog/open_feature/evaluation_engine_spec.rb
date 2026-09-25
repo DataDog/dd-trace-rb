@@ -248,6 +248,38 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
   end
 
   describe "#reconfigure!" do
+    context "with a native evaluator" do
+      before do
+        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_call_original
+        allow(reporter).to receive(:report)
+        allow(logger).to receive(:debug)
+        allow(logger).to receive(:error)
+        allow(telemetry).to receive(:report)
+        engine.reconfigure!(JSON.generate(JSON.parse(configuration).merge("observeFullEvaluationData" => true)))
+      end
+
+      def fetch_configured_flag
+        engine.fetch_value("test_flag", default_value: "fallback", expected_type: :string)
+      end
+
+      it "keeps the previous configuration and policy when JSON is invalid" do
+        expect { engine.reconfigure!("{invalid json") }.to raise_error(described_class::ReconfigurationError)
+
+        result = fetch_configured_flag
+        expect(result.value).to eq("hello")
+        expect(result.flag_metadata).to include(observe_full_evaluation_data_key => true)
+      end
+
+      it "removes the configuration and opt-in when configuration is nil" do
+        engine.reconfigure!(nil)
+
+        result = fetch_configured_flag
+        expect(result.value).to eq("fallback")
+        expect(result.error_code).to eq("PROVIDER_NOT_READY")
+        expect(result.flag_metadata).to include(observe_full_evaluation_data_key => false)
+      end
+    end
+
     context "when configuration is not yet present" do
       it "does nothing and logs the issue" do
         expect(logger).to receive(:debug).with(/OpenFeature: Removing configuration/)
