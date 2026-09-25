@@ -42,6 +42,39 @@ CustomCops/ExceptionMessageCop:
   Include:
     - "lib/**/*"
 
+# Keep private type documentation in mirrored RBS signatures instead of duplicating it in YARD.
+CustomCops/PrivateYardTypeCop:
+  Enabled: true
+  Description: 'Prevents private YARD type tags from restating mirrored RBS signatures'
+  Include:
+    - "lib/**/*"
+  # Pre-existing offenses carved out at introduction time can be cleaned up incrementally.
+  Exclude:
+    - "lib/datadog/core/utils/network.rb"
+    - "lib/datadog/data_streams/pathway_context.rb"
+    - "lib/datadog/di.rb"
+    - "lib/datadog/di/el/compiler.rb"
+    - "lib/datadog/di/probe_notification_builder.rb"
+    - "lib/datadog/di/probe_notifier_worker.rb"
+    - "lib/datadog/di/serializer.rb"
+    - "lib/datadog/opentelemetry/sdk/trace/span.rb"
+    - "lib/datadog/symbol_database/component.rb"
+    - "lib/datadog/symbol_database/extractor.rb"
+    - "lib/datadog/symbol_database/remote.rb"
+    - "lib/datadog/symbol_database/scope_batcher.rb"
+    - "lib/datadog/symbol_database/uploader.rb"
+    - "lib/datadog/tracing/contrib/component.rb"
+    - "lib/datadog/tracing/contrib/graphql/unified_trace.rb"
+    - "lib/datadog/tracing/contrib/pg/instrumentation.rb"
+    - "lib/datadog/tracing/distributed/baggage.rb"
+    - "lib/datadog/tracing/distributed/trace_context.rb"
+    - "lib/datadog/tracing/span.rb"
+    - "lib/datadog/tracing/span_operation.rb"
+    - "lib/datadog/tracing/trace_operation.rb"
+    - "lib/datadog/tracing/tracer.rb"
+    - "lib/datadog/tracing/transport/native.rb"
+    - "lib/datadog/tracing/transport/span_events_negotiation.rb"
+
 # Validate environment variable strings against the supported configurations.
 CustomCops/EnvStringValidationCop:
   Enabled: true
