@@ -183,13 +183,49 @@ module Datadog
         end
 
         interface _OpenFeature
+          def using_default?: (Symbol name) -> bool
+
           def enabled: () -> bool
+
+          def enabled=: (bool) -> void
 
           def span_enrichment_enabled: () -> bool
 
           def span_enrichment_enabled=: (bool) -> void
 
           def evaluation_counts_enabled: () -> bool
+        end
+
+        interface _FeatureFlagsAgentless
+          def base_url: () -> String?
+
+          def base_url=: (String?) -> void
+
+          def poll_interval_seconds: () -> Integer
+
+          def poll_interval_seconds=: (Integer) -> void
+
+          def request_timeout_seconds: () -> Integer
+
+          def request_timeout_seconds=: (Integer) -> void
+        end
+
+        interface _FeatureFlags
+          def using_default?: (Symbol name) -> bool
+
+          def enabled: () -> bool
+
+          def enabled=: (bool) -> void
+
+          def configuration_source: () -> String
+
+          def configuration_source=: (String) -> void
+
+          def agentless: () -> _FeatureFlagsAgentless
+
+          def initialization_timeout_ms: () -> Integer
+
+          def initialization_timeout_ms=: (Integer) -> void
         end
 
         interface _SymbolDatabase
@@ -247,6 +283,8 @@ module Datadog
         def error_tracking: () -> Datadog::Core::Configuration::Settings::_ErrorTracking
 
         def open_feature: () -> _OpenFeature
+
+        def feature_flags: () -> _FeatureFlags
 
         def tracing: () -> untyped
 
