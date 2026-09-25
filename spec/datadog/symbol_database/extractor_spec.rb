@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 require "datadog/symbol_database/extractor"
+require "datadog/di"
+require "datadog/di/instrumenter"
+require "datadog/di/probe"
 require "fileutils"
 
 RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
@@ -518,7 +521,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
         load filename
 
         gem_path = "/fake/gems/activerecord-7.0/lib/active_record/autosave.rb"
-        gem_method = instance_double(Method, source_location: [gem_path, 1], arity: 0, parameters: [])
+        gem_method = instance_double(Method, owner: TestARStyleModel, source_location: [gem_path, 1], arity: 0, parameters: [])
 
         allow(TestARStyleModel).to receive(:instance_methods).with(false).and_return([:gem_generated_method])
         allow(TestARStyleModel).to receive(:instance_method).with(:gem_generated_method).and_return(gem_method)
@@ -1207,6 +1210,100 @@ RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
     end
   end
 
+  describe ".declared_instance_method" do
+    it "resolves past a prepended wrapper to the method the module itself owns" do
+      wrapper = Module.new do
+        def home
+        end
+      end
+      klass = Class.new do
+        def home
+        end
+      end
+      klass.prepend(wrapper)
+
+      expect(klass.instance_method(:home).owner).to eq(wrapper)
+      expect(extractor.send(:declared_instance_method, klass, :home).owner).to eq(klass)
+    end
+
+    it "falls back to the prepend-resolved method when the module owns none" do
+      wrapper = Module.new do
+        def only_in_wrapper
+        end
+      end
+      klass = Class.new
+      klass.prepend(wrapper)
+
+      resolved = extractor.send(:declared_instance_method, klass, :only_in_wrapper)
+      expect(resolved).to eq(klass.instance_method(:only_in_wrapper))
+      expect(resolved.owner).to eq(wrapper)
+    end
+  end
+
+  context "with active method probes" do
+    let(:instrumenter) { Datadog::DI::Instrumenter.new(settings, nil, logger) }
+    let(:probes) do
+      %w[home home secret].each_with_index.map do |method_name, index|
+        Datadog::DI::Probe.new(id: index.to_s, type: :log, type_name: "TestProbedClass", method_name: method_name)
+      end
+    end
+
+    let(:filename) { create_user_code_file(<<~RUBY) }
+      class TestProbedClass
+        def home(value)
+          value
+        end
+
+        private
+
+        def secret(value)
+          value
+        end
+      end
+    RUBY
+
+    before do
+      load filename
+      probes.each { |probe| instrumenter.hook_method(probe, nil) }
+      expect(TestProbedClass.instance_method(:home).owner).not_to eq(TestProbedClass)
+      expect(TestProbedClass.instance_method(:secret).owner).not_to eq(TestProbedClass)
+    end
+
+    after do
+      probes.reverse_each { |probe| instrumenter.unhook_method(probe) }
+      Object.send(:remove_const, :TestProbedClass) if defined?(TestProbedClass)
+      cleanup_user_code_file(filename)
+    end
+
+    [:extract, :extract_all].each do |entrypoint|
+      it "preserves original method metadata through #{entrypoint}" do
+        file_scope = if entrypoint == :extract
+          extractor.extract(TestProbedClass)
+        else
+          extractor.extract_all.find { |scope| scope.source_file == filename }
+        end
+
+        expect(file_scope).not_to be_nil
+        class_scope = file_scope.scopes.find { |scope| scope.name == "TestProbedClass" }
+        expect(class_scope.scopes.map(&:name)).to contain_exactly("home", "secret")
+        expect(class_scope.source_file).to eq(filename)
+        expect(class_scope.start_line).to eq(2)
+        class_scope.scopes.each do |method|
+          expect(method.source_file).to eq(filename)
+          expect(method.symbols.map(&:name)).to eq(["value"])
+          expect(method.language_specifics[:arity]).to eq(1)
+          expect(method.targetable_lines).not_to be_empty
+        end
+        home = class_scope.scopes.find { |scope| scope.name == "home" }
+        secret = class_scope.scopes.find { |scope| scope.name == "secret" }
+        expect(home.start_line).to eq(2)
+        expect(home.end_line).to eq(4)
+        expect(secret.end_line).to eq(10)
+        expect(secret.language_specifics[:visibility]).to eq("private")
+      end
+    end
+  end
+
   describe ".user_code_module?" do
     it "returns false for Datadog namespace" do
       expect(extractor.send(:user_code_module?, Datadog::SymbolDatabase::Extractor)).to be false
@@ -1253,7 +1350,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
       load user_file
 
       gem_path = "/fake/gems/activerecord-7.0/lib/autosave.rb"
-      gem_method = instance_double(Method, source_location: [gem_path, 1])
+      gem_method = instance_double(Method, owner: TestMixedSourceModule, source_location: [gem_path, 1])
       user_method = TestMixedSourceModule.instance_method(:user_method)
 
       allow(TestMixedSourceModule).to receive(:instance_methods).with(false).and_return([:gem_method, :user_method])
@@ -1271,7 +1368,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
       mod = Class.new
       allow(mod).to receive(:name).and_return("SomeGemClass")
 
-      gem_method = instance_double(Method, source_location: [gem_path, 1])
+      gem_method = instance_double(Method, owner: mod, source_location: [gem_path, 1])
       allow(mod).to receive(:instance_methods).with(false).and_return([:gem_method])
       allow(mod).to receive(:instance_method).with(:gem_method).and_return(gem_method)
       allow(mod).to receive(:singleton_methods).with(false).and_return([])
@@ -1288,8 +1385,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
       mod = Class.new
       allow(mod).to receive(:name).and_return("Net::HTTP")
 
-      stdlib_method = instance_double(Method, source_location: ["/usr/lib/ruby/3.2.0/net/http.rb", 100])
-      datadog_method = instance_double(Method, source_location: ["/app/lib/datadog/tracing/contrib/http/instrumentation.rb", 26])
+      stdlib_method = instance_double(Method, owner: mod, source_location: ["/usr/lib/ruby/3.2.0/net/http.rb", 100])
+      datadog_method = instance_double(Method, owner: mod, source_location: ["/app/lib/datadog/tracing/contrib/http/instrumentation.rb", 26])
 
       allow(mod).to receive(:instance_methods).with(false).and_return([:request, :get])
       allow(mod).to receive(:instance_method).with(:request).and_return(datadog_method)
@@ -1390,7 +1487,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
       # Stub instance_methods to return gem method first, user method second
       allow(TestClassWithMixedSources).to receive(:instance_methods).with(false).and_return([:gem_method, :user_method])
 
-      gem_method = instance_double(Method, source_location: [gem_path, 10])
+      gem_method = instance_double(Method, owner: TestClassWithMixedSources, source_location: [gem_path, 10])
       user_method = TestClassWithMixedSources.instance_method(:user_method)
 
       allow(TestClassWithMixedSources).to receive(:instance_method).with(:gem_method).and_return(gem_method)
@@ -1410,8 +1507,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
       datadog_path = "/app/lib/datadog/tracing/contrib/http/instrumentation.rb"
       mod = Module.new
 
-      datadog_method = instance_double(Method, source_location: [datadog_path, 26])
-      stdlib_method = instance_double(Method, source_location: [stdlib_path, 100])
+      datadog_method = instance_double(Method, owner: mod, source_location: [datadog_path, 26])
+      stdlib_method = instance_double(Method, owner: mod, source_location: [stdlib_path, 100])
 
       allow(mod).to receive(:instance_methods).with(false).and_return([:request, :get])
       allow(mod).to receive(:instance_method).with(:request).and_return(datadog_method)
@@ -1425,7 +1522,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
       gem_path = "/fake/gems/activerecord-7.0/lib/active_record/autosave.rb"
       mod = Module.new
 
-      gem_method = instance_double(Method, source_location: [gem_path, 10])
+      gem_method = instance_double(Method, owner: mod, source_location: [gem_path, 10])
       allow(mod).to receive(:instance_methods).with(false).and_return([:gem_method])
       allow(mod).to receive(:instance_method).with(:gem_method).and_return(gem_method)
 
