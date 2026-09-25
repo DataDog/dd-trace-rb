@@ -75,7 +75,7 @@ module Datadog
         # Don't retain finished traces
         @active_trace = (trace && !trace.finished?) ? trace : nil
 
-        return @active_trace if previous_trace.equal?(@active_trace)
+        return @active_trace if previous_trace == @active_trace
 
         if @active_trace
           @otel_thread_context&.update_from_trace_op(@active_trace)
