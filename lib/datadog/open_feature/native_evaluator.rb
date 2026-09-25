@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "json"
 require_relative "../core/feature_flags"
 require_relative "ext"
 require_relative "resolution_details"
@@ -16,7 +15,7 @@ module Datadog
       #       in the format expected by `libdatadog` without any modifications
       def initialize(configuration)
         @configuration = Core::FeatureFlags::Configuration.new(configuration)
-        @observe_full_evaluation_data = parse_observe_full_evaluation_data(configuration)
+        @observe_full_evaluation_data = @configuration.observe_full_evaluation_data
       end
 
       attr_reader :observe_full_evaluation_data
@@ -41,18 +40,6 @@ module Datadog
       end
 
       private
-
-      # Parse observe_full_evaluation_data from the top level of the UFC JSON (a sibling
-      # of `environment`). Absent, null, or wrong-typed values return false.
-      def parse_observe_full_evaluation_data(configuration)
-        return false unless configuration.is_a?(String) && !configuration.empty?
-
-        parsed = JSON.parse(configuration)
-        parsed.is_a?(Hash) && parsed["observeFullEvaluationData"] == true
-      rescue
-        # This secondary policy parse must not reject configuration accepted by the native evaluator.
-        false
-      end
 
       def build_resolution_details(result, default_value)
         ResolutionDetails.new(
