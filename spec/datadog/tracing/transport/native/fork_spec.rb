@@ -513,6 +513,13 @@ RSpec.describe "Native transport fork safety and cancellation" do
         end
       end
       write_io.close
+
+      # `fork` returns only after the :before hook acquired @send_mutex, which the
+      # in-flight send held until after it signalled send_drained; a non-empty
+      # send_drained here therefore proves the drain happened before the fork.
+      expect(send_drained).to_not be_empty,
+        "expected the in-flight send to have drained before the fork proceeded"
+
       expect(releaser.join(5)).to be(releaser)
 
       child_result =
@@ -522,9 +529,6 @@ RSpec.describe "Native transport fork safety and cancellation" do
           read_io.close
         end
       _, status = Process.wait2(pid)
-
-      expect(send_drained).to_not be_empty,
-        "expected the in-flight send to have completed before the child started"
 
       # No deadlock/crash/SIGSEGV: the child sent successfully and exited 0.
       expect(child_result).to eq("OK")
