@@ -348,6 +348,32 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     end
   end
 
+  context "OpenFeature component" do
+    subject(:capabilities) do
+      described_class.new(
+        settings,
+        telemetry,
+        open_feature_component_provider: open_feature_component_provider,
+      )
+    end
+
+    let(:settings) do
+      Datadog::Core::Configuration::Settings.new.tap do |settings|
+        settings.open_feature.enabled = true
+      end
+    end
+    let(:open_feature_component_provider) { -> {} }
+
+    it "binds the receiver to the supplied component provider" do
+      expect(Datadog::OpenFeature::Remote).to receive(:receivers).with(
+        telemetry,
+        component_provider: open_feature_component_provider,
+      ).and_call_original
+
+      capabilities
+    end
+  end
+
   # The receiver registration order is load-bearing: on a combined RC
   # dispatch (LIVE_DEBUGGING probe insert + APM_TRACING
   # dynamic_instrumentation_enabled=true in one transaction), the Tracing
