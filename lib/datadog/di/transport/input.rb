@@ -8,6 +8,7 @@ require_relative "../../core/transport/request"
 require_relative "../../core/transport/transport"
 require_relative "../error"
 require_relative "../fatal_exceptions"
+require_relative "../snapshot_encoder"
 require_relative "http/input"
 
 module Datadog
@@ -59,8 +60,9 @@ module Datadog
           # and exception, allowing the caller to disable the affected probe.
           # Successfully serialized snapshots are still sent.
           #
-          # Large snapshots (> 1MB) are dropped. Batches are split into chunks
-          # of ~2MB each to avoid large network requests.
+          # Large snapshots (> 1MB) are pruned to fit, or dropped when pruning
+          # cannot bring them under the cap. Batches are split into chunks of
+          # ~2MB each to avoid large network requests.
           #
           # @param payload [Array<Hash>] Array of snapshot payloads
           # @param tags [Hash] Tags to send with the snapshots
@@ -72,12 +74,17 @@ module Datadog
             # Serialize each snapshot individually to isolate failures
             encoded_snapshots = []
             payload.each do |snapshot|
-              encoded = encoder.encode(snapshot)
-              if encoded.length > MAX_SERIALIZED_SNAPSHOT_SIZE
-                logger.debug { "di: dropping too big snapshot" }
+              result = SnapshotEncoder.encode(snapshot, MAX_SERIALIZED_SNAPSHOT_SIZE)
+              if result.encoded.nil?
+                logger.debug { "di: dropping too big snapshot (payloadTooLarge)" }
+                telemetry&.inc("dynamic_instrumentation", "guardrails.events.dropped", 1,
+                  tags: {reason: "payloadTooLarge", event_type: "snapshot"})
                 next
               end
-              encoded_snapshots << encoded
+              if result.pruned
+                telemetry&.inc("dynamic_instrumentation", "snapshots_pruned_by_payload_size", 1)
+              end
+              encoded_snapshots << result.encoded
             rescue Exception => exc # standard:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               # Serialization failed for this snapshot - report via callback
