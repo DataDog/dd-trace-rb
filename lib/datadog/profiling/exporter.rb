@@ -20,7 +20,6 @@ module Datadog
 
       private
 
-      attr_reader :pprof_recorder #: Datadog::Profiling::StackRecorder
       # The code provenance collector acts both as collector and as a recorder
       attr_reader :code_provenance_collector #: Datadog::Profiling::Collectors::CodeProvenance?
       attr_reader :minimum_duration_seconds #: ::Integer
@@ -33,7 +32,6 @@ module Datadog
 
       public
 
-      # @rbs pprof_recorder: Datadog::Profiling::StackRecorder
       # @rbs worker: Datadog::Profiling::Collectors::CpuAndWallTimeWorker
       # @rbs info_collector: Datadog::Profiling::Collectors::Info
       # @rbs code_provenance_collector: Datadog::Profiling::Collectors::CodeProvenance?
@@ -43,7 +41,6 @@ module Datadog
       # @rbs sequence_tracker: singleton(Datadog::Profiling::SequenceTracker)
       # @rbs return: void
       def initialize(
-        pprof_recorder:,
         worker:,
         info_collector:,
         code_provenance_collector:,
@@ -52,7 +49,6 @@ module Datadog
         time_provider: Time,
         sequence_tracker: Datadog::Profiling::SequenceTracker
       )
-        @pprof_recorder = pprof_recorder
         @worker = worker
         @code_provenance_collector = code_provenance_collector
         @minimum_duration_seconds = minimum_duration_seconds
@@ -69,6 +65,7 @@ module Datadog
       #: () -> Datadog::Profiling::Flush?
       def flush
         worker_stats = @worker.stats_and_reset_not_thread_safe
+        pprof_recorder = @worker.prepare_serialize
         serialization_result = pprof_recorder.serialize
         return if serialization_result.nil?
 

@@ -13,8 +13,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     expect(Thread.list).to include(*testing_threads)
   end
 
-  let(:recorder) do
-    Datadog::Profiling::StackRecorder.for_testing(alloc_samples_enabled: true)
+  # Not a let because prepare_serialize should run before every call to serialize
+  def recorder
+    described_class::Testing._native_prepare_serialize(thread_context_collector)
   end
   let(:ready_queue) { Queue.new }
   let(:t1) do
@@ -54,7 +55,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   subject(:thread_context_collector) do
     collector = described_class.new(
-      recorder: recorder,
+      recorder: Datadog::Profiling::StackRecorder.for_testing(alloc_samples_enabled: true),
       max_frames: max_frames,
       tracer: tracer,
       endpoint_collection_enabled: endpoint_collection_enabled,
@@ -190,7 +191,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     context "when otel_context_enabled has an invalid value" do
       it "raises an ArgumentError with the value formatted via PRIsVALUE" do
         expect {
-          described_class.for_testing(recorder: recorder, otel_context_enabled: :invalid)
+          described_class.for_testing(recorder: Datadog::Profiling::StackRecorder.for_testing, otel_context_enabled: :invalid)
         }.to raise_error(ArgumentError, "Unexpected value for otel_context_enabled: :invalid")
       end
     end
@@ -2000,7 +2001,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         result = recorder.serialize!
         expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be false
         t1_samples = samples_for_thread(samples_from_pprof(result), t1)
-        # 2 samples: the first sample (updates snapshot) + the on-serialize flush
+        # 2 samples: the first sample (updates snapshot) + prepare_serialize
         expect(t1_samples.size).to eq(2)
         expect(t1_samples.sum { |s| s.values.fetch(:"wall-time") }).to be > 0
 
@@ -2014,7 +2015,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         result = recorder.serialize!
         expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be false
         t1_samples = samples_for_thread(samples_from_pprof(result), t1)
-        # Exactly 1 sample from the on-serialize flush
+        # Exactly 1 sample from prepare_serialize
         expect(t1_samples.size).to eq(1)
         expect(t1_samples.sum { |s| s.values.fetch(:"wall-time") }).to be > 0
       end
@@ -2041,7 +2042,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
 
     it "reports profiler-internal threads in the first reporting period" do
-      # Timestamps are seeded by initialize_context, so the first on_serialize flush
+      # Timestamps are seeded by initialize_context, so the first prepare_serialize
       # produces a real wall-time delta even without any prior sample.
       t2 = Thread.new { sleep }
       mark_thread_as_profiler_internal(t2)
