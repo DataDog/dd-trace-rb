@@ -484,9 +484,11 @@ RSpec.describe "Native transport fork safety and cancellation" do
         Thread.current.report_on_exception = false
         # REPRODUCER: delay the sender's push past the child's completion to
         # force the race between fork proceeding (mutex acquired by :before) and
-        # the Ruby-level send_traces return populating sender_result.
+        # the Ruby-level send_traces return populating sender_result. The delay
+        # exceeds any plausible child runtime (fork + runtime rebuild + send) so
+        # the failure is deterministic even on slow CI runners.
         result = transport.send_traces([build_trace(name: "inflight.op")])
-        sleep 2
+        sleep 5
         sender_result.push(result)
       end
 
