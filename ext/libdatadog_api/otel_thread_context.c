@@ -103,12 +103,12 @@ void otel_thread_context_init(VALUE tracing_module) {
     }
 
     // RUBY_EVENT_THREAD_END fires for threads that exit on their own but
-    // does not fire for threads terminated via Thread#kill on Ruby < 3.3, so a
+    // does not fire for threads terminated via Thread#kill on Ruby < 3.2, so a
     // killed thread's otel_thread_ctx_v1 TLS is never detached. CRuby caches
     // and recycles native threads, so the next Thread.new may reuse that
     // native thread and inherit the stale context record. Detach on thread
     // begin so each new Ruby thread starts from a clean TLS, discarding any
-    // context left behind by a previously killed thread. Ruby 3.3+ uses
+    // context left behind by a previously killed thread. Ruby 3.2+ uses
     // RUBY_INTERNAL_THREAD_EVENT_EXITED (on_thread_exited above), which does
     // fire for killed threads, so it does not need this hook.
     static void on_thread_begin(
