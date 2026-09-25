@@ -184,7 +184,7 @@ module Datadog
             [true, handler]
           else
             @initialization_failed = true
-            @ready_pending = component&.configuration_received? || false
+            @ready_pending = !!component&.configuration_received?
             [false, handler]
           end
         end
