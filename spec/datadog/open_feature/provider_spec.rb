@@ -187,6 +187,21 @@ RSpec.describe Datadog::OpenFeature::Provider do
       expect(component).to have_received(:wait_for_configuration)
     end
 
+    it "installs the initialization ready handler once" do
+      configuration = ::OpenFeature::SDK::Configuration.new
+      provider.send(:attach, configuration)
+      allow(configuration).to receive(:add_handler).and_call_original
+
+      2.times { provider.init }
+
+      expect(configuration).to have_received(:add_handler)
+        .with(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, anything)
+        .once
+    ensure
+      provider.shutdown
+      configuration&.send(:reset)
+    end
+
     it "deactivates delivery on shutdown" do
       provider.init
 
