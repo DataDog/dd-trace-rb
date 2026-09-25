@@ -416,8 +416,8 @@ RSpec.describe "Native transport fork safety and cancellation" do
       # Wait until the send has actually reached the agent and is blocked
       # waiting for a response that never comes.
       mock_agent.wait_for_connection(timeout: 10)
-      # The native send releases the GVL and blocks reading the response that
-      # never comes, which surfaces as the sender thread reporting "sleep".
+      # Releasing the GVL for the native read surfaces as the sender thread
+      # reporting "sleep".
       Timeout.timeout(5) do
         sleep 0.01 until sender.status == "sleep" || !sender.alive?
       end
