@@ -29,7 +29,7 @@ namespace :github do
         gemfile = begin
           AppraisalConversion.to_bundle_gemfile(group)
         rescue
-          "Gemfile"
+          AppraisalConversion.parent_gemfile
         end
 
         task = {task: key, group: group, gemfile: gemfile}
