@@ -126,8 +126,8 @@ module Datadog
       includedir = "#{libdatadog_pkgconfig_folder}/../../include"
 
       # Set mkmf global variables
-      $INCFLAGS << " -I#{includedir}"
-      $LDFLAGS << " -L#{libdir} -Wl,-rpath,#{libdir}"
+      $INCFLAGS << " -I#{Shellwords.escape(includedir)}"
+      $LDFLAGS << " -L#{Shellwords.escape(libdir)} -Wl,-rpath,#{Shellwords.escape(libdir)}"
       $libs << " -ldatadog_profiling"
 
       # Add extra relative rpaths using $ORIGIN to handle environments where gems are moved after installation.
@@ -142,7 +142,7 @@ module Datadog
           libdatadog_pkgconfig_folder: libdatadog_pkgconfig_folder,
         ),
       ]
-      extra_relative_rpaths.each { |folder| $LDFLAGS << " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder}" }
+      extra_relative_rpaths.each { |folder| $LDFLAGS << " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{Shellwords.escape(folder)}" }
 
       logger.message("linking with libdatadog (include=#{includedir}, lib=#{libdir})\n")
       logger.message("[datadog] $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
