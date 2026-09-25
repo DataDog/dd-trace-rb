@@ -33,6 +33,9 @@ module Datadog
 
         TAG_APM_ENABLED = "_dd.apm.enabled"
 
+        # Declares whether the trace chunk was exported over OTLP (`"true"`) or the native protocol (`"false"`)
+        TAG_SDK_OTLP_EXPORT = "_dd.sdk.otlp_export"
+
         # Set to the global service name when a span's service is overridden
         TAG_BASE_SERVICE = "_dd.base_service"
 
