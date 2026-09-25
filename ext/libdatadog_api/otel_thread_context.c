@@ -204,7 +204,7 @@ static VALUE native_set(
     uint8_t span_id_bytes[8];
     uint8_t local_root_span_id_bytes[8];
 
-    // Two 8-byte words use rb_integer_pack's fast path, unlike sixteen 1-byte words.
+    // Note: We use 2 words of size 8, as `rb_integer_pack` has a fast path for it (vs 16 bytes of size 1)
     rb_integer_pack(trace_id, trace_id_bytes, 2, sizeof(uint64_t), 0, INTEGER_PACK_BIG_ENDIAN);
     pack_span_id(span_id, span_id_bytes);
     pack_span_id(local_root_span_id, local_root_span_id_bytes);
