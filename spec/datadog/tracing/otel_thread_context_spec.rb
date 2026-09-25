@@ -215,6 +215,8 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
   describe "#clear" do
     context "when enabled" do
       it "returns false when no context record was attached" do
+        otel_thread_context.clear
+
         expect(otel_thread_context.clear).to eq(false)
       end
 
