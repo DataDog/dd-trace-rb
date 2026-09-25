@@ -117,18 +117,20 @@ module Datadog
 
       def shutdown
         configuration = @configuration
-        handlers = @initialization_mutex.synchronize do
+        # @type var error_handler: (^(Hash[Symbol, untyped]) -> void)?
+        error_handler = nil
+        # @type var initialization_ready_handler: (^(Hash[Symbol, untyped]) -> void)?
+        initialization_ready_handler = nil
+        @initialization_mutex.synchronize do
           return if @shutdown
 
           @shutdown = true
           @initializing = false
-          handlers = [@error_handler, @initialization_ready_handler]
+          error_handler = @error_handler
+          initialization_ready_handler = @initialization_ready_handler
           @error_handler = nil
           @initialization_ready_handler = nil
-          handlers
         end
-        error_handler = handlers[0]
-        initialization_ready_handler = handlers[1]
 
         configuration&.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, error_handler) if error_handler
         if initialization_ready_handler
