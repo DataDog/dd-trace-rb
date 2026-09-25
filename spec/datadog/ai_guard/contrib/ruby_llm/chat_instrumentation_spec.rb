@@ -179,6 +179,50 @@ RSpec.describe "RubyLLM chat instrumentation" do
     end
   end
 
+  context "when redacting a text attachment" do
+    before do
+      allow(chat).to receive(:messages).and_return([user_message])
+      allow(chat.provider).to receive(:preprocess_message) do |message, **_options|
+        preprocessed_messages << message
+        message
+      end
+      chat.complete
+    end
+
+    let(:preprocessed_messages) { [] }
+    let(:user_message) do
+      RubyLLM::Message.new(
+        role: :user,
+        content: "Summarize this file",
+        attachments: [RubyLLM::Attachment.new(StringIO.new("Account 123"), filename: "notes.txt")]
+      )
+    end
+    let(:raw_response) do
+      {
+        "data" => {
+          "attributes" => {
+            "action" => "ALLOW",
+            "reason" => "Sensitive data redacted",
+            "tags" => [],
+            "tag_probs" => {},
+            "is_blocking_enabled" => false,
+            "redaction_replacements" => [
+              {
+                "path" => "messages[0].content[1].text",
+                "replacement" => "Account <REDACTED>"
+              }
+            ]
+          }
+        }
+      }
+    end
+
+    it "passes the redacted attachment to provider preprocessing without changing the original" do
+      expect(preprocessed_messages[0].attachments[0].content).to eq("Account <REDACTED>")
+      expect(user_message.attachments[0].content).to eq("Account 123")
+    end
+  end
+
   context "when a message has an unsupported attachment" do
     before do
       allow(chat).to receive(:messages).and_return([user_message])

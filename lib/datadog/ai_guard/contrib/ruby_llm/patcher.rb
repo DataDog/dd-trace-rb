@@ -2,7 +2,6 @@
 
 require_relative "message_adapter"
 require_relative "chat_instrumentation"
-require_relative "provider_instrumentation"
 
 module Datadog
   module AIGuard
@@ -22,7 +21,6 @@ module Datadog
 
           def patch
             ::RubyLLM::Chat.prepend(ChatInstrumentation)
-            ::RubyLLM::Provider.prepend(ProviderInstrumentation)
 
             Patcher.instance_variable_set(:@patched, true)
           end
