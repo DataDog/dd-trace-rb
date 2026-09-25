@@ -37,8 +37,7 @@ RSpec.describe Datadog::Tracing::Contrib::Grape::Endpoint do
       end
     end
   end
-  # Grape 4 moved the API class, verb and path off the endpoint's options Hash.
-  # See: https://github.com/ruby-grape/grape/pull/2778
+
   describe ".endpoint_api" do
     subject(:endpoint_api) { described_class.send(:endpoint_api, endpoint) }
 

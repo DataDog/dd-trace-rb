@@ -15,7 +15,6 @@ module Datadog
         module Endpoint
           KEY_RUN = "datadog_grape_endpoint_run"
           KEY_RENDER = "datadog_grape_endpoint_render"
-          # Trailing format segment of a compiled path: "/widgets(.:format)"
           FORMAT_SEGMENT = /\(\.:?\w+\)\z/
 
           class << self
