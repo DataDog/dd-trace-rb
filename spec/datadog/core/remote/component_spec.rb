@@ -7,7 +7,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry) }
+  let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry: telemetry) }
   let(:component) { described_class.new(settings, capabilities, agent_settings, logger: logger) }
 
   let(:logger) { logger_allowing_debug }
@@ -47,7 +47,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
       it "initializes component" do
         expect(Datadog::Core::Remote::Client::Capabilities).to receive(:new).with(
           settings,
-          telemetry,
+          telemetry: telemetry,
         ).and_return(capabilities)
         expect(described_class).to receive(:new).with(
           settings,

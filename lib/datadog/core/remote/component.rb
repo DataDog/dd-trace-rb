@@ -211,7 +211,7 @@ module Datadog
           def build(settings, agent_settings, logger:, telemetry:)
             return unless settings.remote.enabled
 
-            capabilities = Client::Capabilities.new(settings, telemetry)
+            capabilities = Client::Capabilities.new(settings, telemetry: telemetry)
             new(settings, capabilities, agent_settings, logger: logger)
           end
         end

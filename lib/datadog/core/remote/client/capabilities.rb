@@ -13,7 +13,7 @@ module Datadog
       class Client
         # Capabilities
         class Capabilities
-          def initialize(settings, telemetry)
+          def initialize(settings, telemetry:)
             @capabilities = []
             @products = []
             @receivers = []
