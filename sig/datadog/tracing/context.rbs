@@ -4,8 +4,9 @@ module Datadog
       include Core::Utils::Forking
 
       attr_reader active_trace: untyped
+      attr_writer otel_thread_context: OTelThreadContext?
 
-      def initialize: (?trace: untyped?) -> void
+      def initialize: (?trace: untyped?, ?otel_thread_context: OTelThreadContext?) -> void
       def activate!: (untyped trace) { () -> untyped } -> untyped
       def fork_clone: () -> untyped
 
