@@ -9,7 +9,7 @@ module Datadog
         ABORT_ACTION = "ABORT"
 
         attr_reader :messages, :action, :reason, :tags, :sds_findings,
-                    :tag_probabilities
+          :tag_probabilities
 
         def initialize(messages, action:, reason:, tags:, sds_findings:, tag_probabilities:)
           @messages = messages

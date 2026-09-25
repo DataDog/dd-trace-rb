@@ -26,7 +26,7 @@ module Datadog
               converted_messages = adapter.to_ai_guard
             rescue JSON::JSONError
               Metrics::Telemetry.report_error
-              return super(list)
+              return super
             end
 
             evaluation = AIGuard.evaluate(*converted_messages)
@@ -35,7 +35,7 @@ module Datadog
               redacted_messages = adapter.apply_redactions(evaluation.messages)
             rescue JSON::JSONError => e
               AIGuard.telemetry&.report(e, description: "AI Guard: Failed to apply RubyLLM redaction")
-              return super(list)
+              return super
             end
 
             super(redacted_messages)
@@ -50,7 +50,7 @@ module Datadog
               converted_messages = adapter.to_ai_guard
             rescue JSON::JSONError
               Metrics::Telemetry.report_error
-              return super(response)
+              return super
             end
 
             evaluation = AIGuard.evaluate(*converted_messages)
