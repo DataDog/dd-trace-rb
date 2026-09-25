@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "set"
 require_relative "../../../../core/utils"
 require_relative "../../../metadata/ext"
 require_relative "../ext"
@@ -190,13 +191,15 @@ module Datadog
             # Also, the user is never exposed to the normalized key, and only sets/gets using the
             # original key.
             module PreserveOriginalKey
-              # Stores the original keys in the options hash, as an array of keys.
-              # It's important to keep all the keys for multi-key operations.
-              # For single-key operations, the key is stored as an array of a single element.
+              # Stores the original keys in an insertion-ordered Set in the options
+              # hash, keeping all keys for multi-key operations.
+              #
+              # A Set because composite operations normalize the same key more than
+              # once with the same options hash (e.g. `#fetch` delegates to `#write`
+              # on a cache miss): `Set#add` is an idempotent O(1) insert, so repeats
+              # are deduplicated in constant time.
               def normalize_key(key, options)
-                orig_keys = options[:dd_original_keys] || []
-                orig_keys << key
-                options[:dd_original_keys] = orig_keys
+                (options[:dd_original_keys] ||= Set.new) << key
 
                 super
               end
