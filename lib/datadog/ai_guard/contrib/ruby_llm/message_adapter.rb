@@ -54,6 +54,8 @@ module Datadog
                 when :text
                   builder.text(attachment.content)
                 when :image
+                  # NOTE: Local images are Base64-encoded here by `#for_llm`
+                  #       and again when RubyLLM builds the provider request
                   url = attachment.url? ? attachment.source.to_s : attachment.for_llm
                   builder.image_url(url)
                 end
