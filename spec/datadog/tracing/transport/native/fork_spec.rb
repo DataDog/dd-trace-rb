@@ -280,7 +280,9 @@ RSpec.describe "Native transport fork safety and cancellation" do
     end
   end
 
-  # A thread waiting on a blocking operation reports its status as "sleep".
+  # Waits until the thread parks on its blocking operation, then asserts it
+  # stayed alive. A thread parked on a blocking operation reports its status
+  # as "sleep".
   def wait_until_blocked(thread, timeout: 5)
     try_wait_until(seconds: timeout) { thread.status == "sleep" || !thread.alive? }
     expect(thread).to be_alive
