@@ -466,6 +466,17 @@ RSpec.describe "Native transport fork safety and cancellation" do
         result
       end
 
+      # Observe the Rust send draining inside @send_mutex (before the mutex is
+      # released and before fork proceeds), not the Ruby-level send_traces
+      # return (which runs post-mutex bookkeeping after the mutex is released
+      # and so races with fork). See the assertion below.
+      send_drained = Queue.new
+      allow(exporter).to receive(:_native_send_traces).and_wrap_original do |method, chunks, native_events_supported|
+        result = method.call(chunks, native_events_supported)
+        send_drained << true
+        result
+      end
+
       # The background send's result, pushed only when send_traces returns.
       sender_result = Queue.new
 
@@ -518,9 +529,12 @@ RSpec.describe "Native transport fork safety and cancellation" do
         end
       _, status = Process.wait2(pid)
 
-      # The fork call cannot return until the agent releases the in-flight send,
-      # so the background send must have completed before the child runs.
-      expect(sender_result).to_not be_empty,
+      # Assert on the Rust send draining (send_drained, pushed inside
+      # @send_mutex before fork proceeds) rather than the Ruby-level send_traces
+      # return (sender_result, pushed after the mutex is released): the latter
+      # races with fork, since the :before hook acquires the mutex and lets fork
+      # proceed before the sender thread pushes.
+      expect(send_drained).to_not be_empty,
         "expected the in-flight send to have completed before the child started"
 
       # No deadlock/crash/SIGSEGV: the child sent successfully and exited 0.
