@@ -78,7 +78,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     let(:stack_recorder) { Datadog::Profiling::StackRecorder.for_testing }
     let(:thread_context_collector) { build_thread_context_collector(recorder: stack_recorder) }
 
-    it "collects profiler-internal thread samples before serialization" do
+    it "collects profiler-internal thread samples before serialization", :memcheck_valgrind_skip do
       ready = Queue.new
       internal_thread = Thread.new do
         ready << true
