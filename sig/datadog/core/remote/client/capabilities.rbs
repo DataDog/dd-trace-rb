@@ -17,7 +17,7 @@ module Datadog
 
           def initialize: (
             Datadog::Core::Configuration::Settings settings,
-            Datadog::Core::Telemetry::Component telemetry
+            telemetry: Datadog::Core::Telemetry::Component
           ) -> void
 
           def capabilities: () -> Array[Integer]
