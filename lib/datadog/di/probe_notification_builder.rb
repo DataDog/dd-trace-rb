@@ -400,8 +400,20 @@ module Datadog
       end
 
       def evaluate_template(template_segments, context)
+        # Templates evaluate after capture, at a different wall-clock
+        # instant than the condition, so resolve a fresh evaluation
+        # deadline shared across all segments. Collection operators
+        # inside a segment read this from the context and abort the
+        # segment when the budget is exhausted; the between-segment
+        # check below aborts when the budget is exhausted before a
+        # segment starts, and the per-segment rescue surfaces either
+        # case as an evaluationErrors entry.
+        context.deadline = Datadog::DI::EL::Evaluator.evaluation_deadline(settings)
         evaluation_errors = []
         message = template_segments.map do |segment|
+          if segment.is_a?(EL::Expression) && Datadog::DI::EL::Evaluator.evaluation_deadline_exceeded?(context)
+            raise DI::Error::EvaluationTimeout, "expression evaluation timeout"
+          end
           case segment
           when String
             segment

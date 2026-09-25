@@ -301,6 +301,13 @@
         "default": "false"
       }
     ],
+    "DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "50"
+      }
+    ],
     "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE": [
       {
         "version": "A",

@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6223",
+  "message": "Bound condition and template-segment evaluation wall-time with `DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS` (default `50`); over-budget evaluation is aborted and reported as an evaluation error with no captured snapshot."
+}

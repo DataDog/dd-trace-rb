@@ -93,5 +93,18 @@ RSpec.describe Datadog::DI::Configuration::Settings do
         end
       end
     end
+
+    context "max_time_to_evaluate_ms validation" do
+      it "accepts zero as a valid exhausted-budget sentinel" do
+        settings.dynamic_instrumentation.max_time_to_evaluate_ms = 0
+        expect(settings.dynamic_instrumentation.max_time_to_evaluate_ms).to eq(0)
+      end
+
+      it "raises ArgumentError for a negative value" do
+        expect do
+          settings.dynamic_instrumentation.max_time_to_evaluate_ms = -5
+        end.to raise_error(ArgumentError, /must not be negative/)
+      end
+    end
   end
 end
