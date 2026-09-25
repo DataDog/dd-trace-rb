@@ -15,7 +15,7 @@ module Datadog
       #
       # @api private
       class Component
-        attr_reader :logger, :client, :healthy, :worker
+        attr_reader :logger, :healthy, :worker
 
         def initialize(settings, capabilities, agent_settings, logger:)
           @logger = logger
@@ -28,6 +28,7 @@ module Datadog
 
           @barrier = Barrier.new(settings.remote.boot_timeout_seconds)
 
+          @client_mutex = Mutex.new
           @client = Client.new(@transport, @capabilities, settings: settings, logger: logger)
           @healthy = false
           logger.debug { "new remote configuration client: #{@client.id} products: #{@capabilities.products.sort.join(", ")}" }
@@ -40,7 +41,7 @@ module Datadog
             end
 
             begin
-              @client.sync
+              client.sync
               @healthy ||= true
             rescue Client::SyncError => e
               # Transient errors due to network or agent. Logged the error but not via telemetry
@@ -60,9 +61,11 @@ module Datadog
               end
 
               # client state is unknown, state might be corrupted
-              @client = Client.new(@transport, @capabilities, settings: settings, logger: logger)
+              new_client = @client_mutex.synchronize do
+                @client = Client.new(@transport, @capabilities, settings: settings, logger: logger)
+              end
               @healthy = false
-              logger.debug { "new remote configuration client: #{@client.id} products: #{@capabilities.products.sort.join(", ")}" }
+              logger.debug { "new remote configuration client: #{new_client.id} products: #{@capabilities.products.sort.join(", ")}" }
 
               # TODO: bail out if too many errors?
             end
@@ -81,6 +84,10 @@ module Datadog
           @worker.started?
         end
 
+        def client
+          @client_mutex.synchronize { @client }
+        end
+
         # If the worker is not initialized, initialize it.
         #
         # Then, waits for one client sync to be executed if `kind` is `:once`.
@@ -96,9 +103,12 @@ module Datadog
         # Recreates the remote configuration client after a fork.
         # This ensures each forked process has a unique client ID and fresh state.
         def after_fork
-          @client = Client.new(@transport, @capabilities, settings: @settings, logger: @logger)
+          new_client = @client_mutex.synchronize do
+            @client = Client.new(@transport, @capabilities, settings: @settings, logger: @logger)
+          end
           @healthy = false
-          logger.debug { "remote configuration client recreated after fork: #{@client.id} products: #{@capabilities.products.sort.join(", ")}" }
+          logger.debug { "remote configuration client recreated after fork: #{new_client.id} products: #{@capabilities.products.sort.join(", ")}" }
+          @worker.after_fork
         end
 
         def add_products(*products)
@@ -110,14 +120,14 @@ module Datadog
         end
 
         def register(capabilities:, products:, receivers:)
-          @capabilities.register_runtime(
-            capabilities: capabilities,
-            products: products,
-            receivers: receivers,
-          )
-          # A client created concurrently after registration receives the new
-          # receivers from Capabilities; an older client is updated here.
-          @client.dispatcher.add_receivers(*receivers)
+          @client_mutex.synchronize do
+            @capabilities.register_runtime(
+              capabilities: capabilities,
+              products: products,
+              receivers: receivers,
+            )
+            @client.dispatcher.add_receivers(*receivers)
+          end
         end
 
         # Barrier provides a mechanism to fence execution until a condition happens
@@ -198,14 +208,10 @@ module Datadog
           #
           # Those checks are instead performed inside the worker loop.
           # This allows users to upgrade their agent while keeping their application running.
-          def build(settings, agent_settings, logger:, telemetry:, open_feature_component_provider: nil)
+          def build(settings, agent_settings, logger:, telemetry:)
             return unless settings.remote.enabled
 
-            capabilities = Client::Capabilities.new(
-              settings,
-              telemetry,
-              open_feature_component_provider: open_feature_component_provider,
-            )
+            capabilities = Client::Capabilities.new(settings, telemetry: telemetry)
             new(settings, capabilities, agent_settings, logger: logger)
           end
         end

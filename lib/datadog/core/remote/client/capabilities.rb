@@ -6,7 +6,6 @@ require_relative "../../../tracing/remote"
 require_relative "../../../di/remote"
 require_relative "../../../symbol_database"
 require_relative "../../../symbol_database/remote"
-require_relative "../../../open_feature/remote"
 
 module Datadog
   module Core
@@ -14,15 +13,14 @@ module Datadog
       class Client
         # Capabilities
         class Capabilities
-          def initialize(settings, telemetry, open_feature_component_provider: nil)
-            open_feature_component_provider ||= -> {}
+          def initialize(settings, telemetry:)
             @capabilities = []
             @products = []
             @receivers = []
             @telemetry = telemetry
             @mutex = Mutex.new
 
-            register(settings, open_feature_component_provider)
+            register(settings)
 
             @base64_capabilities = capabilities_to_base64(@capabilities)
           end
@@ -65,7 +63,7 @@ module Datadog
 
           private
 
-          def register(settings, open_feature_component_provider)
+          def register(settings)
             if settings.respond_to?(:appsec) && settings.appsec.enabled
               register_capabilities(Datadog::AppSec::Remote.capabilities)
               register_products(Datadog::AppSec::Remote.products)
@@ -112,16 +110,6 @@ module Datadog
                   register_products(Datadog::SymbolDatabase::Remote.products)
                 end
               end
-            end
-            if settings.respond_to?(:open_feature) && settings.open_feature.enabled
-              register_capabilities(Datadog::OpenFeature::Remote.capabilities)
-              register_products(Datadog::OpenFeature::Remote.products)
-              register_receivers(
-                Datadog::OpenFeature::Remote.receivers(
-                  @telemetry,
-                  component_provider: open_feature_component_provider,
-                ),
-              )
             end
           end
 

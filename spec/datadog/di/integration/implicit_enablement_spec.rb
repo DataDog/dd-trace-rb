@@ -337,7 +337,7 @@ RSpec.describe "DI implicit enablement integration" do
 
     # Production-built receiver list (Tracing before DI). Bypasses AppSec /
     # SymDB / OpenFeature by leaving their settings disabled in `settings`.
-    let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry) }
+    let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry: telemetry) }
     let(:dispatcher) { Datadog::Core::Remote::Dispatcher.new(capabilities.receivers) }
 
     before do
@@ -379,7 +379,7 @@ RSpec.describe "DI implicit enablement integration" do
     end
 
     let(:transport) { double(Datadog::Core::Remote::Transport::Config) }
-    let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry) }
+    let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry: telemetry) }
     let(:client) { Datadog::Core::Remote::Client.new(transport, capabilities, settings: settings, logger: logger) }
 
     # Poll N: only the LIVE_DEBUGGING probe (DI still stopped).

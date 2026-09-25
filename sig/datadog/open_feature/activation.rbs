@@ -15,9 +15,11 @@ module Datadog
 
       @configuration_source: Agentless::ConfigurationSource?
 
+      @delivery_source: String?
+
       @failure: String?
 
-      @provider: Provider?
+      @providers: Hash[Provider, bool]
 
       @activated: bool
 
@@ -44,6 +46,12 @@ module Datadog
       def start!: () -> Component?
 
       def activated?: () -> bool
+
+      def providers: () -> Array[Provider]
+
+      def after_fork: () -> void
+
+      def deactivate: (Provider provider) -> void
 
       def shutdown!: () -> void
 
