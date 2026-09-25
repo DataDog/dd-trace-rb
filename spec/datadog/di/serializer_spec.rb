@@ -475,6 +475,93 @@ RSpec.describe Datadog::DI::Serializer do
     end
   end
 
+  describe "capture time budget" do
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+    let(:serializer) do
+      described_class.new(settings, redactor, telemetry: telemetry)
+    end
+
+    before do
+      allow(telemetry).to receive(:inc)
+    end
+
+    context "hard ceiling clamp" do
+      it "clamps a configured budget above the ceiling to 150 ms" do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(500)
+        allow(serializer).to receive(:monotonic_now).and_return(1.0)
+        expect(serializer.serialization_deadline).to eq(1.0 + 150 / 1000.0)
+      end
+
+      it "uses a configured budget at or below the ceiling unchanged" do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+        allow(serializer).to receive(:monotonic_now).and_return(1.0)
+        expect(serializer.serialization_deadline).to eq(1.0 + 100 / 1000.0)
+      end
+    end
+
+    context "budget already exhausted before serialization starts" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(0)
+      end
+
+      it "returns a timeout stub for the top-level value and stops there" do
+        expect(serializer.serialize_value([1, 2, 3], name: :x)).to eq(
+          type: "Array", notCapturedReason: "timeout",
+        )
+      end
+
+      it "increments the timeout telemetry counter" do
+        expect(telemetry).to receive(:inc).with(
+          "dynamic_instrumentation", "serialized_values_skipped_by_timeout", 1,
+        ).at_least(:once)
+        serializer.serialize_value([1, 2, 3], name: :x)
+      end
+    end
+
+    context "budget exhausted midway through a collection" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+      end
+
+      deadline_calc = 0.0
+      top_level_check = 0.0
+      first_elt = 0.0
+      second_elt = 0.0
+      third_elt = 0.2  # 100ms budget crossed here
+      fourth_elt = 0.2
+      stub_monotonic_clock([deadline_calc, top_level_check, first_elt, second_elt, third_elt, fourth_elt])
+
+      it "captures earlier elements and times out later ones" do
+        result = serializer.serialize_value([10, 20, 30, 40], name: :x)
+        expect(result[:type]).to eq("Array")
+        expect(result[:elements]).to eq([
+          {type: "Integer", value: "10"},
+          {type: "Integer", value: "20"},
+          {type: "Integer", notCapturedReason: "timeout"},
+          {type: "Integer", notCapturedReason: "timeout"},
+        ])
+      end
+    end
+
+    context "budget shared across all variables of a single capture point" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+      end
+
+      deadline_calc = 0.0
+      first_var = 0.0
+      second_var = 0.2  # past the deadline
+      stub_monotonic_clock([deadline_calc, first_var, second_var])
+
+      it "times out later variables once the shared deadline passes" do
+        expect(serializer.serialize_vars({a: 1, b: 2})).to eq(
+          a: {type: "Integer", value: "1"},
+          b: {type: "Integer", notCapturedReason: "timeout"},
+        )
+      end
+    end
+  end
+
   describe "#serialize_string_or_symbol_for_message" do
     [
       [100, "short", "short"],

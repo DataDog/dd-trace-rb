@@ -25,6 +25,7 @@ RSpec.describe Datadog::DI::Configuration::Settings do
         [nil, "max_capture_collection_size", 10],
         [nil, "max_capture_string_length", 20],
         [nil, "max_capture_attribute_count", 4],
+        [nil, "max_time_to_serialize_ms", 300],
       ].each do |(scope_name_, name_, value_)|
         name = name_
         scope_name = scope_name_
@@ -49,6 +50,25 @@ RSpec.describe Datadog::DI::Configuration::Settings do
             expect(scope.public_send(name)).to eq(value)
           end
         end
+      end
+    end
+
+    context "default values" do
+      it "defaults max_time_to_serialize_ms to the 150 ms hard ceiling" do
+        expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq(150)
+      end
+    end
+
+    context "max_time_to_serialize_ms validation" do
+      it "accepts zero as a valid exhausted-budget sentinel" do
+        settings.dynamic_instrumentation.max_time_to_serialize_ms = 0
+        expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq(0)
+      end
+
+      it "raises ArgumentError for a negative value" do
+        expect do
+          settings.dynamic_instrumentation.max_time_to_serialize_ms = -5
+        end.to raise_error(ArgumentError, /must not be negative/)
       end
     end
 
@@ -91,6 +111,18 @@ RSpec.describe Datadog::DI::Configuration::Settings do
             expect(settings.dynamic_instrumentation.public_send(setting_name)).to eq setting_value
           end
         end
+      end
+    end
+
+    context "canonical env var alias" do
+      around do |example|
+        ClimateControl.modify("DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => "250") do
+          example.run
+        end
+      end
+
+      it "accepts DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS as an alias for max_time_to_serialize_ms" do
+        expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq 250
       end
     end
   end
