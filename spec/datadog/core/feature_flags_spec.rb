@@ -65,6 +65,40 @@ RSpec.describe Datadog::Core::FeatureFlags do
       end
     end
 
+    describe "#observe_full_evaluation_data" do
+      subject(:observe_full_evaluation_data) { configuration.observe_full_evaluation_data }
+
+      let(:configuration) { described_class::Configuration.new(JSON.generate(config)) }
+      let(:config) { JSON.parse(flags_json) }
+
+      it "defaults to false when absent" do
+        is_expected.to be(false)
+      end
+
+      context "when enabled" do
+        before { config["observeFullEvaluationData"] = true }
+
+        it { is_expected.to be(true) }
+      end
+
+      [false, nil, "true", 42, {}, []].each do |value|
+        context "when the field is #{value.inspect}" do
+          before { config["observeFullEvaluationData"] = value }
+
+          it { is_expected.to be(false) }
+
+          it "keeps the flag usable" do
+            result = configuration.get_assignment(
+              "test-flag", :object, {"targeting_key" => "test-user", "email" => "user@example.com"}
+            )
+
+            expect(result.variant).to eq("treatment")
+            expect(result.error?).to be(false)
+          end
+        end
+      end
+    end
+
     describe "#get_assignment" do
       subject(:configuration) { described_class::Configuration.new(flags_json) }
 
