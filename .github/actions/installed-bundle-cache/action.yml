@@ -1,6 +1,6 @@
 name: Prepare installed matrix bundle cache
 
-description: Restore or build an exact installed bundle containing every applicable Gemfile
+description: Restore or build an installed bundle containing every applicable Gemfile
 
 inputs:
   base-gemfile:
@@ -11,14 +11,21 @@ inputs:
     required: false
     default: Matrixfile
   cache-schema:
-    description: Installed bundle cache namespace
-    required: false
-    default: bundle-installed-matrix-test-v2
+    description: Installed bundle cache schema and scope
+    required: true
   image-identity:
     description: Immutable engine image identity
     required: true
+  base-cache-key:
+    description: Exact installed base-bundle cache key
+    required: false
+    default: ''
+  strategy:
+    description: Installed bundle architecture
+    required: false
+    default: full
   write-enabled:
-    description: Whether an exact miss may build and save the complete bundle
+    description: Whether a miss may build and save current bundle
     required: false
     default: "false"
 
@@ -26,12 +33,21 @@ outputs:
   cache-key:
     description: Exact installed bundle cache key
     value: ${{ steps.manifest.outputs.cache-key }}
+  restore-prefix:
+    description: Environment-specific partial restore prefix
+    value: ${{ steps.manifest.outputs.restore-prefix }}
+  matched-key:
+    description: Exact or partial cache key restored
+    value: ${{ steps.restore.outputs.cache-matched-key }}
   exact-hit:
     description: Whether exact installed bundle cache was restored
     value: ${{ steps.restore.outputs.cache-hit }}
+  status:
+    description: "Restore status: exact, partial, miss, or generated"
+    value: ${{ steps.result.outputs.status }}
   ready:
-    description: Whether the exact installed bundle is available to child jobs
-    value: ${{ steps.lifecycle.outputs.ready }}
+    description: Whether current complete bundle is available to child jobs
+    value: ${{ steps.result.outputs.ready }}
   restore-seconds:
     description: Cache restore duration
     value: ${{ steps.restore-duration.outputs.seconds }}
@@ -42,10 +58,10 @@ outputs:
     description: Cache save duration
     value: ${{ steps.save-duration.outputs.seconds }}
   byte-count:
-    description: Uncompressed installed bundle bytes
+    description: Uncompressed installed bundle or delta bytes
     value: ${{ steps.statistics.outputs.byte-count }}
   file-count:
-    description: Installed bundle file count
+    description: Installed bundle or delta file count
     value: ${{ steps.statistics.outputs.file-count }}
 
 runs:
@@ -55,105 +71,169 @@ runs:
       name: Compute installed bundle manifest
       shell: bash
       env:
+        BASE_CACHE_KEY: ${{ inputs.base-cache-key }}
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
         CACHE_SCHEMA: ${{ inputs.cache-schema }}
         IMAGE_IDENTITY: ${{ inputs.image-identity }}
         MATRIX: ${{ inputs.matrix }}
+        STRATEGY: ${{ inputs.strategy }}
       run: |
         ruby tasks/installed_bundle_cache_cli.rb manifest \
           --base-gemfile "$BASE_GEMFILE" \
           --matrix "$MATRIX" \
           --cache-schema "$CACHE_SCHEMA" \
-          --image-identity "$IMAGE_IDENTITY" > /tmp/ddtrace-installed-bundle-manifest.json
+          --image-identity "$IMAGE_IDENTITY" \
+          --base-cache-key "$BASE_CACHE_KEY" \
+          --strategy "$STRATEGY" > /tmp/ddtrace-installed-bundle-manifest.json
         ruby -rjson -e '
           manifest = JSON.parse(File.read("/tmp/ddtrace-installed-bundle-manifest.json"))
           File.open(ENV.fetch("GITHUB_OUTPUT"), "a") do |output|
             output.puts("cache-key=#{manifest.fetch("cache_key")}")
+            output.puts("restore-prefix=#{manifest.fetch("restore_prefix")}")
           end
         '
+    - name: Snapshot installed base bundle
+      if: inputs.strategy == 'all-delta'
+      shell: bash
+      env:
+        BASE_GEMFILE: ${{ inputs.base-gemfile }}
+        MATRIX: ${{ inputs.matrix }}
+      run: |
+        ruby tasks/installed_bundle_cache_cli.rb snapshot \
+          --base-gemfile "$BASE_GEMFILE" \
+          --matrix "$MATRIX" \
+          --strategy all-delta \
+          --snapshot /tmp/ddtrace-installed-base-snapshot.json
     - id: restore-start
       shell: bash
       run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
     - id: restore
-      name: Restore exact installed bundle
+      name: Restore installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.cache-key }}
-        path: /usr/local/bundle
+        restore-keys: ${{ inputs.strategy == 'all-delta' && steps.manifest.outputs.restore-prefix || '' }}
+        path: ${{ inputs.strategy == 'all-delta' && '/tmp/ddtrace-installed-bundle-delta' || '/usr/local/bundle' }}
     - id: restore-duration
       shell: bash
       env:
         START_SECONDS: ${{ steps.restore-start.outputs.seconds }}
       run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"
+    - name: Apply installed bundle delta
+      if: inputs.strategy == 'all-delta' && steps.restore.outputs.cache-matched-key != ''
+      shell: bash
+      run: cp -a /tmp/ddtrace-installed-bundle-delta/. /usr/local/bundle/
     - id: lifecycle
       shell: bash
       env:
         EXACT_HIT: ${{ steps.restore.outputs.cache-hit }}
+        MATCHED_KEY: ${{ steps.restore.outputs.cache-matched-key }}
         WRITE_ENABLED: ${{ inputs.write-enabled }}
       run: |
-        if [ "$EXACT_HIT" = "true" ] || [ "$WRITE_ENABLED" = "true" ]; then
-          echo "ready=true" >> "$GITHUB_OUTPUT"
+        if [ "$EXACT_HIT" = "true" ]; then
+          status=exact
+        elif [ -n "$MATCHED_KEY" ]; then
+          status=partial
         else
-          echo "ready=false" >> "$GITHUB_OUTPUT"
+          status=miss
         fi
+        repair=false
+        if [ "$status" != "exact" ] && { [ "$WRITE_ENABLED" = "true" ] || [ "$status" = "partial" ]; }; then
+          repair=true
+        fi
+        { echo "status=$status"; echo "repair=$repair"; } >> "$GITHUB_OUTPUT"
     - id: population-start
-      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      if: steps.lifecycle.outputs.repair == 'true'
       shell: bash
       run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
     - name: Reset installed bundle path
-      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      if: steps.lifecycle.outputs.repair == 'true' && inputs.strategy == 'full'
       shell: bash
       run: |
         mkdir -p /usr/local/bundle
         find /usr/local/bundle -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
     - name: Install complete matrix bundle
-      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      if: steps.lifecycle.outputs.repair == 'true'
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
         MATRIX: ${{ inputs.matrix }}
+        STRATEGY: ${{ inputs.strategy }}
       run: |
         ruby tasks/installed_bundle_cache_cli.rb install \
           --base-gemfile "$BASE_GEMFILE" \
           --matrix "$MATRIX" \
+          --strategy "$STRATEGY" \
           --jobs 8
     - id: population-duration
-      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      if: steps.lifecycle.outputs.repair == 'true'
       shell: bash
       env:
         START_SECONDS: ${{ steps.population-start.outputs.seconds }}
       run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"
     - name: Verify complete matrix bundle
-      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      if: steps.lifecycle.outputs.repair == 'true'
+      shell: bash
+      env:
+        BASE_GEMFILE: ${{ inputs.base-gemfile }}
+        MATRIX: ${{ inputs.matrix }}
+        STRATEGY: ${{ inputs.strategy }}
+      run: |
+        ruby tasks/installed_bundle_cache_cli.rb check \
+          --base-gemfile "$BASE_GEMFILE" \
+          --matrix "$MATRIX" \
+          --strategy "$STRATEGY"
+    - name: Extract installed bundle delta
+      if: steps.lifecycle.outputs.repair == 'true' && inputs.strategy == 'all-delta' && inputs.write-enabled == 'true'
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
         MATRIX: ${{ inputs.matrix }}
       run: |
-        ruby tasks/installed_bundle_cache_cli.rb check \
+        ruby tasks/installed_bundle_cache_cli.rb extract-delta \
           --base-gemfile "$BASE_GEMFILE" \
-          --matrix "$MATRIX"
+          --matrix "$MATRIX" \
+          --strategy all-delta \
+          --snapshot /tmp/ddtrace-installed-base-snapshot.json \
+          --destination /tmp/ddtrace-installed-bundle-delta
     - id: statistics
-      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      if: steps.lifecycle.outputs.repair == 'true' && inputs.write-enabled == 'true'
       name: Measure installed bundle
       shell: bash
+      env:
+        CACHE_PATH: ${{ inputs.strategy == 'all-delta' && '/tmp/ddtrace-installed-bundle-delta' || '/usr/local/bundle' }}
       run: |
-        file_count=$(find /usr/local/bundle -type f | wc -l | tr -d ' ')
-        byte_count=$(du -sb /usr/local/bundle | cut -f1)
+        file_count=$(find "$CACHE_PATH" -type f | wc -l | tr -d ' ')
+        byte_count=$(du -sb "$CACHE_PATH" | cut -f1)
         { echo "file-count=$file_count"; echo "byte-count=$byte_count"; } >> "$GITHUB_OUTPUT"
     - id: save-start
-      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      if: steps.lifecycle.outputs.repair == 'true' && inputs.write-enabled == 'true'
       shell: bash
       run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
-    - name: Save exact installed bundle
-      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+    - name: Save installed bundle
+      if: steps.lifecycle.outputs.repair == 'true' && inputs.write-enabled == 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.cache-key }}
-        path: /usr/local/bundle
+        path: ${{ inputs.strategy == 'all-delta' && '/tmp/ddtrace-installed-bundle-delta' || '/usr/local/bundle' }}
     - id: save-duration
-      if: steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      if: steps.lifecycle.outputs.repair == 'true' && inputs.write-enabled == 'true'
       shell: bash
       env:
         START_SECONDS: ${{ steps.save-start.outputs.seconds }}
       run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"
+    - id: result
+      shell: bash
+      env:
+        INITIAL_STATUS: ${{ steps.lifecycle.outputs.status }}
+        WRITE_ENABLED: ${{ inputs.write-enabled }}
+      run: |
+        status="$INITIAL_STATUS"
+        ready=false
+        if [ "$status" = "exact" ]; then
+          ready=true
+        elif [ "$WRITE_ENABLED" = "true" ]; then
+          status=generated
+          ready=true
+        fi
+        { echo "status=$status"; echo "ready=$ready"; } >> "$GITHUB_OUTPUT"

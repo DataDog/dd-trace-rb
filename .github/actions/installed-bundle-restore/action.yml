@@ -1,16 +1,27 @@
 name: Restore installed matrix bundle
 
-description: Restore an exact installed matrix bundle built by the batch job
+description: Restore an installed matrix bundle built by the batch job
 
 inputs:
   cache-key:
     description: Exact installed bundle cache key
     required: true
+  restore-prefix:
+    description: Environment-specific partial restore prefix
+    required: false
+    default: ''
+  strategy:
+    description: Installed bundle architecture
+    required: false
+    default: full
 
 outputs:
   exact-hit:
     description: Whether exact installed bundle cache was restored
     value: ${{ steps.restore.outputs.cache-hit }}
+  matched-key:
+    description: Exact or partial cache key restored
+    value: ${{ steps.restore.outputs.cache-matched-key }}
   restore-seconds:
     description: Cache restore duration
     value: ${{ steps.duration.outputs.seconds }}
@@ -22,12 +33,17 @@ runs:
       shell: bash
       run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
     - id: restore
-      name: Restore exact installed bundle
+      name: Restore installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ inputs.cache-key }}
-        path: /usr/local/bundle
+        restore-keys: ${{ inputs.strategy == 'all-delta' && inputs.restore-prefix || '' }}
+        path: ${{ inputs.strategy == 'all-delta' && '/tmp/ddtrace-installed-bundle-delta' || '/usr/local/bundle' }}
         fail-on-cache-miss: true
+    - name: Apply installed bundle delta
+      if: inputs.strategy == 'all-delta'
+      shell: bash
+      run: cp -a /tmp/ddtrace-installed-bundle-delta/. /usr/local/bundle/
     - id: duration
       shell: bash
       env:

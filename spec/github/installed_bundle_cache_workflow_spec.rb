@@ -4,11 +4,19 @@ require "tempfile"
 require "yaml"
 
 RSpec.describe "installed bundle cache workflow" do
-  subject(:ready) { lifecycle_ready(exact_hit: exact_hit, write_enabled: write_enabled) }
+  subject(:lifecycle) do
+    lifecycle_result(exact_hit: exact_hit, matched_key: matched_key, write_enabled: write_enabled)
+  end
 
   let(:action) do
     YAML.safe_load_file(
       File.expand_path("../../.github/actions/installed-bundle-cache/action.yml", __dir__),
+      aliases: true,
+    )
+  end
+  let(:restore_action) do
+    YAML.safe_load_file(
+      File.expand_path("../../.github/actions/installed-bundle-restore/action.yml", __dir__),
       aliases: true,
     )
   end
@@ -20,98 +28,128 @@ RSpec.describe "installed bundle cache workflow" do
     )
   end
   let(:lifecycle_step) { steps.find { |step| step["id"] == "lifecycle" } }
-  let(:writer_steps) do
-    steps.select do |step|
-      [
-        "Reset installed bundle path",
-        "Install complete matrix bundle",
-        "Verify complete matrix bundle",
-        "Measure installed bundle",
-        "Save exact installed bundle",
-      ].include?(step["name"])
+  let(:result_step) { steps.find { |step| step["id"] == "result" } }
+
+  def run_output(script, environment)
+    Tempfile.create do |output|
+      env = environment.merge("GITHUB_OUTPUT" => output.path)
+      _stdout, stderr, status = Open3.capture3(env, "bash", "-c", script)
+      raise stderr unless status.success?
+
+      File.readlines(output.path, chomp: true).to_h { |line| line.split("=", 2) }
     end
   end
 
-  def lifecycle_ready(exact_hit:, write_enabled:)
-    Tempfile.create do |output|
-      environment = {
+  def lifecycle_result(exact_hit:, matched_key:, write_enabled:)
+    lifecycle_output = run_output(
+      lifecycle_step.fetch("run"),
+      {
         "EXACT_HIT" => exact_hit.to_s,
+        "MATCHED_KEY" => matched_key,
         "WRITE_ENABLED" => write_enabled.to_s,
-        "GITHUB_OUTPUT" => output.path,
-      }
-      _stdout, stderr, status = Open3.capture3(environment, "bash", "-c", lifecycle_step.fetch("run"))
-      raise stderr unless status.success?
+      },
+    )
+    result_output = run_output(
+      result_step.fetch("run"),
+      {
+        "INITIAL_STATUS" => lifecycle_output.fetch("status"),
+        "WRITE_ENABLED" => write_enabled.to_s,
+      },
+    )
 
-      File.read(output.path).strip == "ready=true"
-    end
+    lifecycle_output.merge(result_output)
   end
 
   context "with an exact hit" do
     let(:exact_hit) { true }
+    let(:matched_key) { "current-key" }
     let(:write_enabled) { false }
 
-    it { is_expected.to be(true) }
-
-    it "skips writer work" do
-      expect(writer_steps).to all(include("if" => "steps.restore.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'"))
-    end
+    it { is_expected.to include("status" => "exact", "ready" => "true", "repair" => "false") }
   end
 
   context "with a writable miss" do
     let(:exact_hit) { false }
+    let(:matched_key) { "" }
     let(:write_enabled) { true }
 
-    it { is_expected.to be(true) }
+    it { is_expected.to include("status" => "generated", "ready" => "true", "repair" => "true") }
 
     it "validates before saving" do
       names = steps.map { |step| step["name"] }
 
-      expect(names.index("Verify complete matrix bundle")).to be < names.index("Save exact installed bundle")
+      expect(names.index("Verify complete matrix bundle")).to be < names.index("Save installed bundle")
     end
+  end
+
+  context "with a read-only partial restore" do
+    let(:exact_hit) { false }
+    let(:matched_key) { "older-key" }
+    let(:write_enabled) { false }
+
+    it { is_expected.to include("status" => "partial", "ready" => "false", "repair" => "true") }
   end
 
   context "with a read-only miss" do
     let(:exact_hit) { false }
+    let(:matched_key) { "" }
     let(:write_enabled) { false }
 
-    it { is_expected.to be(false) }
+    it { is_expected.to include("status" => "miss", "ready" => "false", "repair" => "false") }
   end
 
-  context "with a selected experimental runtime" do
-    it "remains disabled for reusable workflow calls by default" do
+  it "restores deltas only through the environment-specific prefix" do
+    restore = steps.find { |step| step["id"] == "restore" }
+
+    expect(restore.fetch("with").fetch("restore-keys")).to include("steps.manifest.outputs.restore-prefix")
+    expect(restore.fetch("with").fetch("restore-keys")).not_to include("cache-schema")
+  end
+
+  it "applies restored deltas over the installed base" do
+    apply = steps.find { |step| step["name"] == "Apply installed bundle delta" }
+
+    expect(apply.fetch("if")).to include("inputs.strategy == 'all-delta'")
+    expect(apply.fetch("run")).to include("cp -a /tmp/ddtrace-installed-bundle-delta/. /usr/local/bundle/")
+  end
+
+  it "makes child delta restores use the same environment-specific prefix" do
+    restore = restore_action.fetch("runs").fetch("steps").find { |step| step["id"] == "restore" }
+
+    expect(restore.fetch("with").fetch("restore-keys")).to include("inputs.restore-prefix")
+  end
+
+  context "with an installed-cache strategy selector" do
+    it "defaults reusable workflow calls to disabled" do
       inputs = workflow.fetch(true).fetch("workflow_call").fetch("inputs")
 
-      expect(inputs.fetch("installed-matrix-cache").fetch("default")).to be(false)
+      expect(inputs.fetch("installed-cache-strategy").fetch("default")).to eq("disabled")
     end
 
-    it "does not restrict the installed cache to one Ruby version" do
-      batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
-      preparation = batch_steps.find { |step| step["name"] == "Prepare installed matrix bundle cache" }
-      fallback_gemfile = batch_steps.find { |step| step["name"] == "Distribute tasks into batches" }
-        .fetch("env").fetch("FALLBACK_GEMFILE")
+    it "offers full and all-delta experiments for direct dispatch" do
+      inputs = workflow.fetch(true).fetch("workflow_dispatch").fetch("inputs")
 
-      expect(preparation.fetch("if")).to eq("inputs.installed-matrix-cache")
-      expect(fallback_gemfile).to include("inputs.installed-matrix-cache")
-      expect(fallback_gemfile).not_to include("inputs.version == '4.0'")
+      expect(inputs.fetch("installed-cache-strategy").fetch("options")).to eq(
+        %w[disabled full all-delta]
+      )
+    end
+
+    it "prepares the base cache before an all-delta installed cache" do
+      batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
+      names = batch_steps.map { |step| step["name"] }
+      base = batch_steps.find { |step| step["name"] == "Prepare bundle cache" }
+      installed = batch_steps.find { |step| step["name"] == "Prepare installed matrix bundle cache" }
+
+      expect(names.index("Prepare bundle cache")).to be < names.index("Prepare installed matrix bundle cache")
+      expect(base.fetch("if")).to include("!= 'full'")
+      expect(installed.fetch("with").fetch("base-cache-key")).to include("steps.bundle-cache.outputs.cache-key")
+      expect(installed.fetch("with").fetch("cache-schema")).to include("bundle-installed-matrix-s2-v1-all-delta")
     end
 
     it "keeps downloaded-package work out of installed-cache runs" do
       batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
       package_steps = batch_steps.select { |step| step.fetch("name", "").include?("package cache") }
 
-      expect(package_steps).to all(include("if" => include("!inputs.installed-matrix-cache")))
-    end
-  end
-
-  context "with an invalid writer generation" do
-    let(:exact_hit) { false }
-    let(:write_enabled) { true }
-
-    it "does not ignore validation failure" do
-      verification = steps.find { |step| step["name"] == "Verify complete matrix bundle" }
-
-      expect(verification).not_to include("continue-on-error")
-      expect(verification.fetch("if")).not_to include("always()")
+      expect(package_steps).to all(include("if" => include("inputs.installed-cache-strategy == 'disabled'")))
     end
   end
 end
