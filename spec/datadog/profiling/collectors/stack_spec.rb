@@ -430,6 +430,19 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
 
+      if RubyVersion.is?(">= 4.1")
+        # Ruby 4.1 labels the copied native method by its original BigDecimal owner; we still use the anonymous copy.
+        let(:reference_stack_with_module_names) do
+          super().map do |frame|
+            if frame.label == "BigDecimal.save_rounding_mode"
+              frame.dup.tap { |it| it.label = "save_rounding_mode" }
+            else
+              frame
+            end
+          end
+        end
+      end
+
       include_examples "matches the Ruby backtrace API"
 
       context "when native filenames are enabled" do

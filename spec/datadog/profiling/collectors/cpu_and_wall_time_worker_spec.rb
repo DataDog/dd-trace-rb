@@ -952,7 +952,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         expect(total_samples).to eq test_num_allocated_object
 
-        expected_size_of_object = 40 # 40 is the size of a basic object and we have test_num_allocated_object of them
+        # Each of the test_num_allocated_object structs is 40 bytes before Ruby 4.1 and 32 bytes on Ruby 4.1+.
+        # Keep these values hardcoded so we notice size changes.
+        expected_size_of_object = RubyVersion.is?(">= 4.1") ? 32 : 40
 
         expect(total_size).to eq test_num_allocated_object * expected_size_of_object
       end
