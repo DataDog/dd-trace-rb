@@ -597,6 +597,10 @@ module Datadog
           next unless user_code_path?(location[0])
 
           build_instance_method_scope(klass, method_name, method)
+        rescue Exception => e # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(e)
+          @logger.debug { "symdb: error resolving #{safe_mod_name(klass)}##{method_name}: #{e.class}: #{e.message}" }
+          nil
         end
       rescue Exception => e # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)

@@ -1564,6 +1564,38 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     end
   end
 
+  describe ".extract when one method fails to resolve mid-extraction" do
+    before do
+      @filename = create_user_code_file(<<~RUBY)
+        class TestClassWithFlakyMethod
+          def alpha; end
+          def beta; end
+        end
+      RUBY
+      load @filename
+    end
+
+    after do
+      Object.send(:remove_const, :TestClassWithFlakyMethod) if defined?(TestClassWithFlakyMethod)
+      cleanup_user_code_file(@filename)
+    end
+
+    it "isolates the failure to that method and still extracts the surviving methods" do
+      # A name collected from instance_methods that no longer resolves at lookup
+      # raises NameError during resolution. The surviving methods must still
+      # produce METHOD scopes rather than the whole class being discarded.
+      allow(TestClassWithFlakyMethod).to receive(:instance_methods).with(false)
+        .and_return([:alpha, :beta, :vanished_method])
+
+      file_scope = extractor.extract(TestClassWithFlakyMethod)
+
+      expect(file_scope).not_to be_nil
+      class_scope = file_scope.scopes.first
+      method_names = class_scope.scopes.select { |s| s.scope_type == "METHOD" }.map(&:name)
+      expect(method_names).to include("alpha", "beta")
+    end
+  end
+
   describe "class/module defined across multiple files (reopening)" do
     # Case 12 & 13 from SYMBOL_EXTRACTION_CASES.md
     # Ruby allows reopening a class or module in multiple files. All methods from all
