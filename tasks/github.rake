@@ -1,48 +1,12 @@
 require "json"
-require_relative "appraisal_conversion"
+require_relative "github_matrix"
 
 # rubocop:disable Metrics/BlockLength
 namespace :github do
   task :generate_batches do
-    matrix = eval(File.read("Matrixfile")).freeze # rubocop:disable Security/Eval
-
-    # TODO: These are the execptions, find a way to describe those service dependencies in CI using a more generic mechansim.
-    misc_candidates = [
-      "mongodb",
-      "elasticsearch",
-      "opensearch",
-      "presto",
-      "dalli",
-    ]
-
-    ruby_version = RUBY_VERSION[0..2]
-
-    matching_tasks = []
-    misc_tasks = []
-
-    matrix.each do |key, spec_metadata|
-      spec_metadata.each do |group, rubies|
-        matched = rubies.include?("✅ #{ruby_version}")
-
-        next unless matched
-
-        gemfile = begin
-          AppraisalConversion.to_bundle_gemfile(group)
-        rescue
-          "Gemfile"
-        end
-
-        task = {task: key, group: group, gemfile: gemfile}
-
-        if misc_candidates.include?(key)
-          misc_tasks << task
-        else
-          matching_tasks << task
-        end
-      end
-    end
-
-    # Seed
+    matrix = GithubMatrix.new
+    matching_tasks = matrix.standard_tasks
+    misc_tasks = matrix.misc_tasks
     batch_count = 7
 
     tasks_per_job = (matching_tasks.size.to_f / batch_count).ceil

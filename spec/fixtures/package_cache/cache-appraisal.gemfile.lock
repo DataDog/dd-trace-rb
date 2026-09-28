@@ -1,0 +1,22 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    excon (1.7.1)
+      logger
+    logger (1.7.0)
+
+PLATFORMS
+  ruby
+  x86_64-linux
+
+DEPENDENCIES
+  excon (= 1.7.1)
+  logger (= 1.7.0)
+
+CHECKSUMS
+  bundler (4.0.19) sha256=b48056e4c77fb3853cc47775b5447ede44aaa4f53c32f168014ab4fe86587d47
+  excon (1.7.1) sha256=dd2d870eece1b5ce4e4f9efd938e67a69ccd8c003c3825b638b937e1082eaac2
+  logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
+
+BUNDLED WITH
+  4.0.19

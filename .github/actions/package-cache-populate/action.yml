@@ -1,0 +1,66 @@
+name: Populate package cache
+
+description: Download, prune, and validate packages from committed lockfiles
+
+inputs:
+  manifest-path:
+    description: Package manifest path
+    required: true
+  cache-path:
+    description: Downloaded package cache path
+    required: false
+    default: /tmp/ddtrace-bundle-package-cache
+
+outputs:
+  file-count:
+    description: Package archive file count
+    value: ${{ steps.populate.outputs.file-count }}
+  byte-count:
+    description: Package archive byte count
+    value: ${{ steps.populate.outputs.byte-count }}
+  downloaded-file-count:
+    description: RubyGems archive files downloaded during population
+    value: ${{ steps.populate.outputs.downloaded-file-count }}
+  downloaded-byte-count:
+    description: RubyGems archive bytes downloaded during population
+    value: ${{ steps.populate.outputs.downloaded-byte-count }}
+  duration-seconds:
+    description: Population duration
+    value: ${{ steps.populate.outputs.duration-seconds }}
+
+runs:
+  using: composite
+  steps:
+    - id: populate
+      name: Populate and validate downloaded packages
+      shell: bash
+      env:
+        CACHE_PATH: ${{ inputs.cache-path }}
+        MANIFEST_PATH: ${{ inputs.manifest-path }}
+      run: |
+        start=$SECONDS
+        ruby -rjson -rpathname -e '
+          manifest = JSON.parse(File.read(ENV.fetch("MANIFEST_PATH")))
+          cache_path = Pathname(ENV.fetch("CACHE_PATH"))
+          missing = manifest.fetch("package_filenames").reject { |name| cache_path.join(name).file? }
+          File.write("/tmp/ddtrace-bundle-package-downloads.json", JSON.generate(missing))
+        '
+        ruby tasks/package_cache_cli.rb populate --manifest "$MANIFEST_PATH" --path "$CACHE_PATH"
+        ruby tasks/package_cache_cli.rb prune --manifest "$MANIFEST_PATH" --path "$CACHE_PATH"
+        ruby tasks/package_cache_cli.rb validate --manifest "$MANIFEST_PATH" --path "$CACHE_PATH"
+        after=$(ruby tasks/package_cache_cli.rb statistics --manifest "$MANIFEST_PATH" --path "$CACHE_PATH")
+        export AFTER="$after"
+        export DURATION="$((SECONDS - start))"
+        ruby -rjson -rpathname -e '
+          after = JSON.parse(ENV.fetch("AFTER"))
+          cache_path = Pathname(ENV.fetch("CACHE_PATH"))
+          downloaded = JSON.parse(File.read("/tmp/ddtrace-bundle-package-downloads.json"))
+          downloaded_bytes = downloaded.sum { |name| cache_path.join(name).size }
+          File.open(ENV.fetch("GITHUB_OUTPUT"), "a") do |output|
+            output.puts("file-count=#{after.fetch("file_count")}")
+            output.puts("byte-count=#{after.fetch("byte_count")}")
+            output.puts("downloaded-file-count=#{downloaded.length}")
+            output.puts("downloaded-byte-count=#{downloaded_bytes}")
+            output.puts("duration-seconds=#{ENV.fetch("DURATION")}")
+          end
+        '
