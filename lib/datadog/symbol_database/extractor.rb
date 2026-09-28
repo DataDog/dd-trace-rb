@@ -2,6 +2,7 @@
 
 require_relative "scope"
 require_relative "symbol"
+require_relative "method_record"
 require_relative "file_hash"
 require_relative "../core/utils/enumerable_compat"
 require_relative "../di/fatal_exceptions"
@@ -528,15 +529,15 @@ module Datadog
       # Calculate the class line range from method records: the earliest
       # public/protected method start to the latest public/protected method end.
       # Private methods are excluded.
-      # @param method_records [Array<Hash>]
+      # @param method_records [Array<MethodRecord>]
       # @return [Array<Integer, Integer>] [start_line, end_line]
       def calculate_class_line_range(method_records)
         starts = []
         ends = []
         method_records.each do |record|
-          next if record[:visibility] == "private"
-          starts << record[:start_line]
-          ends << record[:end_line]
+          next if record.visibility == "private"
+          starts << record.start_line
+          ends << record.end_line
         end
 
         return [UNKNOWN_MIN_LINE, UNKNOWN_MAX_LINE] if starts.empty?
@@ -598,7 +599,7 @@ module Datadog
       # analysis, visibility, arity, and parameters, so calculate_class_line_range
       # and build_method_scopes reuse one resolution per method.
       # @param klass [Class]
-      # @return [Array<Hash>] one record per method with a source location
+      # @return [Array<MethodRecord>] one record per method with a source location
       def build_method_records(klass)
         method_names = (klass.instance_methods(false) +
           klass.protected_instance_methods(false) +
@@ -623,7 +624,7 @@ module Datadog
               [nil, start_line]
             end
 
-          {
+          MethodRecord.new(
             name: method_name,
             source_file: source_file,
             start_line: start_line,
@@ -633,7 +634,7 @@ module Datadog
             arity: method.arity,
             parameters: extract_method_parameters(method),
             user_code: user_code,
-          }
+          )
         rescue Exception => e # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(e)
           @logger.debug { "symdb: failed to extract method #{safe_mod_name(klass)}##{method_name}: #{e.class}: #{e.message}" }
@@ -643,25 +644,25 @@ module Datadog
 
       # Build METHOD scopes for the user-code methods among +method_records+.
       # Methods whose source file is not user code are skipped.
-      # @param method_records [Array<Hash>]
+      # @param method_records [Array<MethodRecord>]
       # @return [Array<Scope>]
       def build_method_scopes(method_records)
         method_records.filter_map do |record|
-          next unless record[:user_code]
+          next unless record.user_code
 
           Scope.new(
             scope_type: "METHOD",
-            name: record[:name].to_s,
-            source_file: record[:source_file],
-            start_line: record[:start_line],
-            end_line: record[:end_line],
-            targetable_lines: record[:targetable_lines],
+            name: record.name.to_s,
+            source_file: record.source_file,
+            start_line: record.start_line,
+            end_line: record.end_line,
+            targetable_lines: record.targetable_lines,
             language_specifics: {
-              visibility: record[:visibility],
+              visibility: record.visibility,
               method_type: "instance",
-              arity: record[:arity],
+              arity: record.arity,
             },
-            symbols: record[:parameters]
+            symbols: record.parameters
           )
         end
       rescue Exception => e # standard:disable Lint/RescueException

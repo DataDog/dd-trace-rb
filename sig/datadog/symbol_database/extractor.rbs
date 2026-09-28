@@ -59,13 +59,13 @@ module Datadog
 
       def extract_class_scope: (Class klass, String source_file) -> Scope
 
-      def calculate_class_line_range: (Array[Hash[::Symbol, untyped]] method_records) -> [Integer, Integer]
+      def calculate_class_line_range: (Array[MethodRecord] method_records) -> [Integer, Integer]
 
       def build_class_language_specifics: (Class klass) -> language_specifics
 
-      def build_method_records: (Class klass) -> ::Array[Hash[::Symbol, untyped]]
+      def build_method_records: (Class klass) -> ::Array[MethodRecord]
 
-      def build_method_scopes: (::Array[Hash[::Symbol, untyped]] method_records) -> ::Array[Scope]
+      def build_method_scopes: (::Array[MethodRecord] method_records) -> ::Array[Scope]
 
       def method_visibility: (Class klass, ::Symbol method_name) -> String
 
