@@ -20,6 +20,10 @@ on: # yamllint disable-line rule:truthy
         required: false
         type: string
         default: disabled
+      installed-cache-key-variant:
+        required: false
+        type: string
+        default: ''
       test-seed:
         required: false
         type: string
@@ -70,6 +74,11 @@ on: # yamllint disable-line rule:truthy
           - full
           - all-delta
         default: disabled
+      installed-cache-key-variant:
+        description: "Content-key variant for partial-restore lifecycle tests"
+        required: false
+        type: string
+        default: ''
       test-seed:
         description: "Fixed test seed for comparable experimental runs"
         required: false
@@ -124,6 +133,7 @@ jobs:
           base-gemfile: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
           base-cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
           cache-schema: ${{ inputs.installed-cache-strategy == 'all-delta' && 'bundle-installed-matrix-s2-v1-all-delta' || 'bundle-installed-matrix-test-v2-all-full' }}
+          experiment-variant: ${{ inputs.installed-cache-key-variant }}
           image-identity: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
           strategy: ${{ inputs.installed-cache-strategy }}
           write-enabled: ${{ inputs.package-cache-write }}

@@ -70,7 +70,7 @@ class InstalledBundleCache
     }
   end
 
-  def content(base_cache_key: nil)
+  def content(base_cache_key: nil, experiment_variant: nil)
     members = content_gemfiles.flat_map do |gemfile|
       [gemfile, lockfile_for(gemfile)]
     end.sort.map do |path|
@@ -82,6 +82,7 @@ class InstalledBundleCache
 
     content = {"members" => members}
     content["base_cache_key"] = required_base_cache_key(base_cache_key) if strategy == "all-delta"
+    content["experiment_variant"] = experiment_variant unless experiment_variant.to_s.empty?
     content
   end
 
@@ -89,15 +90,15 @@ class InstalledBundleCache
     digest_json(environment(image_identity: image_identity))
   end
 
-  def content_digest(base_cache_key: nil)
-    digest_json(content(base_cache_key: base_cache_key))
+  def content_digest(base_cache_key: nil, experiment_variant: nil)
+    digest_json(content(base_cache_key: base_cache_key, experiment_variant: experiment_variant))
   end
 
-  def cache_key(cache_schema:, image_identity:, base_cache_key: nil)
+  def cache_key(cache_schema:, image_identity:, base_cache_key: nil, experiment_variant: nil)
     [
       cache_schema,
       environment_digest(image_identity: image_identity),
-      content_digest(base_cache_key: base_cache_key),
+      content_digest(base_cache_key: base_cache_key, experiment_variant: experiment_variant),
     ].join("-")
   end
 
@@ -105,7 +106,7 @@ class InstalledBundleCache
     "#{cache_schema}-#{environment_digest(image_identity: image_identity)}-"
   end
 
-  def to_h(cache_schema:, image_identity:, base_cache_key: nil)
+  def to_h(cache_schema:, image_identity:, base_cache_key: nil, experiment_variant: nil)
     {
       cache_schema: cache_schema,
       strategy: strategy,
@@ -113,12 +114,13 @@ class InstalledBundleCache
         cache_schema: cache_schema,
         image_identity: image_identity,
         base_cache_key: base_cache_key,
+        experiment_variant: experiment_variant,
       ),
       restore_prefix: restore_prefix(cache_schema: cache_schema, image_identity: image_identity),
       environment: environment(image_identity: image_identity),
-      content: content(base_cache_key: base_cache_key),
+      content: content(base_cache_key: base_cache_key, experiment_variant: experiment_variant),
       environment_digest: environment_digest(image_identity: image_identity),
-      content_digest: content_digest(base_cache_key: base_cache_key),
+      content_digest: content_digest(base_cache_key: base_cache_key, experiment_variant: experiment_variant),
       base_gemfile: relative_path(base_gemfile),
       applicable_gemfiles: applicable_gemfiles.map { |path| relative_path(path) },
     }

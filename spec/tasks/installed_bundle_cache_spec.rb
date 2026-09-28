@@ -90,6 +90,15 @@ RSpec.describe InstalledBundleCache do
     expect(cache.content_digest).not_to eq(original)
   end
 
+  it "changes only the content digest for an experimental key variant" do
+    original_environment = cache.environment_digest(image_identity: "image-a")
+    original_content = cache.content_digest
+    variant_content = cache.content_digest(experiment_variant: "generation-b")
+
+    expect(variant_content).not_to eq(original_content)
+    expect(cache.environment_digest(image_identity: "image-a")).to eq(original_environment)
+  end
+
   it "sorts content members by repository-relative path" do
     paths = cache.content.fetch("members").map { |member| member.fetch("path") }
 

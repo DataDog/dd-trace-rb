@@ -24,6 +24,10 @@ inputs:
     description: Installed bundle architecture
     required: false
     default: full
+  experiment-variant:
+    description: Optional content-key variant for partial-restore lifecycle tests
+    required: false
+    default: ''
   write-enabled:
     description: Whether a miss may build and save current bundle
     required: false
@@ -74,6 +78,7 @@ runs:
         BASE_CACHE_KEY: ${{ inputs.base-cache-key }}
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
         CACHE_SCHEMA: ${{ inputs.cache-schema }}
+        EXPERIMENT_VARIANT: ${{ inputs.experiment-variant }}
         IMAGE_IDENTITY: ${{ inputs.image-identity }}
         MATRIX: ${{ inputs.matrix }}
         STRATEGY: ${{ inputs.strategy }}
@@ -84,6 +89,7 @@ runs:
           --cache-schema "$CACHE_SCHEMA" \
           --image-identity "$IMAGE_IDENTITY" \
           --base-cache-key "$BASE_CACHE_KEY" \
+          --experiment-variant "$EXPERIMENT_VARIANT" \
           --strategy "$STRATEGY" > /tmp/ddtrace-installed-bundle-manifest.json
         ruby -rjson -e '
           manifest = JSON.parse(File.read("/tmp/ddtrace-installed-bundle-manifest.json"))

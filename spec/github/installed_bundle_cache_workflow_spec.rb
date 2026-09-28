@@ -133,6 +133,15 @@ RSpec.describe "installed bundle cache workflow" do
       )
     end
 
+    it "passes the experimental content-key variant to the cache action" do
+      batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
+      installed = batch_steps.find { |step| step["name"] == "Prepare installed matrix bundle cache" }
+
+      expect(installed.fetch("with").fetch("experiment-variant")).to include(
+        "inputs.installed-cache-key-variant"
+      )
+    end
+
     it "prepares the base cache before an all-delta installed cache" do
       batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
       names = batch_steps.map { |step| step["name"] }

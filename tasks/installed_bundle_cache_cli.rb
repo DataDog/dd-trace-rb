@@ -18,6 +18,7 @@ parser = OptionParser.new do |opts|
   opts.on("--cache-schema VALUE") { |value| options[:cache_schema] = value }
   opts.on("--image-identity VALUE") { |value| options[:image_identity] = value }
   opts.on("--base-cache-key VALUE") { |value| options[:base_cache_key] = value }
+  opts.on("--experiment-variant VALUE") { |value| options[:experiment_variant] = value }
   opts.on("--strategy VALUE") { |value| options[:strategy] = value }
   opts.on("--installed-path PATH") { |value| options[:installed_path] = value }
   opts.on("--snapshot PATH") { |value| options[:snapshot] = value }
@@ -48,6 +49,7 @@ when "manifest"
       cache_schema: options[:cache_schema],
       image_identity: options[:image_identity],
       base_cache_key: options[:base_cache_key],
+      experiment_variant: options[:experiment_variant],
     )
   )
 when "install"
