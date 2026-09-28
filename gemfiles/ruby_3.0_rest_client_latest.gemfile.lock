@@ -30,7 +30,7 @@ GEM
     diff-lcs (1.6.2)
     docile (1.4.1)
     dogstatsd-ruby (5.7.1)
-    domain_name (0.6.20260907)
+    domain_name (0.6.20260921)
     ffi (1.17.4)
     ffi (1.17.4-aarch64-linux-gnu)
     ffi (1.17.4-aarch64-linux-musl)
@@ -76,7 +76,7 @@ GEM
     mime-types (3.7.0)
       logger
       mime-types-data (~> 3.2025, >= 3.2025.0507)
-    mime-types-data (3.2026.0921)
+    mime-types-data (3.2026.0922)
     msgpack (1.8.5)
     netrc (0.11.0)
     os (1.1.4)

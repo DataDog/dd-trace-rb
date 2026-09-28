@@ -15,7 +15,7 @@ GEM
     addressable (2.9.0)
       public_suffix (>= 2.0.2, < 8.0)
     aws-eventstream (1.4.0)
-    aws-partitions (1.1287.0)
+    aws-partitions (1.1290.0)
     aws-sdk (3.1.0)
       aws-sdk-resources (~> 3)
     aws-sdk-accessanalyzer (1.39.0)
@@ -1597,7 +1597,7 @@ DEPENDENCIES
 CHECKSUMS
   addressable (2.9.0) sha256=7fdf6ac3660f7f4e867a0838be3f6cf722ace541dd97767fa42bc6cfa980c7af
   aws-eventstream (1.4.0) sha256=116bf85c436200d1060811e6f5d2d40c88f65448f2125bc77ffce5121e6e183b
-  aws-partitions (1.1287.0) sha256=76f4c73011654553566c5db5bbef0f24738bb016e923910e8b1b3f9cb7d989ca
+  aws-partitions (1.1290.0) sha256=44613571eda66decddca594c10c9cee354ce819842b5724ca4fb5115e2f06811
   aws-sdk (3.1.0) sha256=fecbc05fceb55c162ce99e3cc27208021af83eadf3fe19359136d9ab70561279
   aws-sdk-accessanalyzer (1.39.0) sha256=5953fe7d44c56031284112816f0130154d4e8e8bfb2cc2c0676e4d3be5934fc9
   aws-sdk-account (1.17.0) sha256=6740f0d533c50da024f52894d39c0eda1636e61dddf5c9b022eb56c0bef1e20b

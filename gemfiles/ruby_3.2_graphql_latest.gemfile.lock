@@ -120,7 +120,7 @@ GEM
     google-protobuf (3.25.8-x86-linux)
     google-protobuf (3.25.8-x86_64-darwin)
     google-protobuf (3.25.8-x86_64-linux)
-    graphql (2.6.10)
+    graphql (2.6.11)
       base64
       fiber-storage
       logger
@@ -414,7 +414,7 @@ CHECKSUMS
   google-protobuf (3.25.8-x86-linux) sha256=288ffaaec53c9f666582cd0a5d42395fea6b7c15458c1f9d64a295ca174c0233
   google-protobuf (3.25.8-x86_64-darwin) sha256=9c9e8c1c760eeb314fd6bcba1b0fb1e64c473fc9e2040c8992df61874974c108
   google-protobuf (3.25.8-x86_64-linux) sha256=07783d910635e2a60eaf929fe3e45ea4d657d023be3816bda99a21c14f7be959
-  graphql (2.6.10) sha256=9b7c8633767f516ff9d48a8d6305b2a00a2101c82aa871b92e69086944f9f83e
+  graphql (2.6.11) sha256=9a9cde910e805c4c08fdf8d22bf129e935affc9ca8b4f9b2ec26b4b63666b15d
   hashdiff (1.2.1) sha256=9c079dbc513dfc8833ab59c0c2d8f230fa28499cc5efb4b8dd276cf931457cd1
   i18n (1.15.2) sha256=00f9eb62412fe593b2a65a97daa75300d37abb8f7202ec748e94b6d46a9dd1b5
   io-console (0.9.4) sha256=a403304f32928ee85e56d457b4612ca43f2703b561a3258844992bd24085fbb1
