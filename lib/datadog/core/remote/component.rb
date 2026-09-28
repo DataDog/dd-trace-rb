@@ -108,7 +108,6 @@ module Datadog
           end
           @healthy = false
           logger.debug { "remote configuration client recreated after fork: #{new_client.id} products: #{@capabilities.products.sort.join(", ")}" }
-          @worker.after_fork
         end
 
         def add_products(*products)
