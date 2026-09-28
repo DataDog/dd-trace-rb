@@ -16,7 +16,7 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
           content: "Running commands",
           tool_calls: {
             "call_1" => RubyLLM::ToolCall.new(id: "call_1", name: "shell", arguments: {"command" => "ls /"}),
-            "call_2" => RubyLLM::ToolCall.new(id: "call_2", name: "search", arguments: {"query" => "secret"})
+            "call_2" => RubyLLM::ToolCall.new(id: "call_2", name: "search", arguments: {"query" => "secret"}),
           }
         )
       end
@@ -43,7 +43,7 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
           content: "Inspect these files",
           attachments: [
             RubyLLM::Attachment.new(StringIO.new("Account 123"), filename: "notes.txt"),
-            RubyLLM::Attachment.new(StringIO.new("\x89PNG\r\n\x1A\n".b), filename: "photo.png")
+            RubyLLM::Attachment.new(StringIO.new("\x89PNG\r\n\x1A\n".b), filename: "photo.png"),
           ]
         )
       end
@@ -70,7 +70,7 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
           role: :assistant,
           content: "Running the command",
           tool_calls: {
-            "call_1" => RubyLLM::ToolCall.new(id: "call_1", name: "shell", arguments: recursive_arguments)
+            "call_1" => RubyLLM::ToolCall.new(id: "call_1", name: "shell", arguments: recursive_arguments),
           }
         )
       end
@@ -212,7 +212,7 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
 
         [
           ai_guard_messages[0].with_content("Account <REDACTED>"),
-          ai_guard_messages[1].with_tool_calls(redacted_tool_calls)
+          ai_guard_messages[1].with_tool_calls(redacted_tool_calls),
         ]
       end
 

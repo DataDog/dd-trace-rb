@@ -153,7 +153,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
         attachments: [
           RubyLLM::Attachment.new(
             StringIO.new(Base64.decode64("iVBORw0KGgo=")), filename: "photo.png"
-          )
+          ),
         ]
       )
     end
@@ -220,11 +220,11 @@ RSpec.describe "RubyLLM chat instrumentation" do
             "redaction_replacements" => [
               {
                 "path" => "messages[0].content[1].text",
-                "replacement" => "Account <REDACTED>"
-              }
-            ]
-          }
-        }
+                "replacement" => "Account <REDACTED>",
+              },
+            ],
+          },
+        },
       }
     end
 
@@ -265,7 +265,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
         attachments: [
           RubyLLM::Attachment.new(
             StringIO.new(Base64.decode64("iVBORw0KGgo=")), filename: "photo.png"
-          )
+          ),
         ]
       )
     end
@@ -419,7 +419,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
         tool_calls: {
           "tool_call_1" => RubyLLM::ToolCall.new(
             id: "tool_call_1", name: "shell", arguments: {"command" => "ls /"}
-          )
+          ),
         }
       )
     end
@@ -447,7 +447,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
             id: "tool_call_1",
             name: "shell",
             arguments: {"command" => "ls /"}
-          )
+          ),
         }
       )
     end
@@ -492,11 +492,11 @@ RSpec.describe "RubyLLM chat instrumentation" do
             "redaction_replacements" => [
               {
                 "path" => "messages[0].tool_calls[0].function.arguments",
-                "replacement" => "invalid"
-              }
-            ]
-          }
-        }
+                "replacement" => "invalid",
+              },
+            ],
+          },
+        },
       }
     end
 
@@ -584,11 +584,11 @@ RSpec.describe "RubyLLM chat instrumentation" do
             "redaction_replacements" => [
               {
                 "path" => "messages[0].tool_calls[0].function.arguments",
-                "replacement" => "invalid"
-              }
-            ]
-          }
-        }
+                "replacement" => "invalid",
+              },
+            ],
+          },
+        },
       }
     end
 

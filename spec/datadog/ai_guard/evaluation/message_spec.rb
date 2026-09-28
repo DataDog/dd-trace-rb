@@ -66,7 +66,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
           role: :assistant,
           content: "Running tools",
           tool_calls: [
-            Datadog::AIGuard::Evaluation::ToolCall.new("first", id: "call-1", arguments: '{"path":"~"}')
+            Datadog::AIGuard::Evaluation::ToolCall.new("first", id: "call-1", arguments: '{"path":"~"}'),
           ]
         )
       end
@@ -86,7 +86,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
           role: :assistant,
           tool_calls: [
             Datadog::AIGuard::Evaluation::ToolCall.new("first", id: "call-1", arguments: "{}"),
-            Datadog::AIGuard::Evaluation::ToolCall.new("second", id: "call-2", arguments: '{"value":2}')
+            Datadog::AIGuard::Evaluation::ToolCall.new("second", id: "call-2", arguments: '{"value":2}'),
           ]
         )
       end
@@ -96,7 +96,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
           role: :assistant,
           tool_calls: [
             {id: "call-1", function: {name: "first", arguments: "{}"}},
-            {id: "call-2", function: {name: "second", arguments: '{"value":2}'}}
+            {id: "call-2", function: {name: "second", arguments: '{"value":2}'}},
           ]
         )
       end

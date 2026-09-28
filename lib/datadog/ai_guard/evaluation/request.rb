@@ -19,9 +19,9 @@ module Datadog
                 meta: {
                   service: Datadog.configuration.service,
                   env: Datadog.configuration.env,
-                }
-              }
-            }
+                },
+              },
+            },
           }
         end
       end

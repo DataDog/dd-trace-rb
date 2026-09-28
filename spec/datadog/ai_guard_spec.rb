@@ -231,7 +231,7 @@ RSpec.describe Datadog::AIGuard do
     let(:tool_calls) do
       [
         described_class.tool_call(name: "git", id: "git-1", arguments: {}),
-        described_class.tool_call(name: "notify", id: "notify-1", arguments: {})
+        described_class.tool_call(name: "notify", id: "notify-1", arguments: {}),
       ]
     end
     let(:message) { described_class.assistant(content: "Running git", tool_calls: tool_calls) }

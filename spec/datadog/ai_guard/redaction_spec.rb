@@ -71,14 +71,14 @@ RSpec.describe Datadog::AIGuard::Redaction do
             role: :assistant,
             content: "Account 123",
             tool_calls: tool_calls
-          )
+          ),
         ]
       end
       let(:tool_calls) do
         [
           Datadog::AIGuard::Evaluation::ToolCall.new(
             "lookup_account", id: "call-1", arguments: '{"account":"123"}'
-          )
+          ),
         ]
       end
       let(:replacements) do
@@ -147,7 +147,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
                 "lookup_user",
                 id: "call-2",
                 arguments: '{"email":"person@example.com"}'
-              )
+              ),
             ]
           ),
         ]
@@ -327,7 +327,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
                 "send_email",
                 id: "call-1",
                 arguments: '{"to":"person@example.com"}'
-              )
+              ),
             ]
           ),
         ]

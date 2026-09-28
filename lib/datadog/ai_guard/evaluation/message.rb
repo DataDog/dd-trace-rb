@@ -33,7 +33,7 @@ module Datadog
           serialized = {
             role: role,
             content: content.is_a?(::Array) ? content.map(&:to_h) : content,
-            tool_call_id: tool_call_id
+            tool_call_id: tool_call_id,
           }
 
           serialized[:tool_calls] = tool_calls.map(&:to_h) unless tool_calls.empty?
