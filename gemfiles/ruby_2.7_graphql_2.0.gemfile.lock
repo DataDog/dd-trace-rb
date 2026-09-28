@@ -73,7 +73,7 @@ GEM
       zeitwerk (~> 2.3)
     addressable (2.9.0)
       public_suffix (>= 2.0.2, < 8.0)
-    base64 (0.2.0)
+    base64 (0.3.0)
     benchmark-ips (2.15.1)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -256,7 +256,7 @@ GEM
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
     zeitwerk (2.6.16)
-    zstd-ruby (2.0.9)
+    zstd-ruby (2.0.10)
 
 PLATFORMS
   aarch64-linux

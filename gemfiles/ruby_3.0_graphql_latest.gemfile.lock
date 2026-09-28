@@ -114,7 +114,7 @@ GEM
     google-protobuf (3.25.8-x86-linux)
     google-protobuf (3.25.8-x86_64-darwin)
     google-protobuf (3.25.8-x86_64-linux)
-    graphql (2.6.10)
+    graphql (2.6.11)
       base64
       fiber-storage
       logger
@@ -280,7 +280,7 @@ GEM
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
     zeitwerk (2.6.18)
-    zstd-ruby (2.0.9)
+    zstd-ruby (2.0.10)
 
 PLATFORMS
   aarch64-linux

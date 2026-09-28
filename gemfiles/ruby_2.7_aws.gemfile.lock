@@ -15,7 +15,7 @@ GEM
     addressable (2.9.0)
       public_suffix (>= 2.0.2, < 8.0)
     aws-eventstream (1.4.0)
-    aws-partitions (1.1287.0)
+    aws-partitions (1.1290.0)
     aws-sdk (3.1.0)
       aws-sdk-resources (~> 3)
     aws-sdk-accessanalyzer (1.39.0)
@@ -1534,7 +1534,7 @@ GEM
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
-    zstd-ruby (2.0.9)
+    zstd-ruby (2.0.10)
 
 PLATFORMS
   aarch64-linux

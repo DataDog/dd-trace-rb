@@ -27,7 +27,7 @@ GEM
     crack (1.0.1)
       bigdecimal
       rexml
-    dalli (5.1.0)
+    dalli (5.1.1)
       logger
     datadog-ruby_core_source (3.5.5)
     debug (1.11.1)
@@ -139,7 +139,7 @@ GEM
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
     webrick (1.9.2)
-    zstd-ruby (2.0.9)
+    zstd-ruby (2.0.10)
 
 PLATFORMS
   aarch64-linux
@@ -196,7 +196,7 @@ CHECKSUMS
   coderay (1.1.3) sha256=dc530018a4684512f8f38143cd2a096c9f02a1fc2459edcfe534787a7fc77d4b
   concurrent-ruby (1.3.8) sha256=b2f1be836e968ccc78ccfce277ea79c72a88633f22306782c16ff23fb415d1e1
   crack (1.0.1) sha256=ff4a10390cd31d66440b7524eb1841874db86201d5b70032028553130b6d4c7e
-  dalli (5.1.0) sha256=a387fd8068777329aee25d2cb65ca636787028c4fbaf041156ef45cd5d1e03a3
+  dalli (5.1.1) sha256=d3436b2c40c296c4818e571fadaf0070f01890198261cb6eb8068d8e81eea32f
   datadog (2.44.0.dev)
   datadog-ruby_core_source (3.5.5) sha256=5df55ea06feda22e5d4b7db62a70f19a86660bd06d3a3ff739d2f549eaff45e6
   debug (1.11.1) sha256=2e0b0ac6119f2207a6f8ac7d4a73ca8eb4e440f64da0a3136c30343146e952b6
@@ -265,7 +265,7 @@ CHECKSUMS
   warning (1.6.0) sha256=a49cdfae19fb77d19afff2efbe45f8ab759e9cd25b4e4ce2c79dbaf46bdb6c9e
   webmock (3.26.4) sha256=8d8da206d217ebe6968cfb09c77f4533c23074e1432bad865f3994eacbaad50d
   webrick (1.9.2) sha256=beb4a15fc474defed24a3bda4ffd88a490d517c9e4e6118c3edce59e45864131
-  zstd-ruby (2.0.9) sha256=d6e7ffb61f3b93947c3a38afe2669e11acc8e8bbf15f55dc14dd03604c0d1083
+  zstd-ruby (2.0.10) sha256=b5f9410ccfad78ae25c3a5d7dfe16234d2bde8841fc79d8166773fd0a4028f9d
 
 BUNDLED WITH
   4.0.19

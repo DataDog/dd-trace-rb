@@ -112,7 +112,7 @@ GEM
       rspec (>= 3.0)
     rspec_junit_formatter (0.6.0)
       rspec-core (>= 2, < 4, != 2.12.0)
-    sequel (5.83.1)
+    sequel (5.108.0)
       bigdecimal
     simplecov (0.22.0)
       docile (~> 1.1)
@@ -133,7 +133,7 @@ GEM
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
     webrick (1.9.2)
-    zstd-ruby (2.0.9)
+    zstd-ruby (2.0.10)
 
 PLATFORMS
   aarch64-linux
