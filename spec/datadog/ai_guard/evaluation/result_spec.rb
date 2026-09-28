@@ -6,27 +6,17 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
   subject(:result) do
     described_class.new(
       messages,
-      action: attributes.fetch(:action),
-      reason: attributes.fetch(:reason),
-      tags: attributes.fetch(:tags),
-      sds_findings: attributes.fetch(:sds_findings),
-      tag_probabilities: attributes.fetch(:tag_probabilities)
-    )
-  end
-
-  let(:messages) do
-    [
-      Datadog::AIGuard::Evaluation::Message.new(role: :user, content: "Hello there"),
-    ]
-  end
-  let(:attributes) do
-    {
       action: "ALLOW",
       reason: "Some reason",
       tags: ["some", "tags"],
       sds_findings: [{"rule_tag" => "credit_card"}],
-      tag_probabilities: {"some" => 0.95, "tags" => 0.1},
-    }
+      redaction_replacements: [{"path" => "messages[0].content", "replacement" => "Hello <REDACTED>"}],
+      tag_probabilities: {"some" => 0.95, "tags" => 0.1}
+    )
+  end
+
+  let(:messages) do
+    [Datadog::AIGuard::Evaluation::Message.new(role: :user, content: "Hello there")]
   end
 
   describe "#messages" do
@@ -53,6 +43,14 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
     it { expect(result.tag_probabilities).to eq("some" => 0.95, "tags" => 0.1) }
   end
 
+  describe "#redaction_replacements" do
+    it "exposes raw response replacements" do
+      expect(result.redaction_replacements).to eq([
+        {"path" => "messages[0].content", "replacement" => "Hello <REDACTED>"},
+      ])
+    end
+  end
+
   context "when action is ALLOW" do
     describe "#allow?" do
       it { expect(result).to be_allow }
@@ -68,14 +66,16 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
   end
 
   context "when action is DENY" do
-    let(:attributes) do
-      {
+    subject(:result) do
+      described_class.new(
+        messages,
         action: "DENY",
         reason: "Some reason",
         tags: ["some", "tags"],
         sds_findings: [{"rule_tag" => "credit_card"}],
-        tag_probabilities: {"some" => 0.95, "tags" => 0.1},
-      }
+        redaction_replacements: [],
+        tag_probabilities: {"some" => 0.95, "tags" => 0.1}
+      )
     end
 
     describe "#allow?" do
@@ -92,14 +92,16 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
   end
 
   context "when action is ABORT" do
-    let(:attributes) do
-      {
+    subject(:result) do
+      described_class.new(
+        messages,
         action: "ABORT",
         reason: "Some reason",
         tags: ["some", "tags"],
         sds_findings: [{"rule_tag" => "credit_card"}],
-        tag_probabilities: {"some" => 0.95, "tags" => 0.1},
-      }
+        redaction_replacements: [],
+        tag_probabilities: {"some" => 0.95, "tags" => 0.1}
+      )
     end
 
     describe "#allow?" do

@@ -616,16 +616,15 @@ RSpec.describe Datadog::AIGuard::Evaluation do
   end
 
   describe ".perform_no_op" do
-    let(:logger) { instance_double(Datadog::Core::Logger) }
-
     before do
       allow(Datadog::AIGuard).to receive(:logger).and_return(logger)
       allow(logger).to receive(:warn)
     end
 
-    it "returns an instance of NoOpResult" do
-      expect(described_class.perform_no_op([])).to be_a(Datadog::AIGuard::Evaluation::NoOpResult)
-    end
+    let(:logger) { instance_double(Datadog::Core::Logger) }
+
+    it { expect(described_class.perform_no_op([])).to be_a(Datadog::AIGuard::Evaluation::NoOpResult) }
+    it { expect(described_class.perform_no_op([]).redaction_replacements).to eq([]) }
 
     it "logs a warning" do
       expect(logger).to receive(:warn).with("AI Guard is disabled, messages were not evaluated")

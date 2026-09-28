@@ -2,17 +2,25 @@ module Datadog
   module AIGuard
     module Evaluation
       class Result
-        ALLOW_ACTION: ::String
-        DENY_ACTION: ::String
-        ABORT_ACTION: ::String
+        ALLOW_ACTION: String
+
+        DENY_ACTION: String
+
+        ABORT_ACTION: String
 
         attr_reader messages: Array[Message]
+
         attr_reader action: Response::action
+
         attr_reader reason: Response::reason
+
         attr_reader tags: Response::tags
 
         attr_reader sds_findings: Response::sds_findings
+
         attr_reader tag_probabilities: Response::tag_probabilities
+
+        attr_reader redaction_replacements: Response::redaction_replacements
 
         def initialize: (
           Array[Message] messages,
@@ -20,7 +28,8 @@ module Datadog
           reason: Response::reason,
           tags: Response::tags,
           sds_findings: Response::sds_findings,
-          tag_probabilities: Response::tag_probabilities
+          tag_probabilities: Response::tag_probabilities,
+          redaction_replacements: Response::redaction_replacements
         ) -> void
 
         def allow?: () -> bool

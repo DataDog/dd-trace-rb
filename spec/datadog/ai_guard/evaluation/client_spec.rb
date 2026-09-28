@@ -60,6 +60,8 @@ RSpec.describe Datadog::AIGuard::Evaluation::Client do
         aggregate_failures "evaluation without replacements" do
           expect(outcome.result.messages).to equal(messages)
           expect(outcome.result.messages).to all(be_a(Datadog::AIGuard::Evaluation::Message))
+          expect(outcome.result.redaction_replacements).to eq([])
+
           expect(outcome.redaction).to be_performed
           expect(outcome.redaction).not_to be_redacted
         end
@@ -118,6 +120,12 @@ RSpec.describe Datadog::AIGuard::Evaluation::Client do
             },
           ])
           expect(outcome.result.tag_probabilities).to eq("sensitive-data" => 0.8)
+          expect(outcome.result.redaction_replacements).to eq([
+            {
+              "path" => "messages[0].content",
+              "replacement" => "Hello <REDACTED>",
+            },
+          ])
         end
       end
     end
@@ -156,6 +164,12 @@ RSpec.describe Datadog::AIGuard::Evaluation::Client do
           expect(outcome.result.messages).to equal(messages)
           expect(outcome.result.messages.map(&:to_h)).to eq([
             {role: :user, content: "Hello there"},
+          ])
+          expect(outcome.result.redaction_replacements).to eq([
+            {
+              "path" => "messages[0].content",
+              "replacement" => "Hello <REDACTED>",
+            },
           ])
           expect(outcome.redaction.messages).to equal(messages)
           expect(outcome.redaction).not_to be_performed

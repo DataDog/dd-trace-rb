@@ -34,7 +34,8 @@ module Datadog
             reason: response.reason,
             tags: response.tags,
             sds_findings: response.sds_findings,
-            tag_probabilities: response.tag_probabilities
+            tag_probabilities: response.tag_probabilities,
+            redaction_replacements: response.redaction_replacements
           )
 
           Outcome.new(

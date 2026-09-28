@@ -5,7 +5,8 @@ module Datadog
     module Evaluation
       # Class for emulating AI Guard evaluation result when AI Guard is disabled.
       class NoOpResult
-        attr_reader :action, :reason, :tags, :sds_findings, :tag_probabilities, :messages
+        attr_reader :action, :reason, :tags, :sds_findings, :redaction_replacements,
+          :tag_probabilities, :messages
 
         def initialize(messages)
           @action = Result::ALLOW_ACTION
@@ -15,6 +16,7 @@ module Datadog
           @messages = messages
           @sds_findings = []
           @tag_probabilities = {}
+          @redaction_replacements = []
         end
 
         def allow?
