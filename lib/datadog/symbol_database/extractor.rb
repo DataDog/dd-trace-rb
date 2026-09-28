@@ -527,15 +527,13 @@ module Datadog
       end
 
       # Calculate the class line range from method records: the earliest
-      # public/protected method start to the latest public/protected method end.
-      # Private methods are excluded.
+      # method start to the latest method end.
       # @param method_records [Array<MethodRecord>]
       # @return [Array<Integer, Integer>] [start_line, end_line]
       def calculate_class_line_range(method_records)
         starts = []
         ends = []
         method_records.each do |record|
-          next if record.visibility == "private"
           starts << record.start_line
           ends << record.end_line
         end

@@ -703,6 +703,39 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
     end
 
+    context "with private methods bounding the class" do
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          class TestPrivateBoundedClass
+            private
+
+            def first_private; end
+
+            def public_method; end
+
+            private
+
+            def last_private; end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestPrivateBoundedClass) if defined?(TestPrivateBoundedClass)
+        cleanup_user_code_file(@filename)
+      end
+
+      it "spans the class line range across private methods" do
+        class_scope = extractor.extract(TestPrivateBoundedClass).scopes.first
+
+        first_private = class_scope.scopes.find { |s| s.name == "first_private" }
+        last_private = class_scope.scopes.find { |s| s.name == "last_private" }
+        expect(class_scope.start_line).to eq(first_private.start_line)
+        expect(class_scope.end_line).to eq(last_private.end_line)
+      end
+    end
+
     context "with attr_accessor methods" do
       before do
         @filename = create_user_code_file(<<~RUBY)
