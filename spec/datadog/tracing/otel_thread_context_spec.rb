@@ -218,23 +218,27 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
         expect(otel_thread_context.clear).to eq(false)
       end
 
-      it "returns false on a fresh thread after a killed thread attached a context" do
-        signal_queue = Queue.new
-        killed = Thread.new do
-          otel_thread_context.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
-          signal_queue << true
-          Queue.new.pop
+      it "returns false on a fresh thread after killed threads attached a context" do
+        # Kill many context-holding threads so their native threads return to
+        # CRuby's native-thread cache with a stale otel_thread_ctx_v1 TLS.
+        20.times do |i|
+          signal_queue = Queue.new
+          killed = Thread.new do
+            otel_thread_context.set(trace_id: i + 11, span_id: i + 12, local_root_span_id: i + 13)
+            signal_queue << true
+            Queue.new.pop
+          end
+
+          signal_queue.pop # ensure the context was set before killing the thread
+          killed.kill
+          killed.join
         end
 
-        signal_queue.pop # ensure the context was set before killing the thread
-        killed.kill
-        killed.join
-
         # CRuby caches and recycles native threads, and RUBY_EVENT_THREAD_END
-        # does not fire for Thread#kill-ed threads on Ruby < 3.3, so the
-        # killed thread's otel_thread_ctx_v1 TLS can leak onto the next
-        # Thread.new that reuses its native thread. A fresh thread must
-        # start with no context record attached.
+        # does not fire for Thread#kill-ed threads on Ruby < 3.2, so a killed
+        # thread's otel_thread_ctx_v1 TLS can leak onto the next Thread.new
+        # that reuses its native thread. A fresh thread must start with no
+        # context record attached.
         fresh_result = Thread.new { otel_thread_context.clear }.value
         expect(fresh_result).to eq(false)
       end
