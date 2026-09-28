@@ -165,7 +165,7 @@ GEM
       hashdiff (>= 0.4.0, < 2.0.0)
     webrick (1.9.2)
     zeitwerk (2.6.18)
-    zstd-ruby (2.0.9)
+    zstd-ruby (2.0.10)
 
 PLATFORMS
   aarch64-linux

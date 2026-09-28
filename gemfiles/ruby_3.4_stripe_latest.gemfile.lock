@@ -129,7 +129,7 @@ GEM
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
     webrick (1.9.2)
-    zstd-ruby (2.0.9)
+    zstd-ruby (2.0.10)
 
 PLATFORMS
   aarch64-linux
@@ -239,7 +239,7 @@ CHECKSUMS
   warning (1.6.0) sha256=a49cdfae19fb77d19afff2efbe45f8ab759e9cd25b4e4ce2c79dbaf46bdb6c9e
   webmock (3.26.4) sha256=8d8da206d217ebe6968cfb09c77f4533c23074e1432bad865f3994eacbaad50d
   webrick (1.9.2) sha256=beb4a15fc474defed24a3bda4ffd88a490d517c9e4e6118c3edce59e45864131
-  zstd-ruby (2.0.9) sha256=d6e7ffb61f3b93947c3a38afe2669e11acc8e8bbf15f55dc14dd03604c0d1083
+  zstd-ruby (2.0.10) sha256=b5f9410ccfad78ae25c3a5d7dfe16234d2bde8841fc79d8166773fd0a4028f9d
 
 BUNDLED WITH
   4.0.19
