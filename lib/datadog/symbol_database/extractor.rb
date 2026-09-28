@@ -387,6 +387,9 @@ module Datadog
           return path if user_code_path?(path)
 
           fallback ||= path # steep:ignore
+        rescue Exception => e # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(e)
+          @logger.debug { "symdb: error resolving #{safe_mod_name(mod)}##{method_name}: #{e.class}: #{e.message}" }
         end
 
         # Try singleton methods
@@ -401,6 +404,9 @@ module Datadog
           return path if user_code_path?(path)
 
           fallback ||= path # steep:ignore
+        rescue Exception => e # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(e)
+          @logger.debug { "symdb: error resolving #{safe_mod_name(mod)}.#{method_name}: #{e.class}: #{e.message}" }
         end
 
         # Use const_source_location to find where this class/module is declared.
