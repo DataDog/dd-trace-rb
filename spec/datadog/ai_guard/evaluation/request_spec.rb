@@ -31,13 +31,13 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
     context "when messages contain tool calls" do
       let(:messages) do
         [
-          Datadog::AIGuard.assistant(
-            tool_calls: [Datadog::AIGuard.tool_call(name: "date", id: "call-1", arguments: "{}")]
-          ),
+          Datadog::AIGuard.assistant do |message|
+            message.tool_call(name: "date", id: "call-1", arguments: "{}")
+          end,
           Datadog::AIGuard.message(role: :user, content: "List files under home"),
-          Datadog::AIGuard.assistant(
-            tool_calls: [Datadog::AIGuard.tool_call(name: "ls", id: "call-2", arguments: {"path" => "~"})]
-          ),
+          Datadog::AIGuard.assistant do |message|
+            message.tool_call(name: "ls", id: "call-2", arguments: {"path" => "~"})
+          end,
         ]
       end
 

@@ -38,25 +38,6 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
 
       expect(message.content).to eq(parts)
     end
-
-    it "accepts a block and yields a multi-modal content parts builder" do
-      message = Datadog::AIGuard.message(role: :user) do |m|
-        m.text("What's in this image?")
-        m.image_url("https://example.com/img.png")
-      end
-
-      expect(message.role).to eq(:user)
-      expect(message.content).to contain_exactly(
-        an_instance_of(Datadog::AIGuard::Evaluation::ContentPart::Text),
-        an_instance_of(Datadog::AIGuard::Evaluation::ContentPart::ImageURL),
-      )
-    end
-
-    it "raises ArgumentError when both content and a block are provided" do
-      expect {
-        Datadog::AIGuard.message(role: :user, content: "Hello") { |m| m.text("World") }
-      }.to raise_error(ArgumentError, "Cannot pass both content and a block")
-    end
   end
 
   describe "#to_h" do

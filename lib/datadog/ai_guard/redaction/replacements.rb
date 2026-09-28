@@ -16,12 +16,12 @@ module Datadog
         CONTENT_PATH_PATTERN = /\Amessages\[([0-9]+)\]\.content\z/
         ARGUMENTS_PATH_PATTERN = /\Amessages\[([0-9]+)\]\.tool_calls\[([0-9]+)\]\.function\.arguments\z/
 
-        def_delegator :@replacements, :each
+        def_delegators :@replacements, :each, :empty?
 
-        attr_reader :failures
+        attr_reader :failures_count
 
         def initialize(raw_replacements)
-          @failures = 0
+          @failures_count = 0
           @replacements = build(raw_replacements)
         end
 
@@ -50,41 +50,42 @@ module Datadog
         #   }
         def build(raw_replacements)
           unless raw_replacements.is_a?(::Array)
-            @failures += 1
+            @failures_count += 1
             return {}
           end
 
-          conflicted = {}
+          conflicting = {}
           raw_replacements.each_with_object({}) do |entry, replacements|
-            next @failures += 1 unless entry.is_a?(::Hash)
+            next @failures_count += 1 unless entry.is_a?(::Hash)
 
             raw_path = entry["path"]
             replacement = entry["replacement"]
 
             if !raw_path.is_a?(::String) || raw_path.empty? || !replacement.is_a?(::String)
-              next @failures += 1
+              next @failures_count += 1
             end
 
             # @type var path: Replacements::path?
             path =
-              if (match = CONTENT_PATH_PATTERN.match(raw_path))
-                [match[1].to_i, :content]
-              elsif (match = TEXT_PATH_PATTERN.match(raw_path))
-                [match[1].to_i, :text, match[2].to_i]
-              elsif (match = ARGUMENTS_PATH_PATTERN.match(raw_path))
-                [match[1].to_i, :arguments, match[2].to_i]
+              case raw_path
+              when CONTENT_PATH_PATTERN
+                [Regexp.last_match(1).to_i, :content]
+              when TEXT_PATH_PATTERN
+                [Regexp.last_match(1).to_i, :text, Regexp.last_match(2).to_i]
+              when ARGUMENTS_PATH_PATTERN
+                [Regexp.last_match(1).to_i, :arguments, Regexp.last_match(2).to_i]
               end
 
-            next @failures += 1 unless path
-            next if conflicted.key?(path)
+            next @failures_count += 1 unless path
+            next if conflicting.key?(path)
 
             if replacements.key?(path)
               next if replacements[path] == replacement
 
               replacements.delete(path)
-              conflicted[path] = true
+              conflicting[path] = true
 
-              next @failures += 1
+              next @failures_count += 1
             end
 
             replacements[path] = replacement

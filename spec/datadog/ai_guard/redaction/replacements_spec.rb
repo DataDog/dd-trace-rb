@@ -26,7 +26,7 @@ RSpec.describe Datadog::AIGuard::Redaction::Replacements do
 
       it "yields normalized replacements in input order" do
         aggregate_failures "supported replacement path normalization" do
-          expect(replacements.failures).to eq(0)
+          expect(replacements.failures_count).to eq(0)
           expect(replacements.each.to_a).to eq([
             [[0, :content], ""],
             [[1, :text, 2], "Card <REDACTED>"],
@@ -42,7 +42,7 @@ RSpec.describe Datadog::AIGuard::Redaction::Replacements do
       it "returns no replacements without recording a failure" do
         aggregate_failures "empty replacements collection" do
           expect(replacements.each.to_a).to be_empty
-          expect(replacements.failures).to eq(0)
+          expect(replacements.failures_count).to eq(0)
         end
       end
     end
@@ -58,7 +58,7 @@ RSpec.describe Datadog::AIGuard::Redaction::Replacements do
       it "returns no replacements and records one failure" do
         aggregate_failures "invalid replacements collection" do
           expect(replacements.each.to_a).to be_empty
-          expect(replacements.failures).to eq(1)
+          expect(replacements.failures_count).to eq(1)
         end
       end
     end
@@ -78,7 +78,7 @@ RSpec.describe Datadog::AIGuard::Redaction::Replacements do
       it "skips every malformed entry and records each failure" do
         aggregate_failures "malformed replacement entries" do
           expect(replacements.each.to_a).to be_empty
-          expect(replacements.failures).to eq(6)
+          expect(replacements.failures_count).to eq(6)
         end
       end
     end
@@ -96,7 +96,7 @@ RSpec.describe Datadog::AIGuard::Redaction::Replacements do
       it "skips every unsupported path and records each failure" do
         aggregate_failures "unsupported replacement paths" do
           expect(replacements.each.to_a).to be_empty
-          expect(replacements.failures).to eq(4)
+          expect(replacements.failures_count).to eq(4)
         end
       end
     end
@@ -117,7 +117,7 @@ RSpec.describe Datadog::AIGuard::Redaction::Replacements do
 
       it "keeps one replacement without recording a failure" do
         aggregate_failures "identical duplicate replacement" do
-          expect(replacements.failures).to eq(0)
+          expect(replacements.failures_count).to eq(0)
           expect(replacements.each.to_a).to eq([
             [[0, :content], "My SSN is <REDACTED>"],
           ])
@@ -149,7 +149,7 @@ RSpec.describe Datadog::AIGuard::Redaction::Replacements do
 
       it "removes the conflicted path and preserves independent replacements" do
         aggregate_failures "conflicting replacement isolation" do
-          expect(replacements.failures).to eq(1)
+          expect(replacements.failures_count).to eq(1)
           expect(replacements.each.to_a).to eq([
             [[1, :content], "Email <REDACTED>"],
           ])

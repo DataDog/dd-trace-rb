@@ -153,94 +153,116 @@ RSpec.describe Datadog::AIGuard do
   end
 
   describe ".message" do
-    let(:message) { described_class.message(role: :user, content: "Hello") }
+    context "when string content is provided" do
+      let(:message) { described_class.message(role: :user, content: "Hello") }
 
-    it "returns a message with the given role and content" do
-      aggregate_failures "returned message" do
-        expect(message).to be_a(Datadog::AIGuard::Evaluation::Message)
-        expect(message.role).to eq(:user)
-        expect(message.content).to eq("Hello")
-      end
-    end
-
-    context "when content and tool calls are provided" do
-      let(:tool_calls) { [described_class.tool_call(name: "git", id: "git-1", arguments: {})] }
-      let(:message) do
-        described_class.message(
-          role: :assistant,
-          content: "Running git",
-          tool_calls: tool_calls
-        )
-      end
-
-      it "returns a message with the complete canonical shape" do
+      it "returns a message with the given role and content" do
         aggregate_failures "returned message" do
-          expect(message.content).to eq("Running git")
-          expect(message.tool_calls).to eq(tool_calls)
+          expect(message).to be_a(Datadog::AIGuard::Evaluation::Message)
+          expect(message.role).to eq(:user)
+          expect(message.content).to eq("Hello")
         end
       end
     end
 
-    context "when a numeric tool call id is provided" do
-      let(:message) { described_class.message(role: :tool, content: "Done", tool_call_id: 42) }
-
-      it { expect(message.tool_call_id).to eq("42") }
-    end
-  end
-
-  describe ".tool_call" do
-    context "when arguments are a string" do
-      let(:tool_call) do
-        described_class.tool_call(name: "git", id: "git-1", arguments: '{"command":"commit"}')
+    context "when content parts are built in a block" do
+      let(:message) do
+        described_class.message(role: :user) do |message_builder|
+          message_builder.text("What's in this image?")
+          message_builder.image_url("https://example.com/img.png")
+        end
       end
 
-      it "returns a tool call with the given attributes" do
-        aggregate_failures "returned tool call" do
-          expect(tool_call).to be_a(Datadog::AIGuard::Evaluation::ToolCall)
-          expect(tool_call.id).to eq("git-1")
-          expect(tool_call.tool_name).to eq("git")
-          expect(tool_call.arguments).to eq('{"command":"commit"}')
+      it "returns a message with multi-modal content" do
+        aggregate_failures "returned message" do
+          expect(message.role).to eq(:user)
+          expect(message.content[0].to_h).to eq(type: "text", text: "What's in this image?")
+          expect(message.content[1].to_h).to eq(
+            type: "image_url", image_url: {url: "https://example.com/img.png"}
+          )
         end
       end
     end
 
-    context "when arguments are a hash" do
-      let(:tool_call) do
-        described_class.tool_call(name: "git", id: "git-1", arguments: {"command" => "commit"})
+    context "when string content and block content parts are provided" do
+      let(:message) do
+        described_class.message(role: :user, content: "Hello") do |builder|
+          builder.text("World")
+        end
       end
 
-      it { expect(tool_call.arguments).to eq('{"command":"commit"}') }
-    end
-
-    context "when the id is numeric" do
-      let(:tool_call) { described_class.tool_call(name: "git", id: 42, arguments: {}) }
-
-      it { expect(tool_call.id).to eq("42") }
-    end
-
-    context "when arguments are neither a string nor a hash" do
       it "raises an ArgumentError" do
-        expect {
-          described_class.tool_call(name: "git", id: "git-1", arguments: [])
-        }.to raise_error(ArgumentError, "Tool call arguments must be a String or Hash")
+        expect { message }.to raise_error(ArgumentError, "Cannot combine content with content parts")
       end
     end
   end
 
   describe ".assistant" do
-    let(:tool_calls) do
-      [
-        described_class.tool_call(name: "git", id: "git-1", arguments: {}),
-        described_class.tool_call(name: "notify", id: "notify-1", arguments: {}),
-      ]
-    end
-    let(:message) { described_class.assistant(content: "Running git", tool_calls: tool_calls) }
+    context "when multiple tool calls are built in a block" do
+      let(:message) do
+        described_class.assistant(content: "Running tools") do |builder|
+          builder.tool_call(name: "git", id: "git-1", arguments: {})
+          builder.tool_call(name: "notify", id: "notify-1", arguments: {})
+        end
+      end
 
-    it "returns an assistant message" do
-      aggregate_failures "returned message" do
-        expect(message.role).to eq(:assistant)
-        expect(message.content).to eq("Running git")
-        expect(message.tool_calls).to eq(tool_calls)
+      it "returns an assistant message with the tool calls in insertion order" do
+        aggregate_failures "returned message" do
+          expect(message.role).to eq(:assistant)
+          expect(message.content).to eq("Running tools")
+          expect(message.tool_calls.map(&:tool_name)).to eq(["git", "notify"])
+        end
+      end
+    end
+
+    context "when a tool call is built in a block" do
+      let(:message) do
+        described_class.assistant(content: "Running git") do |message_builder|
+          message_builder.tool_call(name: "git", id: "git-1", arguments: {command: "status"})
+        end
+      end
+
+      it "returns an assistant message with string content and the tool call" do
+        aggregate_failures "returned message" do
+          expect(message.role).to eq(:assistant)
+          expect(message.content).to eq("Running git")
+          expect(message.tool_calls[0].tool_name).to eq("git")
+          expect(message.tool_calls[0].id).to eq("git-1")
+          expect(message.tool_calls[0].arguments).to eq('{"command":"status"}')
+        end
+      end
+    end
+
+    context "when content parts and a tool call are built in a block" do
+      let(:message) do
+        described_class.assistant do |message_builder|
+          message_builder.text("Inspect this image")
+          message_builder.image_url("https://example.com/img.png")
+          message_builder.tool_call(name: "inspect", id: 42, arguments: {})
+        end
+      end
+
+      it "returns an assistant message with the complete canonical shape" do
+        aggregate_failures "returned message" do
+          expect(message.content[0].to_h).to eq(type: "text", text: "Inspect this image")
+          expect(message.content[1].to_h).to eq(
+            type: "image_url", image_url: {url: "https://example.com/img.png"}
+          )
+          expect(message.tool_calls[0].tool_name).to eq("inspect")
+          expect(message.tool_calls[0].id).to eq("42")
+        end
+      end
+    end
+
+    context "when tool call arguments are neither a string nor a hash" do
+      let(:message) do
+        described_class.assistant do |builder|
+          builder.tool_call(name: "git", id: "git-1", arguments: [])
+        end
+      end
+
+      it "raises an ArgumentError" do
+        expect { message }.to raise_error(ArgumentError, "Tool call arguments must be a String or Hash")
       end
     end
   end

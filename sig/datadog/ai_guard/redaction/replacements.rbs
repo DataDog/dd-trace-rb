@@ -13,16 +13,18 @@ module Datadog
 
         ARGUMENTS_PATH_PATTERN: Regexp
 
-        @failures: Integer
+        @failures_count: Integer
 
         @replacements: replacements
 
-        attr_reader failures: Integer
+        attr_reader failures_count: Integer
 
         def initialize: (Evaluation::Response::redaction_replacements raw_replacements) -> void
 
         def each: () { (path, String) -> void } -> replacements
                 | () -> Enumerator[[path, String], replacements]
+
+        def empty?: () -> bool
 
         private
 

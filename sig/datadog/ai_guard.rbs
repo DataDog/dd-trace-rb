@@ -26,24 +26,13 @@ module Datadog
       ?allow_raise: bool
     ) -> (Evaluation::Result | Evaluation::NoOpResult)
 
-    def self.tool_call: (
-      name: String,
-      id: String | Integer,
-      arguments: String | Hash[any, any]
-    ) -> Evaluation::ToolCall
-
-    def self.assistant: (
-      ?content: String?,
-      ?tool_calls: Array[Evaluation::ToolCall]
-    ) ?{ (Evaluation::ContentBuilder) -> void } -> Evaluation::Message
+    def self.assistant: (?content: String?) ?{ (Evaluation::MessageBuilder) -> void } -> Evaluation::Message
 
     def self.tool: (tool_call_id: String | Integer, content: String) -> Evaluation::Message
 
     def self.message: (
       role: String | Symbol,
-      ?content: String?,
-      ?tool_calls: Array[Evaluation::ToolCall],
-      ?tool_call_id: (String | Integer)?
-    ) ?{ (Evaluation::ContentBuilder) -> void } -> Evaluation::Message
+      ?content: String?
+    ) ?{ (Evaluation::MessageBuilder) -> void } -> Evaluation::Message
   end
 end

@@ -13,13 +13,13 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::RedactionChangeSet do
 
       let(:change_set) { described_class.new(original_message, redacted_message) }
       let(:original_message) do
-        Datadog::AIGuard.message(role: :assistant, tool_calls: [original_tool_call])
+        Datadog::AIGuard::Evaluation::Message.new(role: :assistant, tool_calls: [original_tool_call])
       end
       let(:redacted_message) do
         original_message.with_tool_calls([original_tool_call.with_arguments("invalid")])
       end
       let(:original_tool_call) do
-        Datadog::AIGuard.tool_call(name: "shell", id: "call_1", arguments: '{"command":"ls /"}')
+        Datadog::AIGuard::Evaluation::ToolCall.new("shell", id: "call_1", arguments: '{"command":"ls /"}')
       end
       let(:message) do
         RubyLLM::Message.new(

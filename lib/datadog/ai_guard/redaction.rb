@@ -8,35 +8,34 @@ module Datadog
     module Redaction
       class << self
         def skip(messages)
-          Redaction::Result.new(messages, applied: 0, failures: 0, performed: false)
+          Redaction::Result.new(messages, applied_count: 0, failures_count: 0, performed: false)
         end
 
         def perform(messages, replacements:)
-          applied = 0
-          failures = 0
-          # @type var redacted_messages: Array[Evaluation::Message]?
-          redacted_messages = nil
-
           redaction_replacements = Replacements.new(replacements)
-          failures += redaction_replacements.failures
+          failures_count = redaction_replacements.failures_count
+
+          if redaction_replacements.empty?
+            return Redaction::Result.new(messages, applied_count: 0, failures_count: failures_count)
+          end
+
+          applied_count = 0
+          redacted_messages = messages.dup
 
           redaction_replacements.each do |path, replacement|
             index = path[0]
-            message = redacted_messages ? redacted_messages[index] : messages[index]
-            redacted_message = redact(message, path: path, replacement: replacement)
+            redacted_message = redact(redacted_messages[index], path: path, replacement: replacement)
 
-            next failures += 1 unless redacted_message
+            next failures_count += 1 unless redacted_message
 
-            redacted_messages ||= ::Array.new(messages) # Steep unable to assert non-nil after `||=`
-            redacted_messages[index] = redacted_message # steep:ignore NoMethod
-
-            applied += 1
+            redacted_messages[index] = redacted_message
+            applied_count += 1
           rescue
-            failures += 1
+            failures_count += 1
           end
 
           Redaction::Result.new(
-            redacted_messages || messages, applied: applied, failures: failures
+            redacted_messages, applied_count: applied_count, failures_count: failures_count
           )
         end
 
@@ -67,7 +66,7 @@ module Datadog
           when :arguments
             # @type var index: Integer
             tool_call = message.tool_calls[index]
-            return if !tool_call || !tool_call.arguments.is_a?(::String)
+            return unless tool_call && tool_call.arguments.is_a?(::String)
 
             redacted_tool_calls = ::Array.new(message.tool_calls)
             redacted_tool_calls[index] = tool_call.with_arguments(replacement)

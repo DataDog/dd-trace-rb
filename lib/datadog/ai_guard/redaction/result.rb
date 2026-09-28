@@ -7,12 +7,12 @@ module Datadog
       #
       # @api private
       class Result
-        attr_reader :messages, :applied, :failures
+        attr_reader :messages, :applied_count, :failures_count
 
-        def initialize(messages, applied:, failures:, performed: true)
+        def initialize(messages, applied_count:, failures_count:, performed: true)
           @messages = messages
-          @applied = applied
-          @failures = failures
+          @applied_count = applied_count
+          @failures_count = failures_count
           @performed = performed
         end
 
@@ -21,7 +21,7 @@ module Datadog
         end
 
         def redacted?
-          applied.positive?
+          applied_count.positive?
         end
       end
     end

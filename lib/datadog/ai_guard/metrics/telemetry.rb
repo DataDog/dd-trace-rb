@@ -25,8 +25,8 @@ module Datadog
           tags[:redacted] = redaction.redacted?.to_s if redaction.performed?
 
           telemetry.inc(NAMESPACE, "requests", 1, tags: tags)
-          if redaction.failures.positive?
-            telemetry.inc(NAMESPACE, "error", redaction.failures, tags: {type: REDACTION_ERROR})
+          if redaction.failures_count.positive?
+            telemetry.inc(NAMESPACE, "error", redaction.failures_count, tags: {type: REDACTION_ERROR})
           end
         end
 

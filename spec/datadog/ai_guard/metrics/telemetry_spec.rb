@@ -24,7 +24,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           Datadog::AIGuard::Redaction::Result,
           performed?: true,
           redacted?: true,
-          failures: 0
+          failures_count: 0
         )
       end
 
@@ -54,7 +54,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           Datadog::AIGuard::Redaction::Result,
           performed?: true,
           redacted?: false,
-          failures: 0
+          failures_count: 0
         )
       end
 
@@ -83,7 +83,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
         instance_double(
           Datadog::AIGuard::Redaction::Result,
           performed?: false,
-          failures: 0
+          failures_count: 0
         )
       end
 
@@ -113,7 +113,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           Datadog::AIGuard::Redaction::Result,
           performed?: true,
           redacted?: true,
-          failures: 0
+          failures_count: 0
         )
       end
 
@@ -143,7 +143,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           Datadog::AIGuard::Redaction::Result,
           performed?: true,
           redacted?: false,
-          failures: 0
+          failures_count: 0
         )
       end
 
@@ -173,7 +173,7 @@ RSpec.describe Datadog::AIGuard::Metrics::Telemetry do
           Datadog::AIGuard::Redaction::Result,
           performed?: true,
           redacted?: false,
-          failures: 3
+          failures_count: 3
         )
       end
 

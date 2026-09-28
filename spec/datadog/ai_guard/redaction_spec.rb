@@ -29,8 +29,8 @@ RSpec.describe Datadog::AIGuard::Redaction do
           expect(result.messages.map(&:to_h)).to eq([
             {role: :user, content: "My SSN is <REDACTED>"},
           ])
-          expect(result.applied).to eq(1)
-          expect(result.failures).to eq(0)
+          expect(result.applied_count).to eq(1)
+          expect(result.failures_count).to eq(0)
         end
       end
     end
@@ -58,8 +58,8 @@ RSpec.describe Datadog::AIGuard::Redaction do
           expect(result.messages.map(&:to_h)).to eq([
             {role: :user, content: ""},
           ])
-          expect(result.applied).to eq(1)
-          expect(result.failures).to eq(0)
+          expect(result.applied_count).to eq(1)
+          expect(result.failures_count).to eq(0)
         end
       end
     end
@@ -89,7 +89,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
         aggregate_failures "assistant message redaction" do
           expect(result.messages[0].content).to eq("Account <REDACTED>")
           expect(result.messages[0].tool_calls).to be(tool_calls)
-          expect(result.failures).to eq(0)
+          expect(result.failures_count).to eq(0)
         end
       end
     end
@@ -126,8 +126,8 @@ RSpec.describe Datadog::AIGuard::Redaction do
               ],
             },
           ])
-          expect(result.applied).to eq(1)
-          expect(result.failures).to eq(0)
+          expect(result.applied_count).to eq(1)
+          expect(result.failures_count).to eq(0)
         end
       end
     end
@@ -188,8 +188,8 @@ RSpec.describe Datadog::AIGuard::Redaction do
               ],
             },
           ])
-          expect(result.applied).to eq(2)
-          expect(result.failures).to eq(0)
+          expect(result.applied_count).to eq(2)
+          expect(result.failures_count).to eq(0)
         end
       end
     end
@@ -231,8 +231,8 @@ RSpec.describe Datadog::AIGuard::Redaction do
             {role: :assistant, content: "How can I help?"},
             {role: :user, content: "My SSN is <REDACTED>"},
           ])
-          expect(result.applied).to eq(2)
-          expect(result.failures).to eq(0)
+          expect(result.applied_count).to eq(2)
+          expect(result.failures_count).to eq(0)
         end
       end
     end
@@ -369,8 +369,8 @@ RSpec.describe Datadog::AIGuard::Redaction do
       it "skips the payload and records one failure" do
         aggregate_failures "invalid replacements collection" do
           expect(result.messages).to equal(messages)
-          expect(result.applied).to eq(0)
-          expect(result.failures).to eq(1)
+          expect(result.applied_count).to eq(0)
+          expect(result.failures_count).to eq(1)
           expect(result).not_to be_redacted
         end
       end
@@ -399,8 +399,8 @@ RSpec.describe Datadog::AIGuard::Redaction do
       it "skips every malformed entry and records each failure" do
         aggregate_failures "malformed replacement entries" do
           expect(result.messages).to equal(messages)
-          expect(result.applied).to eq(0)
-          expect(result.failures).to eq(6)
+          expect(result.applied_count).to eq(0)
+          expect(result.failures_count).to eq(6)
           expect(result).not_to be_redacted
         end
       end
@@ -427,9 +427,9 @@ RSpec.describe Datadog::AIGuard::Redaction do
 
       it "skips every invalid path and records each failure" do
         aggregate_failures "unresolvable replacement paths" do
-          expect(result.messages).to equal(messages)
-          expect(result.applied).to eq(0)
-          expect(result.failures).to eq(5)
+          expect(result.messages).to eq(messages)
+          expect(result.applied_count).to eq(0)
+          expect(result.failures_count).to eq(5)
           expect(result).not_to be_redacted
         end
       end
@@ -456,9 +456,9 @@ RSpec.describe Datadog::AIGuard::Redaction do
 
       it "skips every non-redactable target and records each failure" do
         aggregate_failures "unsupported and non-string targets" do
-          expect(result.messages).to equal(messages)
-          expect(result.applied).to eq(0)
-          expect(result.failures).to eq(2)
+          expect(result.messages).to eq(messages)
+          expect(result.applied_count).to eq(0)
+          expect(result.failures_count).to eq(2)
           expect(result).not_to be_redacted
         end
       end
@@ -491,8 +491,8 @@ RSpec.describe Datadog::AIGuard::Redaction do
           expect(result.messages.map(&:to_h)).to eq([
             {role: :user, content: "My SSN is <REDACTED>"},
           ])
-          expect(result.applied).to eq(1)
-          expect(result.failures).to eq(0)
+          expect(result.applied_count).to eq(1)
+          expect(result.failures_count).to eq(0)
         end
       end
     end
@@ -533,8 +533,8 @@ RSpec.describe Datadog::AIGuard::Redaction do
             {role: :user, content: "My SSN is 123-45-6789"},
             {role: :user, content: "Email <REDACTED>"},
           ])
-          expect(result.applied).to eq(1)
-          expect(result.failures).to eq(1)
+          expect(result.applied_count).to eq(1)
+          expect(result.failures_count).to eq(1)
         end
       end
     end
@@ -575,8 +575,8 @@ RSpec.describe Datadog::AIGuard::Redaction do
             {role: :system, content: "Contact <REDACTED>"},
             {role: :user, content: "My SSN is <REDACTED>"},
           ])
-          expect(result.applied).to eq(2)
-          expect(result.failures).to eq(1)
+          expect(result.applied_count).to eq(2)
+          expect(result.failures_count).to eq(1)
         end
       end
     end
@@ -622,8 +622,8 @@ RSpec.describe Datadog::AIGuard::Redaction do
           ])
           expect(result.messages[1]).to equal(messages[1])
           expect(result.messages[2]).to equal(messages[2])
-          expect(result.applied).to eq(1)
-          expect(result.failures).to eq(1)
+          expect(result.applied_count).to eq(1)
+          expect(result.failures_count).to eq(1)
         end
       end
     end
@@ -663,8 +663,8 @@ RSpec.describe Datadog::AIGuard::Redaction do
             {role: :user, content: "My SSN is <REDACTED>"},
           ])
           expect(result.messages[0]).to equal(messages[0])
-          expect(result.applied).to eq(1)
-          expect(result.failures).to eq(1)
+          expect(result.applied_count).to eq(1)
+          expect(result.failures_count).to eq(1)
         end
       end
     end
@@ -679,8 +679,8 @@ RSpec.describe Datadog::AIGuard::Redaction do
       it "returns the original messages without performing redaction" do
         aggregate_failures "skipped redaction result" do
           expect(result.messages).to equal(messages)
-          expect(result.applied).to eq(0)
-          expect(result.failures).to eq(0)
+          expect(result.applied_count).to eq(0)
+          expect(result.failures_count).to eq(0)
           expect(result).not_to be_performed
           expect(result).not_to be_redacted
         end

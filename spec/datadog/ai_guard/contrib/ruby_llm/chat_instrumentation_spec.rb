@@ -459,6 +459,31 @@ RSpec.describe "RubyLLM chat instrumentation" do
     end
   end
 
+  context "when message conversion raises an unexpected error" do
+    before do
+      allow(chat).to receive(:messages).and_return([tool_call_message])
+      allow(Datadog::AIGuard).to receive(:telemetry).and_return(telemetry)
+    end
+
+    let(:tool_call_message) do
+      RubyLLM::Message.new(
+        role: :assistant,
+        content: "Running the command",
+        tool_calls: {
+          "tool_call_1" => RubyLLM::ToolCall.new(id: "tool_call_1", name: "shell", arguments: []),
+        }
+      )
+    end
+
+    it "reports the error and continues without evaluation" do
+      expect { chat.generate }.not_to raise_error
+
+      expect(a_request(:post, "https://app.datadoghq.com/api/v2/ai-guard/evaluate")).not_to have_been_made
+      expect(telemetry).to have_received(:report)
+        .with(an_instance_of(ArgumentError), description: "AI Guard: Failed to convert RubyLLM messages")
+    end
+  end
+
   context "when applying a tool-call redaction raises JSON parser error" do
     before do
       allow(chat).to receive(:messages).and_return([tool_call_message])

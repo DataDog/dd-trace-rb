@@ -6,14 +6,14 @@ module Datadog
 
         attr_reader messages: Array[Evaluation::Message]
 
-        attr_reader applied: Integer
+        attr_reader applied_count: Integer
 
-        attr_reader failures: Integer
+        attr_reader failures_count: Integer
 
         def initialize: (
           Array[Evaluation::Message] messages,
-          applied: Integer,
-          failures: Integer,
+          applied_count: Integer,
+          failures_count: Integer,
           ?performed: bool
         ) -> void
 

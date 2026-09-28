@@ -27,6 +27,9 @@ module Datadog
             rescue JSON::JSONError
               Metrics::Telemetry.report_error
               return super
+            rescue => e
+              AIGuard.telemetry&.report(e, description: "AI Guard: Failed to convert RubyLLM messages")
+              return super
             end
 
             evaluation = AIGuard.evaluate(*converted_messages)
