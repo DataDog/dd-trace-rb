@@ -270,7 +270,7 @@ Datadog::RubyCoreSource
         have_header("vm_core.h") &&
         have_header("iseq.h", "vm_core.h") &&
         # These are only used on Ruby 3+
-        (RUBY_VERSION < "3" || have_header("ractor_core.h") && have_header("internal/class.h"))
+        (RUBY_VERSION < "3" || have_header("ractor_core.h") && have_header("internal/class.h", "vm_core.h"))
 
       if headers_available
         # Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
