@@ -368,8 +368,13 @@ class InstalledBundleCache
 
   def default_specification?(spec)
     identity = [spec.name, spec.version.to_s, spec.platform.to_s]
-    Gem::Specification.default_stubs.any? do |default_spec|
-      identity == [default_spec.name, default_spec.version.to_s, default_spec.platform.to_s]
+    default_directory = Pathname(Gem.default_dir).expand_path
+    Gem::Specification.stubs.any? do |default_spec|
+      installed_in_default_directory = Pathname(default_spec.loaded_from).expand_path.ascend.any? do |path|
+        path == default_directory
+      end
+      installed_in_default_directory &&
+        identity == [default_spec.name, default_spec.version.to_s, default_spec.platform.to_s]
     end
   end
 

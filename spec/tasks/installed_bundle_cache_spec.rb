@@ -268,7 +268,8 @@ RSpec.describe InstalledBundleCache do
       spec.name = "group"
       spec.version = "2.0.0"
     end
-    allow(Gem::Specification).to receive(:default_stubs).and_return([default_specification])
+    default_specification.loaded_from = File.join(Gem.default_dir, "specifications/group-2.0.0.gemspec")
+    allow(Gem::Specification).to receive(:stubs).and_return([default_specification])
     grouped_cache = described_class.new(
       root: temporary_directory,
       base_gemfile: "base.gemfile",
