@@ -261,6 +261,26 @@ RSpec.describe InstalledBundleCache do
     )
   end
 
+  it "omits default gems supplied by the Ruby installation" do
+    write("base.gemfile.lock", lockfile("base (1.0.0)"))
+    write("first.gemfile.lock", lockfile("base (1.0.0)", "group (2.0.0)"))
+    default_specification = Gem::Specification.new do |spec|
+      spec.name = "group"
+      spec.version = "2.0.0"
+    end
+    allow(Gem::Specification).to receive(:default_stubs).and_return([default_specification])
+    grouped_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-delta",
+      installed_path: temporary_directory.join("installed"),
+      group: {"name" => "standard-0", "tasks" => []},
+    )
+
+    expect(grouped_cache.cache_paths).to be_empty
+  end
+
   it "audits paths against the installed gemspec" do
     write("base.gemfile.lock", lockfile("base (1.0.0)"))
     write("first.gemfile.lock", lockfile("base (1.0.0)", "group (2.0.0)"))

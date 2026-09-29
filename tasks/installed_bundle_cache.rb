@@ -197,7 +197,7 @@ class InstalledBundleCache
 
     base_identities = base_specifications.map { |spec| specification_identity(spec) }
     selected_specifications.reject do |spec|
-      base_identities.include?(specification_identity(spec))
+      base_identities.include?(specification_identity(spec)) || default_specification?(spec)
     end.sort_by { |spec| specification_identity(spec) }.flat_map do |spec|
       full_name = spec.full_name
       [
@@ -364,6 +364,13 @@ class InstalledBundleCache
 
   def specification_identity(spec)
     [spec.name, spec.version.to_s, spec.platform.to_s, source_identity(spec.source)]
+  end
+
+  def default_specification?(spec)
+    identity = [spec.name, spec.version.to_s, spec.platform.to_s]
+    Gem::Specification.default_stubs.any? do |default_spec|
+      identity == [default_spec.name, default_spec.version.to_s, default_spec.platform.to_s]
+    end
   end
 
   def source_identity(source)
