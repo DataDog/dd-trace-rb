@@ -37,14 +37,14 @@ static VALUE native_read(VALUE _self);
 void otel_thread_context_init(VALUE tracing_module) {
   fiber_context_slot = rb_intern("__dd_otel_fiber_context");
 
-  VALUE otel_thread_context_module = rb_define_module_under(tracing_module, "OTelThreadContext");
+  VALUE otel_thread_context_class = rb_define_class_under(tracing_module, "OTelThreadContext", rb_cObject);
 
-  rb_define_singleton_method(otel_thread_context_module, "_native_enable", native_enable, 0);
-  rb_define_singleton_method(otel_thread_context_module, "_native_set", native_set, 3);
-  rb_define_singleton_method(otel_thread_context_module, "_native_clear", native_clear, 0);
-  rb_define_singleton_method(otel_thread_context_module, "_native_supported?", native_supported_p, 0);
+  rb_define_method(otel_thread_context_class, "_native_enable", native_enable, 0);
+  rb_define_method(otel_thread_context_class, "_native_set", native_set, 3);
+  rb_define_method(otel_thread_context_class, "_native_clear", native_clear, 0);
+  rb_define_method(otel_thread_context_class, "_native_supported?", native_supported_p, 0);
 
-  VALUE testing_module = rb_define_module_under(otel_thread_context_module, "Testing");
+  VALUE testing_module = rb_define_module_under(otel_thread_context_class, "Testing");
   rb_define_singleton_method(testing_module, "_native_read", native_read, 0);
 }
 
@@ -59,6 +59,22 @@ void otel_thread_context_init(VALUE tracing_module) {
 
   static ddog_ThreadContextHandle *get_current_fiber_handle(void) {
     return get_fiber_handle_for(rb_thread_current());
+  }
+
+  static void pack_span_id(VALUE id, uint8_t bytes[8]) {
+    // Tracing::Utils.next_id caps generated span IDs at (1 << 62) - 1, which fits
+    // in a Fixnum on 64-bit Ruby. Packing them directly avoids rb_integer_pack's
+    // generic conversion and format checks on each context update.
+    // https://github.com/DataDog/dd-trace-rb/blob/0b10368e0a2940c1f4d50c9739b9973b4f8bc32a/lib/datadog/tracing/utils.rb#L20-L37
+    if (FIXNUM_P(id)) {
+      uint64_t number = (uint64_t) FIX2LONG(id);
+      for (int i = 7; i >= 0; i--) {
+        bytes[i] = (uint8_t) number;
+        number >>= 8;
+      }
+    } else {
+      rb_integer_pack(id, bytes, 1, sizeof(uint64_t), 0, INTEGER_PACK_BIG_ENDIAN);
+    }
   }
 
   static void store_current_fiber_handle(ddog_ThreadContextHandle *handle) {
@@ -188,10 +204,10 @@ static VALUE native_set(
     uint8_t span_id_bytes[8];
     uint8_t local_root_span_id_bytes[8];
 
-    const int BIG_ENDIAN_PACK_FLAGS = INTEGER_PACK_MSWORD_FIRST | INTEGER_PACK_BIG_ENDIAN;
-    rb_integer_pack(trace_id, trace_id_bytes, sizeof(trace_id_bytes), 1, 0, BIG_ENDIAN_PACK_FLAGS);
-    rb_integer_pack(span_id, span_id_bytes, sizeof(span_id_bytes), 1, 0, BIG_ENDIAN_PACK_FLAGS);
-    rb_integer_pack(local_root_span_id, local_root_span_id_bytes, sizeof(local_root_span_id_bytes), 1, 0, BIG_ENDIAN_PACK_FLAGS);
+    // Note: We use 2 words of size 8, as `rb_integer_pack` has a fast path for it (vs 16 bytes of size 1)
+    rb_integer_pack(trace_id, trace_id_bytes, 2, sizeof(uint64_t), 0, INTEGER_PACK_BIG_ENDIAN);
+    pack_span_id(span_id, span_id_bytes);
+    pack_span_id(local_root_span_id, local_root_span_id_bytes);
 
     ddog_ThreadContextHandle *handle = get_current_fiber_handle();
 

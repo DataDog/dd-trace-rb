@@ -2,14 +2,71 @@ require "spec_helper"
 
 require "datadog/tracing/otel_thread_context"
 
+RSpec.describe Datadog::Tracing::OTelThreadContext do
+  describe ".build" do
+    subject(:build) { described_class.build(tracing_settings) }
+
+    let(:tracing_settings) { double("tracing settings", otel_thread_context_enabled: enabled) }
+
+    context "when disabled" do
+      let(:enabled) { false }
+
+      it { is_expected.to be_nil }
+    end
+
+    context "when enabled but unsupported" do
+      let(:enabled) { true }
+
+      before do
+        allow_any_instance_of(described_class).to receive(:supported?).and_return(false)
+      end
+
+      it { is_expected.to be_nil }
+    end
+
+    it "keeps direct construction private" do
+      expect { described_class.new }.to raise_error(NoMethodError)
+    end
+  end
+end
+
 RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? && PlatformHelpers.mri? do
+  describe ".build" do
+    subject(:build) { described_class.build(tracing_settings) }
+
+    let(:tracing_settings) { double("tracing settings", otel_thread_context_enabled: true) }
+
+    before do
+      allow_any_instance_of(described_class).to receive(:supported?).and_return(true)
+      allow_any_instance_of(described_class).to receive(:_native_enable).and_return(native_enabled)
+    end
+
+    context "when native enablement succeeds" do
+      let(:native_enabled) { true }
+
+      it { is_expected.to be_a(described_class) }
+    end
+
+    context "when native enablement fails" do
+      let(:native_enabled) { false }
+
+      it { is_expected.to be_nil }
+    end
+  end
+
+  subject(:otel_thread_context) do
+    described_class.build(tracing_settings) || fail("libdatadog built without otel-thread-ctx")
+  end
+
+  let(:tracing_settings) { double("tracing settings", otel_thread_context_enabled: true) }
+
   around(:each) do |example|
     Thread.new do
       example.run
     end.join
   end
 
-  describe ".set" do
+  describe "#set" do
     def decode_context(raw)
       return unless raw
 
@@ -37,12 +94,8 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
     end
 
     context "when enabled" do
-      before(:all) do
-        described_class.enable!
-      end
-
       before do
-        fail("libdatadog built without otel-thread-ctx") unless described_class.supported?
+        fail("libdatadog built without otel-thread-ctx") unless otel_thread_context.supported?
       end
 
       it "sets the thread context" do
@@ -50,18 +103,46 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
         span_id = 0xfedc_ba98_7654_3210
         local_root_span_id = 0xefcd_ab89_6745_2301
 
-        described_class.set(trace_id: trace_id, span_id: span_id, local_root_span_id: local_root_span_id)
+        otel_thread_context.set(trace_id: trace_id, span_id: span_id, local_root_span_id: local_root_span_id)
 
         expect(decode_context(described_class::Testing._native_read)).to include(
           trace_id: trace_id, span_id: span_id, local_root_span_id: local_root_span_id
         )
       end
 
+      it "sets the thread context with small integer span IDs" do
+        trace_id = 0xf0e1_d2c3_b4a5_9687_7869_5a4b_3c2d_1e0f
+        span_id = 0x1234_5678_90ab_cdef
+        local_root_span_id = 0x2345_6789_0abc_def1
+
+        otel_thread_context.set(trace_id: trace_id, span_id: span_id, local_root_span_id: local_root_span_id)
+
+        expect(decode_context(described_class::Testing._native_read)).to include(
+          trace_id: trace_id, span_id: span_id, local_root_span_id: local_root_span_id,
+        )
+      end
+
+      it "clears the thread context when the trace ID is zero" do
+        otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+
+        expect do
+          otel_thread_context.set(trace_id: 0, span_id: 2, local_root_span_id: 3)
+        end.to change { described_class::Testing._native_read }.to(nil)
+      end
+
+      it "clears the thread context when the span ID is zero" do
+        otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+
+        expect do
+          otel_thread_context.set(trace_id: 1, span_id: 0, local_root_span_id: 3)
+        end.to change { described_class::Testing._native_read }.to(nil)
+      end
+
       it "updates the thread context on fiber switch" do
-        described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+        otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
 
         fiber = Fiber.new do
-          described_class.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
+          otel_thread_context.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
 
           Fiber.yield
 
@@ -79,13 +160,13 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
 
       it "updates the thread context when switching between fibers" do
         fiber_a = Fiber.new do
-          described_class.set(trace_id: 100, span_id: 101, local_root_span_id: 102)
+          otel_thread_context.set(trace_id: 100, span_id: 101, local_root_span_id: 102)
           Fiber.yield
           decode_context(described_class::Testing._native_read)
         end
 
         fiber_b = Fiber.new do
-          described_class.set(trace_id: 200, span_id: 201, local_root_span_id: 202)
+          otel_thread_context.set(trace_id: 200, span_id: 201, local_root_span_id: 202)
           Fiber.yield
           decode_context(described_class::Testing._native_read)
         end
@@ -104,12 +185,12 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
       # to validate that we leave no memory behind for those threads.
       it "releases the thread context when a Thread exits" do
         Thread.new do
-          described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+          otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
         end.join
 
         signal_queue = Queue.new
         killed = Thread.new do
-          described_class.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
+          otel_thread_context.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
           signal_queue << true
           Queue.new.pop
         end
@@ -120,7 +201,7 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
 
         failed = Thread.new do
           Thread.current.report_on_exception = false
-          described_class.set(trace_id: 21, span_id: 22, local_root_span_id: 23)
+          otel_thread_context.set(trace_id: 21, span_id: 22, local_root_span_id: 23)
           raise StandardError
         end
 
@@ -131,32 +212,28 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
     end
   end
 
-  describe ".clear" do
+  describe "#clear" do
     context "when enabled" do
-      before(:all) do
-        described_class.enable!
-      end
-
       it "returns false when no context record was attached" do
-        expect(described_class.clear).to eq(false)
+        expect(otel_thread_context.clear).to eq(false)
       end
 
       it "returns true when a context record was attached" do
-        described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+        otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
 
-        expect(described_class.clear).to eq(true)
+        expect(otel_thread_context.clear).to eq(true)
       end
 
       it "detaches attached context record" do
-        described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+        otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
 
-        expect { described_class.clear }.to change { described_class::Testing._native_read }.to(nil)
+        expect { otel_thread_context.clear }.to change { described_class::Testing._native_read }.to(nil)
       end
 
       it "does not re-attach the cleared context record when switching out of fiber" do
         fiber = Fiber.new do
-          described_class.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
-          described_class.clear
+          otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+          otel_thread_context.clear
 
           Fiber.yield
 
@@ -166,6 +243,14 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
         fiber.resume
         expect(fiber.resume).to be_nil
       end
+    end
+  end
+
+  describe "#after_fork" do
+    it "clears the thread context" do
+      expect(otel_thread_context).to receive(:clear).once
+
+      otel_thread_context.after_fork
     end
   end
 end

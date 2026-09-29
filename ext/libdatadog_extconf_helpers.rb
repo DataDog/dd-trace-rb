@@ -2,6 +2,7 @@
 
 require "rubygems"
 require "pathname"
+require "shellwords"
 
 module Datadog
   # Contains a bunch of shared helpers that get used during building of extensions that link to libdatadog
@@ -10,7 +11,7 @@ module Datadog
   module LibdatadogExtconfHelpers
     # Used to make sure the correct gem version gets loaded, as extconf.rb does not get run with "bundle exec" and thus
     # may see multiple libdatadog versions. See https://github.com/DataDog/dd-trace-rb/pull/2531 for the horror story.
-    LIBDATADOG_VERSION = "~> 40.0.0.2.0"
+    LIBDATADOG_VERSION = "~> 44.0.1.1.0"
 
     # Used as an workaround for a limitation with how dynamic linking works in environments where the datadog gem and
     # libdatadog are moved after the extension gets compiled.
@@ -125,8 +126,8 @@ module Datadog
       includedir = "#{libdatadog_pkgconfig_folder}/../../include"
 
       # Set mkmf global variables
-      $INCFLAGS << " -I#{includedir}"
-      $LDFLAGS << " -L#{libdir} -Wl,-rpath,#{libdir}"
+      $INCFLAGS << " -I#{Shellwords.escape(includedir)}"
+      $LDFLAGS << " -L#{Shellwords.escape(libdir)} -Wl,-rpath,#{Shellwords.escape(libdir)}"
       $libs << " -ldatadog_profiling"
 
       # Add extra relative rpaths using $ORIGIN to handle environments where gems are moved after installation.
@@ -141,7 +142,7 @@ module Datadog
           libdatadog_pkgconfig_folder: libdatadog_pkgconfig_folder,
         ),
       ]
-      extra_relative_rpaths.each { |folder| $LDFLAGS << " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder}" }
+      extra_relative_rpaths.each { |folder| $LDFLAGS << " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{Shellwords.escape(folder)}" }
 
       logger.message("linking with libdatadog (include=#{includedir}, lib=#{libdir})\n")
       logger.message("[datadog] $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")

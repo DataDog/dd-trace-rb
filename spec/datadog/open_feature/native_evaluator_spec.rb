@@ -5,7 +5,6 @@ require "datadog/open_feature/native_evaluator"
 
 RSpec.describe Datadog::OpenFeature::NativeEvaluator do
   before do
-    stub_const("Datadog::Core::FeatureFlags::Configuration", configuration_class)
     allow(Datadog::Core::FeatureFlags::Configuration)
       .to receive(:new).and_return(configuration)
     allow(configuration).to receive(:get_assignment).with(flag_key, expected_type, context).and_return(assignment)
@@ -13,15 +12,6 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
 
   subject(:evaluator) { described_class.new(configuration_json) }
 
-  let(:configuration_class) do
-    Class.new do
-      def initialize(_configuration)
-      end
-
-      def get_assignment(_flag_key, _expected_type, _context)
-      end
-    end
-  end
   let(:resolution_details_class) do
     Class.new do
       attr_reader(
@@ -43,7 +33,10 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
     end
   end
   let(:configuration_json) { '{"flags":{}}' }
-  let(:configuration) { configuration_class.new(configuration_json) }
+  let(:configuration) do
+    instance_double(Datadog::Core::FeatureFlags::Configuration, observe_full_evaluation_data: observe_full_evaluation_data)
+  end
+  let(:observe_full_evaluation_data) { false }
   let(:flag_key) { "flag" }
   let(:expected_type) { :boolean }
   let(:context) { {"targeting_key" => "user-1"} }
@@ -131,38 +124,16 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
   end
 
   describe "#observe_full_evaluation_data" do
-    let(:base_ufc) { '{"format":"SERVER","environment":{"name":"test"},"flags":{}}' }
+    subject(:observe) { evaluator.observe_full_evaluation_data }
 
-    context "when the field is absent (privacy-preserving default)" do
-      it { expect(described_class.new(base_ufc).observe_full_evaluation_data).to be(false) }
+    context "when the native configuration opts in" do
+      let(:observe_full_evaluation_data) { true }
+
+      it { is_expected.to be(true) }
     end
 
-    context "when the field is false" do
-      let(:ufc) { '{"observeFullEvaluationData":false,"format":"SERVER","environment":{"name":"test"},"flags":{}}' }
-      it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(false) }
-    end
-
-    context "when the UFC root field is true" do
-      let(:ufc) { '{"observeFullEvaluationData":true,"format":"SERVER","environment":{"name":"test"},"flags":{}}' }
-      it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(true) }
-    end
-
-    context "when the field is explicit null" do
-      let(:ufc) { '{"format":"SERVER","observeFullEvaluationData":null,"environment":{"name":"test"},"flags":{}}' }
-      it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(false) }
-    end
-
-    context "when the field is wrong-typed (string)" do
-      let(:ufc) { '{"format":"SERVER","observeFullEvaluationData":"true","environment":{"name":"test"},"flags":{}}' }
-      it { expect(described_class.new(ufc).observe_full_evaluation_data).to be(false) }
-    end
-
-    context "when the JSON is malformed" do
-      it { expect(described_class.new("{not valid json").observe_full_evaluation_data).to be(false) }
-    end
-
-    context "when the configuration is nil" do
-      it { expect(described_class.new(nil).observe_full_evaluation_data).to be(false) }
+    context "when the native configuration does not opt in" do
+      it { is_expected.to be(false) }
     end
   end
 end
