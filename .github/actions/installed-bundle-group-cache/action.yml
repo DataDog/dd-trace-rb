@@ -119,22 +119,19 @@ runs:
             manifests.each do |name, manifest|
               output.puts("#{name}-key=#{manifest.fetch("cache_key")}")
               output.puts("#{name}-prefix=#{manifest.fetch("restore_prefix")}")
+              delimiter = "CACHE_PATHS_#{name.upcase.tr("-", "_")}"
+              output.puts("#{name}-paths<<#{delimiter}")
+              output.puts(manifest.fetch("cache_paths", []).join("\n"))
+              output.puts(delimiter)
             end
           end
         '
     - name: Preserve installed base bundle
       shell: bash
-      env:
-        BASE_GEMFILE: ${{ inputs.base-gemfile }}
-        STRATEGY: ${{ inputs.strategy }}
       run: |
         rm -rf /tmp/ddtrace-installed-base-bundle
         mkdir -p /tmp/ddtrace-installed-base-bundle
         cp -a /usr/local/bundle/. /tmp/ddtrace-installed-base-bundle/
-        ruby tasks/installed_bundle_cache_cli.rb snapshot \
-          --base-gemfile "$BASE_GEMFILE" \
-          --strategy "$STRATEGY" \
-          --snapshot /tmp/ddtrace-installed-base-snapshot.json
     - id: restore-start
       shell: bash
       run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
@@ -144,56 +141,56 @@ runs:
       with:
         key: ${{ steps.manifest.outputs.standard-0-key }}
         restore-keys: ${{ steps.manifest.outputs.standard-0-prefix }}
-        path: /tmp/ddtrace-installed-bundle-groups/standard-0
+        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-0-paths || '/tmp/ddtrace-installed-bundle-groups/standard-0' }}
     - id: restore-standard-1
       name: Restore standard-1 installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-1-key }}
         restore-keys: ${{ steps.manifest.outputs.standard-1-prefix }}
-        path: /tmp/ddtrace-installed-bundle-groups/standard-1
+        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-1-paths || '/tmp/ddtrace-installed-bundle-groups/standard-1' }}
     - id: restore-standard-2
       name: Restore standard-2 installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-2-key }}
         restore-keys: ${{ steps.manifest.outputs.standard-2-prefix }}
-        path: /tmp/ddtrace-installed-bundle-groups/standard-2
+        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-2-paths || '/tmp/ddtrace-installed-bundle-groups/standard-2' }}
     - id: restore-standard-3
       name: Restore standard-3 installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-3-key }}
         restore-keys: ${{ steps.manifest.outputs.standard-3-prefix }}
-        path: /tmp/ddtrace-installed-bundle-groups/standard-3
+        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-3-paths || '/tmp/ddtrace-installed-bundle-groups/standard-3' }}
     - id: restore-standard-4
       name: Restore standard-4 installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-4-key }}
         restore-keys: ${{ steps.manifest.outputs.standard-4-prefix }}
-        path: /tmp/ddtrace-installed-bundle-groups/standard-4
+        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-4-paths || '/tmp/ddtrace-installed-bundle-groups/standard-4' }}
     - id: restore-standard-5
       name: Restore standard-5 installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-5-key }}
         restore-keys: ${{ steps.manifest.outputs.standard-5-prefix }}
-        path: /tmp/ddtrace-installed-bundle-groups/standard-5
+        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-5-paths || '/tmp/ddtrace-installed-bundle-groups/standard-5' }}
     - id: restore-standard-6
       name: Restore standard-6 installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-6-key }}
         restore-keys: ${{ steps.manifest.outputs.standard-6-prefix }}
-        path: /tmp/ddtrace-installed-bundle-groups/standard-6
+        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-6-paths || '/tmp/ddtrace-installed-bundle-groups/standard-6' }}
     - id: restore-misc-0
       name: Restore misc-0 installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.misc-0-key }}
         restore-keys: ${{ steps.manifest.outputs.misc-0-prefix }}
-        path: /tmp/ddtrace-installed-bundle-groups/misc-0
+        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.misc-0-paths || '/tmp/ddtrace-installed-bundle-groups/misc-0' }}
     - id: restore-duration
       shell: bash
       env:
@@ -266,7 +263,7 @@ runs:
       shell: bash
       run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
     - name: Prepare standard-0 installed bundle
-      if: steps.lifecycle.outputs.standard-0-status != 'exact'
+      if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-0-status != 'exact'
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
@@ -275,7 +272,7 @@ runs:
         WRITE_ENABLED: ${{ inputs.write-enabled }}
       run: ruby tasks/installed_bundle_cache_cli.rb prepare-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-0 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-0 --base-bundle-path /tmp/ddtrace-installed-base-bundle --snapshot /tmp/ddtrace-installed-base-snapshot.json --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
     - name: Prepare standard-1 installed bundle
-      if: steps.lifecycle.outputs.standard-1-status != 'exact'
+      if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-1-status != 'exact'
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
@@ -284,7 +281,7 @@ runs:
         WRITE_ENABLED: ${{ inputs.write-enabled }}
       run: ruby tasks/installed_bundle_cache_cli.rb prepare-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-1 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-1 --base-bundle-path /tmp/ddtrace-installed-base-bundle --snapshot /tmp/ddtrace-installed-base-snapshot.json --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
     - name: Prepare standard-2 installed bundle
-      if: steps.lifecycle.outputs.standard-2-status != 'exact'
+      if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-2-status != 'exact'
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
@@ -293,7 +290,7 @@ runs:
         WRITE_ENABLED: ${{ inputs.write-enabled }}
       run: ruby tasks/installed_bundle_cache_cli.rb prepare-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-2 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-2 --base-bundle-path /tmp/ddtrace-installed-base-bundle --snapshot /tmp/ddtrace-installed-base-snapshot.json --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
     - name: Prepare standard-3 installed bundle
-      if: steps.lifecycle.outputs.standard-3-status != 'exact'
+      if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-3-status != 'exact'
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
@@ -302,7 +299,7 @@ runs:
         WRITE_ENABLED: ${{ inputs.write-enabled }}
       run: ruby tasks/installed_bundle_cache_cli.rb prepare-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-3 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-3 --base-bundle-path /tmp/ddtrace-installed-base-bundle --snapshot /tmp/ddtrace-installed-base-snapshot.json --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
     - name: Prepare standard-4 installed bundle
-      if: steps.lifecycle.outputs.standard-4-status != 'exact'
+      if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-4-status != 'exact'
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
@@ -311,7 +308,7 @@ runs:
         WRITE_ENABLED: ${{ inputs.write-enabled }}
       run: ruby tasks/installed_bundle_cache_cli.rb prepare-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-4 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-4 --base-bundle-path /tmp/ddtrace-installed-base-bundle --snapshot /tmp/ddtrace-installed-base-snapshot.json --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
     - name: Prepare standard-5 installed bundle
-      if: steps.lifecycle.outputs.standard-5-status != 'exact'
+      if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-5-status != 'exact'
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
@@ -320,7 +317,7 @@ runs:
         WRITE_ENABLED: ${{ inputs.write-enabled }}
       run: ruby tasks/installed_bundle_cache_cli.rb prepare-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-5 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-5 --base-bundle-path /tmp/ddtrace-installed-base-bundle --snapshot /tmp/ddtrace-installed-base-snapshot.json --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
     - name: Prepare standard-6 installed bundle
-      if: steps.lifecycle.outputs.standard-6-status != 'exact'
+      if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-6-status != 'exact'
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
@@ -329,7 +326,7 @@ runs:
         WRITE_ENABLED: ${{ inputs.write-enabled }}
       run: ruby tasks/installed_bundle_cache_cli.rb prepare-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-6 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-6 --base-bundle-path /tmp/ddtrace-installed-base-bundle --snapshot /tmp/ddtrace-installed-base-snapshot.json --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
     - name: Prepare misc-0 installed bundle
-      if: steps.lifecycle.outputs.misc-0-status != 'exact'
+      if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.misc-0-status != 'exact'
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
@@ -337,6 +334,13 @@ runs:
         STRATEGY: ${{ inputs.strategy }}
         WRITE_ENABLED: ${{ inputs.write-enabled }}
       run: ruby tasks/installed_bundle_cache_cli.rb prepare-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group misc-0 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/misc-0 --base-bundle-path /tmp/ddtrace-installed-base-bundle --snapshot /tmp/ddtrace-installed-base-snapshot.json --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
+    - name: Prepare partitioned installed bundle groups
+      if: inputs.strategy == 'group-delta' && steps.lifecycle.outputs.status != 'exact' && inputs.write-enabled == 'true'
+      shell: bash
+      env:
+        BASE_GEMFILE: ${{ inputs.base-gemfile }}
+        STRATEGY: ${{ inputs.strategy }}
+      run: ruby tasks/installed_bundle_cache_cli.rb prepare-partitioned-groups --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --strategy "$STRATEGY" --base-bundle-path /tmp/ddtrace-installed-base-bundle --validation-path /tmp/ddtrace-installed-bundle-validation --jobs 8
     - id: population-duration
       if: steps.lifecycle.outputs.status != 'exact'
       shell: bash
@@ -347,9 +351,18 @@ runs:
       if: inputs.write-enabled == 'true' && steps.lifecycle.outputs.status != 'exact'
       name: Measure installed bundle groups
       shell: bash
+      env:
+        BASE_GEMFILE: ${{ inputs.base-gemfile }}
+        STRATEGY: ${{ inputs.strategy }}
       run: |
-        file_count=$(find /tmp/ddtrace-installed-bundle-groups -type f | wc -l | tr -d ' ')
-        byte_count=$(du -sb /tmp/ddtrace-installed-bundle-groups | cut -f1)
+        if [ "$STRATEGY" = "group-delta" ]; then
+          statistics=$(ruby tasks/installed_bundle_cache_cli.rb group-statistics --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --strategy "$STRATEGY")
+          file_count=$(echo "$statistics" | ruby -rjson -e 'puts JSON.parse(STDIN.read).fetch("file_count")')
+          byte_count=$(echo "$statistics" | ruby -rjson -e 'puts JSON.parse(STDIN.read).fetch("byte_count")')
+        else
+          file_count=$(find /tmp/ddtrace-installed-bundle-groups -type f | wc -l | tr -d ' ')
+          byte_count=$(du -sb /tmp/ddtrace-installed-bundle-groups | cut -f1)
+        fi
         { echo "file-count=$file_count"; echo "byte-count=$byte_count"; } >> "$GITHUB_OUTPUT"
     - id: save-start
       if: inputs.write-enabled == 'true' && steps.lifecycle.outputs.status != 'exact'
@@ -360,49 +373,49 @@ runs:
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-0-key }}
-        path: /tmp/ddtrace-installed-bundle-groups/standard-0
+        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-0-paths || '/tmp/ddtrace-installed-bundle-groups/standard-0' }}
     - name: Save standard-1 installed bundle
       if: inputs.write-enabled == 'true' && steps.restore-standard-1.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-1-key }}
-        path: /tmp/ddtrace-installed-bundle-groups/standard-1
+        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-1-paths || '/tmp/ddtrace-installed-bundle-groups/standard-1' }}
     - name: Save standard-2 installed bundle
       if: inputs.write-enabled == 'true' && steps.restore-standard-2.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-2-key }}
-        path: /tmp/ddtrace-installed-bundle-groups/standard-2
+        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-2-paths || '/tmp/ddtrace-installed-bundle-groups/standard-2' }}
     - name: Save standard-3 installed bundle
       if: inputs.write-enabled == 'true' && steps.restore-standard-3.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-3-key }}
-        path: /tmp/ddtrace-installed-bundle-groups/standard-3
+        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-3-paths || '/tmp/ddtrace-installed-bundle-groups/standard-3' }}
     - name: Save standard-4 installed bundle
       if: inputs.write-enabled == 'true' && steps.restore-standard-4.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-4-key }}
-        path: /tmp/ddtrace-installed-bundle-groups/standard-4
+        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-4-paths || '/tmp/ddtrace-installed-bundle-groups/standard-4' }}
     - name: Save standard-5 installed bundle
       if: inputs.write-enabled == 'true' && steps.restore-standard-5.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-5-key }}
-        path: /tmp/ddtrace-installed-bundle-groups/standard-5
+        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-5-paths || '/tmp/ddtrace-installed-bundle-groups/standard-5' }}
     - name: Save standard-6 installed bundle
       if: inputs.write-enabled == 'true' && steps.restore-standard-6.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-6-key }}
-        path: /tmp/ddtrace-installed-bundle-groups/standard-6
+        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-6-paths || '/tmp/ddtrace-installed-bundle-groups/standard-6' }}
     - name: Save misc-0 installed bundle
       if: inputs.write-enabled == 'true' && steps.restore-misc-0.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.misc-0-key }}
-        path: /tmp/ddtrace-installed-bundle-groups/misc-0
+        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.misc-0-paths || '/tmp/ddtrace-installed-bundle-groups/misc-0' }}
     - id: save-duration
       if: inputs.write-enabled == 'true' && steps.lifecycle.outputs.status != 'exact'
       shell: bash

@@ -111,7 +111,7 @@ class InstalledBundleCache
   end
 
   def to_h(cache_schema:, image_identity:, base_cache_key: nil, experiment_variant: nil)
-    {
+    manifest = {
       cache_schema: cache_schema,
       strategy: strategy,
       cache_key: cache_key(
@@ -129,6 +129,8 @@ class InstalledBundleCache
       applicable_gemfiles: applicable_gemfiles.map { |path| relative_path(path) },
       group: group,
     }
+    manifest[:cache_paths] = cache_paths if strategy == "group-delta"
+    manifest
   end
 
   def install(jobs: 8)
@@ -188,6 +190,86 @@ class InstalledBundleCache
     else
       reset_path_from(cache_path, installed_path)
     end
+  end
+
+  def cache_paths
+    raise ArgumentError, "cache paths require a group" unless group
+
+    base_identities = base_specifications.map { |spec| specification_identity(spec) }
+    selected_specifications.reject do |spec|
+      base_identities.include?(specification_identity(spec))
+    end.sort_by { |spec| specification_identity(spec) }.flat_map do |spec|
+      full_name = spec.full_name
+      [
+        installed_path.join("gems", full_name),
+        installed_path.join("specifications", "#{full_name}.gemspec"),
+        installed_path.join("extensions", Gem::Platform.local.to_s, Gem.extension_api_version, full_name),
+      ].map(&:to_s)
+    end
+  end
+
+  def prepare_partitioned_groups(groups:, base_bundle_path:, validation_path:, jobs: 8)
+    reset_installed_from(base_bundle_path)
+    InstalledBundleCache.new(
+      root: root,
+      base_gemfile: base_gemfile,
+      applicable_gemfiles: groups.values.flat_map { |value| value.fetch("tasks").map { |task| task.fetch("gemfile") } }.uniq,
+      strategy: strategy,
+      installed_path: installed_path,
+    ).install(jobs: jobs)
+
+    groups.sort.each do |_name, value|
+      group_cache = InstalledBundleCache.new(
+        root: root,
+        base_gemfile: base_gemfile,
+        applicable_gemfiles: value.fetch("tasks").map { |task| task.fetch("gemfile") }.uniq,
+        strategy: strategy,
+        installed_path: installed_path,
+        group: value,
+      )
+      group_cache.validate_partition(base_bundle_path: base_bundle_path, validation_path: validation_path)
+    end
+  end
+
+  def validate_partition(base_bundle_path:, validation_path:)
+    audit_cache_paths
+    validation_path = Pathname(validation_path).expand_path
+    reset_path_from(validation_path, base_bundle_path)
+    copy_relative_paths(installed_path, validation_path, cache_paths)
+    gemfiles.each do |gemfile|
+      run_bundle(gemfile, "check", bundle_path: validation_path)
+    end
+  ensure
+    FileUtils.rm_rf(validation_path) if validation_path
+  end
+
+  def audit_cache_paths
+    cache_paths.each_slice(3) do |gem_path, gemspec_path, extension_path|
+      raise "Installed gemspec not found: #{gemspec_path}" unless File.file?(gemspec_path)
+
+      spec = Gem::Specification.load(gemspec_path)
+      raise "Invalid installed gemspec: #{gemspec_path}" unless spec
+
+      expected = [spec.full_gem_path, spec.loaded_from, spec.extension_dir].map { |path| Pathname(path).expand_path.to_s }
+      actual = [gem_path, gemspec_path, extension_path].map { |path| Pathname(path).expand_path.to_s }
+      raise "Installed paths do not match #{spec.full_name}" unless actual == expected
+      raise "Installed gem directory not found: #{gem_path}" unless File.directory?(gem_path)
+      if spec.extensions.any? && !File.directory?(extension_path)
+        raise "Installed extension directory not found: #{extension_path}"
+      end
+    end
+  end
+
+  def cache_statistics
+    files = cache_paths.flat_map do |path|
+      path = Pathname(path)
+      path.directory? ? path.glob("**/*", File::FNM_DOTMATCH).reject(&:directory?) : [path]
+    end.select(&:file?)
+
+    {
+      "file_count" => files.size,
+      "byte_count" => files.sum(&:size),
+    }
   end
 
   private
@@ -251,6 +333,43 @@ class InstalledBundleCache
     }
   end
 
+  def selected_specifications
+    specifications_for(gemfiles)
+  end
+
+  def base_specifications
+    specifications_for([base_gemfile])
+  end
+
+  def specifications_for(selected_gemfiles)
+    selected_gemfiles.flat_map do |gemfile|
+      parser = Bundler::LockfileParser.new(File.read(lockfile_for(gemfile)))
+      rubygems_specs(parser)
+    end.uniq { |spec| specification_identity(spec) }
+  end
+
+  def rubygems_specs(parser)
+    specs = parser.specs.select { |spec| spec.source.is_a?(Bundler::Source::Rubygems) }
+
+    specs.group_by { |spec| [spec.name, spec.version.to_s, source_identity(spec.source)] }.each_with_object([]) do |(_identity, variants), selected|
+      matching = variants.select { |spec| platform_match?(spec.platform) }
+      native = matching.reject { |spec| spec.platform.to_s == "ruby" }
+      selected.concat(native.empty? ? matching : native)
+    end
+  end
+
+  def platform_match?(platform)
+    platform.to_s == "ruby" || Gem::Platform.local === Gem::Platform.new(platform.to_s)
+  end
+
+  def specification_identity(spec)
+    [spec.name, spec.version.to_s, spec.platform.to_s, source_identity(spec.source)]
+  end
+
+  def source_identity(source)
+    [source.class.name, *source.remotes.map(&:to_s).sort]
+  end
+
   def reset_installed_from(source)
     reset_path_from(installed_path, source)
   end
@@ -269,6 +388,20 @@ class InstalledBundleCache
     FileUtils.mkdir_p(destination)
     source.children.each do |entry|
       FileUtils.copy_entry(entry, destination.join(entry.basename), true, false, true)
+    end
+  end
+
+  def copy_relative_paths(source_root, destination_root, paths)
+    source_root = Pathname(source_root).expand_path
+    destination_root = Pathname(destination_root).expand_path
+    paths.each do |path|
+      source = Pathname(path).expand_path
+      next unless source.exist?
+
+      relative = source.relative_path_from(source_root)
+      target = destination_root.join(relative)
+      FileUtils.mkdir_p(target.dirname)
+      FileUtils.copy_entry(source, target, true, false, true)
     end
   end
 
@@ -298,10 +431,18 @@ class InstalledBundleCache
     digest.hexdigest
   end
 
-  def run_bundle(gemfile, *arguments)
+  def run_bundle(gemfile, *arguments, bundle_path: nil)
     relative_gemfile = relative_path(gemfile)
     puts "BUNDLE_GEMFILE=#{relative_gemfile} bundle #{arguments.join(" ")}"
-    success = system({"BUNDLE_GEMFILE" => gemfile.to_s}, "bundle", *arguments)
+    environment = {"BUNDLE_GEMFILE" => gemfile.to_s}
+    if bundle_path
+      environment.merge!(
+        "BUNDLE_PATH" => bundle_path.to_s,
+        "GEM_HOME" => bundle_path.to_s,
+        "GEM_PATH" => bundle_path.to_s,
+      )
+    end
+    success = system(environment, "bundle", *arguments)
     raise "bundle #{arguments.first} failed for #{relative_gemfile}" unless success
   end
 

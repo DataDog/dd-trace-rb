@@ -33,6 +33,24 @@ RSpec.describe InstalledBundleCache do
     target.write(content)
   end
 
+  def lockfile(*specs)
+    <<~LOCK
+      GEM
+        remote: https://rubygems.org/
+        specs:
+      #{specs.sort.map { |spec| "    #{spec}" }.join("\n")}
+
+      PLATFORMS
+        ruby
+
+      DEPENDENCIES
+      #{specs.map { |spec| "  #{spec.split.first}" }.uniq.sort.join("\n")}
+
+      BUNDLED WITH
+         2.6.9
+    LOCK
+  end
+
   it "returns base and sorted appraisal Gemfiles" do
     expect(cache.gemfiles.map { |path| path.basename.to_s }).to eq(
       %w[base.gemfile first.gemfile second.gemfile]
@@ -220,6 +238,89 @@ RSpec.describe InstalledBundleCache do
 
     expect(temporary_directory.join("group-cache/gems/base.rb").read).to eq("base\n")
     expect(temporary_directory.join("group-cache/gems/group.rb").read).to eq("group\n")
+  end
+
+  it "maps group-only specs to direct installed cache paths" do
+    write("base.gemfile.lock", lockfile("base (1.0.0)", "shared (1.0.0)"))
+    write("first.gemfile.lock", lockfile("base (1.0.0)", "group (2.0.0)", "shared (1.0.0)"))
+    grouped_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-delta",
+      installed_path: temporary_directory.join("installed"),
+      group: {"name" => "standard-0", "tasks" => []},
+    )
+
+    expect(grouped_cache.cache_paths).to contain_exactly(
+      temporary_directory.join("installed/gems/group-2.0.0").to_s,
+      temporary_directory.join("installed/specifications/group-2.0.0.gemspec").to_s,
+      temporary_directory.join(
+        "installed/extensions/#{Gem::Platform.local}/#{Gem.extension_api_version}/group-2.0.0"
+      ).to_s,
+    )
+  end
+
+  it "audits paths against the installed gemspec" do
+    write("base.gemfile.lock", lockfile("base (1.0.0)"))
+    write("first.gemfile.lock", lockfile("base (1.0.0)", "group (2.0.0)"))
+    specification = Gem::Specification.new do |spec|
+      spec.name = "group"
+      spec.version = "2.0.0"
+      spec.summary = "group"
+      spec.authors = ["test"]
+      spec.files = []
+    end
+    write("installed/specifications/group-2.0.0.gemspec", specification.to_ruby)
+    temporary_directory.join("installed/gems/group-2.0.0").mkpath
+    grouped_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-delta",
+      installed_path: temporary_directory.join("installed"),
+      group: {"name" => "standard-0", "tasks" => []},
+    )
+
+    expect { grouped_cache.audit_cache_paths }.not_to raise_error
+  end
+
+  it "rejects a partition whose installed gemspec is missing" do
+    write("base.gemfile.lock", lockfile("base (1.0.0)"))
+    write("first.gemfile.lock", lockfile("base (1.0.0)", "group (2.0.0)"))
+    grouped_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-delta",
+      installed_path: temporary_directory.join("installed"),
+      group: {"name" => "standard-0", "tasks" => []},
+    )
+
+    expect { grouped_cache.audit_cache_paths }.to raise_error(
+      "Installed gemspec not found: #{temporary_directory}/installed/specifications/group-2.0.0.gemspec",
+    )
+  end
+
+  it "includes direct group paths in group-delta manifests" do
+    write("base.gemfile.lock", lockfile("base (1.0.0)"))
+    write("first.gemfile.lock", lockfile("base (1.0.0)", "group (2.0.0)"))
+    grouped_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-delta",
+      installed_path: temporary_directory.join("installed"),
+      group: {"name" => "standard-0", "tasks" => []},
+    )
+
+    manifest = grouped_cache.to_h(
+      cache_schema: "installed-test-v1-group-delta",
+      image_identity: "image-a",
+      base_cache_key: "base-key",
+    )
+
+    expect(manifest.fetch(:cache_paths)).to eq(grouped_cache.cache_paths)
   end
 
   it "builds a group delta without unchanged base files" do

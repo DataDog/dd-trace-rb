@@ -168,7 +168,7 @@ jobs:
           standard-groups: ${{ steps.set-batches.outputs.batches }}
           misc-groups: ${{ steps.set-batches.outputs.misc }}
           base-cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
-          cache-schema: ${{ inputs.installed-cache-strategy == 'group-full' && 'bundle-installed-matrix-s3-v1-group-full' || 'bundle-installed-matrix-s4-v1-group-delta' }}
+          cache-schema: ${{ inputs.installed-cache-strategy == 'group-full' && 'bundle-installed-matrix-s3-v1-group-full' || 'bundle-installed-matrix-s4-v2-union-partition' }}
           experiment-variant: ${{ inputs.installed-cache-key-variant }}
           image-identity: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
           strategy: ${{ inputs.installed-cache-strategy }}

@@ -122,10 +122,12 @@ RSpec.describe "installed bundle cache workflow" do
     expect(restore.fetch("with").fetch("restore-keys")).not_to include("cache-schema")
   end
 
-  it "applies restored deltas over the installed base" do
-    apply = steps.find { |step| step["name"] == "Apply installed bundle delta" }
+  it "applies only the staged all-delta cache over the installed base" do
+    apply = restore_action.fetch("runs").fetch("steps").find do |step|
+      step["name"] == "Apply installed bundle delta"
+    end
 
-    expect(apply.fetch("if")).to include("inputs.strategy == 'all-delta'")
+    expect(apply.fetch("if")).to eq("inputs.strategy == 'all-delta'")
     expect(apply.fetch("run")).to include("cp -a /tmp/ddtrace-installed-bundle-delta/. /usr/local/bundle/")
   end
 
@@ -191,6 +193,25 @@ RSpec.describe "installed bundle cache workflow" do
       expect(restores.size).to eq(8)
       expect(saves.size).to eq(8)
       expect(restores).to all(include("with" => include("restore-keys" => include("prefix"))))
+      expect(restores).to all(include("with" => include("path" => include("paths"))))
+      expect(saves).to all(include("with" => include("path" => include("paths"))))
+    end
+
+    it "installs the union once before saving partitioned group deltas" do
+      group_steps = group_action.fetch("runs").fetch("steps")
+      prepare = group_steps.find { |step| step["name"] == "Prepare partitioned installed bundle groups" }
+
+      expect(prepare.fetch("if")).to include("inputs.strategy == 'group-delta'")
+      expect(prepare.fetch("run")).to include("prepare-partitioned-groups")
+    end
+
+    it "restores partitioned child groups directly to computed installed paths" do
+      restore_steps = restore_action.fetch("runs").fetch("steps")
+      paths = restore_steps.find { |step| step["id"] == "group-paths" }
+      restore = restore_steps.find { |step| step["id"] == "restore" }
+
+      expect(paths.fetch("run")).to include("cache-paths")
+      expect(restore.fetch("with").fetch("path")).to include("steps.group-paths.outputs.value")
     end
 
     it "classifies all exact group restores as exact" do

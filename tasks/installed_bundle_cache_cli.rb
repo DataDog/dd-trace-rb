@@ -27,6 +27,7 @@ parser = OptionParser.new do |opts|
   opts.on("--group VALUE") { |value| options[:group] = value }
   opts.on("--cache-path PATH") { |value| options[:cache_path] = value }
   opts.on("--base-bundle-path PATH") { |value| options[:base_bundle_path] = value }
+  opts.on("--validation-path PATH") { |value| options[:validation_path] = value }
   opts.on("--restore-status VALUE") { |value| options[:restore_status] = value }
   opts.on("--write-enabled VALUE") { |value| options[:write_enabled] = value == "true" }
   opts.on("--jobs COUNT", Integer) { |value| options[:jobs] = value }
@@ -97,6 +98,27 @@ when "prepare-group"
     write_enabled: options.fetch(:write_enabled, false),
     jobs: options.fetch(:jobs, 8),
   )
+when "prepare-partitioned-groups"
+  raise OptionParser::MissingArgument, "--base-bundle-path" unless options[:base_bundle_path]
+  raise OptionParser::MissingArgument, "--validation-path" unless options[:validation_path]
+
+  build_cache.call.prepare_partitioned_groups(
+    groups: load_groups.call,
+    base_bundle_path: options[:base_bundle_path],
+    validation_path: options[:validation_path],
+    jobs: options.fetch(:jobs, 8),
+  )
+when "group-statistics"
+  statistics = load_groups.call.sort.each_with_object({"file_count" => 0, "byte_count" => 0}) do |(_name, group), totals|
+    build_cache.call(group).cache_statistics.each do |key, value|
+      totals[key] += value
+    end
+  end
+  puts JSON.generate(statistics)
+when "cache-paths"
+  raise OptionParser::MissingArgument, "--group" unless options[:group]
+
+  puts build_cache.call(load_groups.call.fetch(options[:group])).cache_paths
 when "install"
   build_cache.call.install(jobs: options.fetch(:jobs, 8))
 when "check"

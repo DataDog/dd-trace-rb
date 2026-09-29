@@ -33,6 +33,23 @@ outputs:
 runs:
   using: composite
   steps:
+    - id: group-paths
+      if: inputs.strategy == 'group-delta'
+      shell: bash
+      env:
+        GROUP: ${{ inputs.group }}
+      run: |
+        ruby -rjson -e '
+          group = {"name" => ENV.fetch("GROUP"), "tasks" => JSON.parse(ENV.fetch("BATCHED_TASKS"))}
+          File.write("/tmp/ddtrace-installed-bundle-child-group.json", JSON.generate("groups" => {ENV.fetch("GROUP") => group}))
+        '
+        ruby tasks/installed_bundle_cache_cli.rb cache-paths --base-gemfile "$BUNDLE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-child-group.json --group "$GROUP" --strategy group-delta > /tmp/ddtrace-installed-bundle-child-paths
+        delimiter="CACHE_PATHS_${RANDOM}_${RANDOM}"
+        {
+          echo "value<<$delimiter"
+          cat /tmp/ddtrace-installed-bundle-child-paths
+          echo "$delimiter"
+        } >> "$GITHUB_OUTPUT"
     - id: start
       shell: bash
       run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
@@ -42,14 +59,12 @@ runs:
       with:
         key: ${{ inputs.cache-key }}
         restore-keys: ${{ (inputs.strategy == 'all-delta' || startsWith(inputs.strategy, 'group-')) && inputs.restore-prefix || '' }}
-        path: ${{ inputs.strategy == 'all-delta' && '/tmp/ddtrace-installed-bundle-delta' || (startsWith(inputs.strategy, 'group-') && format('/tmp/ddtrace-installed-bundle-groups/{0}', inputs.group) || '/usr/local/bundle') }}
+        path: ${{ inputs.strategy == 'all-delta' && '/tmp/ddtrace-installed-bundle-delta' || (inputs.strategy == 'group-delta' && steps.group-paths.outputs.value || (inputs.strategy == 'group-full' && format('/tmp/ddtrace-installed-bundle-groups/{0}', inputs.group) || '/usr/local/bundle')) }}
         fail-on-cache-miss: true
     - name: Apply installed bundle delta
-      if: inputs.strategy == 'all-delta' || inputs.strategy == 'group-delta'
+      if: inputs.strategy == 'all-delta'
       shell: bash
-      env:
-        DELTA_PATH: ${{ inputs.strategy == 'all-delta' && '/tmp/ddtrace-installed-bundle-delta' || format('/tmp/ddtrace-installed-bundle-groups/{0}', inputs.group) }}
-      run: cp -a "$DELTA_PATH"/. /usr/local/bundle/
+      run: cp -a /tmp/ddtrace-installed-bundle-delta/. /usr/local/bundle/
     - name: Apply full installed bundle group
       if: inputs.strategy == 'group-full'
       shell: bash
