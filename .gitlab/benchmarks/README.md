@@ -27,7 +27,7 @@ GitLab CI configuration for the benchmarks that run on the
 - `benchmarks/`: benchmark scripts and `execution.yml` (CPU group definitions consumed by the
   `microbenchmarks` job).
 - `ruby-acme-parallel-*` stages: included from
-  [apm-sdks-benchmarks](https://gitlab.ddbuild.io/DataDog/apm-reliability/apm-sdks-benchmarks).
+  [apm-sdks-benchmarks](https://github.com/DataDog/apm-sdks-benchmarks/tree/main/.gitlab).
     - Change them there.
 
 ## Marking a benchmark as flaky
