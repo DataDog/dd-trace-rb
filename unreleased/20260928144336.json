@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Core",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6367",
+  "message": "Fix: treat empty OpenTelemetry environment variables as unset."
+}
