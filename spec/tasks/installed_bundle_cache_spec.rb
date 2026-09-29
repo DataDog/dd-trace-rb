@@ -261,6 +261,22 @@ RSpec.describe InstalledBundleCache do
     )
   end
 
+  it "omits a locally compatible variant supplied by the base" do
+    write("base.gemfile.lock", lockfile("group (2.0.0)"))
+    write("first.gemfile.lock", lockfile("group (2.0.0-x86_64-linux)"))
+    allow(Gem::Platform).to receive(:local).and_return(Gem::Platform.new("x86_64-linux"))
+    grouped_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-delta",
+      installed_path: temporary_directory.join("installed"),
+      group: {"name" => "standard-0", "tasks" => []},
+    )
+
+    expect(grouped_cache.cache_paths).to be_empty
+  end
+
   it "selects the best native platform variant" do
     write("base.gemfile.lock", lockfile("base (1.0.0)"))
     write(

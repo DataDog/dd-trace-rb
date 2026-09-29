@@ -195,9 +195,9 @@ class InstalledBundleCache
   def cache_paths
     raise ArgumentError, "cache paths require a group" unless group
 
-    base_identities = base_specifications.map { |spec| specification_identity(spec) }
+    base_identities = base_specifications.map { |spec| specification_package_identity(spec) }
     selected_specifications.reject do |spec|
-      base_identities.include?(specification_identity(spec)) || default_specification?(spec)
+      base_identities.include?(specification_package_identity(spec)) || default_specification?(spec)
     end.sort_by { |spec| specification_identity(spec) }.flat_map do |spec|
       full_name = spec.full_name
       [
@@ -358,6 +358,10 @@ class InstalledBundleCache
 
   def specification_identity(spec)
     [spec.name, spec.version.to_s, spec.platform.to_s, source_identity(spec.source)]
+  end
+
+  def specification_package_identity(spec)
+    [spec.name, spec.version.to_s, source_identity(spec.source)]
   end
 
   def default_specification?(spec)
