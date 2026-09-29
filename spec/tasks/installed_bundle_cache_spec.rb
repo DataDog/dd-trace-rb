@@ -443,6 +443,27 @@ RSpec.describe InstalledBundleCache do
     expect(destination.join("gems/base.rb")).not_to exist
   end
 
+  it "checks reconstructed bundles as system gem homes" do
+    bundle_path = temporary_directory.join("validation")
+    expect(cache).to receive(:system).with(
+      {
+        "BUNDLE_GEMFILE" => temporary_directory.join("first.gemfile").to_s,
+        "BUNDLE_PATH" => nil,
+        "GEM_HOME" => bundle_path.to_s,
+        "GEM_PATH" => bundle_path.to_s,
+      },
+      "bundle",
+      "check",
+    ).and_return(true)
+
+    cache.send(
+      :run_bundle,
+      temporary_directory.join("first.gemfile"),
+      "check",
+      bundle_path: bundle_path,
+    )
+  end
+
   it "rejects missing lockfiles" do
     temporary_directory.join("first.gemfile.lock").delete
 

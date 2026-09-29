@@ -437,7 +437,7 @@ class InstalledBundleCache
     environment = {"BUNDLE_GEMFILE" => gemfile.to_s}
     if bundle_path
       environment.merge!(
-        "BUNDLE_PATH" => bundle_path.to_s,
+        "BUNDLE_PATH" => nil,
         "GEM_HOME" => bundle_path.to_s,
         "GEM_PATH" => bundle_path.to_s,
       )
