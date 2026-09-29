@@ -439,7 +439,7 @@ class InstalledBundleCache
       environment.merge!(
         "BUNDLE_PATH" => nil,
         "GEM_HOME" => bundle_path.to_s,
-        "GEM_PATH" => bundle_path.to_s,
+        "GEM_PATH" => [bundle_path, Gem.default_dir].join(File::PATH_SEPARATOR),
       )
     end
     success = system(environment, "bundle", *arguments)

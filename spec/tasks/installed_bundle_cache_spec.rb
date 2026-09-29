@@ -450,7 +450,7 @@ RSpec.describe InstalledBundleCache do
         "BUNDLE_GEMFILE" => temporary_directory.join("first.gemfile").to_s,
         "BUNDLE_PATH" => nil,
         "GEM_HOME" => bundle_path.to_s,
-        "GEM_PATH" => bundle_path.to_s,
+        "GEM_PATH" => [bundle_path, Gem.default_dir].join(File::PATH_SEPARATOR),
       },
       "bundle",
       "check",
