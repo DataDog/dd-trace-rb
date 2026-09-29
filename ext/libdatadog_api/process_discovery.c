@@ -1,13 +1,168 @@
 #include <errno.h>
-#include <stdlib.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <limits.h>
 #include <ruby.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <datadog/library-config.h>
 
 #include "datadog_ruby_common.h"
 
+#define OTEL_CONTEXT_MAX_PAYLOAD_SIZE (1u << 20)
+
+typedef struct {
+  char signature[8];
+  uint32_t version;
+  uint32_t payload_size;
+  uint64_t monotonic_published_at_ns;
+  uint64_t payload_ptr;
+} otel_context_header;
+
+static bool otel_context_header_layout_supported(void) {
+  return sizeof(otel_context_header) == 32 &&
+    __alignof__(otel_context_header) == 8 &&
+    offsetof(otel_context_header, signature) == 0 &&
+    offsetof(otel_context_header, version) == 8 &&
+    offsetof(otel_context_header, payload_size) == 12 &&
+    offsetof(otel_context_header, monotonic_published_at_ns) == 16 &&
+    offsetof(otel_context_header, payload_ptr) == 24;
+}
+
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_to_rb_int(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd);
 static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd, VALUE logger);
+
+DDTRACE_UNUSED static bool find_otel_context_mapping(uintptr_t *address, size_t *size) {
+  *address = 0;
+  *size = 0;
+
+  if (!otel_context_header_layout_supported()) return false;
+
+  FILE *maps = fopen("/proc/self/maps", "r");
+  if (maps == NULL) return false;
+
+  char *line = NULL;
+  size_t capacity = 0;
+  uintptr_t candidate_address = 0;
+  size_t candidate_size = 0;
+  bool found = false;
+  bool success = false;
+
+  while (getline(&line, &capacity, maps) != -1) {
+    uintptr_t start;
+    uintptr_t end;
+    char permissions[5];
+    int pathname_offset = 0;
+
+    int fields = sscanf(
+      line,
+      "%" SCNxPTR "-%" SCNxPTR " %4s %*s %*s %*s %n",
+      &start,
+      &end,
+      permissions,
+      &pathname_offset
+    );
+
+    if (fields != 3 || pathname_offset == 0) goto cleanup;
+
+    char *pathname = line + pathname_offset;
+    pathname[strcspn(pathname, "\n")] = '\0';
+
+    const char deleted_suffix[] = " (deleted)";
+    size_t suffix_length = sizeof(deleted_suffix) - 1;
+    size_t pathname_length = strlen(pathname);
+
+    if (
+      pathname_length >= suffix_length &&
+      strcmp(pathname + pathname_length - suffix_length, deleted_suffix) == 0
+    ) {
+      pathname[pathname_length - suffix_length] = '\0';
+    }
+
+    bool matches =
+      strcmp(pathname, "/memfd:OTEL_CTX") == 0 ||
+      strcmp(pathname, "[anon:OTEL_CTX]") == 0 ||
+      strcmp(pathname, "[anon_shmem:OTEL_CTX]") == 0;
+
+    if (!matches) continue;
+    if (found) goto cleanup;
+
+    if (
+      start == 0 ||
+      end <= start ||
+      start % __alignof__(otel_context_header) != 0 ||
+      end - start < sizeof(otel_context_header) ||
+      permissions[0] != 'r' ||
+      permissions[1] != 'w'
+    ) {
+      goto cleanup;
+    }
+
+    candidate_address = start;
+    candidate_size = (size_t)(end - start);
+    found = true;
+  }
+
+  success = found && feof(maps) && !ferror(maps);
+
+cleanup:
+  free(line);
+  if (fclose(maps) != 0) success = false;
+
+  if (success) {
+    *address = candidate_address;
+    *size = candidate_size;
+  }
+
+  return success;
+}
+
+DDTRACE_UNUSED static bool otel_context_header_valid(const otel_context_header *header) {
+  return memcmp(header->signature, "OTEL_CTX", sizeof(header->signature)) == 0 &&
+    header->version == 2 &&
+    header->monotonic_published_at_ns != 0 &&
+    header->payload_size > 0 &&
+    header->payload_size <= OTEL_CONTEXT_MAX_PAYLOAD_SIZE &&
+    header->payload_ptr != 0 &&
+    header->payload_ptr <= UINTPTR_MAX - header->payload_size;
+}
+
+DDTRACE_UNUSED static bool read_otel_context_memory(uintptr_t address, void *destination, size_t size) {
+  if (
+    address == 0 ||
+    destination == NULL ||
+    size == 0 ||
+    size > OTEL_CONTEXT_MAX_PAYLOAD_SIZE ||
+    size > (size_t)SSIZE_MAX ||
+    address > UINTPTR_MAX - size
+  ) {
+    return false;
+  }
+
+  off_t offset = (off_t)address;
+  if (offset < 0 || (uintmax_t)offset != (uintmax_t)address) return false;
+
+  int fd;
+  do {
+    fd = open("/proc/self/mem", O_RDONLY | O_CLOEXEC);
+  } while (fd == -1 && errno == EINTR);
+  if (fd == -1) return false;
+
+  ssize_t bytes_read;
+  do {
+    bytes_read = pread(fd, destination, size, offset);
+  } while (bytes_read == -1 && errno == EINTR);
+
+  bool success = bytes_read >= 0 && (size_t)bytes_read == size;
+  if (close(fd) != 0) success = false;
+  return success;
+}
 
 static void tracer_memfd_free(void *ptr) {
   int *fd = (int *)ptr;
