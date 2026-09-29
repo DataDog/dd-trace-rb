@@ -261,6 +261,35 @@ RSpec.describe InstalledBundleCache do
     )
   end
 
+  it "selects the best native platform variant" do
+    write("base.gemfile.lock", lockfile("base (1.0.0)"))
+    write(
+      "first.gemfile.lock",
+      lockfile(
+        "base (1.0.0)",
+        "group (2.0.0-x86_64-linux-gnu)",
+        "group (2.0.0-x86_64-linux-musl)",
+      ),
+    )
+    allow(Gem::Platform).to receive(:local).and_return(Gem::Platform.new("x86_64-linux"))
+    grouped_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-delta",
+      installed_path: temporary_directory.join("installed"),
+      group: {"name" => "standard-0", "tasks" => []},
+    )
+
+    expect(grouped_cache.cache_paths).to contain_exactly(
+      temporary_directory.join("installed/gems/group-2.0.0-x86_64-linux-gnu").to_s,
+      temporary_directory.join("installed/specifications/group-2.0.0-x86_64-linux-gnu.gemspec").to_s,
+      temporary_directory.join(
+        "installed/extensions/x86_64-linux/#{Gem.extension_api_version}/group-2.0.0-x86_64-linux-gnu"
+      ).to_s,
+    )
+  end
+
   it "omits default gems supplied by the Ruby installation" do
     write("base.gemfile.lock", lockfile("base (1.0.0)"))
     write("first.gemfile.lock", lockfile("base (1.0.0)", "group (2.0.0)"))

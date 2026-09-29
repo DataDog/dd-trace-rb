@@ -352,14 +352,8 @@ class InstalledBundleCache
     specs = parser.specs.select { |spec| spec.source.is_a?(Bundler::Source::Rubygems) }
 
     specs.group_by { |spec| [spec.name, spec.version.to_s, source_identity(spec.source)] }.each_with_object([]) do |(_identity, variants), selected|
-      matching = variants.select { |spec| platform_match?(spec.platform) }
-      native = matching.reject { |spec| spec.platform.to_s == "ruby" }
-      selected.concat(native.empty? ? matching : native)
+      selected.concat(Bundler::MatchPlatform.select_best_platform_match(variants, Gem::Platform.local))
     end
-  end
-
-  def platform_match?(platform)
-    platform.to_s == "ruby" || Gem::Platform.local === Gem::Platform.new(platform.to_s)
   end
 
   def specification_identity(spec)
