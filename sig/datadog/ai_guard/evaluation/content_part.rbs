@@ -9,7 +9,7 @@ module Datadog
 
           def type: () -> ::Symbol
 
-          def with_text: (String text) -> Text
+          def copy: (text: String) -> Text
 
           def to_h: () -> Hash[Symbol, any]
         end

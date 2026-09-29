@@ -50,7 +50,7 @@ module Datadog
           when :content
             return unless message.content.is_a?(::String)
 
-            message.with_content(replacement)
+            message.copy(content: replacement)
           when :text
             # @type var index: Integer
             content = message.content
@@ -60,18 +60,18 @@ module Datadog
             return if !part.is_a?(Evaluation::ContentPart::Text) || !part.text.is_a?(::String)
 
             redacted_content = ::Array.new(content)
-            redacted_content[index] = part.with_text(replacement)
+            redacted_content[index] = part.copy(text: replacement)
 
-            message.with_content(redacted_content)
+            message.copy(content: redacted_content)
           when :arguments
             # @type var index: Integer
             tool_call = message.tool_calls[index]
             return unless tool_call && tool_call.arguments.is_a?(::String)
 
             redacted_tool_calls = ::Array.new(message.tool_calls)
-            redacted_tool_calls[index] = tool_call.with_arguments(replacement)
+            redacted_tool_calls[index] = tool_call.copy(arguments: replacement)
 
-            message.with_tool_calls(redacted_tool_calls)
+            message.copy(tool_calls: redacted_tool_calls)
           end
         end
       end

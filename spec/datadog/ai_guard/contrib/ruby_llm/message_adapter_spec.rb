@@ -101,7 +101,7 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
 
       it "copies the message and clears provider-shaped content" do
         ai_guard_message = adapter.to_ai_guard[0]
-        rewritten_message = adapter.apply_redactions([ai_guard_message.with_content("Account <REDACTED>")])[0]
+        rewritten_message = adapter.apply_redactions([ai_guard_message.copy(content: "Account <REDACTED>")])[0]
 
         aggregate_failures("rewritten message") do
           expect(rewritten_message.content).to eq("Account <REDACTED>")
@@ -133,8 +133,8 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
       it "copies only the changed message and tool call" do
         ai_guard_message = adapter.to_ai_guard[0]
         redacted_tool_calls = Array.new(ai_guard_message.tool_calls)
-        redacted_tool_calls[1] = redacted_tool_calls[1].with_arguments('{"command":"<REDACTED>"}')
-        rewritten_message = adapter.apply_redactions([ai_guard_message.with_tool_calls(redacted_tool_calls)])[0]
+        redacted_tool_calls[1] = redacted_tool_calls[1].copy(arguments: '{"command":"<REDACTED>"}')
+        rewritten_message = adapter.apply_redactions([ai_guard_message.copy(tool_calls: redacted_tool_calls)])[0]
 
         aggregate_failures("rewritten tool calls") do
           expect(rewritten_message.tool_calls.fetch("call_1")).to be(first_tool_call)
@@ -158,8 +158,8 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
       it "copies the attachment and preserves the original" do
         ai_guard_message = adapter.to_ai_guard[0]
         redacted_content = Array.new(ai_guard_message.content)
-        redacted_content[1] = redacted_content[1].with_text("Account <REDACTED>")
-        rewritten_message = adapter.apply_redactions([ai_guard_message.with_content(redacted_content)])[0]
+        redacted_content[1] = redacted_content[1].copy(text: "Account <REDACTED>")
+        rewritten_message = adapter.apply_redactions([ai_guard_message.copy(content: redacted_content)])[0]
 
         aggregate_failures("rewritten attachment") do
           expect(rewritten_message.attachments[0].content).to eq("Account <REDACTED>")
@@ -184,10 +184,10 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
 
       it "fails conversion without changing the original message" do
         ai_guard_message = adapter.to_ai_guard[0]
-        redacted_tool_calls = [ai_guard_message.tool_calls[0].with_arguments("invalid")]
+        redacted_tool_calls = [ai_guard_message.tool_calls[0].copy(arguments: "invalid")]
 
         expect do
-          adapter.apply_redactions([ai_guard_message.with_tool_calls(redacted_tool_calls)])
+          adapter.apply_redactions([ai_guard_message.copy(tool_calls: redacted_tool_calls)])
         end.to raise_error(JSON::ParserError)
         expect(tool_call.arguments).to eq("command" => "ls /")
       end
@@ -208,11 +208,11 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
       end
       let(:redacted_messages) do
         ai_guard_messages = adapter.to_ai_guard
-        redacted_tool_calls = [ai_guard_messages[1].tool_calls[0].with_arguments("invalid")]
+        redacted_tool_calls = [ai_guard_messages[1].tool_calls[0].copy(arguments: "invalid")]
 
         [
-          ai_guard_messages[0].with_content("Account <REDACTED>"),
-          ai_guard_messages[1].with_tool_calls(redacted_tool_calls),
+          ai_guard_messages[0].copy(content: "Account <REDACTED>"),
+          ai_guard_messages[1].copy(tool_calls: redacted_tool_calls),
         ]
       end
 

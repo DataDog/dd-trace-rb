@@ -21,11 +21,7 @@ module Datadog
           @tool_call_id = tool_call_id
         end
 
-        def with_content(content)
-          Message.new(role: role, content: content, tool_calls: tool_calls, tool_call_id: tool_call_id)
-        end
-
-        def with_tool_calls(tool_calls)
+        def copy(content: self.content, tool_calls: self.tool_calls)
           Message.new(role: role, content: content, tool_calls: tool_calls, tool_call_id: tool_call_id)
         end
 

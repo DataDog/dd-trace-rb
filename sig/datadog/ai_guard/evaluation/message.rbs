@@ -31,9 +31,7 @@ module Datadog
           ?tool_call_id: String?
         ) -> void
 
-        def with_content: (content? content) -> Message
-
-        def with_tool_calls: (Array[ToolCall] tool_calls) -> Message
+        def copy: (?content: content?, ?tool_calls: Array[ToolCall]) -> Message
 
         def to_h: () -> serialized
       end

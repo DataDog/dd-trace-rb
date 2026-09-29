@@ -17,7 +17,7 @@ module Datadog
             :text
           end
 
-          def with_text(text)
+          def copy(text:)
             Text.new(text)
           end
 

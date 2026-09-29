@@ -18,7 +18,7 @@ module Datadog
 
         def initialize: (String tool_name, id: String, arguments: input_arguments) -> void
 
-        def with_arguments: (input_arguments arguments) -> ToolCall
+        def copy: (arguments: input_arguments) -> ToolCall
 
         def to_h: () -> Hash[Symbol, any]
       end

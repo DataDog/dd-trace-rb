@@ -18,7 +18,7 @@ module Datadog
             end
         end
 
-        def with_arguments(arguments)
+        def copy(arguments:)
           ToolCall.new(tool_name, id: id, arguments: arguments)
         end
 

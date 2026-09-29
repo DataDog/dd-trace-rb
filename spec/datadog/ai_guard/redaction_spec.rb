@@ -582,7 +582,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
     end
 
     context "when applying the second replacement raises" do
-      before { allow(messages[1]).to receive(:with_content).and_raise(StandardError) }
+      before { allow(messages[1]).to receive(:copy).and_raise(StandardError) }
 
       let(:messages) do
         [
@@ -629,7 +629,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
     end
 
     context "when applying the first replacement raises" do
-      before { allow(messages[0]).to receive(:with_content).and_raise(StandardError) }
+      before { allow(messages[0]).to receive(:copy).and_raise(StandardError) }
 
       let(:messages) do
         [

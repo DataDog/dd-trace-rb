@@ -16,7 +16,7 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::RedactionChangeSet do
         Datadog::AIGuard::Evaluation::Message.new(role: :assistant, tool_calls: [original_tool_call])
       end
       let(:redacted_message) do
-        original_message.with_tool_calls([original_tool_call.with_arguments("invalid")])
+        original_message.copy(tool_calls: [original_tool_call.copy(arguments: "invalid")])
       end
       let(:original_tool_call) do
         Datadog::AIGuard::Evaluation::ToolCall.new("shell", id: "call_1", arguments: '{"command":"ls /"}')
