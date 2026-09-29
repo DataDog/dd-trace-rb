@@ -24,6 +24,25 @@ typedef struct {
   uint64_t payload_ptr;
 } otel_context_header;
 
+typedef struct {
+  uintptr_t mapping_address;
+  otel_context_header header;
+  uint8_t *payload;
+} otel_context_snapshot;
+
+typedef struct {
+  const uint8_t *data;
+  size_t size;
+  size_t offset;
+} protobuf_cursor;
+
+typedef struct {
+  uint32_t number;
+  uint8_t wire_type;
+  const uint8_t *data;
+  size_t size;
+} protobuf_field;
+
 static bool otel_context_header_layout_supported(void) {
   return sizeof(otel_context_header) == 32 &&
     __alignof__(otel_context_header) == 8 &&
@@ -38,7 +57,7 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED
 static VALUE _native_to_rb_int(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd);
 static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd, VALUE logger);
 
-DDTRACE_UNUSED static bool find_otel_context_mapping(uintptr_t *address, size_t *size) {
+static bool find_otel_context_mapping(uintptr_t *address, size_t *size) {
   *address = 0;
   *size = 0;
 
@@ -123,7 +142,7 @@ cleanup:
   return success;
 }
 
-DDTRACE_UNUSED static bool otel_context_header_valid(const otel_context_header *header) {
+static bool otel_context_header_valid(const otel_context_header *header) {
   return memcmp(header->signature, "OTEL_CTX", sizeof(header->signature)) == 0 &&
     header->version == 2 &&
     header->monotonic_published_at_ns != 0 &&
@@ -133,7 +152,7 @@ DDTRACE_UNUSED static bool otel_context_header_valid(const otel_context_header *
     header->payload_ptr <= UINTPTR_MAX - header->payload_size;
 }
 
-DDTRACE_UNUSED static bool read_otel_context_memory(uintptr_t address, void *destination, size_t size) {
+static bool read_otel_context_memory(uintptr_t address, void *destination, size_t size) {
   if (
     address == 0 ||
     destination == NULL ||
@@ -162,6 +181,111 @@ DDTRACE_UNUSED static bool read_otel_context_memory(uintptr_t address, void *des
   bool success = bytes_read >= 0 && (size_t)bytes_read == size;
   if (close(fd) != 0) success = false;
   return success;
+}
+
+DDTRACE_UNUSED static bool read_otel_context_snapshot(otel_context_snapshot *snapshot) {
+  *snapshot = (otel_context_snapshot){0};
+
+  uintptr_t mapping_address;
+  size_t mapping_size;
+  if (!find_otel_context_mapping(&mapping_address, &mapping_size)) return false;
+
+  uintptr_t timestamp_address = mapping_address + offsetof(otel_context_header, monotonic_published_at_ns);
+  uint64_t published_before;
+  if (!read_otel_context_memory(timestamp_address, &published_before, sizeof(published_before))) return false;
+  if (published_before == 0) return false;
+
+  __atomic_thread_fence(__ATOMIC_SEQ_CST);
+
+  otel_context_header header;
+  if (!read_otel_context_memory(mapping_address, &header, sizeof(header))) return false;
+  if (!otel_context_header_valid(&header)) return false;
+  if (header.monotonic_published_at_ns != published_before) return false;
+
+  uint8_t *payload = malloc(header.payload_size);
+  if (payload == NULL) return false;
+
+  if (!read_otel_context_memory((uintptr_t)header.payload_ptr, payload, header.payload_size)) goto cleanup;
+
+  __atomic_thread_fence(__ATOMIC_SEQ_CST);
+
+  uint64_t published_after;
+  if (!read_otel_context_memory(timestamp_address, &published_after, sizeof(published_after))) goto cleanup;
+  if (published_after != published_before) goto cleanup;
+
+  snapshot->mapping_address = mapping_address;
+  snapshot->header = header;
+  snapshot->payload = payload;
+  return true;
+
+cleanup:
+  free(payload);
+  return false;
+}
+
+static bool read_protobuf_varint(protobuf_cursor *cursor, uint64_t *value) {
+  size_t offset = cursor->offset;
+  uint64_t result = 0;
+
+  for (unsigned int shift = 0; shift < 64; shift += 7) {
+    if (offset >= cursor->size) return false;
+
+    uint8_t byte = cursor->data[offset++];
+    if (shift == 63 && byte > 1) return false;
+
+    result |= (uint64_t)(byte & 0x7f) << shift;
+
+    if ((byte & 0x80) == 0) {
+      cursor->offset = offset;
+      *value = result;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+DDTRACE_UNUSED static bool read_protobuf_field(protobuf_cursor *cursor, protobuf_field *field) {
+  protobuf_cursor next = *cursor;
+  uint64_t tag;
+  if (!read_protobuf_varint(&next, &tag)) return false;
+  if (tag > UINT32_MAX || (tag >> 3) == 0) return false;
+
+  protobuf_field parsed = {
+    .number = (uint32_t)(tag >> 3),
+    .wire_type = (uint8_t)(tag & 7),
+  };
+  uint64_t byte_count = 0;
+  uint64_t ignored;
+
+  switch (parsed.wire_type) {
+    case 0:
+      if (!read_protobuf_varint(&next, &ignored)) return false;
+      break;
+    case 1:
+      byte_count = 8;
+      break;
+    case 2:
+      if (!read_protobuf_varint(&next, &byte_count)) return false;
+      break;
+    case 5:
+      byte_count = 4;
+      break;
+    default:
+      return false;
+  }
+
+  if (byte_count > next.size - next.offset) return false;
+
+  if (parsed.wire_type == 2) {
+    parsed.data = next.data + next.offset;
+    parsed.size = (size_t)byte_count;
+  }
+
+  next.offset += (size_t)byte_count;
+  *cursor = next;
+  *field = parsed;
+  return true;
 }
 
 static void tracer_memfd_free(void *ptr) {
