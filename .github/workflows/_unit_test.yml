@@ -133,12 +133,27 @@ jobs:
         name: Distribute tasks into batches
         env:
           FALLBACK_GEMFILE: ${{ inputs.installed-cache-strategy != 'disabled' && format('gemfiles/{0}-{1}.gemfile', inputs.engine, inputs.version) || '' }}
+          INSTALLED_CACHE_KEY_VARIANT: ${{ inputs.installed-cache-key-variant }}
         run: |
           if [ -n "$FALLBACK_GEMFILE" ]; then
             data=$(bundle exec rake "github:generate_batches[$FALLBACK_GEMFILE]")
           else
             data=$(bundle exec rake github:generate_batches)
           fi
+
+          if [ "$INSTALLED_CACHE_KEY_VARIANT" = "membership-change" ]; then
+            data=$(echo "$data" | ruby -rjson -e '
+              data = JSON.parse(STDIN.read)
+              batches = data.fetch("batches").fetch("include")
+              source = batches.fetch(0).fetch("tasks")
+              moved = source.find { |task| task.fetch("group") == "dogstatsd-ruby4" }
+              raise "dogstatsd-ruby4 task not found" unless moved
+              source.delete(moved)
+              batches.fetch(1).fetch("tasks") << moved
+              puts JSON.generate(data)
+            ')
+          fi
+
           echo "$data" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
 
           batches_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["batches"].to_json')
