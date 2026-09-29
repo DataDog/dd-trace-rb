@@ -25,9 +25,10 @@ class InstalledBundleCache
     with
     without
   ].freeze
-  STRATEGIES = %w[full all-delta].freeze
+  STRATEGIES = %w[full all-delta group-full group-delta].freeze
+  RESTORE_STATUSES = %w[exact partial miss].freeze
 
-  attr_reader :root, :base_gemfile, :applicable_gemfiles, :strategy, :installed_path
+  attr_reader :root, :base_gemfile, :applicable_gemfiles, :strategy, :installed_path, :group
 
   def initialize(
     root: Pathname.pwd,
@@ -35,7 +36,8 @@ class InstalledBundleCache
     matrix: nil,
     applicable_gemfiles: nil,
     strategy: "full",
-    installed_path: "/usr/local/bundle"
+    installed_path: "/usr/local/bundle",
+    group: nil
   )
     raise ArgumentError, "Provide matrix or applicable_gemfiles, not both" if matrix && applicable_gemfiles
     raise ArgumentError, "Unknown strategy: #{strategy}" unless STRATEGIES.include?(strategy)
@@ -46,6 +48,7 @@ class InstalledBundleCache
     @applicable_gemfiles = selected_gemfiles.map { |path| absolute_path(path) }.sort
     @strategy = strategy
     @installed_path = Pathname(installed_path).expand_path
+    @group = normalize_group(group)
   end
 
   def gemfiles
@@ -81,7 +84,8 @@ class InstalledBundleCache
     end
 
     content = {"members" => members}
-    content["base_cache_key"] = required_base_cache_key(base_cache_key) if strategy == "all-delta"
+    content["group"] = group if group
+    content["base_cache_key"] = required_base_cache_key(base_cache_key) if delta_strategy?
     content["experiment_variant"] = experiment_variant unless experiment_variant.to_s.empty?
     content
   end
@@ -123,6 +127,7 @@ class InstalledBundleCache
       content_digest: content_digest(base_cache_key: base_cache_key, experiment_variant: experiment_variant),
       base_gemfile: relative_path(base_gemfile),
       applicable_gemfiles: applicable_gemfiles.map { |path| relative_path(path) },
+      group: group,
     }
   end
 
@@ -165,6 +170,26 @@ class InstalledBundleCache
     end
   end
 
+  def prepare_group(base_bundle_path:, cache_path:, base_snapshot_path:, restore_status:, write_enabled:, jobs: 8)
+    raise ArgumentError, "Unknown restore status: #{restore_status}" unless RESTORE_STATUSES.include?(restore_status)
+    return if restore_status == "exact"
+    return if restore_status == "miss" && !write_enabled
+
+    cache_path = Pathname(cache_path).expand_path
+    source = (restore_status == "partial" && strategy == "group-full") ? cache_path : base_bundle_path
+    reset_installed_from(source)
+    copy_contents(cache_path, installed_path) if restore_status == "partial" && strategy == "group-delta"
+    install(jobs: jobs)
+    check
+    return unless write_enabled
+
+    if strategy == "group-delta"
+      extract_delta(base_snapshot_path: base_snapshot_path, destination: cache_path)
+    else
+      reset_path_from(cache_path, installed_path)
+    end
+  end
+
   private
 
   def canonical_json(value)
@@ -202,13 +227,49 @@ class InstalledBundleCache
   end
 
   def content_gemfiles
-    strategy == "all-delta" ? gemfiles.reject { |gemfile| gemfile == base_gemfile } : gemfiles
+    delta_strategy? ? gemfiles.reject { |gemfile| gemfile == base_gemfile } : gemfiles
+  end
+
+  def delta_strategy?
+    %w[all-delta group-delta].include?(strategy)
   end
 
   def required_base_cache_key(base_cache_key)
-    raise ArgumentError, "base_cache_key is required for all-delta strategy" if base_cache_key.to_s.empty?
+    raise ArgumentError, "base_cache_key is required for #{strategy} strategy" if base_cache_key.to_s.empty?
 
     base_cache_key
+  end
+
+  def normalize_group(value)
+    return unless value
+
+    {
+      "name" => value.fetch("name"),
+      "tasks" => value.fetch("tasks").map do |task|
+        task.transform_keys(&:to_s).sort.to_h
+      end.sort_by { |task| [task.fetch("task"), task.fetch("group"), task.fetch("gemfile")] },
+    }
+  end
+
+  def reset_installed_from(source)
+    reset_path_from(installed_path, source)
+  end
+
+  def reset_path_from(destination, source)
+    destination = Pathname(destination).expand_path
+    source = Pathname(source).expand_path
+    FileUtils.rm_rf(destination)
+    FileUtils.mkdir_p(destination)
+    copy_contents(source, destination)
+  end
+
+  def copy_contents(source, destination)
+    source = Pathname(source).expand_path
+    destination = Pathname(destination).expand_path
+    FileUtils.mkdir_p(destination)
+    source.children.each do |entry|
+      FileUtils.copy_entry(entry, destination.join(entry.basename), true, false, true)
+    end
   end
 
   def installed_entries

@@ -20,6 +20,12 @@ RSpec.describe "installed bundle cache workflow" do
       aliases: true,
     )
   end
+  let(:group_action) do
+    YAML.safe_load_file(
+      File.expand_path("../../.github/actions/installed-bundle-group-cache/action.yml", __dir__),
+      aliases: true,
+    )
+  end
   let(:steps) { action.fetch("runs").fetch("steps") }
   let(:workflow) do
     YAML.safe_load_file(
@@ -58,6 +64,17 @@ RSpec.describe "installed bundle cache workflow" do
     )
 
     lifecycle_output.merge(result_output)
+  end
+
+  def group_lifecycle(overrides = {})
+    group_steps = group_action.fetch("runs").fetch("steps")
+    lifecycle = group_steps.find { |step| step["id"] == "lifecycle" }
+    environment = %w[STANDARD_0 STANDARD_1 STANDARD_2 STANDARD_3 STANDARD_4 STANDARD_5 STANDARD_6 MISC_0].each_with_object({}) do |name, values|
+      values["#{name}_HIT"] = "true"
+      values["#{name}_MATCH"] = "current-key"
+    end
+
+    run_output(lifecycle.fetch("run"), environment.merge(overrides))
   end
 
   context "with an exact hit" do
@@ -125,11 +142,11 @@ RSpec.describe "installed bundle cache workflow" do
       expect(inputs.fetch("installed-cache-strategy").fetch("default")).to eq("disabled")
     end
 
-    it "offers full and all-delta experiments for direct dispatch" do
+    it "offers every installed-cache experiment for direct dispatch" do
       inputs = workflow.fetch(true).fetch("workflow_dispatch").fetch("inputs")
 
       expect(inputs.fetch("installed-cache-strategy").fetch("options")).to eq(
-        %w[disabled full all-delta]
+        %w[disabled full all-delta group-full group-delta]
       )
     end
 
@@ -152,6 +169,67 @@ RSpec.describe "installed bundle cache workflow" do
       expect(base.fetch("if")).to include("!= 'full'")
       expect(installed.fetch("with").fetch("base-cache-key")).to include("steps.bundle-cache.outputs.cache-key")
       expect(installed.fetch("with").fetch("cache-schema")).to include("bundle-installed-matrix-s2-v1-all-delta")
+    end
+
+    it "prepares group caches after distributing tasks" do
+      batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
+      names = batch_steps.map { |step| step["name"] }
+      grouped = batch_steps.find { |step| step["name"] == "Prepare installed bundle group caches" }
+
+      expect(names.index("Distribute tasks into batches")).to be < names.index("Prepare installed bundle group caches")
+      expect(grouped.fetch("with")).to include(
+        "standard-groups" => include("steps.set-batches.outputs.batches"),
+        "misc-groups" => include("steps.set-batches.outputs.misc"),
+      )
+    end
+
+    it "restores and saves all eight group entries" do
+      group_steps = group_action.fetch("runs").fetch("steps")
+      restores = group_steps.select { |step| step.fetch("id", "").start_with?("restore-standard-", "restore-misc-") }
+      saves = group_steps.select { |step| step.fetch("name", "").start_with?("Save standard-", "Save misc-") }
+
+      expect(restores.size).to eq(8)
+      expect(saves.size).to eq(8)
+      expect(restores).to all(include("with" => include("restore-keys" => include("prefix"))))
+    end
+
+    it "classifies all exact group restores as exact" do
+      expect(group_lifecycle).to include(
+        "status" => "exact",
+        "exact-hit" => "true",
+        "standard-0-status" => "exact",
+      )
+    end
+
+    it "classifies an older group restore as partial" do
+      result = group_lifecycle("STANDARD_3_HIT" => "false", "STANDARD_3_MATCH" => "older-key")
+
+      expect(result).to include(
+        "status" => "partial",
+        "exact-hit" => "false",
+        "standard-3-status" => "partial",
+      )
+    end
+
+    it "classifies any absent group as a miss" do
+      result = group_lifecycle("MISC_0_HIT" => "false", "MISC_0_MATCH" => "")
+
+      expect(result).to include("status" => "miss", "misc-0-status" => "miss")
+    end
+
+    it "selects each child cache by job kind and batch" do
+      jobs = workflow.fetch("jobs")
+
+      %w[build-test-standard build-test-misc].each do |job_name|
+        restore = jobs.fetch(job_name).fetch("steps").find do |step|
+          step["name"] == "Restore installed matrix bundle"
+        end
+
+        expect(restore.fetch("with").fetch("cache-key")).to include(
+          "env.INSTALLED_CACHE_GROUP_KIND",
+          "matrix.batch",
+        )
+      end
     end
 
     it "keeps downloaded-package work out of installed-cache runs" do

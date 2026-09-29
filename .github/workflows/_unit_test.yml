@@ -43,8 +43,8 @@ on: # yamllint disable-line rule:truthy
         description: "The exact downloaded-package cache key"
         value: ${{ jobs.batch.outputs.package-cache-key }}
       installed-cache-key:
-        description: "The exact installed matrix bundle cache key"
-        value: ${{ jobs.batch.outputs.installed-cache-key }}
+        description: "The exact installed matrix bundle cache key or group-key map"
+        value: ${{ jobs.batch.outputs.installed-cache-key || jobs.batch.outputs.installed-cache-keys }}
 
   workflow_dispatch:
     inputs:
@@ -73,6 +73,8 @@ on: # yamllint disable-line rule:truthy
           - disabled
           - full
           - all-delta
+          - group-full
+          - group-delta
         default: disabled
       installed-cache-key-variant:
         description: "Content-key variant for partial-restore lifecycle tests"
@@ -103,8 +105,10 @@ jobs:
       lockfile: "${{ steps.bundle-cache.outputs.lockfile || steps.fallback-bundle-cache.outputs.lockfile }}"
       installed-cache-key: "${{ steps.installed-bundle-cache.outputs.cache-key }}"
       installed-cache-prefix: "${{ steps.installed-bundle-cache.outputs.restore-prefix }}"
-      installed-cache-ready: "${{ steps.installed-bundle-cache.outputs.ready }}"
-      installed-cache-status: "${{ steps.installed-bundle-cache.outputs.status }}"
+      installed-cache-keys: "${{ steps.installed-bundle-group-cache.outputs.cache-keys }}"
+      installed-cache-prefixes: "${{ steps.installed-bundle-group-cache.outputs.restore-prefixes }}"
+      installed-cache-ready: "${{ steps.installed-bundle-cache.outputs.ready || steps.installed-bundle-group-cache.outputs.ready }}"
+      installed-cache-status: "${{ steps.installed-bundle-cache.outputs.status || steps.installed-bundle-group-cache.outputs.status }}"
       package-cache-key: "${{ steps.package-cache-key.outputs.primary-key }}"
       package-cache-prefix: "${{ steps.package-cache-key.outputs.fallback-prefix }}"
     container:
@@ -125,14 +129,46 @@ jobs:
         id: bundle-cache
         uses: ./.github/actions/bundle-cache
 
+      - id: set-batches
+        name: Distribute tasks into batches
+        env:
+          FALLBACK_GEMFILE: ${{ inputs.installed-cache-strategy != 'disabled' && format('gemfiles/{0}-{1}.gemfile', inputs.engine, inputs.version) || '' }}
+        run: |
+          if [ -n "$FALLBACK_GEMFILE" ]; then
+            data=$(bundle exec rake "github:generate_batches[$FALLBACK_GEMFILE]")
+          else
+            data=$(bundle exec rake github:generate_batches)
+          fi
+          echo "$data" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
+
+          batches_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["batches"].to_json')
+          misc_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["misc"].to_json')
+
+          { echo "batches=$batches_data"; echo "misc=$misc_data"; } >> "$GITHUB_OUTPUT"
+
       - name: Prepare installed matrix bundle cache
-        if: inputs.installed-cache-strategy != 'disabled'
+        if: inputs.installed-cache-strategy == 'full' || inputs.installed-cache-strategy == 'all-delta'
         id: installed-bundle-cache
         uses: ./.github/actions/installed-bundle-cache
         with:
           base-gemfile: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
           base-cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
           cache-schema: ${{ inputs.installed-cache-strategy == 'all-delta' && 'bundle-installed-matrix-s2-v1-all-delta' || 'bundle-installed-matrix-test-v2-all-full' }}
+          experiment-variant: ${{ inputs.installed-cache-key-variant }}
+          image-identity: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
+          strategy: ${{ inputs.installed-cache-strategy }}
+          write-enabled: ${{ inputs.package-cache-write }}
+
+      - name: Prepare installed bundle group caches
+        if: inputs.installed-cache-strategy == 'group-full' || inputs.installed-cache-strategy == 'group-delta'
+        id: installed-bundle-group-cache
+        uses: ./.github/actions/installed-bundle-group-cache
+        with:
+          base-gemfile: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
+          standard-groups: ${{ steps.set-batches.outputs.batches }}
+          misc-groups: ${{ steps.set-batches.outputs.misc }}
+          base-cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
+          cache-schema: ${{ inputs.installed-cache-strategy == 'group-full' && 'bundle-installed-matrix-s3-v1-group-full' || 'bundle-installed-matrix-s4-v1-group-delta' }}
           experiment-variant: ${{ inputs.installed-cache-key-variant }}
           image-identity: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
           strategy: ${{ inputs.installed-cache-strategy }}
@@ -147,16 +183,16 @@ jobs:
         if: inputs.installed-cache-strategy != 'disabled'
         shell: bash
         env:
-          BYTE_COUNT: ${{ steps.installed-bundle-cache.outputs.byte-count }}
-          CACHE_KEY: ${{ steps.installed-bundle-cache.outputs.cache-key }}
-          EXACT_HIT: ${{ steps.installed-bundle-cache.outputs.exact-hit }}
-          FILE_COUNT: ${{ steps.installed-bundle-cache.outputs.file-count }}
-          MATCHED_KEY: ${{ steps.installed-bundle-cache.outputs.matched-key }}
-          READY: ${{ steps.installed-bundle-cache.outputs.ready }}
-          STATUS: ${{ steps.installed-bundle-cache.outputs.status }}
-          POPULATION_SECONDS: ${{ steps.installed-bundle-cache.outputs.population-seconds }}
-          RESTORE_SECONDS: ${{ steps.installed-bundle-cache.outputs.restore-seconds }}
-          SAVE_SECONDS: ${{ steps.installed-bundle-cache.outputs.save-seconds }}
+          BYTE_COUNT: ${{ steps.installed-bundle-cache.outputs.byte-count || steps.installed-bundle-group-cache.outputs.byte-count }}
+          CACHE_KEY: ${{ steps.installed-bundle-cache.outputs.cache-key || steps.installed-bundle-group-cache.outputs.cache-keys }}
+          EXACT_HIT: ${{ steps.installed-bundle-cache.outputs.exact-hit || steps.installed-bundle-group-cache.outputs.exact-hit }}
+          FILE_COUNT: ${{ steps.installed-bundle-cache.outputs.file-count || steps.installed-bundle-group-cache.outputs.file-count }}
+          MATCHED_KEY: ${{ steps.installed-bundle-cache.outputs.matched-key || steps.installed-bundle-group-cache.outputs.matched-keys }}
+          READY: ${{ steps.installed-bundle-cache.outputs.ready || steps.installed-bundle-group-cache.outputs.ready }}
+          STATUS: ${{ steps.installed-bundle-cache.outputs.status || steps.installed-bundle-group-cache.outputs.status }}
+          POPULATION_SECONDS: ${{ steps.installed-bundle-cache.outputs.population-seconds || steps.installed-bundle-group-cache.outputs.population-seconds }}
+          RESTORE_SECONDS: ${{ steps.installed-bundle-cache.outputs.restore-seconds || steps.installed-bundle-group-cache.outputs.restore-seconds }}
+          SAVE_SECONDS: ${{ steps.installed-bundle-cache.outputs.save-seconds || steps.installed-bundle-group-cache.outputs.save-seconds }}
         run: |
           {
             echo "### Installed matrix bundle cache"
@@ -172,23 +208,6 @@ jobs:
             echo "- Save seconds: \`${SAVE_SECONDS:-0}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - id: set-batches
-        name: Distribute tasks into batches
-        env:
-          FALLBACK_GEMFILE: ${{ inputs.installed-cache-strategy != 'disabled' && format('gemfiles/{0}-{1}.gemfile', inputs.engine, inputs.version) || '' }}
-        run: |
-          if [ -n "$FALLBACK_GEMFILE" ]; then
-            data=$(bundle exec rake "github:generate_batches[$FALLBACK_GEMFILE]")
-          else
-            data=$(bundle exec rake github:generate_batches)
-          fi
-          echo "$data" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-
-          # Extract each key and set it as a separate output
-          batches_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["batches"].to_json')
-          misc_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["misc"].to_json')
-
-          { echo "batches=$batches_data"; echo "misc=$misc_data"; } >> "$GITHUB_OUTPUT"
       - name: Generate batch summary
         env:
           batches_json: "${{ steps.set-batches.outputs.batches }}"
@@ -286,6 +305,7 @@ jobs:
     timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+      INSTALLED_CACHE_GROUP_KIND: standard
     strategy:
       fail-fast: false
       matrix:
@@ -370,9 +390,10 @@ jobs:
         name: Restore installed matrix bundle
         uses: ./.github/actions/installed-bundle-restore
         with:
-          cache-key: ${{ needs.batch.outputs.installed-cache-key }}
-          restore-prefix: ${{ needs.batch.outputs.installed-cache-prefix }}
+          cache-key: ${{ (inputs.installed-cache-strategy == 'group-full' || inputs.installed-cache-strategy == 'group-delta') && fromJSON(needs.batch.outputs.installed-cache-keys)[format('{0}-{1}', env.INSTALLED_CACHE_GROUP_KIND, matrix.batch)] || needs.batch.outputs.installed-cache-key }}
+          restore-prefix: ${{ (inputs.installed-cache-strategy == 'group-full' || inputs.installed-cache-strategy == 'group-delta') && fromJSON(needs.batch.outputs.installed-cache-prefixes)[format('{0}-{1}', env.INSTALLED_CACHE_GROUP_KIND, matrix.batch)] || needs.batch.outputs.installed-cache-prefix }}
           strategy: ${{ inputs.installed-cache-strategy }}
+          group: ${{ env.INSTALLED_CACHE_GROUP_KIND }}-${{ matrix.batch }}
       - name: Report installed matrix bundle restore
         if: inputs.installed-cache-strategy != 'disabled' && needs.batch.outputs.installed-cache-status != 'miss'
         shell: bash
@@ -425,6 +446,7 @@ jobs:
     timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+      INSTALLED_CACHE_GROUP_KIND: misc
     strategy:
       fail-fast: false
       matrix:
@@ -508,9 +530,10 @@ jobs:
         name: Restore installed matrix bundle
         uses: ./.github/actions/installed-bundle-restore
         with:
-          cache-key: ${{ needs.batch.outputs.installed-cache-key }}
-          restore-prefix: ${{ needs.batch.outputs.installed-cache-prefix }}
+          cache-key: ${{ (inputs.installed-cache-strategy == 'group-full' || inputs.installed-cache-strategy == 'group-delta') && fromJSON(needs.batch.outputs.installed-cache-keys)[format('{0}-{1}', env.INSTALLED_CACHE_GROUP_KIND, matrix.batch)] || needs.batch.outputs.installed-cache-key }}
+          restore-prefix: ${{ (inputs.installed-cache-strategy == 'group-full' || inputs.installed-cache-strategy == 'group-delta') && fromJSON(needs.batch.outputs.installed-cache-prefixes)[format('{0}-{1}', env.INSTALLED_CACHE_GROUP_KIND, matrix.batch)] || needs.batch.outputs.installed-cache-prefix }}
           strategy: ${{ inputs.installed-cache-strategy }}
+          group: ${{ env.INSTALLED_CACHE_GROUP_KIND }}-${{ matrix.batch }}
       - name: Report installed matrix bundle restore
         if: inputs.installed-cache-strategy != 'disabled' && needs.batch.outputs.installed-cache-status != 'miss'
         shell: bash

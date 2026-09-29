@@ -135,6 +135,188 @@ RSpec.describe InstalledBundleCache do
     )
   end
 
+  it "includes deterministic batch-group membership in grouped content" do
+    grouped_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-full",
+      group: {
+        "name" => "standard-0",
+        "tasks" => [
+          {"task" => "redis", "group" => "redis", "gemfile" => "first.gemfile"},
+          {"gemfile" => "base.gemfile", "group" => "fallback", "task" => "fallback"},
+        ],
+      },
+    )
+
+    expect(grouped_cache.content.fetch("group")).to eq(
+      "name" => "standard-0",
+      "tasks" => [
+        {"gemfile" => "base.gemfile", "group" => "fallback", "task" => "fallback"},
+        {"gemfile" => "first.gemfile", "group" => "redis", "task" => "redis"},
+      ],
+    )
+  end
+
+  it "invalidates grouped content when task membership changes" do
+    first_group = {"name" => "standard-0", "tasks" => [{"task" => "redis", "group" => "redis", "gemfile" => "first.gemfile"}]}
+    second_group = {"name" => "standard-0", "tasks" => [{"task" => "http", "group" => "redis", "gemfile" => "first.gemfile"}]}
+    first_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-full",
+      group: first_group,
+    )
+    second_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-full",
+      group: second_group,
+    )
+
+    expect(first_cache.content_digest).not_to eq(second_cache.content_digest)
+  end
+
+  it "requires a base cache key for group-delta" do
+    grouped_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-delta",
+      group: {"name" => "standard-0", "tasks" => []},
+    )
+
+    expect { grouped_cache.content_digest }.to raise_error(
+      ArgumentError,
+      "base_cache_key is required for group-delta strategy",
+    )
+  end
+
+  it "builds a full group from the preserved base" do
+    write("base-bundle/gems/base.rb", "base\n")
+    grouped_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-full",
+      installed_path: temporary_directory.join("installed"),
+      group: {"name" => "standard-0", "tasks" => []},
+    )
+    allow(grouped_cache).to receive(:system) do |_environment, _command, *arguments|
+      write("installed/gems/group.rb", "group\n") if arguments.first == "install"
+      true
+    end
+
+    grouped_cache.prepare_group(
+      base_bundle_path: temporary_directory.join("base-bundle"),
+      cache_path: temporary_directory.join("group-cache"),
+      base_snapshot_path: temporary_directory.join("unused-snapshot"),
+      restore_status: "miss",
+      write_enabled: true,
+    )
+
+    expect(temporary_directory.join("group-cache/gems/base.rb").read).to eq("base\n")
+    expect(temporary_directory.join("group-cache/gems/group.rb").read).to eq("group\n")
+  end
+
+  it "builds a group delta without unchanged base files" do
+    write("base-bundle/gems/base.rb", "base\n")
+    grouped_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-delta",
+      installed_path: temporary_directory.join("installed"),
+      group: {"name" => "standard-0", "tasks" => []},
+    )
+    write("installed/gems/base.rb", "base\n")
+    grouped_cache.write_snapshot(temporary_directory.join("base-snapshot.json"))
+    allow(grouped_cache).to receive(:system) do |_environment, _command, *arguments|
+      write("installed/gems/group.rb", "group\n") if arguments.first == "install"
+      true
+    end
+
+    grouped_cache.prepare_group(
+      base_bundle_path: temporary_directory.join("base-bundle"),
+      cache_path: temporary_directory.join("group-cache"),
+      base_snapshot_path: temporary_directory.join("base-snapshot.json"),
+      restore_status: "miss",
+      write_enabled: true,
+    )
+
+    expect(temporary_directory.join("group-cache/gems/base.rb")).not_to exist
+    expect(temporary_directory.join("group-cache/gems/group.rb").read).to eq("group\n")
+  end
+
+  it "repairs a partially restored group delta over the preserved base" do
+    write("base-bundle/gems/base.rb", "base\n")
+    write("group-cache/gems/group.rb", "group\n")
+    grouped_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-delta",
+      installed_path: temporary_directory.join("installed"),
+      group: {"name" => "standard-0", "tasks" => []},
+    )
+    allow(grouped_cache).to receive(:system).and_return(true)
+
+    grouped_cache.prepare_group(
+      base_bundle_path: temporary_directory.join("base-bundle"),
+      cache_path: temporary_directory.join("group-cache"),
+      base_snapshot_path: temporary_directory.join("unused-snapshot"),
+      restore_status: "partial",
+      write_enabled: false,
+    )
+
+    expect(temporary_directory.join("installed/gems/base.rb").read).to eq("base\n")
+    expect(temporary_directory.join("installed/gems/group.rb").read).to eq("group\n")
+  end
+
+  it "rejects an unknown group restore status" do
+    grouped_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-full",
+      installed_path: temporary_directory.join("installed"),
+      group: {"name" => "standard-0", "tasks" => []},
+    )
+
+    expect do
+      grouped_cache.prepare_group(
+        base_bundle_path: temporary_directory.join("base-bundle"),
+        cache_path: temporary_directory.join("group-cache"),
+        base_snapshot_path: temporary_directory.join("unused-snapshot"),
+        restore_status: "unknown",
+        write_enabled: false,
+      )
+    end.to raise_error(ArgumentError, "Unknown restore status: unknown")
+  end
+
+  it "does not repair a read-only group miss" do
+    grouped_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-full",
+      installed_path: temporary_directory.join("installed"),
+      group: {"name" => "standard-0", "tasks" => []},
+    )
+    expect(grouped_cache).not_to receive(:system)
+
+    grouped_cache.prepare_group(
+      base_bundle_path: temporary_directory.join("base-bundle"),
+      cache_path: temporary_directory.join("group-cache"),
+      base_snapshot_path: temporary_directory.join("unused-snapshot"),
+      restore_status: "miss",
+      write_enabled: false,
+    )
+  end
+
   it "extracts files changed since the base snapshot" do
     write("installed/gems/base.rb", "base\n")
     snapshot = temporary_directory.join("base-snapshot.json")
