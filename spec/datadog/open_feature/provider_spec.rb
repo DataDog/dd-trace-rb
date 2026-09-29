@@ -435,6 +435,63 @@ RSpec.describe Datadog::OpenFeature::Provider do
     end
   end
 
+  context "serial ID metadata" do
+    let(:metadata) { {"existing" => "kept"}.freeze }
+    let(:serial_id) { 12345 }
+    let(:span_enrichment_hook) { instance_double(Datadog::OpenFeature::Hooks::SpanEnrichmentHook) }
+    let(:details) do
+      Datadog::OpenFeature::ResolutionDetails.new(
+        value: "enabled", reason: "STATIC", variant: "enabled",
+        flag_metadata: metadata, serial_id: serial_id, log?: false, error?: false
+      )
+    end
+
+    before do
+      allow(engine).to receive(:fetch_value).and_return(details)
+      allow(provider).to receive(:span_enrichment_hook).and_return(span_enrichment_hook)
+      allow(Datadog::Tracing).to receive(:active_trace).and_return(nil)
+    end
+
+    subject(:evaluation_details) { provider.fetch_string_value(flag_key: "flag", default_value: "default") }
+
+    it "includes the serial ID without requiring an active span or mutating existing metadata" do
+      expect(evaluation_details.flag_metadata).to include("existing" => "kept", "__dd_split_serial_id" => 12345)
+      expect(metadata).to eq("existing" => "kept")
+    end
+
+    context "when the serial ID is zero" do
+      let(:serial_id) { 0 }
+
+      it "preserves zero" do
+        expect(evaluation_details.flag_metadata["__dd_split_serial_id"]).to eq(0)
+      end
+    end
+
+    context "when the serial ID is missing" do
+      let(:serial_id) { nil }
+
+      it "omits the serial ID key" do
+        expect(evaluation_details.flag_metadata).not_to have_key("__dd_split_serial_id")
+      end
+    end
+
+    context "when the engine metadata is nil" do
+      let(:metadata) { nil }
+
+      it "creates metadata with the serial ID" do
+        expect(evaluation_details.flag_metadata["__dd_split_serial_id"]).to eq(12345)
+      end
+    end
+
+    context "when span enrichment is disabled" do
+      let(:span_enrichment_hook) { nil }
+
+      it "does not add a serial ID" do
+        expect(evaluation_details.flag_metadata).not_to have_key("__dd_split_serial_id")
+      end
+    end
+  end
+
   # Provider stamps 'dd.eval.timestamp_ms' into flag metadata at eval entry, which the
   # EVP hook reads for first/last_evaluation.
   context "eval-time metadata stamping" do
