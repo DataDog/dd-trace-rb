@@ -37,7 +37,9 @@ Add it to `FLAKY_BENCHMARKS_REGEX` in the suite's job or template:
 - Macrobenchmarks: `variables` in `.macrobenchmarks` in `.gitlab/benchmarks.yml`.
 - Microbenchmarks: `variables` in `microbenchmarks` in `.gitlab/benchmarks.yml`.
 
-The benchmark still runs and reports, but doesn't fail the gate.
+The benchmark still runs and reports, but doesn't fail performance quality gates:
+`microbenchmarks-check-big-regressions` (percentage-based) and the `*-check-slo-breaches` jobs of
+the apm-sdks-benchmarks suites (SLO-based).
 
 - The regex matches anywhere in the scenario name.
     - `only-profiling-heap` quarantines every `only-profiling-heap` scenario and metric.
