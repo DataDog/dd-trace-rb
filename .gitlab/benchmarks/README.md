@@ -36,7 +36,6 @@ Add it to `FLAKY_BENCHMARKS_REGEX` in the suite's job or template:
 
 - Macrobenchmarks: `variables` in `.macrobenchmarks` in `.gitlab/benchmarks.yml`.
 - Microbenchmarks: `variables` in `microbenchmarks` in `.gitlab/benchmarks.yml`.
-- OpenFeature microbenchmark: `variables` in `open-feature-microbenchmarks` in `.gitlab/benchmarks.yml`.
 
 The benchmark still runs and reports, but doesn't fail the gate.
 
