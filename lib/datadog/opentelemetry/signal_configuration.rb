@@ -11,9 +11,6 @@ module Datadog
 
       def create_resource
         resource_attributes = {}
-        tagged_environment = @settings.tags["env"]
-        named_environment = @settings.tags["deployment.environment.name"]
-        legacy_environment = @settings.tags["deployment.environment"]
 
         @settings.tags&.each do |key, value|
           otel_key = case key
@@ -26,7 +23,7 @@ module Datadog
         end
 
         resource_attributes["service.name"] = @settings.service_without_fallback || resource_attributes["service.name"] || Datadog::Core::Environment::Ext::FALLBACK_SERVICE_NAME
-        environment = @settings.env || tagged_environment || named_environment || legacy_environment
+        environment = @settings.env || @settings.tags["env"] || @settings.tags["deployment.environment.name"] || @settings.tags["deployment.environment"]
         resource_attributes["deployment.environment.name"] = environment if environment
         resource_attributes["service.version"] = @settings.version if @settings.version
 
@@ -45,7 +42,10 @@ module Datadog
       # Returns the signal-specific option value when explicitly set,
       # otherwise falls back to the general OTLP exporter config or computed_default.
       def config_or_exporter_fallback(signal:, option_name:, computed_default: nil)
-        signal_settings = @settings.opentelemetry.public_send(signal)
+        signal_settings = case signal
+        when :logs then @settings.opentelemetry.logs
+        when :metrics then @settings.opentelemetry.metrics
+        end
         if signal_settings.using_default?(option_name)
           @settings.opentelemetry.exporter.public_send(option_name) || computed_default
         else
