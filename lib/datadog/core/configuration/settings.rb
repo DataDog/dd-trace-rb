@@ -756,9 +756,10 @@ module Datadog
                 key, val = tag.split(/[:=]/, 2).map(&:strip)
                 val ||= ""
                 # maps OpenTelemetry semantic attributes to Datadog tags
-                result["env"] = val if key.downcase == "deployment.environment.name"
                 key = case key.downcase
-                when "deployment.environment.name" then nil
+                when "deployment.environment.name"
+                  result["env"] = val
+                  nil
                 when "deployment.environment" then "env" unless result.key?("env")
                 when "service.version" then "version"
                 when "service.name" then "service"
