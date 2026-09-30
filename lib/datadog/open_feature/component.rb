@@ -3,7 +3,6 @@
 require_relative "transport"
 require_relative "evaluation_engine"
 require_relative "../core/utils/time"
-require_relative "configuration/source"
 require_relative "exposures/buffer"
 require_relative "exposures/worker"
 require_relative "exposures/deduplicator"
@@ -21,13 +20,19 @@ module Datadog
       CONFIGURATION_READY = :ready
       CONFIGURATION_TIMEOUT = :timeout
       CONFIGURATION_SHUTDOWN = :shutdown
-      CONFIGURATION_CHANGED = :changed
-      CONFIGURATION_LOST = :lost
 
       attr_reader :engine, :flag_eval_metrics_hook, :flag_eval_evp_hook, :span_enrichment_hook
 
-      def self.build(settings, agent_settings, resolution:, on_configuration_change:, logger:, telemetry:)
-        return unless resolution.enabled?
+      def self.build(settings, agent_settings, logger:, telemetry:)
+        return unless settings.respond_to?(:open_feature) && settings.open_feature.enabled
+
+        unless settings.respond_to?(:remote) && settings.remote.enabled
+          message = "OpenFeature could not be enabled as Remote Configuration is currently disabled. " \
+            "To enable Remote Configuration, see https://docs.datadoghq.com/remote_configuration/."
+
+          logger.warn(message)
+          return
+        end
 
         unless ["ruby", "truffleruby"].include?(RUBY_ENGINE)
           message = "OpenFeature could not be enabled as MRI is required, " \
@@ -46,16 +51,10 @@ module Datadog
           return
         end
 
-        new(
-          settings,
-          agent_settings,
-          on_configuration_change: on_configuration_change,
-          logger: logger,
-          telemetry: telemetry,
-        )
+        new(settings, agent_settings, logger: logger, telemetry: telemetry)
       end
 
-      def initialize(settings, agent_settings, logger:, telemetry:, on_configuration_change: nil)
+      def initialize(settings, agent_settings, logger:, telemetry:)
         transport = Transport::HTTP.build(agent_settings: agent_settings, logger: logger)
         @worker = Exposures::Worker.new(settings: settings, transport: transport, telemetry: telemetry, logger: logger)
 
@@ -66,7 +65,6 @@ module Datadog
         @logger = logger
         @settings = settings
         @agent_settings = agent_settings
-        @on_configuration_change = on_configuration_change
         @flag_eval_metrics_hook = create_flag_eval_metrics_hook
         @flag_eval_evp_hook = create_flag_eval_evp_hook
         @span_enrichment_hook = create_span_enrichment_hook
@@ -79,7 +77,7 @@ module Datadog
       end
 
       def reconfigure!(configuration)
-        event = @reconfiguration_mutex.synchronize do
+        @reconfiguration_mutex.synchronize do
           return if configuration_shutdown?
 
           @engine.reconfigure!(configuration)
@@ -87,19 +85,10 @@ module Datadog
           @configuration_mutex.synchronize do
             return if @configuration_shutdown
 
-            previously_received = @configuration_received
             @configuration_received = !configuration.nil?
             @configuration_condition.broadcast
-
-            if @configuration_received
-              previously_received ? CONFIGURATION_CHANGED : CONFIGURATION_READY
-            elsif previously_received
-              CONFIGURATION_LOST
-            end
           end
         end
-
-        @on_configuration_change&.call(event) if event
       end
 
       def wait_for_configuration

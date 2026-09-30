@@ -5,7 +5,7 @@ require "datadog/core/remote/client/capabilities"
 require "datadog/appsec/configuration"
 
 RSpec.describe Datadog::Core::Remote::Client::Capabilities do
-  subject(:capabilities) { described_class.new(settings, telemetry: telemetry) }
+  subject(:capabilities) { described_class.new(settings, telemetry) }
   let(:settings) do
     double(Datadog::Core::Configuration)
   end
@@ -349,21 +349,28 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   end
 
   context "OpenFeature component" do
-    let(:settings) do
-      Datadog::Core::Configuration::Settings.new.tap do |settings|
-        settings.feature_flags.enabled = true
-        settings.feature_flags.configuration_source = "remote_config"
-      end
+    subject(:capabilities) do
+      described_class.new(
+        settings,
+        telemetry,
+        open_feature_component_provider: open_feature_component_provider,
+      )
     end
 
-    it "does not register Feature Flags during initial capability construction" do
-      expect(capabilities.capabilities).not_to include(1 << 46)
-      expect(capabilities.products).not_to include("FFE_FLAGS")
-      expect(capabilities.receivers).not_to include(
-        lambda { |receiver|
-          receiver.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/FFE_FLAGS/_/_")
-        }
-      )
+    let(:settings) do
+      Datadog::Core::Configuration::Settings.new.tap do |settings|
+        settings.open_feature.enabled = true
+      end
+    end
+    let(:open_feature_component_provider) { -> {} }
+
+    it "binds the receiver to the supplied component provider" do
+      expect(Datadog::OpenFeature::Remote).to receive(:receivers).with(
+        telemetry,
+        component_provider: open_feature_component_provider,
+      ).and_call_original
+
+      capabilities
     end
   end
 
@@ -402,8 +409,17 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   end
 
   describe "#capabilities_to_base64" do
+    before do
+      allow(capabilities).to receive(:capabilities).and_return(
+        [
+          1 << 1,
+          1 << 2,
+        ]
+      )
+    end
+
     it "returns base64 string" do
-      expect(capabilities.send(:capabilities_to_base64, [1 << 1, 1 << 2])).to eq("Bg==")
+      expect(capabilities.send(:capabilities_to_base64)).to eq("Bg==")
     end
   end
 
@@ -438,51 +454,6 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     it "#remove_products leaves other products intact" do
       capabilities.remove_products("LIVE_DEBUGGING")
       expect(capabilities.products).to include("APM_TRACING")
-    end
-  end
-
-  describe "#register_runtime" do
-    let(:receiver) { instance_double(Datadog::Core::Remote::Dispatcher::Receiver) }
-    let(:runtime_capability) { 1 << 46 }
-
-    it "adds capabilities, products, and receivers for future clients" do
-      capabilities.register_runtime(
-        capabilities: [runtime_capability],
-        products: ["FFE_FLAGS"],
-        receivers: [receiver],
-      )
-
-      expect(capabilities.capabilities).to include(runtime_capability)
-      expect(capabilities.products).to include("FFE_FLAGS")
-      expect(capabilities.receivers).to include(receiver)
-    end
-
-    it "recomputes base64 over the union of boot and runtime capabilities" do
-      boot_capabilities = capabilities.capabilities
-      expect(boot_capabilities).not_to be_empty
-
-      capabilities.register_runtime(
-        capabilities: [runtime_capability],
-        products: ["FFE_FLAGS"],
-        receivers: [receiver],
-      )
-
-      expect(capabilities.base64_capabilities)
-        .to eq(capabilities.send(:capabilities_to_base64, boot_capabilities + [runtime_capability]))
-    end
-
-    it "is idempotent" do
-      2.times do
-        capabilities.register_runtime(
-          capabilities: [runtime_capability],
-          products: ["FFE_FLAGS"],
-          receivers: [receiver],
-        )
-      end
-
-      expect(capabilities.capabilities.count(runtime_capability)).to eq(1)
-      expect(capabilities.products.count("FFE_FLAGS")).to eq(1)
-      expect(capabilities.receivers.count(receiver)).to eq(1)
     end
   end
 end

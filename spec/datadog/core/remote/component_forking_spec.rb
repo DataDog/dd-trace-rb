@@ -93,16 +93,6 @@ RSpec.describe Datadog::Core::Remote::Component do
         end
       end
 
-      it "does not restart polling after fork" do
-        expect(component.worker.instance_variable_get(:@thr)).to be_alive
-
-        expect_in_fork do
-          child_worker = components.remote.worker
-
-          expect(child_worker.instance_variable_get(:@thr)).not_to be_alive
-        end
-      end
-
       it "resets healthy flag after fork" do
         # Make the component healthy in the parent
         component.instance_variable_set(:@healthy, true)
