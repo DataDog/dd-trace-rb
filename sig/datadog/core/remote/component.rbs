@@ -15,7 +15,6 @@ module Datadog
         @capabilities: Datadog::Core::Remote::Client::Capabilities
         @agent_settings: Datadog::Core::Configuration::AgentSettings
         @transport: untyped
-        @client_mutex: ::Thread::Mutex
 
         def initialize: (untyped settings, Datadog::Core::Remote::Client::Capabilities capabilities, Datadog::Core::Configuration::AgentSettings agent_settings, logger: Core::Logger) -> void
 
@@ -35,17 +34,12 @@ module Datadog
 
         def remove_products: (*::String products) -> void
 
-        def register: (
-          capabilities: Array[Integer],
-          products: Array[String],
-          receivers: Array[Core::Remote::Dispatcher::Receiver]
-        ) -> void
-
         def self.build: (
           untyped settings,
           Datadog::Core::Configuration::AgentSettings agent_settings,
           logger: Core::Logger,
-          telemetry: Datadog::Core::Telemetry::Component
+          telemetry: Datadog::Core::Telemetry::Component,
+          ?open_feature_component_provider: (^() -> Datadog::OpenFeature::Component?)?
         ) -> Datadog::Core::Remote::Component?
 
         class Barrier

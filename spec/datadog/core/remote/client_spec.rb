@@ -250,7 +250,7 @@ RSpec.describe Datadog::Core::Remote::Client do
   let(:capabilities) do
     capabilities = Datadog::Core::Remote::Client::Capabilities.new(
       settings,
-      telemetry: instance_double(Datadog::Core::Telemetry::Component)
+      instance_double(Datadog::Core::Telemetry::Component)
     )
     capabilities.send(:register_products, ["ASM_DATA", "ASM_DD", "ASM"])
 
