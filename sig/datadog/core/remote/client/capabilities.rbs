@@ -3,36 +3,25 @@ module Datadog
     module Remote
       class Client
         class Capabilities
-          @capabilities: Array[Integer]
+          attr_reader capabilities: Array[Integer]
 
-          @products: Array[String]
+          attr_reader receivers: Array[Core::Remote::Dispatcher::Receiver]
 
-          @receivers: Array[Core::Remote::Dispatcher::Receiver]
+          attr_reader base64_capabilities: String
 
-          @base64_capabilities: String
+          @products: ::Array[::String]
 
-          @mutex: ::Thread::Mutex
+          @products_mutex: ::Thread::Mutex
 
           @telemetry: Datadog::Core::Telemetry::Component
 
           def initialize: (
             Datadog::Core::Configuration::Settings settings,
-            telemetry: Datadog::Core::Telemetry::Component
+            Datadog::Core::Telemetry::Component telemetry,
+            ?open_feature_component_provider: (^() -> Datadog::OpenFeature::Component?)?
           ) -> void
 
-          def capabilities: () -> Array[Integer]
-
-          def products: () -> Array[String]
-
-          def receivers: () -> Array[Core::Remote::Dispatcher::Receiver]
-
-          def base64_capabilities: () -> String
-
-          def register_runtime: (
-            capabilities: Array[Integer],
-            products: Array[String],
-            receivers: Array[Core::Remote::Dispatcher::Receiver]
-          ) -> void
+          def products: () -> ::Array[::String]
 
           def add_products: (*::String products) -> void
 
@@ -40,7 +29,10 @@ module Datadog
 
           private
 
-          def register: (Datadog::Core::Configuration::Settings settings) -> void
+          def register: (
+            Datadog::Core::Configuration::Settings settings,
+            ^() -> Datadog::OpenFeature::Component? open_feature_component_provider
+          ) -> void
 
           def register_capabilities: (Array[Integer] capabilities) -> void
 
@@ -48,7 +40,7 @@ module Datadog
 
           def register_products: (Array[String] products) -> void
 
-          def capabilities_to_base64: (Array[Integer] capabilities) -> String
+          def capabilities_to_base64: () -> String
         end
       end
     end

@@ -6,6 +6,7 @@ require_relative "../../../tracing/remote"
 require_relative "../../../di/remote"
 require_relative "../../../symbol_database"
 require_relative "../../../symbol_database/remote"
+require_relative "../../../open_feature/remote"
 
 module Datadog
   module Core
@@ -13,57 +14,40 @@ module Datadog
       class Client
         # Capabilities
         class Capabilities
-          def initialize(settings, telemetry:)
+          attr_reader :capabilities, :receivers, :base64_capabilities
+
+          def initialize(settings, telemetry, open_feature_component_provider: nil)
+            open_feature_component_provider ||= -> {}
             @capabilities = []
             @products = []
+            @products_mutex = Mutex.new
             @receivers = []
             @telemetry = telemetry
-            @mutex = Mutex.new
 
-            register(settings)
+            register(settings, open_feature_component_provider)
 
-            @base64_capabilities = capabilities_to_base64(@capabilities)
-          end
-
-          def capabilities
-            @mutex.synchronize { @capabilities.dup }
+            @base64_capabilities = capabilities_to_base64
           end
 
           def products
-            @mutex.synchronize { @products.dup }
+            @products_mutex.synchronize { @products.dup }
           end
 
-          def receivers
-            @mutex.synchronize { @receivers.dup }
-          end
-
-          def base64_capabilities
-            @mutex.synchronize { @base64_capabilities }
-          end
-
-          def register_runtime(capabilities:, products:, receivers:)
-            @mutex.synchronize do
-              register_capabilities(capabilities)
-              register_products(products)
-              register_receivers(receivers)
-              @base64_capabilities = capabilities_to_base64(@capabilities)
+          def add_products(*products)
+            @products_mutex.synchronize do
+              products.each { |product| @products << product unless @products.include?(product) }
             end
             nil
           end
 
-          def add_products(*products)
-            @mutex.synchronize { register_products(products) }
-            nil
-          end
-
           def remove_products(*products)
-            @mutex.synchronize { products.each { |product| @products.delete(product) } }
+            @products_mutex.synchronize { products.each { |product| @products.delete(product) } }
             nil
           end
 
           private
 
-          def register(settings)
+          def register(settings, open_feature_component_provider)
             if settings.respond_to?(:appsec) && settings.appsec.enabled
               register_capabilities(Datadog::AppSec::Remote.capabilities)
               register_products(Datadog::AppSec::Remote.products)
@@ -111,21 +95,32 @@ module Datadog
                 end
               end
             end
+
+            if settings.respond_to?(:open_feature) && settings.open_feature.enabled
+              register_capabilities(Datadog::OpenFeature::Remote.capabilities)
+              register_products(Datadog::OpenFeature::Remote.products)
+              register_receivers(
+                Datadog::OpenFeature::Remote.receivers(
+                  @telemetry,
+                  component_provider: open_feature_component_provider,
+                ),
+              )
+            end
           end
 
           def register_capabilities(capabilities)
-            capabilities.each { |capability| @capabilities << capability unless @capabilities.include?(capability) }
+            @capabilities.concat(capabilities)
           end
 
           def register_receivers(receivers)
-            receivers.each { |receiver| @receivers << receiver unless @receivers.include?(receiver) }
+            @receivers.concat(receivers)
           end
 
           def register_products(products)
-            products.each { |product| @products << product unless @products.include?(product) }
+            @products.concat(products)
           end
 
-          def capabilities_to_base64(capabilities)
+          def capabilities_to_base64
             return "" if capabilities.empty?
 
             cap_to_hexs = capabilities.reduce(:|).to_s(16).tap { |s| s.size.odd? && s.prepend("0") }.scan(/\h\h/)
