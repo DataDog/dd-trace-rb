@@ -100,6 +100,16 @@ RSpec.describe Datadog::OpenFeature::Activation do
       expect(activation.providers).to eq([provider])
     end
 
+    it "tracks value-equal providers by identity" do
+      allow(provider).to receive(:hash).and_return(0)
+      allow(second_provider).to receive(:hash).and_return(0)
+      allow(provider).to receive(:eql?).with(second_provider).and_return(true)
+      activation.activate(provider)
+      activation.activate(second_provider)
+
+      expect(activation.providers).to eq([provider, second_provider])
+    end
+
     it "applies agentless configuration to the component" do
       apply = nil
       allow(Datadog::OpenFeature::Agentless::ConfigurationSource).to receive(:build) do |_settings, **options|

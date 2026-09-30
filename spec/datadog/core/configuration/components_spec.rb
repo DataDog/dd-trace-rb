@@ -793,7 +793,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
     end
 
-    context "when reattaching the adopted OpenFeature provider" do
+    context "when reattaching adopted OpenFeature providers" do
       let(:activation) do
         instance_double(Datadog::OpenFeature::Activation, start!: nil, activate: nil)
       end
@@ -872,6 +872,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           .with("Feature Flags delivery failed to restart after fork: RuntimeError: test failure")
         expect(telemetry).to receive(:report)
           .with(error, description: "Feature Flags delivery failed to restart after fork")
+        expect(remote).to receive(:after_fork)
 
         expect { after_fork }.not_to raise_error
       end
@@ -907,25 +908,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
       allow(components).to receive(:data_streams).and_return(nil)
 
       expect { after_fork }.not_to raise_error
-    end
-  end
-
-  describe "#deactivate_open_feature!" do
-    subject(:deactivate_open_feature) { components.deactivate_open_feature!(provider) }
-
-    let(:provider) { instance_double(Object) }
-    let(:open_feature_activation) do
-      instance_double(Datadog::OpenFeature::Activation, deactivate: nil)
-    end
-
-    before do
-      allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(open_feature_activation)
-    end
-
-    it "delegates deactivation to OpenFeature" do
-      deactivate_open_feature
-
-      expect(open_feature_activation).to have_received(:deactivate).with(provider).once
     end
   end
 

@@ -19,7 +19,7 @@ module Datadog
 
       @failure: String?
 
-      @providers: Array[Provider]
+      @providers: Hash[Provider, bool]
 
       @activated: bool
 

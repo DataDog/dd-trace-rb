@@ -12,12 +12,15 @@ require "datadog/open_feature/hooks/span_enrichment_hook"
 RSpec.describe Datadog::OpenFeature, ".activate_provider" do
   subject(:activate_provider) { described_class.activate_provider(provider) }
 
-  let(:provider) { instance_double(Datadog::OpenFeature::Provider) }
+  let(:provider) { instance_double(Datadog::OpenFeature::Provider, shutdown?: provider_shutdown) }
+  let(:second_provider) { instance_double(Datadog::OpenFeature::Provider, shutdown?: false) }
+  let(:provider_shutdown) { false }
   let(:component) { instance_double(Datadog::OpenFeature::Component) }
   let(:activation) do
     instance_double(
       Datadog::OpenFeature::Activation,
       activate: component,
+      deactivate: nil,
       failure: activation_failure,
     )
   end
@@ -41,6 +44,7 @@ RSpec.describe Datadog::OpenFeature, ".activate_provider" do
 
   after do
     described_class.deactivate_provider(provider)
+    described_class.deactivate_provider(second_provider)
   end
 
   it "adopts the provider through the active component tree" do
@@ -75,6 +79,17 @@ RSpec.describe Datadog::OpenFeature, ".activate_provider" do
     expect(replacement_activation).not_to have_received(:activate)
   end
 
+  it "reattaches every provider except the deactivated instance" do
+    activate_provider
+    described_class.activate_provider(second_provider)
+
+    described_class.deactivate_provider(provider)
+    described_class.reattach(replacement_activation)
+
+    expect(replacement_activation).not_to have_received(:activate).with(provider)
+    expect(replacement_activation).to have_received(:activate).with(second_provider)
+  end
+
   context "when delivery cannot be activated" do
     let(:component) { nil }
     let(:activation_failure) { "Feature Flags Remote Configuration is unavailable" }
@@ -90,6 +105,40 @@ RSpec.describe Datadog::OpenFeature, ".activate_provider" do
 
       expect(replacement_activation).to have_received(:activate).with(provider)
     end
+  end
+
+  context "when the provider is shut down" do
+    let(:provider_shutdown) { true }
+
+    it "does not adopt the provider" do
+      expect(activate_provider).to eq([nil, nil])
+      expect(activation).not_to have_received(:activate)
+    end
+  end
+end
+
+RSpec.describe Datadog::OpenFeature, ".deactivate_provider" do
+  subject(:deactivate_provider) { described_class.deactivate_provider(provider) }
+
+  let(:provider) { instance_double(Datadog::OpenFeature::Provider) }
+  let(:activation) { instance_double(Datadog::OpenFeature::Activation, deactivate: nil) }
+  let(:components) do
+    instance_double(
+      Datadog::Core::Configuration::Components,
+      open_feature_activation: activation,
+    )
+  end
+
+  before do
+    allow(Datadog).to receive(:send).and_call_original
+    allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
+    allow(Datadog).to receive(:send).with(:safely_synchronize).and_yield
+  end
+
+  it "detaches the provider through the active component tree" do
+    deactivate_provider
+
+    expect(activation).to have_received(:deactivate).with(provider)
   end
 end
 
@@ -339,14 +388,6 @@ RSpec.describe Datadog::OpenFeature::Provider do
     ensure
       provider.shutdown
       configuration&.send(:reset)
-    end
-  end
-
-  describe "#shutdown" do
-    it "releases provider adoption" do
-      provider.shutdown
-
-      expect(Datadog::OpenFeature).to have_received(:deactivate_provider).with(provider).once
     end
   end
 

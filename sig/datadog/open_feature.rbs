@@ -1,6 +1,6 @@
 module Datadog
   module OpenFeature
-    self.@adopted_provider: Provider?
+    self.@adopted_providers: Hash[Provider, bool]?
 
     def self.enabled?: () -> bool
 
@@ -10,6 +10,6 @@ module Datadog
 
     def self.deactivate_provider: (Provider provider) -> void
 
-    def self.reattach: (Activation activation) -> Component?
+    def self.reattach: (Activation activation) -> void
   end
 end
