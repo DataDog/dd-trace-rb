@@ -117,9 +117,9 @@ module Datadog
 
       def shutdown
         configuration = @configuration
-        # @type var error_handler: (^(Hash[Symbol, untyped]) -> void)?
+        # @type var error_handler: Provider::provider_event_handler?
         error_handler = nil
-        # @type var initialization_ready_handler: (^(Hash[Symbol, untyped]) -> void)?
+        # @type var initialization_ready_handler: Provider::provider_event_handler?
         initialization_ready_handler = nil
         @initialization_mutex.synchronize do
           return if @shutdown

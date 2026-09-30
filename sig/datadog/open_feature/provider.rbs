@@ -7,6 +7,8 @@ module Datadog
 
       INITIALIZATION_CANCELLED_MESSAGE: ::String
 
+      type provider_event_handler = ^(Hash[Symbol, untyped]) -> void
+
       @initialization_mutex: Thread::Mutex
 
       @initializing: bool
@@ -23,9 +25,9 @@ module Datadog
 
       @stale_pending: bool
 
-      @error_handler: (^(Hash[Symbol, untyped]) -> void)?
+      @error_handler: provider_event_handler?
 
-      @initialization_ready_handler: (^(Hash[Symbol, untyped]) -> void)?
+      @initialization_ready_handler: provider_event_handler?
 
       @shutdown: bool
 
