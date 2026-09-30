@@ -260,7 +260,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
     end
 
     it "preserves threadlocal metadata through enablement, disablement, and shutdown in a fresh process",
-      if: PlatformHelpers.mri? do
+      if: PlatformHelpers.linux? && PlatformHelpers.mri? do
       stdout, stderr, status = Open3.capture3(
         {"DD_TRACE_OTEL_CTX_ENABLED" => "false"},
         RbConfig.ruby,
@@ -326,7 +326,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
       expect(shutdown).to eq(reenabled)
     end
 
-    context "with threadlocal metadata", if: PlatformHelpers.mri? do
+    context "with threadlocal metadata", if: PlatformHelpers.linux? && PlatformHelpers.mri? do
       before do
         Datadog.configure do |c|
           c.tracing.otel_thread_context_enabled = true
