@@ -2,6 +2,8 @@
 
 require "msgpack"
 require "google/protobuf"
+require "open3"
+require "rbconfig"
 require "spec_helper"
 require "datadog/core/process_discovery"
 
@@ -254,25 +256,143 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
         "container.id" => "test-container-id"
       )
 
-      expect(extra_attributes).to eq("datadog.process_tags" => Datadog::Core::Environment::Process.serialized)
+      expect(extra_attributes).to include("datadog.process_tags" => Datadog::Core::Environment::Process.serialized)
     end
 
-    it "publishes threadlocal discovery metadata", if: PlatformHelpers.mri? do
-      Datadog.configure do |c|
-        c.tracing.otel_thread_context_enabled = true
-      end
+    it "preserves threadlocal metadata through enablement, disablement, and shutdown in a fresh process",
+      if: PlatformHelpers.mri? do
+      stdout, stderr, status = Open3.capture3(
+        {"DD_TRACE_OTEL_CTX_ENABLED" => "false"},
+        RbConfig.ruby,
+        "-I", File.expand_path("../../../lib", __dir__),
+        "-e", <<~RUBY,
+          require "datadog"
 
-      described_class.publish(Datadog.configuration)
+          [false, true, false, true, :shutdown].each do |enabled|
+            if enabled == :shutdown
+              Datadog::Core::ProcessDiscovery.shutdown!
+              GC.start
+            else
+              Datadog.configure do |c|
+                c.service = "threadlocal-lifecycle"
+                c.tracing.otel_thread_context_enabled = enabled
+                c.telemetry.enabled = false
+                c.remote.enabled = false
+                c.diagnostics.startup_logs.enabled = false
+                c.logger.instance = Logger.new($stderr)
+              end
+            end
 
-      extra_attributes_keys = process_context.extra_attributes.map(&:key)
-      expect(extra_attributes_keys).to include("threadlocal.schema_version").once
-      expect(extra_attributes_keys).to include("threadlocal.attribute_key_map").once
+            mapping = File.foreach("/proc/self/maps").find do |line|
+              line.include?("/memfd:OTEL_CTX") ||
+                line.include?("[anon:OTEL_CTX]") ||
+                line.include?("[anon_shmem:OTEL_CTX]")
+            end
+            raise "No OTEL_CTX mapping found" unless mapping
 
-      values = process_context.extra_attributes.map { |kv| [kv.key, kv.value] }.to_h
+            File.open("/proc/self/mem", "rb") do |memory|
+              memory.seek(mapping.split("-").first.to_i(16))
+              signature, version, size, timestamp, address = memory.read(32).unpack("a8L<L<Q<Q<")
+              raise "Invalid OTEL_CTX header" unless signature == "OTEL_CTX" && version == 2 && timestamp > 0
+
+              memory.seek(address)
+              puts [memory.read(size)].pack("m0")
+            end
+          end
+        RUBY
+      )
+
+      expect(status.success?).to be(true), "Lifecycle subprocess failed: #{stderr}"
+      snapshots = stdout.lines.map { |line| Otel::ProcessCtx::ProcessContext.decode(line.chomp.unpack1("m0")) }
+      expect(snapshots.size).to eq(5)
+      initial, enabled, disabled, reenabled, shutdown = snapshots
+
+      expect(initial.extra_attributes.map(&:key)).not_to include(
+        "threadlocal.schema_version",
+        "threadlocal.attribute_key_map",
+      )
+
+      keys = enabled.extra_attributes.map(&:key)
+      expect(keys).to include("threadlocal.schema_version").once
+      expect(keys).to include("threadlocal.attribute_key_map").once
+      values = enabled.extra_attributes.map { |kv| [kv.key, kv.value] }.to_h
       expect(values.fetch("threadlocal.schema_version").string_value).to eq("tlsdesc_v1_dev")
       expect(
         values.fetch("threadlocal.attribute_key_map").array_value.values.map(&:string_value)
       ).to eq(["datadog.local_root_span_id"])
+
+      expect(disabled.extra_attributes).to match_array(enabled.extra_attributes)
+      expect(reenabled.extra_attributes).to match_array(enabled.extra_attributes)
+      expect(shutdown).to eq(reenabled)
+    end
+
+    context "with threadlocal metadata", if: PlatformHelpers.mri? do
+      before do
+        Datadog.configure do |c|
+          c.tracing.otel_thread_context_enabled = true
+        end
+
+        described_class.publish(Datadog.configuration)
+      end
+
+      shared_examples "published threadlocal metadata" do
+        it "publishes the schema and key map exactly once" do
+          keys = process_context.extra_attributes.map(&:key)
+          expect(keys).to include("threadlocal.schema_version").once
+          expect(keys).to include("threadlocal.attribute_key_map").once
+
+          values = process_context.extra_attributes.map { |kv| [kv.key, kv.value] }.to_h
+          expect(values.fetch("threadlocal.schema_version").string_value).to eq("tlsdesc_v1_dev")
+          expect(
+            values.fetch("threadlocal.attribute_key_map").array_value.values.map(&:string_value)
+          ).to eq(["datadog.local_root_span_id"])
+        end
+      end
+
+      include_examples "published threadlocal metadata"
+
+      context "after repeated publication" do
+        before do
+          %w[service another-service yet-another-service].each do |service|
+            Datadog.configuration.service = service
+            described_class.publish(Datadog.configuration)
+          end
+        end
+
+        include_examples "published threadlocal metadata"
+
+        it "preserves updated process metadata when adding threadlocal attributes" do
+          expect(resource_attributes).to include("service.name" => "yet-another-service")
+        end
+      end
+
+      it "preserves metadata after fork without changing the parent" do
+        parent_context = read_otel_ctx
+        parent_runtime_id = Datadog::Core::Environment::Identity.id
+
+        expect(parent_context.extra_attributes.map(&:key)).to include(
+          "threadlocal.schema_version",
+          "threadlocal.attribute_key_map"
+        )
+
+        expect_in_fork do
+          described_class.after_fork
+
+          child_runtime_id = Datadog::Core::Environment::Identity.id
+          expect(child_runtime_id).not_to eq(parent_runtime_id)
+
+          child_context = read_otel_ctx
+          expect(child_context.extra_attributes).to match_array(parent_context.extra_attributes)
+
+          attributes = child_context.resource.attributes.map { |kv| [kv.key, kv.value.string_value] }.to_h
+          expect(attributes).to include(
+            "service.instance.id" => child_runtime_id,
+            "service.name" => "otel-test-service"
+          )
+        end
+
+        expect(read_otel_ctx).to eq(parent_context)
+      end
     end
 
     context "when app uses fork" do

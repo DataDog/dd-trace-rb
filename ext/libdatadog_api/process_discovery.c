@@ -9,10 +9,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 #include <datadog/library-config.h>
 
 #include "datadog_ruby_common.h"
+#include "otel_thread_context.h"
+
+#ifdef __linux__
+  #include <sys/prctl.h>
+
+  #ifndef PR_SET_VMA
+    #define PR_SET_VMA 0x53564d41
+  #endif
+
+  #ifndef PR_SET_VMA_ANON_NAME
+    #define PR_SET_VMA_ANON_NAME 0
+  #endif
+#endif
 
 #define OTEL_CONTEXT_MAX_PAYLOAD_SIZE (1u << 20)
 
@@ -29,19 +43,6 @@ typedef struct {
   otel_context_header header;
   uint8_t *payload;
 } otel_context_snapshot;
-
-typedef struct {
-  const uint8_t *data;
-  size_t size;
-  size_t offset;
-} protobuf_cursor;
-
-typedef struct {
-  uint32_t number;
-  uint8_t wire_type;
-  const uint8_t *data;
-  size_t size;
-} protobuf_field;
 
 static bool otel_context_header_layout_supported(void) {
   return sizeof(otel_context_header) == 32 &&
@@ -223,69 +224,75 @@ cleanup:
   return false;
 }
 
-static bool read_protobuf_varint(protobuf_cursor *cursor, uint64_t *value) {
-  size_t offset = cursor->offset;
-  uint64_t result = 0;
+// Requires the GVL; libdatadog v44's C metadata API emits no threadlocal attributes.
+static void publish_otel_threadlocal_metadata(void) {
+  #if defined(__linux__) && defined(CLOCK_BOOTTIME)
+    if (!otel_thread_context_was_enabled()) return;
 
-  for (unsigned int shift = 0; shift < 64; shift += 7) {
-    if (offset >= cursor->size) return false;
+    static const uint8_t attributes[] =
+      "\x12\x2e\x0a\x1a" "threadlocal.schema_version"
+      "\x12\x10\x0a\x0e" "tlsdesc_v1_dev"
+      "\x12\x41\x0a\x1d" "threadlocal.attribute_key_map"
+      "\x12\x20\x2a\x1e\x0a\x1c\x0a\x1a" "datadog.local_root_span_id";
 
-    uint8_t byte = cursor->data[offset++];
-    if (shift == 63 && byte > 1) return false;
+    const size_t attributes_size = sizeof(attributes) - 1;
 
-    result |= (uint64_t)(byte & 0x7f) << shift;
+    // Retained for process lifetime: external readers may still hold an older payload pointer.
+    static uint8_t *published_payload = NULL;
 
-    if ((byte & 0x80) == 0) {
-      cursor->offset = offset;
-      *value = result;
-      return true;
+    otel_context_snapshot snapshot;
+    if (!read_otel_context_snapshot(&snapshot)) return;
+    if (snapshot.header.payload_ptr == (uint64_t)(uintptr_t)published_payload) goto cleanup;
+    if (snapshot.header.payload_size > OTEL_CONTEXT_MAX_PAYLOAD_SIZE - attributes_size) goto cleanup;
+    if (snapshot.header.monotonic_published_at_ns == UINT64_MAX) goto cleanup;
+
+    struct timespec now;
+    if (clock_gettime(CLOCK_BOOTTIME, &now) != 0) goto cleanup;
+    if (now.tv_sec < 0 || now.tv_nsec < 0 || now.tv_nsec >= 1000000000L) goto cleanup;
+
+    uint64_t seconds = (uint64_t)now.tv_sec;
+    uint64_t nanoseconds = (uint64_t) now.tv_nsec;
+    if (seconds > (UINT64_MAX - nanoseconds) / UINT64_C(1000000000)) goto cleanup;
+
+    uint64_t published_at = seconds * UINT64_C(1000000000) + nanoseconds;
+    if (published_at <= snapshot.header.monotonic_published_at_ns) {
+      published_at = snapshot.header.monotonic_published_at_ns + 1;
     }
-  }
 
-  return false;
-}
+    if (published_payload == NULL) {
+      published_payload = malloc(OTEL_CONTEXT_MAX_PAYLOAD_SIZE);
+      if (published_payload == NULL) goto cleanup;
+    }
 
-DDTRACE_UNUSED static bool read_protobuf_field(protobuf_cursor *cursor, protobuf_field *field) {
-  protobuf_cursor next = *cursor;
-  uint64_t tag;
-  if (!read_protobuf_varint(&next, &tag)) return false;
-  if (tag > UINT32_MAX || (tag >> 3) == 0) return false;
+    size_t payload_size = snapshot.header.payload_size + attributes_size;
+    memcpy(published_payload, snapshot.payload, snapshot.header.payload_size);
+    memcpy(published_payload + snapshot.header.payload_size, attributes, attributes_size);
 
-  protobuf_field parsed = {
-    .number = (uint32_t)(tag >> 3),
-    .wire_type = (uint8_t)(tag & 7),
-  };
-  uint64_t byte_count = 0;
-  uint64_t ignored;
+    otel_context_header current;
+    if (!read_otel_context_memory(snapshot.mapping_address, &current, sizeof(current))) goto cleanup;
+    if (memcmp(&current, &snapshot.header, sizeof(current)) != 0) goto cleanup;
 
-  switch (parsed.wire_type) {
-    case 0:
-      if (!read_protobuf_varint(&next, &ignored)) return false;
-      break;
-    case 1:
-      byte_count = 8;
-      break;
-    case 2:
-      if (!read_protobuf_varint(&next, &byte_count)) return false;
-      break;
-    case 5:
-      byte_count = 4;
-      break;
-    default:
-      return false;
-  }
+    otel_context_header *header = (otel_context_header *)snapshot.mapping_address;
+    uint64_t expected = snapshot.header.monotonic_published_at_ns;
+    if (!__atomic_compare_exchange_n(
+      &header->monotonic_published_at_ns, &expected, 0, false, __ATOMIC_RELAXED, __ATOMIC_RELAXED
+    )) goto cleanup;
 
-  if (byte_count > next.size - next.offset) return false;
+    __atomic_thread_fence(__ATOMIC_SEQ_CST);
+    __atomic_store_n(&header->payload_ptr, (uint64_t)(uintptr_t)published_payload, __ATOMIC_RELAXED);
+    __atomic_store_n(&header->payload_size, (uint32_t)payload_size, __ATOMIC_RELAXED);
+    __atomic_thread_fence(__ATOMIC_SEQ_CST);
+    __atomic_store_n(&header->monotonic_published_at_ns, published_at, __ATOMIC_RELAXED);
 
-  if (parsed.wire_type == 2) {
-    parsed.data = next.data + next.offset;
-    parsed.size = (size_t)byte_count;
-  }
+    // The agent observes the naming attempt even when the kernel rejects it.
+    (void)prctl(
+      PR_SET_VMA, (unsigned long)PR_SET_VMA_ANON_NAME,
+      (unsigned long)snapshot.mapping_address, (unsigned long)sizeof(*header), "OTEL_CTX"
+    );
 
-  next.offset += (size_t)byte_count;
-  *cursor = next;
-  *field = parsed;
-  return true;
+  cleanup:
+    free(snapshot.payload);
+  #endif
 }
 
 static void tracer_memfd_free(void *ptr) {
@@ -355,6 +362,8 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
 
   ddog_Result_TracerMemfdHandle result = ddog_tracer_metadata_store(builder);
   ddog_tracer_metadata_free(builder);
+
+  publish_otel_threadlocal_metadata();
 
   if (result.tag == DDOG_RESULT_TRACER_MEMFD_HANDLE_ERR_TRACER_MEMFD_HANDLE) {
     rb_funcall(logger, rb_intern("debug"), 1, rb_sprintf("Failed to store the tracer configuration in a memory file descriptor: %"PRIsVALUE, get_error_details_and_drop(&result.err)));
