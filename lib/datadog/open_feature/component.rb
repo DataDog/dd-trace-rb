@@ -2,6 +2,8 @@
 
 require_relative "transport"
 require_relative "evaluation_engine"
+require_relative "../core/utils/time"
+require_relative "configuration/source"
 require_relative "exposures/buffer"
 require_relative "exposures/worker"
 require_relative "exposures/deduplicator"
@@ -16,20 +18,18 @@ module Datadog
   module OpenFeature
     # This class is the entry point for the OpenFeature component
     class Component
+      CONFIGURATION_READY = :ready
+      CONFIGURATION_TIMEOUT = :timeout
+      CONFIGURATION_SHUTDOWN = :shutdown
+      CONFIGURATION_CHANGED = :changed
+      CONFIGURATION_LOST = :lost
+
       attr_reader :engine, :flag_eval_metrics_hook, :flag_eval_evp_hook, :span_enrichment_hook
 
-      def self.build(settings, agent_settings, logger:, telemetry:)
-        return unless settings.respond_to?(:open_feature) && settings.open_feature.enabled
+      def self.build(settings, agent_settings, resolution:, on_configuration_change:, logger:, telemetry:)
+        return unless resolution.enabled?
 
-        unless settings.respond_to?(:remote) && settings.remote.enabled
-          message = "OpenFeature could not be enabled as Remote Configuration is currently disabled. " \
-            "To enable Remote Configuration, see https://docs.datadoghq.com/remote_configuration/."
-
-          logger.warn(message)
-          return
-        end
-
-        if RUBY_ENGINE != "ruby"
+        unless ["ruby", "truffleruby"].include?(RUBY_ENGINE)
           message = "OpenFeature could not be enabled as MRI is required, " \
             "but running on #{RUBY_ENGINE.inspect}"
 
@@ -46,10 +46,16 @@ module Datadog
           return
         end
 
-        new(settings, agent_settings, logger: logger, telemetry: telemetry)
+        new(
+          settings,
+          agent_settings,
+          on_configuration_change: on_configuration_change,
+          logger: logger,
+          telemetry: telemetry,
+        )
       end
 
-      def initialize(settings, agent_settings, logger:, telemetry:)
+      def initialize(settings, agent_settings, logger:, telemetry:, on_configuration_change: nil)
         transport = Transport::HTTP.build(agent_settings: agent_settings, logger: logger)
         @worker = Exposures::Worker.new(settings: settings, transport: transport, telemetry: telemetry, logger: logger)
 
@@ -60,12 +66,69 @@ module Datadog
         @logger = logger
         @settings = settings
         @agent_settings = agent_settings
+        @on_configuration_change = on_configuration_change
         @flag_eval_metrics_hook = create_flag_eval_metrics_hook
         @flag_eval_evp_hook = create_flag_eval_evp_hook
         @span_enrichment_hook = create_span_enrichment_hook
+
+        @configuration_mutex = Mutex.new
+        @reconfiguration_mutex = Mutex.new
+        @configuration_condition = ConditionVariable.new
+        @configuration_received = false
+        @configuration_shutdown = false
+      end
+
+      def reconfigure!(configuration)
+        event = @reconfiguration_mutex.synchronize do
+          return if configuration_shutdown?
+
+          @engine.reconfigure!(configuration)
+
+          @configuration_mutex.synchronize do
+            return if @configuration_shutdown
+
+            previously_received = @configuration_received
+            @configuration_received = !configuration.nil?
+            @configuration_condition.broadcast
+
+            if @configuration_received
+              previously_received ? CONFIGURATION_CHANGED : CONFIGURATION_READY
+            elsif previously_received
+              CONFIGURATION_LOST
+            end
+          end
+        end
+
+        @on_configuration_change&.call(event) if event
+      end
+
+      def wait_for_configuration
+        timeout_seconds = @settings.feature_flags.initialization_timeout_ms / 1000.0
+        deadline = Core::Utils::Time.get_time + timeout_seconds
+
+        @configuration_mutex.synchronize do
+          loop do
+            return CONFIGURATION_SHUTDOWN if @configuration_shutdown
+            return CONFIGURATION_READY if @configuration_received
+
+            remaining = deadline - Core::Utils::Time.get_time
+            return CONFIGURATION_TIMEOUT unless remaining.positive?
+
+            @configuration_condition.wait(@configuration_mutex, remaining)
+          end
+        end
+      end
+
+      def configuration_received?
+        @configuration_mutex.synchronize { @configuration_received }
       end
 
       def shutdown!
+        @configuration_mutex.synchronize do
+          @configuration_shutdown = true
+          @configuration_condition.broadcast
+        end
+
         @worker.graceful_shutdown
         @flag_eval_evp_writer&.stop
         # Symmetric teardown: drop any accumulated span-enrichment state and
@@ -74,6 +137,10 @@ module Datadog
       end
 
       private
+
+      def configuration_shutdown?
+        @configuration_mutex.synchronize { @configuration_shutdown }
+      end
 
       def create_flag_eval_metrics_hook
         return unless Hooks::FlagEvalMetricsHook.available?

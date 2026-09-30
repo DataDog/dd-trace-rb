@@ -105,7 +105,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
 
     context "when libdatadog pkgconfig_folder is available" do
       # rubocop:disable Style/GlobalVars
-      it "returns true and sets mkmf global variables including relative rpaths" do
+      it "returns true and sets mkmf global variables including relative rpaths", if: PlatformHelpers.supports_fork? do
         expect_in_fork do
           # Initialize mkmf globals as extconf.rb would
           $INCFLAGS = +""

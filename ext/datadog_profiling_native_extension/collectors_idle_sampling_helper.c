@@ -31,9 +31,9 @@ typedef struct {
 
 static VALUE _native_new(VALUE klass);
 static void reset_state(idle_sampling_loop_state *state);
-static VALUE _native_idle_sampling_loop(DDTRACE_UNUSED VALUE self, VALUE self_instance, VALUE thread_context_collector_instance);
+static VALUE _native_idle_sampling_loop(DDTRACE_UNUSED VALUE self, VALUE self_instance, VALUE cpu_and_wall_time_worker_instance);
 static VALUE idle_sampling_loop_body(VALUE self_instance);
-static VALUE idle_sampling_loop_ensure(VALUE thread_context_collector_instance);
+static VALUE idle_sampling_loop_ensure(VALUE cpu_and_wall_time_worker_instance);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE self, VALUE self_instance);
 static void *run_idle_sampling_loop(void *state_ptr);
 static void interrupt_idle_sampling_loop(void *state_ptr);
@@ -112,8 +112,8 @@ static VALUE _native_reset(DDTRACE_UNUSED VALUE self, VALUE self_instance) {
   return Qtrue;
 }
 
-static VALUE _native_idle_sampling_loop(DDTRACE_UNUSED VALUE self, VALUE self_instance, VALUE thread_context_collector_instance) {
-  return rb_ensure(idle_sampling_loop_body, self_instance, idle_sampling_loop_ensure, thread_context_collector_instance);
+static VALUE _native_idle_sampling_loop(DDTRACE_UNUSED VALUE self, VALUE self_instance, VALUE cpu_and_wall_time_worker_instance) {
+  return rb_ensure(idle_sampling_loop_body, self_instance, idle_sampling_loop_ensure, cpu_and_wall_time_worker_instance);
 }
 
 static VALUE idle_sampling_loop_body(VALUE self_instance) {
@@ -128,9 +128,8 @@ static VALUE idle_sampling_loop_body(VALUE self_instance) {
   return Qtrue;
 }
 
-static VALUE idle_sampling_loop_ensure(VALUE thread_context_collector_instance) {
-  thread_context_collector_profiler_internal_thread_done(thread_context_collector_instance);
-  return Qnil;
+static VALUE idle_sampling_loop_ensure(VALUE cpu_and_wall_time_worker_instance) {
+  return rb_funcall(cpu_and_wall_time_worker_instance, rb_intern("_native_profiler_internal_thread_done"), 0);
 }
 
 static void *run_idle_sampling_loop(void *state_ptr) {

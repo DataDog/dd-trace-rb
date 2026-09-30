@@ -65,6 +65,7 @@ module Datadog
 
           if first_span
             tag_process_tags!
+            tag_sdk_otlp_export!
             tag_git_repository_url!
             tag_git_commit_sha!
           end
@@ -235,6 +236,13 @@ module Datadog
             Core::Environment::Ext::TAG_PROCESS_TAGS,
             Core::Environment::Process.serialized
           )
+        end
+
+        # TODO: Revisit when OTLP trace export support lands. The OTLP path sets
+        # `_dd.sdk.otlp_export: "true"` on the OTLP resource, so this tag must not
+        # also be set to "false" on the first span of a chunk exported over OTLP.
+        def tag_sdk_otlp_export!
+          first_span.set_tag(Tracing::Metadata::Ext::TAG_SDK_OTLP_EXPORT, "false")
         end
 
         private

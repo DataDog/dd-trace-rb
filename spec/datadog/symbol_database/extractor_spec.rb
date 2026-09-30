@@ -3,7 +3,7 @@
 require "datadog/symbol_database/extractor"
 require "fileutils"
 
-RSpec.describe Datadog::SymbolDatabase::Extractor do
+RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
   let(:settings) do
     s = double("settings")
     symdb = double("symbol_database")

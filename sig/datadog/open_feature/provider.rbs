@@ -1,7 +1,35 @@
 module Datadog
   module OpenFeature
     class Provider
+      include ::OpenFeature::SDK::Provider::EventEmitter
+
       NAME: ::String
+
+      INITIALIZATION_CANCELLED_MESSAGE: ::String
+
+      type provider_event_handler = ^(Hash[Symbol, untyped]) -> void
+
+      @initialization_mutex: Thread::Mutex
+
+      @initializing: bool
+
+      @initialization_failed: bool
+
+      @provider_error_observed: bool
+
+      @ready_pending: bool
+
+      @ready_dispatch_claimed: bool
+
+      @stale_emitted: bool
+
+      @stale_pending: bool
+
+      @error_handler: provider_event_handler?
+
+      @initialization_ready_handler: provider_event_handler?
+
+      @shutdown: bool
 
       attr_reader metadata: ::OpenFeature::SDK::Provider::ProviderMetadata
 
@@ -50,6 +78,22 @@ module Datadog
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       private
+
+      def fail_initialization: (Component? component, String message) -> bot
+
+      def cancel_initialization_if_shutdown!: () -> void
+
+      def shutdown?: () -> bool
+
+      def install_initialization_ready_handler: () -> bool
+
+      def install_error_handler: () -> void
+
+      def provider_error: (Hash[Symbol, untyped] details) -> void
+
+      def provider_ready: (Hash[Symbol, untyped] details) -> void
+
+      def configuration_changed: (Component::configuration_event event) -> void
 
       def evaluate: (
         ::String flag_key,

@@ -108,7 +108,13 @@ Take `bundle exec rake test:redis` as example: multiple versions of `redis` from
 }
 ```
 
-If the dependency groups are prepared (with up-to-date gemfile and lockfile), the test task will install them before running the test.
+##### What dependency versions to test
+
+At minimum, we run our tests with the oldest supported version (`min`) of a gem and the `latest`, which become the official support range. The `min` and `latest` selection is per-Ruby runtime and version.
+`min` should match each integration's runtime enforcement of the minimum version, `Contrib::{GEM}::Integration::MINIMUM_VERSION`.
+
+We add additional test versions if those versions diverge from `min` or `latest` in: exercised code paths, having unique *and* valuable observability data, or creating different test results.
+If you add a version besides `min` or `latest`, add a comment on why that version is necessary.
 
 **Working with different dependencies**
 
