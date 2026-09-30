@@ -56,6 +56,8 @@ module Datadog
 
         def initialize: (untyped settings) -> untyped
 
+        def after_fork: () -> void
+
         def startup!: (untyped settings, ?old_state: ComponentsState?) -> untyped
 
         def shutdown!: (?untyped? replacement) -> untyped

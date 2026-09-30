@@ -22,7 +22,7 @@ RSpec.describe "DI remote config" do
   end
 
   let(:transport) { double(Datadog::Core::Remote::Transport::Config) }
-  let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry) }
+  let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry: telemetry) }
 
   let(:logger) { logger_allowing_debug }
 

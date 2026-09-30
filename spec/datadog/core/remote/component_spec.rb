@@ -7,7 +7,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry) }
+  let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry: telemetry) }
   let(:component) { described_class.new(settings, capabilities, agent_settings, logger: logger) }
 
   let(:logger) { logger_allowing_debug }
@@ -21,11 +21,8 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
         agent_settings,
         logger: logger,
         telemetry: telemetry,
-        open_feature_component_provider: open_feature_component_provider,
       )
     end
-
-    let(:open_feature_component_provider) { -> {} }
 
     after { build&.shutdown! }
 
@@ -50,8 +47,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
       it "initializes component" do
         expect(Datadog::Core::Remote::Client::Capabilities).to receive(:new).with(
           settings,
-          telemetry,
-          open_feature_component_provider: open_feature_component_provider,
+          telemetry: telemetry,
         ).and_return(capabilities)
         expect(described_class).to receive(:new).with(
           settings,
@@ -252,6 +248,60 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
       expect(capabilities.products).to include("FFE_FLAGS")
       expect(capabilities.receivers).to include(receiver)
       expect(component.client.dispatcher.receivers).to include(receiver)
+    end
+
+    context "when client replacement races with registration" do
+      let(:release_replacement) { SizedQueue.new(1) }
+      let(:threads) { [] }
+
+      after do
+        release_replacement.push(true, true)
+      rescue ThreadError
+        nil
+      ensure
+        threads.each { |thread| thread.join(1) }
+      end
+
+      it "does not lose a receiver" do
+        original_client = component.client
+        replacement_client = Datadog::Core::Remote::Client.new(
+          original_client.transport,
+          capabilities,
+          settings: settings,
+          logger: logger,
+        )
+        replacement_started = SizedQueue.new(1)
+        registration_started = SizedQueue.new(1)
+
+        allow(Datadog::Core::Remote::Client).to receive(:new) do
+          replacement_started.push(true)
+          release_replacement.pop
+          replacement_client
+        end
+
+        replacement_thread = Thread.new { component.after_fork }
+        threads << replacement_thread
+        try_wait_until { replacement_started.pop(true) unless replacement_started.empty? }
+
+        registration_thread = Thread.new do
+          registration_started.push(true)
+          component.register(
+            capabilities: [1 << 46],
+            products: ["FFE_FLAGS"],
+            receivers: [receiver],
+          )
+        end
+        threads << registration_thread
+        try_wait_until { registration_started.pop(true) unless registration_started.empty? }
+        try_wait_until { registration_thread.status == "sleep" || !registration_thread.alive? }
+
+        release_replacement.push(true)
+        try_wait_until { threads.none?(&:alive?) }
+        threads.each(&:join)
+
+        expect(component.client).to equal(replacement_client)
+        expect(component.client.dispatcher.receivers).to include(receiver)
+      end
     end
   end
 

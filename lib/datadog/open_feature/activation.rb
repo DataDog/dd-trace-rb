@@ -20,8 +20,9 @@ module Datadog
         @telemetry = telemetry
         @component = nil
         @configuration_source = nil
+        @delivery_source = nil
         @failure = nil
-        @provider = nil
+        @providers = {}.compare_by_identity
         @activated = false
         @delivery_started = false
         @shutdown = false
@@ -33,7 +34,7 @@ module Datadog
           return if @shutdown
           return unless open_feature_available?
 
-          @provider = provider
+          @providers[provider] = true
           return @component if @activated && @delivery_started
           return if @activated
 
@@ -58,6 +59,49 @@ module Datadog
         @mutex.synchronize { @activated }
       end
 
+      def providers
+        @mutex.synchronize { @providers.keys }
+      end
+
+      # Timer-driven delivery has no operation in the child that can restart its inherited worker.
+      def after_fork
+        configuration_source = @mutex.synchronize do
+          if @shutdown || !@delivery_started
+            nil
+          else
+            @configuration_source
+          end
+        end
+
+        configuration_source&.start
+        nil
+      end
+
+      def deactivate(provider)
+        configuration_source, component = @mutex.synchronize do
+          return if @shutdown
+          return unless @providers.delete(provider)
+          return unless @providers.empty?
+          if @delivery_source == Configuration::Source::REMOTE_CONFIG && @delivery_started
+            # Remote Configuration is process-scoped and may already hold configuration needed by the next provider.
+            [nil, nil]
+          else
+            previous_source = @configuration_source
+            previous_component = @component
+            @component = nil
+            @configuration_source = nil
+            @delivery_source = nil
+            @activated = false
+            @delivery_started = false
+            @failure = nil
+            [previous_source, previous_component]
+          end
+        end
+
+        configuration_source&.stop
+        component&.shutdown!
+      end
+
       def shutdown!
         configuration_source, component = @mutex.synchronize do
           return if @shutdown
@@ -67,6 +111,10 @@ module Datadog
         end
 
         configuration_source&.stop
+        configuration_received = @mutex.synchronize do
+          !@providers.empty? && !!component&.configuration_received?
+        end
+        configuration_changed(Component::CONFIGURATION_LOST) if configuration_received
         component&.shutdown!
       end
 
@@ -97,11 +145,13 @@ module Datadog
         end
 
         @component = component
+        @delivery_source = resolution.source
         @delivery_started = start_delivery(resolution.source)
         return component if @delivery_started
 
         component.shutdown!
         @component = nil
+        @delivery_source = nil
         nil
       end
 
@@ -173,8 +223,8 @@ module Datadog
       end
 
       def configuration_changed(event)
-        provider = @mutex.synchronize { @provider }
-        provider&.send(:configuration_changed, event)
+        providers = @mutex.synchronize { @providers.keys }
+        providers.each { |provider| provider.send(:configuration_changed, event) }
       end
     end
   end
