@@ -1491,7 +1491,10 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
     after do
       Object.send(:remove_const, :TestClassForSourceFile) if defined?(TestClassForSourceFile)
+      Object.send(:remove_const, :TestClassWithVanishedInstanceMethod) if defined?(TestClassWithVanishedInstanceMethod)
+      Object.send(:remove_const, :TestModuleWithVanishedSingletonMethod) if defined?(TestModuleWithVanishedSingletonMethod)
       cleanup_user_code_file(@filename)
+      cleanup_user_code_file(@isolation_user_file) if @isolation_user_file
     end
 
     it "finds source file from instance methods" do
@@ -1568,40 +1571,34 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       # (method removed/redefined between name collection and lookup) raises
       # NameError. Without per-method isolation the whole lookup aborts and
       # returns nil, discarding the good_method path.
-      user_file = create_user_code_file(<<~RUBY)
+      @isolation_user_file = create_user_code_file(<<~RUBY)
         class TestClassWithVanishedInstanceMethod
           def good_method; end
         end
       RUBY
-      load user_file
+      load @isolation_user_file
 
       allow(TestClassWithVanishedInstanceMethod).to receive(:instance_methods).with(false)
         .and_return([:vanished_method, :good_method])
 
       source_file = extractor.send(:find_source_file, TestClassWithVanishedInstanceMethod)
-      expect(source_file).to eq(user_file)
-
-      Object.send(:remove_const, :TestClassWithVanishedInstanceMethod)
-      cleanup_user_code_file(user_file)
+      expect(source_file).to eq(@isolation_user_file)
     end
 
     it "isolates a per-singleton-method resolution failure and still finds a later user-code path" do
-      user_file = create_user_code_file(<<~RUBY)
+      @isolation_user_file = create_user_code_file(<<~RUBY)
         module TestModuleWithVanishedSingletonMethod
           def self.good_singleton; end
         end
       RUBY
-      load user_file
+      load @isolation_user_file
 
       allow(TestModuleWithVanishedSingletonMethod).to receive(:instance_methods).with(false).and_return([])
       allow(TestModuleWithVanishedSingletonMethod).to receive(:singleton_methods).with(false)
         .and_return([:vanished_singleton, :good_singleton])
 
       source_file = extractor.send(:find_source_file, TestModuleWithVanishedSingletonMethod)
-      expect(source_file).to eq(user_file)
-
-      Object.send(:remove_const, :TestModuleWithVanishedSingletonMethod)
-      cleanup_user_code_file(user_file)
+      expect(source_file).to eq(@isolation_user_file)
     end
   end
 
