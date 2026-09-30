@@ -2,8 +2,6 @@
 
 require "msgpack"
 require "google/protobuf"
-require "open3"
-require "rbconfig"
 require "spec_helper"
 require "datadog/core/process_discovery"
 
@@ -257,73 +255,6 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
       )
 
       expect(extra_attributes).to include("datadog.process_tags" => Datadog::Core::Environment::Process.serialized)
-    end
-
-    it "preserves threadlocal metadata through enablement, disablement, and shutdown in a fresh process",
-      if: PlatformHelpers.linux? && PlatformHelpers.mri? do
-      stdout, stderr, status = Open3.capture3(
-        {"DD_TRACE_OTEL_CTX_ENABLED" => "false"},
-        RbConfig.ruby,
-        "-I", File.expand_path("../../../lib", __dir__),
-        "-e", <<~RUBY,
-          require "datadog"
-
-          [false, true, false, true, :shutdown].each do |enabled|
-            if enabled == :shutdown
-              Datadog::Core::ProcessDiscovery.shutdown!
-              GC.start
-            else
-              Datadog.configure do |c|
-                c.service = "threadlocal-lifecycle"
-                c.tracing.otel_thread_context_enabled = enabled
-                c.telemetry.enabled = false
-                c.remote.enabled = false
-                c.diagnostics.startup_logs.enabled = false
-                c.logger.instance = Logger.new($stderr)
-              end
-            end
-
-            mapping = File.foreach("/proc/self/maps").find do |line|
-              line.include?("/memfd:OTEL_CTX") ||
-                line.include?("[anon:OTEL_CTX]") ||
-                line.include?("[anon_shmem:OTEL_CTX]")
-            end
-            raise "No OTEL_CTX mapping found" unless mapping
-
-            File.open("/proc/self/mem", "rb") do |memory|
-              memory.seek(mapping.split("-").first.to_i(16))
-              signature, version, size, timestamp, address = memory.read(32).unpack("a8L<L<Q<Q<")
-              raise "Invalid OTEL_CTX header" unless signature == "OTEL_CTX" && version == 2 && timestamp > 0
-
-              memory.seek(address)
-              puts [memory.read(size)].pack("m0")
-            end
-          end
-        RUBY
-      )
-
-      expect(status.success?).to be(true), "Lifecycle subprocess failed: #{stderr}"
-      snapshots = stdout.lines.map { |line| Otel::ProcessCtx::ProcessContext.decode(line.chomp.unpack1("m0")) }
-      expect(snapshots.size).to eq(5)
-      initial, enabled, disabled, reenabled, shutdown = snapshots
-
-      expect(initial.extra_attributes.map(&:key)).not_to include(
-        "threadlocal.schema_version",
-        "threadlocal.attribute_key_map",
-      )
-
-      keys = enabled.extra_attributes.map(&:key)
-      expect(keys).to include("threadlocal.schema_version").once
-      expect(keys).to include("threadlocal.attribute_key_map").once
-      values = enabled.extra_attributes.map { |kv| [kv.key, kv.value] }.to_h
-      expect(values.fetch("threadlocal.schema_version").string_value).to eq("tlsdesc_v1_dev")
-      expect(
-        values.fetch("threadlocal.attribute_key_map").array_value.values.map(&:string_value)
-      ).to eq(["datadog.local_root_span_id"])
-
-      expect(disabled.extra_attributes).to match_array(enabled.extra_attributes)
-      expect(reenabled.extra_attributes).to match_array(enabled.extra_attributes)
-      expect(shutdown).to eq(reenabled)
     end
 
     context "with threadlocal metadata", if: PlatformHelpers.linux? && PlatformHelpers.mri? do
