@@ -1621,7 +1621,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     it "isolates the failure to that method and still extracts the surviving methods" do
       # A name collected from instance_methods that no longer resolves at lookup
       # raises NameError during resolution. The surviving methods must still
-      # produce METHOD scopes rather than the whole class being discarded.
+      # produce METHOD scopes.
       allow(TestClassWithFlakyMethod).to receive(:instance_methods).with(false)
         .and_return([:alpha, :beta, :vanished_method])
 
