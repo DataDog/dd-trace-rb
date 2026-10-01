@@ -146,8 +146,10 @@ module Datadog
       ]
       extra_relative_rpaths.each { |folder| target_ldflags << " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{Shellwords.escape(folder)}" }
 
-      logger.message("linking with libdatadog (include=#{includedir}, lib=#{libdir})\n")
-      logger.message("[datadog] $LDFLAGS were set to: #{target_ldflags.inspect}\n")
+      # includedir/libdir/ldflags might have a `%` in there and `logger.message` bottoms out on `printf` so we need to
+      # use the `message("%s", ...)` format otherwise the logger will complain
+      logger.message("%s", "linking with libdatadog (include=#{includedir}, lib=#{libdir})\n")
+      logger.message("%s", "[datadog] $LDFLAGS were set to: #{target_ldflags.inspect}\n")
 
       true
     end

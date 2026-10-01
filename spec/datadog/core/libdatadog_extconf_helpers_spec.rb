@@ -1,3 +1,4 @@
+require "stringio"
 require "ext/libdatadog_extconf_helpers"
 require "libdatadog"
 
@@ -93,12 +94,14 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
       )
     end
 
-    let(:logger) { double("logger", message: nil) }
+    let(:logger) { Class.new(StringIO) { alias_method :message, :printf }.new }
     # rubocop:disable Performance/UnfreezeString
     let(:incflags) { String.new }
     let(:ldflags) { String.new }
     let(:libs) { String.new }
     # rubocop:enable Performance/UnfreezeString
+
+    after { logger.close }
 
     # Use realistic paths that mirror actual gem installation structure
     let(:gem_home) { "/home/user/.gem/ruby/3.2.0" }
@@ -133,6 +136,27 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
           " -Wl,-rpath,$$$\\\\{ORIGIN\\}/../../../../../../gems/#{libdatadog_path}"
         expect(ldflags).to eq(expected_ldflags)
         expect(libs).to eq(" -ldatadog_profiling")
+      end
+
+      context "when linker flags contain percent signs" do
+        # Ubuntu 26.04's ruby package sets this and made our logger fail
+        let(:package_metadata) { "-Wl,--package-metadata=%7B%22type%22:%22deb%22%7D" }
+        let(:ldflags) { package_metadata.dup }
+
+        shared_examples "logging percent signs literally" do
+          it "logs percent signs literally" do
+            expect(configure_libdatadog).to be true
+            expect(logger.string).to include(package_metadata, pkgconfig_folder)
+          end
+        end
+
+        include_examples "logging percent signs literally"
+
+        context "when the gem path contains percent signs" do
+          let(:gem_home) { "/home/user/100%/ruby/3.2.0" }
+
+          include_examples "logging percent signs literally"
+        end
       end
     end
   end
