@@ -95,11 +95,11 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
     end
 
     let(:logger) { Class.new(StringIO) { alias_method :message, :printf }.new }
-    # rubocop:disable Performance/UnfreezeString
+    # rubocop:disable Performance/UnfreezeString, Style/EmptyLiteral
     let(:incflags) { String.new }
     let(:ldflags) { String.new }
     let(:libs) { String.new }
-    # rubocop:enable Performance/UnfreezeString
+    # rubocop:enable Performance/UnfreezeString, Style/EmptyLiteral
 
     after { logger.close }
 
