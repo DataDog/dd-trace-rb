@@ -142,6 +142,7 @@ runs:
         key: ${{ steps.manifest.outputs.standard-0-key }}
         restore-keys: ${{ steps.manifest.outputs.standard-0-prefix }}
         path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-0-paths || '/tmp/ddtrace-installed-bundle-groups/standard-0' }}
+        lookup-only: ${{ inputs.strategy == 'group-delta' }}
     - id: restore-standard-1
       name: Restore standard-1 installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -149,6 +150,7 @@ runs:
         key: ${{ steps.manifest.outputs.standard-1-key }}
         restore-keys: ${{ steps.manifest.outputs.standard-1-prefix }}
         path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-1-paths || '/tmp/ddtrace-installed-bundle-groups/standard-1' }}
+        lookup-only: ${{ inputs.strategy == 'group-delta' }}
     - id: restore-standard-2
       name: Restore standard-2 installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -156,6 +158,7 @@ runs:
         key: ${{ steps.manifest.outputs.standard-2-key }}
         restore-keys: ${{ steps.manifest.outputs.standard-2-prefix }}
         path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-2-paths || '/tmp/ddtrace-installed-bundle-groups/standard-2' }}
+        lookup-only: ${{ inputs.strategy == 'group-delta' }}
     - id: restore-standard-3
       name: Restore standard-3 installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -163,6 +166,7 @@ runs:
         key: ${{ steps.manifest.outputs.standard-3-key }}
         restore-keys: ${{ steps.manifest.outputs.standard-3-prefix }}
         path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-3-paths || '/tmp/ddtrace-installed-bundle-groups/standard-3' }}
+        lookup-only: ${{ inputs.strategy == 'group-delta' }}
     - id: restore-standard-4
       name: Restore standard-4 installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -170,6 +174,7 @@ runs:
         key: ${{ steps.manifest.outputs.standard-4-key }}
         restore-keys: ${{ steps.manifest.outputs.standard-4-prefix }}
         path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-4-paths || '/tmp/ddtrace-installed-bundle-groups/standard-4' }}
+        lookup-only: ${{ inputs.strategy == 'group-delta' }}
     - id: restore-standard-5
       name: Restore standard-5 installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -177,6 +182,7 @@ runs:
         key: ${{ steps.manifest.outputs.standard-5-key }}
         restore-keys: ${{ steps.manifest.outputs.standard-5-prefix }}
         path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-5-paths || '/tmp/ddtrace-installed-bundle-groups/standard-5' }}
+        lookup-only: ${{ inputs.strategy == 'group-delta' }}
     - id: restore-standard-6
       name: Restore standard-6 installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -184,6 +190,7 @@ runs:
         key: ${{ steps.manifest.outputs.standard-6-key }}
         restore-keys: ${{ steps.manifest.outputs.standard-6-prefix }}
         path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-6-paths || '/tmp/ddtrace-installed-bundle-groups/standard-6' }}
+        lookup-only: ${{ inputs.strategy == 'group-delta' }}
     - id: restore-misc-0
       name: Restore misc-0 installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -191,6 +198,7 @@ runs:
         key: ${{ steps.manifest.outputs.misc-0-key }}
         restore-keys: ${{ steps.manifest.outputs.misc-0-prefix }}
         path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.misc-0-paths || '/tmp/ddtrace-installed-bundle-groups/misc-0' }}
+        lookup-only: ${{ inputs.strategy == 'group-delta' }}
     - id: restore-duration
       shell: bash
       env:

@@ -185,15 +185,18 @@ RSpec.describe "installed bundle cache workflow" do
       )
     end
 
-    it "restores and saves all eight group entries" do
+    it "looks up partitioned groups without restoring their archives" do
       group_steps = group_action.fetch("runs").fetch("steps")
       restores = group_steps.select { |step| step.fetch("id", "").start_with?("restore-standard-", "restore-misc-") }
       saves = group_steps.select { |step| step.fetch("name", "").start_with?("Save standard-", "Save misc-") }
 
       expect(restores.size).to eq(8)
       expect(saves.size).to eq(8)
-      expect(restores).to all(include("with" => include("restore-keys" => include("prefix"))))
-      expect(restores).to all(include("with" => include("path" => include("paths"))))
+      expect(restores).to all(include("with" => include(
+        "restore-keys" => include("prefix"),
+        "path" => include("paths"),
+        "lookup-only" => include("inputs.strategy == 'group-delta'"),
+      )))
       expect(saves).to all(include("with" => include("path" => include("paths"))))
     end
 
