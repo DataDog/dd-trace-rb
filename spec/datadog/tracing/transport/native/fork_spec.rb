@@ -561,15 +561,10 @@ RSpec.describe "Native transport fork safety and cancellation" do
 
       # Start the fork only after close is waiting for the send. The fork keeps
       # its callback snapshot even if close deregisters the global hooks first.
-      fork_prepared = Queue.new
-      exporter = transport.instance_variable_get(:@exporter)
-      allow(exporter).to receive(:_native_before_fork).and_wrap_original do |method|
-        result = method.call
-        fork_prepared << true
-        result
-      end
+      fork_started = Queue.new
       read_io, write_io = IO.pipe
       forker = Thread.new do
+        fork_started << true
         pid = fork do
           read_io.close
           response = transport.send_traces([build_trace(name: "child-after-close-race.op")]).first
@@ -587,7 +582,11 @@ RSpec.describe "Native transport fork safety and cancellation" do
         fork_result << pid
       end
 
-      Timeout.timeout(5) { fork_prepared.pop }
+      fork_started.pop
+      Timeout.timeout(5) do
+        Thread.pass until forker.status == "sleep" || !forker.alive?
+      end
+      expect(forker).to be_alive
 
       mock_agent.release
       expect(sender.join(10)).to be(sender)

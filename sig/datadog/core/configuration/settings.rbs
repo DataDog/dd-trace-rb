@@ -4,6 +4,20 @@ module Datadog
       class Settings
         include Base
 
+        interface _Telemetry
+          def enabled: () -> bool
+
+          def metrics_enabled: () -> bool
+
+          def agentless_enabled: () -> bool
+
+          def heartbeat_interval_seconds: () -> Float
+
+          def shutdown_timeout_seconds: () -> Float
+
+          def debug: () -> bool
+        end
+
         interface _Remote
           def enabled: () -> bool
 
@@ -287,6 +301,8 @@ module Datadog
         def feature_flags: () -> _FeatureFlags
 
         def tracing: () -> untyped
+
+        def telemetry: () -> _Telemetry
 
         def opentelemetry: () -> OpenTelemetry::Configuration::Settings::_OpenTelemetry
 

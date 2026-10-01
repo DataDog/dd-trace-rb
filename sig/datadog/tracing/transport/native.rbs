@@ -17,12 +17,26 @@ module Datadog
             hostname: ::String?,
             env: ::String?,
             service: ::String?,
-            version: ::String?
+            version: ::String?,
+            ?runtime_id: String,
+            ?root_runtime_id: String?,
+            ?parent_runtime_id: String?,
+            ?telemetry_interval: Integer?,
+            ?telemetry_debug: bool,
+            ?shutdown_timeout: Integer,
           ) -> TraceExporter
+
+          def self._native_telemetry_supported?: () -> bool
+
           def _native_send_traces: (::Array[::Array[Datadog::Tracing::Span]] chunks, bool native_events_supported) -> ::Array[Response]
+
           def _native_before_fork: () -> void
+
           def _native_after_fork_in_parent: () -> void
-          def _native_after_fork_in_child: () -> void
+
+          def _native_after_fork_in_child: (?String runtime_id, ?String? root_id, ?String? parent_id) -> void
+
+          def _native_close: (?bool flush) -> void
         end
 
         class Transport
@@ -30,6 +44,7 @@ module Datadog
           include SpanEventsNegotiation
 
           @logger: Datadog::Core::Logger
+          @settings: Datadog::Core::Configuration::Settings
           @exporter: TraceExporter?
           @send_mutex: ::Thread::Mutex
           @fork_mutex: ::Thread::Mutex
@@ -37,12 +52,14 @@ module Datadog
 
           attr_reader logger: Datadog::Core::Logger
 
-          def initialize: (agent_settings: Datadog::Core::Configuration::AgentSettings, logger: Datadog::Core::Logger) -> void
+          def initialize: (agent_settings: Datadog::Core::Configuration::AgentSettings, logger: Datadog::Core::Logger, ?settings: Datadog::Core::Configuration::Settings) -> void
           def self.fork_hooks_remover: (::Hash[::Symbol, ::Proc] fork_hooks) -> ::Proc
           def close: () -> void
           def send_traces: (::Array[Datadog::Tracing::TraceSegment] traces) -> ::Array[Response | InternalErrorResponse]
 
           private
+
+          def telemetry_enabled?: () -> bool
 
           def apply_legacy_span_events!: (::Array[::Array[Datadog::Tracing::Span]] chunks, bool native_events_supported) -> void
           def tracer_version_string: () -> ::String
