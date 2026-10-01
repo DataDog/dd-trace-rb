@@ -50,6 +50,16 @@ module Datadog
       # return a safe stub rather than tear the process down.
       SERIALIZABLE_FATAL_EXCEPTION_CLASSES = [SystemExit, SignalException].freeze
 
+      # Bind Kernel's reflective methods so serialization resolves the real
+      # implementations: customer-overridden #class/#instance_variables/
+      # #instance_variable_get can't intercept serialization, and blank-slate
+      # BasicObject receivers serialize instead of raising NoMethodError.
+      KERNEL_CLASS = ::Kernel.instance_method(:class)
+      KERNEL_INSTANCE_VARIABLES = ::Kernel.instance_method(:instance_variables)
+      KERNEL_INSTANCE_VARIABLE_GET = ::Kernel.instance_method(:instance_variable_get)
+      private_constant :KERNEL_CLASS, :KERNEL_INSTANCE_VARIABLES,
+        :KERNEL_INSTANCE_VARIABLE_GET
+
       # Placeholder emitted by #serialize_value_for_message in place of a value
       # whose identifier or type matches the redaction configuration. This
       # mirrors, for the human-readable log-probe message path, the
@@ -180,7 +190,7 @@ module Datadog
         collection_size: nil,
         type: nil)
         attribute_count ||= settings.dynamic_instrumentation.max_capture_attribute_count
-        cls = type || value.class
+        cls = type || KERNEL_CLASS.bind(value).call
         begin
           if redactor.redact_type?(value)
             return {type: class_name(cls), notCapturedReason: "redactedType"}
@@ -338,7 +348,7 @@ module Datadog
               # does not support JRuby, we don't handle JRuby's lack of ordering
               # of #instance_variables here, but if JRuby is supported in the
               # future this may need to be addressed.
-              ivars = value.instance_variables
+              ivars = KERNEL_INSTANCE_VARIABLES.bind(value).call
 
               ivars.each do |ivar|
                 if cur >= attribute_count
@@ -346,7 +356,7 @@ module Datadog
                   break
                 end
                 cur += 1
-                fields[ivar] = serialize_value(value.instance_variable_get(ivar), name: ivar, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count)
+                fields[ivar] = serialize_value(KERNEL_INSTANCE_VARIABLE_GET.bind(value).call(ivar), name: ivar, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count)
               end
               serialized.update(fields: fields)
             end
@@ -443,7 +453,7 @@ module Datadog
         else
           return "..." if depth <= 0
 
-          vars = value.instance_variables
+          vars = KERNEL_INSTANCE_VARIABLES.bind(value).call
           truncated = false
           max = max_capture_attribute_count_for_message
           if vars.length > max
@@ -458,7 +468,7 @@ module Datadog
             serialized_value = if redactor.redact_identifier?(var)
               REDACTED_VALUE_FOR_MESSAGE
             else
-              serialize_value_for_message(value.send(:instance_variable_get, var), depth: depth - 1)
+              serialize_value_for_message(KERNEL_INSTANCE_VARIABLE_GET.bind(value).call(var), depth: depth - 1)
             end
             "#{var}=#{serialized_value}"
           end
@@ -469,7 +479,7 @@ module Datadog
           serialized = if serialized.any?
             " " + serialized.join(" ")
           end
-          "#<#{class_name(value.class)}#{serialized}>"
+          "#<#{class_name(KERNEL_CLASS.bind(value).call)}#{serialized}>"
         end
       rescue Exception => exc # standard:disable Lint/RescueException
         raise if SERIALIZABLE_FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
@@ -477,7 +487,7 @@ module Datadog
         telemetry&.report(exc, description: "Error serializing for message")
         # TODO class_name(foo) can also fail, which we don't handle here.
         # Telemetry reporting could potentially also fail?
-        "#<#{class_name(value.class)}: serialization error>"
+        "#<#{class_name(KERNEL_CLASS.bind(value).call)}: serialization error>"
       end
 
       private

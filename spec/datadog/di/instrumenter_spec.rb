@@ -349,6 +349,32 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    context "when the probed method is defined on a BasicObject subclass" do
+      let(:probe_args) do
+        {type_name: "HookBasicObjectTestClass", method_name: "hook_test_method",
+         capture_snapshot: true}
+      end
+
+      it "serializes a BasicObject receiver" do
+        hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        expect(HookBasicObjectTestClass.new.hook_test_method).to eq 42
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first).to be_a(Datadog::DI::Context)
+        expect(observed_calls.first.serialized_entry_args).to eq(
+          self: {
+            type: "HookBasicObjectTestClass",
+            fields: {
+              :@ivar => {type: "Integer", value: "2442"},
+            },
+          },
+        )
+      end
+    end
+
     context "positional args" do
       context "without snapshot capture" do
         let(:probe_args) do
