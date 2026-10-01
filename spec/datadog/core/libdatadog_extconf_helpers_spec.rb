@@ -81,7 +81,24 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
   end
 
   describe ".configure_libdatadog" do
+    subject(:configure_libdatadog) do
+      described_class.configure_libdatadog(
+        extconf_folder: extconf_folder,
+        libdatadog_pkgconfig_folder: pkgconfig_folder,
+        gem_dir: gem_home,
+        logger: logger,
+        target_incflags: incflags,
+        target_ldflags: ldflags,
+        target_libs: libs,
+      )
+    end
+
     let(:logger) { double("logger", message: nil) }
+    # rubocop:disable Performance/UnfreezeString
+    let(:incflags) { String.new }
+    let(:ldflags) { String.new }
+    let(:libs) { String.new }
+    # rubocop:enable Performance/UnfreezeString
 
     # Use realistic paths that mirror actual gem installation structure
     let(:gem_home) { "/home/user/.gem/ruby/3.2.0" }
@@ -92,53 +109,31 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
     end
 
     context "when libdatadog pkgconfig_folder is nil" do
-      it "returns nil" do
-        result = described_class.configure_libdatadog(
-          extconf_folder: extconf_folder,
-          libdatadog_pkgconfig_folder: nil,
-          logger: logger,
-        )
+      let(:pkgconfig_folder) { nil }
 
-        expect(result).to be_nil
-      end
+      it { is_expected.to be_nil }
     end
 
     context "when libdatadog pkgconfig_folder is available" do
-      # rubocop:disable Style/GlobalVars
-      it "returns true and sets mkmf global variables including relative rpaths", if: PlatformHelpers.supports_fork? do
-        expect_in_fork do
-          # Initialize mkmf globals as extconf.rb would
-          $INCFLAGS = +""
-          $LDFLAGS = +""
-          $libs = +""
+      it "returns true and sets flags including relative rpaths" do
+        expect(configure_libdatadog).to be true
+        expect(incflags).to eq(" -I#{pkgconfig_folder}/../../include")
 
-          result = described_class.configure_libdatadog(
-            extconf_folder: extconf_folder,
-            libdatadog_pkgconfig_folder: pkgconfig_folder,
-            gem_dir: gem_home,
-            logger: logger,
-          )
-
-          expect(result).to be true
-          expect($INCFLAGS).to eq(" -I#{pkgconfig_folder}/../../include")
-
-          libdir = "#{pkgconfig_folder}/../../lib"
-          # The relative rpaths are computed from three locations:
-          # 1. From native lib folder (gems/datadog-X/lib/) - needs ../../ to reach gems/
-          # 2. From extensions folder (extensions/platform/api/gem/) - needs ../../../../ to reach gems/
-          # 3. From bundler extensions folder (bundler/gems/extensions/platform/api/gem/) - needs ../../../../../../ to reach gems/
-          libdatadog_path = "libdatadog-14.0.0.1.0-x86_64-linux/vendor/libdatadog-14.0.0/x86_64-linux/" \
-            "libdatadog-x86_64-unknown-linux-gnu/lib"
-          expected_ldflags =
-            " -L#{libdir} -Wl,-rpath,#{libdir}" \
-            " -Wl,-rpath,$$$\\\\{ORIGIN\\}/../../#{libdatadog_path}" \
-            " -Wl,-rpath,$$$\\\\{ORIGIN\\}/../../../../gems/#{libdatadog_path}" \
-            " -Wl,-rpath,$$$\\\\{ORIGIN\\}/../../../../../../gems/#{libdatadog_path}"
-          expect($LDFLAGS).to eq(expected_ldflags)
-          expect($libs).to eq(" -ldatadog_profiling")
-        end
+        libdir = "#{pkgconfig_folder}/../../lib"
+        # The relative rpaths are computed from three locations:
+        # 1. From native lib folder (gems/datadog-X/lib/) - needs ../../ to reach gems/
+        # 2. From extensions folder (extensions/platform/api/gem/) - needs ../../../../ to reach gems/
+        # 3. From bundler extensions folder (bundler/gems/extensions/platform/api/gem/) - needs ../../../../../../ to reach gems/
+        libdatadog_path = "libdatadog-14.0.0.1.0-x86_64-linux/vendor/libdatadog-14.0.0/x86_64-linux/" \
+          "libdatadog-x86_64-unknown-linux-gnu/lib"
+        expected_ldflags =
+          " -L#{libdir} -Wl,-rpath,#{libdir}" \
+          " -Wl,-rpath,$$$\\\\{ORIGIN\\}/../../#{libdatadog_path}" \
+          " -Wl,-rpath,$$$\\\\{ORIGIN\\}/../../../../gems/#{libdatadog_path}" \
+          " -Wl,-rpath,$$$\\\\{ORIGIN\\}/../../../../../../gems/#{libdatadog_path}"
+        expect(ldflags).to eq(expected_ldflags)
+        expect(libs).to eq(" -ldatadog_profiling")
       end
-      # rubocop:enable Style/GlobalVars
     end
   end
 
