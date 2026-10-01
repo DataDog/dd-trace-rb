@@ -9,10 +9,27 @@
 #   --format DeterministicJunitFormatter
 #   --out junit.xml
 
+require "rbconfig"
 require "rspec_junit_formatter"
 
 class DeterministicJunitFormatter < RspecJunitFormatter
   RSpec::Core::Formatters.register self, :start, :stop, :dump_summary
+
+  class << self
+    attr_writer :include_line_number
+    attr_writer :metadata_properties
+
+    def include_line_number
+      @include_line_number || false
+    end
+
+    def metadata_properties
+      @metadata_properties || []
+    end
+  end
+
+  self.include_line_number = true
+  self.metadata_properties = [:type, :aggregate_failures]
 
   SANITIZATIONS = [
 
@@ -38,13 +55,214 @@ class DeterministicJunitFormatter < RspecJunitFormatter
     [/\d{4,}/, "<int>"],
   ]
 
+  SCALAR_METADATA_CLASSES = [
+    String,
+    Symbol,
+    Numeric,
+    TrueClass,
+    FalseClass,
+    NilClass,
+  ].freeze
+
+  INVALID_ENCODING_REPLACEMENT = "\\uFFFD".freeze
+
   private
+
+  def xml_dump
+    output << %(<?xml version="1.0" encoding="UTF-8"?>\n)
+    output << %(<testsuite)
+    output << %( name="rspec#{escape(ENV["TEST_ENV_NUMBER"].to_s)}")
+    output << %( tests="#{example_count}")
+    output << %( skipped="#{pending_count}")
+    output << %( failures="#{failure_count}")
+    output << %( errors="#{error_count}")
+    output << %( time="#{escape("%.6f" % duration)}")
+    output << %( timestamp="#{escape(started.iso8601)}")
+    output << %( hostname="#{escape(Socket.gethostname)}")
+    output << %(>\n)
+    xml_dump_properties
+    xml_dump_examples
+    output << %(</testsuite>\n)
+  end
+
+  def xml_dump_properties
+    output << %(<properties>\n)
+    suite_properties.each do |name, value|
+      output << %(<property)
+      output << %( name="#{escape(name)}")
+      output << %( value="#{escape(value)}")
+      output << %(/>\n)
+    end
+    output << %(</properties>\n)
+  end
+
+  def suite_properties
+    [
+      ["seed", RSpec.configuration.seed.to_s],
+      ["rspec.version", RSpec::Core::Version::STRING],
+      ["dd_tags[runtime.name]", RUBY_ENGINE],
+      ["dd_tags[runtime.version]", ruby_engine_version],
+      ["dd_tags[runtime.architecture]", RbConfig::CONFIG["host_cpu"]],
+      ["dd_tags[ruby.engine]", RUBY_ENGINE],
+      ["dd_tags[ruby.version]", RUBY_VERSION],
+      ["dd_tags[ruby.platform]", RUBY_PLATFORM],
+      ["dd_tags[bundle.gemfile]", bundle_gemfile],
+      ["dd_tags[test.framework]", "rspec"],
+      ["dd_tags[test.framework_version]", RSpec::Core::Version::STRING],
+      ["dd_tags[rake.task]", ENV["RSPEC_JUNIT_RAKE_TASK"]],
+    ].reject { |_name, value| value.nil? || value.empty? }
+  end
+
+  def ruby_engine_version
+    defined?(RUBY_ENGINE_VERSION) ? RUBY_ENGINE_VERSION : RUBY_VERSION
+  end
+
+  def bundle_gemfile
+    path = ENV["BUNDLE_GEMFILE"].to_s
+    path = "Gemfile" if path.empty?
+
+    root = "#{File.expand_path("../..", __dir__)}/"
+    expanded_path = File.expand_path(path)
+    return expanded_path[root.length..-1] if expanded_path.start_with?(root)
+
+    File.basename(path)
+  end
+
+  def xml_dump_pending(notification)
+    xml_dump_example(notification) do
+      xml_dump_skipped(pending_message_for(notification))
+    end
+  end
+
+  def xml_dump_skipped(message)
+    if message && !message.empty?
+      output << %(<skipped message="#{escape(message)}">)
+      output << escape(message)
+      output << %(</skipped>)
+    else
+      output << %(<skipped/>)
+    end
+  end
+
+  def xml_dump_example(notification)
+    output << %(<testcase)
+    output << %( classname="#{escape(classname_for(notification))}")
+    output << %( name="#{escape(description_for(notification))}")
+    output << %( file="#{escape(example_group_file_path_for(notification))}")
+    if self.class.include_line_number && (line_number = line_number_for(notification))
+      output << %( line="#{escape(line_number)}")
+    end
+    if (duration = duration_for(notification))
+      output << %( time="#{escape("%.6f" % duration)}")
+    end
+    output << %(>)
+    yield if block_given?
+    xml_dump_metadata_properties(notification)
+    xml_dump_output(notification)
+    output << %(</testcase>\n)
+  end
+
+  def xml_dump_metadata_properties(notification)
+    properties = metadata_properties_for(notification)
+    return if properties.empty?
+
+    output << %(<properties>)
+    properties.each do |name, value|
+      output << %(<property)
+      output << %( name="#{escape(name)}")
+      output << %( value="#{escape(value)}")
+      output << %(/>\n)
+    end
+    output << %(</properties>)
+  end
+
+  def metadata_properties_for(notification)
+    metadata = notification.example.metadata
+    Array(self.class.metadata_properties).each_with_object([]) do |key, properties|
+      metadata_key = metadata_key_for(metadata, key)
+      next unless metadata_key
+
+      value = metadata[metadata_key]
+      next unless scalar_metadata_value?(value)
+
+      properties << [key.to_s, value.to_s]
+    end
+  end
+
+  def metadata_key_for(metadata, key)
+    return key if metadata.key?(key)
+
+    symbol_key = key.to_sym if key.respond_to?(:to_sym)
+    symbol_key if symbol_key && metadata.key?(symbol_key)
+  end
+
+  def scalar_metadata_value?(value)
+    SCALAR_METADATA_CLASSES.any? { |klass| value.is_a?(klass) }
+  end
+
+  def line_number_for(notification)
+    notification.example.metadata[:line_number]
+  end
+
+  def pending_message_for(notification)
+    result = notification.example.execution_result
+    result.pending_message if result.respond_to?(:pending_message)
+  end
+
+  def failure_for(notification)
+    exception = exception_for(notification)
+    if aggregate_failure_exception?(exception)
+      strip_diff_colors(aggregate_failure_for(notification, exception))
+    else
+      super
+    end
+  end
+
+  def aggregate_failure_exception?(exception)
+    aggregate_failure_exceptions(exception).size > 1
+  end
+
+  def aggregate_failure_exceptions(exception)
+    if exception.respond_to?(:all_exceptions)
+      exception.all_exceptions
+    elsif exception.respond_to?(:failures)
+      exception.failures
+    else
+      []
+    end
+  end
+
+  def aggregate_failure_for(notification, exception)
+    lines = [exception.message]
+    aggregate_failure_exceptions(exception).each_with_index do |subexception, index|
+      lines << nil
+      lines << "#{index + 1}) #{subexception.class}"
+      lines << subexception.message
+    end
+
+    formatted_backtrace = notification.formatted_backtrace
+    unless formatted_backtrace.empty?
+      lines << nil
+      lines.concat(formatted_backtrace)
+    end
+
+    lines.join("\n")
+  end
+
+  def escape(text)
+    text.to_s.encode(
+      Encoding::UTF_8,
+      invalid: :replace,
+      undef: :replace,
+      replace: INVALID_ENCODING_REPLACEMENT
+    ).gsub(ILLEGAL_REGEXP, ILLEGAL_REPLACEMENT).gsub(DISCOURAGED_REGEXP, DISCOURAGED_REPLACEMENTS)
+  end
 
   def description_for(notification)
     sanitize(super)
   end
 
   def sanitize(str)
-    SANITIZATIONS.reduce(str) { |s, (pattern, replacement)| s.gsub(pattern, replacement) }
+    SANITIZATIONS.reduce(str) { |value, (pattern, replacement)| value.gsub(pattern, replacement) }
   end
 end
