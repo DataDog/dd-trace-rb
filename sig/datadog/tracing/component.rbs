@@ -5,6 +5,8 @@ module Datadog
 
       def build_tracer: (untyped settings, untyped agent_settings) -> untyped
 
+      def self?.bind_native_telemetry: (untyped tracer, Core::Telemetry::Component telemetry) -> void
+
       def build_trace_flush: (untyped settings) -> untyped
       def build_sampler: (untyped settings) -> untyped
 

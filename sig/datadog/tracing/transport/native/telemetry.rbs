@@ -1,0 +1,25 @@
+module Datadog::Tracing::Transport::Native
+  class Telemetry
+    SOURCE: String
+
+    COUNTS: Hash[Symbol, [String, Array[String]]]
+
+    COLLAPSED_FIELDS: Array[String]
+
+    @client: Core::Telemetry::Component
+
+    @exporter: TraceExporter?
+
+    def initialize: (Core::Telemetry::Component client, ?TraceExporter? exporter) -> void
+
+    def client=: (Core::Telemetry::Component client) -> Core::Telemetry::Component
+
+    def close: () -> void
+
+    def collect: () -> void
+
+    def record: (Hash[Symbol, Integer] observations) -> void
+
+    def record_stats: (Array[Integer] counts) -> void
+  end
+end

@@ -1446,6 +1446,11 @@ static VALUE _native_exporter_new(
   /* Phase 2: configure before creating the separately-owned runtime. */
   ddog_TraceExporterConfig *config = NULL;
   ddog_trace_exporter_config_new(&config);
+  ddog_TraceExporterError *observation_error = ddog_trace_exporter_config_enable_observations(config);
+  if (observation_error != NULL) {
+    ddog_trace_exporter_config_free(config);
+    check_exporter_error("Failed to select exporter observations", observation_error);
+  }
 
   set_config_field(config, ddog_trace_exporter_config_set_url,               rb_url,                   "url");
   set_config_field(config, ddog_trace_exporter_config_set_tracer_version,    rb_tracer_version,        "tracer_version");
@@ -1539,6 +1544,11 @@ static VALUE _native_after_fork_in_child(VALUE self) {
   if (wrapper == NULL || wrapper->runtime == NULL) {
     raise_error(rb_eRuntimeError, "TraceExporter has not been initialized or was already freed");
   }
+  ddog_TraceExporterStatsObservations discarded = {0};
+  if (wrapper->exporter != NULL) {
+    check_exporter_error("Failed to discard inherited observations",
+        ddog_trace_exporter_take_stats_observations(wrapper->exporter, &discarded));
+  }
   ddog_SharedRuntimeFFIError *err = ddog_shared_runtime_after_fork_child(wrapper->runtime);
   check_shared_runtime_error("Failed to restore after fork in child", err);
   return Qnil;
@@ -1556,6 +1566,7 @@ typedef struct {
   const ddog_TraceExporter       *exporter;
   ddog_TracerTraceChunks         *chunks;
   ddog_TraceExporterResponse     *response;
+  ddog_TraceExporterObservations  observations;
   ddog_TraceExporterCancelToken  *cancel_token;  /* borrowed, not owned */
   ddog_TraceExporterErrorCode     error_code;
   bool                            failed;
@@ -1564,8 +1575,8 @@ typedef struct {
 
 static void *send_chunks_without_gvl(void *data) {
   send_chunks_args_t *args = (send_chunks_args_t *)data;
-  ddog_TraceExporterError *err = ddog_trace_exporter_send_trace_chunks(
-      args->exporter, args->chunks, &args->response, args->cancel_token);
+  ddog_TraceExporterError *err = ddog_trace_exporter_send_trace_chunks_observed(
+      args->exporter, args->chunks, &args->response, &args->observations, args->cancel_token);
   if (err != NULL) {
     args->error_code = err->code;
     args->failed = true;
@@ -1633,7 +1644,31 @@ typedef struct {
   long                      trace_count;
   raw_span_owner            span_owner;
   ddog_TracerTraceChunks   *chunks;  /* NULL after send consumes it */
+  ddog_TraceExporterResponse *response;
 } send_traces_ctx;
+
+static VALUE yield_observations(VALUE arg) {
+  ddog_TraceExporterObservations *report = (ddog_TraceExporterObservations *)arg;
+  VALUE values = rb_hash_new();
+#define ADD_OBSERVATION(field) if (report->field > 0) rb_hash_aset(values, ID2SYM(rb_intern_const(#field)), ULL2NUM(report->field))
+  ADD_OBSERVATION(requests_count);
+  ADD_OBSERVATION(errors_network);
+  ADD_OBSERVATION(errors_timeout);
+  ADD_OBSERVATION(errors_status_code);
+  ADD_OBSERVATION(bytes_sent);
+  ADD_OBSERVATION(chunks_sent);
+  ADD_OBSERVATION(chunks_dropped_serialization_error);
+  ADD_OBSERVATION(chunks_dropped_send_failure);
+  ADD_OBSERVATION(chunks_dropped_p0);
+  ADD_OBSERVATION(chunks_dropped_by_trace_filter);
+  ADD_OBSERVATION(spans_enqueued_for_serialization);
+  ADD_OBSERVATION(spans_dropped_serialization_error);
+  ADD_OBSERVATION(spans_dropped_api_error);
+  ADD_OBSERVATION(responses_count);
+  ADD_OBSERVATION(status_code);
+#undef ADD_OBSERVATION
+  return rb_yield(values);
+}
 
 /*
  * Body: build trace chunks from Ruby spans, then send them.
@@ -1712,6 +1747,7 @@ static VALUE build_and_send_traces(VALUE arg) {
   if (args.send_ran) {
     ctx->chunks = NULL;
   }
+  ctx->response = args.response;
 
   /* Extract the response body as a Ruby string before freeing. */
   VALUE payload = Qnil;
@@ -1722,6 +1758,7 @@ static VALUE build_and_send_traces(VALUE arg) {
       payload = rb_str_new((const char *)body.ptr, (long)body.len);
     }
     ddog_trace_exporter_response_free(args.response);
+    ctx->response = NULL;
     args.response = NULL;
   }
 
@@ -1746,6 +1783,15 @@ static VALUE build_and_send_traces(VALUE arg) {
     rb_jump_tag(pending_exception);
   }
 
+  if (rb_block_given_p()) {
+    int state = 0;
+    rb_protect(yield_observations, (VALUE)&args.observations, &state);
+    if (state) {
+      if (!rb_obj_is_kind_of(rb_errinfo(), rb_eStandardError)) rb_jump_tag(state);
+      rb_set_errinfo(Qnil);
+    }
+  }
+
   if (args.failed) {
     VALUE err_resp = create_error_response(args.error_code, ctx->trace_count);
     return rb_ary_new_from_args(1, err_resp);
@@ -1762,6 +1808,10 @@ static VALUE build_and_send_traces(VALUE arg) {
 static VALUE free_send_resources(VALUE arg) {
   send_traces_ctx *ctx = (send_traces_ctx *)arg;
   free_raw_span((VALUE)&ctx->span_owner);
+  if (ctx->response != NULL) {
+    ddog_trace_exporter_response_free(ctx->response);
+    ctx->response = NULL;
+  }
   if (ctx->chunks != NULL) {
     ddog_tracer_trace_chunks_free(ctx->chunks);
     ctx->chunks = NULL;
@@ -1813,6 +1863,55 @@ static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events_s
       free_send_resources, (VALUE)&ctx);
 }
 
+static VALUE stats_observations_to_ruby(ddog_TraceExporterStatsObservations *report) {
+  VALUE counts = rb_ary_new_capa(16);
+  for (size_t i = 0; i < 16; i++) rb_ary_push(counts, ULL2NUM(report->collapsed_spans[i]));
+  return counts;
+}
+
+static VALUE _native_take_stats_observations(VALUE self) {
+  trace_exporter_t *wrapper;
+  TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data, wrapper);
+  ddog_TraceExporterStatsObservations report = {0};
+  if (wrapper != NULL && wrapper->exporter != NULL) {
+    check_exporter_error("Failed to drain stats observations",
+        ddog_trace_exporter_take_stats_observations(wrapper->exporter, &report));
+  }
+  return stats_observations_to_ruby(&report);
+}
+
+typedef struct {
+  ddog_TraceExporter *exporter;
+  ddog_TraceExporterStatsObservations report;
+  bool ran;
+} close_exporter_args;
+
+static void *close_exporter_without_gvl(void *arg) {
+  close_exporter_args *args = (close_exporter_args *)arg;
+  ddog_TraceExporterError *error = ddog_trace_exporter_shutdown_observed(args->exporter, &args->report);
+  if (error != NULL) ddog_trace_exporter_error_free(error);
+  args->ran = true;
+  return NULL;
+}
+
+static VALUE _native_close(VALUE self) {
+  trace_exporter_t *wrapper;
+  TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data, wrapper);
+  close_exporter_args args = {0};
+  if (wrapper != NULL && wrapper->exporter != NULL) {
+    args.exporter = wrapper->exporter;
+    wrapper->exporter = NULL;
+    int pending = 0;
+    while (!args.ran && !pending) {
+      rb_thread_call_without_gvl2(close_exporter_without_gvl, &args, NULL, NULL);
+      pending = check_if_pending_exception();
+    }
+    if (!args.ran) wrapper->exporter = args.exporter;
+    if (pending) rb_jump_tag(pending);
+  }
+  return stats_observations_to_ruby(&args.report);
+}
+
 /* ========================================================================
  * Initialization
  * ======================================================================== */
@@ -1847,7 +1946,9 @@ void trace_exporter_init(VALUE tracing_module) {
 
   /* Instance: _native_send_traces(traces, native_events_supported) -> Array[Response] */
   rb_define_method(trace_exporter_class, "_native_send_traces",
-                   _native_send_traces, 2);
+                    _native_send_traces, 2);
+  rb_define_method(trace_exporter_class, "_native_take_stats_observations", _native_take_stats_observations, 0);
+  rb_define_method(trace_exporter_class, "_native_close", _native_close, 0);
 
   /* Instance: fork safety hooks */
   rb_define_method(trace_exporter_class, "_native_before_fork",

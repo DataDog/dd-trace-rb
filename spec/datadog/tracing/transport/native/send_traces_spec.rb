@@ -140,6 +140,25 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
   end
 
   describe "with a single trace containing one span" do
+    it "exposes a complete send report after reacquiring the GVL" do
+      observations = nil
+      responses = exporter._native_send_traces([[make_span]], false) { |report| observations = report }
+      request = mock_agent.requests.find { |entry| entry[:request_line].include?("/v0.4/traces") }
+      expect(responses.first.ok?).to be true
+      expect(observations).to eq(
+        requests_count: 1, responses_count: 1, status_code: 200,
+        chunks_sent: 1, spans_enqueued_for_serialization: 1,
+        bytes_sent: request.fetch(:body).bytesize,
+      )
+      expect(mock_agent.requests.none? { |entry| entry[:request_line].include?("telemetry") }).to be true
+    end
+
+    it "keeps trace success when observation processing raises", :native_transport_memcheck do
+      responses = exporter._native_send_traces([[make_span]], false) { raise "telemetry failed" }
+      expect(responses.first.ok?).to be true
+      expect(exporter._native_take_stats_observations).to eq(Array.new(16, 0))
+    end
+
     it "returns a success response" do
       spans = [make_span]
       responses = exporter._native_send_traces([spans], false)
