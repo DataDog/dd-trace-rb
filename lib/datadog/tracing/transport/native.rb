@@ -52,8 +52,8 @@ module Datadog
 
           def telemetry=(client)
             @send_mutex.synchronize do
-              if @telemetry
-                @telemetry.client = client
+              if (reporter = @telemetry)
+                reporter.client = client
               elsif @exporter
                 @telemetry = Telemetry.new(client, @exporter)
               end

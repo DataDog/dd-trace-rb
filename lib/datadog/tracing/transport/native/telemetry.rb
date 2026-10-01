@@ -19,7 +19,7 @@ module Datadog
             spans_enqueued_for_serialization: ["spans_enqueued_for_serialization", []],
             spans_dropped_serialization_error: ["spans_dropped", ["reason:serialization_error"]],
             spans_dropped_api_error: ["spans_dropped", ["reason:api_error"]],
-          }.freeze
+          }.freeze #: Hash[Symbol, [String, Array[String]]]
           COLLAPSED_FIELDS = %w[resource http_endpoint peer_tags additional_metric_tags].freeze
 
           def initialize(client, exporter = nil)
@@ -40,7 +40,9 @@ module Datadog
           end
 
           def collect
-            record_stats(@exporter._native_take_stats_observations) if @exporter
+            if (exporter = @exporter)
+              record_stats(exporter._native_take_stats_observations)
+            end
           rescue
             nil
           end

@@ -6,13 +6,13 @@ module Datadog::Tracing::Transport::Native
 
     COLLAPSED_FIELDS: Array[String]
 
-    @client: Core::Telemetry::Component
+    @client: Datadog::Core::Telemetry::Component
 
     @exporter: TraceExporter?
 
-    def initialize: (Core::Telemetry::Component client, ?TraceExporter? exporter) -> void
+    def initialize: (Datadog::Core::Telemetry::Component client, ?TraceExporter? exporter) -> void
 
-    def client=: (Core::Telemetry::Component client) -> Core::Telemetry::Component
+    def client=: (Datadog::Core::Telemetry::Component client) -> void
 
     def close: () -> void
 
