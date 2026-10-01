@@ -13,6 +13,8 @@ module Datadog
       def ensure_priority_sampling: (untyped sampler, untyped settings) -> untyped
       def build_writer: (untyped settings, untyped agent_settings, ?Hash[Symbol, untyped] options) -> untyped
 
+      def build_native_transport: (Core::Configuration::AgentSettings agent_settings, Core::Configuration::Settings settings) -> Transport::Native::Transport?
+
       def subscribe_to_writer_events!: (untyped writer, untyped sampler, untyped test_mode) -> (nil | untyped)
 
       WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK: untyped

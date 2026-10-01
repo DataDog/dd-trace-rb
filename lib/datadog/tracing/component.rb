@@ -117,14 +117,14 @@ module Datadog
           return writer
         end
 
-        if settings.tracing.native_transport && (transport = build_native_transport(agent_settings))
+        if settings.tracing.native_transport && !options[:transport] && (transport = build_native_transport(agent_settings, settings))
           options = options.merge(transport: transport)
         end
 
         Tracing::Writer.new(agent_settings: agent_settings, **options)
       end
 
-      def build_native_transport(agent_settings)
+      def build_native_transport(agent_settings, settings)
         require_relative "transport/native"
 
         unless Transport::Native.supported?
@@ -137,7 +137,8 @@ module Datadog
 
         Transport::Native::Transport.new(
           agent_settings: agent_settings,
-          logger: Datadog.logger
+          logger: Datadog.logger,
+          settings: settings,
         )
       end
 
