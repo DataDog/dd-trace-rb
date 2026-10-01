@@ -279,6 +279,19 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         end
       end
 
+      shared_examples "first span with sdk otlp export marker" do
+        it "sets the marker to false on the first span only" do
+          format!
+          trace.spans.each_with_index do |span, index|
+            if index == 0
+              expect(span.meta).to include(Datadog::Tracing::Metadata::Ext::TAG_SDK_OTLP_EXPORT => "false")
+            else
+              expect(span.meta).to_not include(Datadog::Tracing::Metadata::Ext::TAG_SDK_OTLP_EXPORT)
+            end
+          end
+        end
+      end
+
       context "with no root span" do
         include_context "no root span"
 
@@ -340,6 +353,8 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
           end
           it_behaves_like "spans without process tags"
         end
+
+        it_behaves_like "first span with sdk otlp export marker"
       end
 
       context "with missing root span" do
@@ -403,6 +418,8 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
           end
           it_behaves_like "spans without process tags"
         end
+
+        it_behaves_like "first span with sdk otlp export marker"
       end
 
       context "with a root span" do
@@ -467,6 +484,26 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
             allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
           end
           it_behaves_like "spans without process tags"
+        end
+
+        it_behaves_like "first span with sdk otlp export marker"
+      end
+    end
+
+    context "with multiple trace chunks" do
+      let(:chunks) do
+        Array.new(2) do
+          spans = Array.new(2) { Datadog::Tracing::Span.new("my.job") }
+          Datadog::Tracing::TraceSegment.new(spans, id: trace_id, root_span_id: spans.first.id)
+        end
+      end
+
+      it "sets the sdk otlp export marker on the first span of each chunk" do
+        chunks.each { |chunk| described_class.format!(chunk) }
+
+        chunks.each do |chunk|
+          expect(chunk.spans.first.meta).to include(Datadog::Tracing::Metadata::Ext::TAG_SDK_OTLP_EXPORT => "false")
+          expect(chunk.spans.last.meta).to_not include(Datadog::Tracing::Metadata::Ext::TAG_SDK_OTLP_EXPORT)
         end
       end
     end

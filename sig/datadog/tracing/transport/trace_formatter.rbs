@@ -54,6 +54,8 @@ module Datadog
 
         def tag_git_commit_sha!: () -> (nil | untyped)
 
+        def tag_sdk_otlp_export!: () -> void
+
         private
 
         def partial?: () -> untyped
