@@ -185,8 +185,8 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       tracer = Datadog::Tracing::Tracer.new(writer: Datadog::Tracing::Writer.new(transport: transport), logger: logger)
       replacement = Datadog::Core::Telemetry::Component.new(settings: settings, agent_settings: telemetry_settings, logger: logger, enabled: true)
       begin
-        Datadog::Tracing::Component.bind_native_telemetry(tracer, client)
-        Datadog::Tracing::Component.bind_native_telemetry(tracer, replacement)
+        Datadog::Tracing::Component.bind_transport_telemetry(tracer, client)
+        Datadog::Tracing::Component.bind_transport_telemetry(tracer, replacement)
         client.shutdown!
         expect(transport.send_traces([make_trace_segment("one")]).first.ok?).to be true
         expect(client.metrics_manager.flush!).to eq([])

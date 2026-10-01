@@ -10,6 +10,17 @@ module Datadog
           def initialize: (String data, trace_count: Integer, **untyped) -> void
         end
         class Request < Datadog::Core::Transport::Request
+          @http_status: Integer?
+
+          @capture_telemetry: bool
+
+          attr_reader http_status: Integer?
+
+          attr_writer capture_telemetry: bool
+
+          def initialize: (?Core::Transport::Parcel? parcel) -> void
+
+          def capture_status: (untyped response) -> void
         end
         module Response
           attr_reader service_rates: untyped
@@ -24,6 +35,8 @@ module Datadog
           @native_events_supported: bool
 
           @max_size: untyped
+
+          @telemetry: HTTP::Telemetry::Batch?
           DEFAULT_MAX_PAYLOAD_SIZE: untyped
 
           attr_reader encoder: untyped
@@ -31,7 +44,7 @@ module Datadog
           attr_reader max_size: untyped
 
           attr_reader logger: untyped
-          def initialize: (untyped encoder, logger: untyped, native_events_supported: untyped, ?max_size: untyped) -> void
+          def initialize: (untyped encoder, logger: untyped, native_events_supported: untyped, ?max_size: untyped, ?telemetry: HTTP::Telemetry::Batch?) -> void
           def encode_in_chunks: (untyped traces) -> untyped
 
           private
@@ -44,7 +57,13 @@ module Datadog
         class Transport < Core::Transport::Transport
           include SpanEventsNegotiation
 
-          def send_traces: (::Array[Tracing::TraceOperation] traces) -> untyped
+          @telemetry: HTTP::Telemetry?
+
+          def initialize: (Core::Transport::HTTP::API::Map apis, String default_api, logger: Core::Logger) -> void
+
+          def telemetry=: (Core::Telemetry::Component client) -> void
+
+          def send_traces: (Array[Tracing::TraceSegment] traces) -> untyped
 
           def stats: () -> untyped
 	  

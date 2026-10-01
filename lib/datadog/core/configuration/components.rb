@@ -197,7 +197,7 @@ module Datadog
             open_feature_component_provider: -> { @open_feature },
           )
           @tracer = Datadog::Tracing::Component.build_tracer(settings, agent_settings, logger: @logger)
-          Datadog::Tracing::Component.bind_native_telemetry(@tracer, telemetry)
+          Datadog::Tracing::Component.bind_transport_telemetry(@tracer, telemetry)
           @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
