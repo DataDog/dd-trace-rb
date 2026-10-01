@@ -19,8 +19,8 @@ module Datadog
           :first_span,
           :trace
 
-        def self.format!(trace)
-          new(trace).format!
+        def self.format!(trace, transport: nil)
+          new(trace).format!(transport: transport)
         end
 
         def initialize(trace)
@@ -32,7 +32,7 @@ module Datadog
         end
 
         # Modifies a trace so suitable for transport
-        def format!
+        def format!(transport: nil)
           return unless trace
           return trace unless root_span
 
@@ -69,6 +69,8 @@ module Datadog
             tag_git_repository_url!
             tag_git_commit_sha!
           end
+
+          root_span.set_tag("_dd.tracing.transport", transport) if transport && !partial?
 
           trace
         end
