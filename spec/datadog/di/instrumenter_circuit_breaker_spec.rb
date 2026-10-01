@@ -170,9 +170,9 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
         context = observed_calls.first
         expect(context).to be_a(Datadog::DI::Context)
         expect(context.serialized_entry_args).to be_a(Hash)
-        expect(context.serialized_entry_args).to have_key(:arg1)
+        expect(context.serialized_entry_args).to have_key(:arg)
 
-        arg_data = context.serialized_entry_args[:arg1]
+        arg_data = context.serialized_entry_args[:arg]
         expect(arg_data).to be_a(Hash)
         expect(arg_data[:type]).to eq("Array")
         expect(arg_data[:elements]).to be_a(Array)
