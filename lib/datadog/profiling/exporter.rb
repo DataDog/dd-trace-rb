@@ -111,7 +111,7 @@ module Datadog
               worker_stats: worker_stats,
               profile_stats: profile_stats,
               recorder_stats: pprof_recorder.stats,
-              gc: GC.stat,
+              gc: gc_stats,
             }
           ),
           info_json: info_json,
@@ -130,6 +130,11 @@ module Datadog
       end
 
       private
+
+      # @rbs return: Hash[Symbol, Integer | bool]
+      def gc_stats
+        GC.stat.merge(auto_compact: GC.respond_to?(:auto_compact) && GC.auto_compact)
+      end
 
       #: (::Time, ::Time) -> bool
       def duration_below_threshold?(start, finish)

@@ -81,6 +81,32 @@ RSpec.describe Datadog::Profiling::Exporter do
       expect(JSON.parse(flush.info_json, symbolize_names: true)).to eq(info)
     end
 
+    context "when automatic GC compaction is supported" do
+      before do
+        skip "Automatic GC compaction is only supported on Ruby >= 3.0" if RubyVersion.is?("< 3.0")
+      end
+
+      it "reports the current setting on each flush" do
+        allow(GC).to receive(:auto_compact).and_return(true, false)
+
+        first_gc_metadata = JSON.parse(exporter.flush.internal_metadata_json).fetch("gc")
+        second_gc_metadata = JSON.parse(exporter.flush.internal_metadata_json).fetch("gc")
+
+        expect(first_gc_metadata).to include("auto_compact" => true, "count" => a_kind_of(Integer))
+        expect(second_gc_metadata).to include("auto_compact" => false, "count" => a_kind_of(Integer))
+      end
+    end
+
+    context "when automatic GC compaction is not supported" do
+      before do
+        skip "Automatic GC compaction is supported on Ruby >= 3.0" if RubyVersion.is?(">= 3.0")
+      end
+
+      it "reports automatic GC compaction as disabled" do
+        expect(JSON.parse(flush.internal_metadata_json).fetch("gc")).to include("auto_compact" => false)
+      end
+    end
+
     context "when pprof recorder has no data" do
       let(:pprof_recorder_serialize) { nil }
 
