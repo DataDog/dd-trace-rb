@@ -3,6 +3,8 @@
 require "uri"
 require "set"
 
+require_relative "../../../../core/telemetry/logger"
+
 module Datadog
   module Tracing
     module Contrib
@@ -11,6 +13,15 @@ module Datadog
           # Quantization for HTTP resources
           module HTTP
             PLACEHOLDER = "?"
+
+            # Path segments made up solely of letters, hyphens, and underscores are kept
+            # as-is. Any other segment is assumed to carry an identifier: digits cover
+            # numeric and hex ids, while other characters cover encoded values, emails,
+            # and non-ASCII slugs.
+            PRESERVED_PATH_SEGMENT = /\A[A-Za-z\-_]+\z/.freeze
+
+            # API version segments (eg. `v1`) are kept despite containing digits.
+            API_VERSION_PATH_SEGMENT = /\Av[0-9]+\z/.freeze
 
             # taken from Ruby https://github.com/ruby/uri/blob/eaf89cc31619d49e67c64d0b58ea9dc38892d175/lib/uri/rfc3986_parser.rb
             # but adjusted to parse only <scheme>://<host>:<port>/ components
@@ -55,6 +66,47 @@ module Datadog
                   uri.scheme = nil
                 end
               end.to_s
+            end
+
+            # Builds the resource name for an HTTP client span.
+            #
+            # Returns the bare HTTP method unless `enabled`. When enabled, a quantized
+            # request path is appended, eg. `GET /users/?`.
+            def client_resource(method, raw_path, enabled:)
+              resource = method.to_s.upcase
+              return resource unless enabled && raw_path && !raw_path.to_s.empty?
+
+              # Some clients expose the query string as part of the path; it is reported
+              # separately and must not reach the resource name.
+              "#{resource} #{path(raw_path.to_s.split("?", 2).first)}"
+            rescue => e
+              # A path carrying invalid byte sequences would otherwise raise while being
+              # matched, so fall back to the unquantized resource name.
+              Datadog.logger.error("error building http client resource name: #{e.class}: #{e.message}")
+              Datadog::Core::Telemetry::Logger.report(e)
+              resource
+            end
+
+            # Replaces identifier-looking segments of an HTTP path with a placeholder, so
+            # that paths differing only by id collapse into a single value.
+            #
+            # Quantizing an already quantized path returns it unchanged, which keeps this
+            # safe to apply on top of values the backend has already quantized.
+            def path(path, options = {})
+              placeholder = options[:placeholder] || PLACEHOLDER
+              path = path.to_s
+
+              return "/" if path.empty? || path == "/"
+
+              quantized = path.split("/", -1).map do |segment|
+                if segment.empty? || PRESERVED_PATH_SEGMENT.match?(segment) || API_VERSION_PATH_SEGMENT.match?(segment)
+                  segment
+                else
+                  placeholder
+                end
+              end.join("/")
+
+              quantized.start_with?("/") ? quantized : "/#{quantized}"
             end
 
             def query(query, options = {})

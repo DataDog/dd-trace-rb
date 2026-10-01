@@ -1636,6 +1636,13 @@
         "default": "400-499"
       }
     ],
+    "DD_TRACE_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_TRACE_HTTP_DISTRIBUTED_TRACING": [
       {
         "version": "A",
