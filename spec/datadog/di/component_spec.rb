@@ -422,10 +422,11 @@ RSpec.describe Datadog::DI::Component do
 
     context "when the component is started and the customer then explicitly disables it" do
       # Regression for the using_default? decision. Datadog.configure mutates
-      # the singleton settings before Components#state reads this predicate;
-      # an explicit enabled=false arriving while the component is still
-      # started must read as not implicit. The historical !enabled form would
-      # have computed true here and carried the disabled DI forward.
+      # the singleton settings before Components#state reads this predicate, so
+      # an explicit enabled=false can arrive while the component is still
+      # started. using_default? keeps the result false in that case, letting
+      # the explicit disable win on the next rebuild. A predicate keyed on the
+      # enabled value would report true here and restart DI.
       let(:settings) do
         Datadog::Core::Configuration::Settings.new.tap do |s|
           s.dynamic_instrumentation.internal.development = true
