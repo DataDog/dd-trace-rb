@@ -240,10 +240,6 @@ static pthread_mutex_t holding_the_gvl_signal_handler_mutex = PTHREAD_MUTEX_INIT
 static pthread_cond_t holding_the_gvl_signal_handler_executed = PTHREAD_COND_INITIALIZER;
 static VALUE holding_the_gvl_signal_handler_result[3];
 
-// Ruby VM API that is exported but not present in the header files. Only used by holding_the_gvl_signal_handler below and SHOULD NOT
-// be used in any other situation. See the comments on is_current_thread_holding_the_gvl for details.
-int ruby_thread_has_gvl_p(void);
-
 static void holding_the_gvl_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
   pthread_mutex_lock(&holding_the_gvl_signal_handler_mutex);
 
