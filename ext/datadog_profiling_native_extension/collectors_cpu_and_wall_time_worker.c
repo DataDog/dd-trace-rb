@@ -122,6 +122,7 @@ typedef struct {
   VALUE self_instance;
   VALUE thread_context_collector_instance;
   VALUE idle_sampling_helper_instance;
+  idle_sampling_loop_state *idle_sampling_helper_state;
   VALUE owner_thread;
   dynamic_sampling_rate_state cpu_dynamic_sampling_rate;
   discrete_dynamic_sampler allocation_sampler;
@@ -439,6 +440,7 @@ static VALUE _native_new(VALUE klass) {
   state->waiting_for_gvl_threshold_ns = 10 * 1000 * 1000;
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
+  state->idle_sampling_helper_state = NULL;
   state->owner_thread = Qnil;
   dynamic_sampling_rate_init(&state->cpu_dynamic_sampling_rate);
   state->gc_tracepoint = Qnil;
@@ -523,6 +525,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
 
   state->thread_context_collector_instance = enforce_thread_context_collector_instance(thread_context_collector_instance);
   state->idle_sampling_helper_instance = idle_sampling_helper_instance;
+  state->idle_sampling_helper_state = idle_sampling_helper_get_state(idle_sampling_helper_instance);
   state->gc_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_GC_ENTER | RUBY_INTERNAL_EVENT_GC_EXIT, on_gc_event, NULL /* unused */);
 
   return Qtrue;
@@ -857,8 +860,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
           // for an uncontrolled amount of time. (This can still happen to the IdleSamplingHelper, but the
           // CpuAndWallTimeWorker will still be free to interrupt the Ruby VM and keep sampling for the entire blocking period).
           state->stats.trigger_simulated_signal_delivery_attempts++;
-          // TODO: This call violates the no-Ruby-object-access invariant; resolve the helper's native state with the GVL held.
-          idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
+          idle_sampling_helper_request_action(state->idle_sampling_helper_state, grab_gvl_and_sample);
         }
       }
     }
