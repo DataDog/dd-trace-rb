@@ -228,16 +228,35 @@ RSpec.describe InstalledBundleCache do
       true
     end
 
-    grouped_cache.prepare_group(
+    grouped_cache.prepare_full_group(
       base_bundle_path: temporary_directory.join("base-bundle"),
       cache_path: temporary_directory.join("group-cache"),
-      base_snapshot_path: temporary_directory.join("unused-snapshot"),
       restore_status: "miss",
       write_enabled: true,
     )
 
     expect(temporary_directory.join("group-cache/gems/base.rb").read).to eq("base\n")
     expect(temporary_directory.join("group-cache/gems/group.rb").read).to eq("group\n")
+  end
+
+  it "rejects full-group preparation for union-partition groups" do
+    grouped_cache = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      applicable_gemfiles: ["first.gemfile"],
+      strategy: "group-delta",
+      installed_path: temporary_directory.join("installed"),
+      group: {"name" => "standard-0", "tasks" => []},
+    )
+
+    expect do
+      grouped_cache.prepare_full_group(
+        base_bundle_path: temporary_directory.join("base-bundle"),
+        cache_path: temporary_directory.join("group-cache"),
+        restore_status: "miss",
+        write_enabled: true,
+      )
+    end.to raise_error(ArgumentError, "group-full strategy required")
   end
 
   it "maps group-only specs to direct installed cache paths" do
@@ -389,60 +408,6 @@ RSpec.describe InstalledBundleCache do
     expect(manifest.fetch(:cache_paths)).to eq(grouped_cache.cache_paths)
   end
 
-  it "builds a group delta without unchanged base files" do
-    write("base-bundle/gems/base.rb", "base\n")
-    grouped_cache = described_class.new(
-      root: temporary_directory,
-      base_gemfile: "base.gemfile",
-      applicable_gemfiles: ["first.gemfile"],
-      strategy: "group-delta",
-      installed_path: temporary_directory.join("installed"),
-      group: {"name" => "standard-0", "tasks" => []},
-    )
-    write("installed/gems/base.rb", "base\n")
-    grouped_cache.write_snapshot(temporary_directory.join("base-snapshot.json"))
-    allow(grouped_cache).to receive(:system) do |_environment, _command, *arguments|
-      write("installed/gems/group.rb", "group\n") if arguments.first == "install"
-      true
-    end
-
-    grouped_cache.prepare_group(
-      base_bundle_path: temporary_directory.join("base-bundle"),
-      cache_path: temporary_directory.join("group-cache"),
-      base_snapshot_path: temporary_directory.join("base-snapshot.json"),
-      restore_status: "miss",
-      write_enabled: true,
-    )
-
-    expect(temporary_directory.join("group-cache/gems/base.rb")).not_to exist
-    expect(temporary_directory.join("group-cache/gems/group.rb").read).to eq("group\n")
-  end
-
-  it "repairs a partially restored group delta over the preserved base" do
-    write("base-bundle/gems/base.rb", "base\n")
-    write("group-cache/gems/group.rb", "group\n")
-    grouped_cache = described_class.new(
-      root: temporary_directory,
-      base_gemfile: "base.gemfile",
-      applicable_gemfiles: ["first.gemfile"],
-      strategy: "group-delta",
-      installed_path: temporary_directory.join("installed"),
-      group: {"name" => "standard-0", "tasks" => []},
-    )
-    allow(grouped_cache).to receive(:system).and_return(true)
-
-    grouped_cache.prepare_group(
-      base_bundle_path: temporary_directory.join("base-bundle"),
-      cache_path: temporary_directory.join("group-cache"),
-      base_snapshot_path: temporary_directory.join("unused-snapshot"),
-      restore_status: "partial",
-      write_enabled: false,
-    )
-
-    expect(temporary_directory.join("installed/gems/base.rb").read).to eq("base\n")
-    expect(temporary_directory.join("installed/gems/group.rb").read).to eq("group\n")
-  end
-
   it "rejects an unknown group restore status" do
     grouped_cache = described_class.new(
       root: temporary_directory,
@@ -454,10 +419,9 @@ RSpec.describe InstalledBundleCache do
     )
 
     expect do
-      grouped_cache.prepare_group(
+      grouped_cache.prepare_full_group(
         base_bundle_path: temporary_directory.join("base-bundle"),
         cache_path: temporary_directory.join("group-cache"),
-        base_snapshot_path: temporary_directory.join("unused-snapshot"),
         restore_status: "unknown",
         write_enabled: false,
       )
@@ -475,10 +439,9 @@ RSpec.describe InstalledBundleCache do
     )
     expect(grouped_cache).not_to receive(:system)
 
-    grouped_cache.prepare_group(
+    grouped_cache.prepare_full_group(
       base_bundle_path: temporary_directory.join("base-bundle"),
       cache_path: temporary_directory.join("group-cache"),
-      base_snapshot_path: temporary_directory.join("unused-snapshot"),
       restore_status: "miss",
       write_enabled: false,
     )

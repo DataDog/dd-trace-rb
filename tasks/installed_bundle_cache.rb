@@ -172,24 +172,17 @@ class InstalledBundleCache
     end
   end
 
-  def prepare_group(base_bundle_path:, cache_path:, base_snapshot_path:, restore_status:, write_enabled:, jobs: 8)
+  def prepare_full_group(base_bundle_path:, cache_path:, restore_status:, write_enabled:, jobs: 8)
+    raise ArgumentError, "group-full strategy required" unless strategy == "group-full"
     raise ArgumentError, "Unknown restore status: #{restore_status}" unless RESTORE_STATUSES.include?(restore_status)
     return if restore_status == "exact"
     return if restore_status == "miss" && !write_enabled
 
     cache_path = Pathname(cache_path).expand_path
-    source = (restore_status == "partial" && strategy == "group-full") ? cache_path : base_bundle_path
-    reset_installed_from(source)
-    copy_contents(cache_path, installed_path) if restore_status == "partial" && strategy == "group-delta"
+    reset_installed_from((restore_status == "partial") ? cache_path : base_bundle_path)
     install(jobs: jobs)
     check
-    return unless write_enabled
-
-    if strategy == "group-delta"
-      extract_delta(base_snapshot_path: base_snapshot_path, destination: cache_path)
-    else
-      reset_path_from(cache_path, installed_path)
-    end
+    reset_path_from(cache_path, installed_path) if write_enabled
   end
 
   def cache_paths

@@ -200,12 +200,17 @@ RSpec.describe "installed bundle cache workflow" do
       expect(saves).to all(include("with" => include("path" => include("paths"))))
     end
 
-    it "installs the union once before saving partitioned group deltas" do
+    it "keeps full-group repair out of union-partition generation" do
       group_steps = group_action.fetch("runs").fetch("steps")
-      prepare = group_steps.find { |step| step["name"] == "Prepare partitioned installed bundle groups" }
+      full_group_steps = group_steps.select { |step| step.fetch("name", "").start_with?("Prepare standard-", "Prepare misc-") }
+      partition = group_steps.find { |step| step["name"] == "Prepare partitioned installed bundle groups" }
 
-      expect(prepare.fetch("if")).to include("inputs.strategy == 'group-delta'")
-      expect(prepare.fetch("run")).to include("prepare-partitioned-groups")
+      expect(full_group_steps).to all(include(
+        "if" => include("inputs.strategy == 'group-full'"),
+        "run" => include("prepare-full-group"),
+      ))
+      expect(partition.fetch("if")).to include("inputs.strategy == 'group-delta'")
+      expect(partition.fetch("run")).to include("prepare-partitioned-groups")
     end
 
     it "restores partitioned child groups directly to computed installed paths" do

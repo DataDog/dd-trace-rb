@@ -278,7 +278,7 @@ runs:
         RESTORE_STATUS: ${{ steps.lifecycle.outputs.standard-0-status }}
         STRATEGY: ${{ inputs.strategy }}
         WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-0 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-0 --base-bundle-path /tmp/ddtrace-installed-base-bundle --snapshot /tmp/ddtrace-installed-base-snapshot.json --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
+      run: ruby tasks/installed_bundle_cache_cli.rb prepare-full-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-0 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-0 --base-bundle-path /tmp/ddtrace-installed-base-bundle --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
     - name: Prepare standard-1 installed bundle
       if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-1-status != 'exact'
       shell: bash
@@ -287,7 +287,7 @@ runs:
         RESTORE_STATUS: ${{ steps.lifecycle.outputs.standard-1-status }}
         STRATEGY: ${{ inputs.strategy }}
         WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-1 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-1 --base-bundle-path /tmp/ddtrace-installed-base-bundle --snapshot /tmp/ddtrace-installed-base-snapshot.json --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
+      run: ruby tasks/installed_bundle_cache_cli.rb prepare-full-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-1 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-1 --base-bundle-path /tmp/ddtrace-installed-base-bundle --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
     - name: Prepare standard-2 installed bundle
       if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-2-status != 'exact'
       shell: bash
@@ -296,7 +296,7 @@ runs:
         RESTORE_STATUS: ${{ steps.lifecycle.outputs.standard-2-status }}
         STRATEGY: ${{ inputs.strategy }}
         WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-2 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-2 --base-bundle-path /tmp/ddtrace-installed-base-bundle --snapshot /tmp/ddtrace-installed-base-snapshot.json --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
+      run: ruby tasks/installed_bundle_cache_cli.rb prepare-full-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-2 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-2 --base-bundle-path /tmp/ddtrace-installed-base-bundle --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
     - name: Prepare standard-3 installed bundle
       if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-3-status != 'exact'
       shell: bash
@@ -305,7 +305,7 @@ runs:
         RESTORE_STATUS: ${{ steps.lifecycle.outputs.standard-3-status }}
         STRATEGY: ${{ inputs.strategy }}
         WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-3 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-3 --base-bundle-path /tmp/ddtrace-installed-base-bundle --snapshot /tmp/ddtrace-installed-base-snapshot.json --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
+      run: ruby tasks/installed_bundle_cache_cli.rb prepare-full-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-3 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-3 --base-bundle-path /tmp/ddtrace-installed-base-bundle --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
     - name: Prepare standard-4 installed bundle
       if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-4-status != 'exact'
       shell: bash
@@ -314,7 +314,7 @@ runs:
         RESTORE_STATUS: ${{ steps.lifecycle.outputs.standard-4-status }}
         STRATEGY: ${{ inputs.strategy }}
         WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-4 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-4 --base-bundle-path /tmp/ddtrace-installed-base-bundle --snapshot /tmp/ddtrace-installed-base-snapshot.json --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
+      run: ruby tasks/installed_bundle_cache_cli.rb prepare-full-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-4 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-4 --base-bundle-path /tmp/ddtrace-installed-base-bundle --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
     - name: Prepare standard-5 installed bundle
       if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-5-status != 'exact'
       shell: bash
@@ -323,7 +323,7 @@ runs:
         RESTORE_STATUS: ${{ steps.lifecycle.outputs.standard-5-status }}
         STRATEGY: ${{ inputs.strategy }}
         WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-5 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-5 --base-bundle-path /tmp/ddtrace-installed-base-bundle --snapshot /tmp/ddtrace-installed-base-snapshot.json --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
+      run: ruby tasks/installed_bundle_cache_cli.rb prepare-full-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-5 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-5 --base-bundle-path /tmp/ddtrace-installed-base-bundle --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
     - name: Prepare standard-6 installed bundle
       if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-6-status != 'exact'
       shell: bash
@@ -332,7 +332,7 @@ runs:
         RESTORE_STATUS: ${{ steps.lifecycle.outputs.standard-6-status }}
         STRATEGY: ${{ inputs.strategy }}
         WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-6 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-6 --base-bundle-path /tmp/ddtrace-installed-base-bundle --snapshot /tmp/ddtrace-installed-base-snapshot.json --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
+      run: ruby tasks/installed_bundle_cache_cli.rb prepare-full-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-6 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-6 --base-bundle-path /tmp/ddtrace-installed-base-bundle --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
     - name: Prepare misc-0 installed bundle
       if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.misc-0-status != 'exact'
       shell: bash
@@ -341,7 +341,7 @@ runs:
         RESTORE_STATUS: ${{ steps.lifecycle.outputs.misc-0-status }}
         STRATEGY: ${{ inputs.strategy }}
         WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group misc-0 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/misc-0 --base-bundle-path /tmp/ddtrace-installed-base-bundle --snapshot /tmp/ddtrace-installed-base-snapshot.json --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
+      run: ruby tasks/installed_bundle_cache_cli.rb prepare-full-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group misc-0 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/misc-0 --base-bundle-path /tmp/ddtrace-installed-base-bundle --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
     - name: Prepare partitioned installed bundle groups
       if: inputs.strategy == 'group-delta' && steps.lifecycle.outputs.status != 'exact' && inputs.write-enabled == 'true'
       shell: bash

@@ -82,18 +82,16 @@ when "group-manifests"
     )
   end
   puts JSON.pretty_generate(manifests)
-when "prepare-group"
+when "prepare-full-group"
   raise OptionParser::MissingArgument, "--group" unless options[:group]
   raise OptionParser::MissingArgument, "--cache-path" unless options[:cache_path]
   raise OptionParser::MissingArgument, "--base-bundle-path" unless options[:base_bundle_path]
-  raise OptionParser::MissingArgument, "--snapshot" unless options[:snapshot]
   raise OptionParser::MissingArgument, "--restore-status" unless options[:restore_status]
 
   group = load_groups.call.fetch(options[:group])
-  build_cache.call(group).prepare_group(
+  build_cache.call(group).prepare_full_group(
     base_bundle_path: options[:base_bundle_path],
     cache_path: options[:cache_path],
-    base_snapshot_path: options[:snapshot],
     restore_status: options[:restore_status],
     write_enabled: options.fetch(:write_enabled, false),
     jobs: options.fetch(:jobs, 8),
