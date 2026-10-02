@@ -741,7 +741,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   // ractor as otherwise we may be concurrent with the profiler shutting down and removing its state.
   if (
     !ruby_native_thread_p() || // Not a Ruby thread
-    !is_current_thread_holding_the_gvl() || // Not safe to enqueue a sample from this thread
+    !is_current_thread_in_main_ractor_and_holding_the_gvl() || // Not safe to enqueue a sample from this thread
     !ddtrace_rb_ractor_main_p() // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   ) return;
 
@@ -832,7 +832,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
       state->stats.trigger_simulated_signal_delivery_attempts++;
       grab_gvl_and_sample(); // Note: Can raise exceptions
     } else {
-      current_gvl_owner owner = gvl_owner();
+      current_gvl_owner owner = main_ractor_gvl_owner();
       if (owner.valid) {
         // Note that reading the GVL owner and sending them a signal is a race -- the Ruby VM keeps on executing while
         // we're doing this, so we may still not signal the correct thread from time to time, but our signal handler
@@ -1219,6 +1219,8 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
 
   // Disable all hooks, so that there are no more attempts to mutate the profile
   disable_hooks(state);
+
+  private_vm_api_access_self_test();
 
   reset_stats_not_thread_safe(state);
 
