@@ -817,7 +817,8 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   #endif
 }
 
-// The actual sampling trigger loop always runs **without** the global vm lock.
+// Runs without the GVL: neither this loop nor its callees may dereference Ruby objects until they reacquire it.
+// GC compaction can protect Ruby heap pages while this loop runs, so even reading an object's header is unsafe.
 static void *run_sampling_trigger_loop(void *state_ptr) {
   cpu_and_wall_time_worker_state *state = (cpu_and_wall_time_worker_state *) state_ptr;
 
@@ -861,6 +862,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
           // for an uncontrolled amount of time. (This can still happen to the IdleSamplingHelper, but the
           // CpuAndWallTimeWorker will still be free to interrupt the Ruby VM and keep sampling for the entire blocking period).
           state->stats.trigger_simulated_signal_delivery_attempts++;
+          // TODO: This call violates the no-Ruby-object-access invariant; resolve the helper's native state with the GVL held.
           idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
         }
       }
