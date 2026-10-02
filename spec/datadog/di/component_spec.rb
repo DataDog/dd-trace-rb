@@ -380,8 +380,11 @@ RSpec.describe Datadog::DI::Component do
   describe "#implicitly_enabled?" do
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
     let(:logger) { instance_double(Logger) }
+    let(:component) { described_class.build(settings, agent_settings, logger) }
 
     before { allow(logger).to receive(:debug) }
+
+    after { component&.shutdown! }
 
     context "when the component is started and the enabled setting is at its default" do
       # The implicit-enablement scenario: the customer never set
@@ -394,11 +397,10 @@ RSpec.describe Datadog::DI::Component do
         end
       end
 
+      before { component.start! }
+
       it "is true" do
-        component = described_class.build(settings, agent_settings, logger)
-        component.start!
         expect(component.implicitly_enabled?).to be true
-        component.shutdown!
       end
     end
 
@@ -411,11 +413,33 @@ RSpec.describe Datadog::DI::Component do
         end
       end
 
+      before { component.start! }
+
       it "is false (explicit opt-in is independent of RC enablement)" do
-        component = described_class.build(settings, agent_settings, logger)
-        component.start!
         expect(component.implicitly_enabled?).to be false
-        component.shutdown!
+      end
+    end
+
+    context "when the component is started and the customer then explicitly disables it" do
+      # Regression for the using_default? decision. Datadog.configure mutates
+      # the singleton settings before Components#state reads this predicate;
+      # an explicit enabled=false arriving while the component is still
+      # started must read as not implicit. The historical !enabled form would
+      # have computed true here and carried the disabled DI forward.
+      let(:settings) do
+        Datadog::Core::Configuration::Settings.new.tap do |s|
+          s.dynamic_instrumentation.internal.development = true
+          s.remote.enabled = true
+        end
+      end
+
+      before do
+        component.start!
+        settings.dynamic_instrumentation.enabled = false
+      end
+
+      it "is false" do
+        expect(component.implicitly_enabled?).to be false
       end
     end
 
@@ -427,10 +451,8 @@ RSpec.describe Datadog::DI::Component do
         end
       end
 
-      it "is false regardless of the enabled setting default" do
-        component = described_class.build(settings, agent_settings, logger)
+      it "is false" do
         expect(component.implicitly_enabled?).to be false
-        component.shutdown!
       end
     end
   end
