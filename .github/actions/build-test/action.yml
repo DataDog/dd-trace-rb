@@ -10,18 +10,10 @@ inputs:
   container-id:
     description: 'Container Identifier'
     required: true
-  test-seed:
-    description: 'Fixed test seed for comparable experimental runs'
-    required: false
-    default: ''
   install-dependencies:
-    description: 'Run dependency checks and install missing gems for each batch'
+    description: 'Install dependencies required by this batch'
     required: false
     default: 'true'
-  minimal-tests:
-    description: 'Run one RSpec example per spec file'
-    required: false
-    default: 'false'
 
 runs:
   using: "composite"
@@ -30,27 +22,10 @@ runs:
     run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
     shell: bash
 
-  - id: bundle-install-start
-    if: inputs.install-dependencies == 'true'
-    run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
-    shell: bash
-
   - name: Install batch dependencies
     if: inputs.install-dependencies == 'true'
     run: bundle exec rake github:run_batch_build
     shell: bash
-
-  - name: Report batch dependency installation
-    if: inputs.install-dependencies == 'true'
-    shell: bash
-    env:
-      START_SECONDS: ${{ steps.bundle-install-start.outputs.seconds }}
-    run: |
-      duration=$(($(date +%s) - START_SECONDS))
-      {
-        echo "### Batch dependency installation"
-        echo "- Duration: \`${duration}s\`"
-      } >> "$GITHUB_STEP_SUMMARY"
 
   - name: Configure RSpec
     run: ln -s .rspec-local.example .rspec-local
@@ -60,9 +35,7 @@ runs:
     shell: bash
     env:
       COVERAGE_DIR: coverage/versions/${{ inputs.alias }}/${{ inputs.container-id }}
-      CI_MINIMAL_TESTS: "${{ inputs.minimal-tests }}"
-      CI_TEST_SEED: "${{ inputs.test-seed || github.run_id }}"
-      SKIP_SIMPLECOV: "${{ inputs.minimal-tests == 'true' && '1' || '0' }}"
+      CI_TEST_SEED: "${{ github.run_id }}"
 
   - name: Display debug info
     if: ${{ !cancelled() }}
@@ -93,7 +66,6 @@ runs:
       path: tmp/rspec/*.xml
 
   - name: Upload coverage data
-    if: inputs.minimal-tests != 'true'
     uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
     with:
       name: coverage-${{ inputs.alias }}-${{ inputs.container-id }}

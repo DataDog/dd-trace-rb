@@ -73,15 +73,6 @@ RSpec.describe GithubMatrix do
     )
   end
 
-  it "returns appraisal Gemfiles without the root Gemfile" do
-    expect(matrix.appraisal_gemfiles).to eq(
-      [
-        "gemfiles/ruby_4.0_mongo.gemfile",
-        "gemfiles/ruby_4.0_rails.gemfile",
-      ]
-    )
-  end
-
   context "with a custom fallback Gemfile" do
     let(:fallback_gemfile) { "gemfiles/ruby-4.0.gemfile" }
 

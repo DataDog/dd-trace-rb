@@ -41,10 +41,6 @@ class GithubMatrix
     tasks.map { |task| task[:gemfile] }.uniq.sort
   end
 
-  def appraisal_gemfiles
-    gemfiles.reject { |path| path == "Gemfile" }
-  end
-
   private
 
   def matching_entries

@@ -13,22 +13,11 @@ on: # yamllint disable-line rule:truthy
       alias:
         required: true
         type: string
-      package-cache-write:
-        required: true
+      installed-cache-enabled:
+        required: false
         type: boolean
-      installed-cache-strategy:
-        required: false
-        type: string
-        default: disabled
-      installed-cache-key-variant:
-        required: false
-        type: string
-        default: ''
-      test-seed:
-        required: false
-        type: string
-        default: ''
-      minimal-tests:
+        default: false
+      installed-cache-write:
         required: false
         type: boolean
         default: false
@@ -39,12 +28,9 @@ on: # yamllint disable-line rule:truthy
       cache-key:
         description: "The cache key for bundle"
         value: ${{ jobs.batch.outputs.cache-key }}
-      package-cache-key:
-        description: "The exact downloaded-package cache key"
-        value: ${{ jobs.batch.outputs.package-cache-key }}
       installed-cache-key:
-        description: "The exact installed matrix bundle cache key or group-key map"
-        value: ${{ jobs.batch.outputs.installed-cache-key || jobs.batch.outputs.installed-cache-keys }}
+        description: "The installed matrix bundle cache key"
+        value: ${{ jobs.batch.outputs.installed-cache-key }}
 
   workflow_dispatch:
     inputs:
@@ -60,37 +46,16 @@ on: # yamllint disable-line rule:truthy
         description: "The alias of the engine (e.g. `ruby-34` for Ruby 3.4)"
         required: true
         type: string
-      package-cache-write:
-        description: "Permit downloaded-package cache writes on the default branch"
-        required: true
-        type: boolean
-        default: false
-      installed-cache-strategy:
-        description: "Installed-matrix cache architecture"
-        required: true
-        type: choice
-        options:
-          - disabled
-          - full
-          - all-delta
-          - group-full
-          - group-delta
-        default: disabled
-      installed-cache-key-variant:
-        description: "Content-key variant for partial-restore lifecycle tests"
-        required: false
-        type: string
-        default: ''
-      test-seed:
-        description: "Fixed test seed for comparable experimental runs"
-        required: false
-        type: string
-        default: ''
-      minimal-tests:
-        description: "Run one RSpec example per spec file for cache measurements"
+      installed-cache-enabled:
+        description: "Use full-union installed bundle cache"
         required: true
         type: boolean
         default: true
+      installed-cache-write:
+        description: "Build and save installed bundle after a miss"
+        required: true
+        type: boolean
+        default: false
 
 permissions: {}
 
@@ -101,38 +66,29 @@ jobs:
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       misc: "${{ steps.set-batches.outputs.misc }}"
-      cache-key: "${{ steps.bundle-cache.outputs.cache-key || steps.fallback-bundle-cache.outputs.cache-key || steps.installed-bundle-cache.outputs.cache-key }}"
+      cache-key: "${{ steps.bundle-cache.outputs.cache-key || steps.fallback-bundle-cache.outputs.cache-key }}"
       lockfile: "${{ steps.bundle-cache.outputs.lockfile || steps.fallback-bundle-cache.outputs.lockfile }}"
       installed-cache-key: "${{ steps.installed-bundle-cache.outputs.cache-key }}"
-      installed-cache-prefix: "${{ steps.installed-bundle-cache.outputs.restore-prefix }}"
-      installed-cache-keys: "${{ steps.installed-bundle-group-cache.outputs.cache-keys }}"
-      installed-cache-prefixes: "${{ steps.installed-bundle-group-cache.outputs.restore-prefixes }}"
-      installed-cache-ready: "${{ steps.installed-bundle-cache.outputs.ready || steps.installed-bundle-group-cache.outputs.ready }}"
-      installed-cache-status: "${{ steps.installed-bundle-cache.outputs.status || steps.installed-bundle-group-cache.outputs.status }}"
-      package-cache-key: "${{ steps.package-cache-key.outputs.primary-key }}"
-      package-cache-prefix: "${{ steps.package-cache-key.outputs.fallback-prefix }}"
+      installed-cache-ready: "${{ steps.installed-bundle-cache.outputs.ready }}"
     container:
       image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
-        BUNDLE_CACHE_ALL: "true"
-        BUNDLE_CACHE_PATH: /tmp/ddtrace-bundle-package-cache
-        BUNDLE_NO_PRUNE: "true"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Prepare bundle cache
-        if: inputs.installed-cache-strategy != 'full'
+        if: inputs.installed-cache-enabled != true
         id: bundle-cache
         uses: ./.github/actions/bundle-cache
 
       - id: set-batches
         name: Distribute tasks into batches
         env:
-          FALLBACK_GEMFILE: ${{ inputs.installed-cache-strategy != 'disabled' && format('gemfiles/{0}-{1}.gemfile', inputs.engine, inputs.version) || '' }}
+          FALLBACK_GEMFILE: ${{ inputs.installed-cache-enabled && format('gemfiles/{0}-{1}.gemfile', inputs.engine, inputs.version) || '' }}
         run: |
           if [ -n "$FALLBACK_GEMFILE" ]; then
             data=$(bundle exec rake "github:generate_batches[$FALLBACK_GEMFILE]")
@@ -147,63 +103,37 @@ jobs:
           { echo "batches=$batches_data"; echo "misc=$misc_data"; } >> "$GITHUB_OUTPUT"
 
       - name: Prepare installed matrix bundle cache
-        if: inputs.installed-cache-strategy == 'full' || inputs.installed-cache-strategy == 'all-delta'
+        if: inputs.installed-cache-enabled
         id: installed-bundle-cache
         uses: ./.github/actions/installed-bundle-cache
         with:
           base-gemfile: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
-          base-cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
-          cache-schema: ${{ inputs.installed-cache-strategy == 'all-delta' && 'bundle-installed-matrix-s2-v1-all-delta' || 'bundle-installed-matrix-test-v2-all-full' }}
-          experiment-variant: ${{ inputs.installed-cache-key-variant }}
+          cache-schema: bundle-installed-matrix-full-v1
           image-identity: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
-          strategy: ${{ inputs.installed-cache-strategy }}
-          write-enabled: ${{ inputs.package-cache-write }}
-
-      - name: Prepare installed bundle group caches
-        if: inputs.installed-cache-strategy == 'group-full' || inputs.installed-cache-strategy == 'group-delta'
-        id: installed-bundle-group-cache
-        uses: ./.github/actions/installed-bundle-group-cache
-        with:
-          base-gemfile: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
-          standard-groups: ${{ steps.set-batches.outputs.batches }}
-          misc-groups: ${{ steps.set-batches.outputs.misc }}
-          base-cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
-          cache-schema: ${{ inputs.installed-cache-strategy == 'group-full' && 'bundle-installed-matrix-s3-v1-group-full' || 'bundle-installed-matrix-s4-v2-union-partition' }}
-          experiment-variant: ${{ inputs.installed-cache-key-variant }}
-          image-identity: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
-          strategy: ${{ inputs.installed-cache-strategy }}
-          write-enabled: ${{ inputs.package-cache-write }}
+          write-enabled: ${{ inputs.installed-cache-write }}
 
       - name: Prepare fallback bundle cache
-        if: inputs.installed-cache-strategy == 'full' && steps.installed-bundle-cache.outputs.ready != 'true'
+        if: inputs.installed-cache-enabled && steps.installed-bundle-cache.outputs.ready != 'true'
         id: fallback-bundle-cache
         uses: ./.github/actions/bundle-cache
 
       - name: Report installed matrix bundle cache
-        if: inputs.installed-cache-strategy != 'disabled'
+        if: inputs.installed-cache-enabled
         shell: bash
         env:
-          BYTE_COUNT: ${{ steps.installed-bundle-cache.outputs.byte-count || steps.installed-bundle-group-cache.outputs.byte-count }}
-          CACHE_KEY: ${{ steps.installed-bundle-cache.outputs.cache-key || steps.installed-bundle-group-cache.outputs.cache-keys }}
-          EXACT_HIT: ${{ steps.installed-bundle-cache.outputs.exact-hit || steps.installed-bundle-group-cache.outputs.exact-hit }}
-          FILE_COUNT: ${{ steps.installed-bundle-cache.outputs.file-count || steps.installed-bundle-group-cache.outputs.file-count }}
-          MATCHED_KEY: ${{ steps.installed-bundle-cache.outputs.matched-key || steps.installed-bundle-group-cache.outputs.matched-keys }}
-          READY: ${{ steps.installed-bundle-cache.outputs.ready || steps.installed-bundle-group-cache.outputs.ready }}
-          STATUS: ${{ steps.installed-bundle-cache.outputs.status || steps.installed-bundle-group-cache.outputs.status }}
-          POPULATION_SECONDS: ${{ steps.installed-bundle-cache.outputs.population-seconds || steps.installed-bundle-group-cache.outputs.population-seconds }}
-          RESTORE_SECONDS: ${{ steps.installed-bundle-cache.outputs.restore-seconds || steps.installed-bundle-group-cache.outputs.restore-seconds }}
-          SAVE_SECONDS: ${{ steps.installed-bundle-cache.outputs.save-seconds || steps.installed-bundle-group-cache.outputs.save-seconds }}
+          BYTE_COUNT: ${{ steps.installed-bundle-cache.outputs.byte-count }}
+          CACHE_KEY: ${{ steps.installed-bundle-cache.outputs.cache-key }}
+          FILE_COUNT: ${{ steps.installed-bundle-cache.outputs.file-count }}
+          POPULATION_SECONDS: ${{ steps.installed-bundle-cache.outputs.population-seconds }}
+          SAVE_SECONDS: ${{ steps.installed-bundle-cache.outputs.save-seconds }}
+          STATUS: ${{ steps.installed-bundle-cache.outputs.status }}
         run: |
           {
             echo "### Installed matrix bundle cache"
             echo "- Key: \`$CACHE_KEY\`"
-            echo "- Matched key: \`${MATCHED_KEY:-none}\`"
-            echo "- Exact hit: \`${EXACT_HIT:-false}\`"
-            echo "- Status: \`${STATUS:-miss}\`"
-            echo "- Ready: \`${READY:-false}\`"
+            echo "- Status: \`$STATUS\`"
             echo "- Files: \`${FILE_COUNT:-not-measured}\`"
             echo "- Bytes: \`${BYTE_COUNT:-not-measured}\`"
-            echo "- Restore seconds: \`${RESTORE_SECONDS:-0}\`"
             echo "- Population seconds: \`${POPULATION_SECONDS:-0}\`"
             echo "- Save seconds: \`${SAVE_SECONDS:-0}\`"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -212,68 +142,6 @@ jobs:
         env:
           batches_json: "${{ steps.set-batches.outputs.batches }}"
         run: bundle exec rake github:generate_batch_summary
-
-      - id: package-cache-key
-        if: inputs.installed-cache-strategy == 'disabled'
-        name: Compute and look up package cache key
-        uses: ./.github/actions/package-cache-key
-        with:
-          base-gemfile: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
-          matrix: Matrixfile
-          ruby-version: ${{ inputs.version }}
-          runtime-identifier: ${{ inputs.engine }}-${{ inputs.version }}
-
-      - id: package-cache-restore
-        if: inputs.installed-cache-strategy == 'disabled' && steps.package-cache-key.outputs.exact-hit != 'true' && inputs.package-cache-write
-        name: Restore fallback package cache
-        uses: ./.github/actions/package-cache-restore
-        with:
-          primary-key: ${{ steps.package-cache-key.outputs.primary-key }}
-          fallback-prefix: ${{ steps.package-cache-key.outputs.fallback-prefix }}
-
-      - id: package-cache-populate
-        if: inputs.installed-cache-strategy == 'disabled' && steps.package-cache-key.outputs.exact-hit != 'true' && inputs.package-cache-write
-        name: Populate package cache
-        uses: ./.github/actions/package-cache-populate
-        with:
-          manifest-path: ${{ steps.package-cache-key.outputs.manifest-path }}
-
-      - id: package-cache-save
-        if: inputs.installed-cache-strategy == 'disabled' && steps.package-cache-key.outputs.exact-hit != 'true' && inputs.package-cache-write
-        name: Save package cache
-        uses: ./.github/actions/package-cache-save
-        with:
-          primary-key: ${{ steps.package-cache-key.outputs.primary-key }}
-          write-enabled: ${{ inputs.package-cache-write }}
-
-      - name: Report package cache preparation
-        if: inputs.installed-cache-strategy == 'disabled'
-        shell: bash
-        env:
-          BYTE_COUNT: ${{ steps.package-cache-populate.outputs.byte-count }}
-          DOWNLOADED_BYTES: ${{ steps.package-cache-populate.outputs.downloaded-byte-count }}
-          DOWNLOADED_FILES: ${{ steps.package-cache-populate.outputs.downloaded-file-count }}
-          EXACT_HIT: ${{ steps.package-cache-key.outputs.exact-hit }}
-          FILE_COUNT: ${{ steps.package-cache-populate.outputs.file-count }}
-          MATCHED_KEY: ${{ steps.package-cache-restore.outputs.matched-key || steps.package-cache-key.outputs.matched-key }}
-          POPULATE_SECONDS: ${{ steps.package-cache-populate.outputs.duration-seconds }}
-          PRIMARY_KEY: ${{ steps.package-cache-key.outputs.primary-key }}
-          RESTORE_SECONDS: ${{ steps.package-cache-restore.outputs.duration-seconds }}
-          SAVE_SECONDS: ${{ steps.package-cache-save.outputs.duration-seconds }}
-        run: |
-          {
-            echo "### Downloaded package cache"
-            echo "- Primary key: \`$PRIMARY_KEY\`"
-            echo "- Matched key: \`${MATCHED_KEY:-none}\`"
-            echo "- Exact hit: \`${EXACT_HIT:-false}\`"
-            echo "- Archive files: \`${FILE_COUNT:-not-downloaded}\`"
-            echo "- Archive bytes: \`${BYTE_COUNT:-not-downloaded}\`"
-            echo "- Downloaded files: \`${DOWNLOADED_FILES:-0}\`"
-            echo "- Downloaded bytes: \`${DOWNLOADED_BYTES:-0}\`"
-            echo "- Restore seconds: \`${RESTORE_SECONDS:-0}\`"
-            echo "- Population seconds: \`${POPULATE_SECONDS:-0}\`"
-            echo "- Save seconds: \`${SAVE_SECONDS:-0}\`"
-          } >> "$GITHUB_STEP_SUMMARY"
 
   # `Initialize containers` step becomes quite heavily when many services are used.
   #
@@ -305,7 +173,6 @@ jobs:
     timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
-      INSTALLED_CACHE_GROUP_KIND: standard
     strategy:
       fail-fast: false
       matrix:
@@ -315,9 +182,6 @@ jobs:
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
-        BUNDLE_CACHE_ALL: "true"
-        BUNDLE_CACHE_PATH: /tmp/ddtrace-bundle-package-cache
-        BUNDLE_NO_PRUNE: "true"
         # Resolve every dynamic symbol at load time, so that a native extension referencing a symbol Ruby does not
         # export fails here instead of in a customer's image (https://github.com/DataDog/dd-trace-rb/issues/6338)
         LD_BIND_NOW: "1"
@@ -380,63 +244,23 @@ jobs:
         with:
           persist-credentials: false
       - name: Restore bundle cache
-        if: inputs.installed-cache-strategy != 'full' || needs.batch.outputs.installed-cache-ready != 'true'
+        if: needs.batch.outputs.installed-cache-ready != 'true'
         uses: ./.github/actions/bundle-restore
         with:
           lockfile: ${{ needs.batch.outputs.lockfile }}
           cache-key: ${{ needs.batch.outputs.cache-key }}
       - id: installed-bundle-restore
-        if: inputs.installed-cache-strategy != 'disabled' && needs.batch.outputs.installed-cache-status != 'miss'
+        if: needs.batch.outputs.installed-cache-ready == 'true'
         name: Restore installed matrix bundle
         uses: ./.github/actions/installed-bundle-restore
         with:
-          cache-key: ${{ (inputs.installed-cache-strategy == 'group-full' || inputs.installed-cache-strategy == 'group-delta') && fromJSON(needs.batch.outputs.installed-cache-keys)[format('{0}-{1}', env.INSTALLED_CACHE_GROUP_KIND, matrix.batch)] || needs.batch.outputs.installed-cache-key }}
-          restore-prefix: ${{ (inputs.installed-cache-strategy == 'group-full' || inputs.installed-cache-strategy == 'group-delta') && fromJSON(needs.batch.outputs.installed-cache-prefixes)[format('{0}-{1}', env.INSTALLED_CACHE_GROUP_KIND, matrix.batch)] || needs.batch.outputs.installed-cache-prefix }}
-          strategy: ${{ inputs.installed-cache-strategy }}
-          group: ${{ env.INSTALLED_CACHE_GROUP_KIND }}-${{ matrix.batch }}
-      - name: Report installed matrix bundle restore
-        if: inputs.installed-cache-strategy != 'disabled' && needs.batch.outputs.installed-cache-status != 'miss'
-        shell: bash
-        env:
-          EXACT_HIT: ${{ steps.installed-bundle-restore.outputs.exact-hit }}
-          MATCHED_KEY: ${{ steps.installed-bundle-restore.outputs.matched-key }}
-          RESTORE_SECONDS: ${{ steps.installed-bundle-restore.outputs.restore-seconds }}
-        run: |
-          {
-            echo "### Installed matrix bundle restore"
-            echo "- Matched key: \`$MATCHED_KEY\`"
-            echo "- Exact hit: \`${EXACT_HIT:-false}\`"
-            echo "- Restore seconds: \`$RESTORE_SECONDS\`"
-          } >> "$GITHUB_STEP_SUMMARY"
-      - id: package-cache-restore
-        if: inputs.installed-cache-strategy == 'disabled'
-        name: Restore package cache
-        uses: ./.github/actions/package-cache-restore
-        with:
-          primary-key: ${{ needs.batch.outputs.package-cache-key }}
-          fallback-prefix: ${{ needs.batch.outputs.package-cache-prefix }}
-      - name: Report package cache restore
-        if: inputs.installed-cache-strategy == 'disabled'
-        shell: bash
-        env:
-          EXACT_HIT: ${{ steps.package-cache-restore.outputs.exact-hit }}
-          MATCHED_KEY: ${{ steps.package-cache-restore.outputs.matched-key }}
-          RESTORE_SECONDS: ${{ steps.package-cache-restore.outputs.duration-seconds }}
-        run: |
-          {
-            echo "### Downloaded package cache restore"
-            echo "- Matched key: \`${MATCHED_KEY:-none}\`"
-            echo "- Exact hit: \`${EXACT_HIT:-false}\`"
-            echo "- Restore seconds: \`${RESTORE_SECONDS:-0}\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+          cache-key: ${{ needs.batch.outputs.installed-cache-key }}
       - name: Build & Test
         uses: ./.github/actions/build-test
         with:
           alias: ${{ inputs.alias }}
           container-id: "standard-${{ matrix.batch }}"
-          test-seed: ${{ inputs.test-seed }}
-          install-dependencies: ${{ needs.batch.outputs.installed-cache-status != 'exact' && needs.batch.outputs.installed-cache-status != 'generated' }}
-          minimal-tests: ${{ inputs.minimal-tests }}
+          install-dependencies: ${{ needs.batch.outputs.installed-cache-ready != 'true' }}
 
   build-test-misc:
     needs:
@@ -446,7 +270,6 @@ jobs:
     timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
-      INSTALLED_CACHE_GROUP_KIND: misc
     strategy:
       fail-fast: false
       matrix:
@@ -456,9 +279,6 @@ jobs:
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
-        BUNDLE_CACHE_ALL: "true"
-        BUNDLE_CACHE_PATH: /tmp/ddtrace-bundle-package-cache
-        BUNDLE_NO_PRUNE: "true"
         LD_BIND_NOW: "1" # See above
         DD_INSTRUMENTATION_TELEMETRY_ENABLED: "false"
         DD_REMOTE_CONFIGURATION_ENABLED: "false"
@@ -520,60 +340,20 @@ jobs:
         with:
           persist-credentials: false
       - name: Restore bundle cache
-        if: inputs.installed-cache-strategy != 'full' || needs.batch.outputs.installed-cache-ready != 'true'
+        if: needs.batch.outputs.installed-cache-ready != 'true'
         uses: ./.github/actions/bundle-restore
         with:
           lockfile: ${{ needs.batch.outputs.lockfile }}
           cache-key: ${{ needs.batch.outputs.cache-key }}
       - id: installed-bundle-restore
-        if: inputs.installed-cache-strategy != 'disabled' && needs.batch.outputs.installed-cache-status != 'miss'
+        if: needs.batch.outputs.installed-cache-ready == 'true'
         name: Restore installed matrix bundle
         uses: ./.github/actions/installed-bundle-restore
         with:
-          cache-key: ${{ (inputs.installed-cache-strategy == 'group-full' || inputs.installed-cache-strategy == 'group-delta') && fromJSON(needs.batch.outputs.installed-cache-keys)[format('{0}-{1}', env.INSTALLED_CACHE_GROUP_KIND, matrix.batch)] || needs.batch.outputs.installed-cache-key }}
-          restore-prefix: ${{ (inputs.installed-cache-strategy == 'group-full' || inputs.installed-cache-strategy == 'group-delta') && fromJSON(needs.batch.outputs.installed-cache-prefixes)[format('{0}-{1}', env.INSTALLED_CACHE_GROUP_KIND, matrix.batch)] || needs.batch.outputs.installed-cache-prefix }}
-          strategy: ${{ inputs.installed-cache-strategy }}
-          group: ${{ env.INSTALLED_CACHE_GROUP_KIND }}-${{ matrix.batch }}
-      - name: Report installed matrix bundle restore
-        if: inputs.installed-cache-strategy != 'disabled' && needs.batch.outputs.installed-cache-status != 'miss'
-        shell: bash
-        env:
-          EXACT_HIT: ${{ steps.installed-bundle-restore.outputs.exact-hit }}
-          MATCHED_KEY: ${{ steps.installed-bundle-restore.outputs.matched-key }}
-          RESTORE_SECONDS: ${{ steps.installed-bundle-restore.outputs.restore-seconds }}
-        run: |
-          {
-            echo "### Installed matrix bundle restore"
-            echo "- Matched key: \`$MATCHED_KEY\`"
-            echo "- Exact hit: \`${EXACT_HIT:-false}\`"
-            echo "- Restore seconds: \`$RESTORE_SECONDS\`"
-          } >> "$GITHUB_STEP_SUMMARY"
-      - id: package-cache-restore
-        if: inputs.installed-cache-strategy == 'disabled'
-        name: Restore package cache
-        uses: ./.github/actions/package-cache-restore
-        with:
-          primary-key: ${{ needs.batch.outputs.package-cache-key }}
-          fallback-prefix: ${{ needs.batch.outputs.package-cache-prefix }}
-      - name: Report package cache restore
-        if: inputs.installed-cache-strategy == 'disabled'
-        shell: bash
-        env:
-          EXACT_HIT: ${{ steps.package-cache-restore.outputs.exact-hit }}
-          MATCHED_KEY: ${{ steps.package-cache-restore.outputs.matched-key }}
-          RESTORE_SECONDS: ${{ steps.package-cache-restore.outputs.duration-seconds }}
-        run: |
-          {
-            echo "### Downloaded package cache restore"
-            echo "- Matched key: \`${MATCHED_KEY:-none}\`"
-            echo "- Exact hit: \`${EXACT_HIT:-false}\`"
-            echo "- Restore seconds: \`${RESTORE_SECONDS:-0}\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+          cache-key: ${{ needs.batch.outputs.installed-cache-key }}
       - name: Build & Test
         uses: ./.github/actions/build-test
         with:
           alias: ${{ inputs.alias }}
           container-id: "misc-${{ matrix.batch }}"
-          test-seed: ${{ inputs.test-seed }}
-          install-dependencies: ${{ needs.batch.outputs.installed-cache-status != 'exact' && needs.batch.outputs.installed-cache-status != 'generated' }}
-          minimal-tests: ${{ inputs.minimal-tests }}
+          install-dependencies: ${{ needs.batch.outputs.installed-cache-ready != 'true' }}

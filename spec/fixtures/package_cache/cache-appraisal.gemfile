@@ -1,2 +1,0 @@
-eval_gemfile "cache-base.gemfile"
-gem "excon", "1.7.1"

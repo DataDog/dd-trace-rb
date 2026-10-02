@@ -4,10 +4,6 @@ require "tempfile"
 require "yaml"
 
 RSpec.describe "installed bundle cache workflow" do
-  subject(:lifecycle) do
-    lifecycle_result(exact_hit: exact_hit, matched_key: matched_key, write_enabled: write_enabled)
-  end
-
   let(:action) do
     YAML.safe_load_file(
       File.expand_path("../../.github/actions/installed-bundle-cache/action.yml", __dir__),
@@ -20,21 +16,13 @@ RSpec.describe "installed bundle cache workflow" do
       aliases: true,
     )
   end
-  let(:group_action) do
-    YAML.safe_load_file(
-      File.expand_path("../../.github/actions/installed-bundle-group-cache/action.yml", __dir__),
-      aliases: true,
-    )
-  end
-  let(:steps) { action.fetch("runs").fetch("steps") }
   let(:workflow) do
     YAML.safe_load_file(
       File.expand_path("../../.github/workflows/_unit_test.yml", __dir__),
       aliases: true,
     )
   end
-  let(:lifecycle_step) { steps.find { |step| step["id"] == "lifecycle" } }
-  let(:result_step) { steps.find { |step| step["id"] == "result" } }
+  let(:steps) { action.fetch("runs").fetch("steps") }
 
   def run_output(script, environment)
     Tempfile.create do |output|
@@ -46,226 +34,88 @@ RSpec.describe "installed bundle cache workflow" do
     end
   end
 
-  def lifecycle_result(exact_hit:, matched_key:, write_enabled:)
-    lifecycle_output = run_output(
-      lifecycle_step.fetch("run"),
-      {
-        "EXACT_HIT" => exact_hit.to_s,
-        "MATCHED_KEY" => matched_key,
-        "WRITE_ENABLED" => write_enabled.to_s,
-      },
+  it "uses a lookup-only parent probe" do
+    lookup = steps.find { |step| step["id"] == "lookup" }
+
+    expect(lookup.fetch("with")).to include(
+      "lookup-only" => true,
+      "path" => "/usr/local/bundle",
     )
-    result_output = run_output(
-      result_step.fetch("run"),
-      {
-        "INITIAL_STATUS" => lifecycle_output.fetch("status"),
-        "WRITE_ENABLED" => write_enabled.to_s,
-      },
+  end
+
+  it "validates a generated union before saving it" do
+    names = steps.map { |step| step["name"] }
+
+    expect(names.index("Verify complete matrix bundle")).to be < names.index("Save installed bundle")
+  end
+
+  it "classifies exact, writable miss, and read-only miss states" do
+    result = steps.find { |step| step["id"] == "result" }.fetch("run")
+
+    expect(run_output(result, "EXACT_HIT" => "true", "WRITE_ENABLED" => "false")).to include(
+      "status" => "exact",
+      "ready" => "true",
     )
-
-    lifecycle_output.merge(result_output)
+    expect(run_output(result, "EXACT_HIT" => "false", "WRITE_ENABLED" => "true")).to include(
+      "status" => "generated",
+      "ready" => "true",
+    )
+    expect(run_output(result, "EXACT_HIT" => "false", "WRITE_ENABLED" => "false")).to include(
+      "status" => "miss",
+      "ready" => "false",
+    )
   end
 
-  def group_lifecycle(overrides = {})
-    group_steps = group_action.fetch("runs").fetch("steps")
-    lifecycle = group_steps.find { |step| step["id"] == "lifecycle" }
-    environment = %w[STANDARD_0 STANDARD_1 STANDARD_2 STANDARD_3 STANDARD_4 STANDARD_5 STANDARD_6 MISC_0].each_with_object({}) do |name, values|
-      values["#{name}_HIT"] = "true"
-      values["#{name}_MATCH"] = "current-key"
-    end
+  it "contains no strategy selector or grouped cache lifecycle" do
+    source = File.read(File.expand_path("../../.github/workflows/_unit_test.yml", __dir__))
 
-    run_output(lifecycle.fetch("run"), environment.merge(overrides))
+    expect(source).not_to include("installed-cache-strategy", "group-delta", "group-full", "all-delta")
+    expect(source).not_to include("package-cache", "minimal-tests", "experiment-variant")
   end
 
-  context "with an exact hit" do
-    let(:exact_hit) { true }
-    let(:matched_key) { "current-key" }
-    let(:write_enabled) { false }
+  it "does not prepare the base cache before an installed-cache lookup" do
+    batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
+    base = batch_steps.find { |step| step["name"] == "Prepare bundle cache" }
+    fallback = batch_steps.find { |step| step["name"] == "Prepare fallback bundle cache" }
 
-    it { is_expected.to include("status" => "exact", "ready" => "true", "repair" => "false") }
+    expect(base.fetch("if")).to eq("inputs.installed-cache-enabled != true")
+    expect(fallback.fetch("if")).to include("outputs.ready != 'true'")
   end
 
-  context "with a writable miss" do
-    let(:exact_hit) { false }
-    let(:matched_key) { "" }
-    let(:write_enabled) { true }
+  it "maps fallback tasks to the committed runtime Gemfile" do
+    batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
+    batches = batch_steps.find { |step| step["name"] == "Distribute tasks into batches" }
 
-    it { is_expected.to include("status" => "generated", "ready" => "true", "repair" => "true") }
+    expect(batches.fetch("env").fetch("FALLBACK_GEMFILE")).to include(
+      "gemfiles/{0}-{1}.gemfile",
+      "inputs.installed-cache-enabled",
+    )
+  end
 
-    it "validates before saving" do
-      names = steps.map { |step| step["name"] }
+  it "restores one exact union in each ready child" do
+    jobs = workflow.fetch("jobs")
 
-      expect(names.index("Verify complete matrix bundle")).to be < names.index("Save installed bundle")
+    %w[build-test-standard build-test-misc].each do |job_name|
+      child_steps = jobs.fetch(job_name).fetch("steps")
+      base = child_steps.find { |step| step["name"] == "Restore bundle cache" }
+      installed = child_steps.find { |step| step["name"] == "Restore installed matrix bundle" }
+      build = child_steps.find { |step| step["name"] == "Build & Test" }
+
+      expect(base.fetch("if")).to include("installed-cache-ready != 'true'")
+      expect(installed.fetch("if")).to include("installed-cache-ready == 'true'")
+      expect(installed.fetch("with").fetch("cache-key")).to include("installed-cache-key")
+      expect(build.fetch("with").fetch("install-dependencies")).to include("installed-cache-ready != 'true'")
     end
   end
 
-  context "with a read-only partial restore" do
-    let(:exact_hit) { false }
-    let(:matched_key) { "older-key" }
-    let(:write_enabled) { false }
-
-    it { is_expected.to include("status" => "partial", "ready" => "false", "repair" => "true") }
-  end
-
-  context "with a read-only miss" do
-    let(:exact_hit) { false }
-    let(:matched_key) { "" }
-    let(:write_enabled) { false }
-
-    it { is_expected.to include("status" => "miss", "ready" => "false", "repair" => "false") }
-  end
-
-  it "restores deltas only through the environment-specific prefix" do
-    restore = steps.find { |step| step["id"] == "restore" }
-
-    expect(restore.fetch("with").fetch("restore-keys")).to include("steps.manifest.outputs.restore-prefix")
-    expect(restore.fetch("with").fetch("restore-keys")).not_to include("cache-schema")
-  end
-
-  it "applies only the staged all-delta cache over the installed base" do
-    apply = restore_action.fetch("runs").fetch("steps").find do |step|
-      step["name"] == "Apply installed bundle delta"
+  it "restores only the complete installed path and fails on a miss" do
+    restore = restore_action.fetch("runs").fetch("steps").find do |step|
+      step["name"] == "Restore installed bundle"
     end
 
-    expect(apply.fetch("if")).to eq("inputs.strategy == 'all-delta'")
-    expect(apply.fetch("run")).to include("cp -a /tmp/ddtrace-installed-bundle-delta/. /usr/local/bundle/")
-  end
-
-  it "makes child delta restores use the same environment-specific prefix" do
-    restore = restore_action.fetch("runs").fetch("steps").find { |step| step["id"] == "restore" }
-
-    expect(restore.fetch("with").fetch("restore-keys")).to include("inputs.restore-prefix")
-  end
-
-  context "with an installed-cache strategy selector" do
-    it "defaults reusable workflow calls to disabled" do
-      inputs = workflow.fetch(true).fetch("workflow_call").fetch("inputs")
-
-      expect(inputs.fetch("installed-cache-strategy").fetch("default")).to eq("disabled")
-    end
-
-    it "offers every installed-cache experiment for direct dispatch" do
-      inputs = workflow.fetch(true).fetch("workflow_dispatch").fetch("inputs")
-
-      expect(inputs.fetch("installed-cache-strategy").fetch("options")).to eq(
-        %w[disabled full all-delta group-full group-delta]
-      )
-    end
-
-    it "passes the experimental content-key variant to the cache action" do
-      batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
-      installed = batch_steps.find { |step| step["name"] == "Prepare installed matrix bundle cache" }
-
-      expect(installed.fetch("with").fetch("experiment-variant")).to include(
-        "inputs.installed-cache-key-variant"
-      )
-    end
-
-    it "prepares the base cache before an all-delta installed cache" do
-      batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
-      names = batch_steps.map { |step| step["name"] }
-      base = batch_steps.find { |step| step["name"] == "Prepare bundle cache" }
-      installed = batch_steps.find { |step| step["name"] == "Prepare installed matrix bundle cache" }
-
-      expect(names.index("Prepare bundle cache")).to be < names.index("Prepare installed matrix bundle cache")
-      expect(base.fetch("if")).to include("!= 'full'")
-      expect(installed.fetch("with").fetch("base-cache-key")).to include("steps.bundle-cache.outputs.cache-key")
-      expect(installed.fetch("with").fetch("cache-schema")).to include("bundle-installed-matrix-s2-v1-all-delta")
-    end
-
-    it "prepares group caches after distributing tasks" do
-      batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
-      names = batch_steps.map { |step| step["name"] }
-      grouped = batch_steps.find { |step| step["name"] == "Prepare installed bundle group caches" }
-
-      expect(names.index("Distribute tasks into batches")).to be < names.index("Prepare installed bundle group caches")
-      expect(grouped.fetch("with")).to include(
-        "standard-groups" => include("steps.set-batches.outputs.batches"),
-        "misc-groups" => include("steps.set-batches.outputs.misc"),
-      )
-    end
-
-    it "looks up partitioned groups without restoring their archives" do
-      group_steps = group_action.fetch("runs").fetch("steps")
-      restores = group_steps.select { |step| step.fetch("id", "").start_with?("restore-standard-", "restore-misc-") }
-      saves = group_steps.select { |step| step.fetch("name", "").start_with?("Save standard-", "Save misc-") }
-
-      expect(restores.size).to eq(8)
-      expect(saves.size).to eq(8)
-      expect(restores).to all(include("with" => include(
-        "restore-keys" => include("prefix"),
-        "path" => include("paths"),
-        "lookup-only" => include("inputs.strategy == 'group-delta'"),
-      )))
-      expect(saves).to all(include("with" => include("path" => include("paths"))))
-    end
-
-    it "keeps full-group repair out of union-partition generation" do
-      group_steps = group_action.fetch("runs").fetch("steps")
-      full_group_steps = group_steps.select { |step| step.fetch("name", "").start_with?("Prepare standard-", "Prepare misc-") }
-      partition = group_steps.find { |step| step["name"] == "Prepare partitioned installed bundle groups" }
-
-      expect(full_group_steps).to all(include(
-        "if" => include("inputs.strategy == 'group-full'"),
-        "run" => include("prepare-full-group"),
-      ))
-      expect(partition.fetch("if")).to include("inputs.strategy == 'group-delta'")
-      expect(partition.fetch("run")).to include("prepare-partitioned-groups")
-    end
-
-    it "restores partitioned child groups directly to computed installed paths" do
-      restore_steps = restore_action.fetch("runs").fetch("steps")
-      paths = restore_steps.find { |step| step["id"] == "group-paths" }
-      restore = restore_steps.find { |step| step["id"] == "restore" }
-
-      expect(paths.fetch("run")).to include("cache-paths")
-      expect(restore.fetch("with").fetch("path")).to include("steps.group-paths.outputs.value")
-    end
-
-    it "classifies all exact group restores as exact" do
-      expect(group_lifecycle).to include(
-        "status" => "exact",
-        "exact-hit" => "true",
-        "standard-0-status" => "exact",
-      )
-    end
-
-    it "classifies an older group restore as partial" do
-      result = group_lifecycle("STANDARD_3_HIT" => "false", "STANDARD_3_MATCH" => "older-key")
-
-      expect(result).to include(
-        "status" => "partial",
-        "exact-hit" => "false",
-        "standard-3-status" => "partial",
-      )
-    end
-
-    it "classifies any absent group as a miss" do
-      result = group_lifecycle("MISC_0_HIT" => "false", "MISC_0_MATCH" => "")
-
-      expect(result).to include("status" => "miss", "misc-0-status" => "miss")
-    end
-
-    it "selects each child cache by job kind and batch" do
-      jobs = workflow.fetch("jobs")
-
-      %w[build-test-standard build-test-misc].each do |job_name|
-        restore = jobs.fetch(job_name).fetch("steps").find do |step|
-          step["name"] == "Restore installed matrix bundle"
-        end
-
-        expect(restore.fetch("with").fetch("cache-key")).to include(
-          "env.INSTALLED_CACHE_GROUP_KIND",
-          "matrix.batch",
-        )
-      end
-    end
-
-    it "keeps downloaded-package work out of installed-cache runs" do
-      batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
-      package_steps = batch_steps.select { |step| step.fetch("name", "").include?("package cache") }
-
-      expect(package_steps).to all(include("if" => include("inputs.installed-cache-strategy == 'disabled'")))
-    end
+    expect(restore.fetch("with")).to include(
+      "path" => "/usr/local/bundle",
+      "fail-on-cache-miss" => true,
+    )
   end
 end
