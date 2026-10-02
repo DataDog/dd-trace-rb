@@ -1636,6 +1636,8 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
       VALUE target_thread = rb_thread_current();
     #endif
 
+    // TODO: `rb_internal_thread_specific_get` is documented as "async and native thread safe.",
+    // unclear if that holds during GC compaction.
     per_thread_context* thread_context = get_per_thread_context(target_thread);
     if (!thread_context) return;
     // If non-NULL the thread is profiled and from the main Ractor
