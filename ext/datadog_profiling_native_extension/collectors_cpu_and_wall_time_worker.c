@@ -747,9 +747,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   // ractor as otherwise we may be concurrent with the profiler shutting down and removing its state.
   if (
     !ruby_native_thread_p() || // Not a Ruby thread
-    !is_current_thread_in_main_ractor_and_holding_the_gvl() || // Not safe to enqueue a sample from this thread
-    // TODO: On Ruby 3.3+ this dereferences the Ruby Thread object, including when GC is in progress.
-    !ddtrace_rb_ractor_main_p() // We're not on the main Ractor; we currently don't support profiling non-main Ractors
+    !is_current_thread_in_main_ractor_and_holding_the_gvl() // Not safe to enqueue a sample from this thread
   ) return;
 
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
