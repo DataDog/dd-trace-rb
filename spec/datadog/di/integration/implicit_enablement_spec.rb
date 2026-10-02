@@ -529,14 +529,6 @@ RSpec.describe "DI implicit enablement integration" do
   end
 
   describe "RC withdraws the dynamic_instrumentation_enabled signal (config deleted)" do
-    # End-to-end for the withdrawal case: after DI was started solely by an RC
-    # enable signal, deleting dynamic_instrumentation_enabled from the merged
-    # APM_TRACING lib_config (the config carrying it is removed, or the field
-    # is set to null) must stop DI and unsubscribe from the LIVE_DEBUGGING
-    # product, the same as an explicit false. A tracer the customer enabled via
-    # DD_DYNAMIC_INSTRUMENTATION_ENABLED=true is left running, since that opt-in
-    # is independent of RC.
-
     let(:rc_payload_enable) { {"lib_config" => {"dynamic_instrumentation_enabled" => true}} }
     let(:rc_payload_without_di) { {"lib_config" => {"tracing_sampling_rate" => 0.5}} }
 
@@ -547,15 +539,17 @@ RSpec.describe "DI implicit enablement integration" do
     end
 
     context "when DI was started solely from RC enablement" do
-      it "stops the component and withdraws the DI products when the signal is withdrawn" do
-        expect(component.started?).to be false
+      before { apply_rc_payload(rc_payload_enable) }
 
-        expect(remote).to receive(:add_products).with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
-        apply_rc_payload(rc_payload_enable)
+      it "is started by the RC enable signal" do
         expect(component.started?).to be true
+      end
 
+      it "stops the component and withdraws the DI products when the signal is withdrawn" do
         expect(remote).to receive(:remove_products).with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
+
         apply_rc_payload(rc_payload_without_di)
+
         expect(component.started?).to be false
       end
     end
@@ -570,13 +564,17 @@ RSpec.describe "DI implicit enablement integration" do
         end
       end
 
-      it "leaves the component started and does not withdraw products" do
-        component.start!
+      before { component.start! }
+
+      it "is started by the explicit opt-in and is not implicitly enabled" do
         expect(component.started?).to be true
         expect(component.implicitly_enabled?).to be false
+      end
 
+      it "leaves the component started and does not withdraw products when the signal is withdrawn" do
         expect(remote).not_to receive(:remove_products)
         expect(Datadog::DI::Remote).not_to receive(:handle_rc_enablement)
+
         apply_rc_payload(rc_payload_without_di)
 
         expect(component.started?).to be true

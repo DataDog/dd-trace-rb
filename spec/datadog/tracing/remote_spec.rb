@@ -223,12 +223,6 @@ RSpec.describe Datadog::Tracing::Remote do
         end
 
         context "when absent from the merged config (the RC enable signal is withdrawn)" do
-          # When the config carrying dynamic_instrumentation_enabled is
-          # deleted (or the field set to null), the merge yields nil. A tracer
-          # DI started solely from the RC signal must stop and unsubscribe on
-          # withdrawal the same way it does for an explicit false; a tracer the
-          # customer enabled via DD_DYNAMIC_INSTRUMENTATION_ENABLED=true is left
-          # running, since that opt-in is independent of RC.
           let(:config) { {"lib_config" => {"tracing_sampling_rate" => 0.5}} }
 
           context "and DI was started solely from RC enablement (implicitly_enabled?)" do
