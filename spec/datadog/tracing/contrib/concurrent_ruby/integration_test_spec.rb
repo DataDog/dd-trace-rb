@@ -210,9 +210,9 @@ RSpec.describe "ConcurrentRuby integration tests" do
         expect(inner_span.parent_id).to eq(outer_span.id)
       end
 
-      it 'clears the propagated context after execution' do
+      it "clears the propagated context after execution" do
         executor = Concurrent::SingleThreadExecutor.new
-        outer_span = tracer.trace('outer_span')
+        outer_span = tracer.trace("outer_span")
         future = Concurrent::Future.new(executor: executor) {}
         future.execute.wait
         outer_span.finish
