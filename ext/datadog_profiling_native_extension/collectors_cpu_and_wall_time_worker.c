@@ -319,6 +319,10 @@ static VALUE active_sampler_instance = Qnil;
 static cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
 static VALUE clock_failure_exception_class = Qnil;
 
+// Initialized once on the main ractor with the GVL held, before sampling starts; never rewritten.
+// The native context stays at the same address across GC compaction and forks from the main ractor.
+static gvl_owner_context_t *gvl_owner_context = NULL;
+
 // Stats that live outside of any particular `cpu_and_wall_time_worker_state`, so that they can always be safely
 // touched, even when we're not sure it's safe to touch the state (e.g. signal handler, no GVL, etc).
 typedef struct {
@@ -341,6 +345,7 @@ static global_stats_t global_stats;
 __thread uint64_t allocation_count = 0;
 
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
+  gvl_owner_context = init_gvl_owner_context();
   rb_global_variable(&active_sampler_instance);
 
   #ifndef NO_POSTPONED_TRIGGER
@@ -741,7 +746,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   // ractor as otherwise we may be concurrent with the profiler shutting down and removing its state.
   if (
     !ruby_native_thread_p() || // Not a Ruby thread
-    !is_current_thread_holding_the_gvl() || // Not safe to enqueue a sample from this thread
+    !is_current_thread_holding_the_gvl(gvl_owner_context) || // Not safe to enqueue a sample from this thread
     !ddtrace_rb_ractor_main_p() // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   ) return;
 
@@ -832,7 +837,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
       state->stats.trigger_simulated_signal_delivery_attempts++;
       grab_gvl_and_sample(); // Note: Can raise exceptions
     } else {
-      current_gvl_owner owner = gvl_owner();
+      current_gvl_owner owner = gvl_owner(gvl_owner_context);
       if (owner.valid) {
         // Note that reading the GVL owner and sending them a signal is a race -- the Ruby VM keeps on executing while
         // we're doing this, so we may still not signal the correct thread from time to time, but our signal handler
@@ -1219,6 +1224,10 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
 
   // Disable all hooks, so that there are no more attempts to mutate the profile
   disable_hooks(state);
+
+  if (gvl_owner_context != init_gvl_owner_context()) {
+    raise_error(rb_eRuntimeError, "BUG: Unexpected gvl_owner_context changed after fork");
+  }
 
   reset_stats_not_thread_safe(state);
 

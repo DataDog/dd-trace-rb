@@ -97,8 +97,8 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
 // I have also submitted https://bugs.ruby-lang.org/issues/19172 to discuss this with upstream Ruby developers.
 //
 // Thus we need our own gvl-checking method which actually looks at the gvl structure to determine if it is the owner.
-bool is_current_thread_holding_the_gvl(void) {
-  current_gvl_owner owner = gvl_owner();
+bool is_current_thread_holding_the_gvl(gvl_owner_context_t *context) {
+  current_gvl_owner owner = gvl_owner(context);
   return owner.valid && pthread_equal(pthread_self(), owner.owner);
 }
 
@@ -112,6 +112,18 @@ static inline rb_ractor_t *ddtrace_get_ractor(void) {
 }
 #endif
 
+gvl_owner_context_t *init_gvl_owner_context(void) {
+  if (!ddtrace_rb_ractor_main_p()) {
+    rb_raise(rb_eRuntimeError, "BUG: init_gvl_owner_context must be called from the main ractor");
+  }
+
+  #ifdef HAVE_RUBY_RACTOR_H
+    return (gvl_owner_context_t *) ddtrace_get_ractor();
+  #else
+    return (gvl_owner_context_t *) GET_VM();
+  #endif
+}
+
 #ifndef NO_GVL_OWNER // Ruby < 2.6 doesn't have the owner/running field
 // NOTE: Reading the owner in this is a racy read, because we're not grabbing the lock that Ruby uses to protect it.
 //
@@ -121,14 +133,16 @@ static inline rb_ractor_t *ddtrace_get_ractor(void) {
 //   That means that `is_current_thread_holding_the_gvl` is always accurate.
 // * In a case where we observe a different thread, then this may change by the time we do something with this value
 //   anyway. So unless we want to prevent the Ruby scheduler from switching threads, we need to deal with races here.
-current_gvl_owner gvl_owner(void) {
+current_gvl_owner gvl_owner(gvl_owner_context_t *context) {
+  if (context == NULL) return (current_gvl_owner) {.valid = false};
+
   const rb_thread_t *current_owner =
     #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
-      ddtrace_get_ractor()->threads.sched.running;
+      ((rb_ractor_t *) context)->threads.sched.running;
     #elif HAVE_RUBY_RACTOR_H
-      ddtrace_get_ractor()->threads.gvl.owner;
+      ((rb_ractor_t *) context)->threads.gvl.owner;
     #else
-      GET_VM()->gvl.owner;
+      ((rb_vm_t *) context)->gvl.owner;
     #endif
 
   if (current_owner == NULL) {
@@ -149,8 +163,9 @@ current_gvl_owner gvl_owner(void) {
   #endif
 }
 #else
-current_gvl_owner gvl_owner(void) {
-  rb_vm_t *vm = GET_VM();
+current_gvl_owner gvl_owner(gvl_owner_context_t *context) {
+  rb_vm_t *vm = (rb_vm_t *) context;
+  if (vm == NULL) return (current_gvl_owner) {.valid = false};
 
   // BIG Issue: Ruby < 2.6 did not have the owner field. The really nice thing about the owner field is that it's
   // "atomic" -- when a thread sets it, it "declares" two things in a single step

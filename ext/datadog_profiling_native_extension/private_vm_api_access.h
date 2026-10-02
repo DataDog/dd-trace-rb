@@ -20,6 +20,8 @@ typedef struct {
   rb_nativethread_id_t owner;
 } current_gvl_owner;
 
+typedef struct gvl_owner_context gvl_owner_context_t;
+
 // If a sample is kept around for later use, some of its fields need marking. Remember to
 // update the marking code in `sampling_buffer_mark` if new fields are added.
 // This is very similar to rb_backtrace_location_t (cme, iseq, pc) on purpose:
@@ -39,8 +41,10 @@ typedef struct {
 } frame_info;
 
 rb_nativethread_id_t pthread_id_for(VALUE thread);
-bool is_current_thread_holding_the_gvl(void);
-current_gvl_owner gvl_owner(void);
+// Must be called from the main ractor while holding the GVL
+gvl_owner_context_t *init_gvl_owner_context(void);
+current_gvl_owner gvl_owner(gvl_owner_context_t *context);
+bool is_current_thread_holding_the_gvl(gvl_owner_context_t *context);
 uint64_t native_thread_id_for(VALUE thread);
 void ddtrace_thread_list(VALUE result_array);
 bool is_thread_alive(VALUE thread);
