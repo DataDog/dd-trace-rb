@@ -166,6 +166,24 @@ module Datadog
         @started
       end
 
+      # Whether this component is running as a result of remote-configuration
+      # enablement rather than an explicit customer opt-in.
+      #
+      # using_default? — not `enabled` — distinguishes "the customer never
+      # touched DD_DYNAMIC_INSTRUMENTATION_ENABLED" from an explicit true or
+      # false. Datadog.configure mutates the singleton settings before
+      # Components#state runs, so reading `enabled` would treat a customer's
+      # explicit `enabled = false` as implicitly enabled and restart DI on
+      # reconfiguration. using_default? asks "did the customer ever touch
+      # this setting", which is the right question for RC carry-over and for
+      # treating a withdrawn RC enable signal as a disable.
+      #
+      # @return [Boolean] true when the component is started and the customer
+      #   left the enabled setting at its default (RC may have started it)
+      def implicitly_enabled?
+        started? && @settings.dynamic_instrumentation.using_default?(:enabled)
+      end
+
       # Shuts down dynamic instrumentation permanently.
       #
       # Removes all code hooks and stops background threads.
