@@ -147,6 +147,19 @@ RSpec.describe "ConcurrentRuby integration tests" do
 
           expect(inner_span).to be_root_span
         end
+
+        it "keeps sequential root spans in separate traces" do
+          future = Concurrent::Promises.future do
+            tracer.trace("first_span") {}
+            tracer.trace("second_span") {}
+          end
+
+          future.wait
+
+          first_span = spans.find { |span| span.name == "first_span" }
+          second_span = spans.find { |span| span.name == "second_span" }
+          expect(first_span.trace_id).to_not eq(second_span.trace_id)
+        end
       end
     end
   end
