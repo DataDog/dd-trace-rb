@@ -83,9 +83,11 @@ RSpec.describe "partitioned installed bundle cache workflow" do
     names = steps.map { |step| step["name"] }
     batches = steps.find { |step| step["name"] == "Distribute tasks into batches" }
     grouped = steps.find { |step| step["name"] == "Prepare partitioned installed bundle caches" }
+    summary = steps.find { |step| step["name"] == "Generate batch summary" }
 
     expect(batches.fetch("run")).to include("rake -f tasks/github.rake")
     expect(batches.fetch("run")).not_to include("bundle exec")
+    expect(summary.fetch("run")).to eq("rake -f tasks/github.rake github:generate_batch_summary")
     expect(names.index("Distribute tasks into batches")).to be < names.index(grouped.fetch("name"))
     expect(grouped.fetch("with")).to include(
       "standard-groups" => include("steps.set-batches.outputs.batches"),
