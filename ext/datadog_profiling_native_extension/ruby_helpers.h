@@ -5,7 +5,7 @@
 #include "datadog_ruby_common.h"
 
 // Public since Ruby 4.0 (https://bugs.ruby-lang.org/issues/20877); older Rubies export it without a header declaration.
-// Be careful about using this in the profiler; see notes on is_current_thread_holding_the_gvl().
+// Be careful about using this in the profiler; see notes on is_current_thread_in_main_ractor_and_holding_the_gvl().
 int ruby_thread_has_gvl_p(void);
 
 // Initialize internal data needed by some ruby helpers. Should be called during start, before any actual

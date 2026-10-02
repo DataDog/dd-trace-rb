@@ -53,8 +53,29 @@
 #define PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
 #include "private_vm_api_access.h"
 
+#ifdef HAVE_RUBY_RACTOR_H
+  typedef rb_ractor_t gvl_owner_context_t;
+#else
+  typedef rb_vm_t gvl_owner_context_t;
+#endif
+
 static inline const rb_callable_method_entry_t* get_cfunc_method_entry(const rb_control_frame_t *cfp);
 static const rb_callable_method_entry_t* safe_vm_frame_method_entry(const rb_control_frame_t *cfp);
+static gvl_owner_context_t *get_gvl_owner_context(void);
+
+// Initialized once on the main ractor with the GVL held, before sampling starts; never rewritten.
+// The native context stays at the same address across GC compaction and forks from the main ractor.
+static gvl_owner_context_t *main_ractor_gvl_owner_context = NULL;
+
+void private_vm_api_access_init(void) {
+  main_ractor_gvl_owner_context = get_gvl_owner_context();
+}
+
+void private_vm_api_access_self_test(void) {
+  if (main_ractor_gvl_owner_context != get_gvl_owner_context()) {
+    rb_raise(rb_eRuntimeError, "BUG: main_ractor_gvl_owner_context changed unexpectedly");
+  }
+}
 
 // MRI has a similar rb_thread_ptr() function which we can't call it directly
 // because Ruby does not expose the thread_data_type publicly.
@@ -97,8 +118,8 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
 // I have also submitted https://bugs.ruby-lang.org/issues/19172 to discuss this with upstream Ruby developers.
 //
 // Thus we need our own gvl-checking method which actually looks at the gvl structure to determine if it is the owner.
-bool is_current_thread_holding_the_gvl(void) {
-  current_gvl_owner owner = gvl_owner();
+bool is_current_thread_in_main_ractor_and_holding_the_gvl(void) {
+  current_gvl_owner owner = main_ractor_gvl_owner();
   return owner.valid && pthread_equal(pthread_self(), owner.owner);
 }
 
@@ -112,23 +133,37 @@ static inline rb_ractor_t *ddtrace_get_ractor(void) {
 }
 #endif
 
+static gvl_owner_context_t *get_gvl_owner_context(void) {
+  if (!ddtrace_rb_ractor_main_p()) {
+    rb_raise(rb_eRuntimeError, "BUG: get_gvl_owner_context must be called from the main ractor");
+  }
+
+  #ifdef HAVE_RUBY_RACTOR_H
+    return ddtrace_get_ractor();
+  #else
+    return GET_VM();
+  #endif
+}
+
 #ifndef NO_GVL_OWNER // Ruby < 2.6 doesn't have the owner/running field
 // NOTE: Reading the owner in this is a racy read, because we're not grabbing the lock that Ruby uses to protect it.
 //
 // While we could potentially grab this lock, I (@ivoanjo) think we actually don't need it because:
-// * In the case where a thread owns the GVL and calls `gvl_owner`, it will always see the correct value. That's
+// * In the case where a thread owns the GVL and calls `main_ractor_gvl_owner`, it will always see the correct value. That's
 //   because every thread sets itself as the owner when it grabs the GVL and unsets itself at the end.
-//   That means that `is_current_thread_holding_the_gvl` is always accurate.
+//   That means that `is_current_thread_in_main_ractor_and_holding_the_gvl` is always accurate.
 // * In a case where we observe a different thread, then this may change by the time we do something with this value
 //   anyway. So unless we want to prevent the Ruby scheduler from switching threads, we need to deal with races here.
-current_gvl_owner gvl_owner(void) {
+current_gvl_owner main_ractor_gvl_owner(void) {
+  if (main_ractor_gvl_owner_context == NULL) return (current_gvl_owner) {.valid = false};
+
   const rb_thread_t *current_owner =
     #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
-      ddtrace_get_ractor()->threads.sched.running;
+      main_ractor_gvl_owner_context->threads.sched.running;
     #elif HAVE_RUBY_RACTOR_H
-      ddtrace_get_ractor()->threads.gvl.owner;
+      main_ractor_gvl_owner_context->threads.gvl.owner;
     #else
-      GET_VM()->gvl.owner;
+      main_ractor_gvl_owner_context->gvl.owner;
     #endif
 
   if (current_owner == NULL) {
@@ -149,8 +184,9 @@ current_gvl_owner gvl_owner(void) {
   #endif
 }
 #else
-current_gvl_owner gvl_owner(void) {
-  rb_vm_t *vm = GET_VM();
+current_gvl_owner main_ractor_gvl_owner(void) {
+  rb_vm_t *vm = main_ractor_gvl_owner_context;
+  if (vm == NULL) return (current_gvl_owner) {.valid = false};
 
   // BIG Issue: Ruby < 2.6 did not have the owner field. The really nice thing about the owner field is that it's
   // "atomic" -- when a thread sets it, it "declares" two things in a single step
@@ -169,15 +205,15 @@ current_gvl_owner gvl_owner(void) {
   // * Thread A sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread A`)
   // * Thread A releases the GVL (`gvl.acquired == 0` + `running_thread == Thread A`)
   // * Thread B grabs the GVL (`gvl.acquired == 1` + `running_thread == Thread A`)
-  // * Thread A calls gvl_owner. Due to the current state (`gvl.acquired == 1` + `running_thread == Thread A`), this
+  // * Thread A calls main_ractor_gvl_owner. Due to the current state (`gvl.acquired == 1` + `running_thread == Thread A`), this
   //   function returns an incorrect result.
   // * Thread B finally sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread B`)
   //
-  // This is especially problematic because we use `gvl_owner` to implement `is_current_thread_holding_the_gvl` which
+  // This is especially problematic because we use `main_ractor_gvl_owner` to implement `is_current_thread_in_main_ractor_and_holding_the_gvl` which
   // is called in a signal handler to decide "is it safe for me to call `rb_postponed_job_register_one` or not".
   // (See constraints in `collectors_cpu_and_wall_time_worker.c` comments for why).
   //
-  // Thus an incorrect `is_current_thread_holding_the_gvl` result may lead to issues inside `rb_postponed_job_register_one`.
+  // Thus an incorrect `is_current_thread_in_main_ractor_and_holding_the_gvl` result may lead to issues inside `rb_postponed_job_register_one`.
   //
   // For this reason we default to use the "no signals workaround" on Ruby 2.5 by default, and we print a
   // warning when customers force-enable it.
