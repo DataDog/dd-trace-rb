@@ -219,16 +219,23 @@ module Datadog
           end
 
           di_enabled = lib_config["dynamic_instrumentation_enabled"]
+          # allow_initialization: false because this runs on the remote-config
+          # worker thread. If components have not been built yet (e.g. during a
+          # teardown/reset window), the default would synchronously build the
+          # entire component tree from this thread. components is then nil, so
+          # every access below guards with &., matching the pattern used by
+          # DI::Remote.handle_rc_enablement in the same dispatch path.
           components = Datadog.send(:components, allow_initialization: false)
           # When the RC enable signal is withdrawn (the config carrying
           # dynamic_instrumentation_enabled is deleted, or the field is set
-          # to null), the merge yields nil rather than false. A tracer that DI
-          # started solely from the RC signal must stop and unsubscribe on
-          # withdrawal the same way it does for an explicit false; a tracer
+          # to null), the field is absent from the merged config and di_enabled
+          # is nil. A tracer whose DI was started solely by the RC signal must
+          # stop and unsubscribe on withdrawal, matching the explicit-false
+          # path; this branch maps that nil to false for such tracers. A tracer
           # the customer enabled via DD_DYNAMIC_INSTRUMENTATION_ENABLED=true
-          # is left running, since that opt-in is independent of RC.
+          # stays running, since that opt-in is independent of RC.
           if di_enabled.nil? && components&.dynamic_instrumentation&.implicitly_enabled?
-            Datadog.logger.debug { "APM_TRACING RC: dynamic_instrumentation_enabled withdrawn; treating as false" }
+            Datadog.logger.debug("APM_TRACING RC: dynamic_instrumentation_enabled withdrawn; treating as false")
             di_enabled = false
           end
 
@@ -263,12 +270,6 @@ module Datadog
             Datadog.logger.debug { "APM_TRACING RC: merged dynamic_instrumentation_enabled=#{di_enabled}" }
           end
 
-          # allow_initialization: false because this runs on the remote-config
-          # worker thread. If components haven't been built yet (e.g. during a
-          # teardown/reset window), the default value would synchronously build
-          # the entire component tree from this thread. The &. chain matches the
-          # pattern used by DI::Remote.handle_rc_enablement in the same dispatch
-          # path.
           components&.telemetry&.client_configuration_change!(env_vars)
           nil
         end
