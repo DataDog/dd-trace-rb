@@ -3,7 +3,7 @@ require "digest"
 require "fileutils"
 require "json"
 require "pathname"
-require "rbconfig"
+require "set"
 require_relative "github_matrix"
 
 class InstalledBundleCache
@@ -16,179 +16,98 @@ class InstalledBundleCache
     MAKEFLAGS
   ].freeze
   BUNDLER_SETTING_KEYS = %w[
-    cache_all
-    cache_path
     force_ruby_platform
-    frozen
-    no_prune
     only
     with
     without
   ].freeze
-  STRATEGIES = %w[full all-delta group-full group-delta].freeze
-  RESTORE_STATUSES = %w[exact partial miss].freeze
 
-  attr_reader :root, :base_gemfile, :applicable_gemfiles, :strategy, :installed_path, :group
+  attr_reader :root, :base_gemfile, :applicable_gemfiles, :installed_path, :group
 
   def initialize(
     root: Pathname.pwd,
     base_gemfile: AppraisalConversion.parent_gemfile,
     matrix: nil,
     applicable_gemfiles: nil,
-    strategy: "full",
     installed_path: "/usr/local/bundle",
     group: nil
   )
     raise ArgumentError, "Provide matrix or applicable_gemfiles, not both" if matrix && applicable_gemfiles
-    raise ArgumentError, "Unknown strategy: #{strategy}" unless STRATEGIES.include?(strategy)
 
     @root = Pathname(root).expand_path
     @base_gemfile = absolute_path(base_gemfile)
     selected_gemfiles = applicable_gemfiles || (matrix || GithubMatrix.new).gemfiles
-    @applicable_gemfiles = selected_gemfiles.map { |path| absolute_path(path) }.sort
-    @strategy = strategy
+    @applicable_gemfiles = selected_gemfiles.map { |path| absolute_path(path) }.uniq.sort
     @installed_path = Pathname(installed_path).expand_path
-    @group = normalize_group(group)
+    @group = group
   end
 
   def gemfiles
     ([base_gemfile] + applicable_gemfiles).uniq
   end
 
-  def lockfiles
-    gemfiles.map { |gemfile| lockfile_for(gemfile) }.sort
-  end
-
-  def lockfile_digest
-    digest_paths(lockfiles)
-  end
-
   def environment(image_identity:)
     {
       "bundler_settings" => bundler_settings,
       "image_identity" => image_identity,
-      "installed_path" => installed_path.to_s,
       "native_build_overrides" => native_build_overrides,
-      "rubygems_version" => Gem::VERSION,
     }
   end
 
-  def content(base_cache_key: nil, experiment_variant: nil)
-    members = content_gemfiles.flat_map do |gemfile|
-      [gemfile, lockfile_for(gemfile)]
-    end.sort.map do |path|
-      {
-        "path" => relative_path(path),
-        "sha256" => Digest::SHA256.file(path).hexdigest,
-      }
-    end
-
-    content = {"members" => members}
-    content["group"] = group if group
-    content["base_cache_key"] = required_base_cache_key(base_cache_key) if delta_strategy?
-    content["experiment_variant"] = experiment_variant unless experiment_variant.to_s.empty?
-    content
+  def content(base_cache_key:)
+    {
+      "base_cache_key" => required_base_cache_key(base_cache_key),
+      "members" => appraisal_gemfiles.flat_map do |gemfile|
+        [gemfile, lockfile_for(gemfile)]
+      end.sort.map do |path|
+        {
+          "path" => relative_path(path),
+          "sha256" => Digest::SHA256.file(path).hexdigest,
+        }
+      end,
+    }
   end
 
   def environment_digest(image_identity:)
     digest_json(environment(image_identity: image_identity))
   end
 
-  def content_digest(base_cache_key: nil, experiment_variant: nil)
-    digest_json(content(base_cache_key: base_cache_key, experiment_variant: experiment_variant))
+  def content_digest(base_cache_key:)
+    digest_json(content(base_cache_key: base_cache_key))
   end
 
-  def cache_key(cache_schema:, image_identity:, base_cache_key: nil, experiment_variant: nil)
+  def cache_key(cache_schema:, image_identity:, base_cache_key:)
     [
       cache_schema,
       environment_digest(image_identity: image_identity),
-      content_digest(base_cache_key: base_cache_key, experiment_variant: experiment_variant),
+      content_digest(base_cache_key: base_cache_key),
     ].join("-")
   end
 
-  def restore_prefix(cache_schema:, image_identity:)
-    "#{cache_schema}-#{environment_digest(image_identity: image_identity)}-"
-  end
-
-  def to_h(cache_schema:, image_identity:, base_cache_key: nil, experiment_variant: nil)
-    manifest = {
-      cache_schema: cache_schema,
-      strategy: strategy,
+  def to_h(cache_schema:, image_identity:, base_cache_key:)
+    {
       cache_key: cache_key(
         cache_schema: cache_schema,
         image_identity: image_identity,
         base_cache_key: base_cache_key,
-        experiment_variant: experiment_variant,
       ),
-      restore_prefix: restore_prefix(cache_schema: cache_schema, image_identity: image_identity),
       environment: environment(image_identity: image_identity),
-      content: content(base_cache_key: base_cache_key, experiment_variant: experiment_variant),
+      content: content(base_cache_key: base_cache_key),
       environment_digest: environment_digest(image_identity: image_identity),
-      content_digest: content_digest(base_cache_key: base_cache_key, experiment_variant: experiment_variant),
+      content_digest: content_digest(base_cache_key: base_cache_key),
       base_gemfile: relative_path(base_gemfile),
       applicable_gemfiles: applicable_gemfiles.map { |path| relative_path(path) },
       group: group,
+      cache_paths: cache_paths,
     }
-    manifest[:cache_paths] = cache_paths if strategy == "group-delta"
-    manifest
-  end
-
-  def install(jobs: 8)
-    gemfiles.each do |gemfile|
-      run_bundle(gemfile, "install", "--jobs", jobs.to_s)
-    end
-  end
-
-  def check
-    gemfiles.each do |gemfile|
-      run_bundle(gemfile, "check")
-    end
-  end
-
-  def snapshot
-    installed_entries.each_with_object({}) do |path, entries|
-      relative = path.relative_path_from(installed_path).to_s
-      entries[relative] = entry_identity(path)
-    end
-  end
-
-  def write_snapshot(path)
-    Pathname(path).write(JSON.pretty_generate(snapshot))
-  end
-
-  def extract_delta(base_snapshot_path:, destination:)
-    base_snapshot = JSON.parse(Pathname(base_snapshot_path).read)
-    destination = Pathname(destination).expand_path
-    FileUtils.rm_rf(destination)
-    FileUtils.mkdir_p(destination)
-
-    snapshot.each do |relative, identity|
-      next if base_snapshot[relative] == identity
-
-      source = installed_path.join(relative)
-      target = destination.join(relative)
-      FileUtils.mkdir_p(target.dirname)
-      FileUtils.copy_entry(source, target, true, false, true)
-    end
-  end
-
-  def prepare_full_group(base_bundle_path:, cache_path:, restore_status:, write_enabled:, jobs: 8)
-    raise ArgumentError, "group-full strategy required" unless strategy == "group-full"
-    raise ArgumentError, "Unknown restore status: #{restore_status}" unless RESTORE_STATUSES.include?(restore_status)
-    return if restore_status == "exact"
-    return if restore_status == "miss" && !write_enabled
-
-    cache_path = Pathname(cache_path).expand_path
-    reset_installed_from((restore_status == "partial") ? cache_path : base_bundle_path)
-    install(jobs: jobs)
-    check
-    reset_path_from(cache_path, installed_path) if write_enabled
   end
 
   def cache_paths
     raise ArgumentError, "cache paths require a group" unless group
 
-    base_identities = base_specifications.map { |spec| specification_package_identity(spec) }
+    base_identities = base_specifications.each_with_object(Set.new) do |spec, identities|
+      identities << specification_package_identity(spec)
+    end
     selected_specifications.reject do |spec|
       base_identities.include?(specification_package_identity(spec)) || default_specification?(spec)
     end.sort_by { |spec| specification_identity(spec) }.flat_map do |spec|
@@ -203,32 +122,44 @@ class InstalledBundleCache
 
   def prepare_partitioned_groups(groups:, base_bundle_path:, validation_path:, jobs: 8)
     reset_installed_from(base_bundle_path)
+    union_gemfiles = groups.values.flat_map do |value|
+      value.fetch("tasks").map { |task| task.fetch("gemfile") }
+    end.uniq
     InstalledBundleCache.new(
       root: root,
       base_gemfile: base_gemfile,
-      applicable_gemfiles: groups.values.flat_map { |value| value.fetch("tasks").map { |task| task.fetch("gemfile") } }.uniq,
-      strategy: strategy,
+      applicable_gemfiles: union_gemfiles,
       installed_path: installed_path,
-    ).install(jobs: jobs)
+    ).install_appraisals(jobs: jobs)
 
     groups.sort.each do |_name, value|
       group_cache = InstalledBundleCache.new(
         root: root,
         base_gemfile: base_gemfile,
         applicable_gemfiles: value.fetch("tasks").map { |task| task.fetch("gemfile") }.uniq,
-        strategy: strategy,
         installed_path: installed_path,
-        group: value,
+        group: value.fetch("name"),
       )
-      group_cache.validate_partition(base_bundle_path: base_bundle_path, validation_path: validation_path)
+      paths = group_cache.cache_paths
+      group_cache.validate_partition(
+        paths: paths,
+        base_bundle_path: base_bundle_path,
+        validation_path: validation_path,
+      )
     end
   end
 
-  def validate_partition(base_bundle_path:, validation_path:)
-    audit_cache_paths
+  def install_appraisals(jobs: 8)
+    appraisal_gemfiles.each do |gemfile|
+      run_bundle(gemfile, "install", "--jobs", jobs.to_s)
+    end
+  end
+
+  def validate_partition(paths:, base_bundle_path:, validation_path:)
+    audit_cache_paths(paths)
     validation_path = Pathname(validation_path).expand_path
     reset_path_from(validation_path, base_bundle_path)
-    copy_relative_paths(installed_path, validation_path, cache_paths)
+    copy_relative_paths(installed_path, validation_path, paths)
     gemfiles.each do |gemfile|
       run_bundle(gemfile, "check", bundle_path: validation_path)
     end
@@ -236,8 +167,8 @@ class InstalledBundleCache
     FileUtils.rm_rf(validation_path) if validation_path
   end
 
-  def audit_cache_paths
-    cache_paths.each_slice(3) do |gem_path, gemspec_path, extension_path|
+  def audit_cache_paths(paths)
+    paths.each_slice(3) do |gem_path, gemspec_path, extension_path|
       raise "Installed gemspec not found: #{gemspec_path}" unless File.file?(gemspec_path)
 
       spec = Gem::Specification.load(gemspec_path)
@@ -253,19 +184,11 @@ class InstalledBundleCache
     end
   end
 
-  def cache_statistics
-    files = cache_paths.flat_map do |path|
-      path = Pathname(path)
-      path.directory? ? path.glob("**/*", File::FNM_DOTMATCH).reject(&:directory?) : [path]
-    end.select(&:file?)
-
-    {
-      "file_count" => files.size,
-      "byte_count" => files.sum(&:size),
-    }
-  end
-
   private
+
+  def appraisal_gemfiles
+    applicable_gemfiles.reject { |gemfile| gemfile == base_gemfile }
+  end
 
   def canonical_json(value)
     case value
@@ -295,35 +218,14 @@ class InstalledBundleCache
 
   def native_build_overrides
     ENV.sort.each_with_object({}) do |(key, value), selected|
-      if BUILD_ENVIRONMENT_KEYS.include?(key) || key.start_with?("BUNDLE_BUILD__")
-        selected[key] = value
-      end
+      selected[key] = value if BUILD_ENVIRONMENT_KEYS.include?(key)
     end
   end
 
-  def content_gemfiles
-    delta_strategy? ? gemfiles.reject { |gemfile| gemfile == base_gemfile } : gemfiles
-  end
-
-  def delta_strategy?
-    %w[all-delta group-delta].include?(strategy)
-  end
-
   def required_base_cache_key(base_cache_key)
-    raise ArgumentError, "base_cache_key is required for #{strategy} strategy" if base_cache_key.to_s.empty?
+    raise ArgumentError, "base_cache_key is required" if base_cache_key.to_s.empty?
 
     base_cache_key
-  end
-
-  def normalize_group(value)
-    return unless value
-
-    {
-      "name" => value.fetch("name"),
-      "tasks" => value.fetch("tasks").map do |task|
-        task.transform_keys(&:to_s).sort.to_h
-      end.sort_by { |task| [task.fetch("task"), task.fetch("group"), task.fetch("gemfile")] },
-    }
   end
 
   def selected_specifications
@@ -358,14 +260,18 @@ class InstalledBundleCache
   end
 
   def default_specification?(spec)
-    identity = [spec.name, spec.version.to_s, spec.platform.to_s]
-    default_directory = Pathname(Gem.default_dir).expand_path
-    Gem::Specification.stubs.any? do |default_spec|
-      installed_in_default_directory = Pathname(default_spec.loaded_from).expand_path.ascend.any? do |path|
-        path == default_directory
+    default_specification_identities.include?([spec.name, spec.version.to_s, spec.platform.to_s])
+  end
+
+  def default_specification_identities
+    @default_specification_identities ||= begin
+      default_directory = Pathname(Gem.default_dir).expand_path
+      Gem::Specification.stubs.each_with_object(Set.new) do |spec, identities|
+        installed_in_default_directory = Pathname(spec.loaded_from).expand_path.ascend.any? do |path|
+          path == default_directory
+        end
+        identities << [spec.name, spec.version.to_s, spec.platform.to_s] if installed_in_default_directory
       end
-      installed_in_default_directory &&
-        identity == [default_spec.name, default_spec.version.to_s, default_spec.platform.to_s]
     end
   end
 
@@ -406,32 +312,6 @@ class InstalledBundleCache
       FileUtils.mkdir_p(target.dirname)
       FileUtils.copy_entry(source, target, true, false, true)
     end
-  end
-
-  def installed_entries
-    return [] unless installed_path.directory?
-
-    installed_path.glob("**/*", File::FNM_DOTMATCH).reject do |path|
-      [".", ".."].include?(path.basename.to_s) || path.directory?
-    end.sort
-  end
-
-  def entry_identity(path)
-    if path.symlink?
-      "symlink:#{path.readlink}"
-    else
-      "file:#{Digest::SHA256.file(path).hexdigest}"
-    end
-  end
-
-  def digest_paths(paths)
-    digest = Digest::SHA256.new
-
-    paths.each do |path|
-      digest << relative_path(path) << "\0" << File.binread(path) << "\0"
-    end
-
-    digest.hexdigest
   end
 
   def run_bundle(gemfile, *arguments, bundle_path: nil)

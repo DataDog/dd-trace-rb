@@ -1,6 +1,6 @@
-name: Prepare installed bundle group caches
+name: Prepare partitioned installed bundle caches
 
-description: Restore or build one installed bundle cache for each test batch group
+description: Compute group caches and generate missing partitions on writable runs
 
 inputs:
   base-gemfile:
@@ -13,60 +13,35 @@ inputs:
     description: Misc batch matrix JSON
     required: true
   cache-schema:
-    description: Installed bundle group cache schema and scope
+    description: Partitioned installed bundle cache schema
     required: true
   image-identity:
     description: Immutable engine image identity
     required: true
-  base-cache-key:
-    description: Exact installed base-bundle cache key
-    required: true
-  strategy:
-    description: Installed bundle group architecture
-    required: true
-  experiment-variant:
-    description: Optional content-key variant for partial-restore lifecycle tests
-    required: false
-    default: ''
   write-enabled:
-    description: Whether misses may build and save current groups
+    description: Whether missing base and group caches may be generated
     required: false
     default: "false"
 
 outputs:
+  base-cache-key:
+    description: Exact installed base bundle cache key
+    value: ${{ steps.base-key.outputs.value }}
   cache-keys:
     description: Exact installed bundle cache keys by group
     value: ${{ steps.manifest.outputs.cache-keys }}
-  restore-prefixes:
-    description: Environment-specific restore prefixes by group
-    value: ${{ steps.manifest.outputs.restore-prefixes }}
-  matched-keys:
-    description: Exact or partial cache keys restored by group
-    value: ${{ steps.matches.outputs.matched-keys }}
-  exact-hit:
-    description: Whether every exact installed bundle group was restored
-    value: ${{ steps.lifecycle.outputs.exact-hit }}
   status:
-    description: "Aggregate restore status: exact, partial, miss, or generated"
+    description: "Writer status: deferred, exact, or generated"
     value: ${{ steps.result.outputs.status }}
-  ready:
-    description: Whether every current group is available to child jobs
-    value: ${{ steps.result.outputs.ready }}
-  restore-seconds:
-    description: Aggregate group-cache restore duration
-    value: ${{ steps.restore-duration.outputs.seconds }}
+  lookup-seconds:
+    description: Writable parent lookup duration
+    value: ${{ steps.lookup-duration.outputs.seconds }}
   population-seconds:
-    description: Aggregate group population duration
+    description: Union population and partition validation duration
     value: ${{ steps.population-duration.outputs.seconds }}
   save-seconds:
-    description: Aggregate group-cache save duration
+    description: Group cache save duration
     value: ${{ steps.save-duration.outputs.seconds }}
-  byte-count:
-    description: Total uncompressed bytes across generated groups
-    value: ${{ steps.statistics.outputs.byte-count }}
-  file-count:
-    description: Total files across generated groups
-    value: ${{ steps.statistics.outputs.file-count }}
 
 runs:
   using: composite
@@ -90,342 +65,242 @@ runs:
           end
           File.write("/tmp/ddtrace-installed-bundle-groups.json", JSON.generate("groups" => groups))
         '
+    - id: ruby-environment
+      shell: bash
+      run: |
+        value=$(ruby -rrubygems -e 'puts [RUBY_DESCRIPTION, Gem.extension_api_version].join("-")')
+        echo "value=$value" >> "$GITHUB_OUTPUT"
+    - id: base-key
+      shell: bash
+      env:
+        LOCKFILE_HASH: ${{ hashFiles(format('{0}.lock', inputs.base-gemfile)) }}
+        RUBY_ENVIRONMENT: ${{ steps.ruby-environment.outputs.value }}
+      run: echo "value=bundle-$RUBY_ENVIRONMENT-$LOCKFILE_HASH" >> "$GITHUB_OUTPUT"
     - id: manifest
       name: Compute installed bundle group manifests
       shell: bash
       env:
-        BASE_CACHE_KEY: ${{ inputs.base-cache-key }}
+        BASE_CACHE_KEY: ${{ steps.base-key.outputs.value }}
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
         CACHE_SCHEMA: ${{ inputs.cache-schema }}
-        EXPERIMENT_VARIANT: ${{ inputs.experiment-variant }}
         IMAGE_IDENTITY: ${{ inputs.image-identity }}
-        STRATEGY: ${{ inputs.strategy }}
       run: |
         ruby tasks/installed_bundle_cache_cli.rb group-manifests \
           --base-gemfile "$BASE_GEMFILE" \
           --groups /tmp/ddtrace-installed-bundle-groups.json \
           --cache-schema "$CACHE_SCHEMA" \
           --image-identity "$IMAGE_IDENTITY" \
-          --base-cache-key "$BASE_CACHE_KEY" \
-          --experiment-variant "$EXPERIMENT_VARIANT" \
-          --strategy "$STRATEGY" > /tmp/ddtrace-installed-bundle-group-manifests.json
+          --base-cache-key "$BASE_CACHE_KEY" > /tmp/ddtrace-installed-bundle-group-manifests.json
         ruby -rjson -e '
           manifests = JSON.parse(File.read("/tmp/ddtrace-installed-bundle-group-manifests.json"))
           keys = manifests.transform_values { |manifest| manifest.fetch("cache_key") }
-          prefixes = manifests.transform_values { |manifest| manifest.fetch("restore_prefix") }
           File.open(ENV.fetch("GITHUB_OUTPUT"), "a") do |output|
             output.puts("cache-keys=#{JSON.generate(keys)}")
-            output.puts("restore-prefixes=#{JSON.generate(prefixes)}")
             manifests.each do |name, manifest|
               output.puts("#{name}-key=#{manifest.fetch("cache_key")}")
-              output.puts("#{name}-prefix=#{manifest.fetch("restore_prefix")}")
               delimiter = "CACHE_PATHS_#{name.upcase.tr("-", "_")}"
               output.puts("#{name}-paths<<#{delimiter}")
-              output.puts(manifest.fetch("cache_paths", []).join("\n"))
+              output.puts(manifest.fetch("cache_paths").join("\n"))
               output.puts(delimiter)
             end
           end
         '
+    - id: lookup-start
+      if: inputs.write-enabled == 'true'
+      shell: bash
+      run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
+    - id: lookup-base
+      if: inputs.write-enabled == 'true'
+      name: Look up installed base bundle
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.base-key.outputs.value }}
+        path: /usr/local/bundle
+        lookup-only: true
+    - id: lookup-standard-0
+      if: inputs.write-enabled == 'true'
+      name: Look up standard-0 installed bundle
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.manifest.outputs.standard-0-key }}
+        path: ${{ steps.manifest.outputs.standard-0-paths }}
+        lookup-only: true
+    - id: lookup-standard-1
+      if: inputs.write-enabled == 'true'
+      name: Look up standard-1 installed bundle
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.manifest.outputs.standard-1-key }}
+        path: ${{ steps.manifest.outputs.standard-1-paths }}
+        lookup-only: true
+    - id: lookup-standard-2
+      if: inputs.write-enabled == 'true'
+      name: Look up standard-2 installed bundle
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.manifest.outputs.standard-2-key }}
+        path: ${{ steps.manifest.outputs.standard-2-paths }}
+        lookup-only: true
+    - id: lookup-standard-3
+      if: inputs.write-enabled == 'true'
+      name: Look up standard-3 installed bundle
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.manifest.outputs.standard-3-key }}
+        path: ${{ steps.manifest.outputs.standard-3-paths }}
+        lookup-only: true
+    - id: lookup-standard-4
+      if: inputs.write-enabled == 'true'
+      name: Look up standard-4 installed bundle
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.manifest.outputs.standard-4-key }}
+        path: ${{ steps.manifest.outputs.standard-4-paths }}
+        lookup-only: true
+    - id: lookup-standard-5
+      if: inputs.write-enabled == 'true'
+      name: Look up standard-5 installed bundle
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.manifest.outputs.standard-5-key }}
+        path: ${{ steps.manifest.outputs.standard-5-paths }}
+        lookup-only: true
+    - id: lookup-standard-6
+      if: inputs.write-enabled == 'true'
+      name: Look up standard-6 installed bundle
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.manifest.outputs.standard-6-key }}
+        path: ${{ steps.manifest.outputs.standard-6-paths }}
+        lookup-only: true
+    - id: lookup-misc-0
+      if: inputs.write-enabled == 'true'
+      name: Look up misc-0 installed bundle
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.manifest.outputs.misc-0-key }}
+        path: ${{ steps.manifest.outputs.misc-0-paths }}
+        lookup-only: true
+    - id: lookup-duration
+      if: inputs.write-enabled == 'true'
+      shell: bash
+      env:
+        START_SECONDS: ${{ steps.lookup-start.outputs.seconds }}
+      run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"
+    - id: lifecycle
+      if: inputs.write-enabled == 'true'
+      shell: bash
+      env:
+        BASE_HIT: ${{ steps.lookup-base.outputs.cache-hit }}
+        MISC_0_HIT: ${{ steps.lookup-misc-0.outputs.cache-hit }}
+        STANDARD_0_HIT: ${{ steps.lookup-standard-0.outputs.cache-hit }}
+        STANDARD_1_HIT: ${{ steps.lookup-standard-1.outputs.cache-hit }}
+        STANDARD_2_HIT: ${{ steps.lookup-standard-2.outputs.cache-hit }}
+        STANDARD_3_HIT: ${{ steps.lookup-standard-3.outputs.cache-hit }}
+        STANDARD_4_HIT: ${{ steps.lookup-standard-4.outputs.cache-hit }}
+        STANDARD_5_HIT: ${{ steps.lookup-standard-5.outputs.cache-hit }}
+        STANDARD_6_HIT: ${{ steps.lookup-standard-6.outputs.cache-hit }}
+      run: |
+        generation_needed=false
+        for name in STANDARD_0 STANDARD_1 STANDARD_2 STANDARD_3 STANDARD_4 STANDARD_5 STANDARD_6 MISC_0; do
+          hit_name="${name}_HIT"
+          [ "${!hit_name}" = "true" ] || generation_needed=true
+        done
+        { echo "base-missing=$([ "$BASE_HIT" = "true" ] && echo false || echo true)"; echo "generation-needed=$generation_needed"; } >> "$GITHUB_OUTPUT"
+    - name: Restore installed base bundle for generation
+      if: inputs.write-enabled == 'true' && steps.lifecycle.outputs.generation-needed == 'true' && steps.lifecycle.outputs.base-missing != 'true'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.base-key.outputs.value }}
+        path: /usr/local/bundle
+        fail-on-cache-miss: true
+    - name: Install missing base bundle
+      if: steps.lifecycle.outputs.base-missing == 'true'
+      shell: bash
+      run: bundle install
+    - name: Save installed base bundle
+      if: steps.lifecycle.outputs.base-missing == 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.base-key.outputs.value }}
+        path: /usr/local/bundle
     - name: Preserve installed base bundle
+      if: steps.lifecycle.outputs.generation-needed == 'true'
       shell: bash
       run: |
         rm -rf /tmp/ddtrace-installed-base-bundle
         mkdir -p /tmp/ddtrace-installed-base-bundle
         cp -a /usr/local/bundle/. /tmp/ddtrace-installed-base-bundle/
-    - id: restore-start
-      shell: bash
-      run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
-    - id: restore-standard-0
-      name: Restore standard-0 installed bundle
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        key: ${{ steps.manifest.outputs.standard-0-key }}
-        restore-keys: ${{ steps.manifest.outputs.standard-0-prefix }}
-        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-0-paths || '/tmp/ddtrace-installed-bundle-groups/standard-0' }}
-        lookup-only: ${{ inputs.strategy == 'group-delta' }}
-    - id: restore-standard-1
-      name: Restore standard-1 installed bundle
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        key: ${{ steps.manifest.outputs.standard-1-key }}
-        restore-keys: ${{ steps.manifest.outputs.standard-1-prefix }}
-        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-1-paths || '/tmp/ddtrace-installed-bundle-groups/standard-1' }}
-        lookup-only: ${{ inputs.strategy == 'group-delta' }}
-    - id: restore-standard-2
-      name: Restore standard-2 installed bundle
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        key: ${{ steps.manifest.outputs.standard-2-key }}
-        restore-keys: ${{ steps.manifest.outputs.standard-2-prefix }}
-        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-2-paths || '/tmp/ddtrace-installed-bundle-groups/standard-2' }}
-        lookup-only: ${{ inputs.strategy == 'group-delta' }}
-    - id: restore-standard-3
-      name: Restore standard-3 installed bundle
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        key: ${{ steps.manifest.outputs.standard-3-key }}
-        restore-keys: ${{ steps.manifest.outputs.standard-3-prefix }}
-        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-3-paths || '/tmp/ddtrace-installed-bundle-groups/standard-3' }}
-        lookup-only: ${{ inputs.strategy == 'group-delta' }}
-    - id: restore-standard-4
-      name: Restore standard-4 installed bundle
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        key: ${{ steps.manifest.outputs.standard-4-key }}
-        restore-keys: ${{ steps.manifest.outputs.standard-4-prefix }}
-        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-4-paths || '/tmp/ddtrace-installed-bundle-groups/standard-4' }}
-        lookup-only: ${{ inputs.strategy == 'group-delta' }}
-    - id: restore-standard-5
-      name: Restore standard-5 installed bundle
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        key: ${{ steps.manifest.outputs.standard-5-key }}
-        restore-keys: ${{ steps.manifest.outputs.standard-5-prefix }}
-        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-5-paths || '/tmp/ddtrace-installed-bundle-groups/standard-5' }}
-        lookup-only: ${{ inputs.strategy == 'group-delta' }}
-    - id: restore-standard-6
-      name: Restore standard-6 installed bundle
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        key: ${{ steps.manifest.outputs.standard-6-key }}
-        restore-keys: ${{ steps.manifest.outputs.standard-6-prefix }}
-        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-6-paths || '/tmp/ddtrace-installed-bundle-groups/standard-6' }}
-        lookup-only: ${{ inputs.strategy == 'group-delta' }}
-    - id: restore-misc-0
-      name: Restore misc-0 installed bundle
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        key: ${{ steps.manifest.outputs.misc-0-key }}
-        restore-keys: ${{ steps.manifest.outputs.misc-0-prefix }}
-        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.misc-0-paths || '/tmp/ddtrace-installed-bundle-groups/misc-0' }}
-        lookup-only: ${{ inputs.strategy == 'group-delta' }}
-    - id: restore-duration
-      shell: bash
-      env:
-        START_SECONDS: ${{ steps.restore-start.outputs.seconds }}
-      run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"
-    - id: matches
-      shell: bash
-      env:
-        MISC_0: ${{ steps.restore-misc-0.outputs.cache-matched-key }}
-        STANDARD_0: ${{ steps.restore-standard-0.outputs.cache-matched-key }}
-        STANDARD_1: ${{ steps.restore-standard-1.outputs.cache-matched-key }}
-        STANDARD_2: ${{ steps.restore-standard-2.outputs.cache-matched-key }}
-        STANDARD_3: ${{ steps.restore-standard-3.outputs.cache-matched-key }}
-        STANDARD_4: ${{ steps.restore-standard-4.outputs.cache-matched-key }}
-        STANDARD_5: ${{ steps.restore-standard-5.outputs.cache-matched-key }}
-        STANDARD_6: ${{ steps.restore-standard-6.outputs.cache-matched-key }}
-      run: |
-        ruby -rjson -e '
-          keys = ENV.each_with_object({}) do |(name, value), selected|
-            next unless name.match?(/\A(?:STANDARD_[0-6]|MISC_0)\z/)
-            selected[name.downcase.tr("_", "-")] = value
-          end
-          File.open(ENV.fetch("GITHUB_OUTPUT"), "a") do |output|
-            output.puts("matched-keys=#{JSON.generate(keys)}")
-          end
-        '
-    - id: lifecycle
-      shell: bash
-      env:
-        MISC_0_HIT: ${{ steps.restore-misc-0.outputs.cache-hit }}
-        MISC_0_MATCH: ${{ steps.restore-misc-0.outputs.cache-matched-key }}
-        STANDARD_0_HIT: ${{ steps.restore-standard-0.outputs.cache-hit }}
-        STANDARD_0_MATCH: ${{ steps.restore-standard-0.outputs.cache-matched-key }}
-        STANDARD_1_HIT: ${{ steps.restore-standard-1.outputs.cache-hit }}
-        STANDARD_1_MATCH: ${{ steps.restore-standard-1.outputs.cache-matched-key }}
-        STANDARD_2_HIT: ${{ steps.restore-standard-2.outputs.cache-hit }}
-        STANDARD_2_MATCH: ${{ steps.restore-standard-2.outputs.cache-matched-key }}
-        STANDARD_3_HIT: ${{ steps.restore-standard-3.outputs.cache-hit }}
-        STANDARD_3_MATCH: ${{ steps.restore-standard-3.outputs.cache-matched-key }}
-        STANDARD_4_HIT: ${{ steps.restore-standard-4.outputs.cache-hit }}
-        STANDARD_4_MATCH: ${{ steps.restore-standard-4.outputs.cache-matched-key }}
-        STANDARD_5_HIT: ${{ steps.restore-standard-5.outputs.cache-hit }}
-        STANDARD_5_MATCH: ${{ steps.restore-standard-5.outputs.cache-matched-key }}
-        STANDARD_6_HIT: ${{ steps.restore-standard-6.outputs.cache-hit }}
-        STANDARD_6_MATCH: ${{ steps.restore-standard-6.outputs.cache-matched-key }}
-      run: |
-        aggregate=exact
-        for name in STANDARD_0 STANDARD_1 STANDARD_2 STANDARD_3 STANDARD_4 STANDARD_5 STANDARD_6 MISC_0; do
-          hit_name="${name}_HIT"
-          match_name="${name}_MATCH"
-          hit="${!hit_name}"
-          match="${!match_name}"
-          if [ "$hit" = "true" ]; then
-            status=exact
-          elif [ -n "$match" ]; then
-            status=partial
-            [ "$aggregate" = "exact" ] && aggregate=partial
-          else
-            status=miss
-            aggregate=miss
-          fi
-          output_name=$(echo "$name" | tr '[:upper:]_' '[:lower:]-')
-          echo "$output_name-status=$status" >> "$GITHUB_OUTPUT"
-        done
-        exact_hit=false
-        [ "$aggregate" = "exact" ] && exact_hit=true
-        { echo "status=$aggregate"; echo "exact-hit=$exact_hit"; } >> "$GITHUB_OUTPUT"
     - id: population-start
-      if: steps.lifecycle.outputs.status != 'exact'
+      if: steps.lifecycle.outputs.generation-needed == 'true'
       shell: bash
       run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
-    - name: Prepare standard-0 installed bundle
-      if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-0-status != 'exact'
-      shell: bash
-      env:
-        BASE_GEMFILE: ${{ inputs.base-gemfile }}
-        RESTORE_STATUS: ${{ steps.lifecycle.outputs.standard-0-status }}
-        STRATEGY: ${{ inputs.strategy }}
-        WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-full-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-0 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-0 --base-bundle-path /tmp/ddtrace-installed-base-bundle --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
-    - name: Prepare standard-1 installed bundle
-      if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-1-status != 'exact'
-      shell: bash
-      env:
-        BASE_GEMFILE: ${{ inputs.base-gemfile }}
-        RESTORE_STATUS: ${{ steps.lifecycle.outputs.standard-1-status }}
-        STRATEGY: ${{ inputs.strategy }}
-        WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-full-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-1 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-1 --base-bundle-path /tmp/ddtrace-installed-base-bundle --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
-    - name: Prepare standard-2 installed bundle
-      if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-2-status != 'exact'
-      shell: bash
-      env:
-        BASE_GEMFILE: ${{ inputs.base-gemfile }}
-        RESTORE_STATUS: ${{ steps.lifecycle.outputs.standard-2-status }}
-        STRATEGY: ${{ inputs.strategy }}
-        WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-full-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-2 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-2 --base-bundle-path /tmp/ddtrace-installed-base-bundle --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
-    - name: Prepare standard-3 installed bundle
-      if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-3-status != 'exact'
-      shell: bash
-      env:
-        BASE_GEMFILE: ${{ inputs.base-gemfile }}
-        RESTORE_STATUS: ${{ steps.lifecycle.outputs.standard-3-status }}
-        STRATEGY: ${{ inputs.strategy }}
-        WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-full-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-3 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-3 --base-bundle-path /tmp/ddtrace-installed-base-bundle --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
-    - name: Prepare standard-4 installed bundle
-      if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-4-status != 'exact'
-      shell: bash
-      env:
-        BASE_GEMFILE: ${{ inputs.base-gemfile }}
-        RESTORE_STATUS: ${{ steps.lifecycle.outputs.standard-4-status }}
-        STRATEGY: ${{ inputs.strategy }}
-        WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-full-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-4 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-4 --base-bundle-path /tmp/ddtrace-installed-base-bundle --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
-    - name: Prepare standard-5 installed bundle
-      if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-5-status != 'exact'
-      shell: bash
-      env:
-        BASE_GEMFILE: ${{ inputs.base-gemfile }}
-        RESTORE_STATUS: ${{ steps.lifecycle.outputs.standard-5-status }}
-        STRATEGY: ${{ inputs.strategy }}
-        WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-full-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-5 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-5 --base-bundle-path /tmp/ddtrace-installed-base-bundle --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
-    - name: Prepare standard-6 installed bundle
-      if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.standard-6-status != 'exact'
-      shell: bash
-      env:
-        BASE_GEMFILE: ${{ inputs.base-gemfile }}
-        RESTORE_STATUS: ${{ steps.lifecycle.outputs.standard-6-status }}
-        STRATEGY: ${{ inputs.strategy }}
-        WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-full-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group standard-6 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/standard-6 --base-bundle-path /tmp/ddtrace-installed-base-bundle --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
-    - name: Prepare misc-0 installed bundle
-      if: inputs.strategy == 'group-full' && steps.lifecycle.outputs.misc-0-status != 'exact'
-      shell: bash
-      env:
-        BASE_GEMFILE: ${{ inputs.base-gemfile }}
-        RESTORE_STATUS: ${{ steps.lifecycle.outputs.misc-0-status }}
-        STRATEGY: ${{ inputs.strategy }}
-        WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-full-group --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --group misc-0 --strategy "$STRATEGY" --cache-path /tmp/ddtrace-installed-bundle-groups/misc-0 --base-bundle-path /tmp/ddtrace-installed-base-bundle --restore-status "$RESTORE_STATUS" --write-enabled "$WRITE_ENABLED" --jobs 8
     - name: Prepare partitioned installed bundle groups
-      if: inputs.strategy == 'group-delta' && steps.lifecycle.outputs.status != 'exact' && inputs.write-enabled == 'true'
+      if: steps.lifecycle.outputs.generation-needed == 'true'
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
-        STRATEGY: ${{ inputs.strategy }}
-      run: ruby tasks/installed_bundle_cache_cli.rb prepare-partitioned-groups --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --strategy "$STRATEGY" --base-bundle-path /tmp/ddtrace-installed-base-bundle --validation-path /tmp/ddtrace-installed-bundle-validation --jobs 8
+      run: ruby tasks/installed_bundle_cache_cli.rb prepare-partitioned-groups --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --base-bundle-path /tmp/ddtrace-installed-base-bundle --validation-path /tmp/ddtrace-installed-bundle-validation --jobs 8
     - id: population-duration
-      if: steps.lifecycle.outputs.status != 'exact'
+      if: steps.lifecycle.outputs.generation-needed == 'true'
       shell: bash
       env:
         START_SECONDS: ${{ steps.population-start.outputs.seconds }}
       run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"
-    - id: statistics
-      if: inputs.write-enabled == 'true' && steps.lifecycle.outputs.status != 'exact'
-      name: Measure installed bundle groups
-      shell: bash
-      env:
-        BASE_GEMFILE: ${{ inputs.base-gemfile }}
-        STRATEGY: ${{ inputs.strategy }}
-      run: |
-        if [ "$STRATEGY" = "group-delta" ]; then
-          statistics=$(ruby tasks/installed_bundle_cache_cli.rb group-statistics --base-gemfile "$BASE_GEMFILE" --groups /tmp/ddtrace-installed-bundle-groups.json --strategy "$STRATEGY")
-          file_count=$(echo "$statistics" | ruby -rjson -e 'puts JSON.parse(STDIN.read).fetch("file_count")')
-          byte_count=$(echo "$statistics" | ruby -rjson -e 'puts JSON.parse(STDIN.read).fetch("byte_count")')
-        else
-          file_count=$(find /tmp/ddtrace-installed-bundle-groups -type f | wc -l | tr -d ' ')
-          byte_count=$(du -sb /tmp/ddtrace-installed-bundle-groups | cut -f1)
-        fi
-        { echo "file-count=$file_count"; echo "byte-count=$byte_count"; } >> "$GITHUB_OUTPUT"
     - id: save-start
-      if: inputs.write-enabled == 'true' && steps.lifecycle.outputs.status != 'exact'
+      if: steps.lifecycle.outputs.generation-needed == 'true'
       shell: bash
       run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
     - name: Save standard-0 installed bundle
-      if: inputs.write-enabled == 'true' && steps.restore-standard-0.outputs.cache-hit != 'true'
+      if: steps.lifecycle.outputs.generation-needed == 'true' && steps.lookup-standard-0.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-0-key }}
-        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-0-paths || '/tmp/ddtrace-installed-bundle-groups/standard-0' }}
+        path: ${{ steps.manifest.outputs.standard-0-paths }}
     - name: Save standard-1 installed bundle
-      if: inputs.write-enabled == 'true' && steps.restore-standard-1.outputs.cache-hit != 'true'
+      if: steps.lifecycle.outputs.generation-needed == 'true' && steps.lookup-standard-1.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-1-key }}
-        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-1-paths || '/tmp/ddtrace-installed-bundle-groups/standard-1' }}
+        path: ${{ steps.manifest.outputs.standard-1-paths }}
     - name: Save standard-2 installed bundle
-      if: inputs.write-enabled == 'true' && steps.restore-standard-2.outputs.cache-hit != 'true'
+      if: steps.lifecycle.outputs.generation-needed == 'true' && steps.lookup-standard-2.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-2-key }}
-        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-2-paths || '/tmp/ddtrace-installed-bundle-groups/standard-2' }}
+        path: ${{ steps.manifest.outputs.standard-2-paths }}
     - name: Save standard-3 installed bundle
-      if: inputs.write-enabled == 'true' && steps.restore-standard-3.outputs.cache-hit != 'true'
+      if: steps.lifecycle.outputs.generation-needed == 'true' && steps.lookup-standard-3.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-3-key }}
-        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-3-paths || '/tmp/ddtrace-installed-bundle-groups/standard-3' }}
+        path: ${{ steps.manifest.outputs.standard-3-paths }}
     - name: Save standard-4 installed bundle
-      if: inputs.write-enabled == 'true' && steps.restore-standard-4.outputs.cache-hit != 'true'
+      if: steps.lifecycle.outputs.generation-needed == 'true' && steps.lookup-standard-4.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-4-key }}
-        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-4-paths || '/tmp/ddtrace-installed-bundle-groups/standard-4' }}
+        path: ${{ steps.manifest.outputs.standard-4-paths }}
     - name: Save standard-5 installed bundle
-      if: inputs.write-enabled == 'true' && steps.restore-standard-5.outputs.cache-hit != 'true'
+      if: steps.lifecycle.outputs.generation-needed == 'true' && steps.lookup-standard-5.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-5-key }}
-        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-5-paths || '/tmp/ddtrace-installed-bundle-groups/standard-5' }}
+        path: ${{ steps.manifest.outputs.standard-5-paths }}
     - name: Save standard-6 installed bundle
-      if: inputs.write-enabled == 'true' && steps.restore-standard-6.outputs.cache-hit != 'true'
+      if: steps.lifecycle.outputs.generation-needed == 'true' && steps.lookup-standard-6.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.standard-6-key }}
-        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.standard-6-paths || '/tmp/ddtrace-installed-bundle-groups/standard-6' }}
+        path: ${{ steps.manifest.outputs.standard-6-paths }}
     - name: Save misc-0 installed bundle
-      if: inputs.write-enabled == 'true' && steps.restore-misc-0.outputs.cache-hit != 'true'
+      if: steps.lifecycle.outputs.generation-needed == 'true' && steps.lookup-misc-0.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.misc-0-key }}
-        path: ${{ inputs.strategy == 'group-delta' && steps.manifest.outputs.misc-0-paths || '/tmp/ddtrace-installed-bundle-groups/misc-0' }}
+        path: ${{ steps.manifest.outputs.misc-0-paths }}
     - id: save-duration
-      if: inputs.write-enabled == 'true' && steps.lifecycle.outputs.status != 'exact'
+      if: steps.lifecycle.outputs.generation-needed == 'true'
       shell: bash
       env:
         START_SECONDS: ${{ steps.save-start.outputs.seconds }}
@@ -433,15 +308,15 @@ runs:
     - id: result
       shell: bash
       env:
-        INITIAL_STATUS: ${{ steps.lifecycle.outputs.status }}
+        BASE_MISSING: ${{ steps.lifecycle.outputs.base-missing }}
+        GENERATION_NEEDED: ${{ steps.lifecycle.outputs.generation-needed }}
         WRITE_ENABLED: ${{ inputs.write-enabled }}
       run: |
-        status="$INITIAL_STATUS"
-        ready=false
-        if [ "$status" = "exact" ]; then
-          ready=true
-        elif [ "$WRITE_ENABLED" = "true" ]; then
-          status=generated
-          ready=true
+        status=deferred
+        if [ "$WRITE_ENABLED" = "true" ]; then
+          status=exact
+          if [ "$BASE_MISSING" = "true" ] || [ "$GENERATION_NEEDED" = "true" ]; then
+            status=generated
+          fi
         fi
-        { echo "status=$status"; echo "ready=$ready"; } >> "$GITHUB_OUTPUT"
+        echo "status=$status" >> "$GITHUB_OUTPUT"
