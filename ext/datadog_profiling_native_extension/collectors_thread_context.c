@@ -1689,10 +1689,11 @@ static VALUE thread_list(thread_context_collector_state *state) {
 // the current thread.
 //
 // This function also gets called from the GC-finish hook when the signal handler interrupted GC and we had to wait
-// until GC was at its end before preparing the sample. In that situation it gets called from outside a signal handler.
+// until GC was at its end before preparing the sample. In that situation it gets called from outside a signal handler,
+// with `during_sample` set to prevent reentrancy.
 //
 // Assumptions for this function are same as for `thread_context_collector_sample` except that this function is
-// expected to be called from a signal handler and to be async-signal-safe, and `during_sample` MUST be unset.
+// expected to be async-signal-safe. When called from a signal handler, `during_sample` MUST be unset.
 //
 // Also, no allocation (Ruby or malloc) can happen.
 bool thread_context_collector_prepare_sample_inside_signal_handler(void) {
