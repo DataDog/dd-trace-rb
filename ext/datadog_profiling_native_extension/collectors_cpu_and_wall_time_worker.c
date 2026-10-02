@@ -734,6 +734,9 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception, const char *opt
 // NOTE: Remember that this will run in the thread and within the scope of user code, including user C code.
 // We need to be careful not to change any state that may be observed OR to restore it if we do. For instance, if anything
 // we do here can set `errno`, then we must be careful to restore the old `errno` after the fact.
+//
+// Neither this handler nor its callees may dereference Ruby objects before confirming GVL ownership or during GC.
+// Holding the GVL is not enough: we may have interrupted GC itself, with Ruby heap pages protected by compaction.
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, void *ucontext) {
   // If we're running on the alternate signal stack, we've interrupted another signal handler that's running
   // there -- in practice, Ruby's GC compaction read-barrier handler.
@@ -750,6 +753,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   if (
     !ruby_native_thread_p() || // Not a Ruby thread
     !is_current_thread_holding_the_gvl(gvl_owner_context) || // Not safe to enqueue a sample from this thread
+    // TODO: On Ruby 3.3+ this dereferences the Ruby Thread object, including when GC is in progress.
     !ddtrace_rb_ractor_main_p() // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   ) return;
 
@@ -779,6 +783,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
       //
       // When GC profiling is disabled, we just fall back to sampling the stack after GC finishes, e.g. it's the
       // equivalent of disabling `sample_from_signal_handler` for samples that happen during GC.
+      // TODO: Looking up the per-thread context also dereferences the Ruby Thread object during GC.
       thread_context_collector_request_prepare_on_gc_finish();
     } else {
       // Buffer current stack trace. Note that this will not actually record the sample, for that we still need to wait
