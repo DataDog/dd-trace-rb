@@ -90,6 +90,8 @@ RSpec.describe "installed bundle cache workflow" do
       "gemfiles/{0}-{1}.gemfile",
       "inputs.installed-cache-enabled",
     )
+    expect(batches.fetch("run")).to include("rake -f tasks/github.rake")
+    expect(batches.fetch("run")).not_to include("bundle exec")
   end
 
   it "restores one exact union in each ready child" do

@@ -91,9 +91,9 @@ jobs:
           FALLBACK_GEMFILE: ${{ inputs.installed-cache-enabled && format('gemfiles/{0}-{1}.gemfile', inputs.engine, inputs.version) || '' }}
         run: |
           if [ -n "$FALLBACK_GEMFILE" ]; then
-            data=$(bundle exec rake "github:generate_batches[$FALLBACK_GEMFILE]")
+            data=$(rake -f tasks/github.rake "github:generate_batches[$FALLBACK_GEMFILE]")
           else
-            data=$(bundle exec rake github:generate_batches)
+            data=$(rake -f tasks/github.rake github:generate_batches)
           fi
           echo "$data" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
 
